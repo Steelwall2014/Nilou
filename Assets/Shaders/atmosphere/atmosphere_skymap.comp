@@ -1,0 +1,26 @@
+#version 430 core
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+#include "../include/unit_definitions.incl"
+#include "atmosphere_definitions.incl"
+#include "atmosphere_functions.incl"
+
+uniform vec3 SunLightDir;
+uniform vec2 SkyMapSize;
+uniform sampler2D TransmittanceLUT;
+uniform sampler3D SingleScatteringRayleighLUT;
+uniform sampler3D SingleScatteringMieLUT;
+
+layout (rgba32f, binding=0) uniform image2D SkyMap;
+
+
+
+void main()
+{
+    vec3 sun_direction = -normalize(SunLightDir);
+    vec2 xy = (vec2(gl_GlobalInvocationID.xy)+vec2(0.5)) / SkyMapSize;
+    vec3 v = GetViewVectorFromUV(xy);
+    vec3 color = GetSkyColor(ATMOSPHERE, TransmittanceLUT, SingleScatteringRayleighLUT, SingleScatteringMieLUT, -earth_center.z, v, 0, sun_direction, ATMOSPHERE.sun_angular_radius);
+//	color = hdr(color, 10);
+    imageStore(SkyMap, ivec2(gl_GlobalInvocationID), vec4(color, 1.0f));
+}

@@ -1,0 +1,113 @@
+#version 430
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include "../include/MinMaxLODNum.incl"
+#include "../include/WorldLODParam.incl"
+
+layout(std430, binding=0) readonly buffer NodeIDs_TempA_Buffer{
+    uvec2 NodeIDs_TempA[];
+};
+layout(std430, binding=1) writeonly buffer NodeIDs_TempB_Buffer{
+    uvec2 NodeIDs_TempB[];
+};
+layout(std430, binding=2) writeonly buffer NodeIDs_Final_Buffer{
+    // 这里不用uvec3为了规避内存对齐的问题：在c++里面uvec3数组是紧密排列的，glsl里uvec3数组会填充一个uint的大小
+    uint NodeIDs_Final[];
+};
+//layout(std430, binding=3) buffer NodeIndex{
+//    atomic_uint index_A;
+//    uint index_B;
+//    uint index_Final;
+//};
+layout(binding = 3) uniform atomic_uint index_B;
+layout(binding = 4) uniform atomic_uint index_Final;
+layout(std430, binding=5) readonly buffer LODParams_Buffer{
+    WorldLODParam LODParams[];
+};
+layout(std430, binding=6) writeonly buffer NodeDescription_Buffer{
+    uint NodeDevided[];
+};
+
+uniform uint MaxLOD;
+uniform uint PassLOD;
+uniform vec3 cameraPos;
+
+uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
+
+#include "../include/FrustumCull.incl"
+
+uint fromNodeLoctoNodeDescriptionIndex(uvec2 nodeLoc, uint lod, const WorldLODParam param)
+{
+    return param.NodeDescriptionIndexOffset + nodeLoc.x * param.NodeSideNum + nodeLoc.y;
+}
+float GetNodeSize(uint lod)
+{
+    return LODParams[lod].NodeMeterSize;
+}
+vec3 GetNodePositionWS(uvec2 nodeLoc, uint lod)
+{
+    vec2 xy_center_coord = (vec2(nodeLoc) + vec2(0.5)) * LODParams[lod].NodeMeterSize;
+    vec2 uv = (vec2(nodeLoc) + vec2(0.5)) / float(LODParams[lod].NodeSideNum);
+    vec2 minmax = texture2D(MinMaxMap[lod+3], uv).rg;
+    float height = (minmax.r + minmax.g) / 2;
+    return vec3(xy_center_coord, height);
+}
+bool EvaluateNode(uvec2 nodeLoc, uint lod){
+    vec3 positionWS = GetNodePositionWS(nodeLoc, lod);
+    float dis = distance(cameraPos, positionWS);
+    float nodeSize = GetNodeSize(lod);
+    float f = dis / (nodeSize * 1.5);
+    if (f < 1) 
+        return true;
+    return false;
+}
+
+void main()
+{
+    uvec2 nodeLoc;
+    if (PassLOD == MaxLOD)
+    {
+        uint i = gl_GlobalInvocationID.x / LODParams[PassLOD].NodeSideNum;
+        uint j = gl_GlobalInvocationID.x % LODParams[PassLOD].NodeSideNum;
+        nodeLoc = uvec2(i, j);//NodeIDs_TempA[gl_GlobalInvocationID.x];
+    }
+    else
+    {
+        nodeLoc = NodeIDs_TempA[gl_GlobalInvocationID.x];
+    }
+    uint index = fromNodeLoctoNodeDescriptionIndex(nodeLoc, PassLOD, LODParams[PassLOD]);
+    if(PassLOD > 0 && EvaluateNode(nodeLoc, PassLOD)){
+        //divide
+        uint i = atomicCounterIncrement(index_B);
+        NodeIDs_TempB[i] = nodeLoc * 2;
+        i = atomicCounterIncrement(index_B);
+        NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(1,0);
+        i = atomicCounterIncrement(index_B);
+        NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(0,1);
+        i = atomicCounterIncrement(index_B);
+        NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(1,1);
+        NodeDevided[index] = 1;
+    }
+    else
+    {
+        // 曾经尝试对提前对Node进行剪裁，但是似乎帧率还不如在后面对patch剪裁
+        NodeDevided[index] = 0;
+
+//        vec2 uv = (vec2(nodeLoc) + vec2(0.5)) / float(LODParams[PassLOD].NodeSideNum);
+//        vec2 MinMax = texture2D(MinMaxMap[PassLOD+3], uv).rg;
+//        vec2 upper_left = vec2(nodeLoc) * LODParams[PassLOD].NodeMeterSize;
+//        vec2 lower_right = upper_left + vec2(LODParams[PassLOD].NodeMeterSize);
+//        vec3 box[8];
+//        CreateBox(upper_left, lower_right, MinMax, box);
+//        if (FrustumCull(box))
+//            return;
+        
+        uint i = atomicCounterIncrement(index_Final);
+        NodeIDs_Final[i*3] = nodeLoc.x;
+        NodeIDs_Final[i*3+1] = nodeLoc.y;
+        NodeIDs_Final[i*3+2] = PassLOD;
+        
+//        NodeIDs_Final[i] = uvec3(nodeLoc, PassLOD);
+    }
+//    NodeIDs_Final[gl_GlobalInvocationID.x] = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.x, gl_GlobalInvocationID.x);
+}

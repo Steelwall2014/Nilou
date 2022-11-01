@@ -1,0 +1,85 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+    
+uniform sampler2D TransmittanceLUT;
+layout (rgba32f, binding=0) uniform image3D SingleScatteringRayleighLUT;
+layout (rgba32f, binding=1) uniform image3D SingleScatteringMieLUT;
+layout (rgba32f, binding=2) uniform image3D MultiScatteringLUT;
+
+#include "../include/unit_definitions.incl"
+#include "atmosphere_definitions.incl"
+#include "atmosphere_functions.incl"
+
+
+void ComputeSingleScatteringIntegrand(
+    AtmosphereParameters atmosphere,
+    TransmittanceTexture transmittance_texture,
+    Length r, Number mu, Number mu_s, Number nu, Length d,
+    bool ray_r_mu_intersects_ground,
+    out DimensionlessSpectrum rayleigh, out DimensionlessSpectrum mie) {
+  Length r_d = ClampRadius(atmosphere, SafeSqrt(d * d + 2.0 * r * mu * d + r * r));
+  Number mu_s_d = ClampCosine((r * mu_s + d * nu) / r_d);
+  DimensionlessSpectrum transmittance =
+      GetTransmittance(
+          atmosphere, transmittance_texture, r, mu, d,
+          ray_r_mu_intersects_ground) *
+      GetTransmittanceToSun(
+          atmosphere, transmittance_texture, r_d, mu_s_d);
+  rayleigh = transmittance * GetProfileDensity(
+      atmosphere.rayleigh_density, r_d - atmosphere.bottom_radius);
+  mie = transmittance * GetProfileDensity(
+      atmosphere.mie_density, r_d - atmosphere.bottom_radius);
+}
+
+void ComputeSingleScattering(
+    AtmosphereParameters atmosphere,
+    TransmittanceTexture transmittance_texture,
+    Length r, Number mu, Number mu_s, Number nu,
+    bool ray_r_mu_intersects_ground,
+    out IrradianceSpectrum rayleigh, out IrradianceSpectrum mie) {
+
+  // Number of intervals for the numerical integration.
+  const int SAMPLE_COUNT = 50;
+  // The integration step, i.e. the length of each integration interval.
+  Length dx =
+      DistanceToNearestAtmosphereBoundary(atmosphere, r, mu,
+          ray_r_mu_intersects_ground) / Number(SAMPLE_COUNT);
+  // Integration loop.
+  DimensionlessSpectrum rayleigh_sum = DimensionlessSpectrum(0.0);
+  DimensionlessSpectrum mie_sum = DimensionlessSpectrum(0.0);
+  for (int i = 0; i <= SAMPLE_COUNT; ++i) {
+    Length d_i = Number(i) * dx;
+    // The Rayleigh and Mie single scattering at the current sample point.
+    DimensionlessSpectrum rayleigh_i;
+    DimensionlessSpectrum mie_i;
+    ComputeSingleScatteringIntegrand(atmosphere, transmittance_texture,
+        r, mu, mu_s, nu, d_i, ray_r_mu_intersects_ground, rayleigh_i, mie_i);
+    // Sample weight (from the trapezoidal rule).
+    Number weight_i = (i == 0 || i == SAMPLE_COUNT) ? 0.5 : 1.0;
+    rayleigh_sum += rayleigh_i * weight_i;
+    mie_sum += mie_i * weight_i;
+  }
+  rayleigh = rayleigh_sum * dx * atmosphere.solar_irradiance *
+      atmosphere.rayleigh_scattering;
+  mie = mie_sum * dx * atmosphere.solar_irradiance * atmosphere.mie_scattering;
+}
+
+
+void main()
+{
+    IrradianceSpectrum rayleigh, mie;
+    vec3 frag_coord = vec3(gl_GlobalInvocationID) + vec3(0.5);
+//    ComputeSingleScatteringTexture(ATMOSPHERE, TransmittanceLUT, frag_coord, rayleigh, mie);
+    Length r;
+    Number mu;
+    Number mu_s;
+    Number nu;
+    bool ray_r_mu_intersects_ground;
+    GetRMuMuSNuFromScatteringTextureFragCoord(ATMOSPHERE, frag_coord,
+        r, mu, mu_s, nu, ray_r_mu_intersects_ground);
+    ComputeSingleScattering(ATMOSPHERE, TransmittanceLUT,
+        r, mu, mu_s, nu, ray_r_mu_intersects_ground, rayleigh, mie);
+    imageStore(SingleScatteringRayleighLUT, ivec3(gl_GlobalInvocationID), vec4(rayleigh, 0));
+    imageStore(SingleScatteringMieLUT, ivec3(gl_GlobalInvocationID), vec4(mie, 0));
+    imageStore(MultiScatteringLUT, ivec3(gl_GlobalInvocationID), vec4(rayleigh, 0));
+}

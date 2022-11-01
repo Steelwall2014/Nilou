@@ -1,0 +1,19 @@
+{
+    "xmake.additionalConfigArguments": "--cc=clang-cl --cxx=clang-cl",
+    "C_Cpp.codeAnalysis.runAutomatically": false,
+    "C_Cpp.intelliSenseEngine": "Disabled",
+    "C_Cpp.formatting": "Disabled",
+    "clangd.arguments": [
+        "--background-index",
+        "--compile-commands-dir=.",
+        "-j=12",
+        "--clang-tidy",
+        "--all-scopes-completion",
+        "--completion-style=detailed",
+        "--header-insertion=never",
+        "--pch-storage=memory",
+        "--cross-file-rename=true",
+        // "-style=file:D:\\UnderwaterRendering\\Nilou\\.vscode\\.clang-format"
+        //"--query-driver=clang-cl"
+    ],
+}

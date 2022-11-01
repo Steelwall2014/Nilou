@@ -1,0 +1,30 @@
+#version 430
+const float PI = 3.14159f;
+const float g = 9.80665f;
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+    
+layout (rgba32f, binding = 0) uniform image2D HeightSpectrumRT;
+layout (rgba32f, binding = 1) uniform image2D DisplaceXSpectrumRT;
+layout (rgba32f, binding = 2) uniform image2D DisplaceYSpectrumRT;
+layout (rgba32f, binding = 3) uniform image2D DisplaceRT;
+
+uniform uint N;
+uniform float Scale;
+
+void GenerationDisplace(uvec3 id)
+{
+    // 理论上这里应该要除以N的平方，但是为了便于调整这里只除了一个N 
+    float z = length(imageLoad(HeightSpectrumRT, ivec2(id.xy)).xy) * Scale;     //高度
+    float x = length(imageLoad(DisplaceXSpectrumRT, ivec2(id.xy)).xy) * Scale;  //x轴偏移
+    float y = length(imageLoad(DisplaceYSpectrumRT, ivec2(id.xy)).xy) * Scale;  //z轴偏移
+    
+    imageStore(HeightSpectrumRT, ivec2(id.xy), vec4(z, z, z, 0));
+    imageStore(DisplaceXSpectrumRT, ivec2(id.xy), vec4(x, x, x, 0));
+    imageStore(DisplaceYSpectrumRT, ivec2(id.xy), vec4(y, y, y, 0));
+    imageStore(DisplaceRT, ivec2(id.xy), vec4(x, y, z, 0));
+}
+
+void main()
+{
+    GenerationDisplace(gl_GlobalInvocationID);
+}

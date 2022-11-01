@@ -1,0 +1,65 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+    
+layout (rgba32f, binding = 0) uniform image2D TransmittanceLUT;
+
+#include "../include/unit_definitions.incl"
+#include "atmosphere_definitions.incl"
+#include "atmosphere_functions.incl"
+
+
+Length ComputeOpticalLengthToTopAtmosphereBoundary(
+    AtmosphereParameters atmosphere, DensityProfile profile,
+    Length r, Number mu) {
+  // Number of intervals for the numerical integration.
+  const int SAMPLE_COUNT = 500;
+  // The integration step, i.e. the length of each integration interval.
+  Length dx =
+      DistanceToTopAtmosphereBoundary(atmosphere, r, mu) / Number(SAMPLE_COUNT);
+  // Integration loop.
+  Length result = 0.0 * m;
+  for (int i = 0; i <= SAMPLE_COUNT; ++i) {
+    Length d_i = Number(i) * dx;
+    // Distance between the current sample point and the planet center.
+    Length r_i = sqrt(d_i * d_i + 2.0 * r * mu * d_i + r * r);
+    // Number density at the current sample point (divided by the number density
+    // at the bottom of the atmosphere, yielding a dimensionless number).
+    Number y_i = GetProfileDensity(profile, r_i - atmosphere.bottom_radius);
+    // Sample weight (from the trapezoidal rule).
+    Number weight_i = i == 0 || i == SAMPLE_COUNT ? 0.5 : 1.0;
+    result += y_i * weight_i * dx;
+  }
+  return result;
+}
+
+DimensionlessSpectrum ComputeTransmittanceToTopAtmosphereBoundary(
+    AtmosphereParameters atmosphere, Length r, Number mu) {
+  return exp(-(
+      atmosphere.rayleigh_scattering *
+          ComputeOpticalLengthToTopAtmosphereBoundary(
+              atmosphere, atmosphere.rayleigh_density, r, mu) +
+      atmosphere.mie_extinction *
+          ComputeOpticalLengthToTopAtmosphereBoundary(
+              atmosphere, atmosphere.mie_density, r, mu) +
+      atmosphere.absorption_extinction *
+          ComputeOpticalLengthToTopAtmosphereBoundary(
+              atmosphere, atmosphere.absorption_density, r, mu)));
+}
+
+DimensionlessSpectrum ComputeTransmittanceToTopAtmosphereBoundaryTexture(
+    AtmosphereParameters atmosphere, vec2 frag_coord) {
+  const vec2 TRANSMITTANCE_TEXTURE_SIZE =
+      vec2(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
+  Length r;
+  Number mu;
+  GetRMuFromTransmittanceTextureUv(
+      atmosphere, frag_coord / TRANSMITTANCE_TEXTURE_SIZE, r, mu);
+  return ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu);
+}
+
+void main()
+{
+    vec2 frag_coord = vec2(gl_GlobalInvocationID) + vec2(0.5);
+    DimensionlessSpectrum transmittance = ComputeTransmittanceToTopAtmosphereBoundaryTexture(ATMOSPHERE, frag_coord);
+    imageStore(TransmittanceLUT, ivec2(gl_GlobalInvocationID), vec4(transmittance, 0.f));
+}

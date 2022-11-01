@@ -1,0 +1,63 @@
+#version 430
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+    
+layout (rgba32f, binding = 0) uniform image2D DisplaceRT;
+layout (rgba32f, binding = 1) uniform image2D NormalRT;
+layout (rgba32f, binding = 2) uniform image2D FoamRT;
+
+//uniform uint N;
+uniform uint N;
+uniform float FFTPixelMeterSize;
+
+#include "../include/functions.incl"
+
+void CreateNormalAndFoam(uvec3 id)
+{
+    //获取当前点，周围4个点的uv坐标
+    ivec2 uvX1 = ivec2((id.x - 1 + N) % N, id.y);
+    ivec2 uvX2 = ivec2((id.x + 1 + N) % N, id.y);
+    ivec2 uvY1 = ivec2(id.x, (id.y - 1 + N) % N);
+    ivec2 uvY2 = ivec2(id.x, (id.y + 1 + N) % N);
+
+    //以当前点为中心，获取周围4个点的偏移值
+    
+    vec3 x1_displace = imageLoad(DisplaceRT, uvX1).xyz;//在x轴 第一个点的偏移值
+    vec3 x2_displace = imageLoad(DisplaceRT, uvX2).xyz;//在x轴 第二个点的偏移值
+    vec3 y1_displace = imageLoad(DisplaceRT, uvY1).xyz;//在y轴 第一个点的偏移值
+    vec3 y2_displace = imageLoad(DisplaceRT, uvY2).xyz;//在y轴 第二个点的偏移值
+
+    //以当前点为原点，构建周围4个点的坐标
+    float x0 = id.x * FFTPixelMeterSize;
+    float y0 = id.y * FFTPixelMeterSize;
+
+    vec3 x1 = vec3(x0-FFTPixelMeterSize, y0, 0) + x1_displace;//在x轴 第一个点的坐标
+    vec3 x2 = vec3(x0+FFTPixelMeterSize, y0, 0) + x2_displace;//在x轴 第二个点的坐标
+    vec3 y1 = vec3(x0, y0-FFTPixelMeterSize, 0) + y1_displace;//在y轴 第一个点的坐标
+    vec3 y2 = vec3(x0, y0+FFTPixelMeterSize, 0) + y2_displace;//在y轴 第二个点的坐标
+
+    //计算两个切向量
+    vec3 tangentX = x2 - x1;
+    vec3 tangentY = y2 - y1;
+
+    //计算法线
+    vec3 normal = normalize(cross(tangentX, tangentY));
+    vec2 gradient = vec2(x1.z - x2.z, y1.z - y2.z);
+
+    //计算泡沫
+    vec3 ddx = (x2_displace - x1_displace) / (2 * FFTPixelMeterSize);
+    vec3 ddy = (y2_displace - y1_displace) / (2 * FFTPixelMeterSize);
+    //雅可比行列式
+    float jacobian = (1.0f + ddx.x) * (1.0f + ddy.y) - ddx.y * ddy.x;
+
+    // 这里纯粹是调参调出来的，没有什么物理依据
+//    jacobian = saturate(max(0, 0.75 - jacobian)) * 5;
+//    jacobian = 1-jacobian;
+
+    imageStore(NormalRT, ivec2(id.xy), vec4(gradient, 2 * FFTPixelMeterSize, 0));
+    imageStore(FoamRT, ivec2(id.xy), vec4(jacobian, jacobian, jacobian, 0));
+}
+
+void main()
+{
+    CreateNormalAndFoam(gl_GlobalInvocationID);
+}

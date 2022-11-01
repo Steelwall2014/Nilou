@@ -1,0 +1,150 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "../include/MinMaxLODNum.incl"
+#include "../include/RenderPatch.incl"
+#include "../include/WorldLODParam.incl"
+
+layout(std430, binding=0) readonly buffer NodeIDs_Final_Buffer{
+    // 这是为了规避内存对齐的问题：在c++里面uvec3数组是紧密排列的，glsl里uvec3数组会填充一个uint的大小
+    uint NodeIDs_Final[];
+};
+layout(std430, binding=1) writeonly buffer Patch_Buffer{
+    RenderPatch patches[];
+};
+layout(std430, binding=2) readonly buffer LODParams_Buffer{
+    WorldLODParam LODParams[];
+};
+layout(binding = 3) uniform atomic_uint patch_index;
+layout(r16f, binding=4) uniform image2D LODMap;
+
+uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
+uniform sampler2D DisplacementMap;              // optional，没有设置的话代表没有水平偏移
+uniform float DisplacementMapMeterSize;
+uniform uint LODMapSize;
+
+#include "../include/FrustumCull.incl"
+
+
+uvec2 GetUpperLeftSectorLoc(uvec2 nodeLoc, uint lod)
+{
+    return nodeLoc * (1 << lod);
+}
+uvec2 GetLowerRightSectorLoc(uvec2 nodeLoc, uint lod)
+{
+    return (nodeLoc + uvec2(1, 1)) * (1 << lod) - uvec2(1, 1);
+}
+uint GetLOD(ivec2 location)
+{
+    if (location.x < 0 || location.y < 0 || location.x >= LODMapSize || location.y >= LODMapSize)
+        return 0;
+    return uint(imageLoad(LODMap, location).r);
+}
+void main()
+{
+    // 这里patch和node的坐标都如下：
+    // -----------> y+
+    // |
+    // |
+    // |
+    // ↓
+    // x+
+    uint index = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x * 8 + gl_LocalInvocationID.y;
+    uvec3 nodeLoc = uvec3(NodeIDs_Final[gl_WorkGroupID.x * 3], NodeIDs_Final[gl_WorkGroupID.x * 3+1], NodeIDs_Final[gl_WorkGroupID.x * 3+2]);
+    float node_size = LODParams[nodeLoc.z].NodeMeterSize;
+    vec2 node_offset = vec2(nodeLoc.x * node_size, nodeLoc.y * node_size);
+    uvec2 patch_local_id = uvec2(gl_LocalInvocationID.x, gl_LocalInvocationID.y);
+    float patch_size = node_size / 8.f;
+    vec2 patch_offset = vec2(patch_local_id.x * patch_size, patch_local_id.y * patch_size);
+
+    RenderPatch temp_patch;
+    temp_patch.offset_x = node_offset.x + patch_offset.x;
+    temp_patch.offset_y = node_offset.y + patch_offset.y;
+    temp_patch.lod = nodeLoc.z;
+
+    ivec2 patchGlobalLoc = ivec2(temp_patch.offset_x / patch_size, temp_patch.offset_y / patch_size);
+    vec2 MinMax_uv = (vec2(patchGlobalLoc) + vec2(0.5)) / (8.0 * float(LODParams[nodeLoc.z].NodeSideNum));
+    vec2 MinMax = texture2D(MinMaxMap[temp_patch.lod], MinMax_uv).rg;
+    vec2 upper_left = vec2(temp_patch.offset_x, temp_patch.offset_y);
+    vec2 upper_right = upper_left + vec2(0, patch_size);
+    vec2 lower_left = upper_left + vec2(patch_size, 0);
+    vec2 lower_right = upper_left + vec2(patch_size);
+
+    vec2 upper_left_uv = upper_left / DisplacementMapMeterSize;
+    float duv = patch_size / DisplacementMapMeterSize;
+
+    upper_left += texture(DisplacementMap, upper_left_uv).xy;
+    upper_right += texture(DisplacementMap, upper_left_uv + vec2(0, duv)).xy;
+    lower_left += texture(DisplacementMap, upper_left_uv + vec2(duv, 0)).xy;
+    lower_right += texture(DisplacementMap, upper_left_uv + vec2(duv)).xy;
+
+    // 手动扩大bounding box，留一些冗余
+    float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 10;
+    float max_x = max(upper_left.x, max(upper_right.x, max(lower_left.x, lower_right.x))) + 10;
+    float min_y = min(upper_left.y, min(upper_right.y, min(lower_left.y, lower_right.y))) - 10;
+    float max_y = max(upper_left.y, max(upper_right.y, max(lower_left.y, lower_right.y))) + 10;
+    vec3 box[8];
+    box[0] = vec3(min_x, min_y, MinMax.r);
+    box[1] = vec3(min_x, max_y, MinMax.r);
+    box[2] = vec3(max_x, min_y, MinMax.r);
+    box[3] = vec3(max_x, max_y, MinMax.r);
+    box[4] = vec3(min_x, min_y, MinMax.g);
+    box[5] = vec3(min_x, max_y, MinMax.g);
+    box[6] = vec3(max_x, min_y, MinMax.g);
+    box[7] = vec3(max_x, max_y, MinMax.g);
+//    CreateBox(upper_left, lower_right, MinMax, box);
+    if (FrustumCull(box))
+        return;
+        
+    uvec2 patchLoc_in_node = gl_LocalInvocationID.xy;
+
+    uvec2 upper_left_sector_loc = GetUpperLeftSectorLoc(nodeLoc.xy, nodeLoc.z);
+    uvec2 lower_right_sector_loc = GetLowerRightSectorLoc(nodeLoc.xy, nodeLoc.z);
+//    temp_patch.DeltaLod_x_pos = GetLOD(ivec2(lower_right_sector_loc) + ivec2(0, 1));
+//    temp_patch.DeltaLod_x_neg = GetLOD(ivec2(upper_left_sector_loc) + ivec2(0, -1));
+//    temp_patch.DeltaLod_y_pos = GetLOD(ivec2(lower_right_sector_loc) + ivec2(1, 0));
+//    temp_patch.DeltaLod_y_neg = GetLOD(ivec2(upper_left_sector_loc) + ivec2(-1, 0));
+
+    if (patchLoc_in_node.y == 7)   // patch在node的右边缘
+    {
+        uint lod = GetLOD(ivec2(lower_right_sector_loc) + ivec2(0, 1));     // 向右采样(y轴正方向)
+        temp_patch.DeltaLod_y_pos = lod > nodeLoc.z ? lod - nodeLoc.z : 0;
+        temp_patch.DeltaLod_y_neg = 0;
+    }
+    else if (patchLoc_in_node.y == 0)        // 在左边缘
+    {
+        uint lod = GetLOD(ivec2(upper_left_sector_loc) + ivec2(0, -1));     // 向左采样(y轴负方向)
+        temp_patch.DeltaLod_y_neg = lod > nodeLoc.z ? lod - nodeLoc.z : 0;
+        temp_patch.DeltaLod_y_pos = 0;
+    }
+    else
+    {
+        temp_patch.DeltaLod_y_neg = 0;
+        temp_patch.DeltaLod_y_pos = 0;
+    }
+    
+    if (patchLoc_in_node.x == 7)   // 在下边缘
+    {
+        uint lod = GetLOD(ivec2(lower_right_sector_loc) + ivec2(1, 0));     // 向下采样(x轴正方向)
+        temp_patch.DeltaLod_x_pos = lod > nodeLoc.z ? lod - nodeLoc.z : 0;
+        temp_patch.DeltaLod_x_neg = 0;
+    }
+    else if (patchLoc_in_node.x == 0)        // 在上边缘
+    {
+        uint lod = GetLOD(ivec2(upper_left_sector_loc) + ivec2(-1, 0));     // 向上采样(x轴负方向)
+        temp_patch.DeltaLod_x_neg = lod > nodeLoc.z ? lod - nodeLoc.z : 0;
+        temp_patch.DeltaLod_x_pos = 0;
+    }
+    else
+    {
+        temp_patch.DeltaLod_x_neg = 0;
+        temp_patch.DeltaLod_x_pos = 0;
+    }
+
+    index = atomicCounterIncrement(patch_index);
+//    atomicCounterIncrement(patch_index);
+    patches[index] = temp_patch;
+//    patches[index].offset_x = nodeLoc.x;
+//    patches[index].offset_y = nodeLoc.y;
+//    patches[index].lod = nodeLoc.z;
+}

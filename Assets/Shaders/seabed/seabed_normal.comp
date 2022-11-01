@@ -1,0 +1,42 @@
+#version 430
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+    
+uniform sampler2D DEM;
+layout (rgba32f, binding = 1) uniform image2D TerrainNormal;
+
+//uniform uint N;
+uniform uint DEMWidth;
+uniform uint DEMHeight;
+uniform float PixelMeterSize;
+
+#include "../include/functions.incl"
+
+void CreateNormalAndFoam(ivec3 id)
+{
+    vec2 uvX1 = (vec2(id.x - 1, id.y) + vec2(0.5)) / vec2(DEMWidth, DEMHeight);
+    vec2 uvX2 = (vec2(id.x + 1, id.y) + vec2(0.5)) / vec2(DEMWidth, DEMHeight);
+    vec2 uvY1 = (vec2(id.x, id.y - 1) + vec2(0.5)) / vec2(DEMWidth, DEMHeight);
+    vec2 uvY2 = (vec2(id.x, id.y + 1) + vec2(0.5)) / vec2(DEMWidth, DEMHeight);
+
+//    float x1_displace = imageLoad(DEM, uvX1).r;
+//    float x2_displace = imageLoad(DEM, uvX2).r;
+//    float y1_displace = imageLoad(DEM, uvY1).r;
+//    float y2_displace = imageLoad(DEM, uvY2).r;
+
+    float x1_displace = texture(DEM, uvX1).r;
+    float x2_displace = texture(DEM, uvX2).r;
+    float y1_displace = texture(DEM, uvY1).r;
+    float y2_displace = texture(DEM, uvY2).r;
+
+    vec3 tangentX = vec3(2*PixelMeterSize, 0, x2_displace-x1_displace);
+    vec3 tangentY = vec3(0, 2*PixelMeterSize, y2_displace-y1_displace);
+
+    vec3 normal = normalize(cross(tangentX, tangentY));
+
+    imageStore(TerrainNormal, id.xy, vec4(normal, 0));
+}
+
+void main()
+{
+    CreateNormalAndFoam(ivec3(gl_GlobalInvocationID));
+}

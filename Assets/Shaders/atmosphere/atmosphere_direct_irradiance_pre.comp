@@ -1,0 +1,46 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+    
+uniform sampler2D TransmittanceLUT;
+layout (rgba32f, binding=0) uniform image2D IrradianceLUT;
+
+#include "../include/unit_definitions.incl"
+#include "atmosphere_definitions.incl"
+#include "atmosphere_functions.incl"
+
+IrradianceSpectrum ComputeDirectIrradiance(
+    AtmosphereParameters atmosphere,
+    TransmittanceTexture transmittance_texture,
+    Length r, Number mu_s) {
+
+  Number alpha_s = atmosphere.sun_angular_radius / rad;
+  // Approximate average of the cosine factor mu_s over the visible fraction of
+  // the Sun disc.
+  Number average_cosine_factor =
+    mu_s < -alpha_s ? 0.0 : (mu_s > alpha_s ? mu_s :
+        (mu_s + alpha_s) * (mu_s + alpha_s) / (4.0 * alpha_s));
+
+  return atmosphere.solar_irradiance *
+      GetTransmittanceToTopAtmosphereBoundary(
+          atmosphere, transmittance_texture, r, mu_s) * average_cosine_factor;
+
+}
+
+IrradianceSpectrum ComputeDirectIrradianceTexture(
+    AtmosphereParameters atmosphere,
+    TransmittanceTexture transmittance_texture,
+    vec2 frag_coord) {
+  Length r;
+  Number mu_s;
+  GetRMuSFromIrradianceTextureUv(
+      atmosphere, frag_coord / IRRADIANCE_TEXTURE_SIZE, r, mu_s);
+  return ComputeDirectIrradiance(atmosphere, transmittance_texture, r, mu_s);
+}
+
+
+void main()
+{
+    vec2 frag_coord = vec2(gl_GlobalInvocationID) + vec2(0.5);
+    IrradianceSpectrum irradiance = ComputeDirectIrradianceTexture(ATMOSPHERE, TransmittanceLUT, frag_coord);
+    imageStore(IrradianceLUT, ivec2(gl_GlobalInvocationID), vec4(irradiance, 0));
+}

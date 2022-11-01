@@ -1,0 +1,7 @@
+#version 430
+// 这个和quad_create_minmax.comp是一样的，只有下面这些local_size不一样，这个都是1，那个local_size_x和local_size_y都是8
+// 这是因为这个shader是专门负责Node的minmaxmap生成的，那个是负责patch的minmaxmap生成的，patch的minmaxmap大小肯定是8的倍数，node就不一定了
+// TODO: shader代码的动态生成（加一些define之类的）
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include "../include/quad_create_minmax_basic.incl"

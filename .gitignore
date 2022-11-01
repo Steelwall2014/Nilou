@@ -1,0 +1,6 @@
+.clangd
+.cache
+build
+vsxmake2019
+
+*.zip

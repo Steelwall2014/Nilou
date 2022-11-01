@@ -1,0 +1,14 @@
+{
+    options = {
+        cc = "clang-cl",
+        arch = "x64",
+        mode = "debug",
+        cxx = "clang-cl",
+        plat = "windows",
+        buildir = [[d:\Nilou/build]]
+    },
+    recheck = false,
+    mtimes = {
+        ["xmake.lua"] = 1667308652
+    }
+}

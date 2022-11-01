@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\GlobalShaders",
+    "\\include",
+    "\\Materials",
+    "\\VertexFactories"
+  ],
+  "SelectedNode": "\\pbr.frag",
+  "PreviewInSolutionExplorer": false
+}
