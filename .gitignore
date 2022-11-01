@@ -2,5 +2,6 @@
 .cache
 build
 vsxmake2019
+.deprecated
 
 *.zip

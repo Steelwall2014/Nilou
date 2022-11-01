@@ -1,7 +1,5 @@
 {
     cmdlines = {
-        [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\target_rundir.lua Nilou]],
-        [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\target_runenvs.lua Nilou]],
         [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\explorer.lua]],
         [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\config.lua]],
         [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\targets.lua]],
@@ -64,6 +62,8 @@
         "xmake project -k compile_commands",
         "xmake build -v Nilou",
         "xmake build -v Nilou",
-        "xmake r Nilou"
+        "xmake r Nilou",
+        [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\explorer.lua]],
+        [[xmake l c:\Users\ZHANG\.vscode\extensions\tboox.xmake-vscode-1.8.2\assets\config.lua]]
     }
 }
