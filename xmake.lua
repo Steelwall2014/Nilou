@@ -186,7 +186,7 @@ include_paths = {
         "./src/Runtime/RenderPass",
         "./Assets/Shaders", 
         "./External/include/GDAL"}
- 
+
 BuildProject({
     projectName = "Nilou",
     projectType = "binary",
