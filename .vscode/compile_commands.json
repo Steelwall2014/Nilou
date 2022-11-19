@@ -1,6 +1,96 @@
 [
 {
   "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\crossguid.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-DGUID_WINDOWS", "-Fobuild\\.objs\\crossguid\\windows\\x64\\debug\\External\\include\\crossguid\\guid.cpp.obj", "External\\include\\crossguid\\guid.cpp"],
+  "file": "External\\include\\crossguid\\guid.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestTransformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestTransformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Transform.cpp.obj", "src\\Runtime\\Framework\\Common\\Transform.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\Transform.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestTransformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestTransformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestTransform\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestTransform\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestTransform\\main.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestPermutation.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestPermutation\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestPermutation\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\dds.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\dds\\windows\\x64\\debug\\External\\include\\dds\\dds.cpp.obj", "External\\include\\dds\\dds.cpp"],
+  "file": "External\\include\\dds\\dds.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\glad.pdb", "-Od", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\glad\\windows\\x64\\debug\\External\\include\\glad\\glad.c.obj", "External\\include\\glad\\glad.c"],
+  "file": "External\\include\\glad\\glad.c"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\glad.pdb", "-Od", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\glad\\windows\\x64\\debug\\External\\include\\glad\\glad_wgl.c.obj", "External\\include\\glad\\glad_wgl.c"],
+  "file": "External\\include\\glad\\glad_wgl.c"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Rendering\\RenderResource.cpp.obj", "src\\Runtime\\Rendering\\RenderResource.cpp"],
+  "file": "src\\Runtime\\Rendering\\RenderResource.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\AssertionMacros.cpp.obj", "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui.cpp.obj", "External\\include\\imgui\\imgui.cpp"],
+  "file": "External\\include\\imgui\\imgui.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_draw.cpp.obj", "External\\include\\imgui\\imgui_draw.cpp"],
+  "file": "External\\include\\imgui\\imgui_draw.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_glfw.cpp.obj", "External\\include\\imgui\\imgui_impl_glfw.cpp"],
+  "file": "External\\include\\imgui\\imgui_impl_glfw.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_opengl3.cpp.obj", "External\\include\\imgui\\imgui_impl_opengl3.cpp"],
+  "file": "External\\include\\imgui\\imgui_impl_opengl3.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_tables.cpp.obj", "External\\include\\imgui\\imgui_tables.cpp"],
+  "file": "External\\include\\imgui\\imgui_tables.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_widgets.cpp.obj", "External\\include\\imgui\\imgui_widgets.cpp"],
+  "file": "External\\include\\imgui\\imgui_widgets.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestRegex.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestRegex\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestRegex\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"
+},
+{
+  "directory": "d:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestShaderPreprocess.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestShaderPreprocess\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"
+},
+{
+  "directory": "d:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Applications\\GLFWApplication.cpp.obj", "src\\Runtime\\Applications\\GLFWApplication.cpp"],
   "file": "src\\Runtime\\Applications\\GLFWApplication.cpp"
 },
@@ -371,66 +461,6 @@
 },
 {
   "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestTransformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestTransformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Transform.cpp.obj", "src\\Runtime\\Framework\\Common\\Transform.cpp"],
-  "file": "src\\Runtime\\Framework\\Common\\Transform.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestTransformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestTransformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestTransform\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestTransform\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestTransform\\main.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\glad.pdb", "-Od", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\glad\\windows\\x64\\debug\\External\\include\\glad\\glad.c.obj", "External\\include\\glad\\glad.c"],
-  "file": "External\\include\\glad\\glad.c"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\glad.pdb", "-Od", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\glad\\windows\\x64\\debug\\External\\include\\glad\\glad_wgl.c.obj", "External\\include\\glad\\glad_wgl.c"],
-  "file": "External\\include\\glad\\glad_wgl.c"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui.cpp.obj", "External\\include\\imgui\\imgui.cpp"],
-  "file": "External\\include\\imgui\\imgui.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_draw.cpp.obj", "External\\include\\imgui\\imgui_draw.cpp"],
-  "file": "External\\include\\imgui\\imgui_draw.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_glfw.cpp.obj", "External\\include\\imgui\\imgui_impl_glfw.cpp"],
-  "file": "External\\include\\imgui\\imgui_impl_glfw.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_opengl3.cpp.obj", "External\\include\\imgui\\imgui_impl_opengl3.cpp"],
-  "file": "External\\include\\imgui\\imgui_impl_opengl3.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_tables.cpp.obj", "External\\include\\imgui\\imgui_tables.cpp"],
-  "file": "External\\include\\imgui\\imgui_tables.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_widgets.cpp.obj", "External\\include\\imgui\\imgui_widgets.cpp"],
-  "file": "External\\include\\imgui\\imgui_widgets.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestRegex.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestRegex\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestRegex\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\dds.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fobuild\\.objs\\dds\\windows\\x64\\debug\\External\\include\\dds\\dds.cpp.obj", "External\\include\\dds\\dds.cpp"],
-  "file": "External\\include\\dds\\dds.cpp"
-},
-{
-  "directory": "d:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestVirtualPath.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestVirtualPath\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"],
   "file": "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"
 },
@@ -451,26 +481,6 @@
 },
 {
   "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Rendering\\RenderResource.cpp.obj", "src\\Runtime\\Rendering\\RenderResource.cpp"],
-  "file": "src\\Runtime\\Rendering\\RenderResource.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\AssertionMacros.cpp.obj", "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"],
-  "file": "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestPermutation.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestPermutation\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestPermutation\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"
-},
-{
-  "directory": "d:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"],
   "file": "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"
 },
@@ -478,14 +488,4 @@
   "directory": "d:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\GameStatics\\GameStatics.cpp.obj", "src\\Runtime\\GameStatics\\GameStatics.cpp"],
   "file": "src\\Runtime\\GameStatics\\GameStatics.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\compile.TestShaderPreprocess.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fobuild\\.objs\\TestShaderPreprocess\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"
-},
-{
-  "directory": "d:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdbuild\\windows\\x64\\debug\\crossguid.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-DGUID_WINDOWS", "-Fobuild\\.objs\\crossguid\\windows\\x64\\debug\\External\\include\\crossguid\\guid.cpp.obj", "External\\include\\crossguid\\guid.cpp"],
-  "file": "External\\include\\crossguid\\guid.cpp"
 }]
