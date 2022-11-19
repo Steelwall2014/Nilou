@@ -16,7 +16,8 @@ namespace nilou {
         SPT_Sampler,
         // SPT_Uniform,
         SPT_UniformBuffer,
-        SPT_ShaderStructureBuffer,
+        // SPT_ShaderStructureBuffer,
+        SPT_Image,
     };
 
     class FShaderParameterInfo
@@ -24,24 +25,24 @@ namespace nilou {
     public:
         std::string ParameterName;
         EShaderParameterType ParameterType;
-        // uint16 BindingPoint;
+        int16 BindingPoint;
         // uint16 Size;
 
         FShaderParameterInfo()
             : ParameterName("")
-            // , BindingPoint(0)
+            , BindingPoint(-1)
             , ParameterType(EShaderParameterType::SPT_UniformBuffer)
         {
         }
 
-        FShaderParameterInfo(const std::string &InParameterName, uint16 InBindingPoint, EShaderParameterType InParameterType/*, uint16 InSize*/)
+        FShaderParameterInfo(const std::string &InParameterName, int16 InBindingPoint, EShaderParameterType InParameterType/*, uint16 InSize*/)
             : ParameterName(InParameterName)
-            // , BindingPoint(InBindingPoint)
+            , BindingPoint(InBindingPoint)
             , ParameterType(InParameterType)
         {
         }
 
-        bool operator<(const FShaderParameterInfo& Other)
+        bool operator<(const FShaderParameterInfo& Other) const
         {
             return ParameterName < Other.ParameterName;
         }

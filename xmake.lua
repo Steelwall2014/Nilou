@@ -299,6 +299,7 @@ BuildProject({
     files = {
         "src/Runtime/UnitTests/TestRegex/main.cpp"},
     enableException = true,
+    includePaths = include_paths,
     --unityBuildBatch = 8
 })
 

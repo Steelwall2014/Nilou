@@ -9,6 +9,59 @@
 
 namespace nilou {
 
+    template<typename T>
+    auto safe_erase(std::set<std::unique_ptr<T>>& set, T* ptr)
+    {
+        std::unique_ptr<T> stale_ptr{ptr};
+
+        auto release = [](std::unique_ptr<T>* p) { (void*)p->release(); };
+        std::unique_ptr<std::unique_ptr<T>, decltype(release)> release_helper{&stale_ptr, release};
+
+        return set.erase(stale_ptr);
+    }
+
+    /**
+    * if there's not release_helper and vec.erase throws an exception, this release() will not be called, 
+    * thus causing some problems.
+    */
+    template<typename T>
+    auto safe_erase(std::vector<std::unique_ptr<T>>& vec, T* ptr)
+    {
+        std::unique_ptr<T> stale_ptr{ptr};
+
+        auto release = [](std::unique_ptr<T>* p) { (void*)p->release(); };
+        std::unique_ptr<std::unique_ptr<T>, decltype(release)> release_helper{&stale_ptr, release};
+        auto iter = std::find(vec.begin(), vec.end(), stale_ptr);
+        return vec.erase(iter);
+    }
+
+    void FScene::AddSkyAtmosphere(FSkyAtmosphereSceneProxy *SkyAtmosphereSceneProxy)
+    {
+        FScene *Scene = this;
+
+        {
+			Scene->SkyAtmosphereStack.emplace_back(SkyAtmosphereSceneProxy);
+            Scene->SkyAtmosphere = SkyAtmosphereSceneProxy;
+        }
+
+    }
+
+    void FScene::RemoveSkyAtmosphere(FSkyAtmosphereSceneProxy *SkyAtmosphereSceneProxy)
+    {
+        FScene *Scene = this;
+
+        {
+            safe_erase(Scene->SkyAtmosphereStack, SkyAtmosphereSceneProxy);
+            // auto iter = std::find(Scene->SkyAtmosphereStack.begin(), Scene->SkyAtmosphereStack.end(), SkyAtmosphereSceneProxy);
+            // Scene->SkyAtmosphereStack.erase(iter);
+            if (!SkyAtmosphereStack.empty())
+                Scene->SkyAtmosphere = SkyAtmosphereStack.back().get();
+            else
+                Scene->SkyAtmosphere = nullptr;
+        }
+
+    }
+
     void FScene::AddCamera(UCameraComponent *InCamera)
     {
         FCameraSceneProxy *CameraSceneProxy = InCamera->CreateSceneProxy();
@@ -18,8 +71,8 @@ namespace nilou {
         FCameraSceneInfo *CameraSceneInfo = new FCameraSceneInfo(CameraSceneProxy, InCamera, this);
         CameraSceneProxy->CameraSceneInfo = CameraSceneInfo;
 
+        FScene *Scene = this;
         {
-            FScene *Scene = this;
             Scene->AddCameraSceneInfo(CameraSceneInfo);
             CameraSceneInfo->SceneProxy->UpdateUniformBuffer();
         }
@@ -34,8 +87,8 @@ namespace nilou {
             FCameraSceneInfo* LightSceneInfo = CameraSceneProxy->GetCameraSceneInfo();
             InCamera->SceneProxy = nullptr;
             
+            FScene *Scene = this;
             {
-                FScene *Scene = this;
                 Scene->RemoveCameraSceneInfo(LightSceneInfo);
             }
         }
@@ -50,8 +103,8 @@ namespace nilou {
         FLightSceneInfo *LightSceneInfo = new FLightSceneInfo(LightSceneProxy, InLight, this);
         LightSceneProxy->LightSceneInfo = LightSceneInfo;
 
+        FScene *Scene = this;
         {
-            FScene *Scene = this;
             Scene->AddLightSceneInfo(LightSceneInfo);
             LightSceneInfo->SceneProxy->UpdateUniformBuffer();
         }
@@ -66,8 +119,8 @@ namespace nilou {
             FLightSceneInfo* LightSceneInfo = LightSceneProxy->GetLightSceneInfo();
             InLight->SceneProxy = nullptr;
             
+            FScene *Scene = this;
             {
-                FScene *Scene = this;
                 Scene->RemoveLightSceneInfo(LightSceneInfo);
             }
         }
@@ -85,8 +138,8 @@ namespace nilou {
         glm::mat4 RenderMatrix = InPrimitive->GetRenderMatrix();
         FBoundingBox Bounds = InPrimitive->GetBounds();
 
+        FScene *Scene = this;
         {
-            FScene *Scene = this;
             PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
             PrimitiveSceneProxy->CreateRenderThreadResources();
             Scene->AddPrimitiveSceneInfo(PrimitiveSceneInfo);
@@ -102,8 +155,8 @@ namespace nilou {
             FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSceneProxy->GetPrimitiveSceneInfo();
             InPrimitive->SceneProxy = nullptr;
 
+            FScene *Scene = this;
             {
-                FScene *Scene = this;
                 PrimitiveSceneInfo->SceneProxy->DestroyRenderThreadResources();
                 Scene->RemovePrimitiveSceneInfo(PrimitiveSceneInfo);
             }
@@ -112,34 +165,35 @@ namespace nilou {
 
     void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
-        AddedPrimitiveSceneInfos.insert(InPrimitiveInfo);
+        AddedPrimitiveSceneInfos.emplace(InPrimitiveInfo);
     }
 
     void FScene::RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
-        AddedPrimitiveSceneInfos.erase(InPrimitiveInfo);
+        safe_erase(AddedPrimitiveSceneInfos, InPrimitiveInfo);
     }
 
     void FScene::AddLightSceneInfo(FLightSceneInfo *InLightInfo)
     {
-        AddedLightSceneInfos.insert(InLightInfo);
+        AddedLightSceneInfos.emplace(InLightInfo);
     }
 
     void FScene::RemoveLightSceneInfo(FLightSceneInfo *InLightInfo)
     {
-        AddedLightSceneInfos.erase(InLightInfo);
+        safe_erase(AddedLightSceneInfos, InLightInfo);
     }
 
     void FScene::AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
     {
-        AddedCameraSceneInfos.push_back(InCameraInfo);
+        AddedCameraSceneInfos.emplace_back(InCameraInfo);
     }
 
     void FScene::RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
     {
-        auto iter = std::find(AddedCameraSceneInfos.begin(), AddedCameraSceneInfos.end(), InCameraInfo);
-        AddedCameraSceneInfos.erase(iter);
-        delete InCameraInfo;
+        safe_erase(AddedCameraSceneInfos, InCameraInfo);
+        // auto iter = std::find(AddedCameraSceneInfos.begin(), AddedCameraSceneInfos.end(), InCameraInfo);
+        // AddedCameraSceneInfos.erase(iter);
+        // delete InCameraInfo;
     }
 
     RHIFramebufferRef CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
@@ -182,7 +236,7 @@ namespace nilou {
     {
         for (int ViewIndex = 0; ViewIndex < AddedCameraSceneInfos.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraInfo = AddedCameraSceneInfos[ViewIndex];
+            FCameraSceneInfo *CameraInfo = AddedCameraSceneInfos[ViewIndex].get();
             if (CameraInfo->bNeedsUniformBufferUpdate)
             {
                 CameraInfo->SceneProxy->UpdateUniformBuffer();
@@ -198,7 +252,7 @@ namespace nilou {
 
     void FScene::UpdatePrimitiveInfos()
     {
-        for (FPrimitiveSceneInfo *PrimitiveInfo : AddedPrimitiveSceneInfos)
+        for (auto &&PrimitiveInfo : AddedPrimitiveSceneInfos)
         {
             if (PrimitiveInfo->bNeedsUniformBufferUpdate)
                 PrimitiveInfo->SceneProxy->UpdateUniformBuffer();

@@ -29,7 +29,7 @@ namespace nilou {
         RHICmdList->RHISetRasterizerState(RasterizerState.get());
         RHICmdList->RHISetBlendState(BlendState.get());
             RHICmdList->GLDEBUG();
-        FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetBoundPipelineState();
+        FRHIGraphicsPipelineState *PSO = PipelineState;
             RHICmdList->GLDEBUG();
         for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
         {

@@ -4,8 +4,9 @@
     "\\GlobalShaders",
     "\\include",
     "\\Materials",
+    "\\SkyAtmosphere",
     "\\VertexFactories"
   ],
-  "SelectedNode": "\\pbr.frag",
+  "SelectedNode": "\\SkyAtmosphere\\atmosphere_constants.glsl",
   "PreviewInSolutionExplorer": false
 }

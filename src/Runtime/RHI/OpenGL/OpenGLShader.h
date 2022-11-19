@@ -84,7 +84,7 @@ namespace nilou {
 
 		OpenGLVertexShader	*VertexShader;
 		OpenGLPixelShader 	*PixelShader;
-		OpenGLComputeShader 	*ComputeShader;
+		OpenGLComputeShader *ComputeShader;
 		GLuint Resource;
 		friend class FOpenGLDynamicRHI;
 	};

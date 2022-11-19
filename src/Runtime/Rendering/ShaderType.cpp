@@ -38,14 +38,6 @@ namespace nilou {
         {
             FileAbsolutePath = fs::path(GetShaderAbsolutePathFromVirtualPath(VirtualFilePath));
             std::string RawSourceCode = g_pAssetLoader->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
-
-            // RawSourceCode = ProcessCodeIncludePath(RawSourceCode);
-
-            // RawSourceCode = ProcessCodeInclude(RawSourceCode, FileAbsolutePath.parent_path());
-
-            // RawSourceCode = ProcessCodeShaderParams(RawSourceCode, CodeInitializer.ParameterCodes);
-
-            // CodeInitializer.SourceCodeBody = RawSourceCode;
             NILOU_LOG(Info, "Parsing " + FileAbsolutePath.generic_string());
             ParsedResult = FShaderParser(RawSourceCode, FileAbsolutePath.parent_path()).Parse();
             std::stringstream ParseInfo;

@@ -458,11 +458,13 @@ namespace nilou {
 		FRHIGraphicsPipelineInitializer()
 			: VertexShader(nullptr)
 			, PixelShader(nullptr)
+			, ComputeShader(nullptr)
 			, PrimitiveMode(EPrimitiveMode::PM_Triangles)
 		{ }
 
 		class FShaderInstance *VertexShader;
 		class FShaderInstance *PixelShader;
+		class FShaderInstance *ComputeShader;
 
 		EPrimitiveMode PrimitiveMode;
 
@@ -495,9 +497,10 @@ namespace nilou {
 		std::tuple<
 			FShaderInstance *const &, 
 			FShaderInstance *const &, 
+			FShaderInstance *const &, 
 			const EPrimitiveMode&> tuplize() const
 		{
-			return std::tie(VertexShader, PixelShader, PrimitiveMode);
+			return std::tie(VertexShader, PixelShader, ComputeShader, PrimitiveMode);
 		}
 	};
 
@@ -539,7 +542,7 @@ namespace nilou {
 	{
 	public:
 		FRHISampler() : RHIResource(ERHIResourceType::RRT_SamplerState) {}
-		FRHISampler(const RHITextureParams &Params, RHITextureRef Texture) 
+		FRHISampler(RHITextureRef Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
 			: RHIResource(ERHIResourceType::RRT_SamplerState)
 			, Params(Params)
 			, Texture(Texture) 

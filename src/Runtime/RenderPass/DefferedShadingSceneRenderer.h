@@ -95,7 +95,7 @@ namespace nilou {
         void RenderLightingPass(FDynamicRHI *RHICmdList);
 
         FScene *Scene = nullptr;
-        std::vector<FCameraSceneInfo *> *Views;
+        std::vector<FCameraSceneInfo *> Views;
 
         std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
 
@@ -107,6 +107,8 @@ namespace nilou {
                     
         FScreenQuadPositionVertexBuffer PositionVertexBuffer;
         FScreenQuadUVVertexBuffer UVVertexBuffer;
+        FRHIVertexInput PositionVertexInput;
+        FRHIVertexInput UVVertexInput;
         // std::vector<FMeshPassProcessor *> RenderPasses;
 
         // FBasePassMeshPassProcessor *BasePass;

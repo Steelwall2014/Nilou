@@ -34,11 +34,14 @@ namespace nilou {
             case EShaderParameterType::SPT_Sampler:
                 out << "SPT_Sampler\n";
                 break;
-            case EShaderParameterType::SPT_ShaderStructureBuffer:
-                out << "SPT_ShaderStructureBuffer\n";
-                break;
+            // case EShaderParameterType::SPT_ShaderStructureBuffer:
+            //     out << "SPT_ShaderStructureBuffer\n";
+            //     break;
             case EShaderParameterType::SPT_UniformBuffer:
                 out << "SPT_UniformBuffer\n";
+                break;
+            case EShaderParameterType::SPT_Image:
+                out << "SPT_Image\n";
                 break;
             }
             out << "Code: " << Parameter.Code << "\n";

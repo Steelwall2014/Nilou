@@ -9,6 +9,7 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_UObject);
 	AddEdge(EUClasses::MC_ACameraActor, EUClasses::MC_AActor);
 	AddEdge(EUClasses::MC_ALightActor, EUClasses::MC_AActor);
+	AddEdge(EUClasses::MC_ASkyAtmosphereActor, EUClasses::MC_AActor);
 	AddEdge(EUClasses::MC_AStaticMeshActor, EUClasses::MC_AActor);
 	AddEdge(EUClasses::MC_UActorComponent, EUClasses::MC_UObject);
 	AddEdge(EUClasses::MC_UArrowComponent, EUClasses::MC_UPrimitiveComponent);
@@ -17,6 +18,7 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UStaticMeshComponent, EUClasses::MC_UPrimitiveComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_USceneComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_UActorComponent);
+	AddEdge(EUClasses::MC_USkyAtmosphereComponent, EUClasses::MC_USceneComponent);
 	AddNode(EUClasses::MC_UObject);
 }
 }

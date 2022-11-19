@@ -14,6 +14,7 @@
 #include "Common/Actor/StaticMeshActor.h"
 #include "Common/Actor/CameraActor.h"
 #include "Common/Actor/LightActor.h"
+#include "Common/Actor/SkyAtmosphereActor.h"
 
 namespace nilou {
 
@@ -123,6 +124,7 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(0, -90, 0));
         std::shared_ptr<ALightActor> LightActor = SpawnActor<ALightActor>(LightActorTransform, "test light");
 
+        std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
     }
 
     void UWorld::Tick(double DeltaTime)

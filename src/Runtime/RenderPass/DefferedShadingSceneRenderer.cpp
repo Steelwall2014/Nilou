@@ -42,24 +42,39 @@ namespace nilou {
     FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FScene *Scene)
         : Scene(Scene)
     {
-        Views = &Scene->AddedCameraSceneInfos;
         // PositionVertexBuffer.InitRHI();
         BeginInitResource(&PositionVertexBuffer);
         // UVVertexBuffer.InitRHI();
         BeginInitResource(&UVVertexBuffer);
+                    
+        PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
+        PositionVertexInput.Location = 0;
+        PositionVertexInput.Offset = 0;
+        PositionVertexInput.Stride = sizeof(glm::vec4);
+        PositionVertexInput.Type = EVertexElementType::VET_Float4;
+
+        UVVertexInput.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
+        UVVertexInput.Location = 1;
+        UVVertexInput.Offset = 0;
+        UVVertexInput.Stride = sizeof(glm::vec2);
+        UVVertexInput.Type = EVertexElementType::VET_Float2;
     }
 
     void FDefferedShadingSceneRenderer::ComputeVisibility(FScene *Scene)
     {
-        PerViewMeshBatches.resize(Views->size());
-        for (int ViewIndex = 0; ViewIndex < Views->size(); ViewIndex++)
+        Views.clear();
+        for (auto &&View : Scene->AddedCameraSceneInfos)
+            Views.push_back(View.get());
+
+        PerViewMeshBatches.resize(Views.size());
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             PerViewMeshBatches[ViewIndex].clear();
-            const FSceneView &SceneView = (*Views)[ViewIndex]->SceneProxy->SceneView;
-            // FCameraSceneInfo *CameraInfo = (*Views)[ViewIndex];
+            const FSceneView &SceneView = Views[ViewIndex]->SceneProxy->SceneView;
+            // FCameraSceneInfo *CameraInfo = Views[ViewIndex];
             // if (CameraInfo->bNeedsUniformBufferUpdate)
             //     CameraInfo->SceneProxy->UpdateUniformBuffer();
-            for (FPrimitiveSceneInfo *PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
+            for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
             {
                 FMeshBatch Mesh;
                 PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, SceneView);
@@ -69,7 +84,7 @@ namespace nilou {
         }
 
 
-        // for (int ViewIndex = 0; ViewIndex < Views->size(); ViewIndex++)
+        // for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         // {
         //     for (FMeshPassProcessor *Pass : RenderPasses)
         //     {
@@ -214,12 +229,12 @@ namespace nilou {
     void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
     {
         std::vector<FParallelMeshDrawCommands> PerViewDrawCommands;
-        PerViewDrawCommands.resize(Views->size());
+        PerViewDrawCommands.resize(Views.size());
         {        
-            for (int ViewIndex = 0; ViewIndex < Views->size(); ViewIndex++)
+            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
                 PerViewDrawCommands[ViewIndex].MeshCommands.clear();
-                FCameraSceneInfo *CameraInfo = (*Views)[ViewIndex];
+                FCameraSceneInfo *CameraInfo = Views[ViewIndex];
                 for (auto &&Mesh : PerViewMeshBatches[ViewIndex])
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.VertexFactory->GetType(), Mesh.VertexFactory->GetPermutationId());
@@ -261,9 +276,9 @@ namespace nilou {
             }
         }
 
-        for (int ViewIndex = 0; ViewIndex < Views->size(); ViewIndex++)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FRHIRenderPassInfo PassInfo((*Views)[ViewIndex]->FrameBuffer.get()/*nullptr*/, true, true, true);
+            FRHIRenderPassInfo PassInfo(Views[ViewIndex]->FrameBuffer.get()/*nullptr*/, true, true, true);
             RHICmdList->RHIBeginRenderPass(PassInfo);
 
             FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[ViewIndex];
@@ -275,7 +290,7 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
     {
-        for (FLightSceneInfo *LightInfo : Scene->AddedLightSceneInfos)
+        for (auto &&LightInfo : Scene->AddedLightSceneInfos)
         {
             if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
             {
@@ -295,7 +310,7 @@ namespace nilou {
                 LightView.ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
                 LightView.ProjectionMatrix = glm::perspective(fovy, ScreenAspect, LightInfo->SceneProxy->NearClipDistance, LightInfo->SceneProxy->FarClipDistance);//CalcSpotLightProjectionMatrix(LightInfo->SceneProxy->LightParameters);
                 LightView.ViewFrustum = FViewFrustum(LightView.ViewMatrix, LightView.ProjectionMatrix);
-                for (FCameraSceneInfo *CameraSceneInfo : Scene->AddedCameraSceneInfos)
+                for (auto &&CameraSceneInfo : Scene->AddedCameraSceneInfos)
                 {
                     if (CameraSceneInfo->SceneProxy->SceneView.ViewFrustum.Intersects(LightView.ViewFrustum))
                         LightInfo->LightViews.push_back(LightView);
@@ -304,12 +319,12 @@ namespace nilou {
         }
 
         std::vector<FParallelMeshDrawCommands> PerLightViewDrawCommands;
-        for (FLightSceneInfo *LightInfo : Scene->AddedLightSceneInfos)
+        for (auto &&LightInfo : Scene->AddedLightSceneInfos)
         {
             for (FSceneLightView &LightView : LightInfo->LightViews)
             {
                 FParallelMeshDrawCommands ParallelCommands;
-                for (FPrimitiveSceneInfo *PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
+                for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
                 {
                     // if (LightView.ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds()))
                     //     continue;
@@ -370,23 +385,15 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
     {
-        for (int ViewIndex = 0; ViewIndex < Views->size(); ViewIndex++)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraInfo = (*Views)[ViewIndex];
+            FCameraSceneInfo *CameraInfo = Views[ViewIndex];
             if (CameraInfo->Camera->IsMainCamera())
             {
 
                 FRHIRenderPassInfo PassInfo(nullptr, true, true, true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);
                 {
-
-
-                    // #ifdef _DEBUG
-                    // FRHIRenderPassInfo PassInfo(nullptr);
-                    // RHICmdList->RHIBeginRenderPass(PassInfo);
-                    // static CoordinateAxis Axis;
-                    // Axis.drawAxes((*Views)[0]->SceneProxy->SceneView.ProjectionMatrix, (*Views)[0]->SceneProxy->SceneView.ViewMatrix, glm::mat4());
-                    // #endif
                     
                     FShaderPermutationParameters PermutationParametersVS(&FLightingPassVS::StaticType, 0);
                     
@@ -406,7 +413,7 @@ namespace nilou {
 
                     FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                     
-                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
+                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<true, CF_Always>::CreateRHI();
                     RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
                     RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
                     RHICmdList->GLDEBUG();
@@ -418,55 +425,40 @@ namespace nilou {
 
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "BaseColor"), 
-                        FRHISampler(RHITextureParams::DefaultParams, CameraInfo->SceneTextures.BaseColor));
+                        "BaseColor", 
+                        FRHISampler(CameraInfo->SceneTextures.BaseColor));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "WorldSpacePosition"), 
-                        FRHISampler(RHITextureParams::DefaultParams, CameraInfo->SceneTextures.WorldSpacePosition));
+                        "WorldSpacePosition", 
+                        FRHISampler(CameraInfo->SceneTextures.WorldSpacePosition));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "WorldSpaceNormal"), 
-                        FRHISampler(RHITextureParams::DefaultParams, CameraInfo->SceneTextures.WorldSpaceNormal));
+                        "WorldSpaceNormal", 
+                        FRHISampler(CameraInfo->SceneTextures.WorldSpaceNormal));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "MetallicRoughness"), 
-                        FRHISampler(RHITextureParams::DefaultParams, CameraInfo->SceneTextures.MetallicRoughness));
+                        "MetallicRoughness", 
+                        FRHISampler(CameraInfo->SceneTextures.MetallicRoughness));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "Emissive"), 
-                        FRHISampler(RHITextureParams::DefaultParams, CameraInfo->SceneTextures.Emissive));
+                        "Emissive", 
+                        FRHISampler(CameraInfo->SceneTextures.Emissive));
                     RHICmdList->GLDEBUG();
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
-                        PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "FViewShaderParameters"), 
+                        "FViewShaderParameters", 
                         CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
                     RHICmdList->GLDEBUG();
-
-                    FRHIVertexInput PositionVertexInput;
-                    FRHIVertexInput UVVertexInput;
-                    
-                    PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
-                    PositionVertexInput.Location = 0;
-                    PositionVertexInput.Offset = 0;
-                    PositionVertexInput.Stride = sizeof(glm::vec4);
-                    PositionVertexInput.Type = EVertexElementType::VET_Float4;
-
-                    UVVertexInput.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
-                    UVVertexInput.Location = 1;
-                    UVVertexInput.Offset = 0;
-                    UVVertexInput.Stride = sizeof(glm::vec2);
-                    UVVertexInput.Type = EVertexElementType::VET_Float2;
 
                     RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
                     RHICmdList->GLDEBUG();
                     RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
                     RHICmdList->GLDEBUG();
-                    for (FLightSceneInfo *LightInfo : Scene->AddedLightSceneInfos)
+                    for (auto &&LightInfo : Scene->AddedLightSceneInfos)
                     {
                         RHICmdList->RHISetShaderUniformBuffer(
                             PSO, EPipelineStage::PS_Pixel, 
-                            PSO->GetBaseIndexByName(EPipelineStage::PS_Pixel, "FLightUniformBlock"), 
+                            "FLightUniformBlock", 
                             LightInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
 
                         RHICmdList->RHIDrawArrays(4);

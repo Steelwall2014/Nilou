@@ -6,6 +6,7 @@
 #include "Common/Components/CameraComponent.h"
 #include "Common/Components/LightComponent.h"
 #include "Common/Components/PrimitiveComponent.h"
+#include "Common/Components/SkyAtmosphereComponent.h"
 // #include "SceneNode.h"
 // #include "SceneObject.h"
 // #include "Common/Actor/ObserverActor.h"
@@ -113,6 +114,9 @@ namespace nilou {
     {
     public:
 
+        void AddSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
+        void RemoveSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
+
         void AddCamera(UCameraComponent *InCamera);
         void RemoveCamera(UCameraComponent *InCamera);
 
@@ -121,27 +125,31 @@ namespace nilou {
 
         void AddPrimitive(UPrimitiveComponent *InPrimitive);
         void RemovePrimitive(UPrimitiveComponent *InPrimitive);
+
+
         // void UpdatePrimitiveTransform(UPrimitiveComponent *InPrimitive);
 
         // void UpdateAllPrimitiveSceneInfos();
 
-        /** 下面两个在ue里是RenderThread */
-        void AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
-        void RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
-
-        void FScene::AddLightSceneInfo(FLightSceneInfo *InPrimitiveInfo);
-        void FScene::RemoveLightSceneInfo(FLightSceneInfo *InPrimitiveInfo);
-
-        void FScene::AddCameraSceneInfo(FCameraSceneInfo *InPrimitiveInfo);
-        void FScene::RemoveCameraSceneInfo(FCameraSceneInfo *InPrimitiveInfo);
-
         void UpdateViewInfos();
         void UpdatePrimitiveInfos();
 
-        std::set<FPrimitiveSceneInfo *> AddedPrimitiveSceneInfos;
-        std::set<FLightSceneInfo *> AddedLightSceneInfos;
-        std::vector<FCameraSceneInfo *> AddedCameraSceneInfos;
-        FUniformBuffer LightUniformBuffer;
+        std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
+        std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
+        std::vector<std::unique_ptr<FCameraSceneInfo>> AddedCameraSceneInfos;
+        std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
+        FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;
+
+    protected:
+        /** 下面几个在ue里是RenderThread */
+        void AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
+        void RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
+
+        void AddLightSceneInfo(FLightSceneInfo *InLightInfo);
+        void RemoveLightSceneInfo(FLightSceneInfo *InLightInfo);
+
+        void AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
+        void RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
     };
 }

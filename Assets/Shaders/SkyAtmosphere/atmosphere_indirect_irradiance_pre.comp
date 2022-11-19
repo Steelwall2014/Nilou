@@ -1,0 +1,67 @@
+#version 460
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+    
+uniform sampler3D SingleScatteringRayleighLUT;
+uniform sampler3D SingleScatteringMieLUT;
+layout (rgba32f, binding=0) uniform image2D IrradianceLUT;
+layout (std140) uniform ScatteringOrderBlock {
+    int scattering_order;
+};
+
+#include "atmosphere_definitions.glsl"
+
+
+IrradianceSpectrum ComputeIndirectIrradiance(
+    AtmosphereParameters atmosphere,
+    ReducedScatteringTexture single_rayleigh_scattering_texture,
+    ReducedScatteringTexture single_mie_scattering_texture,
+    ScatteringTexture multiple_scattering_texture,
+    Length r, Number mu_s, int scattering_order) {
+
+  const int SAMPLE_COUNT = 32;
+  const Angle dphi = pi / Number(SAMPLE_COUNT);
+  const Angle dtheta = pi / Number(SAMPLE_COUNT);
+
+  IrradianceSpectrum result =
+      IrradianceSpectrum(0.0 * watt_per_square_meter_per_nm);
+  vec3 omega_s = vec3(sqrt(1.0 - mu_s * mu_s), 0.0, mu_s);
+  for (int j = 0; j < SAMPLE_COUNT / 2; ++j) {
+    Angle theta = (Number(j) + 0.5) * dtheta;
+    for (int i = 0; i < 2 * SAMPLE_COUNT; ++i) {
+      Angle phi = (Number(i) + 0.5) * dphi;
+      vec3 omega =
+          vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+      SolidAngle domega = (dtheta / rad) * (dphi / rad) * sin(theta) * sr;
+
+      Number nu = dot(omega, omega_s);
+      result += GetScattering(atmosphere, single_rayleigh_scattering_texture,
+          single_mie_scattering_texture, multiple_scattering_texture,
+          r, omega.z, mu_s, nu, false /* ray_r_theta_intersects_ground */,
+          scattering_order) *
+              omega.z * domega;
+    }
+  }
+  return result;
+}
+
+IrradianceSpectrum ComputeIndirectIrradianceTexture(
+    AtmosphereParameters atmosphere,
+    ReducedScatteringTexture single_rayleigh_scattering_texture,
+    ReducedScatteringTexture single_mie_scattering_texture,
+    ScatteringTexture multiple_scattering_texture,
+    vec2 frag_coord, int scattering_order) {
+  Length r;
+  Number mu_s;
+  GetRMuSFromIrradianceTextureUv(
+      atmosphere, frag_coord / IRRADIANCE_TEXTURE_SIZE, r, mu_s);
+  return ComputeIndirectIrradiance(atmosphere,
+      single_rayleigh_scattering_texture, single_mie_scattering_texture,
+      multiple_scattering_texture, r, mu_s, scattering_order);
+}
+
+void main()
+{
+    vec2 frag_coord = vec2(gl_GlobalInvocationID) + vec2(0.5);
+    IrradianceSpectrum irradiance = ComputeIndirectIrradianceTexture(ATMOSPHERE, SingleScatteringRayleighLUT, SingleScatteringMieLUT, SingleScatteringRayleighLUT, frag_coord, scattering_order);
+    imageStore(IrradianceLUT, ivec2(gl_GlobalInvocationID), vec4(irradiance, 0));
+}

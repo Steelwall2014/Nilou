@@ -16,6 +16,7 @@
 #include <dds/dds.h>
 
 #include "AssetLoader.h"
+#include "Common/Log.h"
 
 namespace nilou {
 	AssetLoader *g_pAssetLoader = new AssetLoader;
@@ -144,6 +145,8 @@ namespace nilou {
 		{
 			if (std::filesystem::exists(FilePath) && std::filesystem::is_regular_file(FilePath))
 				absolute_path = FilePath;
+			else
+			 	NILOU_LOG(Error, "File not found: " + FilePath.generic_string());
 		}
 		else 
 		{

@@ -44,9 +44,12 @@ namespace nilou {
 		// virtual bool RHISetShaderParameter(const char *paramName, const uint32_t param) override;
 		// virtual bool RHISetShaderParameter(const char *paramName, const bool param) override;
 
-		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int32 BaseIndex, RHIUniformBuffer *) override;
-		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int32 BaseIndex, const FRHISampler &SamplerRHI) override;
-		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *, int32 BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
+		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
+		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
+		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI) override;
+		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override;
+		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
+		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
 		virtual void RHISetVertexBuffer(FRHIGraphicsPipelineState *, FRHIVertexInput *) override;
 
 	public:
@@ -65,6 +68,7 @@ namespace nilou {
 		virtual void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0) override;
 		virtual void RHISetBlendState(RHIBlendState *newState) override;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override;
+		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) override;
 
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;

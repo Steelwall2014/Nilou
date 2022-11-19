@@ -127,124 +127,66 @@ namespace nilou {
 
     std::string FShaderParser::ParseParameters()
     {
-        std::stringstream Output;;
-
-        std::smatch uniform_block_matches;
-        std::smatch uniform_matches;
-
-        // like layout(...) uniform Name {
-        //      mat4 matrix
-        // };
-        std::regex re_uniformblock("^[ \\n]*(layout[ ]*\\(.*\\)[ ]*(uniform|buffer)[ ]+)([a-zA-Z_]+\\w*)[\\s]*\\{([\\w\\s\\[\\];]+)\\}([.\\n]*;)[\\s]*");
-
-        // like uniform sampler2D tex; / uniform int a;
-        std::regex re_uniform("^[ \\n]*uniform[ ]+([a-zA-Z_]+\\w*)[ ]+([a-zA-Z_]+\\w*)[ ]*;[ ]*\\n");
-
-        std::regex re_binding1(",[ ]*binding[ ]*=[ ]*[0-9]+[ ]*");      // like layout(std140, binding = 0)
-        std::regex re_binding2("[ ]*binding[ ]*=[ ]*[0-9]+,[ ]*");      // like layout(binding = 0, std140)
-        std::regex re_binding3("\\([ ]*binding[ ]*=[ ]*[0-9]+[ ]*\\)"); // like layout(binding = 0)
+        std::stringstream Output;
 
         std::string temp = Code;
-        while (true)
+        std::smatch matches;
+        std::regex re_binding1(",\\s*binding\\s*=\\s*[0-9]+\\s*");      // like layout(std140, binding = 0)
+        std::regex re_binding2("\\s*binding\\s*=\\s*[0-9]+,\\s*");      // like layout(binding = 0, std140)
+        std::regex re_binding3("\\s*binding\\s*=\\s*[0-9]+\\s*"); // like layout(binding = 0)
+        std::regex re_layout("layout\\s*\\(\\s*\\)"); // like layout()
+        std::regex re(R"(^(layout\s+\(.*\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
+        while (std::regex_search(temp, matches, re))
         {
-            bool uniform_block_found = std::regex_search(temp, uniform_block_matches, re_uniformblock);
-            bool uniform_found = std::regex_search(temp, uniform_matches, re_uniform);
-            bool uniform_block_first;
-            if (uniform_block_found && uniform_found)
+            FShaderParsedParameter ParsedParameter;
+            std::string prefix = matches[1].str();
+            std::string parameter_type = matches[2].str();
+            std::string parameter_name = matches[3].str();
+            if (parameter_type == "image2D" || parameter_type == "image3D")
             {
-                if (uniform_block_matches.prefix().length() < uniform_matches.prefix().length())
+                std::smatch binding_match;
+                if (std::regex_search(prefix, binding_match, re_binding3))
                 {
-                    uniform_block_first = true;
+                    ParsedParameter.ParameterType = EShaderParameterType::SPT_Image;
+                    ParsedParameter.Name = parameter_name;
+                    ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";";
                 }
                 else 
                 {
-                    uniform_block_first = false;
+                    NILOU_LOG(Error, "image1/2/3D variables must have an explicit binding point");
                 }
             }
-            else if (uniform_block_found)
+            else if (parameter_type == "sampler2D" || parameter_type == "sampler3D")
             {
-                uniform_block_first = true;
+                prefix = std::regex_replace(prefix, re_binding1, "");
+                prefix = std::regex_replace(prefix, re_binding2, "");
+                prefix = std::regex_replace(prefix, re_binding3, "");
+                prefix = std::regex_replace(prefix, re_layout, "");
+                ParsedParameter.ParameterType = EShaderParameterType::SPT_Sampler;
+                ParsedParameter.Name = parameter_name;
+                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";";
             }
-            else if (uniform_found)
+            else if (std::regex_match(parameter_type, std::regex("(vec(2|3|4)|(d|b|i|u)vec(2|3|4)|mat(2|3|4)|float|double|int|uint|bool)")))
             {
-                uniform_block_first = false;
+                NILOU_LOG(Error, 
+                    "All uniform variables must be inside a uniform block but " 
+                    + parameter_name + " is out of a uniform block")
             }
             else 
             {
-                break;
+                prefix = std::regex_replace(prefix, re_binding1, "");
+                prefix = std::regex_replace(prefix, re_binding2, "");
+                prefix = std::regex_replace(prefix, re_binding3, "");
+                prefix = std::regex_replace(prefix, re_layout, "(std140)");
+                ParsedParameter.ParameterType = EShaderParameterType::SPT_UniformBuffer;
+                parameter_name = matches[2].str();
+                std::string parameter_body = matches[3].str();
+                ParsedParameter.Name = parameter_name;
+                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_body + ";";
             }
-
-            if (uniform_block_first)
-            {
-                // NILOU_LOG(Info, "Uniform block/Shader storage buffer found: "+uniform_block_matches[0].str());
-                std::string prefix = uniform_block_matches[1];
-                std::string buffer_type = uniform_block_matches[2];
-                std::string buffer_name = uniform_block_matches[3];
-                std::string body = uniform_block_matches[4];
-                std::string suffix = uniform_block_matches[5];
-                
-                if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-                {      
-                    prefix = std::regex_replace(prefix, re_binding1, "");
-                    prefix = std::regex_replace(prefix, re_binding2, "");
-                    prefix = std::regex_replace(prefix, re_binding3, "(std140)");     
-                }
-                else 
-                {
-                    std::smatch matches;
-                    std::regex re_binding4("\\(.*binding.*\\)");
-                    std::regex re_binding5("\\((.*)\\)");
-                    prefix = std::regex_replace(prefix, re_binding1, "{binding}");
-                    prefix = std::regex_replace(prefix, re_binding2, "{binding}");
-                    prefix = std::regex_replace(prefix, re_binding3, "(std140, {binding})");
-
-                    // filter out those qualifiers that are not "binding=N"
-                    if (!std::regex_search(prefix, matches, re_binding4))
-                    {
-                        std::regex_search(prefix, matches, re_binding5);
-                        std::string in_brackets = matches[1];
-                        prefix = "layout(" + in_brackets + ", {binding}) uniform";
-                    }
-                }
-
-                FShaderParsedParameter ParsedParameter;
-                if (buffer_type == "uniform")
-                    ParsedParameter.ParameterType = EShaderParameterType::SPT_UniformBuffer;
-                else if (buffer_type == "buffer")
-                    ParsedParameter.ParameterType = EShaderParameterType::SPT_ShaderStructureBuffer;
-                ParsedParameter.Name = buffer_name;
-                ParsedParameter.Code = prefix + " " + buffer_name + " {" + body + "}" + suffix;
-                ParsedResult.ParsedParameters.push_back(ParsedParameter);
-                Output << uniform_block_matches.prefix() << ParsedParameter.Code << "\n";
-                temp = uniform_block_matches.suffix();
-
-            }
-            else
-            {
-                // NILOU_LOG(Info, "sampler found: "+uniform_matches[0].str());
-                std::string parameter_type = uniform_matches[1];
-                std::string buffer_name = uniform_matches[2];
-                FShaderParsedParameter ParsedParameter;
-                if (GameStatics::StartsWith(parameter_type, "sampler"))
-                {
-                    ParsedParameter.ParameterType = EShaderParameterType::SPT_Sampler;
-                    ParsedParameter.Name = buffer_name;
-                    if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-                        ParsedParameter.Code = "uniform " + parameter_type + " " + buffer_name + ";\n";
-                    else if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-                        ParsedParameter.Code = "layout({binding}) uniform " + parameter_type + " " + buffer_name + ";\n";
-                    ParsedResult.ParsedParameters.push_back(ParsedParameter);
-                    Output << uniform_matches.prefix() << ParsedParameter.Code;
-                }
-                else 
-                {
-                    NILOU_LOG(Error, 
-                        "All uniform variables must be inside a uniform block but " 
-                        + buffer_name + " is out of a uniform block")
-                    // Code.ParameterType = EShaderParameterType::SPT_Uniform;
-                }
-                temp = uniform_matches.suffix();
-            }
+            ParsedResult.ParsedParameters.push_back(ParsedParameter);
+            Output << matches.prefix() << ParsedParameter.Code;
+            temp = matches.suffix();
         }
 
         Output << temp;
@@ -253,96 +195,5 @@ namespace nilou {
         return Output.str();
 
 
-
-
-        // std::smatch matches;
-
-        // {   // filter out uniform blocks and modify the binding qualifier 
-        //     // to empty string (for OpenGL) or "{binding}" (for Vulkan)
-        //     // and add the modify result to ShaderParameterCodes
-            
-
-        //     std::string temp = RawSourceCode;
-        //     while (std::regex_search(temp, matches, re_uniformblock))
-        //     {
-        //         NILOU_LOG(Info, "Uniform block/Shader storage buffer found: "+matches[0].str());
-        //         std::string prefix = matches[1];
-        //         std::string buffer_type = matches[2];
-        //         std::string buffer_name = matches[3];
-        //         std::string body = matches[4];
-        //         std::string suffix = matches[5];
-                
-        //         if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-        //         {      
-        //             prefix = std::regex_replace(prefix, re_binding1, "");
-        //             prefix = std::regex_replace(prefix, re_binding2, "");
-        //             prefix = std::regex_replace(prefix, re_binding3, "(std140)");     
-        //         }
-        //         else 
-        //         {
-        //             std::regex re_binding4("\\(.*binding.*\\)");
-        //             std::regex re_binding5("\\((.*)\\)");
-        //             prefix = std::regex_replace(prefix, re_binding1, "{binding}");
-        //             prefix = std::regex_replace(prefix, re_binding2, "{binding}");
-        //             prefix = std::regex_replace(prefix, re_binding3, "(std140, {binding})");
-
-        //             // filter out those qualifiers that are not "binding=N"
-        //             if (!std::regex_search(prefix, matches, re_binding4))
-        //             {
-        //                 std::regex_search(prefix, matches, re_binding5);
-        //                 std::string in_brackets = matches[1];
-        //                 prefix = "layout(" + in_brackets + ", {binding}) uniform";
-        //             }
-        //         }
-
-        //         FShaderParsedParameter ParsedParameter;
-        //         if (buffer_type == "uniform")
-        //             ParsedParameter.ParameterType = EShaderParameterType::SPT_UniformBuffer;
-        //         else if (buffer_type == "buffer")
-        //             ParsedParameter.ParameterType = EShaderParameterType::SPT_ShaderStructureBuffer;
-        //         ParsedParameter.Name = buffer_name;
-        //         ParsedParameter.Code = prefix + " " + buffer_name + " {" + body + "}" + suffix;
-        //         ParsedResult.ParsedParameters.push_back(ParsedParameter);
-        //         temp = matches.suffix();
-        //     }
-        // }
-
-        // {   // filter out uniform variables 
-        //     // and add the modify result to ShaderParameterCodes
-            
-        //     std::string temp = RawSourceCode;
-        //     while (std::regex_search(temp, matches, re_uniform))
-        //     {
-        //         NILOU_LOG(Info, "sampler found: "+matches[0].str());
-        //         std::string parameter_type = matches[1];
-        //         std::string buffer_name = matches[2];
-        //         FShaderParsedParameter ParsedParameter;
-        //         if (GameStatics::StartsWith(parameter_type, "sampler"))
-        //         {
-        //             ParsedParameter.ParameterType = EShaderParameterType::SPT_Sampler;
-        //             ParsedParameter.Name = buffer_name;
-        //             if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-        //                 ParsedParameter.Code = "uniform " + parameter_type + " " + buffer_name + ";\n";
-        //             else if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-        //                 ParsedParameter.Code = "layout({binding}) uniform " + parameter_type + " " + buffer_name + ";\n";
-        //             ParsedResult.ParsedParameters.push_back(ParsedParameter);
-        //         }
-        //         else 
-        //         {
-        //             NILOU_LOG(Error, 
-        //                 "All uniform variables must be inside a uniform block but " 
-        //                 + buffer_name + " is out of a uniform block")
-        //             // Code.ParameterType = EShaderParameterType::SPT_Uniform;
-        //         }
-        //         temp = matches.suffix();
-        //     }
-
-        //     // like layout(...) uniform sampler2D tex; / layout(...) uniform int a;
-        //     std::regex re_sampler("^[ ]*layout[ ]*\\(.*\\)[ ]*uniform[ ]+([a-zA-Z_]+\\w*)[ ]+([a-zA-Z_]+\\w*)[ ]*;[ ]*\\n");
-        //     RawSourceCode = std::regex_replace(RawSourceCode, re_uniformblock, "");
-        //     RawSourceCode = std::regex_replace(RawSourceCode, re_sampler, "");
-        //     RawSourceCode = std::regex_replace(RawSourceCode, re_uniform, "");
-        // }
-        // return RawSourceCode;
     }
 }

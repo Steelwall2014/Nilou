@@ -108,114 +108,6 @@ namespace nilou {
         std::string NewRawSourceCode = ProcessCodeIncludePath(RawSourceCode, FileParentDir);
         return ProcessCodeIncludeInternal(NewRawSourceCode, AlreadyIncludedPathes);
     }
-
-    std::string ProcessCodeShaderParams(
-        const std::string &InRawSourceCode,
-        std::set<FShaderParameterCode> &ShaderParameterCodes)
-    {
-        std::smatch matches;
-        std::string RawSourceCode = InRawSourceCode;
-        // like layout(...) uniform Name {
-        //      mat4 matrix
-        // };
-        std::regex re_uniformblock("[ ]*(layout[ ]*\\(.*\\)[ ]*(uniform|buffer)[ ]+)([a-zA-Z_]+\\w*)[\\s]*\\{([\\w\\s;\\[\\]]+)\\}([.\n]*;)[\\s]*");
-
-        {   // filter out uniform blocks and modify the binding qualifier 
-            // to empty string (for OpenGL) or "{binding}" (for Vulkan)
-            // and add the modify result to ShaderParameterCodes
-
-            std::regex re_binding1(",[ ]*binding[ ]*=[ ]*[0-9]+[ ]*");      // like layout(std140, binding = 0)
-            std::regex re_binding2("[ ]*binding[ ]*=[ ]*[0-9]+,[ ]*");      // like layout(binding = 0, std140)
-            std::regex re_binding3("\\([ ]*binding[ ]*=[ ]*[0-9]+[ ]*\\)"); // like layout(binding = 0)
-            
-
-            std::string temp = RawSourceCode;
-            while (std::regex_search(temp, matches, re_uniformblock))
-            {
-                NILOU_LOG(Info, "Uniform block/Shader storage buffer found: "+matches[0].str());
-                std::string prefix = matches[1];
-                std::string buffer_type = matches[2];
-                std::string buffer_name = matches[3];
-                std::string body = matches[4];
-                std::string suffix = matches[5];
-                
-                if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-                {      
-                    prefix = std::regex_replace(prefix, re_binding1, "");
-                    prefix = std::regex_replace(prefix, re_binding2, "");
-                    prefix = std::regex_replace(prefix, re_binding3, "(std140)");     
-                }
-                else 
-                {
-                    std::regex re_binding4("\\(.*binding.*\\)");
-                    std::regex re_binding5("\\((.*)\\)");
-                    prefix = std::regex_replace(prefix, re_binding1, "{binding}");
-                    prefix = std::regex_replace(prefix, re_binding2, "{binding}");
-                    prefix = std::regex_replace(prefix, re_binding3, "(std140, {binding})");
-
-                    // filter out those qualifiers that are not "binding=N"
-                    if (!std::regex_search(prefix, matches, re_binding4))
-                    {
-                        std::regex_search(prefix, matches, re_binding5);
-                        std::string in_brackets = matches[1];
-                        prefix = "layout(" + in_brackets + ", {binding}) uniform";
-                    }
-                }
-
-                FShaderParameterCode Code;
-                if (buffer_type == "uniform")
-                    Code.ParameterType = EShaderParameterType::SPT_UniformBuffer;
-                else if (buffer_type == "buffer")
-                    Code.ParameterType = EShaderParameterType::SPT_ShaderStructureBuffer;
-                Code.Name = buffer_name;
-                Code.Code = prefix + " " + buffer_name + " {" + body + "}" + suffix;
-                ShaderParameterCodes.insert(Code);
-                temp = matches.suffix();
-            }
-        }
-
-        {   // filter out uniform variables 
-            // and add the modify result to ShaderParameterCodes
-
-            // like uniform sampler2D tex; / uniform int a;
-            std::regex re_uniform("[ ]*uniform[ ]+([a-zA-Z_]+\\w*)[ ]+([a-zA-Z_]+\\w*)[ ]*;[ ]*\\n");
-            
-            std::string temp = RawSourceCode;
-            while (std::regex_search(temp, matches, re_uniform))
-            {
-                NILOU_LOG(Info, "sampler found: "+matches[0].str());
-                std::string parameter_type = matches[1];
-                std::string buffer_name = matches[2];
-                FShaderParameterCode Code;
-                if (GameStatics::StartsWith(parameter_type, "sampler"))
-                {
-                    Code.ParameterType = EShaderParameterType::SPT_Sampler;
-                    Code.Name = buffer_name;
-                    if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-                        Code.Code = "uniform " + parameter_type + " " + buffer_name + ";\n";
-                    else if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-                        Code.Code = "layout({binding}) uniform " + parameter_type + " " + buffer_name + ";\n";
-                    ShaderParameterCodes.insert(Code);
-                }
-                else 
-                {
-                    NILOU_LOG(Error, 
-                        "All uniform variables must be inside a uniform block but " 
-                        + buffer_name + " is out of a uniform block")
-                    // Code.ParameterType = EShaderParameterType::SPT_Uniform;
-                }
-                temp = matches.suffix();
-            }
-
-            // like layout(...) uniform sampler2D tex; / layout(...) uniform int a;
-            std::regex re_sampler("^[ ]*layout[ ]*\\(.*\\)[ ]*uniform[ ]+([a-zA-Z_]+\\w*)[ ]+([a-zA-Z_]+\\w*)[ ]*;[ ]*\\n");
-            RawSourceCode = std::regex_replace(RawSourceCode, re_uniformblock, "");
-            RawSourceCode = std::regex_replace(RawSourceCode, re_sampler, "");
-            RawSourceCode = std::regex_replace(RawSourceCode, re_uniform, "");
-        }
-        return RawSourceCode;
-
-    }
 }
 
 namespace nilou {
@@ -274,7 +166,7 @@ namespace nilou {
 
     template<int N>
     std::string ConcateShaderCodeAndParameters(
-        std::map<std::string, FShaderParameterInfo> &ParameterMap, 
+        std::set<FShaderParameterInfo> &OutShaderParameters, 
         std::array<FShaderParserResult*, N> ParsedResults, 
         const FShaderCompilerEnvironment &Environment)
     {
@@ -291,9 +183,21 @@ namespace nilou {
             {
                 if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
                 {
-                    // stream << ParsedParameter.Code << "\n";
-                    // for OpenGL, the binding point won't be determined until pipeline state is created
-                    ParameterMap[ParsedParameter.Name] = FShaderParameterInfo(ParsedParameter.Name, -1, ParsedParameter.ParameterType);
+                    // for OpenGL, the binding point of images will be determined by explicit binding qualifier
+                    if (ParsedParameter.ParameterType == EShaderParameterType::SPT_Image)
+                    {
+                        std::regex re("binding[ ]*=[ ]*([0-9])");
+                        std::smatch matches;
+                        if (std::regex_search(ParsedParameter.Code, matches, re))
+                        {
+                            OutShaderParameters.emplace(ParsedParameter.Name, stoi(matches[1].str()), ParsedParameter.ParameterType);
+                        }
+                    }
+                    // for OpenGL, the binding point of samplers and uniform blocks will be determined when pipeline state is created
+                    else 
+                    {                        
+                        OutShaderParameters.emplace(ParsedParameter.Name, -1, ParsedParameter.ParameterType);
+                    }
                 }
                 // else if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
                 // {
@@ -308,17 +212,17 @@ namespace nilou {
             stream << ParsedResult->MainCode;
         }
 
-        if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-        {
-            std::regex re("\\{binding\\}");
-            std::string Output = stream.str();
-            std::smatch match;
-            while (std::regex_search(Output, match, re))
-            {
-                int binding_point = ParameterMap.size();
-                Output = std::regex_replace(Output, re, "binding="+std::to_string(binding_point), std::regex_constants::format_first_only);
-            }
-        }
+        // if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+        // {
+        //     std::regex re("\\{binding\\}");
+        //     std::string Output = stream.str();
+        //     std::smatch match;
+        //     while (std::regex_search(Output, match, re))
+        //     {
+        //         int binding_point = ParsedParameters.size();
+        //         Output = std::regex_replace(Output, re, "binding="+std::to_string(binding_point), std::regex_constants::format_first_only);
+        //     }
+        // }
 
         return stream.str();
     }
@@ -348,7 +252,7 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
-            ShaderInstance->ParameterMap, {&ShaderType->ParsedResult}, Environment);
+            ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment);
         #ifdef _DEBUG
             ShaderInstance->DebugCode = code;
             Write(ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+".glsl", code);
@@ -392,7 +296,7 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<3>(
-            ShaderInstance->ParameterMap, 
+            ShaderInstance->Parameters, 
             {&Material->ParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
             Environment);
         #ifdef _DEBUG
@@ -423,7 +327,7 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<2>(
-            ShaderInstance->ParameterMap, 
+            ShaderInstance->Parameters, 
             {&Material->ParsedResult, &ShaderType->ParsedResult}, 
             Environment);
         #ifdef _DEBUG

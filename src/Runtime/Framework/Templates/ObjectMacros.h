@@ -30,6 +30,13 @@
         static FShaderType StaticType; \
         virtual FShaderType* GetType() const override;
 
+#define DECLARE_GLOBAL_SHADER(ShaderClass) \
+	class ShaderClass : public FGlobalShader\
+	{ \
+	public: \
+		DECLARE_SHADER_TYPE() \
+	};
+
 #define IMPLEMENT_SHADER_TYPE(ShaderClass, ShaderFilename, ShaderFrequency, ShaderMetaType) \
 	FShaderType ShaderClass::StaticType( \
 		#ShaderClass, \
@@ -42,8 +49,7 @@
 		); \
 	FShaderType* ShaderClass::GetType() const \
 	{ \
-		if constexpr (TIsDerivedFrom<ShaderClass, FMaterialShader>::Value) \
-			static_assert(ShaderFrequency != EShaderFrequency::SF_Compute); \
+		TShaderFrequencyAssertHelper<ShaderFrequency, TIsDerivedFrom<ShaderClass, FMaterialShader>::Value>(); \
 		return &StaticType; \
 	}
 

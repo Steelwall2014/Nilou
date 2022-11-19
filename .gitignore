@@ -3,5 +3,6 @@
 build
 vsxmake2019
 .deprecated
+.xmake
 
 *.zip

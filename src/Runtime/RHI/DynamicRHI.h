@@ -44,9 +44,12 @@ namespace nilou {
 		// virtual bool RHISetShaderParameter(const char *paramName, const uint32_t param) = 0;
 		// virtual bool RHISetShaderParameter(const char *paramName, const bool param) = 0;
 
-		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int32 BaseIndex, RHIUniformBuffer *) = 0;
-		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int32 BaseIndex, const FRHISampler &SamplerRHI) = 0;
-		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *, int32 BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) = 0;
+		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) = 0;
+		virtual void RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) = 0;
+		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI) = 0;
+		virtual void RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) = 0;
+		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) = 0;
+		virtual void RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) = 0;
 		virtual void RHISetVertexBuffer(FRHIGraphicsPipelineState *, FRHIVertexInput *) = 0;
 
 	public:
@@ -68,6 +71,7 @@ namespace nilou {
 		virtual void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0) = 0;
 		virtual void RHISetBlendState(RHIBlendState *newState) = 0;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) = 0;
+		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) = 0;
 
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) = 0;
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) = 0;
