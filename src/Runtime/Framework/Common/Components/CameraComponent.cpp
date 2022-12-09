@@ -5,19 +5,6 @@
 
 namespace nilou {
 
-    // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-
-    FCameraParameters::FCameraParameters()
-        : FOVY(50)
-        , NearClipDistance(0.1)
-        , FarClipDistance(10000)
-        , AspectRatio(1.f)
-        , ScreenResolution(glm::ivec2(1024, 1024))
-        // , CameraType(ECameraType::CT_Perspective)
-    {
-
-    }
-
     void UCameraComponent::CreateRenderState()
     {
         USceneComponent::CreateRenderState();
@@ -57,7 +44,7 @@ namespace nilou {
             SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
             if (bCameraResolutionDirty)
             {
-                SceneProxy->SetCameraResolution(CameraParameters.ScreenResolution);
+                SceneProxy->SetCameraResolution(ScreenResolution);
                 bCameraResolutionDirty = false;
             }
         }
@@ -76,7 +63,7 @@ namespace nilou {
     glm::mat4 UCameraComponent::CalcViewToClipMatrix()
     {
         // if (CameraParameters.CameraType == ECameraType::CT_Perspective)
-            return glm::perspective(glm::radians(CameraParameters.FOVY), CameraParameters.AspectRatio, CameraParameters.NearClipDistance, CameraParameters.FarClipDistance);
+            return glm::perspective(glm::radians(FOVY), AspectRatio, NearClipDistance, FarClipDistance);
         // else if (CameraParameters.CameraType == ECameraType::CT_Ortho) 
         //     return glm::ortho(CameraParameters.FOVY, CameraParameters.AspectRatio, CameraParameters.NearClipDistance, CameraParameters.FarClipDistance);
     }
@@ -88,14 +75,14 @@ namespace nilou {
 
     void UCameraComponent::SetFieldOfView(float fovy)
     {
-        CameraParameters.FOVY = fovy;
+        FOVY = fovy;
         MarkRenderDynamicDataDirty();
     }
 
     void UCameraComponent::SetCameraResolution(const ivec2 &CameraResolution)
     {
-        CameraParameters.ScreenResolution = CameraResolution;
-        CameraParameters.AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
+        ScreenResolution = CameraResolution;
+        AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
         bCameraResolutionDirty = true;
         MarkRenderDynamicDataDirty();
     }
@@ -103,13 +90,13 @@ namespace nilou {
 
 
     FCameraSceneProxy::FCameraSceneProxy(UCameraComponent *InComponent)
-        : /*CameraParameters(InComponent->CameraParameters)
-        , */CameraSceneInfo(nullptr)
+        : CameraSceneInfo(nullptr)
     {
         InComponent->SceneProxy = this;
         ViewUniformBufferRHI = CreateUniformBuffer<FViewShaderParameters>();
         SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector());
         SetViewProjectionMatrix(InComponent->CalcWorldToViewMatrix(), InComponent->CalcViewToClipMatrix());
+        SetCameraResolution(InComponent->ScreenResolution);
         // ViewUniformBufferRHI->InitRHI();
         BeginInitResource(ViewUniformBufferRHI.get());
         if (CameraSceneInfo)
@@ -130,18 +117,6 @@ namespace nilou {
         ViewUniformBufferRHI->Data.WorldToView = InWorldToView;
         ViewUniformBufferRHI->Data.ViewToClip = InViewToClip;
         ViewUniformBufferRHI->Data.WorldToClip = WorldToClip;
-        auto view = glm::lookAt(vec3(-5, 0, 0), vec3(1, 0, 0), vec3(0, 0, 1));
-        auto projection = glm::perspective(glm::radians(45.0f), 1920.f/1080.f, 0.01f, 10000.f);
-        auto a = view * vec4(0, 0.5, 1, 1);
-        auto a0 = view * vec4(0, 0, 0, 1);
-        auto b = projection*view * vec4(0, 0.5, 1, 1);
-        auto b0 = projection*view * vec4(0, 0, 0, 1);
-        auto c = b / b.w;
-        auto c0 = b0 / b0.w;
-        auto d = InWorldToView * vec4(0, 0.5, 1, 1);
-        auto d0 = InWorldToView * vec4(0, 0, 0, 1);
-        auto e = WorldToClip * vec4(0, 0.5, 1, 1);
-        auto e0 = WorldToClip * vec4(0, 0, 0, 1);
         SceneView.ViewMatrix = InWorldToView;
         SceneView.ProjectionMatrix = InViewToClip;
         SceneView.ViewFrustum = FViewFrustum(InWorldToView, InViewToClip);

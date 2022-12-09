@@ -4,6 +4,8 @@
 #include "DynamicRHI.h"
 #include "Scene.h"
 #include "Common/BaseApplication.h"
+#include "Common/Renderer/Renderer.h"
+#include "DefferedShadingSceneRenderer.h"
 // #include "Common/Components/PrimitiveSceneProxy.h"
 // #include "Common/Components/LightSceneProxy.h"
 
@@ -84,12 +86,12 @@ namespace nilou {
 
         if (CameraSceneProxy)
         {
-            FCameraSceneInfo* LightSceneInfo = CameraSceneProxy->GetCameraSceneInfo();
+            FCameraSceneInfo* CameraSceneInfo = CameraSceneProxy->GetCameraSceneInfo();
             InCamera->SceneProxy = nullptr;
             
             FScene *Scene = this;
             {
-                Scene->RemoveCameraSceneInfo(LightSceneInfo);
+                Scene->RemoveCameraSceneInfo(CameraSceneInfo);
             }
         }
     }
@@ -185,68 +187,33 @@ namespace nilou {
 
     void FScene::AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
     {
-        AddedCameraSceneInfos.emplace_back(InCameraInfo);
+        AddedCameraSceneInfos.emplace(InCameraInfo);
+        FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
+        RenderModule->Renderer->AddCamera(InCameraInfo);
     }
 
     void FScene::RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
     {
         safe_erase(AddedCameraSceneInfos, InCameraInfo);
-        // auto iter = std::find(AddedCameraSceneInfos.begin(), AddedCameraSceneInfos.end(), InCameraInfo);
-        // AddedCameraSceneInfos.erase(iter);
-        // delete InCameraInfo;
-    }
-
-    RHIFramebufferRef CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
-    {
-        RHIFramebufferRef FrameBuffer = GDynamicRHI->RHICreateFramebuffer();
-        OutSceneTextures.BaseColor = GDynamicRHI->RHICreateTexture2D(
-            "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        OutSceneTextures.WorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
-            "WorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        OutSceneTextures.WorldSpaceNormal = GDynamicRHI->RHICreateTexture2D(
-            "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        OutSceneTextures.MetallicRoughness = GDynamicRHI->RHICreateTexture2D(
-            "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        OutSceneTextures.Emissive = GDynamicRHI->RHICreateTexture2D(
-            "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        OutSceneTextures.DepthStencil = GDynamicRHI->RHICreateTexture2D(
-            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
-
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.WorldSpacePosition);
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
-        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
-        return FrameBuffer;
+        FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
+        RenderModule->Renderer->RemoveCamera(InCameraInfo);
     }
 
     void FScene::UpdateViewInfos()
     {
-        for (int ViewIndex = 0; ViewIndex < AddedCameraSceneInfos.size(); ViewIndex++)
+        for (auto &&CameraInfo : AddedCameraSceneInfos)
         {
-            FCameraSceneInfo *CameraInfo = AddedCameraSceneInfos[ViewIndex].get();
+            // FCameraSceneInfo *CameraInfo = AddedCameraSceneInfos[ViewIndex].get();
             if (CameraInfo->bNeedsUniformBufferUpdate)
             {
                 CameraInfo->SceneProxy->UpdateUniformBuffer();
                 CameraInfo->SetNeedsUniformBufferUpdate(false);
             }
-            if (CameraInfo->bNeedsFramebufferUpdate)
-            {
-                CameraInfo->FrameBuffer = CreateSceneTextures(CameraInfo->SceneProxy->ScreenResolution, CameraInfo->SceneTextures);
-                CameraInfo->SetNeedsFramebufferUpdate(false);
-            }
+            // if (CameraInfo->bNeedsFramebufferUpdate)
+            // {
+            //     CameraInfo->FrameBuffer = CreateSceneTextures(CameraInfo->SceneProxy->ScreenResolution, CameraInfo->SceneTextures);
+            //     CameraInfo->SetNeedsFramebufferUpdate(false);
+            // }
         }
     }
 

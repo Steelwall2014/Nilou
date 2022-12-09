@@ -125,9 +125,9 @@ namespace nilou {
 
         void CollectShaderBindings(FElementShaderBindings &OutBindings)
         { 
-            for (auto [Name, Texture] : Textures)
+            for (auto &[Name, Texture] : Textures)
                 OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
-            for (auto [Name, UniformBuffer] : UniformBuffers)
+            for (auto &[Name, UniformBuffer] : UniformBuffers)
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer);
         }
     protected:

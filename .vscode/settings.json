@@ -1,8 +1,8 @@
 {
-    "xmake.additionalConfigArguments": "--cc=clang-cl --cxx=clang-cl",
+    "xmake.additionalConfigArguments": ["--cc=clang-cl", "--cxx=clang-cl"],
     "C_Cpp.codeAnalysis.runAutomatically": false,
-    "C_Cpp.intelliSenseEngine": "Disabled",
-    "C_Cpp.formatting": "Disabled",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.formatting": "disabled",
     "clangd.arguments": [
         "--background-index",
         "--compile-commands-dir=.",

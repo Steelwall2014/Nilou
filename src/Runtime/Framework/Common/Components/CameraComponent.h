@@ -11,18 +11,12 @@ namespace nilou {
         CT_Ortho,
     };
 
-    struct FCameraParameters
-    {
-        /** Field of view. !!IN DEGREES!! */
-        float FOVY;
-        float NearClipDistance;
-        float FarClipDistance;
-        float AspectRatio;
-        glm::ivec2 ScreenResolution;
-        // ECameraType CameraType;
+    // struct FCameraParameters
+    // {
+    //     // ECameraType CameraType;
 
-        FCameraParameters();
-    };
+    //     FCameraParameters();
+    // };
 
     UCLASS()
     class UCameraComponent : public USceneComponent
@@ -36,6 +30,11 @@ namespace nilou {
             : USceneComponent(InOwner)
             , SceneProxy(nullptr)
             , bIsMainCamera(bIsMainCamera)
+            , FOVY(50)
+            , NearClipDistance(0.1)
+            , FarClipDistance(10000)
+            , AspectRatio(1.f)
+            , ScreenResolution(glm::ivec2(1024, 1024))
         { 
         }
 
@@ -63,7 +62,12 @@ namespace nilou {
 
         class FCameraSceneProxy *SceneProxy;
 
-        FCameraParameters CameraParameters;
+        /** Field of view. !!IN DEGREES!! */
+        float FOVY;
+        float NearClipDistance;
+        float FarClipDistance;
+        float AspectRatio;
+        glm::ivec2 ScreenResolution;
 
         bool bIsMainCamera;
 

@@ -175,7 +175,7 @@ namespace nilou {
         if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
             stream << "#define USING_OPENGL 1\n";
 
-        for (auto [key, value] : Environment.Definitions)
+        for (auto &[key, value] : Environment.Definitions)
             stream << "#define " << key << " " << value << "\n";
         for (FShaderParserResult* ParsedResult : ParsedResults)
         {

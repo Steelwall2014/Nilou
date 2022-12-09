@@ -351,7 +351,7 @@ namespace nilou {
 
                 bool HaveTexCoords = false;
                 {   // Vertex
-                    for (auto [attr_name, attr_index] : gltf_prim.attributes)
+                    for (auto &[attr_name, attr_index] : gltf_prim.attributes)
                     {
                         tinygltf::Accessor &attr_accessor = model.accessors[attr_index];
                         tinygltf::BufferView &attr_bufferview = model.bufferViews[attr_accessor.bufferView];

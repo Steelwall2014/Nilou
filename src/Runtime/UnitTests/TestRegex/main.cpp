@@ -3,11 +3,48 @@
 #include <string>
 #include <memory>
 #include <set>
+#include <map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+struct A
+{
+    A() 
+    { 
+        this->a = 0; 
+    }
+    A(int a) 
+    { 
+        this->a = a; 
+    }
+    A(const A &other) 
+    { 
+        this->a = other.a;
+    }
+    A &operator=(const A &other) 
+    { 
+        this->a = a; 
+        return *this; 
+    }
+    int a;
+};
+
 int main()
 {
+    // glm::mat4 m;
+    // m = glm::rotate(m, glm::radians(30.0f), glm::vec3(0, 0, 1));
+    // m = glm::lookAt(glm::vec3(10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+
+    std::map<int, A> m;
+    m[0] = A(0);
+    m[1] = A(1);
+    m[2] = A(2);
+    for (auto &[key, value] : m)
+    {
+
+    }
+
     std::regex re(R"(^(layout\s+\((.*)\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
     std::string code = R"(
 uniform sampler2D TransmittanceLUT;

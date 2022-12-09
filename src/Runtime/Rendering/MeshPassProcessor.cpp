@@ -23,37 +23,37 @@ namespace nilou {
 
     void FMeshDrawCommand::SubmitDraw(FDynamicRHI *RHICmdList)
     {
-            RHICmdList->GLDEBUG();
+        RHIGetError();
         RHICmdList->RHISetGraphicsPipelineState(PipelineState);
         RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
         RHICmdList->RHISetRasterizerState(RasterizerState.get());
         RHICmdList->RHISetBlendState(BlendState.get());
-            RHICmdList->GLDEBUG();
+        RHIGetError();
         FRHIGraphicsPipelineState *PSO = PipelineState;
-            RHICmdList->GLDEBUG();
+        RHIGetError();
         for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
         {
-            for (auto [BindingPoint, UniformBufferRHI] : ShaderBindings.UniformBufferBindings[PipelineStage])
+            for (auto &[BindingPoint, UniformBufferRHI] : ShaderBindings.UniformBufferBindings[PipelineStage])
             {
                 RHICmdList->RHISetShaderUniformBuffer(PSO, (EPipelineStage)PipelineStage, BindingPoint, UniformBufferRHI);
-            RHICmdList->GLDEBUG();
+                RHIGetError();
             }
-            for (auto [BindingPoint, Sampler] : ShaderBindings.SamplerBindings[PipelineStage])
+            for (auto &[BindingPoint, Sampler] : ShaderBindings.SamplerBindings[PipelineStage])
             {
                 RHICmdList->RHISetShaderSampler(PSO, (EPipelineStage)PipelineStage, BindingPoint, *Sampler);
-            RHICmdList->GLDEBUG();
+                RHIGetError();
             }
         }
 
         for (FRHIVertexInput &VertexInput : *ShaderBindings.VertexAttributeBindings)
         {
             RHICmdList->RHISetVertexBuffer(PSO, &VertexInput);
-            RHICmdList->GLDEBUG();
+            RHIGetError();
         }
         if (UseIndirect)
         {
             RHICmdList->RHIDrawIndexedIndirect(IndexBuffer, IndirectArgs.Buffer, IndirectArgs.Offset);
-            RHICmdList->GLDEBUG();
+            RHIGetError();
         }
         else 
         {
@@ -61,7 +61,7 @@ namespace nilou {
                 RHICmdList->RHIDrawIndexed(IndexBuffer, DirectArgs.NumInstances);
             else 
                 RHICmdList->RHIDrawArrays(DirectArgs.NumVertices, DirectArgs.NumInstances);
-            RHICmdList->GLDEBUG();
+            RHIGetError();
         }
     }
 

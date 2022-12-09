@@ -3,10 +3,4 @@
 
 namespace nilou {
 	RHITextureParams RHITextureParams::DefaultParams = RHITextureParams();
-
-	// FDynamicRHI *GDynamicRHI = nullptr;
-	
-	FDynamicRHI::FDynamicRHI()
-	{
-	}
 }

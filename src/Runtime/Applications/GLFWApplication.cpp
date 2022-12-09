@@ -131,7 +131,7 @@ namespace nilou {
         Scene = std::make_shared<FScene>();
         World->Scene = Scene.get();
         Scene->World = World.get();
-        for (auto [Name, Module] : GetModuleManager()->Modules)
+        for (auto &[Name, Module] : GetModuleManager()->Modules)
         {
             Module->StartupModule();
         }
@@ -142,15 +142,15 @@ namespace nilou {
 //         run_time_modules.push_back(GDynamicRHI);
 //         run_time_modules.push_back(g_pInputManager);
 //         run_time_modules.push_back(g_pShaderManager);
-//         _GM->GLDEBUG();
+//         _GM->GetError();
 //         g_pShaderManager->Initialize();
-//         _GM->GLDEBUG();
+//         _GM->GetError();
 //         g_pAssetLoader->Initialize();
-//         _GM->GLDEBUG();
+//         _GM->GetError();
 //         g_pSceneManager->Initialize();
-//         _GM->GLDEBUG();
+//         _GM->GetError();
 //         GDynamicRHI->Initialize();
-//         _GM->GLDEBUG();
+//         _GM->GetError();
 //         g_pInputManager->Initialize();
 
 //         m_DrawPasses.push_back(new ShadowMappingPass);
@@ -171,7 +171,7 @@ namespace nilou {
 //         for (auto &&pass : m_DrawPasses)
 //         {
 //             pass->Initialize(frame);
-//             _GM->GLDEBUG();
+//             _GM->GetError();
 //         }
 
         InputActionMapping EnableCursor_mapping("EnableCursor");
@@ -229,7 +229,7 @@ namespace nilou {
         // for (auto pass : m_DrawPasses)
         // {
         //     pass->Draw(frame);
-        //     _GM->GLDEBUG();
+        //     _GM->GetError();
         // }
 
         // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);

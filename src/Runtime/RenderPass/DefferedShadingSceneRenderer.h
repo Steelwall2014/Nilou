@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SkyPassRendering.h"
+#include "SkyAtmospherePassRendering.h"
 
 #include "Common/MeshBatch.h"
 #include "Common/Scene.h"
@@ -22,9 +22,24 @@ namespace nilou {
     class FParallelMeshDrawCommands
     {
     public:
-        std::vector<FMeshDrawCommand> MeshCommands;
-
+        void AddMeshDrawCommand(const FMeshDrawCommand &MeshDrawCommand);
+        void Clear();
         void DispatchDraw(FDynamicRHI *RHICmdList);
+    private:
+        std::vector<FMeshDrawCommand> MeshCommands;
+    };
+
+    class FSceneTextures
+    {
+    public:
+        RHIFramebufferRef FrameBuffer;
+        RHITexture2DRef BaseColor;
+        RHITexture2DRef WorldSpacePosition;
+        RHITexture2DRef WorldSpaceNormal;
+        RHITexture2DRef MetallicRoughness;
+        RHITexture2DRef Emissive;
+        RHITexture2DRef DepthStencil;
+        RHITexture2DRef SceneColor;
     };
 
     // class FViewCommands
@@ -48,7 +63,8 @@ namespace nilou {
 
         virtual void Render();
 
-        virtual void ComputeVisibility(FScene *Scene);
+        virtual void AddCamera(FCameraSceneInfo *CameraInfo);
+        virtual void RemoveCamera(FCameraSceneInfo *CameraInfo);
 
     private:
 
@@ -89,15 +105,20 @@ namespace nilou {
         };
 
         // void SetupMeshPass(FSceneView &View, const std::vector<FMeshBatch> &ViewMeshBatches, std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
+        void InitViews(FScene *Scene);
+
+        void ComputeVisibility(FScene *Scene);
 
         void RenderBasePass(FDynamicRHI *RHICmdList);
+        
         void RenderCSMShadowPass(FDynamicRHI *RHICmdList);
+
         void RenderLightingPass(FDynamicRHI *RHICmdList);
 
         FScene *Scene = nullptr;
-        std::vector<FCameraSceneInfo *> Views;
-
-        std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
+        
+        std::map<FCameraSceneInfo *, FSceneTextures> PerViewSceneTextures;
+        std::map<FCameraSceneInfo *, std::vector<FMeshBatch>> PerViewMeshBatches;
 
         // std::vector<FViewCommands> PerViewDrawCommands;
 

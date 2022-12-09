@@ -68,18 +68,6 @@ namespace nilou {
         bool bNeedsUniformBufferUpdate = false;
     };
 
-
-    class FSceneTextures
-    {
-    public:
-        RHITexture2DRef BaseColor;
-        RHITexture2DRef WorldSpacePosition;
-        RHITexture2DRef WorldSpaceNormal;
-        RHITexture2DRef MetallicRoughness;
-        RHITexture2DRef Emissive;
-        RHITexture2DRef DepthStencil;
-    };
-
     class FCameraSceneInfo
     {
     public:
@@ -101,11 +89,11 @@ namespace nilou {
             bNeedsFramebufferUpdate = bInNeedsFramebufferUpdate;
         }
 
+        ivec2 GetResolution() const { return SceneProxy->ScreenResolution; }
+
         FScene *Scene;
         UCameraComponent *Camera;
         FCameraSceneProxy *SceneProxy;
-        RHIFramebufferRef FrameBuffer;
-        FSceneTextures SceneTextures;
         bool bNeedsUniformBufferUpdate = false;
         bool bNeedsFramebufferUpdate = false;
     };
@@ -136,7 +124,7 @@ namespace nilou {
 
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
-        std::vector<std::unique_ptr<FCameraSceneInfo>> AddedCameraSceneInfos;
+        std::set<std::unique_ptr<FCameraSceneInfo>> AddedCameraSceneInfos;
         std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
         FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;

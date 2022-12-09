@@ -14,7 +14,7 @@ namespace nilou {
 		float constant_term;
         DensityProfileLayer() = default;
         DensityProfileLayer &operator=(const DensityProfileLayer &) = default;
-        bool operator!=(const DensityProfileLayer &Other) const = default;
+        bool operator!=(const DensityProfileLayer &Other) const = default; 
 	};
 
 	// An atmosphere density profile made of several layers on top of each other

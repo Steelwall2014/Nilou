@@ -1,12 +1,11 @@
 {
   "ExpandedNodes": [
     "",
+    "\\atmosphere",
     "\\GlobalShaders",
-    "\\include",
-    "\\Materials",
-    "\\SkyAtmosphere",
-    "\\VertexFactories"
+    "\\MaterialShaders",
+    "\\SkyAtmosphere"
   ],
-  "SelectedNode": "\\SkyAtmosphere\\atmosphere_constants.glsl",
+  "SelectedNode": "\\MaterialShaders\\BasePassVertexShader.vert",
   "PreviewInSolutionExplorer": false
 }

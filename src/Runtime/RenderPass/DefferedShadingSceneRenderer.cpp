@@ -21,11 +21,54 @@
 
 namespace nilou {
 
+    void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
+    {
+        OutSceneTextures.FrameBuffer = GDynamicRHI->RHICreateFramebuffer();
+        OutSceneTextures.BaseColor = GDynamicRHI->RHICreateTexture2D(
+            "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.WorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
+            "WorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.WorldSpaceNormal = GDynamicRHI->RHICreateTexture2D(
+            "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.MetallicRoughness = GDynamicRHI->RHICreateTexture2D(
+            "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.Emissive = GDynamicRHI->RHICreateTexture2D(
+            "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.DepthStencil = GDynamicRHI->RHICreateTexture2D(
+            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.WorldSpacePosition);
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+    }
+
     FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FScene *Scene)
     {
         return new FDefferedShadingSceneRenderer(Scene);
     }
 
+    void FParallelMeshDrawCommands::AddMeshDrawCommand(const FMeshDrawCommand &MeshDrawCommand)
+    {
+        MeshCommands.push_back(MeshDrawCommand);
+    }
+    void FParallelMeshDrawCommands::Clear()
+    {
+        MeshCommands.clear();
+    }
     void FParallelMeshDrawCommands::DispatchDraw(FDynamicRHI *RHICmdList)
     {
         for (auto &&MeshDrawCommand : MeshCommands)
@@ -60,17 +103,37 @@ namespace nilou {
         UVVertexInput.Type = EVertexElementType::VET_Float2;
     }
 
+    void FDefferedShadingSceneRenderer::AddCamera(FCameraSceneInfo *CameraSceneInfo)
+    {
+        CreateSceneTextures(CameraSceneInfo->GetResolution(), PerViewSceneTextures[CameraSceneInfo]);
+        PerViewMeshBatches[CameraSceneInfo] = std::vector<FMeshBatch>();
+    }
+
+    void FDefferedShadingSceneRenderer::RemoveCamera(FCameraSceneInfo *CameraSceneInfo)
+    {
+        PerViewSceneTextures.erase(CameraSceneInfo);
+        PerViewMeshBatches.erase(CameraSceneInfo);
+    }
+
+    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    {
+        for (auto &[CameraSceneInfo, FSceneTextures] : PerViewSceneTextures)
+        {
+            if (CameraSceneInfo->bNeedsFramebufferUpdate)
+            {
+                CreateSceneTextures(CameraSceneInfo->GetResolution(), FSceneTextures);
+                CameraSceneInfo->SetNeedsFramebufferUpdate(false);
+            }
+        }
+    }
+
     void FDefferedShadingSceneRenderer::ComputeVisibility(FScene *Scene)
     {
-        Views.clear();
-        for (auto &&View : Scene->AddedCameraSceneInfos)
-            Views.push_back(View.get());
-
-        PerViewMeshBatches.resize(Views.size());
-        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        for (auto &[View, SceneTextures] : PerViewSceneTextures)
         {
-            PerViewMeshBatches[ViewIndex].clear();
-            const FSceneView &SceneView = Views[ViewIndex]->SceneProxy->SceneView;
+            std::vector<FMeshBatch> &MeshBatches = PerViewMeshBatches[View];
+            MeshBatches.clear();
+            const FSceneView &SceneView = View->SceneProxy->SceneView;
             // FCameraSceneInfo *CameraInfo = Views[ViewIndex];
             // if (CameraInfo->bNeedsUniformBufferUpdate)
             //     CameraInfo->SceneProxy->UpdateUniformBuffer();
@@ -79,7 +142,7 @@ namespace nilou {
                 FMeshBatch Mesh;
                 PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, SceneView);
                 Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveInfo->SceneProxy->GetUniformBuffer());
-                PerViewMeshBatches[ViewIndex].push_back(Mesh);
+                MeshBatches.push_back(Mesh);
             }
         }
 
@@ -99,6 +162,8 @@ namespace nilou {
     void FDefferedShadingSceneRenderer::Render()
     {
         FDynamicRHI *RHICmdList = GDynamicRHI;
+
+        InitViews(Scene);
 
         // Compute Visibility
         ComputeVisibility(Scene);
@@ -141,19 +206,19 @@ namespace nilou {
         Initializer.PixelShader = PixelShader;
 
         OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
-            RHICmdList->GLDEBUG();
+        RHIGetError();
         // Initializer.DepthStentilState = DepthState;
 
         OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
-            RHICmdList->GLDEBUG();
+        RHIGetError();
 
         OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
-            RHICmdList->GLDEBUG();
+        RHIGetError();
         // Initializer.RasterizerState = RasterizerState;
 
         {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
-            RHICmdList->GLDEBUG();
+            RHIGetError();
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
@@ -228,29 +293,29 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
     {
-        std::vector<FParallelMeshDrawCommands> PerViewDrawCommands;
-        PerViewDrawCommands.resize(Views.size());
+        std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
         {        
-            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+            for (auto &[View, SceneTextures] : PerViewSceneTextures)
             {
-                PerViewDrawCommands[ViewIndex].MeshCommands.clear();
-                FCameraSceneInfo *CameraInfo = Views[ViewIndex];
-                for (auto &&Mesh : PerViewMeshBatches[ViewIndex])
+                FParallelMeshDrawCommands &DrawCommands = PerViewDrawCommands[View];
+                DrawCommands.Clear();
+                FCameraSceneInfo *CameraInfo = View;
+                for (auto &&Mesh : PerViewMeshBatches[View])
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.VertexFactory->GetType(), Mesh.VertexFactory->GetPermutationId());
-                    GDynamicRHI->GLDEBUG();
+                    RHIGetError();
 
                     // FMaterialPermutationParameters MaterialParams(Mesh.MaterialRenderProxy->GetType(), Mesh.MaterialRenderProxy->GetPermutationId());
 
                     FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                    GDynamicRHI->GLDEBUG();
+                    RHIGetError();
                     
                     FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
-                    GDynamicRHI->GLDEBUG();
+                    RHIGetError();
 
                     FElementShaderBindings Bindings;
                     Bindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
-                    GDynamicRHI->GLDEBUG();
+                    RHIGetError();
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
@@ -269,22 +334,25 @@ namespace nilou {
                         Mesh.VertexFactory->GetVertexInputList(),
                         Mesh.Element,
                         MeshDrawCommand);
-                    PerViewDrawCommands[ViewIndex].MeshCommands.push_back(MeshDrawCommand);
-                    GDynamicRHI->GLDEBUG();
+                    DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                    RHIGetError();
                     
                 }
             }
         }
 
-        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-        {
-            FRHIRenderPassInfo PassInfo(Views[ViewIndex]->FrameBuffer.get()/*nullptr*/, true, true, true);
-            RHICmdList->RHIBeginRenderPass(PassInfo);
+        {        
+            for (auto &[View, SceneTextures] : PerViewSceneTextures)
+            {
+                FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get()/*nullptr*/, true, true, true);
+                RHICmdList->RHIBeginRenderPass(PassInfo);
 
-            FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[ViewIndex];
-            
-            ViewCommands.DispatchDraw(RHICmdList);
+                FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[View];
+                
+                ViewCommands.DispatchDraw(RHICmdList);
+            }
         }
+
 
     }
 
@@ -385,9 +453,9 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
     {
-        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        for (auto &[View, SceneTextures] : PerViewSceneTextures)
         {
-            FCameraSceneInfo *CameraInfo = Views[ViewIndex];
+            FCameraSceneInfo *CameraInfo = View;
             if (CameraInfo->Camera->IsMainCamera())
             {
 
@@ -416,44 +484,44 @@ namespace nilou {
                     RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<true, CF_Always>::CreateRHI();
                     RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
                     RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
-                    RHICmdList->GLDEBUG();
+                    RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
                     RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
                     RHICmdList->RHISetRasterizerState(RasterizerState.get());
                     RHICmdList->RHISetBlendState(BlendState.get());
-                    RHICmdList->GLDEBUG();
+                    RHIGetError();
 
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "BaseColor", 
-                        FRHISampler(CameraInfo->SceneTextures.BaseColor));
+                        FRHISampler(SceneTextures.BaseColor));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "WorldSpacePosition", 
-                        FRHISampler(CameraInfo->SceneTextures.WorldSpacePosition));
+                        FRHISampler(SceneTextures.WorldSpacePosition));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "WorldSpaceNormal", 
-                        FRHISampler(CameraInfo->SceneTextures.WorldSpaceNormal));
+                        FRHISampler(SceneTextures.WorldSpaceNormal));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "MetallicRoughness", 
-                        FRHISampler(CameraInfo->SceneTextures.MetallicRoughness));
+                        FRHISampler(SceneTextures.MetallicRoughness));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "Emissive", 
-                        FRHISampler(CameraInfo->SceneTextures.Emissive));
-                    RHICmdList->GLDEBUG();
+                        FRHISampler(SceneTextures.Emissive));
+                    RHIGetError();
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
                         "FViewShaderParameters", 
                         CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
-                    RHICmdList->GLDEBUG();
+                    RHIGetError();
 
                     RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHICmdList->GLDEBUG();
+                    RHIGetError();
                     RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHICmdList->GLDEBUG();
+                    RHIGetError();
                     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
                     {
                         RHICmdList->RHISetShaderUniformBuffer(
