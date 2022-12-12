@@ -116,7 +116,7 @@ namespace nilou {
         auto f = CameraActor->GetActorForwardVector();
         auto r = CameraActor->GetActorRightVector();
         auto u = CameraActor->GetActorUpVector();
-        CameraActor->SetCameraResolution(ivec2(g_pApp->GetConfiguration().screenWidth, g_pApp->GetConfiguration().screenHeight));
+        CameraActor->SetCameraResolution(ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight));
 
 
         FTransform LightActorTransform;

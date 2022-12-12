@@ -20,6 +20,7 @@ namespace nilou {
         virtual void SetWindowWidth(int width) override;
         virtual void SetWindowHeight(int height) override;
         virtual bool IsCursorEnabled() override;
+        virtual IRuntimeModule *GetModuleByName(const std::string &ModuleName) override;
 
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
@@ -37,5 +38,5 @@ namespace nilou {
         BaseApplication() {}
     };
 
-    extern BaseApplication *g_pApp;
+    BaseApplication *GetAppication();
 }

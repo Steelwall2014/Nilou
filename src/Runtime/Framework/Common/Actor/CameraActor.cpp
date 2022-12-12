@@ -177,14 +177,14 @@ namespace nilou {
 
     void ACameraActor::PitchCamera(float AxisValue)
     {
-        if (g_pApp->IsCursorEnabled())
+        if (GetAppication()->IsCursorEnabled())
             return;
         CameraInput.y += AxisValue;
     }
 
     void ACameraActor::YawCamera(float AxisValue)
     {
-        if (g_pApp->IsCursorEnabled())
+        if (GetAppication()->IsCursorEnabled())
             return;
         CameraInput.x += AxisValue;
     }
@@ -201,7 +201,7 @@ namespace nilou {
 
     void ACameraActor::ToOrigin()
     {
-        if (g_pApp->IsCursorEnabled())
+        if (GetAppication()->IsCursorEnabled())
             return;
         CameraComponent->SetWorldLocation(glm::vec3(10, 10, 0));
     }

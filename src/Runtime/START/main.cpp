@@ -6,15 +6,13 @@
 
 using namespace nilou;
 namespace nilou {
-    GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
-    BaseApplication *g_pApp = new GLFWApplication(config);
 }
 
 int main()
 {
     int ret;
 
-    if ((ret = g_pApp->Initialize()) != 0) {
+    if ((ret = GetAppication()->Initialize()) != 0) {
         printf("App Initialize failed, will exit now.");
         return ret;
     }
@@ -29,14 +27,14 @@ int main()
     //}
 
     clock_t DeltaTime, lastFrame = 0;
-    while (!g_pApp->IsQuit()) {
+    while (!GetAppication()->IsQuit()) {
         clock_t currentFrame = clock();
         DeltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        g_pApp->Tick(DeltaTime/1000.f);
+        GetAppication()->Tick(DeltaTime/1000.f);
     }
 
-    g_pApp->Finalize();
+    GetAppication()->Finalize();
 
     return 0;
 }

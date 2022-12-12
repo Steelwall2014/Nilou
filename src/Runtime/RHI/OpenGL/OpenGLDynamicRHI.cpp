@@ -1500,7 +1500,7 @@ namespace nilou {
                 // glCullFace(GL_BACK);
                 //glEnable(GL_PROGRAM_POINT_SIZE);
             }
-            auto config = g_pApp->GetConfiguration();
+            auto config = GetAppication()->GetConfiguration();
             RHIGetError();
             glViewport(0, 0, config.screenWidth, config.screenHeight);
             RHIGetError();

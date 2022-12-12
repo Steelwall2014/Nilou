@@ -37,8 +37,8 @@ namespace nilou {
     {
         glViewport(0, 0, width, height);
         // g_pSceneManager->GetScene()->Observer->SetCameraAspectRatio((float)width / (float)height);
-        g_pApp->SetWindowWidth(width);
-        g_pApp->SetWindowHeight(height);
+        GetAppication()->SetWindowWidth(width);
+        GetAppication()->SetWindowHeight(height);
     }
 
     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)

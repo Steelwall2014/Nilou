@@ -1,55 +1,75 @@
-#include "Common/BaseApplication.h"
+#include "GLFWApplication.h"
 
-bool nilou::BaseApplication::m_bQuit = false;
+namespace nilou {
 
-nilou::BaseApplication::BaseApplication(GfxConfiguration &cfg) :
-    m_Config(cfg)
-{
-}
+    bool BaseApplication::m_bQuit = false;
 
-int nilou::BaseApplication::Initialize()
-{
-    m_bQuit = false;
+    BaseApplication::BaseApplication(GfxConfiguration &cfg) :
+        m_Config(cfg)
+    {
+    }
 
-    return 0;
-}
+    int BaseApplication::Initialize()
+    {
+        m_bQuit = false;
 
-
-void nilou::BaseApplication::Finalize()
-{
-}
+        return 0;
+    }
 
 
-void nilou::BaseApplication::Tick(double DeltaTime)
-{
-}
+    void BaseApplication::Finalize()
+    {
+    }
 
-bool nilou::BaseApplication::IsQuit()
-{
-    return m_bQuit;
-}
 
-nilou::GfxConfiguration &nilou::BaseApplication::GetConfiguration()
-{
-    return m_Config;
-}
+    void BaseApplication::Tick(double DeltaTime)
+    {
+    }
 
-void nilou::BaseApplication::SetWindowWidth(int width)
-{
-    m_Config.screenWidth = width;
-}
+    bool BaseApplication::IsQuit()
+    {
+        return m_bQuit;
+    }
 
-void nilou::BaseApplication::SetWindowHeight(int height)
-{
-    m_Config.screenHeight = height;
-}
+    GfxConfiguration &BaseApplication::GetConfiguration()
+    {
+        return m_Config;
+    }
 
-float nilou::BaseApplication::GetTimeSinceStart()
-{
-    return accumTime;
-}
+    void BaseApplication::SetWindowWidth(int width)
+    {
+        m_Config.screenWidth = width;
+    }
 
-bool nilou::BaseApplication::IsCursorEnabled()
-{
-    return CursorEnabled;
+    void BaseApplication::SetWindowHeight(int height)
+    {
+        m_Config.screenHeight = height;
+    }
+
+    float BaseApplication::GetTimeSinceStart()
+    {
+        return accumTime;
+    }
+
+    bool BaseApplication::IsCursorEnabled()
+    {
+        return CursorEnabled;
+    }
+
+    IRuntimeModule *BaseApplication::GetModuleByName(const std::string &ModuleName)
+    {
+        return GetModuleManager()->GetModule(ModuleName);
+    }
+
+    BaseApplication *GetAppication()
+    {
+        static BaseApplication *g_pApp;
+        if (g_pApp == nullptr)
+        {
+            GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
+            g_pApp = new GLFWApplication(config);
+        }
+        return g_pApp;
+    }
+
 }

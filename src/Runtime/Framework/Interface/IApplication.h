@@ -17,6 +17,7 @@ namespace nilou {
         virtual void SetWindowHeight(int height) = 0;
         virtual float GetTimeSinceStart() = 0;                  // 获取从开始到现在经过了多少时间，单位为秒
         virtual bool IsCursorEnabled() = 0;
+        virtual class IRuntimeModule *GetModuleByName(const std::string &ModuleName) = 0;
     };
 
 }
