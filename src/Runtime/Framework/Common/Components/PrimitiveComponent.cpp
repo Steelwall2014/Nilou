@@ -38,9 +38,6 @@ namespace nilou {
         USceneComponent::SendRenderTransform();
     }
 
-    
-    // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveShaderParameters)
-
     FPrimitiveSceneProxy::FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName)
         : Scene(nullptr)
         , PrimitiveSceneInfo(nullptr)
@@ -49,10 +46,9 @@ namespace nilou {
         Primitive->SceneProxy = this;
         PrimitiveUniformBuffer = CreateUniformBuffer<FPrimitiveShaderParameters>();
         SetTransform(Primitive->GetRenderMatrix(), Primitive->GetBounds());
-        // BeginInitResource(UniformBuffer.get());
     }
 
-    void FPrimitiveSceneProxy::SetTransform(const glm::mat4 &InLocalToWorld, const FBoundingBox &InBounds)
+    void FPrimitiveSceneProxy::SetTransform(const glm::dmat4 &InLocalToWorld, const FBoundingBox &InBounds)
     {
         Bounds = InBounds;
         LocalToWorld = InLocalToWorld;
@@ -63,7 +59,6 @@ namespace nilou {
 
     void FPrimitiveSceneProxy::CreateRenderThreadResources()
     {
-        // PrimitiveUniformBuffer->InitRHI();
         BeginInitResource(PrimitiveUniformBuffer.get());
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);

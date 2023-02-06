@@ -38,36 +38,44 @@ layout(location = 4) in vec2 TEXCOORD_0;
 //    vec4 Color;
 //    vec2 TexCoords[1];
 //};
+#include "../include/ViewShaderParameters.glsl"
 
 layout (std140) uniform FPrimitiveShaderParameters {
-    mat4 LocalToWorld;
+    dmat4 LocalToWorld;
 };
 
 struct FVertexFactoryIntermediates
 {
-	mat4 LeftHandedLocalToWorld;
+	mat4 FloatLocalToWorld;
 };
 
 FVertexFactoryIntermediates VertexFactoryIntermediates()
 {
 	FVertexFactoryIntermediates VFIntermediates;
-	VFIntermediates.LeftHandedLocalToWorld = LocalToWorld;
+	dvec3 delta = dvec3(
+			LocalToWorld[3][0]-CameraPosition.x, 
+			LocalToWorld[3][1]-CameraPosition.y, 
+			LocalToWorld[3][2]-CameraPosition.z);
+	VFIntermediates.FloatLocalToWorld = mat4(LocalToWorld);
+	VFIntermediates.FloatLocalToWorld[3][0] = float(delta.x);
+	VFIntermediates.FloatLocalToWorld[3][1] = float(delta.y);
+	VFIntermediates.FloatLocalToWorld[3][2] = float(delta.z);
 	return VFIntermediates;
 }
 
 vec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 {
-	return vec3(VFIntermediates.LeftHandedLocalToWorld * vec4(POSITION, 1));
+	return vec3(VFIntermediates.FloatLocalToWorld * vec4(POSITION, 1));
 }
 
 vec3 VertexFactoryGetWorldNormal(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat3(transpose(inverse(VFIntermediates.LeftHandedLocalToWorld))) * NORMAL;
+	return mat3(transpose(inverse(VFIntermediates.FloatLocalToWorld))) * NORMAL;
 }
 
 vec4 VertexFactoryGetWorldTangent(FVertexFactoryIntermediates VFIntermediates)
 {
-	return VFIntermediates.LeftHandedLocalToWorld * TANGENT;
+	return VFIntermediates.FloatLocalToWorld * TANGENT;
 }
 vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 {

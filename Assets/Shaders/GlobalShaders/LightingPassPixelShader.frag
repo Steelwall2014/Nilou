@@ -5,7 +5,7 @@ layout (location = 0) out vec4 FragColor;
 in vec2 uv;
 
 uniform sampler2D BaseColor;
-uniform sampler2D WorldSpacePosition;
+uniform sampler2D RelativeWorldSpacePosition;
 uniform sampler2D WorldSpaceNormal;
 uniform sampler2D MetallicRoughness;
 uniform sampler2D Emissive;
@@ -25,23 +25,13 @@ layout (std140) uniform FLightUniformBlock {
 };
 
 // WorldToClip = ViewToClip * WorldToView
-layout (std140) uniform FViewShaderParameters {
-    mat4 WorldToView;
-    mat4 ViewToClip;
-    mat4 WorldToClip;
-    mat4 ClipToWorld;
-    vec3 CameraPosition;
-    vec3 CameraDirection;
-    ivec2 CameraResolution;
-    float CameraNearClipDist;
-    float CameraFarClipDist;
-};
+#include "../include/ViewShaderParameters.glsl"
 
 struct ShadingParams
 {
     vec3 baseColor;
     vec3 emissive;
-    vec3 worldSpacePosition;
+    vec3 relativePosition;      // Pixel position in world space, relative to camera
     vec3 worldSpaceNormal;
     vec3 worldSpaceViewVector;
     float metallic;
@@ -50,11 +40,12 @@ struct ShadingParams
 
 vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
 {
+    vec3 RelativeLightPosition = vec3(light.lightPosition - CameraPosition);
     vec3 L;
     if (light.lightType == LT_Directional)
         L = normalize(-light.lightDirection);
     else 
-        L = normalize(light.lightPosition - params.worldSpacePosition);
+        L = normalize(RelativeLightPosition - params.relativePosition);
     vec3 N = params.worldSpaceNormal;
     vec3 V = params.worldSpaceViewVector;
     vec3 H = normalize(V + L);
@@ -76,7 +67,7 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     float atten = 1;
     if (light.lightType == LT_Point || light.lightType == LT_Spot)   // Point or Spot
     {
-        float dist = length(light.lightPosition - params.worldSpacePosition);
+        float dist = length(RelativeLightPosition);
         atten *= apply_atten_curve(dist, light.lightDistAttenParams);
     }
     if (light.lightType == LT_Spot)       // Spot 
@@ -99,9 +90,9 @@ void main()
     ShadingParams params;
     params.baseColor = texture(BaseColor, uv).rgb;
     params.emissive = texture(Emissive, uv).rgb;
-    params.worldSpacePosition = texture(WorldSpacePosition, uv).rgb;
+    params.relativePosition = texture(RelativeWorldSpacePosition, uv).rgb;
     params.worldSpaceNormal = normalize(texture(WorldSpaceNormal, uv).rgb);
-    params.worldSpaceViewVector = normalize(CameraPosition - params.worldSpacePosition);
+    params.worldSpaceViewVector = normalize(-params.relativePosition);
     params.metallic = texture(MetallicRoughness, uv).r;
     params.roughness = texture(MetallicRoughness, uv).g;
 

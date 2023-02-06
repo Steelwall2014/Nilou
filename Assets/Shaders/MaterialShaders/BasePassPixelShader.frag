@@ -1,6 +1,6 @@
 #version 460 core
 layout (location = 0) out vec4 BaseColor;
-layout (location = 1) out vec3 WorldSpacePosition;
+layout (location = 1) out vec3 RelativeWorldSpacePosition;
 layout (location = 2) out vec3 WorldSpaceNormal;
 layout (location = 3) out vec2 MetallicRoughness;
 layout (location = 4) out vec3 Emissive;
@@ -23,7 +23,7 @@ void main()
 //    TangentSpaceNormal = normalize(TangentSpaceNormal * 2.0f - 1.0f);   
 //    WorldSpaceNormal = normalize(vs_out.TBN * TangentSpaceNormal);
     BaseColor = MaterialGetBaseColor(vs_out);
-    WorldSpacePosition = vs_out.WorldPosition;
+    RelativeWorldSpacePosition = vs_out.WorldPosition;
     MetallicRoughness.x = MaterialGetMetallic(vs_out);
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
     Emissive = MaterialGetEmissive(vs_out);

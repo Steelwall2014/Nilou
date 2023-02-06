@@ -81,8 +81,6 @@ namespace nilou {
 
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment);
         
-        // void SetParameter(const std::string &ParamName, TUniformBuffer<FPrimitiveShaderParameters> *PrimitiveUniformBuffer);
-
     protected:
         FDataType Data;
 

@@ -41,7 +41,7 @@ namespace nilou {
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveShaderParameters)
-        SHADER_PARAMETER(mat4, LocalToWorld)
+        SHADER_PARAMETER(dmat4, LocalToWorld)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FPrimitiveSceneProxy
@@ -54,7 +54,7 @@ namespace nilou {
         // virtual void GetDynamicMeshElements(const std::vector<class FSceneView *> &Views, uint32 VisibilityMap, std::vector<std::vector<FMeshBatch>> &OutPerViewMeshBatches, int32 LODIndex) { };
         virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &View) { };
     
-        virtual void SetTransform(const glm::mat4 &InLocalToWorld, const FBoundingBox &InBounds);
+        virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
 
         virtual void CreateRenderThreadResources();
 
@@ -76,7 +76,7 @@ namespace nilou {
         bool bRenderInMainPass;
 
         std::string Name;
-        glm::mat4 LocalToWorld;
+        dmat4 LocalToWorld;
         FBoundingBox Bounds;
 
         FPrimitiveSceneInfo *PrimitiveSceneInfo;

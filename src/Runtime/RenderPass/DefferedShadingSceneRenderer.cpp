@@ -38,8 +38,8 @@ namespace nilou {
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.WorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
-            "WorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
+        OutSceneTextures.RelativeWorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
+            "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
         OutSceneTextures.WorldSpaceNormal = GDynamicRHI->RHICreateTexture2D(
@@ -55,11 +55,11 @@ namespace nilou {
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
         OutSceneTextures.DepthStencil = GDynamicRHI->RHICreateTexture2D(
-            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
+            "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
         OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.WorldSpacePosition);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.RelativeWorldSpacePosition);
         OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
         OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
         OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
@@ -150,9 +150,6 @@ namespace nilou {
             std::vector<FMeshBatch> &MeshBatches = PerViewMeshBatches[View];
             MeshBatches.clear();
             const FSceneView &SceneView = View->SceneProxy->SceneView;
-            // FCameraSceneInfo *CameraInfo = Views[ViewIndex];
-            // if (CameraInfo->bNeedsUniformBufferUpdate)
-            //     CameraInfo->SceneProxy->UpdateUniformBuffer();
             for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
             {
                 FMeshBatch Mesh;

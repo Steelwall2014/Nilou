@@ -51,8 +51,8 @@ namespace nilou {
                         FRHISampler(SceneTextures.BaseColor));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        "WorldSpacePosition", 
-                        FRHISampler(SceneTextures.WorldSpacePosition));
+                        "RelativeWorldSpacePosition", 
+                        FRHISampler(SceneTextures.RelativeWorldSpacePosition));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "WorldSpaceNormal", 

@@ -135,7 +135,7 @@ namespace nilou {
         std::regex re_binding2("\\s*binding\\s*=\\s*[0-9]+,\\s*");      // like layout(binding = 0, std140)
         std::regex re_binding3("\\s*binding\\s*=\\s*[0-9]+\\s*"); // like layout(binding = 0)
         std::regex re_layout("layout\\s*\\(\\s*\\)"); // like layout()
-        std::regex re(R"(^(layout\s+\(.*\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
+        std::regex re(R"(^(layout\s+\(.*\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;\s*$)");
         while (std::regex_search(temp, matches, re))
         {
             FShaderParsedParameter ParsedParameter;

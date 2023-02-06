@@ -33,7 +33,6 @@ namespace nilou {
             SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector());
             SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
         }
-
         USceneComponent::SendRenderTransform();
     }
 
@@ -97,13 +96,14 @@ namespace nilou {
         SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector());
         SetViewProjectionMatrix(InComponent->CalcWorldToViewMatrix(), InComponent->CalcViewToClipMatrix());
         SetCameraResolution(InComponent->ScreenResolution);
+        SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
         // ViewUniformBufferRHI->InitRHI();
         BeginInitResource(ViewUniformBufferRHI.get());
         if (CameraSceneInfo)
             CameraSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
-    void FCameraSceneProxy::SetPositionAndDirection(const glm::vec3 &InPosition, const glm::vec3 &InDirection)
+    void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)
     {
         ViewUniformBufferRHI->Data.CameraPosition = InPosition;
         ViewUniformBufferRHI->Data.CameraDirection = InDirection;
@@ -111,13 +111,17 @@ namespace nilou {
             CameraSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
-    void FCameraSceneProxy::SetViewProjectionMatrix(const glm::mat4 &InWorldToView, const glm::mat4 &InViewToClip)
+    void FCameraSceneProxy::SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip)
     {
-        glm::mat4 WorldToClip = InViewToClip * InWorldToView;
-        ViewUniformBufferRHI->Data.WorldToView = InWorldToView;
+        mat4 RelativeWorldToView = InWorldToView;
+        RelativeWorldToView[3][0] = 0;
+        RelativeWorldToView[3][1] = 0;
+        RelativeWorldToView[3][2] = 0;
+        ViewUniformBufferRHI->Data.WorldToView = RelativeWorldToView;
         ViewUniformBufferRHI->Data.ViewToClip = InViewToClip;
-        ViewUniformBufferRHI->Data.WorldToClip = WorldToClip;
-        ViewUniformBufferRHI->Data.ClipToWorld = glm::inverse(WorldToClip);
+        ViewUniformBufferRHI->Data.WorldToClip = InViewToClip * RelativeWorldToView;
+        // dmat4 AbsWorldToClip = dmat4(InViewToClip) * InWorldToView;
+        ViewUniformBufferRHI->Data.ClipToWorld = glm::inverse(InViewToClip * RelativeWorldToView);
         SceneView.ViewMatrix = InWorldToView;
         SceneView.ProjectionMatrix = InViewToClip;
         SceneView.ViewFrustum = FViewFrustum(InWorldToView, InViewToClip);

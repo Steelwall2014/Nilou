@@ -424,6 +424,7 @@ namespace nilou {
 
 		PF_D24S8,
 		PF_D32F,
+		PF_D32FS8,
 
 		PF_DXT1,
 		PF_DXT1_sRGB,

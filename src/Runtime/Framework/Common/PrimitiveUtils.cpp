@@ -68,8 +68,8 @@ namespace nilou {
             // Then rotate this arc NumSides+1 times.
             for (int32 s = 0; s<NumSides + 1; s++)
             {
-                FRotator ArcRotator(0, 360.f * (float)s / NumSides, 0);
-                mat4 ArcRot = mat4_cast(ArcRotator.ToQuat());
+                FRotator ArcRotator(0.0, 360.0 * s / NumSides, 0.0);
+                dmat4 ArcRot = mat4_cast(ArcRotator.ToQuat());
                 float XTexCoord = ((float)s / NumSides);
 
                 for (int32 v = 0; v<NumRings + 1; v++)

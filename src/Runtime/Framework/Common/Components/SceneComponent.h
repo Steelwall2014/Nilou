@@ -91,27 +91,27 @@ namespace nilou {
 
         FTransform CalcNewComponentToWorld(const FTransform &NewRelTransform);
 
-        void SetRelativeLocation(const vec3 &NewLocation);
-        void SetRelativeRotation(const quat &NewRotation);
+        void SetRelativeLocation(const dvec3 &NewLocation);
+        void SetRelativeRotation(const dquat &NewRotation);
         void SetRelativeRotation(const FRotator &NewRotation);
-	    void SetRelativeScale3D(const vec3 &NewScale3D);
+	    void SetRelativeScale3D(const dvec3 &NewScale3D);
         void SetRelativeTransform(const FTransform &NewTransform);
-        void SetRelativeLocationAndRotation(const vec3 &NewLocation, const quat &NewRotation);
-        void SetRelativeLocationAndRotation(const vec3 &NewLocation, const FRotator &NewRotation);
+        void SetRelativeLocationAndRotation(const dvec3 &NewLocation, const dquat &NewRotation);
+        void SetRelativeLocationAndRotation(const dvec3 &NewLocation, const FRotator &NewRotation);
 
-        vec3 GetRelativeLocation() const { return RelativeLocation; }
+        dvec3 GetRelativeLocation() const { return RelativeLocation; }
         FRotator GetRelativeRotation() const { return RelativeRotation; }
-        vec3 GetRelativeScale3D() const { return RelativeScale3D; }
+        dvec3 GetRelativeScale3D() const { return RelativeScale3D; }
         
 	    FTransform GetRelativeTransform() const;
 
-        void SetWorldLocation(const vec3 &NewLocation);
-        void SetWorldRotation(const quat &NewRotation);
+        void SetWorldLocation(const dvec3 &NewLocation);
+        void SetWorldRotation(const dquat &NewRotation);
         void SetWorldRotation(const FRotator &NewRotation);
-	    void SetWorldScale3D(const vec3 &NewScale);
+	    void SetWorldScale3D(const dvec3 &NewScale);
         void SetWorldTransform(const FTransform &NewTransform);
-        void SetWorldLocationAndRotation(vec3 NewLocation, const quat &NewRotation);
-        void SetWorldLocationAndRotation(vec3 NewLocation, FRotator NewRotation);
+        void SetWorldLocationAndRotation(dvec3 NewLocation, const dquat &NewRotation);
+        void SetWorldLocationAndRotation(dvec3 NewLocation, FRotator NewRotation);
 
         /** Currently not implemented*/
         std::string GetAttachSocketName() { return ""; }
@@ -123,9 +123,9 @@ namespace nilou {
         * @param WorldRotation  World rotation that we want to convert to relative to the components parent
         * @return Returns the relative rotation
         */
-	    quat GetRelativeRotationFromWorld(const quat &NewRotation);
+	    dquat GetRelativeRotationFromWorld(const dquat &NewRotation);
 
-        inline vec3 GetComponentLocation() const
+        inline dvec3 GetComponentLocation() const
         {
             return GetComponentTransform().GetLocation();
         }
@@ -133,11 +133,11 @@ namespace nilou {
         {
             return GetComponentTransform().GetRotator();
         }
-        inline quat GetComponentQuat() const
+        inline dquat GetComponentQuat() const
         {
             return GetComponentTransform().GetRotation();
         }
-        inline vec3 GetComponentScale() const
+        inline dvec3 GetComponentScale() const
         {
             return GetComponentTransform().GetScale3D();
         }
@@ -155,17 +155,17 @@ namespace nilou {
 
 
         // // 获取相对于世界参考系的位置，通过调用GetWorldTransform实现
-        // vec3 GetComponentLocation() const;
+        // dvec3 GetComponentLocation() const;
 
-        // void MoveComponentTo(const vec3 &Position);
+        // void MoveComponentTo(const dvec3 &Position);
         // 在世界参考系中移动node，将node在世界参考系中的旋转设置为NewRotation
-        void MoveComponent(const vec3 &Delta, const FRotator &NewRotation);
-        void MoveComponent(const vec3 &Delta, const quat &NewRotation);
+        void MoveComponent(const dvec3 &Delta, const FRotator &NewRotation);
+        void MoveComponent(const dvec3 &Delta, const dquat &NewRotation);
 
         // 获取这个节点的forward、up和right向量，在世界坐标系
-        vec3 GetForwardVector();
-        vec3 GetUpVector();
-        vec3 GetRightVector();
+        dvec3 GetForwardVector();
+        dvec3 GetUpVector();
+        dvec3 GetRightVector();
 
         // 更新组件的transform
         void UpdateComponentToWorld();
@@ -200,11 +200,11 @@ namespace nilou {
         FBoundingBox Bounds;
 
     private:
-        vec3 RelativeLocation = vec3(0.0f, 0.0f, 0.0f);
+        dvec3 RelativeLocation = dvec3(0.0f, 0.0f, 0.0f);
 
         FRotator RelativeRotation = FRotator();
 
-        vec3 RelativeScale3D = vec3(1.0f, 1.0f, 1.0f);
+        dvec3 RelativeScale3D = dvec3(1.0f, 1.0f, 1.0f);
 
  	    /** True if we have ever updated ComponentToWorld based on RelativeLocation/Rotation/Scale. Used at startup to make sure it is initialized. */
         bool bComponentToWorldUpdated = false;

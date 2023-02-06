@@ -1,5 +1,5 @@
-#ifndef _UNIT_DEFINITIONS_H_
-#define _UNIT_DEFINITIONS_H_
+#ifndef UNIT_DEFINITIONS_H
+#define UNIT_DEFINITIONS_H
 
 #define Length float
 #define Wavelength float

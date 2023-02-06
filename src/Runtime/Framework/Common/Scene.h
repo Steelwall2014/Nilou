@@ -39,7 +39,6 @@ namespace nilou {
         FScene *Scene;
         UPrimitiveComponent *Primitive;
         FPrimitiveSceneProxy *SceneProxy;
-        // TUniformBufferRef<FPrimitiveShaderParameters> PrimitiveShaderUniformBuffer;
         bool bNeedsUniformBufferUpdate = false;
     };
 

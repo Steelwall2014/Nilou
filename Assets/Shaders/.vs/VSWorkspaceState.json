@@ -1,8 +1,10 @@
 {
   "ExpandedNodes": [
     "",
+    "\\GlobalShaders",
     "\\include",
-    "\\VirtualHeightfieldMesh"
+    "\\MaterialShaders"
   ],
+  "SelectedNode": "\\GlobalShaders\\RenderToScreenPixelShader.frag",
   "PreviewInSolutionExplorer": false
 }

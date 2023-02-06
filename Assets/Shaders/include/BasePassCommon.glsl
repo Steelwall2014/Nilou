@@ -1,4 +1,5 @@
-
+#ifndef BASEPASSCOMMON_H
+#define BASEPASSCOMMON_H
 struct VS_Out {
     mat3 TBN;
     vec3 WorldPosition;
@@ -9,3 +10,4 @@ struct VS_Out {
     vec4 Color;
     vec2 TexCoords;
 };
+#endif

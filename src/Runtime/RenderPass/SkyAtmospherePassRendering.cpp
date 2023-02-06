@@ -4,7 +4,6 @@
 #include "RHIStaticStates.h"
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FSkyAtmosphereVS, "/Shaders/GlobalShaders/SkyAtmosphereVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
     IMPLEMENT_SHADER_TYPE(FSkyAtmospherePS, "/Shaders/GlobalShaders/SkyAtmospherePixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
 
@@ -49,11 +48,6 @@ namespace nilou {
                     RHICmdList->RHISetRasterizerState(RasterizerState.get());
                     RHICmdList->RHISetBlendState(BlendState.get());
                     RHIGetError();
-                    
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "WorldSpacePosition", 
-                        FRHISampler(SceneTextures.WorldSpacePosition));
 
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 

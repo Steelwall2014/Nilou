@@ -1,5 +1,5 @@
-#ifndef _ATMOSPHERE_DEFINITIONS_H_
-#define _ATMOSPHERE_DEFINITIONS_H_
+#ifndef ATMOSPHERE_DEFINITIONS_H
+#define ATMOSPHERE_DEFINITIONS_H
 
 #include "unit_definitions.glsl"
 

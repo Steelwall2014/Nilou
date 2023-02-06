@@ -24,7 +24,7 @@ struct FLightShaderParameters
     int     ShadowMappingStartIndex;
     int     ShadowMappingEndIndex;
     vec4    lightColor;
-    vec3    lightPosition;
+    dvec3   lightPosition;
     vec3    lightDirection;
     int     lightType;
     float   lightIntensity;

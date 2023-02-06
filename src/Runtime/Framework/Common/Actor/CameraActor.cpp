@@ -100,17 +100,16 @@ namespace nilou {
 
         {
             FRotator NewRotation = GetActorRotator();
-            NewRotation.Pitch = glm::clamp(NewRotation.Pitch + CameraInput.y*MouseSensitivity, -80.0f, 80.0f);
+            NewRotation.Pitch = glm::clamp(NewRotation.Pitch + CameraInput.y*MouseSensitivity, -80.0, 80.0);
             SetActorRotator(NewRotation);
         }
 
         {
             FRotator NewRotation = GetActorRotator();
-            NewRotation.Roll += CameraRollInput * (float)DeltaTime * 10;
+            NewRotation.Roll += CameraRollInput * DeltaTime * 10.0;
             SetActorRotator(NewRotation);
         }
 
-        // MovementInput.y = 1;
         {
             vec3 NewLocation = GetActorLocation();
             vec3 forward = GetActorForwardVector();
@@ -119,47 +118,6 @@ namespace nilou {
             NewLocation += right * MovementInput.y * (float)DeltaTime * MovementSpeed;
             SetActorLocation(NewLocation);
         }
-        // glm::quat NewRotation = CameraComponent->GetComponentRotation().ToQuat();
-
-        // if (CameraInput.y > 0.001 || CameraInput.y < -0.001)
-        // {
-        //     float try_pitch = accumulate_pitch + CameraInput.y * MouseSensitivity;
-        //     if (-85.0f < try_pitch && try_pitch < 85.0f)
-        //     {
-        //         accumulate_pitch = try_pitch;
-        //         NewRotation = glm::rotate(NewRotation, glm::radians(CameraInput.y * MouseSensitivity), WORLD_RIGHT);
-        //     }
-        // }
-        // if (CameraInput.x > 0.001 || CameraInput.x < -0.001)
-        // {
-        //     NewRotation = glm::rotate(NewRotation, glm::radians(-CameraInput.x * MouseSensitivity), glm::inverse(NewRotation) * WORLD_UP);
-        // }
-
-        // glm::vec3 DeltaLocation = glm::vec3(0, 0, 0);
-        // if (std::abs(MovementInput.x) >= KINDA_SMALL_NUMBER || std::abs(MovementInput.y) >= KINDA_SMALL_NUMBER)
-        // {
-        //     // float speed = sqrt(MovementInput.x * MovementInput.x + MovementInput.y * MovementInput.y) * MovementSpeed;
-        //     // ImGui::Text("Speed: %.6f m/s", speed);
-        //     DeltaLocation += CameraComponent->GetForwardVector() * MovementInput.x * (float)DeltaTime * MovementSpeed;
-        //     DeltaLocation += CameraComponent->GetRightVector() * MovementInput.y * (float)DeltaTime * MovementSpeed;
-        //     // SetActorLocation(NewLocation);
-        // }
-        // 如果相机到view target的距离大于一定值再计算相机的位置
-        // if (SPRING_ARM_LENGTH > 0.01)
-        // {
-        //     // 这里一开始考虑的是把四元数变换为欧拉角，再计算相机在球面上的坐标，
-        //     // 后来发现由于float精度问题，转换到欧拉角再计算坐标会把精度问题放大很多，导致出现相机的抖动
-        //     // 因此修改成了用相对旋转直接计算
-        //     glm::vec3 sphere_coord = NewRotation * SpringArm;
-        //     glm::vec3 delta = GetRootComponent()->GetComponentLocation() + sphere_coord - CameraComponent->GetComponentLocation();
-        //     CameraComponent->MoveComponent(delta, NewRotation);
-        // }
-        // else
-        // {
-            // CameraComponent->MoveComponent(glm::vec3(), NewRotation);
-            // CameraComponent->MoveComponent(DeltaLocation, NewRotation);
-        // }
-
 
         MovementInput = CameraInput = glm::vec2(0.f, 0.f);
         CameraRollInput = 0;

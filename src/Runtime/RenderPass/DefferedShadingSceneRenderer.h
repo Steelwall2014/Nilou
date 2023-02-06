@@ -38,7 +38,7 @@ namespace nilou {
         RHIFramebufferRef GeometryPassFrameBuffer;
         RHIFramebufferRef FrameBuffer;
         RHITexture2DRef BaseColor;
-        RHITexture2DRef WorldSpacePosition;
+        RHITexture2DRef RelativeWorldSpacePosition;
         RHITexture2DRef WorldSpaceNormal;
         RHITexture2DRef MetallicRoughness;
         RHITexture2DRef Emissive;

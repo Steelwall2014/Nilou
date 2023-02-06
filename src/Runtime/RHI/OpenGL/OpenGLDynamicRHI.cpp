@@ -234,6 +234,7 @@ namespace nilou {
 
             case EPixelFormat::PF_D24S8:        Format = GL_DEPTH_STENCIL;  InternalFormat = GL_DEPTH24_STENCIL8;   Type = GL_UNSIGNED_INT_24_8; break;
             case EPixelFormat::PF_D32F:         Format = GL_DEPTH_COMPONENT;InternalFormat = GL_DEPTH_COMPONENT32F; Type = GL_FLOAT; break;
+            case EPixelFormat::PF_D32FS8:       Format = GL_DEPTH_STENCIL;  InternalFormat = GL_DEPTH32F_STENCIL8;  Type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV; break;
 
             case EPixelFormat::PF_DXT1:         Format = GL_RGBA;   InternalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;          Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_DXT1_sRGB:    Format = GL_RGBA;   InternalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;    Type = GL_UNSIGNED_BYTE; break;
@@ -271,6 +272,7 @@ namespace nilou {
 
 		    case EPixelFormat::PF_D24S8: return 4;
 		    case EPixelFormat::PF_D32F: return 4;
+		    case EPixelFormat::PF_D32FS8: return 5;
 
 		    case EPixelFormat::PF_DXT1: return 4;
 		    case EPixelFormat::PF_DXT1_sRGB: return 4;
@@ -1011,6 +1013,11 @@ namespace nilou {
             OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->Shader.get());
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
+            if (PSO->Program == nullptr)
+            {
+                NILOU_LOG(Warning, Initializer.VertexShader->DebugCode);
+                NILOU_LOG(Warning, Initializer.PixelShader->DebugCode);
+            }
             RHIGetError();
 
             FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;

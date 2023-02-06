@@ -79,7 +79,7 @@ namespace nilou {
         SHADER_PARAMETER(mat4, ViewToClip)
         SHADER_PARAMETER(mat4, WorldToClip) // WorldToClip = ViewToClip * WorldToView
         SHADER_PARAMETER(mat4, ClipToWorld) // Inverse of WorldToClip
-        SHADER_PARAMETER(vec3, CameraPosition)
+        SHADER_PARAMETER(dvec3, CameraPosition)
         SHADER_PARAMETER(vec3, CameraDirection)
         SHADER_PARAMETER(ivec2, CameraResolution)
         SHADER_PARAMETER(float, CameraNearClipDist)
@@ -96,9 +96,9 @@ namespace nilou {
 
         FCameraSceneInfo *GetCameraSceneInfo() { return CameraSceneInfo; }
 
-        void SetPositionAndDirection(const glm::vec3 &InPosition, const glm::vec3 &InDirection);
+        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection);
 
-        void SetViewProjectionMatrix(const glm::mat4 &InWorldToView, const glm::mat4 &InViewToClip);
+        void SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip);
 
         void SetCameraResolution(const ivec2 &InCameraResolution);
 

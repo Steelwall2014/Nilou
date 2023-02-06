@@ -94,7 +94,7 @@ namespace nilou {
         BeginInitResource(LightUniformBufferRHI.get());
     }
 
-    void FLightSceneProxy::SetPositionAndDirection(const glm::vec3 &InPosition, const glm::vec3 &InDirection)
+    void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)
     {
         Position = InPosition;
         Direction = InDirection;

@@ -36,6 +36,7 @@ namespace nilou {
     {
         if (VirtualFilePath != "" && bSourceCodeReaded == false)
         {
+            bool a = VirtualFilePath == "/Shaders/GlobalShaders/SkyAtmospherePixelShader.frag";
             FileAbsolutePath = fs::path(GetShaderAbsolutePathFromVirtualPath(VirtualFilePath));
             std::string RawSourceCode = g_pAssetLoader->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
             NILOU_LOG(Info, "Parsing " + FileAbsolutePath.generic_string());

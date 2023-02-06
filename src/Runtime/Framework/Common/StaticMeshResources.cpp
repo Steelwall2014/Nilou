@@ -97,11 +97,6 @@ namespace nilou {
     void FStaticVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
     { 
     }
-    
-    // void FStaticVertexFactory::SetParameter(const std::string &ParamName, TUniformBuffer<FPrimitiveShaderParameters> *PrimitiveUniformBuffer)
-    // {
-    //     UniformBuffers[ParamName] = PrimitiveUniformBuffer;
-    // }
 
     IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
 

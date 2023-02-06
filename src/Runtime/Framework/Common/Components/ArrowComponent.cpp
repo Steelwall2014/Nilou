@@ -56,7 +56,6 @@ namespace nilou {
             Mesh.VertexFactory = &VertexFactory;
             Mesh.Element.IndexBuffer = &IndexBuffer;
             Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-            // Mesh.Element.UniformBuffers["FPrimitiveShaderParameters"] = PrimitiveUniformBuffer.get();
             // Mesh.MaterialRenderProxy->FillShaderBindings(Mesh.Element.Bindings);
             OutMeshBatch = Mesh;
         }

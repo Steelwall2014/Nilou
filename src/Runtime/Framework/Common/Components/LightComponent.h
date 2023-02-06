@@ -161,7 +161,7 @@ namespace nilou {
         SHADER_PARAMETER(int, ShadowMappingStartIndex)
         SHADER_PARAMETER(int, ShadowMappingEndIndex)
         SHADER_PARAMETER(vec4, lightColor)
-        SHADER_PARAMETER(vec3, lightPosition)
+        SHADER_PARAMETER(dvec3, lightPosition)
         SHADER_PARAMETER(vec3, lightDirection)
         SHADER_PARAMETER(int, lightType) 
         SHADER_PARAMETER(float, lightIntensity)
@@ -177,7 +177,7 @@ namespace nilou {
 
         FLightSceneInfo *GetLightSceneInfo() { return LightSceneInfo; }
 
-        void SetPositionAndDirection(const glm::vec3 &InPosition, const glm::vec3 &InDirection);
+        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection);
 
         void SetLightIntensity(float Intensity);
 

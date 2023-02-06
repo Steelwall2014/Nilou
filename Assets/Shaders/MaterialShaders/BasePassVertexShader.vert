@@ -1,17 +1,7 @@
 #version 460
 
-layout (std140) uniform FViewShaderParameters {
-    mat4 WorldToView;
-    mat4 ViewToClip;
-    mat4 WorldToClip;
-    mat4 ClipToWorld;
-    vec3 CameraPosition;
-    vec3 CameraDirection;
-    ivec2 CameraResolution;
-    float CameraNearClipDist;
-    float CameraFarClipDist;
-};
-
+#include "../include/ViewShaderParameters.glsl"
+//#include "../include/BasePassCommon.glsl"
 //struct VS_Out {
 //    mat3 TBN;
 //    vec3 WorldPosition;
@@ -45,7 +35,7 @@ void main()
     vs_out.WorldPosition += MaterialGetWorldSpaceOffset(vs_out);
     vs_out.ClipPosition = WorldToClip * vec4(vs_out.WorldPosition, 1);
 //    pos.x *= -1;
-    gl_Position = ApplyHandedCoordinateSystem(vs_out.ClipPosition);
+    gl_Position = vs_out.ClipPosition;
 }
 
 //#include "VertexFactories/StaticMeshVertexFactory.glsl"
