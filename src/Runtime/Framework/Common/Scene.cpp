@@ -37,6 +37,13 @@ namespace nilou {
         return vec.erase(iter);
     }
 
+    FScene::FScene()
+        : SkyAtmosphere(nullptr)
+        , World(nullptr)
+    {
+
+    }
+
     void FScene::AddSkyAtmosphere(FSkyAtmosphereSceneProxy *SkyAtmosphereSceneProxy)
     {
         FScene *Scene = this;
@@ -105,6 +112,10 @@ namespace nilou {
         FLightSceneInfo *LightSceneInfo = new FLightSceneInfo(LightSceneProxy, InLight, this);
         LightSceneProxy->LightSceneInfo = LightSceneInfo;
 
+        // The DirectionalLightQueue will be used in atmosphere rendering to obtain the first added directional light
+        // if (LightSceneProxy->LightType == ELightType::LT_Directional)
+        //     DirectionalLightQueue.push_back(LightSceneInfo);
+
         FScene *Scene = this;
         {
             Scene->AddLightSceneInfo(LightSceneInfo);
@@ -120,6 +131,9 @@ namespace nilou {
         {
             FLightSceneInfo* LightSceneInfo = LightSceneProxy->GetLightSceneInfo();
             InLight->SceneProxy = nullptr;
+
+            // if (LightSceneProxy->LightType == ELightType::LT_Directional)
+            //     DirectionalLightQueue.remove(LightSceneInfo);
             
             FScene *Scene = this;
             {
@@ -163,6 +177,13 @@ namespace nilou {
                 Scene->RemovePrimitiveSceneInfo(PrimitiveSceneInfo);
             }
         }
+    }
+
+    void FScene::UpdateRenderInfos()
+    {
+        UpdateViewInfos();
+        UpdatePrimitiveInfos();
+        UpdateLightInfos();
     }
 
     void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
@@ -223,6 +244,15 @@ namespace nilou {
         {
             if (PrimitiveInfo->bNeedsUniformBufferUpdate)
                 PrimitiveInfo->SceneProxy->UpdateUniformBuffer();
+        }
+    }
+    
+    void FScene::UpdateLightInfos()
+    {
+        for (auto &&LightInfo : AddedLightSceneInfos)
+        {
+            if (LightInfo->bNeedsUniformBufferUpdate)
+                LightInfo->SceneProxy->UpdateUniformBuffer();
         }
     }
 }

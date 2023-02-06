@@ -37,6 +37,8 @@ namespace nilou {
     class FMeshDrawCommand
     {
     public:
+    
+        FMeshDrawCommand();
         
         /**
         * Resource bindings
@@ -52,6 +54,7 @@ namespace nilou {
         // FGraphicsMinimalPipelineStateId CachedPipelineId;
         FRHIGraphicsPipelineState *PipelineState;
 
+        uint32 StencilRef;
         RHIDepthStencilStateRef DepthStencilState;
         RHIRasterizerStateRef RasterizerState;
         RHIBlendStateRef BlendState;

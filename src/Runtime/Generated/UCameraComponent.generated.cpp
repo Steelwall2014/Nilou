@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/CameraComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/CameraComponent.h"
 namespace nilou {
 std::string UCameraComponent::GetClassName() { return "UCameraComponent"; }
 EUClasses UCameraComponent::GetClassEnum() { return EUClasses::MC_UCameraComponent; }

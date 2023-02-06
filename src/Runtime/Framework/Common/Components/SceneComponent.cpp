@@ -61,7 +61,7 @@ namespace nilou {
     void USceneComponent::SetRelativeScale3D(const vec3 &NewScale3D)
     {
         RelativeScale3D = NewScale3D;
-        UpdateBounds();
+		UpdateComponentToWorld();
     }
     void USceneComponent::SetRelativeTransform(const FTransform &NewTransform)
     {
@@ -399,6 +399,9 @@ namespace nilou {
     {
         if (Parent == nullptr)
             return;
+        // SetOwner(Parent->GetOwner());
+        // if (!bRegistered)
+        //     RegisterComponent();
 
         AttachParent = Parent;
         Parent->AttachChildren.push_back(this);

@@ -189,6 +189,12 @@ public: \
 		SKY_PROXY_DECLARE_FUNCTION(vec3, AbsorptionExtinction)
 		SKY_PROXY_DECLARE_FUNCTION(vec3, GroundAlbedo)
 		SKY_PROXY_DECLARE_FUNCTION(float, Mu_s_Min)
+
+		inline RHITexture2D *GetTransmittanceLUT() const { return TransmittanceLUT.get(); }
+		inline RHITexture3D *GetMultiScatteringLUT() const { return MultiScatteringLUT.get(); }
+		inline RHITexture3D *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT.get(); }
+
+
 	protected:
 		TUniformBufferRef<ShaderAtmosphereParametersBlock> AtmosphereParameters;
 		TUniformBufferRef<ScatteringOrderBlock> ScatteringOrderParameter;

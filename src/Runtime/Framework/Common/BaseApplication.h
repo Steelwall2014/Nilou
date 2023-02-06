@@ -3,6 +3,7 @@
 #include "Common/World.h"
 #include "Interface/IApplication.h"
 #include "Common/GfxConfiguration.h"
+#include "Delegate.h"
 #include <memory>
 
 namespace nilou {
@@ -24,6 +25,7 @@ namespace nilou {
 
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
+        TMulticastDelegate<FDynamicRHI*> &GetPreRenderDelegate() { return PreRenderDelegate; }
 
     protected:
         float deltaTime = 0.0f;
@@ -33,6 +35,8 @@ namespace nilou {
         bool CursorEnabled = false;
         std::shared_ptr<UWorld> World;
         std::shared_ptr<FScene> Scene;
+        TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
+
 
     private:
         BaseApplication() {}

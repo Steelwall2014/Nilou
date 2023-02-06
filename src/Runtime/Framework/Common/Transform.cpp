@@ -4,6 +4,7 @@
 namespace nilou {
 
     FTransform FTransform::Identity;
+    FRotator FRotator::ZeroRotator;
 
     FTransform::FTransform()
         : Rotation(quat(1.f, 0.f, 0.f, 0.f))
@@ -181,6 +182,11 @@ namespace nilou {
         // output.Scale3D = InverseSB * this->Scale3D;
         // output.Translation = this->Translation - this->Rotation*InverseQB * (this->Scale3D * InverseSB * Other.Translation);
         // return output;
+    }
+
+    float FTransform::GetMinimumAxisScale() const
+    {
+        return glm::min(Scale3D.x, glm::min(Scale3D.y, Scale3D.z));
     }
 
     vec3 FTransform::GetSafeScaleReciprocal(const vec3 &InScale, float Tolerance)

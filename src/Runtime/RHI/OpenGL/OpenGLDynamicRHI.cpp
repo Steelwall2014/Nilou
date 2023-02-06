@@ -440,7 +440,7 @@ namespace nilou {
         // }
 
         {
-            OpenGLTextureResource GLTexture = TextureResourceCast(SamplerRHI.Texture.get());
+            OpenGLTextureResource GLTexture = TextureResourceCast(SamplerRHI.Texture);
             int unit_id = TexMngr.AllocUnit();
             glActiveTexture(GL_TEXTURE0 + unit_id);
             glBindTexture(GLTexture.Target, GLTexture.Resource);
@@ -572,6 +572,25 @@ namespace nilou {
                 glDisable(GL_STENCIL_TEST);
             }
             ContextState.DepthStencilState.bStencilEnable = DepthStencilState->bStencilEnable;
+        }
+
+        // If only two-sided <-> one-sided stencil mode changes, and nothing else, we need to call full set of functions
+        // to ensure all drivers handle this correctly - some of them might keep those states in different variables.
+        if (ContextState.DepthStencilState.bTwoSidedStencilMode != DepthStencilState->bTwoSidedStencilMode)
+        {
+            // Invalidate cache to enforce update of part of stencil state that needs to be set with different functions, when needed next
+            // Values below are all invalid, but they'll never be used, only compared to new values to be set.
+            ContextState.DepthStencilState.StencilFunc = 0xFFFF;
+            ContextState.DepthStencilState.StencilFail = 0xFFFF;
+            ContextState.DepthStencilState.StencilZFail = 0xFFFF;
+            ContextState.DepthStencilState.StencilPass = 0xFFFF;
+            ContextState.DepthStencilState.BackStencilFunc = 0xFFFF;
+            ContextState.DepthStencilState.BackStencilFail = 0xFFFF;
+            ContextState.DepthStencilState.BackStencilZFail = 0xFFFF;
+            ContextState.DepthStencilState.BackStencilPass = 0xFFFF;
+            ContextState.DepthStencilState.StencilReadMask = 0xFFFF;
+
+            ContextState.DepthStencilState.bTwoSidedStencilMode = DepthStencilState->bTwoSidedStencilMode;
         }
 
 		if (DepthStencilState->bStencilEnable)
@@ -1339,7 +1358,6 @@ namespace nilou {
             Count,
             InstanceCount
         );
-        EndDraw(); // RHIClearTextureUnit();
     }
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -1357,7 +1375,6 @@ namespace nilou {
             InstanceCount
         );
         RHIGetError();
-        EndDraw(); // RHIClearTextureUnit();
     }
 
     void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset)
@@ -1371,7 +1388,6 @@ namespace nilou {
             TranslateIndexBufferStride(IndexBuffer->GetStride()),
             reinterpret_cast<void*>(IndirectOffset)
         );
-        EndDraw(); // RHIClearTextureUnit();
     }
 
     void FOpenGLDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
@@ -1389,6 +1405,11 @@ namespace nilou {
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, GLIndirectArgs->Resource);
         glDispatchComputeIndirect(0);
         TexMngr.FreeAllUnit(); // RHIClearTextureUnit();
+    }
+
+    void FOpenGLDynamicRHI::RHIEndRenderPass()
+    {
+        EndDraw();
     }
 
     void FOpenGLDynamicRHI::EndDraw()

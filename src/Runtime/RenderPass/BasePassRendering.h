@@ -6,47 +6,8 @@
 #include "RenderPass.h"
 
 namespace nilou {
-
-    class FBasePassVS : public FMaterialShader
-    {
-        DECLARE_SHADER_TYPE()
-    public:
-        
-    };
-
-    class FBasePassPS : public FMaterialShader
-    {
-        DECLARE_SHADER_TYPE()
-    public:
-        
-    };
-    // class FBasePassVS : public FShader
-    // {
-    //     DECLARE_SHADER_TYPE()
-    // public:
-    //     FBasePassVS()
-    //     { 
-    //     }
-
-    //     const RHIVertexShader *GetOrCreateShaderByPermutation(const FVertexFactory *VertexFactory, const std::set<std::string> &Permutation);
-
-
-    //     static FBasePassVS *Shader;
-
-    // protected:
-
-    //     std::map<FVertexFactoryType *, std::map<std::set<std::string>, RHIVertexShaderRef>> CachedShaderMap;
-    //     std::map<FVertexFactoryType *, std::set<std::string>> CachedDefinitions;
-
-    //     inline virtual void INITDEFINITIONS() override
-    //     {
-    //         PossibleDefinitions = {
-    //             "SUPPORTS_TEXCOORD",
-    //             "SUPPORTS_TANGENT"
-    //         };
-    //     }
-    // };
-
+    DECLARE_MATERIAL_SHADER(FBasePassVS)
+    DECLARE_MATERIAL_SHADER(FBasePassPS)
     // class FBasePassMeshPassProcessor : public FMeshPassProcessor
     // {
     // public: 

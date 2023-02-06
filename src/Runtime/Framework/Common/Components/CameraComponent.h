@@ -78,8 +78,12 @@ namespace nilou {
         SHADER_PARAMETER(mat4, WorldToView)
         SHADER_PARAMETER(mat4, ViewToClip)
         SHADER_PARAMETER(mat4, WorldToClip) // WorldToClip = ViewToClip * WorldToView
+        SHADER_PARAMETER(mat4, ClipToWorld) // Inverse of WorldToClip
         SHADER_PARAMETER(vec3, CameraPosition)
         SHADER_PARAMETER(vec3, CameraDirection)
+        SHADER_PARAMETER(ivec2, CameraResolution)
+        SHADER_PARAMETER(float, CameraNearClipDist)
+        SHADER_PARAMETER(float, CameraFarClipDist)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FCameraSceneInfo;
@@ -97,14 +101,14 @@ namespace nilou {
         void SetViewProjectionMatrix(const glm::mat4 &InWorldToView, const glm::mat4 &InViewToClip);
 
         void SetCameraResolution(const ivec2 &InCameraResolution);
+
+        void SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist);
     
         void UpdateUniformBuffer() { ViewUniformBufferRHI->UpdateUniformBuffer(); }
 
         TUniformBuffer<FViewShaderParameters> *GetViewUniformBuffer() { return ViewUniformBufferRHI.get(); }
 
         FSceneView SceneView;
-        
-        glm::ivec2 ScreenResolution;
         
     protected:
         FCameraSceneInfo *CameraSceneInfo;

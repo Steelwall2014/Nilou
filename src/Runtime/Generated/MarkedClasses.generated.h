@@ -3,9 +3,12 @@ namespace nilou {
 enum class EUClasses {
 	MC_None = -1,
 	MC_AActor,
+	MC_AArrowActor,
 	MC_ACameraActor,
+	MC_AGeoreferenceActor,
 	MC_ALightActor,
 	MC_ASkyAtmosphereActor,
+	MC_ASphereActor,
 	MC_AStaticMeshActor,
 	MC_UActorComponent,
 	MC_UArrowComponent,
@@ -15,6 +18,8 @@ enum class EUClasses {
 	MC_UPrimitiveComponent,
 	MC_USceneComponent,
 	MC_USkyAtmosphereComponent,
+	MC_USphereComponent,
+	MC_UVirtualHeightfieldMeshComponent,
 	MC_UObject,
 	MC_UClassNum,
 };

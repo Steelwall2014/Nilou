@@ -71,7 +71,7 @@ namespace nilou {
         Mesh.Element.IndexBuffer = &LODModel.IndexBuffer;
         Mesh.Element.NumVertices = LODModel.IndexBuffer.NumIndices;
         // Mesh.Element.UniformBuffers["FPrimitiveShaderParameters"] = PrimitiveUniformBuffer.get();
-        Mesh.MaterialRenderProxy->CollectShaderBindings(Mesh.Element.Bindings);
+        Mesh.MaterialRenderProxy->FillShaderBindings(Mesh.Element.Bindings);
         OutMeshBatch = Mesh;
     }
 }

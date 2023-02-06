@@ -8,7 +8,8 @@ namespace nilou {
     void FTexture::InitRHI()
     {
         FRenderResource::InitRHI();
-        SamplerRHI.Texture = GDynamicRHI->RHICreateTexture2D(Name, Image->PixelFormat, NumMips, Image->Width, Image->Height, Image->data);
+        TextureRHI = GDynamicRHI->RHICreateTexture2D(Name, Image->PixelFormat, NumMips, Image->Width, Image->Height, Image->data);
+        SamplerRHI.Texture = TextureRHI.get();
     }
 
     void FTexture::ReleaseRHI()

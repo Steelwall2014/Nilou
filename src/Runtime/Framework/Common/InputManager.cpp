@@ -31,19 +31,22 @@ namespace nilou {
         {
             m_KeyStates[input_key].bRepeating = false;
             if (checkHasActionKeyEventBinding(input_key, IE_Pressed))
-                for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Pressed])
-                    dlg->execute();
+                m_ActionDelegateMap[input_key][IE_Pressed].Broadcast();
+                // for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Pressed])
+                //     dlg->execute();
         }
         else if (former_state.bDown == true)
         {
             m_KeyStates[input_key].bRepeating = true;
             if (checkHasActionKeyEventBinding(input_key, IE_Repeat))
-                for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Repeat])
-                    dlg->execute();
+                m_ActionDelegateMap[input_key][IE_Repeat].Broadcast();
+                // for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Repeat])
+                //     dlg->execute();
         }
         if (checkHasAxisKeyBinding(input_key))
-            for (auto &&dlg : m_AxisDelegateMap[input_key])
-                dlg->execute(1.0);
+            m_AxisDelegateMap[input_key].Broadcast(1.0);
+            // for (auto &&dlg : m_AxisDelegateMap[input_key])
+            //     dlg->execute(1.0);
     }
 
     void InputManager::KeyReleased(int key)
@@ -56,8 +59,9 @@ namespace nilou {
         if (former_state.bDown == true)
         {
             if (checkHasActionKeyEventBinding(input_key, IE_Released))
-                for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Released])
-                    dlg->execute();
+                m_ActionDelegateMap[input_key][IE_Pressed].Broadcast();
+                // for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Released])
+                //     dlg->execute();
         }
     }
 
@@ -67,11 +71,13 @@ namespace nilou {
         ////m_KeyStates[KEY_MOUSEX].AccumulateValue += xoffset;
         //m_KeyStates[KEY_MOUSEX].bDown = true;
         if (checkHasAxisKeyBinding(KEY_MOUSEX))
-            for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEX])
-                dlg->execute(xoffset);
+            m_AxisDelegateMap[KEY_MOUSEX].Broadcast(xoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEX])
+            //     dlg->execute(xoffset);
         if (checkHasAxisKeyBinding(KEY_MOUSEY))
-            for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEY])
-                dlg->execute(yoffset);
+            m_AxisDelegateMap[KEY_MOUSEY].Broadcast(yoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEY])
+            //     dlg->execute(yoffset);
 
         //m_KeyStates[KEY_MOUSEY].Value = yoffset;
         ////m_KeyStates[KEY_MOUSEY].AccumulateValue += yoffset;

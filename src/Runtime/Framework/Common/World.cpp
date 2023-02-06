@@ -14,16 +14,14 @@
 #include "Common/Actor/StaticMeshActor.h"
 #include "Common/Actor/CameraActor.h"
 #include "Common/Actor/LightActor.h"
+#include "Common/Actor/ArrowActor.h"
+#include "Common/Actor/SphereActor.h"
 #include "Common/Actor/SkyAtmosphereActor.h"
+#include "Common/Actor/GeoreferenceActor.h"
 
 namespace nilou {
 
-    UWorld::UWorld()
-    {
-        
-    }
-
-    void UWorld::BeginPlay()
+    void CreateMaterials()
     {
         std::shared_ptr<FMaterial> DefaultMaterial = std::make_shared<FMaterial>("DefaultMaterial");
         FContentManager::GetContentManager().AddGlobalMaterial(DefaultMaterial->GetMaterialName(), DefaultMaterial);
@@ -88,6 +86,56 @@ namespace nilou {
             }
         )");
 
+        std::shared_ptr<FMaterial> SkyAtmosphereMaterial = std::make_shared<FMaterial>("SkyAtmosphereMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(SkyAtmosphereMaterial->GetMaterialName(), SkyAtmosphereMaterial);
+        SkyAtmosphereMaterial->RasterizerState.CullMode = CM_None;
+        SkyAtmosphereMaterial->DepthStencilState.bEnableFrontFaceStencil = true;
+        SkyAtmosphereMaterial->DepthStencilState.FrontFaceStencilTest = ECompareFunction::CF_Always;
+        SkyAtmosphereMaterial->DepthStencilState.FrontFacePassStencilOp = EStencilOp::SO_Replace;
+        SkyAtmosphereMaterial->DepthStencilState.bEnableBackFaceStencil = true;
+        SkyAtmosphereMaterial->DepthStencilState.BackFaceStencilTest = ECompareFunction::CF_Always;
+        SkyAtmosphereMaterial->DepthStencilState.BackFacePassStencilOp = EStencilOp::SO_Replace;
+        SkyAtmosphereMaterial->StencilRefValue = 255;
+        SkyAtmosphereMaterial->UpdateMaterialCode(
+        R"(
+            #include "../include/BasePassCommon.glsl"
+            vec4 MaterialGetBaseColor(VS_Out vs_out)
+            {
+                return vec4(0);
+            }
+            vec3 MaterialGetEmissive(VS_Out vs_out)
+            {
+                return vec3(0);
+            }
+            vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
+            {
+                return normalize(vs_out.TBN * vec3(0, 0, 1));
+            }
+            float MaterialGetRoughness(VS_Out vs_out)
+            {
+                return 0.5;
+            }
+            float MaterialGetMetallic(VS_Out vs_out)
+            {
+                return 0.5;
+            }
+            vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
+            {
+                return vec3(0);
+            }
+        )");
+    }
+
+    UWorld::UWorld()
+    {
+        
+    }
+
+    void UWorld::BeginPlay()
+    {
+
+        CreateMaterials();
+
         std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
         std::vector<std::shared_ptr<UStaticMesh>> Mesh = g_pGLTFParser->ParseToStaticMeshes(*Model);
 
@@ -99,11 +147,11 @@ namespace nilou {
         MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
         // std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");
         // StaticMeshActor->SetStaticMesh(Mesh[0]);
-
-        std::shared_ptr<AActor> ArrorActor = SpawnActor<AActor>(FTransform::Identity, "test arrow");
-        std::shared_ptr<UArrowComponent> ArrowCompoennt = std::make_shared<UArrowComponent>(ArrorActor.get());
-        ArrowCompoennt->RegisterComponentWithWorld(this);
-        ArrorActor->SetRootComponent(ArrowCompoennt);
+        
+        std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
+        SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
+        SphereActor->SphereComponent->SetMaterial(FContentManager::GetContentManager().GetGlobalMaterial("SkyAtmosphereMaterial"));
+        std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // StaticMeshActor->StaticMeshComponent->Material->RasterizerState.CullMode = CM_None;
         // StaticMeshActor->StaticMeshComponent->Material->RasterizerState.FillMode = FM_Solid;
         // StaticMeshActor->StaticMeshComponent->Material->DepthStencilState.DepthTest = CF_Always;
@@ -120,11 +168,27 @@ namespace nilou {
 
 
         FTransform LightActorTransform;
-        LightActorTransform.SetTranslation(glm::vec3(1, 10, 0));
-        LightActorTransform.SetRotator(FRotator(0, -90, 0));
-        std::shared_ptr<ALightActor> LightActor = SpawnActor<ALightActor>(LightActorTransform, "test light");
+        
+        // LightActorTransform.SetTranslation(glm::vec3(0, 0, -2));
+        // LightActorTransform.SetRotator(FRotator(90, 0, 0));
+        // std::shared_ptr<ALightActor> LightActor2 = SpawnActor<ALightActor>(LightActorTransform, "test light2");
+        
+        // LightActorTransform.SetTranslation(glm::vec3(2, 2, 2));
+        // LightActorTransform.SetRotator(FRotator(-45, -45, 0));
+        // std::shared_ptr<ALightActor> LightActor = SpawnActor<ALightActor>(LightActorTransform, "test light");
 
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
+        
+        LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
+        LightActorTransform.SetRotator(FRotator(-45, -45, 0));
+        std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
+        DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
+        DirectionalLightActor->LightComponent->SetIntensity(20.f);
+
+        
+        std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+
+        GeoreferenceActor->SetGeoreferenceOrigin(84.777723, 45.65154, 674.393528);
     }
 
     void UWorld::Tick(double DeltaTime)

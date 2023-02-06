@@ -17,11 +17,11 @@ namespace nilou {
     
 		void AddGlobalTexture(const std::string &name, std::shared_ptr<class FTexture> texture, bool overlap = false);
 		void RemoveGlobalTexture(const std::string &name);
-		std::shared_ptr<class FTexture> GetGlobalTexture(const std::string &name);
+		class FTexture *GetGlobalTexture(const std::string &name);
 
 		void AddGlobalMaterial(const std::string &name, std::shared_ptr<class FMaterial> material, bool overlap = false);
 		void RemoveGlobalMaterial(const std::string &name);
-		std::shared_ptr<class FMaterial> GetGlobalMaterial(const std::string &name);
+		class FMaterial *GetGlobalMaterial(const std::string &name);
     
 		void AddGlobalStaticMesh(const std::string &name, std::shared_ptr<class UStaticMesh> mesh, bool overlap = false);
 		void RemoveGlobalStaticMesh(const std::string &name);
@@ -35,7 +35,7 @@ namespace nilou {
         struct FContentMap
         {
             std::map<Key, Value> Map;
-            bool insert(const Key &key, const Value &value, bool overlap=false)
+            bool Insert(const Key &key, const Value &value, bool overlap=false)
             {
                 auto iter = Map.find(key);
                 if (iter == Map.end() || overlap)
@@ -48,7 +48,7 @@ namespace nilou {
                 }
                 return true;
             }
-            Value get(const Key &key)
+            Value Get(const Key &key)
             {
                 auto iter = Map.find(key);
                 if (iter == Map.end())
@@ -56,7 +56,7 @@ namespace nilou {
                 else
                     return iter->second;
             }
-            void erase(const Key &key)
+            void Erase(const Key &key)
             {
                 auto iter = Map.find(key);
                 if (iter != Map.end())

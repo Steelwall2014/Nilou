@@ -6,7 +6,8 @@ namespace nilou {
 
     struct FDynamicMeshVertex
     {
-        FDynamicMeshVertex() {}
+        FDynamicMeshVertex();
+        
         FDynamicMeshVertex( const vec3& InPosition );
 
         FDynamicMeshVertex(const vec3& InPosition, const vec2& InTexCoord, const vec3& InColor);

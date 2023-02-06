@@ -35,9 +35,13 @@ in vec2 uv;
 layout (std140) uniform FViewShaderParameters {
     mat4 WorldToView;
     mat4 ViewToClip;
-    mat4 WorldToClip; // WorldToClip = ViewToClip * WorldToView
+    mat4 WorldToClip;
+    mat4 ClipToWorld;
     vec3 CameraPosition;
     vec3 CameraDirection;
+    ivec2 CameraResolution;
+    float CameraNearClipDist;
+    float CameraFarClipDist;
 };
 
 struct ShadingParams

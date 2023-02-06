@@ -5,7 +5,7 @@
 
 namespace nilou {
 
-    // void FVertexFactory::CollectShaderBindings(
+    // void FVertexFactory::FillShaderBindings(
     //     std::map<std::string, RHIUniformBuffer *> &OutUniformBufferBindings, 
     //     std::map<std::string, FRHISampler *> &OutSamplerBindings, 
     //     std::vector<FRHIVertexInput *> &OutVertexInputs)

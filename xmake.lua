@@ -140,6 +140,7 @@ function ExecuteHeaderTool(target)
         build_path = "$(buildir)/windows/x64/debug/"
     end
     os.exec(build_path .. "HeaderTool ./src ./src/Runtime/Generated")
+    --D:\Nilou\build\windows\x64\debug\HeaderTool.exe D:\Nilou\src D:\Nilou\src\Runtime\Generated--
 end
 
 function copyFunc(target)
@@ -184,6 +185,7 @@ include_paths = {
         "./src/Runtime/Generated",
         "./src/Runtime/Serialization",
         "./src/Runtime/RenderPass",
+        "./src/Runtime/Geospatial",
         "./Assets/Shaders", 
         "./External/include/GDAL"}
  

@@ -1,11 +1,13 @@
 #pragma once
-#include "Interface/IRuntimeModule.h"
 #include <vector>
 #include <map>
 #include <set>
 #include <string>
 
 #include <GLFW/glfw3.h>
+
+#include "Delegate.h"
+#include "Interface/IRuntimeModule.h"
 
 namespace nilou {
 	class BaseActor;
@@ -92,75 +94,71 @@ namespace nilou {
 			Groups.insert(key);
 		}
 	};
-	// ����ʵ��ģ��Ķ�̬
-	Interface IAxisDelegate
-	{
-	public:
-		virtual ~IAxisDelegate() { }
-		virtual void execute(float) = 0;
-	};
+
+	// Interface IAxisDelegate
+	// {
+	// public:
+	// 	virtual ~IAxisDelegate() { }
+	// 	virtual void execute(float) = 0;
+	// };
 	template<class UserClass>
-	class AxisDelegate : implements IAxisDelegate
+	class FAxisDelegateInstance : public TDelegateInstance<UserClass, float>
 	{
-	private:
-		UserClass *m_obj;
-		void (UserClass:: *m_func)(float);
-		float m_scale;
 	public:
-		AxisDelegate(UserClass *obj, void (UserClass:: *func)(float), float scale) 
-			: m_obj(obj), m_func(func), m_scale(scale)
+		FAxisDelegateInstance(UserClass *obj, void (UserClass:: *func)(float), float scale) 
+			: TDelegateInstance<UserClass, float>(obj, func)
+			, m_scale(scale)
 		{
 		}
-		virtual void execute(float AxisValue)
+		virtual void Execute(float AxisValue) override
 		{
-			(m_obj->*m_func)(AxisValue * m_scale);
+			TDelegateInstance<UserClass, float>::Execute(AxisValue * m_scale);
 		}
+	private:
+		float m_scale;
 	};
 
-	Interface IActionDelegate
-	{
-	public:
-		virtual ~IActionDelegate() { }
-		virtual void execute() = 0;
-	};
+	// Interface IActionDelegate
+	// {
+	// public:
+	// 	virtual ~IActionDelegate() { }
+	// 	virtual void execute() = 0;
+	// };
+
+	typedef TMulticastDelegate<float> FAxisDelegate;
+	typedef TMulticastDelegate<> FActionDelegate;
+
 	template<class UserClass>
-	class ActionDelegate : implements IActionDelegate
+	class ActionDelegate : implements TDelegateInstance<UserClass>
 	{
-	private:
-		UserClass *m_obj;
-		void (UserClass:: *m_func)();
 	public:
 		ActionDelegate(UserClass *obj, void (UserClass:: *func)())
-			: m_obj(obj), m_func(func)
+			: TDelegateInstance<UserClass>(obj, func)
 		{
-		}
-		virtual void execute()
-		{
-			(m_obj->*m_func)();
 		}
 	};
 
-	template<class Lambda>
-	class LambdaActionDelegate : implements IActionDelegate
-	{
-	private:
-		Lambda const &m_func;
-	public:
-		LambdaActionDelegate(Lambda const &func)
-			: m_func(func)
-		{
-		}
-		virtual void execute()
-		{
-			(m_func)();
-		}
-	};
+	// template<class Lambda>
+	// class LambdaActionDelegate : implements IActionDelegate
+	// {
+	// private:
+	// 	Lambda const &m_func;
+	// public:
+	// 	LambdaActionDelegate(Lambda const &func)
+	// 		: m_func(func)
+	// 	{
+	// 	}
+	// 	virtual void execute()
+	// 	{
+	// 		(m_func)();
+	// 	}
+	// };
 
     class InputManager : implements IRuntimeModule
     {
 	private:
-		std::map<InputKey, std::vector<IAxisDelegate *>>		m_AxisDelegateMap;
-		std::map<InputKey, std::map<InputEvent, std::vector<IActionDelegate *>>>	m_ActionDelegateMap;
+		std::map<InputKey, FAxisDelegate>		m_AxisDelegateMap;
+		std::map<InputKey, std::map<InputEvent, FActionDelegate>>	m_ActionDelegateMap;
 		std::map<InputKey, KeyState>			m_KeyStates;
     public:
 		InputManager();
@@ -178,30 +176,33 @@ namespace nilou {
 		{
 			for (auto &group : mapping.Groups)
 			{
-				AxisDelegate<UserClass> *axis_delegate = new AxisDelegate<UserClass>(obj, func, group.second);
-				m_AxisDelegateMap[group.first].push_back(axis_delegate);
+				// AxisDelegate<UserClass> *axis_delegate = new AxisDelegate<UserClass>(obj, func, group.second);
+				// m_AxisDelegateMap[group.first].push_back(axis_delegate);
+				auto *axis_delegate = new FAxisDelegateInstance(obj, func, group.second);
+				m_AxisDelegateMap[group.first].Add(axis_delegate);
 			}
 		}
 
 		template<class UserClass>
-		void BindAction(const InputActionMapping &mapping, InputEvent e, UserClass *obj, void (UserClass:: *func)())
+		void BindAction(const InputActionMapping &mapping, InputEvent event, UserClass *obj, void (UserClass:: *func)())
 		{
 			for (auto &key : mapping.Groups)
 			{
-				ActionDelegate<UserClass> *action_delegate = new ActionDelegate<UserClass>(obj, func);
-				m_ActionDelegateMap[key][e].push_back(action_delegate);
+				// ActionDelegate<UserClass> *action_delegate = new ActionDelegate<UserClass>(obj, func);
+				// m_ActionDelegateMap[key][e].push_back(action_delegate);
+				m_ActionDelegateMap[key][event].Add(obj, func);
 			}
 		}
 
-		template<class Lambda>
-		void BindAction(const InputActionMapping &mapping, InputEvent e, Lambda const &func/*void (*func)()*/)
-		{
-			for (auto &key : mapping.Groups)
-			{
-				LambdaActionDelegate<Lambda> *action_delegate = new LambdaActionDelegate<Lambda>(func);
-				m_ActionDelegateMap[key][e].push_back(action_delegate);
-			}
-		}
+		// template<class Lambda>
+		// void BindAction(const InputActionMapping &mapping, InputEvent e, Lambda const &func/*void (*func)()*/)
+		// {
+		// 	for (auto &key : mapping.Groups)
+		// 	{
+		// 		LambdaActionDelegate<Lambda> *action_delegate = new LambdaActionDelegate<Lambda>(func);
+		// 		m_ActionDelegateMap[key][e].push_back(action_delegate);
+		// 	}
+		// }
 
 		const KeyState &GetKeyState(InputKey key);
     private:

@@ -1,4 +1,5 @@
 // #include <glm/gtc/matrix_transform.hpp>
+#include "Common/BaseApplication.h"
 #include "Common/Log.h"
 #include "UniformBuffer.h"
 
@@ -21,9 +22,18 @@
 
 namespace nilou {
 
+    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
+    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
+
     void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
     {
+        OutSceneTextures.GeometryPassFrameBuffer = GDynamicRHI->RHICreateFramebuffer();
         OutSceneTextures.FrameBuffer = GDynamicRHI->RHICreateFramebuffer();
+
+        OutSceneTextures.SceneColor = GDynamicRHI->RHICreateTexture2D(
+            "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
         OutSceneTextures.BaseColor = GDynamicRHI->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
@@ -48,11 +58,14 @@ namespace nilou {
             "DepthStencil", EPixelFormat::PF_D24S8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.WorldSpacePosition);
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.WorldSpacePosition);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
+        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+        
+        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.SceneColor);
         OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
     }
 
@@ -125,9 +138,12 @@ namespace nilou {
                 CameraSceneInfo->SetNeedsFramebufferUpdate(false);
             }
         }
+        // Compute Visibility
+        ComputeViewVisibility(Scene);
+        // Now PerViewMeshBatches is filled
     }
 
-    void FDefferedShadingSceneRenderer::ComputeVisibility(FScene *Scene)
+    void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene)
     {
         for (auto &[View, SceneTextures] : PerViewSceneTextures)
         {
@@ -165,9 +181,7 @@ namespace nilou {
 
         InitViews(Scene);
 
-        // Compute Visibility
-        ComputeVisibility(Scene);
-        // Now PerViewMeshBatches is filled
+        GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList);
 
         // RenderCSMShadowPass(RHICmdList);
 
@@ -175,185 +189,10 @@ namespace nilou {
         // // Dispatch Draw Commands
 
         RenderLightingPass(RHICmdList);
-    }
 
-    void BuildMeshDrawCommand(
-        FDynamicRHI *RHICmdList,
-        // const FMaterialType &MaterialType,
-        // const FVertexFactoryType &VertexFactoryType,
-        const FVertexFactoryPermutationParameters &VFPermutationParameters,
-        FMaterial *Material,
-        const FShaderPermutationParameters &PermutationParametersVS,
-        const FShaderPermutationParameters &PermutationParametersPS,
-        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
-        const FRasterizerStateInitializer &RasterizerStateInitializer,
-        const FBlendStateInitializer &BlendStateInitializer,
-        FElementShaderBindings &MeshBindings,    // for vertex factory and material
-        FElementShaderBindings &ShaderBindings,  // for shader
-        std::vector<FRHIVertexInput> &VertexInputs,
-        const FMeshBatchElement &Element,
-        FMeshDrawCommand &OutMeshDrawCommand
-    )
-    {
-        FRHIGraphicsPipelineInitializer Initializer;
+        RenderAtmospherePass(RHICmdList);
 
-        // FShaderInstance *VertexShader = GetVertexShaderInstance(MaterialType, VertexFactoryType, PermutationParametersVS);
-        FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);//GetVertexShaderInstance2(VFPermutationParameters, MaterialPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader;
-
-        // FShaderInstance *PixelShader = GetPixelShaderInstance(MaterialType, PermutationParametersPS);
-        FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);//GetPixelShaderInstance2(MaterialPermutationParameters, PermutationParametersPS);
-        Initializer.PixelShader = PixelShader;
-
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
-        RHIGetError();
-        // Initializer.DepthStentilState = DepthState;
-
-        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
-        RHIGetError();
-
-        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
-        RHIGetError();
-        // Initializer.RasterizerState = RasterizerState;
-
-        {
-            OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
-            RHIGetError();
-            OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
-
-            for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
-            {              
-                auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PipelineStage]; // alias
-                auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PipelineStage]; // alias
-                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
-                
-                for (auto [Name,Binding] : DescriptorSets.Bindings)
-                {
-                    bool bResourceFound = false;
-                    if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
-                    {          
-                        if (FUniformBuffer *UniformBuffer = 
-                                    MeshBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
-                        {
-                            StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
-                            bResourceFound = true;
-                        }       
-                        else if (FUniformBuffer *UniformBuffer = 
-                                    ShaderBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
-                        {
-                            StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
-                            bResourceFound = true;
-                        }
-                    }
-                    else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
-                    {  
-                        if (FRHISampler *Sampler = 
-                                    MeshBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                        {
-                            StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
-                            bResourceFound = true;
-                        }       
-                        else if (FRHISampler *Sampler = 
-                                    ShaderBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                        {
-                            StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
-                            bResourceFound = true;
-                        }
-                    }
-
-                    if (!bResourceFound)
-                    {
-                        NILOU_LOG(Warning, 
-                            "Material: " + Material->GetMaterialName() + 
-                            "|Vertex Factory: " + VFPermutationParameters.Type->Name + 
-                            "|Vertex Shader: " + PermutationParametersVS.Type->Name + 
-                            "|Pixel Shader: " + PermutationParametersPS.Type->Name + 
-                            "|Pipeline Stage: " + std::to_string(PipelineStage) + "|\"" + 
-                            Binding.Name + "\" Not Found");
-                    }
-
-                }
-            }
-
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = &VertexInputs;
-            if (Element.NumVertices == 0)
-            {
-                OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
-                OutMeshDrawCommand.IndirectArgs.Offset = Element.IndirectArgsOffset;
-                OutMeshDrawCommand.UseIndirect = true;
-            }
-            else
-            {
-                OutMeshDrawCommand.DirectArgs.NumInstances = Element.NumInstances;
-                OutMeshDrawCommand.DirectArgs.NumVertices = Element.NumVertices;
-                OutMeshDrawCommand.UseIndirect = false;
-            }
-        }
-    }
-
-    void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
-    {
-        std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
-        {        
-            for (auto &[View, SceneTextures] : PerViewSceneTextures)
-            {
-                FParallelMeshDrawCommands &DrawCommands = PerViewDrawCommands[View];
-                DrawCommands.Clear();
-                FCameraSceneInfo *CameraInfo = View;
-                for (auto &&Mesh : PerViewMeshBatches[View])
-                {
-                    FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.VertexFactory->GetType(), Mesh.VertexFactory->GetPermutationId());
-                    RHIGetError();
-
-                    // FMaterialPermutationParameters MaterialParams(Mesh.MaterialRenderProxy->GetType(), Mesh.MaterialRenderProxy->GetPermutationId());
-
-                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                    RHIGetError();
-                    
-                    FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
-                    RHIGetError();
-
-                    FElementShaderBindings Bindings;
-                    Bindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
-                    RHIGetError();
-
-                    FMeshDrawCommand MeshDrawCommand;
-                    BuildMeshDrawCommand(
-                        RHICmdList,
-                        // *Mesh.MaterialRenderProxy->GetType(),
-                        // *Mesh.VertexFactory->GetType(),
-                        VertexFactoryParams,
-                        Mesh.MaterialRenderProxy,
-                        PermutationParametersVS,
-                        PermutationParametersPS,
-                        Mesh.MaterialRenderProxy->DepthStencilState,
-                        Mesh.MaterialRenderProxy->RasterizerState,
-                        Mesh.MaterialRenderProxy->BlendState,
-                        Mesh.Element.Bindings,
-                        Bindings,
-                        Mesh.VertexFactory->GetVertexInputList(),
-                        Mesh.Element,
-                        MeshDrawCommand);
-                    DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
-                    RHIGetError();
-                    
-                }
-            }
-        }
-
-        {        
-            for (auto &[View, SceneTextures] : PerViewSceneTextures)
-            {
-                FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get()/*nullptr*/, true, true, true);
-                RHICmdList->RHIBeginRenderPass(PassInfo);
-
-                FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[View];
-                
-                ViewCommands.DispatchDraw(RHICmdList);
-            }
-        }
-
-
+        RenderToScreen(RHICmdList);
     }
 
     void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
@@ -422,8 +261,8 @@ namespace nilou {
                     // std::map<std::string, RHIUniformBuffer *> UniformBufferBindings; 
                     // std::map<std::string, FRHISampler *> SamplerBindings; 
                     // std::vector<FRHIVertexInput *> VertexInputs; 
-                    // Mesh.MaterialRenderProxy->CollectShaderBindings(UniformBufferBindings, SamplerBindings);
-                    // Mesh.VertexFactory->CollectShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
+                    // Mesh.MaterialRenderProxy->FillShaderBindings(UniformBufferBindings, SamplerBindings);
+                    // Mesh.VertexFactory->FillShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
 
                     // {
                     //     FMeshDrawCommand MeshDrawCommand;
@@ -451,10 +290,14 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
+
+
+    
+    void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
         for (auto &[View, SceneTextures] : PerViewSceneTextures)
         {
+
             FCameraSceneInfo *CameraInfo = View;
             if (CameraInfo->Camera->IsMainCamera())
             {
@@ -463,27 +306,25 @@ namespace nilou {
                 RHICmdList->RHIBeginRenderPass(PassInfo);
                 {
                     
-                    FShaderPermutationParameters PermutationParametersVS(&FLightingPassVS::StaticType, 0);
+                    FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
                     
-                    FLightingPassPS::FPermutationDomain PermutationVectorPS;
-                    // PermutationVectorPS.Set<FLightingPassPS::FDimentionLightNum>(Scene->AddedLightSceneInfos.size());
-                    FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVectorPS.ToDimensionValueId());
+                    FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
 
-                    FShaderInstance *LightPassVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                    FShaderInstance *LightPassPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    FShaderInstance *RenderToScreenVS = GetGlobalShaderInstance2(PermutationParametersVS);
+                    FShaderInstance *RenderToScreenPS = GetGlobalShaderInstance2(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 
-                    PSOInitializer.VertexShader = LightPassVS;
-                    PSOInitializer.PixelShader = LightPassPS;
+                    PSOInitializer.VertexShader = RenderToScreenVS;
+                    PSOInitializer.PixelShader = RenderToScreenPS;
 
                     PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
 
                     FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                     
-                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<true, CF_Always>::CreateRHI();
+                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
                     RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
+                    RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
                     RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
@@ -493,44 +334,14 @@ namespace nilou {
 
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
-                        "BaseColor", 
-                        FRHISampler(SceneTextures.BaseColor));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "WorldSpacePosition", 
-                        FRHISampler(SceneTextures.WorldSpacePosition));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "WorldSpaceNormal", 
-                        FRHISampler(SceneTextures.WorldSpaceNormal));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "MetallicRoughness", 
-                        FRHISampler(SceneTextures.MetallicRoughness));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "Emissive", 
-                        FRHISampler(SceneTextures.Emissive));
-                    RHIGetError();
-                    RHICmdList->RHISetShaderUniformBuffer(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "FViewShaderParameters", 
-                        CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
-                    RHIGetError();
+                        "SceneColor", 
+                        FRHISampler(SceneTextures.SceneColor));
 
                     RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
                     RHIGetError();
                     RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
                     RHIGetError();
-                    for (auto &&LightInfo : Scene->AddedLightSceneInfos)
-                    {
-                        RHICmdList->RHISetShaderUniformBuffer(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "FLightUniformBlock", 
-                            LightInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
-
-                        RHICmdList->RHIDrawArrays(4);
-                    }
+                    RHICmdList->RHIDrawArrays(4);
                 }
                 RHICmdList->RHIEndRenderPass();
 

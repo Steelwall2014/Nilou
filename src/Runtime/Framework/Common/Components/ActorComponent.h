@@ -16,13 +16,15 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
     
-        UActorComponent(AActor *InOwner);
+        UActorComponent(AActor *InOwner = nullptr);
 
         UWorld *GetWorld() const;
 
         AActor *GetOwner() const;
 
         bool IsRegistered() const;
+
+        void SetOwner(AActor *InOwner);
 
         /** 重新计算transform，这里是空实现 */
         virtual void UpdateComponentToWorld() {}
@@ -62,8 +64,8 @@ namespace nilou {
         void MarkRenderInstancesDirty();
 
     protected:
-        AActor *OwnedActor = nullptr;
-        UWorld *WorldPrivate = nullptr;
+        AActor *OwnedActor;
+        UWorld *WorldPrivate;
         bool bRegistered;
 	    bool bRenderStateCreated;
 	    bool bRenderStateDirty;

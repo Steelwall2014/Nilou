@@ -9,23 +9,23 @@
 
 namespace nilou {
 
-    // void FBasePassMeshProcessor::AddMeshBatch(const FMeshBatch &Mesh, std::vector<FMeshDrawCommand> *OutDrawCommandList)
-    // {
+    FMeshDrawCommand::FMeshDrawCommand()
+        : IndexBuffer(nullptr)
+        , PipelineState(nullptr)
+        , StencilRef(0)
+        , DepthStencilState(nullptr)
+        , RasterizerState(nullptr)
+        , BlendState(nullptr)
+        , UseIndirect(false)
+    {
 
-        
-    //     // FBasePassVS *BasePassVS = FBasePassVS::Shader;
-    //     // std::set<std::string> VertexFactoryDefinitions = Mesh.VertexFactory->CalcDefinitions();
-    //     // StateData.VertexShader = BasePassVS->GetOrCreateShaderByPermutation(Mesh.VertexFactory, VertexFactoryDefinitions);
-    //     // StateData.VertexShader = Mesh.VertexFactory->GetShader();
-
-        
-    // }
+    }
 
     void FMeshDrawCommand::SubmitDraw(FDynamicRHI *RHICmdList)
     {
         RHIGetError();
         RHICmdList->RHISetGraphicsPipelineState(PipelineState);
-        RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
+        RHICmdList->RHISetDepthStencilState(DepthStencilState.get(), StencilRef);
         RHICmdList->RHISetRasterizerState(RasterizerState.get());
         RHICmdList->RHISetBlendState(BlendState.get());
         RHIGetError();

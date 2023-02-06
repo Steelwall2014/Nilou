@@ -9,10 +9,10 @@ namespace nilou {
     class FLightSceneInfo;
 
     enum class ELightType {
-        LT_None,
-        LT_Spot,
-        LT_Directional,
-        LT_Point
+        LT_None = 0,
+        LT_Spot = 1,
+        LT_Directional = 2,
+        LT_Point = 3
     };
     
     enum EAttenCurveType {
@@ -93,20 +93,19 @@ namespace nilou {
     {
         GENERATE_CLASS_INFO()
         friend class FLightSceneProxy;
+
+        DEFINE_DYNAMIC_DATA(glm::vec4,   LightColor)
+        DEFINE_DYNAMIC_DATA(glm::ivec2,  ShadowMapResolution)
+        DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
+        DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
+        DEFINE_DYNAMIC_DATA(ELightType,  LightType)
+        DEFINE_DYNAMIC_DATA(float,       Intensity)
+        DEFINE_DYNAMIC_DATA(float,       NearClipDistance)
+        DEFINE_DYNAMIC_DATA(float,       FarClipDistance)
+        DEFINE_DYNAMIC_DATA(bool,        bCastShadow)
+        
     public:
-        ULightComponent(AActor *InOwner);
-
-        glm::vec4   GetLightColor();
-        float       GetIntensity();
-        bool        GetCastShadows();
-        float       GetNearClip();
-        float       GetFarClip();
-        void        SetDistAttenCurve(FAttenCurve dist_atten_angle);
-        void        SetLightColor(glm::vec4 light_color);
-        FAttenCurve GetDistAttenCurve();
-        glm::ivec2  GetShadowMapResolution();
-
-        // FLightParameters GetLightParameters();
+        ULightComponent(AActor *InOwner = nullptr);
 
         virtual class FLightSceneProxy *CreateSceneProxy();
 
@@ -119,17 +118,6 @@ namespace nilou {
         virtual void SendRenderDynamicData() override;
 
         class FLightSceneProxy *SceneProxy;
-
-    protected:
-        glm::vec4   LightColor;
-        glm::ivec2  ShadowMapResolution;
-        FAttenCurve LightDistAttenuation;
-        FAttenCurve LightAngleAttenuation;
-        ELightType  LightType;
-        float       Intensity;
-        float       NearClipDistance;
-        float       FarClipDistance;
-        bool        bCastShadow;
     };
 
     // UCLASS()

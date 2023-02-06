@@ -14,43 +14,43 @@ namespace nilou {
 
     void FContentManager::AddGlobalTexture(const std::string &name, std::shared_ptr<FTexture> texture, bool overlap)
     {
-        if (!GlobalTextures.insert(name, texture))
+        if (!GlobalTextures.Insert(name, texture))
             NILOU_LOG(Error, "Texture " + name + " doesn't exist");
     }
     void FContentManager::RemoveGlobalTexture(const std::string &name)
     {
-        GlobalTextures.erase(name);
+        GlobalTextures.Erase(name);
     }
-    std::shared_ptr<FTexture> FContentManager::GetGlobalTexture(const std::string &name)
+    FTexture *FContentManager::GetGlobalTexture(const std::string &name)
     {
-        return GlobalTextures.get(name);
+        return GlobalTextures.Get(name).get();
     }
 
     void FContentManager::AddGlobalMaterial(const std::string &name, std::shared_ptr<FMaterial> material, bool overlap)
     {
-        if (!GlobalMaterials.insert(name, material))
+        if (!GlobalMaterials.Insert(name, material))
             NILOU_LOG(Error, "Material " + name + " doesn't exist");
     }
     void FContentManager::RemoveGlobalMaterial(const std::string &name)
     {
-        GlobalMaterials.erase(name);
+        GlobalMaterials.Erase(name);
     }
-    std::shared_ptr<FMaterial> FContentManager::GetGlobalMaterial(const std::string &name)
+    FMaterial *FContentManager::GetGlobalMaterial(const std::string &name)
     {
-        return GlobalMaterials.get(name);
+        return GlobalMaterials.Get(name).get();
     }
 
     void FContentManager::AddGlobalStaticMesh(const std::string &name, std::shared_ptr<UStaticMesh> mesh, bool overlap)
     {
-        if (!GlobalStaticMeshes.insert(name, mesh))
+        if (!GlobalStaticMeshes.Insert(name, mesh))
             NILOU_LOG(Error, "StaticMesh " + name + " doesn't exist");
     }
     void FContentManager::RemoveGlobalStaticMesh(const std::string &name)
     {
-        GlobalStaticMeshes.erase(name);
+        GlobalStaticMeshes.Erase(name);
     }
     std::shared_ptr<UStaticMesh> FContentManager::GetGlobalStaticMesh(const std::string &name)
     {
-        return GlobalStaticMeshes.get(name);
+        return GlobalStaticMeshes.Get(name);
     }
 }

@@ -1,101 +1,201 @@
-#include <algorithm>
-#include "Material.h"
 #include "BasePassRendering.h"
-#include "Common/AssertionMacros.h"
-#include "DynamicRHI.h"
-#include "RHIResources.h"
-#include "Shader.h"
-#include "ShaderMap.h"
-// #include "Shadinclude.h"
-#include "Templates/ObjectMacros.h"
-#include "VertexFactory.h"
+#include "Common/Log.h"
+#include "Material.h"
+#include "DefferedShadingSceneRenderer.h"
+
 
 namespace nilou {
-    //FBasePassVS *FBasePassVS::Shader = new FBasePassVS;
-    
-    // const RHIVertexShader *FBasePassVS::GetOrCreateShaderByPermutation(const FVertexFactory *VertexFactory, const std::set<std::string> &Permutation)
-    // {
-    //     FVertexFactoryType *VertexFactoryType = VertexFactory->GetType();
-    //     if (CachedDefinitions.find(VertexFactoryType) == CachedDefinitions.end())
-    //     {
-    //         std::set<std::string> merged_definitions;
-    //         std::set_union(VertexFactory->PossibleDefinitions.begin(), VertexFactory->PossibleDefinitions.end(), 
-    //                         this->PossibleDefinitions.begin(), this->PossibleDefinitions.end(), merged_definitions.begin());
-    //         CachedDefinitions[VertexFactoryType] = merged_definitions;
-    //     }
-    //     if (!IsPermutationValid(CachedDefinitions[VertexFactoryType], Permutation))
-    //         return nullptr;
-
-    //     std::map<std::set<std::string>, RHIVertexShaderRef> &CurrentVertexFactoryShaderMap = CachedShaderMap[VertexFactoryType];
-    //     if (CurrentVertexFactoryShaderMap.find(Permutation) == CurrentVertexFactoryShaderMap.end())
-    //     {
-    //         std::string FullCode = VertexFactoryType->ShaderSourceCodeBody + GetType()->ShaderSourceCodeBody;
-    //         FullCode = Shadinclude::Preprocess(FullCode, "");
-    //         RHIVertexShaderRef ShaderRHI = GDynamicRHI->RHICreateVertexShader(FullCode.c_str());
-    //         CurrentVertexFactoryShaderMap[Permutation] = ShaderRHI;
-    //     }
-    //     return CurrentVertexFactoryShaderMap[Permutation].get();
-    // }
-
-    // IMPLEMENT_SHADER_TYPE(FBasePassVS, "BasePassVertexShader.vert")
     IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/MaterialShaders/BasePassVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    
     IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/MaterialShaders/BasePassPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
-    // void FBasePassMeshPassProcessor::BuildMeshDrawCommands(
-    //         const FSceneView &View, 
-    //         const std::vector<FMeshBatch> &MeshBatches, 
-    //         std::vector<FMeshDrawCommand> &OutMeshDrawCommands)
-    // {
-    //     for (auto &&Mesh : MeshBatches)
-    //     {
-    //         FRHIGraphicsPipelineInitializer StateData;
 
-    //         FBasePassVS::FPermutationDomain PermutationVectorVS;
-    //         FShaderPermutationParameters PermutationParameters;
-    //         PermutationParameters.ShaderType = &FBasePassVS::StaticType;
-    //         PermutationParameters.PermutationId = PermutationVectorVS.ToDimensionValueId();
-    //         FShaderInstance *VertexShader = GetVertexShaderInstance(*Mesh.MaterialRenderProxy->GetType(), *Mesh.VertexFactory->GetType(), PermutationParameters);
 
-    //         FBasePassPS::FPermutationDomain PermutationVectorPS;
-    //         PermutationParameters.ShaderType = &FBasePassPS::StaticType;
-    //         PermutationParameters.PermutationId = PermutationVectorPS.ToDimensionValueId();
-    //         FShaderInstance *PixelShader = GetPixelShaderInstance(*Mesh.MaterialRenderProxy->GetType(), PermutationParameters);
+    void BuildMeshDrawCommand(
+        FDynamicRHI *RHICmdList,
+        // const FMaterialType &MaterialType,
+        // const FVertexFactoryType &VertexFactoryType,
+        const FVertexFactoryPermutationParameters &VFPermutationParameters,
+        FMaterial *Material,
+        const FShaderPermutationParameters &PermutationParametersVS,
+        const FShaderPermutationParameters &PermutationParametersPS,
+        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
+        const FRasterizerStateInitializer &RasterizerStateInitializer,
+        const FBlendStateInitializer &BlendStateInitializer,
+        FElementShaderBindings &MeshBindings,    // for vertex factory and material
+        FElementShaderBindings &ShaderBindings,  // for shader
+        std::vector<FRHIVertexInput> &VertexInputs,
+        const FMeshBatchElement &Element,
+        FMeshDrawCommand &OutMeshDrawCommand
+    )
+    {
+        FRHIGraphicsPipelineInitializer Initializer;
 
-    //         RHIDepthStencilStateRef DepthState = GDynamicRHI->RHICreateDepthStencilState(Mesh.MaterialRenderProxy->DepthStencilState);
-    //         StateData.DepthStentilState = DepthState;
+        // FShaderInstance *VertexShader = GetVertexShaderInstance(MaterialType, VertexFactoryType, PermutationParametersVS);
+        FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);//GetVertexShaderInstance2(VFPermutationParameters, MaterialPermutationParameters, PermutationParametersVS);
+        Initializer.VertexShader = VertexShader;
 
-    //         RHIRasterizerStateRef RasterizerState = GDynamicRHI->RHICreateRasterizerState(Mesh.MaterialRenderProxy->RasterizerState);
-    //         StateData.RasterizerState = RasterizerState;
+        // FShaderInstance *PixelShader = GetPixelShaderInstance(MaterialType, PermutationParametersPS);
+        FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);//GetPixelShaderInstance2(MaterialPermutationParameters, PermutationParametersPS);
+        Initializer.PixelShader = PixelShader;
 
-    //         std::map<FShaderParameterInfo, RHIUniformBuffer *> UniformBufferBindings; 
-    //         std::map<FShaderParameterInfo, FRHISampler *> SamplerBindings; 
-    //         std::vector<FRHIVertexInput *> VertexInputs; 
-    //         Mesh.MaterialRenderProxy->CollectShaderBindings(UniformBufferBindings, SamplerBindings);
-    //         Mesh.VertexFactory->CollectShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
+        OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
+        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
+        RHIGetError();
+        // Initializer.DepthStentilState = DepthState;
 
-    //         for (auto &MeshElement : Mesh.Elements)
-    //         {
-    //             FMeshDrawCommand MeshDrawCommand;
-    //             MeshDrawCommand.PipelineState = GDynamicRHI->RHIGetOrCreatePipelineStateObject(StateData);
-    //             MeshDrawCommand.IndexBuffer = MeshElement.IndexBuffer->IndexBufferRHI.get();
-    //             MeshDrawCommand.ShaderBindings.UniformBufferBindings = UniformBufferBindings;
-    //             MeshDrawCommand.ShaderBindings.SamplerBindings = SamplerBindings;
-    //             MeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
-    //             if (MeshElement.NumVertices == 0)
-    //             {
-    //                 MeshDrawCommand.IndirectArgs.Buffer = MeshElement.IndirectArgsBuffer;
-    //                 MeshDrawCommand.IndirectArgs.Offset = MeshElement.IndirectArgsOffset;
-    //                 MeshDrawCommand.UseIndirect = true;
-    //             }
-    //             else
-    //             {
-    //                 MeshDrawCommand.DirectArgs.NumInstances = MeshElement.NumInstances;
-    //                 MeshDrawCommand.DirectArgs.NumVertices = MeshElement.NumVertices;
-    //                 MeshDrawCommand.UseIndirect = false;
-    //             }
-    //         }
-    //     }
+        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
+        RHIGetError();
 
-    // }
+        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
+        RHIGetError();
+        // Initializer.RasterizerState = RasterizerState;
+
+        {
+            OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
+            RHIGetError();
+            OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
+
+            for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
+            {              
+                auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PipelineStage]; // alias
+                auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PipelineStage]; // alias
+                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
+                
+                for (auto [Name,Binding] : DescriptorSets.Bindings)
+                {
+                    bool bResourceFound = false;
+                    if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
+                    {          
+                        if (FUniformBuffer *UniformBuffer = 
+                                    MeshBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
+                        {
+                            StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
+                            bResourceFound = true;
+                        }       
+                        else if (FUniformBuffer *UniformBuffer = 
+                                    ShaderBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
+                        {
+                            StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
+                            bResourceFound = true;
+                        }
+                    }
+                    else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
+                    {  
+                        if (FRHISampler *Sampler = 
+                                    MeshBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
+                        {
+                            StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
+                            bResourceFound = true;
+                        }       
+                        else if (FRHISampler *Sampler = 
+                                    ShaderBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
+                        {
+                            StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
+                            bResourceFound = true;
+                        }
+                    }
+
+                    if (!bResourceFound)
+                    {
+                        NILOU_LOG(Warning, 
+                            "Material: " + Material->GetMaterialName() + 
+                            "|Vertex Factory: " + VFPermutationParameters.Type->Name + 
+                            "|Vertex Shader: " + PermutationParametersVS.Type->Name + 
+                            "|Pixel Shader: " + PermutationParametersPS.Type->Name + 
+                            "|Pipeline Stage: " + std::to_string(PipelineStage) + "|\"" + 
+                            Binding.Name + "\" Not Found");
+                    }
+
+                }
+            }
+
+            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = &VertexInputs;
+            if (Element.NumVertices == 0)
+            {
+                OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
+                OutMeshDrawCommand.IndirectArgs.Offset = Element.IndirectArgsOffset;
+                OutMeshDrawCommand.UseIndirect = true;
+            }
+            else
+            {
+                OutMeshDrawCommand.DirectArgs.NumInstances = Element.NumInstances;
+                OutMeshDrawCommand.DirectArgs.NumVertices = Element.NumVertices;
+                OutMeshDrawCommand.UseIndirect = false;
+            }
+        }
+    }
+
+    void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
+    {
+        std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
+        {        
+            for (auto &[View, SceneTextures] : PerViewSceneTextures)
+            {
+                FParallelMeshDrawCommands &DrawCommands = PerViewDrawCommands[View];
+                DrawCommands.Clear();
+                FCameraSceneInfo *CameraInfo = View;
+                std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
+                for (auto &&Mesh : PerViewMeshBatches[View])
+                {
+                    FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.VertexFactory->GetType(), Mesh.VertexFactory->GetPermutationId());
+                    RHIGetError();
+
+                    // FMaterialPermutationParameters MaterialParams(Mesh.MaterialRenderProxy->GetType(), Mesh.MaterialRenderProxy->GetPermutationId());
+
+                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
+                    RHIGetError();
+                    
+                    FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
+                    RHIGetError();
+
+                    FElementShaderBindings Bindings;
+                    Bindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
+                    RHIGetError();
+
+                    FMeshDrawCommand MeshDrawCommand;
+                    BuildMeshDrawCommand(
+                        RHICmdList,
+                        // *Mesh.MaterialRenderProxy->GetType(),
+                        // *Mesh.VertexFactory->GetType(),
+                        VertexFactoryParams,
+                        Mesh.MaterialRenderProxy,
+                        PermutationParametersVS,
+                        PermutationParametersPS,
+                        Mesh.MaterialRenderProxy->DepthStencilState,
+                        Mesh.MaterialRenderProxy->RasterizerState,
+                        Mesh.MaterialRenderProxy->BlendState,
+                        Mesh.Element.Bindings,
+                        Bindings,
+                        Mesh.VertexFactory->GetVertexInputList(),
+                        Mesh.Element,
+                        MeshDrawCommand);
+
+                    // SkyAtmosphereMaterial needs to be rendered last
+                    if (Mesh.MaterialRenderProxy->GetMaterialName() == "SkyAtmosphereMaterial")
+                        SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
+                    else
+                        DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                    RHIGetError();
+                    
+                }
+
+                for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
+                    DrawCommands.AddMeshDrawCommand(DrawCommand);
+            }
+        }
+
+        {        
+            for (auto &[View, SceneTextures] : PerViewSceneTextures)
+            {
+                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true, true, true);
+                RHICmdList->RHIBeginRenderPass(PassInfo);
+
+                FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[View];
+                
+                ViewCommands.DispatchDraw(RHICmdList);
+            }
+        }
+
+
+    }
 }

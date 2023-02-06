@@ -30,33 +30,38 @@ namespace nilou {
 		virtual void Tick(double DeltaTime) {};
 
 		// 下面两个函数都是获取Actor相对于世界的旋转
-		glm::quat GetActorRotation() const;		// 以四元数表示
-		nilou::FRotator GetActorRotator() const;		// 以欧拉角表示
+		quat GetActorRotation() const;		// 以四元数表示
+		FRotator GetActorRotator() const;		// 以欧拉角表示
 
 		// 获取Actor相对于世界的位置
-		glm::vec3 GetActorLocation() const;
+		vec3 GetActorLocation() const;
+
+		vec3 GetActorScale3D() const;
 
 		// 获取Actor在世界参考系下的前方向
-		glm::vec3 GetActorForwardVector() const;
+		vec3 GetActorForwardVector() const;
 		// 获取Actor在世界参考系下的上方向
-		glm::vec3 GetActorUpVector() const;
+		vec3 GetActorUpVector() const;
 		// 获取Actor在世界参考系下的右方向
-		glm::vec3 GetActorRightVector() const;
+		vec3 GetActorRightVector() const;
 
 		// 设置Actor在世界参考系下的变换
 		void SetActorTransform(const FTransform &InTransform);		// 以四元数表示
 
 		// 设置Actor在世界参考系下的旋转
-		void SetActorRotation(const glm::quat &rotation);		// 以四元数表示
+		void SetActorRotation(const quat &rotation);		// 以四元数表示
 		void SetActorRotator(const nilou::FRotator &rotator);		// 以欧拉角表示
 
 		// 设置Actor在世界参考系下的位置
-		void SetActorLocation(const glm::vec3 &location);
+		void SetActorLocation(const vec3 &location);
+
+		void SetActorScale3D(const vec3 &scale);
+		// 以上Get和Set都是通过操作Actor下RootComponent的变换实现的
 
 		void SetActorName(const std::string &InName);
 
-		// 以上Get和Set都是通过操作Actor下RootComponent的变换实现的
 
+		// 获取根组件的裸指针
 		inline USceneComponent *GetRootComponent() const { return RootComponent.get(); }
 
 		inline UWorld *GetWorld() const { return OwnedWorld; }

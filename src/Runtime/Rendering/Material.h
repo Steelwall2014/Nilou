@@ -84,6 +84,8 @@ namespace nilou {
         { 
         }
 
+        uint8 StencilRefValue = 0;
+
         FRasterizerStateInitializer RasterizerState;
 
         FDepthStencilStateInitializer DepthStencilState;
@@ -123,7 +125,7 @@ namespace nilou {
             return ShaderMap.GetShader(ShaderParameter);
         }
 
-        void CollectShaderBindings(FElementShaderBindings &OutBindings)
+        void FillShaderBindings(FElementShaderBindings &OutBindings)
         { 
             for (auto &[Name, Texture] : Textures)
                 OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
@@ -190,7 +192,7 @@ namespace nilou {
     //     { }
 
     //     /* Begin FMaterial Interface */
-    //     virtual void CollectShaderBindings(FElementShaderBindings &OutBindings) override
+    //     virtual void FillShaderBindings(FElementShaderBindings &OutBindings) override
     //     { 
     //         if (BaseColorTexture)
     //             OutBindings.SetElementShaderBinding("baseColor", BaseColorTexture->GetSamplerRHI());

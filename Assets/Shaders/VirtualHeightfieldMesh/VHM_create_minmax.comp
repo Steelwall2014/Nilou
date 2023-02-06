@@ -1,0 +1,34 @@
+#version 460
+
+// Node和patch的minmaxmap生成是一样的，只有下面这些local_size不一样，Node都是1，patch都是8
+// patch的minmaxmap大小肯定是8的倍数，node就不一定了
+// TODO: shader代码的动态生成（加一些define之类的）
+#if FOR_PATCH_MINMAX
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+#elif FOR_NODE_MINMAX
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#endif
+
+layout(rg32f, binding=1) uniform image2D InMinMaxMap;
+layout(rg32f, binding=2) uniform image2D OutMinMaxMap;
+
+void main()
+{
+    ivec2 in_patchLoc = ivec2(gl_GlobalInvocationID.xy) * 2;
+
+    float min_heights[4];
+    min_heights[0] = imageLoad(InMinMaxMap, in_patchLoc).r;
+    min_heights[1] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(0, 1)).r;
+    min_heights[2] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(1, 0)).r;
+    min_heights[3] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(1, 1)).r;
+
+    float max_heights[4];
+    max_heights[0] = imageLoad(InMinMaxMap, in_patchLoc).g;
+    max_heights[1] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(0, 1)).g;
+    max_heights[2] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(1, 0)).g;
+    max_heights[3] = imageLoad(InMinMaxMap, in_patchLoc + ivec2(1, 1)).g;
+
+    float min_height = min(min_heights[0], min(min_heights[1], min(min_heights[2], min_heights[3])));
+    float max_height = max(max_heights[0], max(max_heights[1], max(max_heights[2], max_heights[3])));
+    imageStore(OutMinMaxMap, ivec2(gl_GlobalInvocationID.xy), vec4(min_height, max_height, 0, 0));
+}

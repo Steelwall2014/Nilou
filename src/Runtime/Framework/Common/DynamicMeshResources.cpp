@@ -3,11 +3,20 @@
 
 namespace nilou {
 
+    FDynamicMeshVertex::FDynamicMeshVertex():
+        Position(vec3(0,0,0)),
+        Tangent(vec4(1,0,0,1)),
+        Normal(vec4(0,0,1,1)),
+        Color(vec3(1,0,1)) 
+    {
+
+    }
+
     FDynamicMeshVertex::FDynamicMeshVertex( const vec3& InPosition ):
         Position(InPosition),
         Tangent(vec4(1,0,0,1)),
         Normal(vec4(0,0,1,1)),
-        Color(vec3(255,255,255)) 
+        Color(vec3(1,0,1)) 
     {
         // basis determinant default to +1.0
         Tangent.w = 1;
@@ -52,7 +61,7 @@ namespace nilou {
         : Position(InPosition)
         , Tangent(vec4(1, 0, 0, 1))
         , Normal(vec4(0, 0, 1, 1))
-        , Color(vec3(1))
+        , Color(vec3(1,0,1))
     {
         // Tangent.w contains the sign of the tangent basis determinant. Assume +1
         Tangent.w = 1.f;

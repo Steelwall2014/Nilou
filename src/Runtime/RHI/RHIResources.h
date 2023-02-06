@@ -545,10 +545,15 @@ namespace nilou {
 		FRHISampler(RHITextureRef Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
 			: RHIResource(ERHIResourceType::RRT_SamplerState)
 			, Params(Params)
+			, Texture(Texture.get()) 
+		{}
+		FRHISampler(RHITexture *Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
+			: RHIResource(ERHIResourceType::RRT_SamplerState)
+			, Params(Params)
 			, Texture(Texture) 
 		{}
 		RHITextureParams Params;
-		RHITextureRef Texture;
+		RHITexture* Texture;
 	};
 	using FRHISamplerRef = std::shared_ptr<FRHISampler>;
 

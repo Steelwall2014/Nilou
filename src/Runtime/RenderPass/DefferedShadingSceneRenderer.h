@@ -13,6 +13,9 @@
 
 namespace nilou {
 
+    DECLARE_GLOBAL_SHADER(FScreenQuadVertexShader)
+    DECLARE_GLOBAL_SHADER(FRenderToScreenPixelShader)
+
     class FViewMeshBatches
     {
     public:
@@ -32,6 +35,7 @@ namespace nilou {
     class FSceneTextures
     {
     public:
+        RHIFramebufferRef GeometryPassFrameBuffer;
         RHIFramebufferRef FrameBuffer;
         RHITexture2DRef BaseColor;
         RHITexture2DRef WorldSpacePosition;
@@ -107,13 +111,17 @@ namespace nilou {
         // void SetupMeshPass(FSceneView &View, const std::vector<FMeshBatch> &ViewMeshBatches, std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
         void InitViews(FScene *Scene);
 
-        void ComputeVisibility(FScene *Scene);
+        void ComputeViewVisibility(FScene *Scene);
 
         void RenderBasePass(FDynamicRHI *RHICmdList);
         
         void RenderCSMShadowPass(FDynamicRHI *RHICmdList);
 
         void RenderLightingPass(FDynamicRHI *RHICmdList);
+
+        void RenderAtmospherePass(FDynamicRHI *RHICmdList);
+
+        void RenderToScreen(FDynamicRHI *RHICmdList);
 
         FScene *Scene = nullptr;
         

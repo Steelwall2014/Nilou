@@ -1,4 +1,5 @@
 #include "PrimitiveUtils.h"
+#include "Transform.h"
 
 namespace nilou {
 
@@ -29,6 +30,117 @@ namespace nilou {
             vec4(0,0,0,1)
             );
         return (glm::determinant(Basis) < 0) ? -1.0f : +1.0f;
+    }
+
+    void GetOrientedHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    {
+        // Use a mesh builder to draw the sphere.
+        //FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
+        {
+            // The first/last arc are on top of each other.
+            int32 NumVerts = (NumSides + 1) * (NumRings + 1);
+            FDynamicMeshVertex* Verts = new FDynamicMeshVertex[NumVerts];
+
+            // Calculate verts for one arc
+            FDynamicMeshVertex* ArcVerts = new FDynamicMeshVertex[NumRings + 1];
+
+            for (int32 i = 0; i<NumRings + 1; i++)
+            {
+                FDynamicMeshVertex* ArcVert = &ArcVerts[i];
+
+                float angle = StartAngle + ((float)i / NumRings) * (EndAngle-StartAngle);
+
+                // Note- unit sphere, so position always has mag of one. We can just use it for normal!			
+                ArcVert->Position.x = 0.0f;
+                ArcVert->Position.y = glm::sin(angle);
+                ArcVert->Position.z = glm::cos(angle);
+
+                ArcVert->SetTangents(
+                    vec3(1, 0, 0),
+                    vec3(0.0f, -ArcVert->Position.z, ArcVert->Position.y),
+                    ArcVert->Position
+                    );
+
+                ArcVert->TextureCoordinate[0].x = 0.0f;
+                ArcVert->TextureCoordinate[0].y = ((float)i / NumRings);
+            }
+
+            // Then rotate this arc NumSides+1 times.
+            for (int32 s = 0; s<NumSides + 1; s++)
+            {
+                FRotator ArcRotator(0, 360.f * (float)s / NumSides, 0);
+                mat4 ArcRot = mat4_cast(ArcRotator.ToQuat());
+                float XTexCoord = ((float)s / NumSides);
+
+                for (int32 v = 0; v<NumRings + 1; v++)
+                {
+                    int32 VIx = (NumRings + 1)*s + v;
+
+                    Verts[VIx].Position = ArcRot * vec4(ArcVerts[v].Position, 1);
+
+                    Verts[VIx].SetTangents(
+                        ArcRot * vec4(vec3(ArcVerts[v].Tangent), 0),
+                        ArcRot * vec4(ArcVerts[v].GetTangentY(), 0),
+                        ArcRot * vec4(vec3(ArcVerts[v].Normal), 0)
+                        );
+
+                    Verts[VIx].TextureCoordinate[0].x = XTexCoord;
+                    Verts[VIx].TextureCoordinate[0].y = ArcVerts[v].TextureCoordinate[0].y;
+                }
+            }
+
+            // Add all of the vertices we generated to the mesh builder.
+            for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
+            {
+                OutVerts.push_back(Verts[VertIdx]);
+            }
+
+            // Add all of the triangles we generated to the mesh builder.
+            for (int32 s = 0; s<NumSides; s++)
+            {
+                int32 a0start = (s + 0) * (NumRings + 1);
+                int32 a1start = (s + 1) * (NumRings + 1);
+
+                for (int32 r = 0; r<NumRings; r++)
+                {
+                    OutIndices.push_back(a0start + r + 0);
+                    OutIndices.push_back(a1start + r + 0);
+                    OutIndices.push_back(a0start + r + 1);
+                    OutIndices.push_back(a1start + r + 0);
+                    OutIndices.push_back(a1start + r + 1);
+                    OutIndices.push_back(a0start + r + 1);
+                }
+            }
+
+            // Free our local copy of verts and arc verts
+            delete Verts;
+            delete ArcVerts;
+
+            FTransform LocalToWorldTransform(Radii, Orientation.ToQuat(), Center);
+            mat4 LocalToWorld = LocalToWorldTransform.ToMatrix();
+            mat3 mat3_LocalToWorld = mat3(LocalToWorld);
+            mat3 invtrans_LocalToWorld = mat3(glm::transpose(glm::inverse(LocalToWorld)));
+            for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
+            {
+                OutVerts[VertIdx].Position = LocalToWorld * vec4(OutVerts[VertIdx].Position, 1);
+                vec3 Normal = glm::normalize(invtrans_LocalToWorld * vec3(OutVerts[VertIdx].Normal));
+                vec3 Tangent = glm::normalize(mat3_LocalToWorld * vec3(OutVerts[VertIdx].Tangent));
+                vec3 TangentY = glm::cross(Normal, Tangent);
+                OutVerts[VertIdx].SetTangents(Tangent, TangentY, Normal);
+            }   
+        }
+     
+        // MeshBuilder.GetMesh(FScaleMatrix(Radii) * FRotationMatrix(Orientation) * FTranslationMatrix(Center), MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, false, bUseSelectionOutline, ViewIndex, Collector, HitProxy);
+    }
+
+    void GetHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    {
+        GetOrientedHalfSphereMesh(Center, Orientation, Radii, NumSides, NumRings, 0, PI / 2, OutVerts, OutIndices);
+    }
+
+    void GetSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    {
+        GetOrientedHalfSphereMesh(Center, Orientation, Radii, NumSides, NumRings, 0, PI, OutVerts, OutIndices);
     }
 
     vec3 CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)

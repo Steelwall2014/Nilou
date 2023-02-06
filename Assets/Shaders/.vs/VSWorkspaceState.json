@@ -1,11 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\atmosphere",
-    "\\GlobalShaders",
-    "\\MaterialShaders",
-    "\\SkyAtmosphere"
+    "\\include",
+    "\\VirtualHeightfieldMesh"
   ],
-  "SelectedNode": "\\MaterialShaders\\BasePassVertexShader.vert",
   "PreviewInSolutionExplorer": false
 }

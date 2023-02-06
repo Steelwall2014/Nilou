@@ -10,7 +10,7 @@ uniform sampler2D WorldSpaceNormal;
 uniform sampler2D MetallicRoughness;
 uniform sampler2D Emissive;
 
-#include "FLightShaderParameters.glsl"
+#include "LightShaderParameters.glsl"
 #include "../include/PBRFunctions.glsl"
 
 //layout (std140) buffer FLightSSBO {
@@ -29,8 +29,12 @@ layout (std140) uniform FViewShaderParameters {
     mat4 WorldToView;
     mat4 ViewToClip;
     mat4 WorldToClip;
+    mat4 ClipToWorld;
     vec3 CameraPosition;
     vec3 CameraDirection;
+    ivec2 CameraResolution;
+    float CameraNearClipDist;
+    float CameraFarClipDist;
 };
 
 struct ShadingParams
@@ -47,7 +51,7 @@ struct ShadingParams
 vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
 {
     vec3 L;
-    if (light.lightType == 2)   // Directional
+    if (light.lightType == LT_Directional)
         L = normalize(-light.lightDirection);
     else 
         L = normalize(light.lightPosition - params.worldSpacePosition);
@@ -70,16 +74,16 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     float visibility = 1;//ShadowCalculation(fragPosLightSpace, light.lightShadowMapLayerIndex, bias);
 
     float atten = 1;
-//    if (light.lightType == 3 || light.lightType == 1)   // Point or Spot
-//    {
-//        float dist = length(light.lightPosition - params.worldSpacePosition);
-//        atten *= apply_atten_curve(dist, light.lightDistAttenParams);
-//    }
-//    if (light.lightType == 1)       // Spot 
-//    {
-//        float angle = acos(dot(normalize(light.lightDirection), -L));
-//        atten *= apply_atten_curve(angle, light.lightAngleAttenParams);
-//    } 
+    if (light.lightType == LT_Point || light.lightType == LT_Spot)   // Point or Spot
+    {
+        float dist = length(light.lightPosition - params.worldSpacePosition);
+        atten *= apply_atten_curve(dist, light.lightDistAttenParams);
+    }
+    if (light.lightType == LT_Spot)       // Spot 
+    {
+        float angle = acos(dot(normalize(light.lightDirection), -L));
+        atten *= apply_atten_curve(angle, light.lightAngleAttenParams);
+    } 
     vec3 radiance = atten * vec3(light.lightColor) * light.lightIntensity;
 
     vec3 kS = F;
@@ -101,11 +105,6 @@ void main()
     params.metallic = texture(MetallicRoughness, uv).r;
     params.roughness = texture(MetallicRoughness, uv).g;
 
-    vec3 color = vec3(0);
-//    for (int LightIndex = 0; LightIndex < STATIC_LIGHT_NUM; LightIndex++)
-//    {
-//        color += ApplyLight(lights[LightIndex], params);
-//    }
-    color = ApplyLight(light, params);
+    vec3 color = ApplyLight(light, params);
     FragColor = vec4(color, 1);
 }

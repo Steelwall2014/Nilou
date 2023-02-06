@@ -32,33 +32,36 @@ struct A
 
 int main()
 {
-    // glm::mat4 m;
-    // m = glm::rotate(m, glm::radians(30.0f), glm::vec3(0, 0, 1));
-    // m = glm::lookAt(glm::vec3(10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+    glm::mat4 proj, view, vp;
+    view = glm::lookAt(glm::vec3(10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+    proj = glm::perspective(glm::radians(60.f), glm::radians(60.f), 1.f, 100.f);
+    vp = proj * view;
+    glm::vec4 a = vp * glm::vec4(0, 0, 0, 1);
+    glm::mat4 ivp = glm::inverse(vp);
 
-    std::map<int, A> m;
-    m[0] = A(0);
-    m[1] = A(1);
-    m[2] = A(2);
-    for (auto &[key, value] : m)
-    {
+//     std::map<int, A> m;
+//     m[0] = A(0);
+//     m[1] = A(1);
+//     m[2] = A(2);
+//     for (auto &[key, value] : m)
+//     {
 
-    }
+//     }
 
-    std::regex re(R"(^(layout\s+\((.*)\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
-    std::string code = R"(
-uniform sampler2D TransmittanceLUT;
-layout (binding=0) uniform sampler3D ScatteringDensityLUT;
-layout (rgba32f, binding=0) uniform image3D DeltaScatteringLUT;
-layout (rgba32f, binding=1) uniform image3D MultiScatteringLUT;
-layout (std140) uniform ScatteringOrderBlock {
-    int scattering_order;
-};)";
-    std::smatch matches;
-    while (std::regex_search(code, matches, re))
-    {
-        code = matches.suffix();
-    }
+//     std::regex re(R"(^(layout\s+\((.*)\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
+//     std::string code = R"(
+// uniform sampler2D TransmittanceLUT;
+// layout (binding=0) uniform sampler3D ScatteringDensityLUT;
+// layout (rgba32f, binding=0) uniform image3D DeltaScatteringLUT;
+// layout (rgba32f, binding=1) uniform image3D MultiScatteringLUT;
+// layout (std140) uniform ScatteringOrderBlock {
+//     int scattering_order;
+// };)";
+//     std::smatch matches;
+//     while (std::regex_search(code, matches, re))
+//     {
+//         code = matches.suffix();
+//     }
     // std::regex_search(code, matches, re);
     // std::regex_search(code, matches, re);
     // std::regex_search(code, matches, re);

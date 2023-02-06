@@ -18,7 +18,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        UPrimitiveComponent(AActor *InOwner)
+        UPrimitiveComponent(AActor *InOwner = nullptr)
             : USceneComponent(InOwner)
             , SceneProxy(nullptr)
         { }

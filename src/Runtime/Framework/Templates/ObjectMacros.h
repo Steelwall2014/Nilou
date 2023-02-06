@@ -3,6 +3,24 @@
 
 #define UCLASS()
 
+#define DEFINE_DYNAMIC_DATA(Type, Name) \
+	public: \
+		/** Updates the component's DynamicData property, and tells it to refresh */ \
+		inline void Set##Name(const Type &In##Name) { Name = In##Name; MarkRenderDynamicDataDirty(); } \
+		/** Get the component's property */ \
+		inline Type Get##Name() const { return Name; } \
+	protected: \
+		Type Name;
+
+// #define DEFINE_RENDER_STATE_DATA(Type, Name) \
+// 	public: \
+// 		/** Updates the component's RenderState property, and tells it to refresh */ \
+// 		inline void Set##Name(const Type &In##Name) { Name = In##Name; MarkRenderStateDirty(); } \
+// 		/** Get the component's property */ \
+// 		inline Type Get##Name() const { return Name; } \
+// 	private: \
+// 		Type Name;
+
 #define GENERATE_CLASS_INFO() \
     public: \
         virtual std::string GetClassName(); \
@@ -32,6 +50,13 @@
 
 #define DECLARE_GLOBAL_SHADER(ShaderClass) \
 	class ShaderClass : public FGlobalShader\
+	{ \
+	public: \
+		DECLARE_SHADER_TYPE() \
+	};
+
+#define DECLARE_MATERIAL_SHADER(ShaderClass) \
+	class ShaderClass : public FMaterialShader\
 	{ \
 	public: \
 		DECLARE_SHADER_TYPE() \

@@ -60,7 +60,7 @@ namespace nilou {
     {
         GENERATE_CLASS_INFO()
     public:
-        USceneComponent(AActor *InOwner) 
+        USceneComponent(AActor *InOwner = nullptr) 
             : UActorComponent(InOwner)
             , AttachParent(nullptr)
         { }

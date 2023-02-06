@@ -11,7 +11,7 @@ namespace nilou {
 
     FMaterial *FMaterial::GetDefaultMaterial()
     {
-        return FContentManager::GetContentManager().GetGlobalMaterial("DefaultMaterial").get();
+        return FContentManager::GetContentManager().GetGlobalMaterial("DefaultMaterial");
     }
 
     void FMaterial::UpdateMaterialCode(const std::string &InCode)

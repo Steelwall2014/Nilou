@@ -7,6 +7,7 @@ namespace nilou {
 
     UActorComponent::UActorComponent(AActor *InOwner) 
         : OwnedActor(InOwner)
+        , WorldPrivate(nullptr)
         , bRegistered(false)
         , bRenderStateDirty(false)
         , bRenderStateCreated(false)
@@ -14,11 +15,7 @@ namespace nilou {
         , bRenderTransformDirty(false)
         , bRenderInstancesDirty(false)
     {
-        if (InOwner)
-        {
-            WorldPrivate = InOwner->GetWorld();
-            InOwner->AddOwnedComponent(this);
-        }
+        SetOwner(InOwner);
     }
 
     UWorld *UActorComponent::GetWorld() const
@@ -58,6 +55,16 @@ namespace nilou {
     bool UActorComponent::IsRegistered() const
     {
         return bRegistered;
+    }
+
+    void UActorComponent::SetOwner(AActor *InOwner)
+    {
+        OwnedActor = InOwner;
+        if (InOwner)
+        {
+            WorldPrivate = InOwner->GetWorld();
+            InOwner->AddOwnedComponent(this);
+        }
     }
 
     void UActorComponent::DestroyComponent()

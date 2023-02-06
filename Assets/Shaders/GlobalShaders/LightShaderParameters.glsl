@@ -1,5 +1,13 @@
-#ifndef FLIGHTSHADERPARAMETERS_H
-#define FLIGHTSHADERPARAMETERS_H
+#ifndef LIGHTSHADERPARAMETERS_H
+#define LIGHTSHADERPARAMETERS_H
+
+
+#define LT_None (0)
+#define LT_Spot (1)
+#define LT_Directional (2)
+#define LT_Point (3)
+
+
 
 struct FLightAttenParameters
 {

@@ -36,8 +36,7 @@ namespace nilou {
         {
             if (Scene)
             {
-                Scene->UpdateViewInfos();
-                Scene->UpdatePrimitiveInfos();
+                Scene->UpdateRenderInfos();
             }
             Draw_RenderThread(Scene);
         }

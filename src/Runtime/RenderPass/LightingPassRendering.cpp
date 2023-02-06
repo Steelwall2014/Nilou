@@ -1,6 +1,96 @@
 #include "LightingPassRendering.h"
+#include "DefferedShadingSceneRenderer.h"
+
+#include "RHIStaticStates.h"
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FLightingPassVS, "/Shaders/GlobalShaders/LightingPassVertexShader.vert", EShaderFrequency::SF_Vertex, Global);
     IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/GlobalShaders/LightingPassPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
+
+    void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
+    {
+        for (auto &[View, SceneTextures] : PerViewSceneTextures)
+        {
+            FCameraSceneInfo *CameraInfo = View;
+            if (CameraInfo->Camera->IsMainCamera())
+            {
+
+                FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get(), true);
+                RHICmdList->RHIBeginRenderPass(PassInfo);
+                {
+                    
+                    FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
+                    
+                    FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, 0);
+
+                    FShaderInstance *LightPassVS = GetGlobalShaderInstance2(PermutationParametersVS);
+                    FShaderInstance *LightPassPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    
+                    FRHIGraphicsPipelineInitializer PSOInitializer;
+
+                    PSOInitializer.VertexShader = LightPassVS;
+                    PSOInitializer.PixelShader = LightPassPS;
+
+                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
+
+                    FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
+                    
+                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
+                    RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
+                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
+                    RHIGetError();
+                    RHICmdList->RHISetGraphicsPipelineState(PSO);
+                    RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
+                    RHICmdList->RHISetRasterizerState(RasterizerState.get());
+                    RHICmdList->RHISetBlendState(BlendState.get());
+                    RHIGetError();
+
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "BaseColor", 
+                        FRHISampler(SceneTextures.BaseColor));
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "WorldSpacePosition", 
+                        FRHISampler(SceneTextures.WorldSpacePosition));
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "WorldSpaceNormal", 
+                        FRHISampler(SceneTextures.WorldSpaceNormal));
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "MetallicRoughness", 
+                        FRHISampler(SceneTextures.MetallicRoughness));
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "Emissive", 
+                        FRHISampler(SceneTextures.Emissive));
+                    RHIGetError();
+                    RHICmdList->RHISetShaderUniformBuffer(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "FViewShaderParameters", 
+                        CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                    RHIGetError();
+
+                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
+                    RHIGetError();
+                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
+                    RHIGetError();
+                    for (auto &&LightInfo : Scene->AddedLightSceneInfos)
+                    {
+                        RHICmdList->RHISetShaderUniformBuffer(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "FLightUniformBlock", 
+                            LightInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
+
+                        RHICmdList->RHIDrawArrays(4);
+                    }
+                }
+                RHICmdList->RHIEndRenderPass();
+
+                break;
+            }
+        }
+    }
+
 }

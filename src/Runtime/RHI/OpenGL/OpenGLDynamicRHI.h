@@ -108,6 +108,7 @@ namespace nilou {
 		virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override;
 		virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
 		virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs) override;
+		virtual void RHIEndRenderPass() override;
 
 		/**
 		* Utils

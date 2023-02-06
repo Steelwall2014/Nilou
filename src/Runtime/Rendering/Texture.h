@@ -59,6 +59,7 @@ namespace nilou {
 		std::string Name;
         int32 NumMips;
         FRHISampler SamplerRHI;
+        RHITextureRef TextureRHI;
     };
 
 }

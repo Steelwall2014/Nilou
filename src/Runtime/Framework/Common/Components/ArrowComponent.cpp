@@ -19,11 +19,11 @@ namespace nilou {
         FArrowSceneProxy(UArrowComponent *Component)
             : FPrimitiveSceneProxy(Component)
             , VertexFactory("FArrowSceneProxy")
-            , ArrowColor(Component->ArrowColor)
-            , ArrowSize(Component->ArrowSize)
-            , ArrowLength(Component->ArrowLength)
-            , bIsScreenSizeScaled(Component->bIsScreenSizeScaled)
-            , ScreenSize(Component->ScreenSize)
+            , ArrowColor(Component->GetArrowColor())
+            , ArrowSize(Component->GetArrowSize())
+            , ArrowLength(Component->GetArrowLength())
+            // , bIsScreenSizeScaled(Component->bIsScreenSizeScaled)
+            // , ScreenSize(Component->ScreenSize)
         {
             Material = FContentManager::GetContentManager().GetGlobalMaterial("ColoredMaterial");
 
@@ -52,12 +52,12 @@ namespace nilou {
         virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView)
         {
             FMeshBatch Mesh;
-            Mesh.MaterialRenderProxy = Material.get();
+            Mesh.MaterialRenderProxy = Material;
             Mesh.VertexFactory = &VertexFactory;
             Mesh.Element.IndexBuffer = &IndexBuffer;
             Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
             // Mesh.Element.UniformBuffers["FPrimitiveShaderParameters"] = PrimitiveUniformBuffer.get();
-            // Mesh.MaterialRenderProxy->CollectShaderBindings(Mesh.Element.Bindings);
+            // Mesh.MaterialRenderProxy->FillShaderBindings(Mesh.Element.Bindings);
             OutMeshBatch = Mesh;
         }
 
@@ -65,14 +65,14 @@ namespace nilou {
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;
         FStaticVertexFactory VertexFactory;
-        std::shared_ptr<FMaterial> Material;
+        FMaterial *Material;
 
         vec3 Origin;
         vec4 ArrowColor;
         float ArrowSize;
         float ArrowLength;
-        bool bIsScreenSizeScaled;
-        float ScreenSize;
+        // bool bIsScreenSizeScaled;
+        // float ScreenSize;
     };
 
     UArrowComponent::UArrowComponent(AActor *InOwner)
@@ -81,8 +81,8 @@ namespace nilou {
         ArrowColor = vec4(1, 0, 0, 1);
         ArrowSize = 1.0f;
         ArrowLength = ARROW_SCALE;
-        bIsScreenSizeScaled = false;
-        ScreenSize = DEFAULT_SCREEN_SIZE;
+        // bIsScreenSizeScaled = false;
+        // ScreenSize = DEFAULT_SCREEN_SIZE;
     }
 
     FPrimitiveSceneProxy *UArrowComponent::CreateSceneProxy()
@@ -99,6 +99,20 @@ namespace nilou {
     void UArrowComponent::SetArrowColor(vec4 NewColor)
     {
         ArrowColor = NewColor;
+        MarkRenderStateDirty();
+    }
+
+    void UArrowComponent::SetArrowSize(float NewSize)
+    {
+        ArrowSize = NewSize;
+        UpdateBounds();
+        MarkRenderStateDirty();
+    }
+
+    void UArrowComponent::SetArrowLength(float NewLength)
+    {
+        ArrowLength = NewLength;
+        UpdateBounds();
         MarkRenderStateDirty();
     }
 }

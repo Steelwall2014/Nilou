@@ -53,6 +53,8 @@ namespace nilou {
         {
             return glm::abs(Pitch-B.Pitch) <= Tolerance && glm::abs(Yaw-B.Yaw) <= Tolerance && glm::abs(Roll-B.Roll) <= Tolerance;
         }
+
+        static FRotator ZeroRotator;
     };
 
     glm::vec3 RotateVector(const quat &rotation, const vec3 &V);
@@ -102,7 +104,7 @@ namespace nilou {
         void SetTranslation(const vec3 &translation);
         FTransform operator*(const FTransform &Other) const;
         FTransform GetRelativeTransform(const FTransform &Other) const;
-
+        float GetMinimumAxisScale() const;
         vec3 GetSafeScaleReciprocal(const vec3 &InScale, float Tolerance = SMALL_NUMBER);
 
         static bool AnyHasNegativeScale(const vec3 &InScale3D, const vec3 &InOtherScale3D);

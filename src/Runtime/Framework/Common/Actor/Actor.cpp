@@ -26,11 +26,13 @@ namespace nilou {
     }
     
     AActor::AActor()
+        : OwnedWorld(nullptr)
+        , ActorName("")
     {
         RootComponent = std::make_shared<USceneComponent>(this);
     }
 
-    glm::quat AActor::GetActorRotation() const
+    quat AActor::GetActorRotation() const
     {
         return RootComponent->GetComponentToWorld().GetRotation();
     }
@@ -38,22 +40,26 @@ namespace nilou {
     {
         return RootComponent->GetComponentRotation();
     }
-    glm::vec3 AActor::GetActorLocation() const
+    vec3 AActor::GetActorLocation() const
     {
         return RootComponent->GetComponentLocation();
     }
+    vec3 AActor::GetActorScale3D() const 
+    {
+        return RootComponent->GetComponentScale();
+    }
 
-    glm::vec3 AActor::GetActorForwardVector() const
+    vec3 AActor::GetActorForwardVector() const
     {
         return RootComponent->GetForwardVector();
     }
 
-    glm::vec3 AActor::GetActorUpVector() const
+    vec3 AActor::GetActorUpVector() const
     {
         return RootComponent->GetUpVector();
     }
 
-    glm::vec3 AActor::GetActorRightVector() const
+    vec3 AActor::GetActorRightVector() const
     {
         return RootComponent->GetRightVector();
     }
@@ -63,7 +69,7 @@ namespace nilou {
         RootComponent->SetWorldTransform(InTransform);
     }
 
-    void AActor::SetActorRotation(const glm::quat &rotation)
+    void AActor::SetActorRotation(const quat &rotation)
     {
     #ifdef _DEBUG
         //UNDDEBUG_PrintGLM(rotation);
@@ -71,22 +77,27 @@ namespace nilou {
     #endif
 
         RootComponent->SetWorldRotation(rotation);
-        // RootComponent->MoveComponent(glm::vec3(0, 0, 0), rotation);
+        // RootComponent->MoveComponent(vec3(0, 0, 0), rotation);
     }
 
     void AActor::SetActorRotator(const FRotator &rotator)
     {
         RootComponent->SetWorldRotation(rotator);
-        // RootComponent->MoveComponent(glm::vec3(0, 0, 0), rotator);
-        //SetActorRotation(glm::quat(glm::vec3(rotator.Pitch, rotator.Yaw, rotator.Roll)));
+        // RootComponent->MoveComponent(vec3(0, 0, 0), rotator);
+        //SetActorRotation(quat(vec3(rotator.Pitch, rotator.Yaw, rotator.Roll)));
     }
 
-    void AActor::SetActorLocation(const glm::vec3 &location)
+    void AActor::SetActorLocation(const vec3 &location)
     {
         RootComponent->SetWorldLocation(location);
-        // glm::vec3 delta = location - RootComponent->GetComponentLocation();
+        // vec3 delta = location - RootComponent->GetComponentLocation();
         // //std::cout << location.x << " " << location.y << " " << location.z << std::endl;
         // RootComponent->MoveComponent(delta, RootComponent->GetComponentToWorld().GetRotation());
+    }
+
+    void AActor::SetActorScale3D(const vec3 &scale)
+    {
+        RootComponent->SetWorldScale3D(scale);
     }
 
     void AActor::SetActorName(const std::string &InName)
@@ -118,11 +129,18 @@ namespace nilou {
         OwnedComponents.erase(InComponent);
     }
     
-	void AActor::SetRootComponent(std::shared_ptr<USceneComponent> InComponent)
+	void AActor::SetRootComponent(std::shared_ptr<USceneComponent> NewRootComponent)
     {
-        RemoveOwnedComponent(RootComponent.get());
-        AddOwnedComponent(InComponent.get());
-        RootComponent = InComponent;
+        /** Only components owned by this actor can be used as a its root component. */
+        if (NewRootComponent == nullptr || NewRootComponent->GetOwner() == this)
+        {
+            if (RootComponent != NewRootComponent)
+            {
+                RemoveOwnedComponent(RootComponent.get());
+                AddOwnedComponent(NewRootComponent.get());
+                RootComponent = NewRootComponent;
+            }
+        }
     }
     
 	void AActor::RegisterAllComponents()

@@ -2,6 +2,7 @@
 #include <memory>
 #include <set>
 #include <unordered_map>
+#include <queue>
 
 #include "Common/Components/CameraComponent.h"
 #include "Common/Components/LightComponent.h"
@@ -89,7 +90,7 @@ namespace nilou {
             bNeedsFramebufferUpdate = bInNeedsFramebufferUpdate;
         }
 
-        ivec2 GetResolution() const { return SceneProxy->ScreenResolution; }
+        ivec2 GetResolution() const { return SceneProxy->SceneView.ScreenResolution; }
 
         FScene *Scene;
         UCameraComponent *Camera;
@@ -101,6 +102,8 @@ namespace nilou {
     class FScene
     {
     public:
+
+        FScene();
 
         void AddSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
         void RemoveSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
@@ -114,13 +117,14 @@ namespace nilou {
         void AddPrimitive(UPrimitiveComponent *InPrimitive);
         void RemovePrimitive(UPrimitiveComponent *InPrimitive);
 
+        void UpdateRenderInfos();
+
 
         // void UpdatePrimitiveTransform(UPrimitiveComponent *InPrimitive);
 
         // void UpdateAllPrimitiveSceneInfos();
 
-        void UpdateViewInfos();
-        void UpdatePrimitiveInfos();
+        // inline FLightSceneInfo *GetFirstDirectionalLight() const { return DirectionalLightQueue.empty() ? nullptr : DirectionalLightQueue.front(); }
 
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
@@ -130,6 +134,9 @@ namespace nilou {
         class UWorld *World;
 
     protected:
+
+        // std::list<FLightSceneInfo *> DirectionalLightQueue;
+
         /** 下面几个在ue里是RenderThread */
         void AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
         void RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
@@ -139,5 +146,9 @@ namespace nilou {
 
         void AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
         void RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
+
+        void UpdateViewInfos();
+        void UpdatePrimitiveInfos();
+        void UpdateLightInfos();
     };
 }
