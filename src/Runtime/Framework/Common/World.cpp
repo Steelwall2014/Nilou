@@ -10,7 +10,6 @@
 #include "Common/PrimitiveUtils.h"
 #include "Common/ContentManager.h"
 
-#include "Common/Actor/Actor.h"
 #include "Common/Actor/StaticMeshActor.h"
 #include "Common/Actor/CameraActor.h"
 #include "Common/Actor/LightActor.h"
@@ -131,10 +130,19 @@ namespace nilou {
         
     }
 
+    void UWorld::InitWorld()
+    {
+        CreateMaterials();
+    }
+
+    void UWorld::InitializeActorsForPlay() 
+    { 
+        // TODO: 这里暂时是空，以后反序列化出来的Actor会在这里注册和初始化
+    }
+
     void UWorld::BeginPlay()
     {
-
-        CreateMaterials();
+        bHasBegunPlay = true;
 
         std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
         std::vector<std::shared_ptr<UStaticMesh>> Mesh = g_pGLTFParser->ParseToStaticMeshes(*Model);
@@ -197,20 +205,6 @@ namespace nilou {
         {
             Actor->Tick(DeltaTime);
         }
-    }
-
-    template<class ActorClass>
-    std::shared_ptr<ActorClass> UWorld::SpawnActor(const FTransform &ActorTransform, const std::string &ActorName)
-    {
-        static_assert(TIsDerivedFrom<ActorClass, AActor>::Value, "'ActorClass' template parameter to SpawnActor must be derived from AActor");
-        std::shared_ptr<ActorClass> Actor = std::make_shared<ActorClass>();
-        Actor->SetOwnedWorld(this);
-        Actor->SetActorName(ActorName);
-        Actor->SetActorLocation(ActorTransform.GetTranslation());
-        Actor->SetActorRotation(ActorTransform.GetRotation());
-        Actor->RegisterAllComponents();
-        Actors.push_back(Actor);
-        return Actor;
     }
     
     void UWorld::SendAllEndOfFrameUpdates()

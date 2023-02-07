@@ -163,9 +163,9 @@ namespace nilou {
         void MoveComponent(const dvec3 &Delta, const dquat &NewRotation);
 
         // 获取这个节点的forward、up和right向量，在世界坐标系
-        dvec3 GetForwardVector();
-        dvec3 GetUpVector();
-        dvec3 GetRightVector();
+        vec3 GetForwardVector();
+        vec3 GetUpVector();
+        vec3 GetRightVector();
 
         // 更新组件的transform
         void UpdateComponentToWorld();

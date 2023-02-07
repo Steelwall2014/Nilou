@@ -328,15 +328,15 @@ namespace nilou {
 
         }
     }
-    dvec3 USceneComponent::GetForwardVector()
+    vec3 USceneComponent::GetForwardVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_FORWARD);
     }
-    dvec3 USceneComponent::GetUpVector()
+    vec3 USceneComponent::GetUpVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_UP);
     }
-    dvec3 USceneComponent::GetRightVector()
+    vec3 USceneComponent::GetRightVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_RIGHT);
     }

@@ -1,5 +1,6 @@
 #include "ActorComponent.h"
 #include "Common/Actor/Actor.h"
+#include "Common/Log.h"
 #include "Common/World.h"
 #include "SceneComponent.h"
 
@@ -8,6 +9,10 @@ namespace nilou {
     UActorComponent::UActorComponent(AActor *InOwner) 
         : OwnedActor(InOwner)
         , WorldPrivate(nullptr)
+        , bWantsInitializeComponent(true)
+        , bHasBeenInitialized(false)
+        , bHasBeenCreated(false)
+        , bHasBegunPlay(false)
         , bRegistered(false)
         , bRenderStateDirty(false)
         , bRenderStateCreated(false)
@@ -28,16 +33,79 @@ namespace nilou {
         return OwnedActor;
     }
 
-    void UActorComponent::RegisterComponentWithWorld(UWorld *World)
+    void UActorComponent::OnRegister()
     {
+	    check(!bRegistered);
         bRegistered = true;
-        WorldPrivate = World;
+
+        UpdateComponentToWorld();
         CreateRenderState();
+    }
+
+    void UActorComponent::OnUnRegister()
+    {
+	    check(bRegistered);
+	    bRegistered = false;
+    }
+
+    void UActorComponent::OnComponentCreated()
+    {
+	    bHasBeenCreated = true;
+    }
+
+    void UActorComponent::RegisterComponentWithWorld(UWorld *InWorld)
+    {
+        if (IsRegistered())
+        {
+            NILOU_LOG(Info, "RegisterComponentWithWorld (" + GetClassName() + ") Already registered. Aborting.");
+            return;
+        }
+        if (InWorld == nullptr)
+        {
+            return;
+        }
+	    AActor* MyOwner = GetOwner();
+        if(MyOwner)
+        {
+            if(InWorld != MyOwner->GetWorld())
+            {
+                // The only time you should specify a scene that is not Owner->GetWorld() is when you don't have an Actor
+                NILOU_LOG(Info, "RegisterComponentWithWorld: (" + GetClassName() + ") Specifying a world, but an Owner Actor found, and InWorld is not GetOwner()->GetWorld()");
+            }
+        }
+        if (!bHasBeenCreated)
+        {
+            OnComponentCreated();
+        }
+	    WorldPrivate = InWorld;
+        ExecuteRegisterEvents();
+
+        if (MyOwner == nullptr)
+        {
+            if (bWantsInitializeComponent && !bHasBeenInitialized)
+            {
+                InitializeComponent();
+            }
+        }
+        else 
+        {
+            if (bWantsInitializeComponent && !bHasBeenInitialized && MyOwner->IsActorInitialized())
+            {
+                InitializeComponent();
+            }
+            		
+            if (MyOwner->HasActorBegunPlay() || MyOwner->IsActorBeginningPlay())
+            {
+                if (!bHasBegunPlay)
+                {
+                    BeginPlay();
+                }
+            }
+        }
     }
 
     void UActorComponent::RegisterComponent()
     {
-        bRegistered = true;
         AActor *MyOwner = GetOwner();
         UWorld* MyOwnerWorld = (MyOwner ? MyOwner->GetWorld() : nullptr);
         if (MyOwnerWorld)
@@ -57,6 +125,21 @@ namespace nilou {
         return bRegistered;
     }
 
+    void UActorComponent::InitializeComponent()
+    {
+        check(bRegistered);
+        check(!bHasBeenInitialized);
+
+        bHasBeenInitialized = true;
+    }
+
+    void UActorComponent::UninitializeComponent()
+    {
+        check(bHasBeenInitialized);
+
+        bHasBeenInitialized = false;
+    }
+
     void UActorComponent::SetOwner(AActor *InOwner)
     {
         OwnedActor = InOwner;
@@ -65,6 +148,13 @@ namespace nilou {
             WorldPrivate = InOwner->GetWorld();
             InOwner->AddOwnedComponent(this);
         }
+    }
+
+    void UActorComponent::BeginPlay()
+    {
+        check(bRegistered);
+        check(!bHasBegunPlay);
+        bHasBegunPlay = true;
     }
 
     void UActorComponent::DestroyComponent()
@@ -167,5 +257,31 @@ namespace nilou {
     void UActorComponent::MarkRenderInstancesDirty()
     {
         bRenderInstancesDirty = true;
+    }
+    
+    void UActorComponent::ExecuteRegisterEvents()
+    {
+        if (!bRegistered)
+        {
+            OnRegister();
+        }
+
+        if (!bRenderStateCreated && WorldPrivate->Scene)
+        {
+            CreateRenderState();
+        }
+    }
+    
+    void UActorComponent::ExecuteUnregisterEvents()
+    {
+        if (bRenderStateCreated)
+        {
+            DestroyRenderState();
+        }
+
+        if (bRegistered)
+        {
+            OnUnRegister();
+        }
     }
 }

@@ -135,7 +135,7 @@ namespace nilou {
         {
             Module->StartupModule();
         }
-
+        World->InitWorld();
         World->BeginPlay();
 //         run_time_modules.push_back(g_pAssetLoader);
 //         run_time_modules.push_back(g_pSceneManager);

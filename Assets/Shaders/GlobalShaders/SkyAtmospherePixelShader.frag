@@ -29,6 +29,7 @@ void main()
     vec4 worldPos = ClipToWorld * ndc;
     worldPos /= worldPos.w;
     vec3 v = normalize(worldPos.xyz);
+    float CameraHeightInKM = float(CameraPosition.z / km);
     if (v.z < 0.f)
     {
         if (dot(normalize(v.xy), normalize(sun_direction.xy)) > cos(ATMOSPHERE.sun_angular_radius))
@@ -45,9 +46,10 @@ void main()
         {
             v = normalize(vec3(v.xy, 0.f));
         }
+        CameraHeightInKM = 0;
     }
     float shadow_length = 0;
-    float r = float(CameraPosition.z / km) - earth_center.z;
+    float r = CameraHeightInKM - earth_center.z;
     vec3 color = GetSkyColor(
         ATMOSPHERE, TransmittanceLUT, SingleScatteringRayleighLUT, SingleScatteringMieLUT, 
         r, v, shadow_length, sun_direction, ATMOSPHERE.sun_angular_radius);

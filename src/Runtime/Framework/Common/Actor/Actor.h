@@ -29,14 +29,33 @@ namespace nilou {
 
 		virtual void Tick(double DeltaTime) {};
 
+		virtual void BeginPlay();
+
+		virtual void OnConstruction(const FTransform &Transform) {}
+
+		void PostSpawnInitialize(FTransform const& UserSpawnTransform);
+
+		void FinishSpawning(const FTransform &UserTransform);
+
+		void PostActorCreated() { }
+
+		/** Returns whether an actor has been initialized for gameplay */
+		bool IsActorInitialized() const { return bActorInitialized; }
+
+		/** Returns whether an actor is in the process of beginning play */
+		bool IsActorBeginningPlay() const { return ActorHasBegunPlay == EActorBeginPlayState::BeginningPlay; }
+
+		/** Returns whether an actor has had BeginPlay called on it (and not subsequently had EndPlay called) */
+		bool HasActorBegunPlay() const { return ActorHasBegunPlay == EActorBeginPlayState::HasBegunPlay; }
+
 		// 下面两个函数都是获取Actor相对于世界的旋转
-		quat GetActorRotation() const;		// 以四元数表示
+		dquat GetActorRotation() const;		// 以四元数表示
 		FRotator GetActorRotator() const;		// 以欧拉角表示
 
 		// 获取Actor相对于世界的位置
-		vec3 GetActorLocation() const;
+		dvec3 GetActorLocation() const;
 
-		vec3 GetActorScale3D() const;
+		dvec3 GetActorScale3D() const;
 
 		// 获取Actor在世界参考系下的前方向
 		vec3 GetActorForwardVector() const;
@@ -49,13 +68,13 @@ namespace nilou {
 		void SetActorTransform(const FTransform &InTransform);		// 以四元数表示
 
 		// 设置Actor在世界参考系下的旋转
-		void SetActorRotation(const quat &rotation);		// 以四元数表示
+		void SetActorRotation(const dquat &rotation);		// 以四元数表示
 		void SetActorRotator(const nilou::FRotator &rotator);		// 以欧拉角表示
 
 		// 设置Actor在世界参考系下的位置
-		void SetActorLocation(const vec3 &location);
+		void SetActorLocation(const dvec3 &location);
 
-		void SetActorScale3D(const vec3 &scale);
+		void SetActorScale3D(const dvec3 &scale);
 		// 以上Get和Set都是通过操作Actor下RootComponent的变换实现的
 
 		void SetActorName(const std::string &InName);
@@ -87,6 +106,10 @@ namespace nilou {
 		void SetRootComponent(std::shared_ptr<USceneComponent> InComponent);
 
 		void RegisterAllComponents();
+
+		void InitializeComponents();
+
+		void UninitializeComponents();
 
 		template<class T>
 		void GetComponents(std::vector<T *> &OutComponents, bool bIncludeFromChildActors = false)
@@ -181,5 +204,24 @@ namespace nilou {
 		std::shared_ptr<USceneComponent> RootComponent;
 		std::set<UActorComponent *> OwnedComponents;
 		UWorld *OwnedWorld;
+		bool bActorInitialized;
+
+		enum class EActorBeginPlayState : uint8
+		{
+			HasNotBegunPlay,
+			BeginningPlay,
+			HasBegunPlay,
+		};
+		/** 
+		*	Indicates that BeginPlay has been called for this Actor.
+		*  Set back to HasNotBegunPlay once EndPlay has been called.
+		*/
+		EActorBeginPlayState ActorHasBegunPlay;
+
+	private:
+
+		void ExecuteConstruction(const FTransform& Transform);
+
+		void PostActorConstruction();
 	};
 }

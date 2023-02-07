@@ -1,12 +1,29 @@
+#include <string>
+#include <vector>
+
+#include "Common/World.h"
+
 #include "Actor.h"
 #include "Common/AssertionMacros.h"
 #include "Common/Components/ActorComponent.h"
 #include "Common/Components/SceneComponent.h"
-#include <string>
-#include <vector>
 
 
 namespace nilou {
+
+    static void DispatchOnComponentsCreated(AActor* NewActor)
+    {
+        std::vector<UActorComponent*> Components;
+        NewActor->GetComponents(Components);
+
+        for (UActorComponent* ActorComp : Components)
+        {
+            if (!ActorComp->HasBeenCreated())
+            {
+                ActorComp->OnComponentCreated();
+            }
+        }
+    }
 
     static USceneComponent* GetUnregisteredParent(UActorComponent* Component)
     {
@@ -28,11 +45,51 @@ namespace nilou {
     AActor::AActor()
         : OwnedWorld(nullptr)
         , ActorName("")
+        , bActorInitialized(false)
+        , ActorHasBegunPlay(EActorBeginPlayState::HasNotBegunPlay)
     {
         RootComponent = std::make_shared<USceneComponent>(this);
     }
 
-    quat AActor::GetActorRotation() const
+    void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform)
+    {
+	    UWorld* const World = GetWorld();
+
+        DispatchOnComponentsCreated(this);
+
+        if (World)
+        {
+            RegisterAllComponents();
+        }
+
+	    PostActorCreated();
+        FinishSpawning(UserSpawnTransform);
+    }
+
+    void AActor::FinishSpawning(const FTransform &UserTransform)
+    {
+        ExecuteConstruction(UserTransform);
+        PostActorConstruction();
+    }
+
+    void AActor::BeginPlay()
+    {
+		ActorHasBegunPlay = EActorBeginPlayState::BeginningPlay;
+
+        std::vector<UActorComponent *> Components;
+        GetComponents(Components);
+	    for (UActorComponent* Component : Components)
+        {
+            if (Component->IsRegistered() && !Component->HasBegunPlay())
+            {
+                Component->BeginPlay();
+            }
+        }
+
+	    ActorHasBegunPlay = EActorBeginPlayState::HasBegunPlay;
+    }
+
+    dquat AActor::GetActorRotation() const
     {
         return RootComponent->GetComponentToWorld().GetRotation();
     }
@@ -40,11 +97,11 @@ namespace nilou {
     {
         return RootComponent->GetComponentRotation();
     }
-    vec3 AActor::GetActorLocation() const
+    dvec3 AActor::GetActorLocation() const
     {
         return RootComponent->GetComponentLocation();
     }
-    vec3 AActor::GetActorScale3D() const 
+    dvec3 AActor::GetActorScale3D() const 
     {
         return RootComponent->GetComponentScale();
     }
@@ -69,33 +126,22 @@ namespace nilou {
         RootComponent->SetWorldTransform(InTransform);
     }
 
-    void AActor::SetActorRotation(const quat &rotation)
+    void AActor::SetActorRotation(const dquat &rotation)
     {
-    #ifdef _DEBUG
-        //UNDDEBUG_PrintGLM(rotation);
-        //UNDDEBUG_PrintGLM(Rotator(rotation));
-    #endif
-
         RootComponent->SetWorldRotation(rotation);
-        // RootComponent->MoveComponent(vec3(0, 0, 0), rotation);
     }
 
     void AActor::SetActorRotator(const FRotator &rotator)
     {
         RootComponent->SetWorldRotation(rotator);
-        // RootComponent->MoveComponent(vec3(0, 0, 0), rotator);
-        //SetActorRotation(quat(vec3(rotator.Pitch, rotator.Yaw, rotator.Roll)));
     }
 
-    void AActor::SetActorLocation(const vec3 &location)
+    void AActor::SetActorLocation(const dvec3 &location)
     {
         RootComponent->SetWorldLocation(location);
-        // vec3 delta = location - RootComponent->GetComponentLocation();
-        // //std::cout << location.x << " " << location.y << " " << location.z << std::endl;
-        // RootComponent->MoveComponent(delta, RootComponent->GetComponentToWorld().GetRotation());
     }
 
-    void AActor::SetActorScale3D(const vec3 &scale)
+    void AActor::SetActorScale3D(const dvec3 &scale)
     {
         RootComponent->SetWorldScale3D(scale);
     }
@@ -172,5 +218,58 @@ namespace nilou {
         }
     }
 
-    
+    void AActor::InitializeComponents()
+    {
+        std::vector<UActorComponent*> Components;
+        GetComponents(Components);
+
+        for (UActorComponent* ActorComp : Components)
+        {
+            if (ActorComp->IsRegistered())
+            {
+                if (ActorComp->bWantsInitializeComponent && !ActorComp->HasBeenInitialized())
+                {
+                    // Broadcast the activation event since Activate occurs too early to fire a callback in a game
+                    ActorComp->InitializeComponent();
+                }
+            }
+        }
+    }
+
+    void AActor::UninitializeComponents()
+    {
+        std::vector<UActorComponent*> Components;
+        GetComponents(Components);
+
+        for (UActorComponent* ActorComp : Components)
+        {
+            if (ActorComp->HasBeenInitialized())
+            {
+                ActorComp->UninitializeComponent();
+            }
+        }
+    }
+
+    void AActor::ExecuteConstruction(const FTransform& Transform)
+    {
+        if (RootComponent)
+        {
+            RootComponent->SetWorldLocation(Transform.GetLocation());
+            RootComponent->SetWorldRotation(Transform.GetRotation());
+        }
+        
+	    OnConstruction(Transform);
+    }
+
+    void AActor::PostActorConstruction()
+    {
+	    UWorld* const World = GetWorld();
+        InitializeComponents();
+        bActorInitialized = true;
+		bool bRunBeginPlay = World->HasBegunPlay();
+        if (bRunBeginPlay)
+        {
+			BeginPlay();
+        }
+    }
 }
