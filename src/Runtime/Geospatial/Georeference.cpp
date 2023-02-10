@@ -45,7 +45,7 @@ namespace nilou {
         const glm::dvec3& LongitudeLatitudeHeight, 
         const Geospatial::Ellipsoid& ellipsoid /*= Ellipsoid::WGS84*/) noexcept
     {
-        return ellipsoid.cartographicToCartesian(Geospatial::Cartographic(
+        return ellipsoid.cartographicToCartesian(Geospatial::Cartographic::fromDegrees(
             LongitudeLatitudeHeight.x, LongitudeLatitudeHeight.y, LongitudeLatitudeHeight.z));
     }
 

@@ -59,13 +59,13 @@ namespace nilou {
             *ptr = Value;
         }
 
-        void BindToVertexFactoryData(FVertexStreamComponent &OutStreamComponent)
+        void BindToVertexFactoryData(FVertexStreamComponent &OutStreamComponent, uint32 Offset = 0)
         {
             if constexpr (std::is_same<VertexType, vec2>::value)
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 
-                    0, 
+                    Offset, 
                     GetStride(), 
                     EVertexElementType::VET_Float2);
             }
@@ -73,7 +73,7 @@ namespace nilou {
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 
-                    0, 
+                    Offset, 
                     GetStride(), 
                     EVertexElementType::VET_Float3);
             }
@@ -81,7 +81,7 @@ namespace nilou {
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 
-                    0, 
+                    Offset, 
                     GetStride(), 
                     EVertexElementType::VET_Float4);
             }

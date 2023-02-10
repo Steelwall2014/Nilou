@@ -5,6 +5,26 @@
 
 namespace nilou {
 
+    void UCameraComponent::OnRegister()
+    {
+        UWorld *World = GetWorld();
+        if (World)
+        {
+            if (GetOwner())
+                World->CameraActors.insert(GetOwner());
+        }
+    }
+
+    void UCameraComponent::OnUnregister()
+    {
+        UWorld *World = GetWorld();
+        if (World)
+        {
+            if (GetOwner())
+                World->CameraActors.erase(GetOwner());
+        }
+    }
+
     void UCameraComponent::CreateRenderState()
     {
         USceneComponent::CreateRenderState();
@@ -30,7 +50,7 @@ namespace nilou {
     {
         if (SceneProxy)
         {
-            SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector());
+            SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
             SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
         }
         USceneComponent::SendRenderTransform();
@@ -62,9 +82,9 @@ namespace nilou {
     glm::mat4 UCameraComponent::CalcViewToClipMatrix()
     {
         // if (CameraParameters.CameraType == ECameraType::CT_Perspective)
-            return glm::perspective(glm::radians(FOVY), AspectRatio, NearClipDistance, FarClipDistance);
+            return glm::perspective(VerticalFieldOfView, AspectRatio, NearClipDistance, FarClipDistance);
         // else if (CameraParameters.CameraType == ECameraType::CT_Ortho) 
-        //     return glm::ortho(CameraParameters.FOVY, CameraParameters.AspectRatio, CameraParameters.NearClipDistance, CameraParameters.FarClipDistance);
+        //     return glm::ortho(CameraParameters.VerticalFieldOfView, CameraParameters.AspectRatio, CameraParameters.NearClipDistance, CameraParameters.FarClipDistance);
     }
 
     FCameraSceneProxy *UCameraComponent::CreateSceneProxy()
@@ -72,9 +92,9 @@ namespace nilou {
         return new FCameraSceneProxy(this);
     }
 
-    void UCameraComponent::SetFieldOfView(float fovy)
+    void UCameraComponent::SetFieldOfView(float InVerticalFieldOfView)
     {
-        FOVY = fovy;
+        VerticalFieldOfView = InVerticalFieldOfView;
         MarkRenderDynamicDataDirty();
     }
 
@@ -86,6 +106,14 @@ namespace nilou {
         MarkRenderDynamicDataDirty();
     }
 
+    FViewFrustum UCameraComponent::CalcViewFrustum()
+    {
+        return FViewFrustum(
+            GetComponentLocation(), 
+            GetForwardVector(), 
+            GetUpVector(), AspectRatio, VerticalFieldOfView, NearClipDistance, FarClipDistance);
+    }
+
 
 
     FCameraSceneProxy::FCameraSceneProxy(UCameraComponent *InComponent)
@@ -93,7 +121,7 @@ namespace nilou {
     {
         InComponent->SceneProxy = this;
         ViewUniformBufferRHI = CreateUniformBuffer<FViewShaderParameters>();
-        SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector());
+        SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector(), InComponent->GetUpVector());
         SetViewProjectionMatrix(InComponent->CalcWorldToViewMatrix(), InComponent->CalcViewToClipMatrix());
         SetCameraResolution(InComponent->ScreenResolution);
         SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
@@ -103,8 +131,11 @@ namespace nilou {
             CameraSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
-    void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)
+    void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)
     {
+        SceneView.Position = InPosition;
+        SceneView.Forward = InDirection;
+        SceneView.Up = InUp;
         ViewUniformBufferRHI->Data.CameraPosition = InPosition;
         ViewUniformBufferRHI->Data.CameraDirection = InDirection;
         if (CameraSceneInfo)
@@ -113,6 +144,9 @@ namespace nilou {
 
     void FCameraSceneProxy::SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip)
     {
+        SceneView.ViewMatrix = InWorldToView;
+        SceneView.ProjectionMatrix = InViewToClip;
+
         mat4 RelativeWorldToView = InWorldToView;
         RelativeWorldToView[3][0] = 0;
         RelativeWorldToView[3][1] = 0;
@@ -122,9 +156,6 @@ namespace nilou {
         ViewUniformBufferRHI->Data.WorldToClip = InViewToClip * RelativeWorldToView;
         // dmat4 AbsWorldToClip = dmat4(InViewToClip) * InWorldToView;
         ViewUniformBufferRHI->Data.ClipToWorld = glm::inverse(InViewToClip * RelativeWorldToView);
-        SceneView.ViewMatrix = InWorldToView;
-        SceneView.ProjectionMatrix = InViewToClip;
-        SceneView.ViewFrustum = FViewFrustum(InWorldToView, InViewToClip);
         if (CameraSceneInfo)
             CameraSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
@@ -139,9 +170,16 @@ namespace nilou {
 
     void FCameraSceneProxy::SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist)
     {
+        SceneView.NearClipDistance = InCameraNearClipDist;
+        SceneView.FarClipDistance = InCameraFarClipDist;
         ViewUniformBufferRHI->Data.CameraNearClipDist = InCameraNearClipDist;
         ViewUniformBufferRHI->Data.CameraFarClipDist = InCameraFarClipDist;
         if (CameraSceneInfo)
             CameraSceneInfo->SetNeedsFramebufferUpdate(true);
+    }
+
+    const FSceneView &FCameraSceneProxy::GetSceneView()
+    {
+        return SceneView;
     }
 }

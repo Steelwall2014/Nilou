@@ -211,7 +211,7 @@ namespace nilou {
         ELightType LightType;
         glm::ivec2 ShadowMapResolution;
         float ScreenAspect;
-        float ComputedFOVY;
+        float ComputedVerticalFieldOfView;
         float NearClipDistance;
         float FarClipDistance;
         TUniformBufferRef<FLightShaderParameters> LightUniformBufferRHI;

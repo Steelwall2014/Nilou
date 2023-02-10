@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
+#include "../../src/Runtime/Framework/Common/Components/SphereComponent.h"
 namespace nilou {
 std::string USphereComponent::GetClassName() { return "USphereComponent"; }
 EUClasses USphereComponent::GetClassEnum() { return EUClasses::MC_USphereComponent; }

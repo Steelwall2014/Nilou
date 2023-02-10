@@ -1,12 +1,13 @@
+#define TINY3DTILES_IMPLEMENTATION
+#include <tiny3dtiles/tiny_3dtiles.h>
+
+
+
+#if defined(TINY3DTILES_IMPLEMENTATION) || defined(__INTELLISENSE__)
+
 #include <fstream>
 #include <filesystem>
 #include <iostream>
-
-#include "tiny_3dtiles.h"
-
-#define TINY3DTILES_IMPLEMENTATION
-
-#if defined(TINY3DTILES_IMPLEMENTATION) || defined(__INTELLISENSE__)
 
 using json = nlohmann::json;
 
@@ -58,6 +59,19 @@ std::string GetFilePathExtension(const std::string &FileName)
   return "";
 }
 
+void B3DM::reset()
+{
+    std::memset(magic, 0, 4);
+    version = byteLength = 
+    featureTableJSONByteLength = featureTableBinaryByteLength = 
+    batchTableJSONByteLength = batchTableBinaryByteLength = 0;
+    featureTableJSON = "";
+    featureTableBinary.clear();
+    batchTableJSON = "";
+    batchTableBinary.clear();
+    glb.clear();
+}
+
 std::istream &operator>>(std::istream &stream, B3DM &b3dm)
 {
     binary_istream in(stream);
@@ -68,18 +82,43 @@ std::istream &operator>>(std::istream &stream, B3DM &b3dm)
     {
         in >> b3dm.featureTableJSON[i];
     }
+    b3dm.featureTableBinary.resize(b3dm.featureTableBinaryByteLength);
+    for (int i = 0; i < b3dm.featureTableBinaryByteLength; i++)
+    {
+        in >> b3dm.featureTableBinary[i];
+    }
     b3dm.batchTableJSON.resize(b3dm.batchTableJSONByteLength);
     for (int i = 0; i < b3dm.batchTableJSONByteLength; i++)
     {
         in >> b3dm.batchTableJSON[i];
     }
-    int gltf_size = b3dm.byteLength-b3dm.batchTableJSONByteLength-b3dm.featureTableJSONByteLength-28;
+    b3dm.batchTableBinary.resize(b3dm.batchTableBinaryByteLength);
+    for (int i = 0; i < b3dm.batchTableBinaryByteLength; i++)
+    {
+        in >> b3dm.batchTableBinary[i];
+    }
+    int gltf_size = 
+        b3dm.byteLength-28-
+        b3dm.featureTableJSONByteLength-b3dm.batchTableJSONByteLength-
+        b3dm.featureTableBinaryByteLength-b3dm.batchTableBinaryByteLength;
     b3dm.glb.resize(gltf_size);
     for (int i = 0; i < gltf_size; i++)
     {
         in >> b3dm.glb[i];
     }
     return stream;
+}
+
+void Tile::Content::load_b3dm()
+{
+    if (GetFilePathExtension(uri) == "b3dm")
+    {
+        if (b3dm == nullptr)
+            b3dm = std::make_shared<B3DM>();        
+        
+        std::ifstream stream(uri, std::ios::binary);
+        stream >> *b3dm;
+    }
 }
 
 void BoundingVolume::from_json(json boundingVolume)
@@ -130,8 +169,25 @@ std::shared_ptr<Tile> Loader::BuildTile(const nlohmann::json &tile_json, const f
     else 
         std::cout << "[ERROR] tile MUST have boundingVolume property\n";
 
+    if (tile_json.count("transform") != 0 && tile_json["transform"].is_array())
+    {
+        int i = 0;
+        for (auto &element : tile_json["transform"])
+        {
+            if (element.is_number())
+                tile->transform[i/4][i%4] = element.get<double>();
+            i++;
+        }
+    }
+
     if (tile_json.count("refine") != 0 && tile_json["refine"].is_string())
-        tile->refine = tile_json["refine"].get<std::string>();
+    {
+        std::string refine = tile_json["refine"].get<std::string>();
+        if (refine == "REFINE")
+            tile->refine = Tile::Refinement::REFINE;
+        else if (refine == "ADD")
+            tile->refine = Tile::Refinement::ADD;
+    }
 
     bool content_is_tileset = false;
     if (tile_json.count("content") != 0 && tile_json["content"].is_object())
@@ -142,14 +198,14 @@ std::shared_ptr<Tile> Loader::BuildTile(const nlohmann::json &tile_json, const f
         if (content_json.count("uri") != 0)
         {            
             tile->content.uri = content_json["uri"].get<std::string>();
-            const std::string &uri = tile->content.uri;
-            fs::path path = fs::canonical(CurrentTilesetJSONFilePath.parent_path() / fs::path(uri));
-            const std::string ext = GetFilePathExtension(uri);
+            fs::path path = fs::canonical(CurrentTilesetJSONFilePath.parent_path() / fs::path(tile->content.uri));
+            tile->content.uri = path.generic_string();
+            const std::string ext = GetFilePathExtension(tile->content.uri);
             if (ext == "b3dm")
             {
-                std::ifstream blob(path);
+                // std::ifstream blob(path, std::ios::binary);
                 tile->content.b3dm = std::make_shared<B3DM>();
-                blob >> *tile->content.b3dm;
+                // blob >> *tile->content.b3dm;
             }
             else if (ext == "json")
             {

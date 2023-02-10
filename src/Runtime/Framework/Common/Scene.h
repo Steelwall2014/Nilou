@@ -89,7 +89,7 @@ namespace nilou {
             bNeedsFramebufferUpdate = bInNeedsFramebufferUpdate;
         }
 
-        ivec2 GetResolution() const { return SceneProxy->SceneView.ScreenResolution; }
+        ivec2 GetResolution() const { return SceneProxy->GetSceneView().ScreenResolution; }
 
         FScene *Scene;
         UCameraComponent *Camera;

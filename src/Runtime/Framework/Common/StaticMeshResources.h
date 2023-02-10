@@ -19,43 +19,12 @@
 
 namespace nilou {
 
-    // class FPositionOnlyVertexFactory : public FVertexFactory
-    // {
-    //     DECLARE_VERTEX_FACTORY_TYPE(FPositionOnlyVertexFactory)
-    // public:
-
-    //     struct FDataType
-    //     {
-    //         FVertexStreamComponent PositionComponent;
-    //     };
-
-    //     virtual void InitRHI() override;
-    //     virtual void ReleaseRHI() override
-    //     {
-	// 	    FRenderResource::ReleaseRHI();
-    //     }
-
-	//     void SetData(const FDataType& InData)
-    //     {
-    //         Data = InData;
-    //         UpdateRHI();
-    //     }
-
-    //     virtual FVertexDeclarationElementList GetDeclarationElementList() const override;
-
-    //     static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment);
-
-    // protected:
-    //     FDataType Data;
-    // };
-
-
     class FStaticVertexFactory : public FVertexFactory
     {
         DECLARE_VERTEX_FACTORY_TYPE(FStaticVertexFactory)
     public:
 
-        FStaticVertexFactory(const std::string_view &InName) : FVertexFactory(InName) { }
+        FStaticVertexFactory() { }
 
         struct FDataType
         {
@@ -71,11 +40,8 @@ namespace nilou {
         };
 
 	    void SetData(const FDataType& InData);
-        // {
-        //     Data = InData;
-        //     GetVertexInputList();
-        // }
-        void GetVertexInputList();
+
+        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs);
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -85,22 +51,6 @@ namespace nilou {
         FDataType Data;
 
     };
-
-    // class FPositionOnlyVertexFactory : public FStaticVertexFactory
-    // {
-    //     DECLARE_VERTEX_FACTORY_TYPE(FPositionOnlyVertexFactory)
-    // public:
-    //     FPositionOnlyVertexFactory(const std::string_view &InName) : FStaticVertexFactory(InName) { }
-    //     static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment);
-    // };
-
-    // class FPositionAndNormalOnlyVertexFactory : public FStaticVertexFactory
-    // {
-    //     DECLARE_VERTEX_FACTORY_TYPE(FPositionAndNormalOnlyVertexFactory)
-    // public:
-    //     FPositionAndNormalOnlyVertexFactory(const std::string_view &InName) : FStaticVertexFactory(InName) { }
-    //     static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment);
-    // };
 
     struct FStaticMeshVertexBuffers
     {
@@ -118,20 +68,32 @@ namespace nilou {
         void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
     };
 
-
-    struct FStaticMeshLODResources
+    struct FStaticMeshSection
     {
-    public:
+        /** The index of the material with which to render this section. */
+        int32 MaterialIndex;
 
         FStaticMeshVertexBuffers VertexBuffers;
 
         FStaticMeshIndexBuffer IndexBuffer;
 
+        FStaticVertexFactory VertexFactory;
+
+        /** If true, this section will cast a shadow. */
+        bool bCastShadow;
+
+        int32 GetNumVertices() const;
+    };
+
+    struct FStaticMeshLODResources
+    {
+    public:
+
+        std::vector<FStaticMeshSection> Sections;
+
         void InitResources();
 
         void ReleaseResources();
-
-        int32 GetNumVertices() const;
 
         // int32 GetNumTexCoords() const;
 
@@ -145,7 +107,6 @@ namespace nilou {
     {
     public:
         std::vector<std::shared_ptr<FStaticMeshLODResources>> LODResources;
-        std::shared_ptr<FStaticVertexFactory> VertexFactory; 
 
         ~FStaticMeshRenderData()
         {
@@ -180,8 +141,8 @@ namespace nilou {
         UStaticMesh(const std::string &Name) : MeshName(Name) { }
         std::string MeshName;
         std::unique_ptr<FStaticMeshRenderData> RenderData;
+        std::vector<FMaterial *> MaterialSlots;
         FBoundingBox LocalBoundingBox;
-        FMaterial *StaticMaterial;
         // class UMaterial *Material;
     };
 }

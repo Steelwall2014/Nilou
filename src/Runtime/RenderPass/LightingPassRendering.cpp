@@ -9,9 +9,10 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
     {
-        for (auto &[View, SceneTextures] : PerViewSceneTextures)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraInfo = View;
+            FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
             if (CameraInfo->Camera->IsMainCamera())
             {
 
@@ -83,7 +84,7 @@ namespace nilou {
                             "FLightUniformBlock", 
                             LightInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
 
-                        RHICmdList->RHIDrawArrays(4);
+                        RHICmdList->RHIDrawArrays(0, 4);
                     }
                 }
                 RHICmdList->RHIEndRenderPass();

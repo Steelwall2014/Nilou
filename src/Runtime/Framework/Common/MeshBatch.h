@@ -10,13 +10,15 @@ namespace nilou {
     {
         FElementShaderBindings Bindings;
 
+	    class FVertexFactory* VertexFactory;
+
         const FIndexBuffer *IndexBuffer;
 
         RHIBuffer *IndirectArgsBuffer;
 
 	    uint32 IndirectArgsOffset;
 
-	    // uint32 FirstIndex;
+	    uint32 FirstIndex;
 
         /** When 0, IndirectArgsBuffer will be used. */
 	    uint32 NumVertices;
@@ -25,9 +27,10 @@ namespace nilou {
 
         FMeshBatchElement()
             : IndexBuffer(nullptr)
+            , VertexFactory(nullptr)
             , IndirectArgsBuffer(nullptr)
             , IndirectArgsOffset(0)
-            // , FirstIndex(0)
+            , FirstIndex(0)
             , NumVertices(0)
             , NumInstances(1)
         {}
@@ -36,8 +39,6 @@ namespace nilou {
     struct FMeshBatch
     {
         FMeshBatchElement Element;
-
-	    class FVertexFactory* VertexFactory;
 
 	    class FMaterial* MaterialRenderProxy;
 
@@ -49,14 +50,25 @@ namespace nilou {
 	    uint32 bSelectable      : 1;
         
         FMeshBatch() 
-            : VertexFactory(nullptr)
-            //, ReverseCulling(false)
-            //, bDisableBackfaceCulling(false)
-            , CastShadow(true)
+            : CastShadow(true)
             , bUseForDepthPass(true)
             //, bWireframe(false)
             , bSelectable(true)
         { }
+    };
+
+    class FMeshElementCollector
+    {
+    public:
+        FMeshElementCollector(std::vector<std::vector<FMeshBatch>> *InPerViewMeshBatches)
+            : PerViewMeshBatches(InPerViewMeshBatches) { }
+
+        void AddMesh(int32 ViewIndex, const FMeshBatch &MeshBatch)
+        {
+            (*PerViewMeshBatches)[ViewIndex].push_back(MeshBatch);
+        }
+
+        std::vector<std::vector<FMeshBatch>> *PerViewMeshBatches;
     };
 
 }

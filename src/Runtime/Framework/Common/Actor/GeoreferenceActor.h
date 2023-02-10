@@ -22,6 +22,14 @@ namespace nilou {
 
         void UpdateGeoreference();
 
+        const glm::dmat4 &GetGeoreferencedToEcef() const { return GeoreferencedToEcef; }
+
+        const glm::dmat4 &GetEcefToGeoreferenced() const { return EcefToGeoreferenced; }
+
+        const glm::dmat4 &GetAbsToEcef() const { return AbsToEcef; }
+
+        const glm::dmat4 &GetEcefToAbs() const { return EcefToAbs; }
+
     private:
 
         double OriginLongitude;

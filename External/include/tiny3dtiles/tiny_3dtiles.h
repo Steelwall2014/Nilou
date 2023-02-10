@@ -5,6 +5,8 @@
 
 #include "json.hpp"
 
+#include "../glm/glm.hpp"
+
 namespace tiny3dtiles {
 struct B3DM
 {
@@ -13,8 +15,11 @@ struct B3DM
         featureTableJSONByteLength, featureTableBinaryByteLength, 
         batchTableJSONByteLength, batchTableBinaryByteLength;
     std::string featureTableJSON;
+    std::vector<unsigned char> featureTableBinary;
     std::string batchTableJSON;
+    std::vector<unsigned char> batchTableBinary;
     std::vector<unsigned char> glb;
+    void reset();
     friend std::istream &operator>>(std::istream &stream, B3DM &b3dm);
 }; 
 
@@ -35,17 +40,19 @@ public:
         std::string uri;
         std::shared_ptr<class Tileset> external_tileset = nullptr;
         std::shared_ptr<B3DM> b3dm = nullptr;
+        void load_b3dm();
+    };
+    enum class Refinement
+    {
+        REFINE,
+        ADD
     };
     Content content;
     std::vector<std::shared_ptr<Tile>> children;
     BoundingVolume boundingVolume;
-    std::string refine;
+    Refinement refine = Refinement::REFINE;
     double geometricError;
-    double transform[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0, 
-        0, 0, 1, 0,
-        0, 0, 0, 1};
+    glm::dmat4 transform = glm::dmat4(1);
 };
 
 class Tileset 
@@ -69,5 +76,6 @@ private:
 }
 
 #endif  // TINY_3DTILES_H_
+
 
 

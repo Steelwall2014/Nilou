@@ -30,7 +30,7 @@ namespace nilou {
             : USceneComponent(InOwner)
             , SceneProxy(nullptr)
             , bIsMainCamera(bIsMainCamera)
-            , FOVY(50)
+            , VerticalFieldOfView(glm::radians(50.f))
             , NearClipDistance(0.1)
             , FarClipDistance(10000)
             , AspectRatio(1.f)
@@ -39,6 +39,9 @@ namespace nilou {
         }
 
         virtual class FCameraSceneProxy *CreateSceneProxy(); 
+
+        virtual void OnRegister() override;
+        virtual void OnUnregister() override;
 
         virtual void CreateRenderState() override;
 
@@ -54,18 +57,35 @@ namespace nilou {
 
         bool IsMainCamera() { return bIsMainCamera; }
 
-        void SetFieldOfView(float fovy);
+        float GetAspectRatio() const { return AspectRatio; }
+
+        float GetNearClipDistance() const { return NearClipDistance; }
+
+        float GetFarClipDistance() const { return FarClipDistance; }
+
+        float GetFieldOfView() const { return VerticalFieldOfView; }
+        /**
+         * Set the vertical field of view. This will call MarkRenderDynamicDataDirty().
+         * 
+         * @param InVerticalFieldOfView The angle of vertical FOV, in radians
+         */
+        void SetFieldOfView(float InVerticalFieldOfView);
+
+        ivec2 GetCameraResolution() const { return ScreenResolution; }
 
         void SetCameraResolution(const ivec2 &CameraResolution);
+
+        FViewFrustum CalcViewFrustum();
 
     protected:
 
         class FCameraSceneProxy *SceneProxy;
 
-        /** Field of view. !!IN DEGREES!! */
-        float FOVY;
+        /** Field of view. in radians */
+        float VerticalFieldOfView;
         float NearClipDistance;
         float FarClipDistance;
+        /** AspectRatio = ScreenWidth/ScreenHeight */
         float AspectRatio;
         glm::ivec2 ScreenResolution;
 
@@ -96,7 +116,7 @@ namespace nilou {
 
         FCameraSceneInfo *GetCameraSceneInfo() { return CameraSceneInfo; }
 
-        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection);
+        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
 
         void SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip);
 
@@ -104,13 +124,21 @@ namespace nilou {
 
         void SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist);
     
-        void UpdateUniformBuffer() { ViewUniformBufferRHI->UpdateUniformBuffer(); }
+        void UpdateUniformBuffer() 
+        { 
+            ViewUniformBufferRHI->UpdateUniformBuffer(); 
+            SceneView.ViewFrustum = FViewFrustum(
+                SceneView.Position, SceneView.Forward, SceneView.Up, 
+                SceneView.AspectRatio, SceneView.VerticalFieldOfView, 
+                SceneView.NearClipDistance, SceneView.FarClipDistance); 
+        }
 
         TUniformBuffer<FViewShaderParameters> *GetViewUniformBuffer() { return ViewUniformBufferRHI.get(); }
 
-        FSceneView SceneView;
-        
+        const FSceneView &GetSceneView();
+
     protected:
+        FSceneView SceneView;
         FCameraSceneInfo *CameraSceneInfo;
         TUniformBufferRef<FViewShaderParameters> ViewUniformBufferRHI;
     };

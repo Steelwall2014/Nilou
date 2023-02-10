@@ -5,6 +5,6 @@
     "\\include",
     "\\MaterialShaders"
   ],
-  "SelectedNode": "\\GlobalShaders\\RenderToScreenPixelShader.frag",
+  "SelectedNode": "\\include\\BasicMaterialHeader.glsl",
   "PreviewInSolutionExplorer": false
 }

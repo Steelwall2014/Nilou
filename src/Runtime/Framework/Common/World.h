@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "Common/Scene.h"
 #include "Common/Transform.h"
@@ -27,8 +28,8 @@ namespace nilou {
         void Tick(double DeltaTime);
 
         FScene *Scene = nullptr;
-        
-        std::vector<std::shared_ptr<AActor>> Actors;
+
+        std::set<AActor *> CameraActors;
         
         /**
         * Find all Actors in the world of the specified class. 
@@ -50,6 +51,9 @@ namespace nilou {
         bool HasBegunPlay() const { return bHasBegunPlay; }
 
     private:
+        
+        std::vector<std::shared_ptr<AActor>> Actors;
+
         bool bIsWorldInitialized;
         bool bHasBegunPlay;
     };

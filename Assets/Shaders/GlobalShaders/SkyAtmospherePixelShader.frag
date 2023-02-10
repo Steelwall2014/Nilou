@@ -30,6 +30,7 @@ void main()
     worldPos /= worldPos.w;
     vec3 v = normalize(worldPos.xyz);
     float CameraHeightInKM = float(CameraPosition.z / km);
+    if (CameraHeightInKM < 0) CameraHeightInKM = 0;
     if (v.z < 0.f)
     {
         if (dot(normalize(v.xy), normalize(sun_direction.xy)) > cos(ATMOSPHERE.sun_angular_radius))

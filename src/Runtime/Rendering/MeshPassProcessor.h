@@ -16,7 +16,7 @@ namespace nilou {
         // FShaderParameterMapInfo ParameterMapInfo;
         std::vector<std::pair<int, RHIUniformBuffer *>> UniformBufferBindings[EPipelineStage::PipelineStageNum];
         std::vector<std::pair<int, FRHISampler *>> SamplerBindings[EPipelineStage::PipelineStageNum];
-        std::vector<FRHIVertexInput> *VertexAttributeBindings;
+        std::vector<FRHIVertexInput> VertexAttributeBindings;
     };
     // class FMaterialParameterMapInfo
     // {
@@ -71,7 +71,7 @@ namespace nilou {
             struct 
             {
                 uint32 NumInstances;
-                // uint32 BaseVertexIndex;
+                uint32 BaseVertexIndex;
                 uint32 NumVertices;
             } DirectArgs;
             

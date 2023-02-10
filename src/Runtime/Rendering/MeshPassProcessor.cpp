@@ -45,7 +45,7 @@ namespace nilou {
             }
         }
 
-        for (FRHIVertexInput &VertexInput : *ShaderBindings.VertexAttributeBindings)
+        for (FRHIVertexInput &VertexInput : ShaderBindings.VertexAttributeBindings)
         {
             RHICmdList->RHISetVertexBuffer(PSO, &VertexInput);
             RHIGetError();
@@ -60,7 +60,7 @@ namespace nilou {
             if (IndexBuffer)
                 RHICmdList->RHIDrawIndexed(IndexBuffer, DirectArgs.NumInstances);
             else 
-                RHICmdList->RHIDrawArrays(DirectArgs.NumVertices, DirectArgs.NumInstances);
+                RHICmdList->RHIDrawArrays(DirectArgs.BaseVertexIndex, DirectArgs.NumVertices, DirectArgs.NumInstances);
             RHIGetError();
         }
     }

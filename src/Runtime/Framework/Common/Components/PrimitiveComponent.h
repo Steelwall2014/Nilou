@@ -51,8 +51,8 @@ namespace nilou {
         
         FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName = "");
 
-        // virtual void GetDynamicMeshElements(const std::vector<class FSceneView *> &Views, uint32 VisibilityMap, std::vector<std::vector<FMeshBatch>> &OutPerViewMeshBatches, int32 LODIndex) { };
-        virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &View) { };
+        virtual void GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) { };
+        // virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &View) { };
     
         virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
 

@@ -13,18 +13,18 @@ namespace nilou {
     //glm::vec3 ROOT_TRANSLATION(10000, 10000, 20);
 
     float MOVEMENTSPEED = 100;
-    float SPRING_ARM_LENGTH = 0.f;
-    float CAMERA_FOVY = 55.f;
-    float CAMERA_NEARCLIP = 0.1f;
-    float CAMERA_FARCLIP = 100000.f;
-    float CAMERA_PITCH = 0.f;
-    float CAMERA_YAW = 0.f;
-    //float CAMERA_YAW = -60.f;
-    glm::quat CAMERA_RELATIVE_ROTATION(1.f, 0.f, 0.f, 0.f);
-    glm::vec3 CAMERA_RELATIVE_TRANSLATION(0.f, 0.f, 0.f);
-    glm::vec3 SpringArm = SPRING_ARM_LENGTH * -WORLD_FORWARD;
+    // float SPRING_ARM_LENGTH = 0.f;
+    // float CAMERA_FOVY = glm::radians(55.f);
+    // float CAMERA_NEARCLIP = 0.1f;
+    // float CAMERA_FARCLIP = 100000.f;
+    // float CAMERA_PITCH = 0.f;
+    // float CAMERA_YAW = 0.f;
+    // //float CAMERA_YAW = -60.f;
+    // glm::quat CAMERA_RELATIVE_ROTATION(1.f, 0.f, 0.f, 0.f);
+    // glm::vec3 CAMERA_RELATIVE_TRANSLATION(0.f, 0.f, 0.f);
+    // glm::vec3 SpringArm = SPRING_ARM_LENGTH * -WORLD_FORWARD;
 
-    double accumulate_pitch = CAMERA_PITCH;
+    // double accumulate_pitch = CAMERA_PITCH;
 
     ACameraActor::ACameraActor()
     { 
@@ -84,11 +84,11 @@ namespace nilou {
         // NILOU_LOG(Info, stream.str())
         if (bZoomingIn)
         {
-            CameraComponent->SetFieldOfView(2);
+            CameraComponent->SetFieldOfView(glm::radians(2.0));
         }
         else
         {
-            CameraComponent->SetFieldOfView(CAMERA_FOVY);
+            CameraComponent->SetFieldOfView(glm::radians(50.0));
         }
         // CameraInput.x = 10;
         // CameraInput.y = 10;

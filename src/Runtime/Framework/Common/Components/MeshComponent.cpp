@@ -7,6 +7,7 @@ namespace nilou {
     {
         StaticMesh = InStaticMesh;
         StaticMesh->RenderData->InitResources();
+        MaterialSlots = InStaticMesh->MaterialSlots;
         UpdateBounds();
         MarkRenderStateDirty();
     }
@@ -39,20 +40,29 @@ namespace nilou {
         : FPrimitiveSceneProxy(Component)
     {
         RenderData = Component->StaticMesh->RenderData.get();
-        MaterialRenderProxy = Component->Material.get();
+        MaterialSlots = Component->MaterialSlots;
         Component->SceneProxy = this;
     }
 
-    void FStaticMeshSceneProxy::GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView)
+    void FStaticMeshSceneProxy::GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector)
     {
-        const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
-        FMeshBatch Mesh;
-        Mesh.MaterialRenderProxy = MaterialRenderProxy;
-        FStaticVertexFactory *VertexFactory = RenderData->VertexFactory.get();
-        Mesh.VertexFactory = VertexFactory;
-        Mesh.Element.IndexBuffer = &LODModel.IndexBuffer;
-        Mesh.Element.NumVertices = LODModel.IndexBuffer.NumIndices;
-        Mesh.MaterialRenderProxy->FillShaderBindings(Mesh.Element.Bindings);
-        OutMeshBatch = Mesh;
+        for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+                const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
+                for (const FStaticMeshSection &Section : LODModel.Sections)
+                {
+                    FMeshBatch Mesh;
+                    Mesh.CastShadow = Section.bCastShadow;
+                    Mesh.Element.IndexBuffer = &Section.IndexBuffer;
+                    Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
+                    Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex];
+                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
+                    MaterialSlots[Section.MaterialIndex]->FillShaderBindings(Mesh.Element.Bindings);
+                    Collector.AddMesh(ViewIndex, Mesh);
+                }
+			}
+		}
     }
 }

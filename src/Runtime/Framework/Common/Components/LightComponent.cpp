@@ -199,7 +199,7 @@ namespace nilou {
             }
         }
 
-        ComputedFOVY = fovy;
+        ComputedVerticalFieldOfView = fovy;
     }
 
     void FLightSceneProxy::SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam)

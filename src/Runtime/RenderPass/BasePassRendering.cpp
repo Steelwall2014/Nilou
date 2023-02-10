@@ -109,7 +109,7 @@ namespace nilou {
                 }
             }
 
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = &VertexInputs;
+            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
             if (Element.NumVertices == 0)
             {
                 OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
@@ -118,6 +118,7 @@ namespace nilou {
             }
             else
             {
+                OutMeshDrawCommand.DirectArgs.BaseVertexIndex = Element.FirstIndex;
                 OutMeshDrawCommand.DirectArgs.NumInstances = Element.NumInstances;
                 OutMeshDrawCommand.DirectArgs.NumVertices = Element.NumVertices;
                 OutMeshDrawCommand.UseIndirect = false;
@@ -127,17 +128,18 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
     {
-        std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
+        // std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
         {        
-            for (auto &[View, SceneTextures] : PerViewSceneTextures)
+            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FParallelMeshDrawCommands &DrawCommands = PerViewDrawCommands[View];
+                FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+                FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
+                FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
                 DrawCommands.Clear();
-                FCameraSceneInfo *CameraInfo = View;
                 std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
-                for (auto &&Mesh : PerViewMeshBatches[View])
+                for (FMeshBatch &Mesh : PerViewMeshBatches[ViewIndex])
                 {
-                    FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.VertexFactory->GetType(), Mesh.VertexFactory->GetPermutationId());
+                    FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
                     RHIGetError();
 
                     // FMaterialPermutationParameters MaterialParams(Mesh.MaterialRenderProxy->GetType(), Mesh.MaterialRenderProxy->GetPermutationId());
@@ -153,6 +155,8 @@ namespace nilou {
                     RHIGetError();
 
                     FMeshDrawCommand MeshDrawCommand;
+                    std::vector<FRHIVertexInput> VertexInputs;
+                    Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
                     BuildMeshDrawCommand(
                         RHICmdList,
                         // *Mesh.MaterialRenderProxy->GetType(),
@@ -166,7 +170,7 @@ namespace nilou {
                         Mesh.MaterialRenderProxy->BlendState,
                         Mesh.Element.Bindings,
                         Bindings,
-                        Mesh.VertexFactory->GetVertexInputList(),
+                        VertexInputs,
                         Mesh.Element,
                         MeshDrawCommand);
 
@@ -185,12 +189,14 @@ namespace nilou {
         }
 
         {        
-            for (auto &[View, SceneTextures] : PerViewSceneTextures)
+            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
+                FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+                FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
                 FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true, true, true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);
 
-                FParallelMeshDrawCommands &ViewCommands = PerViewDrawCommands[View];
+                FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;
                 
                 ViewCommands.DispatchDraw(RHICmdList);
             }

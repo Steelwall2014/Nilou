@@ -42,7 +42,7 @@ namespace nilou {
         CreateRenderState();
     }
 
-    void UActorComponent::OnUnRegister()
+    void UActorComponent::OnUnregister()
     {
 	    check(bRegistered);
 	    bRegistered = false;
@@ -281,7 +281,7 @@ namespace nilou {
 
         if (bRegistered)
         {
-            OnUnRegister();
+            OnUnregister();
         }
     }
 }

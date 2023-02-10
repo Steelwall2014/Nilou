@@ -89,24 +89,21 @@ namespace nilou {
         using FPermutationDomain = FShaderPermutationNone;
         // using FPermutationParameters = FVertexFactoryPermutationParameters;
 
-        FVertexFactory(const std::string_view &InName) : Name(InName) { }
+        FVertexFactory() { }
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters) { return true; }
 
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
-        std::vector<FRHIVertexInput> &GetVertexInputList()
-        {
-            return VertexInputList;
-        }
+        /** Override this to implement child VertexFactory */
+        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) { }
 
-        std::string GetName() { return std::string(Name); }
+        const std::string &GetName() { return Name; }
 
         virtual int32 GetPermutationId() { return 0; }
         
     protected:
-        std::vector<FRHIVertexInput> VertexInputList;
-        std::string_view Name;
+        std::string Name;
     };
 
 

@@ -97,6 +97,7 @@ namespace nilou {
 
     FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FScene *Scene)
         : Scene(Scene)
+        , Collector(&PerViewMeshBatches)
     {
         // PositionVertexBuffer.InitRHI();
         BeginInitResource(&PositionVertexBuffer);
@@ -118,47 +119,55 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::AddCamera(FCameraSceneInfo *CameraSceneInfo)
     {
-        CreateSceneTextures(CameraSceneInfo->GetResolution(), PerViewSceneTextures[CameraSceneInfo]);
-        PerViewMeshBatches[CameraSceneInfo] = std::vector<FMeshBatch>();
+        FSceneTextures SceneTextures;
+        CreateSceneTextures(CameraSceneInfo->GetResolution(), SceneTextures);
+        Views.emplace_back(CameraSceneInfo, SceneTextures);
+        PerViewMeshBatches.push_back(std::vector<FMeshBatch>());
     }
 
     void FDefferedShadingSceneRenderer::RemoveCamera(FCameraSceneInfo *CameraSceneInfo)
     {
-        PerViewSceneTextures.erase(CameraSceneInfo);
-        PerViewMeshBatches.erase(CameraSceneInfo);
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
+            if (Views[ViewIndex].CameraSceneInfo = CameraSceneInfo)
+            {
+                Views.erase(Views.begin() + ViewIndex);
+                PerViewMeshBatches.erase(PerViewMeshBatches.begin() + ViewIndex);
+                break;
+            }
+        }
     }
 
     void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
     {
-        for (auto &[CameraSceneInfo, FSceneTextures] : PerViewSceneTextures)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
+            FCameraSceneInfo *CameraSceneInfo = Views[ViewIndex].CameraSceneInfo;
             if (CameraSceneInfo->bNeedsFramebufferUpdate)
             {
-                CreateSceneTextures(CameraSceneInfo->GetResolution(), FSceneTextures);
+                CreateSceneTextures(CameraSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
                 CameraSceneInfo->SetNeedsFramebufferUpdate(false);
             }
+            PerViewMeshBatches[ViewIndex].clear();
+            Views[ViewIndex].MeshDrawCommands.Clear();
         }
         // Compute Visibility
         ComputeViewVisibility(Scene);
-        // Now PerViewMeshBatches is filled
     }
 
     void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene)
     {
-        for (auto &[View, SceneTextures] : PerViewSceneTextures)
+        std::vector<const FSceneView *> SceneViews;
+        for (auto &View : Views)
         {
-            std::vector<FMeshBatch> &MeshBatches = PerViewMeshBatches[View];
-            MeshBatches.clear();
-            const FSceneView &SceneView = View->SceneProxy->SceneView;
-            for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
-            {
-                FMeshBatch Mesh;
-                PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, SceneView);
-                Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveInfo->SceneProxy->GetUniformBuffer());
-                MeshBatches.push_back(Mesh);
-            }
+            const FSceneView &SceneView = View.CameraSceneInfo->SceneProxy->GetSceneView();
+            SceneViews.push_back(&SceneView);
         }
 
+        for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
+        {
+            PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, 0x7fffffff, Collector);
+        }
 
         // for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         // {
@@ -192,110 +201,111 @@ namespace nilou {
         RenderToScreen(RHICmdList);
     }
 
-    void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
-    {
-        for (auto &&LightInfo : Scene->AddedLightSceneInfos)
-        {
-            if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
-            {
-                // glm::vec3 Front = LightInfo->Light->GetForwardVector();
-                // glm::vec3 Position = LightInfo->Light->GetComponentLocation();
-                // glm::mat4 ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
-                // FSceneLightView LightView;
+    // void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
+    // {
+    //     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
+    //     {
+    //         if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
+    //         {
+    //             // glm::vec3 Front = LightInfo->Light->GetForwardVector();
+    //             // glm::vec3 Position = LightInfo->Light->GetComponentLocation();
+    //             // glm::mat4 ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
+    //             // FSceneLightView LightView;
                 
-            }
-            else if (LightInfo->SceneProxy->LightType == ELightType::LT_Spot)
-            {
-                FSceneLightView LightView;
-                glm::vec3 Front = LightInfo->SceneProxy->Direction;
-                glm::vec3 Position = LightInfo->SceneProxy->Position;
-                float fovy = LightInfo->SceneProxy->ComputedFOVY;
-                float ScreenAspect = LightInfo->SceneProxy->ScreenAspect;
-                LightView.ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
-                LightView.ProjectionMatrix = glm::perspective(fovy, ScreenAspect, LightInfo->SceneProxy->NearClipDistance, LightInfo->SceneProxy->FarClipDistance);//CalcSpotLightProjectionMatrix(LightInfo->SceneProxy->LightParameters);
-                LightView.ViewFrustum = FViewFrustum(LightView.ViewMatrix, LightView.ProjectionMatrix);
-                for (auto &&CameraSceneInfo : Scene->AddedCameraSceneInfos)
-                {
-                    if (CameraSceneInfo->SceneProxy->SceneView.ViewFrustum.Intersects(LightView.ViewFrustum))
-                        LightInfo->LightViews.push_back(LightView);
-                }
-            }
-        }
+    //         }
+    //         else if (LightInfo->SceneProxy->LightType == ELightType::LT_Spot)
+    //         {
+    //             FSceneLightView LightView;
+    //             glm::vec3 Front = LightInfo->SceneProxy->Direction;
+    //             glm::vec3 Position = LightInfo->SceneProxy->Position;
+    //             float fovy = LightInfo->SceneProxy->ComputedVerticalFieldOfView;
+    //             float ScreenAspect = LightInfo->SceneProxy->ScreenAspect;
+    //             LightView.ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
+    //             LightView.ProjectionMatrix = glm::perspective(fovy, ScreenAspect, LightInfo->SceneProxy->NearClipDistance, LightInfo->SceneProxy->FarClipDistance);//CalcSpotLightProjectionMatrix(LightInfo->SceneProxy->LightParameters);
+    //             LightView.ViewFrustum = FViewFrustum(LightView.ViewMatrix, LightView.ProjectionMatrix);
+    //             for (auto &&CameraSceneInfo : Scene->AddedCameraSceneInfos)
+    //             {
+    //                 if (CameraSceneInfo->SceneProxy->GetSceneView().ViewFrustum.Intersects(LightView.ViewFrustum))
+    //                     LightInfo->LightViews.push_back(LightView);
+    //             }
+    //         }
+    //     }
 
-        std::vector<FParallelMeshDrawCommands> PerLightViewDrawCommands;
-        for (auto &&LightInfo : Scene->AddedLightSceneInfos)
-        {
-            for (FSceneLightView &LightView : LightInfo->LightViews)
-            {
-                FParallelMeshDrawCommands ParallelCommands;
-                for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
-                {
-                    // if (LightView.ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds()))
-                    //     continue;
-                    FMeshBatch Mesh;
-                    PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, LightView);
-                    if (!Mesh.CastShadow)
-                        continue;
-                    // FRHIGraphicsPipelineInitializer StateData;
+    //     std::vector<FParallelMeshDrawCommands> PerLightViewDrawCommands;
+    //     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
+    //     {
+    //         for (FSceneLightView &LightView : LightInfo->LightViews)
+    //         {
+    //             FParallelMeshDrawCommands ParallelCommands;
+    //             for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
+    //             {
+    //                 // if (LightView.ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds()))
+    //                 //     continue;
+    //                 FMeshBatch Mesh;
+    //                 PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, LightView);
+    //                 if (!Mesh.CastShadow)
+    //                     continue;
+    //                 // FRHIGraphicsPipelineInitializer StateData;
 
-                    // FShadowDepthVS::FPermutationDomain PermutationVectorVS;
-                    // FShaderPermutationParameters PermutationParameters;
-                    // PermutationParameters.ShaderType = &FShadowDepthVS::StaticType;
-                    // PermutationParameters.PermutationId = PermutationVectorVS.ToDimensionValueId();
-                    // FShaderInstance *VertexShader = GetVertexShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), *Mesh.VertexFactory->GetType(), PermutationParameters);
+    //                 // FShadowDepthVS::FPermutationDomain PermutationVectorVS;
+    //                 // FShaderPermutationParameters PermutationParameters;
+    //                 // PermutationParameters.ShaderType = &FShadowDepthVS::StaticType;
+    //                 // PermutationParameters.PermutationId = PermutationVectorVS.ToDimensionValueId();
+    //                 // FShaderInstance *VertexShader = GetVertexShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), *Mesh.VertexFactory->GetType(), PermutationParameters);
 
-                    // FShadowDepthPS::FPermutationDomain PermutationVectorPS;
-                    // PermutationParameters.ShaderType = &FShadowDepthPS::StaticType;
-                    // PermutationParameters.PermutationId = PermutationVectorPS.ToDimensionValueId();
-                    // FShaderInstance *PixelShader = GetPixelShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), PermutationParameters);
+    //                 // FShadowDepthPS::FPermutationDomain PermutationVectorPS;
+    //                 // PermutationParameters.ShaderType = &FShadowDepthPS::StaticType;
+    //                 // PermutationParameters.PermutationId = PermutationVectorPS.ToDimensionValueId();
+    //                 // FShaderInstance *PixelShader = GetPixelShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), PermutationParameters);
 
-                    // RHIDepthStencilStateRef DepthState = RHICmdList->RHICreateDepthStencilState(Mesh.MaterialRenderProxy->DepthStencilState);
-                    // StateData.DepthStentilState = DepthState;
+    //                 // RHIDepthStencilStateRef DepthState = RHICmdList->RHICreateDepthStencilState(Mesh.MaterialRenderProxy->DepthStencilState);
+    //                 // StateData.DepthStentilState = DepthState;
 
-                    // RHIRasterizerStateRef RasterizerState = RHICmdList->RHICreateRasterizerState(Mesh.MaterialRenderProxy->RasterizerState);
-                    // StateData.RasterizerState = RasterizerState;
+    //                 // RHIRasterizerStateRef RasterizerState = RHICmdList->RHICreateRasterizerState(Mesh.MaterialRenderProxy->RasterizerState);
+    //                 // StateData.RasterizerState = RasterizerState;
 
-                    // std::map<std::string, RHIUniformBuffer *> UniformBufferBindings; 
-                    // std::map<std::string, FRHISampler *> SamplerBindings; 
-                    // std::vector<FRHIVertexInput *> VertexInputs; 
-                    // Mesh.MaterialRenderProxy->FillShaderBindings(UniformBufferBindings, SamplerBindings);
-                    // Mesh.VertexFactory->FillShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
+    //                 // std::map<std::string, RHIUniformBuffer *> UniformBufferBindings; 
+    //                 // std::map<std::string, FRHISampler *> SamplerBindings; 
+    //                 // std::vector<FRHIVertexInput *> VertexInputs; 
+    //                 // Mesh.MaterialRenderProxy->FillShaderBindings(UniformBufferBindings, SamplerBindings);
+    //                 // Mesh.VertexFactory->FillShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
 
-                    // {
-                    //     FMeshDrawCommand MeshDrawCommand;
-                    //     MeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(StateData);
-                    //     MeshDrawCommand.IndexBuffer = Mesh.Element.IndexBuffer->IndexBufferRHI.get();
-                    //     MeshDrawCommand.ShaderBindings.UniformBufferBindings = UniformBufferBindings;
-                    //     MeshDrawCommand.ShaderBindings.SamplerBindings = SamplerBindings;
-                    //     MeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
-                    //     if (Mesh.Element.NumVertices == 0)
-                    //     {
-                    //         MeshDrawCommand.IndirectArgs.Buffer = Mesh.Element.IndirectArgsBuffer;
-                    //         MeshDrawCommand.IndirectArgs.Offset = Mesh.Element.IndirectArgsOffset;
-                    //         MeshDrawCommand.UseIndirect = true;
-                    //     }
-                    //     else
-                    //     {
-                    //         MeshDrawCommand.DirectArgs.NumInstances = Mesh.Element.NumInstances;
-                    //         MeshDrawCommand.DirectArgs.NumVertices = Mesh.Element.NumVertices;
-                    //         MeshDrawCommand.UseIndirect = false;
-                    //     }
-                    //     ParallelCommands.MeshCommands.push_back(MeshDrawCommand);
-                    // }
-                }
-            }
-        }
-    }
+    //                 // {
+    //                 //     FMeshDrawCommand MeshDrawCommand;
+    //                 //     MeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(StateData);
+    //                 //     MeshDrawCommand.IndexBuffer = Mesh.Element.IndexBuffer->IndexBufferRHI.get();
+    //                 //     MeshDrawCommand.ShaderBindings.UniformBufferBindings = UniformBufferBindings;
+    //                 //     MeshDrawCommand.ShaderBindings.SamplerBindings = SamplerBindings;
+    //                 //     MeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
+    //                 //     if (Mesh.Element.NumVertices == 0)
+    //                 //     {
+    //                 //         MeshDrawCommand.IndirectArgs.Buffer = Mesh.Element.IndirectArgsBuffer;
+    //                 //         MeshDrawCommand.IndirectArgs.Offset = Mesh.Element.IndirectArgsOffset;
+    //                 //         MeshDrawCommand.UseIndirect = true;
+    //                 //     }
+    //                 //     else
+    //                 //     {
+    //                 //         MeshDrawCommand.DirectArgs.NumInstances = Mesh.Element.NumInstances;
+    //                 //         MeshDrawCommand.DirectArgs.NumVertices = Mesh.Element.NumVertices;
+    //                 //         MeshDrawCommand.UseIndirect = false;
+    //                 //     }
+    //                 //     ParallelCommands.MeshCommands.push_back(MeshDrawCommand);
+    //                 // }
+    //             }
+    //         }
+    //     }
+    // }
 
 
 
     
     void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
-        for (auto &[View, SceneTextures] : PerViewSceneTextures)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
+            FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
 
-            FCameraSceneInfo *CameraInfo = View;
             if (CameraInfo->Camera->IsMainCamera())
             {
 
@@ -338,7 +348,7 @@ namespace nilou {
                     RHIGetError();
                     RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
                     RHIGetError();
-                    RHICmdList->RHIDrawArrays(4);
+                    RHICmdList->RHIDrawArrays(0, 4);
                 }
                 RHICmdList->RHIEndRenderPass();
 

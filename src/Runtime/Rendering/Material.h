@@ -68,10 +68,13 @@ namespace nilou {
         friend class FShaderCompiler;
     public:
 
+        static FMaterial *GetDefaultMaterial();
+
         FMaterial(const std::string &InMaterialName)
             : MaterialName(InMaterialName)
         { 
         }
+
         FMaterial(
             const std::string &InMaterialName,
             const FRasterizerStateInitializer &InRasterizerState, 
@@ -104,14 +107,6 @@ namespace nilou {
 
         void UpdateMaterialCode(const std::string &InCode);
 
-        static FMaterial *GetDefaultMaterial();
-
-        std::map<std::string, FTexture *> Textures;
-        std::map<std::string, FUniformBuffer *> UniformBuffers;
-
-        // virtual void Serialize(class FArchive& Ar);
-        // virtual void Deserialize(class FArchive& Ar);
-
         bool UseWorldOffset() { return bUseWorldOffset; }
 
         FShaderInstance *GetShader(
@@ -132,6 +127,17 @@ namespace nilou {
             for (auto &[Name, UniformBuffer] : UniformBuffers)
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer);
         }
+
+        void SetParameterValue(const std::string &Name, FTexture *Texture)
+        {
+            Textures[Name] = Texture;
+        }
+
+        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)
+        {
+            UniformBuffers[Name] = UniformBuffer;
+        }
+
     protected:
 
         std::string MaterialName;
@@ -142,6 +148,10 @@ namespace nilou {
         bool bUseWorldOffset = false;
 
         FMaterialShaderMap ShaderMap;
+
+        std::map<std::string, FTexture *> Textures;
+
+        std::map<std::string, FUniformBuffer *> UniformBuffers;
 
     };
 

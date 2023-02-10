@@ -12,7 +12,6 @@ namespace nilou {
     public:
         FSphereSceneProxy(USphereComponent *Component)
             : FPrimitiveSceneProxy(Component)
-            , VertexFactory("FArrowSceneProxy")
             , SphereRadius(Component->GetUnscaledSphereRadius())
             , Material(Component->GetMaterial())
         {
@@ -27,15 +26,22 @@ namespace nilou {
             }
         }
 
-        virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView)
+        virtual void GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
-            FMeshBatch Mesh;
-            Mesh.MaterialRenderProxy = Material;
-            Mesh.VertexFactory = &VertexFactory;
-            Mesh.Element.IndexBuffer = &IndexBuffer;
-            Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-            Mesh.MaterialRenderProxy->FillShaderBindings(Mesh.Element.Bindings);
-            OutMeshBatch = Mesh;
+            for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+		    {
+                if (VisibilityMap & (1 << ViewIndex))
+                {
+                    FMeshBatch Mesh;
+                    Mesh.MaterialRenderProxy = Material;
+                    Mesh.Element.VertexFactory = &VertexFactory;
+                    Mesh.Element.IndexBuffer = &IndexBuffer;
+                    Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
+                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
+                    Material->FillShaderBindings(Mesh.Element.Bindings);
+                    Collector.AddMesh(ViewIndex, Mesh);
+                }
+            }
         }
 
     private:

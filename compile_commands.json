@@ -1,33 +1,38 @@
 [
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui.cpp.obj", "External\\include\\imgui\\imgui.cpp"],
-  "file": "External\\include\\imgui\\imgui.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestPermutation.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestPermutation\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestPermutation\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_draw.cpp.obj", "External\\include\\imgui\\imgui_draw.cpp"],
-  "file": "External\\include\\imgui\\imgui_draw.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Rendering\\RenderResource.cpp.obj", "src\\Runtime\\Rendering\\RenderResource.cpp"],
+  "file": "src\\Runtime\\Rendering\\RenderResource.cpp"
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_glfw.cpp.obj", "External\\include\\imgui\\imgui_impl_glfw.cpp"],
-  "file": "External\\include\\imgui\\imgui_impl_glfw.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\AssertionMacros.cpp.obj", "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_opengl3.cpp.obj", "External\\include\\imgui\\imgui_impl_opengl3.cpp"],
-  "file": "External\\include\\imgui\\imgui_impl_opengl3.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_tables.cpp.obj", "External\\include\\imgui\\imgui_tables.cpp"],
-  "file": "External\\include\\imgui\\imgui_tables.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_widgets.cpp.obj", "External\\include\\imgui\\imgui_widgets.cpp"],
-  "file": "External\\include\\imgui\\imgui_widgets.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\GameStatics\\GameStatics.cpp.obj", "src\\Runtime\\GameStatics\\GameStatics.cpp"],
+  "file": "src\\Runtime\\GameStatics\\GameStatics.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShaderPreprocess.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShaderPreprocess\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -46,13 +51,8 @@
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestShadInclude\\main.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShadInclude.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShadInclude\\windows\\x64\\debug\\src\\Runtime\\GameStatics\\GameStatics.cpp.obj", "src\\Runtime\\GameStatics\\GameStatics.cpp"],
-  "file": "src\\Runtime\\GameStatics\\GameStatics.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestRegex.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestRegex\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestRegex\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -63,6 +63,11 @@
   "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\glad.pdb", "-Od", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\glad\\windows\\x64\\debug\\External\\include\\glad\\glad_wgl.c.obj", "External\\include\\glad\\glad_wgl.c"],
   "file": "External\\include\\glad\\glad_wgl.c"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestVirtualPath.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestVirtualPath\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"],
+  "file": "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -86,6 +91,11 @@
 },
 {
   "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Actor\\GeoreferenceActor.cpp.obj", "src\\Runtime\\Framework\\Common\\Actor\\GeoreferenceActor.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\Actor\\GeoreferenceActor.cpp"
+},
+{
+  "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Actor\\StaticMeshActor.cpp.obj", "src\\Runtime\\Framework\\Common\\Actor\\StaticMeshActor.cpp"],
   "file": "src\\Runtime\\Framework\\Common\\Actor\\StaticMeshActor.cpp"
 },
@@ -93,6 +103,11 @@
   "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\AssertionMacros.cpp.obj", "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"],
   "file": "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Asset\\Tiny3dtilesImplementatioin.cpp.obj", "src\\Runtime\\Framework\\Common\\Asset\\Tiny3dtilesImplementatioin.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\Asset\\Tiny3dtilesImplementatioin.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -118,6 +133,11 @@
   "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Components\\CameraComponent.cpp.obj", "src\\Runtime\\Framework\\Common\\Components\\CameraComponent.cpp"],
   "file": "src\\Runtime\\Framework\\Common\\Components\\CameraComponent.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\Components\\Cesium3DTilesetComponent.cpp.obj", "src\\Runtime\\Framework\\Common\\Components\\Cesium3DTilesetComponent.cpp"],
+  "file": "src\\Runtime\\Framework\\Common\\Components\\Cesium3DTilesetComponent.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -261,6 +281,16 @@
 },
 {
   "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Generated\\ACesiumTilesetActor.generated.cpp.obj", "src\\Runtime\\Generated\\ACesiumTilesetActor.generated.cpp"],
+  "file": "src\\Runtime\\Generated\\ACesiumTilesetActor.generated.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Generated\\AGeoreferenceActor.generated.cpp.obj", "src\\Runtime\\Generated\\AGeoreferenceActor.generated.cpp"],
+  "file": "src\\Runtime\\Generated\\AGeoreferenceActor.generated.cpp"
+},
+{
+  "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Generated\\ALightActor.generated.cpp.obj", "src\\Runtime\\Generated\\ALightActor.generated.cpp"],
   "file": "src\\Runtime\\Generated\\ALightActor.generated.cpp"
 },
@@ -298,6 +328,11 @@
   "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Generated\\UCameraComponent.generated.cpp.obj", "src\\Runtime\\Generated\\UCameraComponent.generated.cpp"],
   "file": "src\\Runtime\\Generated\\UCameraComponent.generated.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.Nilou.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\Nilou\\windows\\x64\\debug\\src\\Runtime\\Generated\\UCesium3DTilesetComponent.generated.cpp.obj", "src\\Runtime\\Generated\\UCesium3DTilesetComponent.generated.cpp"],
+  "file": "src\\Runtime\\Generated\\UCesium3DTilesetComponent.generated.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -491,18 +526,38 @@
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\dds.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\dds\\windows\\x64\\debug\\External\\include\\dds\\dds.cpp.obj", "External\\include\\dds\\dds.cpp"],
-  "file": "External\\include\\dds\\dds.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui.cpp.obj", "External\\include\\imgui\\imgui.cpp"],
+  "file": "External\\include\\imgui\\imgui.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_draw.cpp.obj", "External\\include\\imgui\\imgui_draw.cpp"],
+  "file": "External\\include\\imgui\\imgui_draw.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_glfw.cpp.obj", "External\\include\\imgui\\imgui_impl_glfw.cpp"],
+  "file": "External\\include\\imgui\\imgui_impl_glfw.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_impl_opengl3.cpp.obj", "External\\include\\imgui\\imgui_impl_opengl3.cpp"],
+  "file": "External\\include\\imgui\\imgui_impl_opengl3.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_tables.cpp.obj", "External\\include\\imgui\\imgui_tables.cpp"],
+  "file": "External\\include\\imgui\\imgui_tables.cpp"
+},
+{
+  "directory": "D:\\Nilou",
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\imgui.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\imgui\\windows\\x64\\debug\\External\\include\\imgui\\imgui_widgets.cpp.obj", "External\\include\\imgui\\imgui_widgets.cpp"],
+  "file": "External\\include\\imgui\\imgui_widgets.cpp"
 },
 {
   "directory": "D:\\Nilou",
   "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\crossguid.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-DGUID_WINDOWS", "-Fod:\\Nilou\\build\\.objs\\crossguid\\windows\\x64\\debug\\External\\include\\crossguid\\guid.cpp.obj", "External\\include\\crossguid\\guid.cpp"],
   "file": "External\\include\\crossguid\\guid.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestRegex.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestRegex\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestRegex\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestRegex\\main.cpp"
 },
 {
   "directory": "D:\\Nilou",
@@ -516,31 +571,6 @@
 },
 {
   "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestShaderPreprocess.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestShaderPreprocess\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestShaderPreprocess\\main.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestVirtualPath.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestVirtualPath\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestVirtualPath\\main.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestPermutation.pdb", "-Od", "-std:c++17", "-MDd", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestPermutation\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestPermutation\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestPermutation\\main.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Rendering\\RenderResource.cpp.obj", "src\\Runtime\\Rendering\\RenderResource.cpp"],
-  "file": "src\\Runtime\\Rendering\\RenderResource.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\Framework\\Common\\AssertionMacros.cpp.obj", "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"],
-  "file": "src\\Runtime\\Framework\\Common\\AssertionMacros.cpp"
-},
-{
-  "directory": "D:\\Nilou",
-  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\compile.TestUniformProject.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Isrc\\Runtime\\Framework", "-Isrc\\Runtime\\Applications", "-Isrc\\Runtime\\RHI", "-Isrc\\Runtime\\HAL", "-Isrc\\Runtime\\Rendering", "-Isrc\\Runtime\\GameStatics", "-Isrc\\Runtime\\Generated", "-Isrc\\Runtime\\Serialization", "-Isrc\\Runtime\\RenderPass", "-Isrc\\Runtime\\Geospatial", "-IAssets\\Shaders", "-IExternal\\include\\GDAL", "-DWORLD_UP_Z_FORWARD_X_RIGHT_Y", "-D_DEBUG", "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/EHsc", "-Fod:\\Nilou\\build\\.objs\\TestUniformProject\\windows\\x64\\debug\\src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp.obj", "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"],
-  "file": "src\\Runtime\\UnitTests\\TestUniformBuffer\\main.cpp"
+  "arguments": ["clang-cl.exe", "-c", "-Zi", "-FS", "-Fdd:\\Nilou\\build\\windows\\x64\\debug\\dds.pdb", "-Od", "-std:c++17", "-MDd", "-IExternal\\include", "-Fod:\\Nilou\\build\\.objs\\dds\\windows\\x64\\debug\\External\\include\\dds\\dds.cpp.obj", "External\\include\\dds\\dds.cpp"],
+  "file": "External\\include\\dds\\dds.cpp"
 }]

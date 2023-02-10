@@ -7,9 +7,16 @@ namespace nilou {
     class FSceneView 
     {
     public:
-        glm::mat4 ProjectionMatrix;
-        glm::mat4 ViewMatrix;
         FViewFrustum ViewFrustum;
+        glm::dmat4 ProjectionMatrix;
+        glm::dmat4 ViewMatrix;
+        dvec3 Position;
+        dvec3 Forward;
+        dvec3 Up;
+        double AspectRatio;
+        double VerticalFieldOfView;
+        double NearClipDistance;
+        double FarClipDistance;
         glm::ivec2 ScreenResolution;
     };
 

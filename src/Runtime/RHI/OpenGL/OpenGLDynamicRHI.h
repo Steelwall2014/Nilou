@@ -103,7 +103,7 @@ namespace nilou {
 		* Render pass
 		*/
 		virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo);
-		virtual void RHIDrawArrays(uint32 Count, int32 InstanceCount = 1) override;
+		virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override;
 		virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override;
 		virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override;
 		virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;

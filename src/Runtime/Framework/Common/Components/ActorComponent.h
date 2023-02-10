@@ -32,11 +32,13 @@ namespace nilou {
 
         virtual void UninitializeComponent();
 
+        virtual void TickComponent(double DeltaTime) { }
+
         bool HasBegunPlay() const { return bHasBegunPlay; }
         bool HasBeenCreated() const { return bHasBeenCreated; }
 
         virtual void OnRegister();
-        virtual void OnUnRegister();
+        virtual void OnUnregister();
         virtual void OnComponentCreated();
 
         // 注册组件，创建渲染状态/物理状态。

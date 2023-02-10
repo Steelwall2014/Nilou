@@ -125,8 +125,19 @@ namespace nilou {
 
         FScene *Scene = nullptr;
         
-        std::map<FCameraSceneInfo *, FSceneTextures> PerViewSceneTextures;
-        std::map<FCameraSceneInfo *, std::vector<FMeshBatch>> PerViewMeshBatches;
+        struct RenderViews
+        {
+            RenderViews(FCameraSceneInfo *InCameraSceneInfo, const FSceneTextures &InSceneTextures)
+                : CameraSceneInfo(InCameraSceneInfo), SceneTextures(InSceneTextures) { }
+            FCameraSceneInfo *CameraSceneInfo;
+            FSceneTextures SceneTextures;
+            FParallelMeshDrawCommands MeshDrawCommands;
+        };
+        std::vector<RenderViews> Views;
+        // std::vector<FCameraSceneInfo *> Views;
+        // std::vector<FSceneTextures> PerViewSceneTextures;
+        std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
+        FMeshElementCollector Collector;
 
         // std::vector<FViewCommands> PerViewDrawCommands;
 

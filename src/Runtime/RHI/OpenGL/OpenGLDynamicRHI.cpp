@@ -1357,11 +1357,11 @@ namespace nilou {
         }
     }
     
-	void FOpenGLDynamicRHI::RHIDrawArrays(uint32 Count, int32 InstanceCount)
+	void FOpenGLDynamicRHI::RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount)
     {
         glDrawArraysInstanced(
             TranslatePrimitiveMode(ContextState.GraphicsPipelineState->Initializer.PrimitiveMode), 
-            0, 
+            First, 
             Count,
             InstanceCount
         );

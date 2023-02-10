@@ -24,7 +24,7 @@ namespace nilou {
         void SetStaticMesh(std::shared_ptr<UStaticMesh> StaticMesh);
 
         std::shared_ptr<UStaticMesh> StaticMesh;
-        std::shared_ptr<FMaterial> Material;
+        std::vector<FMaterial *> MaterialSlots;
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */
         virtual FBoundingBox CalcBounds(const FTransform& LocalToWorld) const override;
@@ -37,11 +37,11 @@ namespace nilou {
     public:
         FStaticMeshSceneProxy(UStaticMeshComponent *Component);
 
-        // virtual void GetDynamicMeshElements(const std::vector<class FSceneView *> &Views, uint32 VisibilityMap, std::vector<std::vector<FMeshBatch>> &OutPerViewMeshBatches, int32 LODIndex) override;
-        virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView) override;
+        virtual void GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override;
+        // virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView) override;
 
     private:
 	    FStaticMeshRenderData* RenderData;
-        FMaterial *MaterialRenderProxy;
+        std::vector<FMaterial *> MaterialSlots;
     };
 }

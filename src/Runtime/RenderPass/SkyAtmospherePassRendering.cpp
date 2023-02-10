@@ -12,10 +12,10 @@ namespace nilou {
     {
         if (Scene->SkyAtmosphere == nullptr) return;
         
-        for (auto &[View, SceneTextures] : PerViewSceneTextures)
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-
-            FCameraSceneInfo *CameraInfo = View;
+            FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
             if (CameraInfo->Camera->IsMainCamera())
             {
 
@@ -86,7 +86,7 @@ namespace nilou {
                                 PSO, EPipelineStage::PS_Pixel, 
                                 "FLightUniformBlock", 
                                 LightInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
-                            RHICmdList->RHIDrawArrays(4);
+                            RHICmdList->RHIDrawArrays(0, 4);
                         }
                     }
                 }

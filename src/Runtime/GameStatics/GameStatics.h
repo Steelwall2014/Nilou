@@ -2,15 +2,27 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
-namespace GameStatics {
-    
-    bool StartsWith(const std::string &str, const std::string &temp);
+#include <tinygltf/tiny_gltf.h>
 
-    bool EndsWith(const std::string &str, const std::string &temp);
-    
-    void Trim(std::string &s);
+namespace nilou {
 
-    std::vector<std::string> Split(const std::string &s, char delim = ' ');
+    class GameStatics
+    {
+    public:
+        static bool StartsWith(const std::string &str, const std::string &temp);
 
+        static bool EndsWith(const std::string &str, const std::string &temp);
+        
+        static void Trim(std::string &s);
+
+        static std::vector<std::string> Split(const std::string &s, char delim = ' ');
+
+        
+        static std::vector<std::shared_ptr<class UStaticMesh>> ParseToStaticMeshes(tinygltf::Model &model);
+
+        static std::vector<std::shared_ptr<class FMaterial>> ParseToMaterials(tinygltf::Model &model);
+    };
 }
+

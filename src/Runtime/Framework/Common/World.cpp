@@ -4,7 +4,6 @@
 
 #include "Common/StaticMeshResources.h"
 #include "Common/AssetLoader.h"
-#include "Parser/GLTFParser.h"
 #include "Common/Components/MeshComponent.h"
 #include "Common/Components/ArrowComponent.h"
 #include "Common/PrimitiveUtils.h"
@@ -17,6 +16,7 @@
 #include "Common/Actor/SphereActor.h"
 #include "Common/Actor/SkyAtmosphereActor.h"
 #include "Common/Actor/GeoreferenceActor.h"
+#include "Common/Actor/Cesium3DTilesetActor.h"
 
 namespace nilou {
 
@@ -145,7 +145,7 @@ namespace nilou {
         bHasBegunPlay = true;
 
         std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
-        std::vector<std::shared_ptr<UStaticMesh>> Mesh = g_pGLTFParser->ParseToStaticMeshes(*Model);
+        std::vector<std::shared_ptr<UStaticMesh>> Mesh = GameStatics::ParseToStaticMeshes(*Model);
 
             // std::vector<FDynamicMeshVertex> OutVerts;
             // std::vector<uint32> OutIndices;
@@ -166,8 +166,8 @@ namespace nilou {
         // StaticMeshActor->StaticMeshComponent->Material->DepthStencilState.bEnableDepthWrite = false;
 
         FTransform CameraActorTransform;
-        CameraActorTransform.SetTranslation(glm::vec3(1, 2, 0));
-        CameraActorTransform.SetRotator(FRotator(0, -90, 0));
+        CameraActorTransform.SetTranslation(glm::vec3(0, -2, 0));
+        CameraActorTransform.SetRotator(FRotator(0, 90, 0));
         std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
         auto f = CameraActor->GetActorForwardVector();
         auto r = CameraActor->GetActorRightVector();
@@ -195,8 +195,10 @@ namespace nilou {
 
         
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+        GeoreferenceActor->SetGeoreferenceOrigin(84.77874, 45.652554, 623.243117);
 
-        GeoreferenceActor->SetGeoreferenceOrigin(84.777723, 45.65154, 674.393528);
+        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles\tileset.json)");
     }
 
     void UWorld::Tick(double DeltaTime)
@@ -204,6 +206,12 @@ namespace nilou {
         for (std::shared_ptr<AActor> Actor : Actors)
         {
             Actor->Tick(DeltaTime);
+            std::vector<UActorComponent *> Components;
+            Actor->GetComponents(Components);
+            for (UActorComponent *Component : Components)
+            {
+                Component->TickComponent(DeltaTime);
+            }
         }
     }
     
