@@ -96,11 +96,11 @@ namespace nilou {
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
         /** Override this to implement child VertexFactory */
-        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) { }
+        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const { }
 
-        const std::string &GetName() { return Name; }
+        const std::string &GetName() const { return Name; }
 
-        virtual int32 GetPermutationId() { return 0; }
+        virtual int32 GetPermutationId() const { return 0; }
         
     protected:
         std::string Name;

@@ -64,7 +64,7 @@ namespace nilou {
         Data = InData;
     }
 
-    void FStaticVertexFactory::GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs)
+    void FStaticVertexFactory::GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const
     {
         if (Data.PositionComponent.VertexBuffer != nullptr)
         {
@@ -144,8 +144,9 @@ namespace nilou {
 
     void FStaticMeshLODResources::InitResources()
     {
-        for (FStaticMeshSection &Section : Sections)
+        for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
+            FStaticMeshSection &Section = *Sections[SectionIndex].get();
             if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
                 BeginInitResource(&Section.VertexBuffers.Colors);
             if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
@@ -170,8 +171,9 @@ namespace nilou {
     void FStaticMeshLODResources::ReleaseResources()
     {
         bIsInitialized = false;
-        for (FStaticMeshSection &Section : Sections)
+        for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
+            FStaticMeshSection &Section = *Sections[SectionIndex].get();
             if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
                 BeginReleaseResource(&Section.VertexBuffers.Colors);
             if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)

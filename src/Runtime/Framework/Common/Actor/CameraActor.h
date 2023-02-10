@@ -14,6 +14,8 @@ namespace nilou {
 		
 		void SetCameraResolution(const ivec2 &CameraResolution) { CameraComponent->SetCameraResolution(CameraResolution); }
 
+		void SetMoveSpeed(double Speed) { MovementSpeed = Speed; }
+
     protected:
 
 

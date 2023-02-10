@@ -10,7 +10,7 @@ namespace nilou {
     {
         FElementShaderBindings Bindings;
 
-	    class FVertexFactory* VertexFactory;
+	    const class FVertexFactory* VertexFactory;
 
         const FIndexBuffer *IndexBuffer;
 

@@ -51,15 +51,16 @@ namespace nilou {
 			if (VisibilityMap & (1 << ViewIndex))
 			{
                 const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
-                for (const FStaticMeshSection &Section : LODModel.Sections)
+                for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
                 {
+                    const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
                     FMeshBatch Mesh;
                     Mesh.CastShadow = Section.bCastShadow;
+                    Mesh.Element.VertexFactory = &Section.VertexFactory;
                     Mesh.Element.IndexBuffer = &Section.IndexBuffer;
                     Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
                     Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex];
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
-                    MaterialSlots[Section.MaterialIndex]->FillShaderBindings(Mesh.Element.Bindings);
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
 			}

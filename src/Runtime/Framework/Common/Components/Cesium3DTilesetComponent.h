@@ -32,7 +32,7 @@ namespace nilou {
         {
             std::string URI;
             std::shared_ptr<tiny3dtiles::B3DM> B3dm = nullptr;
-            std::shared_ptr<UStaticMesh> StaticMesh;
+            GLTFParseResult Gltf;
         };
         tiny3dtiles::Tile::Refinement Refine = tiny3dtiles::Tile::Refinement::REFINE;
         TileContent Content;
@@ -128,6 +128,10 @@ namespace nilou {
         virtual void OnRegister() override;
 
         virtual void TickComponent(double DeltaTime) override;
+
+        virtual FPrimitiveSceneProxy *CreateSceneProxy() override;
+
+        virtual FBoundingBox CalcBounds(const FTransform &LocalToWorld) const override;
         
         inline std::string GetURI() const { return URI; }
         void SetURI(const std::string &NewURI);

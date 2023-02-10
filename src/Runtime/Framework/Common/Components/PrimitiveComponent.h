@@ -62,11 +62,13 @@ namespace nilou {
 
         FPrimitiveSceneInfo *GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 
-        std::string GetName() { return Name; }
+        std::string GetName() const { return Name; }
 
-        FBoundingBox GetBounds() { return Bounds; }
+        dmat4 GetLocalToWorld() const { return LocalToWorld; }
 
-        FUniformBuffer *GetUniformBuffer() { return PrimitiveUniformBuffer.get(); }
+        FBoundingBox GetBounds() const { return Bounds; }
+
+        FUniformBuffer *GetUniformBuffer() const { return PrimitiveUniformBuffer.get(); }
 
         void UpdateUniformBuffer() { PrimitiveUniformBuffer->UpdateUniformBuffer(); }
 
@@ -76,12 +78,16 @@ namespace nilou {
         bool bRenderInMainPass;
 
         std::string Name;
-        dmat4 LocalToWorld;
-        FBoundingBox Bounds;
 
         FPrimitiveSceneInfo *PrimitiveSceneInfo;
         FScene *Scene;
 
         TUniformBufferRef<FPrimitiveShaderParameters> PrimitiveUniformBuffer;
+
+    private:
+    
+        dmat4 LocalToWorld;
+        FBoundingBox Bounds;
+
     };
 }

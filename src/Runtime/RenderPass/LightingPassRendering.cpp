@@ -46,39 +46,39 @@ namespace nilou {
                     RHICmdList->RHISetBlendState(BlendState.get());
                     RHIGetError();
 
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "BaseColor", 
-                        FRHISampler(SceneTextures.BaseColor));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "RelativeWorldSpacePosition", 
-                        FRHISampler(SceneTextures.RelativeWorldSpacePosition));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "WorldSpaceNormal", 
-                        FRHISampler(SceneTextures.WorldSpaceNormal));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "MetallicRoughness", 
-                        FRHISampler(SceneTextures.MetallicRoughness));
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "Emissive", 
-                        FRHISampler(SceneTextures.Emissive));
-                    RHIGetError();
-                    RHICmdList->RHISetShaderUniformBuffer(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "FViewShaderParameters", 
-                        CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
-                    RHIGetError();
-
-                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHIGetError();
                     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
                     {
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "BaseColor", 
+                            FRHISampler(SceneTextures.BaseColor));
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "RelativeWorldSpacePosition", 
+                            FRHISampler(SceneTextures.RelativeWorldSpacePosition));
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "WorldSpaceNormal", 
+                            FRHISampler(SceneTextures.WorldSpaceNormal));
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "MetallicRoughness", 
+                            FRHISampler(SceneTextures.MetallicRoughness));
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "Emissive", 
+                            FRHISampler(SceneTextures.Emissive));
+                        RHIGetError();
+                        RHICmdList->RHISetShaderUniformBuffer(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "FViewShaderParameters", 
+                            CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                        RHIGetError();
+
+                        RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
+                        RHIGetError();
+                        RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
+                        RHIGetError();
                         RHICmdList->RHISetShaderUniformBuffer(
                             PSO, EPipelineStage::PS_Pixel, 
                             "FLightUniformBlock", 

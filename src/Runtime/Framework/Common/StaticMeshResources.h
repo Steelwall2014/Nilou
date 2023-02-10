@@ -41,7 +41,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs);
+        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const override;
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -89,7 +89,7 @@ namespace nilou {
     {
     public:
 
-        std::vector<FStaticMeshSection> Sections;
+        std::vector<std::unique_ptr<FStaticMeshSection>> Sections;
 
         void InitResources();
 

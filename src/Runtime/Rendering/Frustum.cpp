@@ -57,10 +57,28 @@ namespace nilou {
         return ECullingResult::CR_Intersecting;
     }
 
-    FBoundingBox::FBoundingBox(glm::dvec3 Min, glm::dvec3 Max)
+    FBoundingBox::FBoundingBox(const glm::dvec3 &Min, const glm::dvec3 &Max)
         : Min(Min)
         , Max(Max)
     {
+    }
+
+    FBoundingBox::FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection)
+    {
+        double x =  xDirection.x > 0 ? xDirection.x : -xDirection.x +
+                    yDirection.x > 0 ? yDirection.x : -yDirection.x +
+                    zDirection.x > 0 ? zDirection.x : -zDirection.x;
+        
+        double y =  xDirection.y > 0 ? xDirection.y : -xDirection.y +
+                    yDirection.y > 0 ? yDirection.y : -yDirection.y +
+                    zDirection.y > 0 ? zDirection.y : -zDirection.y;
+
+        double z =  xDirection.z > 0 ? xDirection.z : -xDirection.z +
+                    yDirection.z > 0 ? yDirection.z : -yDirection.z +
+                    zDirection.z > 0 ? zDirection.z : -zDirection.z;
+
+        Min = Center - dvec3(x, y, z);
+        Max = Center + dvec3(x, y, z);
     }
 
     FBoundingBox FBoundingBox::TransformBy(const FTransform &Transform)

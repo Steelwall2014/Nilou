@@ -8,6 +8,13 @@
 
 namespace nilou {
 
+    struct GLTFParseResult
+    {
+        std::vector<std::shared_ptr<class UStaticMesh>> StaticMeshes;
+        std::vector<std::shared_ptr<class FMaterial>> Materials;
+        std::vector<std::shared_ptr<class FTexture>> Textures;
+    };
+
     class GameStatics
     {
     public:
@@ -19,10 +26,7 @@ namespace nilou {
 
         static std::vector<std::string> Split(const std::string &s, char delim = ' ');
 
-        
-        static std::vector<std::shared_ptr<class UStaticMesh>> ParseToStaticMeshes(tinygltf::Model &model);
-
-        static std::vector<std::shared_ptr<class FMaterial>> ParseToMaterials(tinygltf::Model &model);
+        static GLTFParseResult ParseToStaticMeshes(tinygltf::Model &model);
     };
 }
 

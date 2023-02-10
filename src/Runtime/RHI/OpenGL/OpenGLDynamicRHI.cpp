@@ -1365,6 +1365,7 @@ namespace nilou {
             Count,
             InstanceCount
         );
+        EndDraw();
     }
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -1381,6 +1382,7 @@ namespace nilou {
             0,
             InstanceCount
         );
+        EndDraw();
         RHIGetError();
     }
 
@@ -1395,6 +1397,7 @@ namespace nilou {
             TranslateIndexBufferStride(IndexBuffer->GetStride()),
             reinterpret_cast<void*>(IndirectOffset)
         );
+        EndDraw();
     }
 
     void FOpenGLDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
@@ -1416,7 +1419,6 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHIEndRenderPass()
     {
-        EndDraw();
     }
 
     void FOpenGLDynamicRHI::EndDraw()

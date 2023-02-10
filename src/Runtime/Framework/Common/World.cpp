@@ -144,8 +144,8 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
-        std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
-        std::vector<std::shared_ptr<UStaticMesh>> Mesh = GameStatics::ParseToStaticMeshes(*Model);
+        // std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
+        // std::vector<std::shared_ptr<UStaticMesh>> Mesh = GameStatics::ParseToStaticMeshes(*Model);
 
             // std::vector<FDynamicMeshVertex> OutVerts;
             // std::vector<uint32> OutIndices;
@@ -173,7 +173,7 @@ namespace nilou {
         auto r = CameraActor->GetActorRightVector();
         auto u = CameraActor->GetActorUpVector();
         CameraActor->SetCameraResolution(ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight));
-
+        CameraActor->SetMoveSpeed(100);
 
         FTransform LightActorTransform;
         
@@ -195,10 +195,10 @@ namespace nilou {
 
         
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        GeoreferenceActor->SetGeoreferenceOrigin(84.77874, 45.652554, 623.243117);
+        GeoreferenceActor->SetGeoreferenceOrigin(84.778912, 45.650575, 608.308401);
 
-        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles\tileset.json)");
+        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles\tileset.json)");
     }
 
     void UWorld::Tick(double DeltaTime)

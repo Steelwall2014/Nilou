@@ -49,37 +49,37 @@ namespace nilou {
                     RHICmdList->RHISetBlendState(BlendState.get());
                     RHIGetError();
 
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "TransmittanceLUT", 
-                        FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
-                    RHIGetError();
-
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "SingleScatteringRayleighLUT", 
-                        FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
-                    RHIGetError();
-
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "SingleScatteringMieLUT", 
-                        FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
-                    RHIGetError();
-
-                    RHICmdList->RHISetShaderUniformBuffer(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "FViewShaderParameters", 
-                        CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
-                    RHIGetError();
-
-                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHIGetError();
-
                     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
                     {
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "TransmittanceLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "SingleScatteringRayleighLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "SingleScatteringMieLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderUniformBuffer(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "FViewShaderParameters", 
+                            CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                        RHIGetError();
+
+                        RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
+                        RHIGetError();
+                        RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
+                        RHIGetError();
+
                         if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
                         {
                             RHICmdList->RHISetShaderUniformBuffer(

@@ -55,6 +55,8 @@ namespace nilou {
             RHIGetError();
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
+            Material->FillShaderBindings(MeshBindings);
+
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
                 auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PipelineStage]; // alias
@@ -99,10 +101,10 @@ namespace nilou {
                     {
                         NILOU_LOG(Warning, 
                             "Material: " + Material->GetMaterialName() + 
-                            "|Vertex Factory: " + VFPermutationParameters.Type->Name + 
-                            "|Vertex Shader: " + PermutationParametersVS.Type->Name + 
-                            "|Pixel Shader: " + PermutationParametersPS.Type->Name + 
-                            "|Pipeline Stage: " + std::to_string(PipelineStage) + "|\"" + 
+                            " |Vertex Factory: " + VFPermutationParameters.Type->Name + 
+                            " |Vertex Shader: " + PermutationParametersVS.Type->Name + 
+                            " |Pixel Shader: " + PermutationParametersPS.Type->Name + 
+                            " |Pipeline Stage: " + std::to_string(PipelineStage) + " |\"" + 
                             Binding.Name + "\" Not Found");
                     }
 

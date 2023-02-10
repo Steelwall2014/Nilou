@@ -1,5 +1,7 @@
 #include <fstream>
 
+#include "Common/StaticMeshResources.h"
+#include "Material.h"
 #include "Common/World.h"
 #include "Cesium3DTilesetComponent.h"
 
@@ -80,22 +82,30 @@ namespace nilou {
                 std::string err;
                 std::string warn;
                 Loader.LoadBinaryFromMemory(&model, &err, &warn, Tile->Content.B3dm->glb.data(), Tile->Content.B3dm->glb.size());
-                Tile->Content.StaticMesh = GameStatics::ParseToStaticMeshes(model)[0];
+                Tile->Content.Gltf = GameStatics::ParseToStaticMeshes(model);
+                for (std::shared_ptr<FMaterial> Material : Tile->Content.Gltf.Materials) {
+                    Material->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
+                }
             }
             Tile->bLoaded = true;
         }
+        LoadQueue.clear();
     }
 
     void Cesium3DTilesetSelector::UnloadTiles()
     {
-        for (Cesium3DTile *Tile : LoadQueue)
+        for (Cesium3DTile *Tile : UnloadQueue)
         {
             if (Tile->Content.B3dm)
             {
                 Tile->Content.B3dm->reset();
             }
+            Tile->Content.Gltf.Materials.clear();
+            Tile->Content.Gltf.Textures.clear();
+            Tile->Content.Gltf.StaticMeshes.clear();
             Tile->bLoaded = false;
         }
+        UnloadQueue.clear();
     }
 
     void Cesium3DTilesetSelector::UpdateInternal(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
@@ -232,6 +242,68 @@ namespace nilou {
         return largestSSE <= MaximumScreenSpaceError;
     }
 
+    struct RendableTileContent
+    {
+        std::shared_ptr<UStaticMesh> StaticMesh;
+        TUniformBufferRef<FPrimitiveShaderParameters> TransformUBO;
+    };
+
+    class FCesium3DTilesetSceneProxy : public FPrimitiveSceneProxy
+    {
+    public:
+
+        FCesium3DTilesetSceneProxy(UCesium3DTilesetComponent *InComponent)
+            : FPrimitiveSceneProxy(InComponent)
+        {
+
+        }
+
+        void SetRenderTiles(const std::vector<RendableTileContent> Tiles)
+        {
+            TilesToRenderThisFrame = Tiles;
+        }
+
+        void SetEcefToAbs(const dmat4 &InEcefToAbs)
+        {
+            EcefToAbs = InEcefToAbs;
+        }
+
+        virtual void GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        {
+            for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+		    {
+                if (VisibilityMap & (1 << ViewIndex))
+                {
+                    for (auto &[StaticMesh, TransformUBO] : TilesToRenderThisFrame)
+                    {
+                        TransformUBO->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * TransformUBO->Data.LocalToWorld;
+                        TransformUBO->InitRHI();
+                        const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
+                        for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
+                        {
+                            const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
+                            FMeshBatch Mesh;
+                            Mesh.CastShadow = Section.bCastShadow;
+                            Mesh.Element.VertexFactory = &Section.VertexFactory;
+                            Mesh.Element.IndexBuffer = &Section.IndexBuffer;
+                            Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
+                            Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex];
+                            Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TransformUBO.get());
+                            Collector.AddMesh(ViewIndex, Mesh);
+                        }
+                    }
+                }
+            }
+        }
+
+    protected:
+
+        std::vector<RendableTileContent> TilesToRenderThisFrame;
+
+        dmat4 EcefToAbs;
+
+    };
+
     UCesium3DTilesetComponent::UCesium3DTilesetComponent(AActor *InOwner)
         : UPrimitiveComponent(InOwner)
         , TileSelector(this)
@@ -271,9 +343,28 @@ namespace nilou {
                 }
             }
 
-            const std::vector<Cesium3DTile *> &renderlist = TileSelector.Update(TilesetForSelection.get(), ViewStates);
-
+            const std::vector<Cesium3DTile *> &RenderTiles = TileSelector.Update(TilesetForSelection.get(), ViewStates);
+            std::vector<RendableTileContent> RenderTileMeshes;
+            for (Cesium3DTile *RenderTile : RenderTiles)
+            {
+                for (std::shared_ptr<UStaticMesh> StaticMesh : RenderTile->Content.Gltf.StaticMeshes)
+                {
+                    RendableTileContent content;
+                    content.StaticMesh = StaticMesh;
+                    content.TransformUBO = CreateUniformBuffer<FPrimitiveShaderParameters>();
+                    content.TransformUBO->Data.LocalToWorld = RenderTile->Transform;
+                    RenderTileMeshes.push_back(content);
+                }
+            }
+            FCesium3DTilesetSceneProxy *Proxy = static_cast<FCesium3DTilesetSceneProxy *>(SceneProxy);
+            Proxy->SetRenderTiles(RenderTileMeshes);
+            Proxy->SetEcefToAbs(Georeference->GetEcefToAbs());
         }
+    }
+
+    FPrimitiveSceneProxy *UCesium3DTilesetComponent::CreateSceneProxy()
+    {
+        return new FCesium3DTilesetSceneProxy(this);
     }
 
     void UCesium3DTilesetComponent::OnRegister()
@@ -295,6 +386,19 @@ namespace nilou {
         UPrimitiveComponent::OnRegister();
     }
 
+    FBoundingBox UCesium3DTilesetComponent::CalcBounds(const FTransform &LocalToWorld) const
+    {
+        if (TilesetForSelection)
+        {
+            dvec3 center = LocalToWorld.TransformPosition(TilesetForSelection->Root->BoundingVolume.Center);
+            dvec3 xDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[0]);
+            dvec3 yDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[1]);
+            dvec3 zDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[2]);
+
+            return FBoundingBox(center, xDirection, yDirection, zDirection);
+        }
+        return UPrimitiveComponent::CalcBounds(LocalToWorld);
+    }
 
     void UCesium3DTilesetComponent::SetURI(const std::string &NewURI)
     { 
@@ -302,30 +406,5 @@ namespace nilou {
         tiny3dtiles::Loader Loader;
         Tileset = Loader.LoadTileset(URI);
         TilesetForSelection = Cesium3DTileset::Build(Tileset, glm::dmat4(1));
-        MarkRenderStateDirty(); 
     }
-
-    void UCesium3DTilesetComponent::UpdateView(const std::vector<FViewFrustum> &Frustums)
-    {
-        
-    }
-
-
-    class FCesium3DTilesetSceneProxy : public FPrimitiveSceneProxy
-    {
-    public:
-
-        FCesium3DTilesetSceneProxy(UCesium3DTilesetComponent *InComponent)
-            : FPrimitiveSceneProxy(InComponent)
-        {
-
-        }
-
-        virtual void GetDynamicMeshElements(const std::vector<const FSceneView *> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
-        {
-
-        }
-
-    };
-
 }

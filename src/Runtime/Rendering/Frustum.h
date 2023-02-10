@@ -134,10 +134,12 @@ namespace nilou {
     class FBoundingBox
     {
     public:
-        glm::dvec3 Min;
-        glm::dvec3 Max;
-        FBoundingBox() { Min = Max = glm::dvec3(0); }
-        FBoundingBox(glm::dvec3 Min, glm::dvec3 Max);
+        dvec3 Min;
+        dvec3 Max;
+        FBoundingBox() { Min = Max = dvec3(0); }
+        FBoundingBox(const dvec3 &Min, const dvec3 &Max);
+        FBoundingBox(const FOrientedBoundingBox &OBB) :FBoundingBox(OBB.Center, OBB.HalfAxes[0], OBB.HalfAxes[1], OBB.HalfAxes[2]) { }
+        FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection);
         FBoundingBox TransformBy(const FTransform &Transform);
     };
 

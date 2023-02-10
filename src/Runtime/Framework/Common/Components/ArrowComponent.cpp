@@ -60,7 +60,6 @@ namespace nilou {
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
-                    Material->FillShaderBindings(Mesh.Element.Bindings);
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
             }
