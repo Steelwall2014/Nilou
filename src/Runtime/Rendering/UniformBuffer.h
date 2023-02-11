@@ -406,6 +406,11 @@ namespace nilou {
             FRenderResource::InitRHI();
             UniformBufferRHI = GDynamicRHI->RHICreateUniformBuffer(Size, Usage, &Data);
         }
+        virtual void ReleaseRHI() override
+        {
+            UniformBufferRHI = nullptr;
+            FRenderResource::ReleaseRHI();
+        }
         /** End FRenderResource Interface */
 
         void UpdateUniformBuffer()

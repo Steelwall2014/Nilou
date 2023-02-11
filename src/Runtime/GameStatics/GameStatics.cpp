@@ -165,7 +165,7 @@ namespace nilou {
             // FContentManager::GetContentManager().AddGlobalTexture(Texture->GetTextureName(), Texture);
         }
 
-        for (int MaterialIndex = 0; MaterialIndex < model.textures.size(); MaterialIndex++)
+        for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
         {
             tinygltf::Material &gltf_material = model.materials[MaterialIndex];
             FRasterizerStateInitializer RasterizerState;
@@ -210,7 +210,7 @@ namespace nilou {
                 #if HAS_EMISSIVE
                     return texture(emissiveMap, vs_out.TexCoords).rgb;
                 #else
-                    return vec3(0, 0, 0);
+                    return vec3(0);
                 #endif
                 }
 
@@ -371,18 +371,19 @@ namespace nilou {
                         }
                     }
                 }
-                if (Data.PositionComponent.VertexBuffer && 
-                    Data.NormalComponent.VertexBuffer && 
-                    Data.TangentComponent.VertexBuffer && 
-                    HaveTexCoords)
-                {
-                    Section->VertexFactory.SetData(Data);
-                }
-                else 
-                {
-                    Section->VertexFactory.SetData(Data);
-                    NILOU_LOG(Error, "Currently only gltf models with positions, normals and tangents are accepted")   
-                }
+                Section->VertexFactory.SetData(Data);
+                // if (Data.PositionComponent.VertexBuffer && 
+                //     Data.NormalComponent.VertexBuffer && 
+                //     Data.TangentComponent.VertexBuffer && 
+                //     HaveTexCoords)
+                // {
+                //     Section->VertexFactory.SetData(Data);
+                // }
+                // else 
+                // {
+                    
+                //     NILOU_LOG(Error, "Currently only gltf models with positions, normals and tangents are accepted")   
+                // }
                 // if (Data.PositionComponent.VertexBuffer)
                 // {
                 //     if (Data.NormalComponent.VertexBuffer)

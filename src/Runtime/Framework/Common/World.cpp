@@ -144,17 +144,22 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
-        // std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
-        // std::vector<std::shared_ptr<UStaticMesh>> Mesh = GameStatics::ParseToStaticMeshes(*Model);
-
+        std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
+        GLTFParseResult Mesh = GameStatics::ParseToStaticMeshes(*Model);
+        for (auto &Texture : Mesh.Textures)
+            FContentManager::GetContentManager().AddGlobalTexture(Texture->GetTextureName(), Texture);
+        for (auto &Material : Mesh.Materials)
+            FContentManager::GetContentManager().AddGlobalMaterial(Material->GetMaterialName(), Material);
+        for (auto &StaticMesh : Mesh.StaticMeshes)
+            FContentManager::GetContentManager().AddGlobalStaticMesh("WaterBottle.gltf", StaticMesh);
             // std::vector<FDynamicMeshVertex> OutVerts;
             // std::vector<uint32> OutIndices;
             // BuildCylinderVerts(vec3(36, 0, 0), vec3(0, 0, 1), vec3(0, 1, 0), vec3(1, 0, 0), 2.4, 36, 16, OutVerts, OutIndices);
 
         FTransform MeshTransform;
         MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
-        // std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");
-        // StaticMeshActor->SetStaticMesh(Mesh[0]);
+        std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");
+        StaticMeshActor->SetStaticMesh(Mesh.StaticMeshes[0]);
         
         std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
@@ -198,7 +203,7 @@ namespace nilou {
         GeoreferenceActor->SetGeoreferenceOrigin(84.778912, 45.650575, 608.308401);
 
         std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles\tileset.json)");
+        TilesetActor->GetTilesetComponent()->SetURI(R"(D:\Nilou\Assets\Models\TuZiGou\tileset.json)");
     }
 
     void UWorld::Tick(double DeltaTime)

@@ -1193,6 +1193,8 @@ namespace nilou {
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexImage2D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, NumMips, Format, Type, data);
+        if (NumMips > 1)
+            RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITexture2DArrayRef FOpenGLDynamicRHI::RHICreateTexture2DArray(
@@ -1205,6 +1207,8 @@ namespace nilou {
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
+        if (NumMips > 1)
+            RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITexture3DRef FOpenGLDynamicRHI::RHICreateTexture3D(
@@ -1217,6 +1221,8 @@ namespace nilou {
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
+        if (NumMips > 1)
+            RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureCube(
@@ -1264,14 +1270,14 @@ namespace nilou {
     void FOpenGLDynamicRHI::RHIGenerateMipmap(RHITextureRef texture)
     {
         auto GLTexture = TextureResourceCast(texture.get());
-        int unit_id = TexMngr.AllocUnit();
-        glActiveTexture(GL_TEXTURE0 + unit_id);
-        glBindTexture(GLTexture.Target, GLTexture.Resource);
+        // int unit_id = TexMngr.AllocUnit();
+        // glActiveTexture(GL_TEXTURE0 + unit_id);
         if (GLTexture.Target != GL_TEXTURE_CUBE_MAP)
         {
+            glBindTexture(GLTexture.Target, GLTexture.Resource);
             glGenerateMipmap(GLTexture.Target);
         }
-        TexMngr.FreeUnit(unit_id);
+        // TexMngr.FreeUnit(unit_id);
     }
 }
 
