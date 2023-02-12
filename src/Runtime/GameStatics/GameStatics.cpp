@@ -192,7 +192,8 @@ namespace nilou {
             AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorMap", "HAS_BASECOLOR");
             AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessMap", "HAS_METALLICROUGHNESS");
             AccessTextures(gltf_material.emissiveTexture.index, "emissiveMap", "HAS_EMISSIVE");
-            AccessTextures(gltf_material.occlusionTexture.index, "occlusionMap", "HAS_OCCLUSION");
+            // 因为occlusionMap在渲染中还没有用到，所以暂时先不处理
+            // AccessTextures(gltf_material.occlusionTexture.index, "occlusionMap", "HAS_OCCLUSION");
             AccessTextures(gltf_material.normalTexture.index, "normalMap", "HAS_NORMAL");
 
             material_code << R"(

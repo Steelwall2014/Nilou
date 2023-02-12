@@ -203,7 +203,7 @@ namespace nilou {
         GeoreferenceActor->SetGeoreferenceOrigin(84.778912, 45.650575, 608.308401);
 
         std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(D:\Nilou\Assets\Models\TuZiGou\tileset.json)");
+        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_rendertest\tileset.json)");
     }
 
     void UWorld::Tick(double DeltaTime)

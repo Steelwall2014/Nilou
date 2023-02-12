@@ -27,6 +27,8 @@ namespace nilou {
         InternalTile->Transform = Tile->transform * parentTransform;
         BoundingVolumeConvert(InternalTile->BoundingVolume, Tile->boundingVolume, InternalTile->Transform);
         InternalTile->Content.URI = Tile->content.uri;
+        InternalTile->TransformRHI = CreateUniformBuffer<FPrimitiveShaderParameters>();
+        InternalTile->TransformRHI->InitRHI();
 
         if (Tile->content.external_tileset != nullptr)
         {
@@ -56,46 +58,98 @@ namespace nilou {
         return InternalTileset;
     }
 
-    const std::vector<Cesium3DTile *> &Cesium3DTilesetSelector::Update(Cesium3DTileset *Tileset, const std::vector<ViewState> &ViewStates)
+    // Cesium3DTilesetSelector::Cesium3DTilesetSelector(UCesium3DTilesetComponent *InComponent)
+    //     : Component(InComponent)
+    // {
+    //     TilesToRenderThisFrame = &InComponent->TilesToRenderThisFrame;
+    // }
+
+    void UCesium3DTilesetComponent::DispatchMainThreadTask()
     {
-        TilesToRenderThisFrame.clear();
+        int TaskCount = MainThreadTaskQueue.size();
+        for (int TaskIndex = 0; TaskIndex < TaskCount; TaskIndex++)
+        {
+            TileMainThreadTask &Task = MainThreadTaskQueue.front();
+            Task.Func(Task.Result);
+            m.lock();
+            MainThreadTaskQueue.pop();
+            m.unlock();
+        }
+    }
+
+    void UCesium3DTilesetComponent::Update(Cesium3DTileset *Tileset, const std::vector<ViewState> &ViewStates)
+    {
+        // TilesToRenderThisFrame.clear();
+
+        DispatchMainThreadTask();
 
         UpdateInternal(Tileset->Root.get(), ViewStates);
 
-        LoadTiles();
-
         UnloadTiles();
 
-        return TilesToRenderThisFrame;
+        LoadTiles();
+
+        // return TilesToRenderThisFrame;
     }
 
-    void Cesium3DTilesetSelector::LoadTiles()
+    void UCesium3DTilesetComponent::LoadContent(
+        Cesium3DTile *Tile, 
+        std::function<void(TileLoadingResult)> MainThreadFunc)
+    {
+        auto LoadFunc = [](Cesium3DTile *Tile) {
+                    Tile->LoadingState = ETileLoadingState::Loading;
+                    TileLoadingResult result;
+                    result.model = std::make_shared<tinygltf::Model>();
+                    result.Tile = Tile;
+                    if (Tile->Content.B3dm)
+                    {
+                        std::ifstream stream(Tile->Content.URI, std::ios::binary);
+                        stream >> *Tile->Content.B3dm;
+                        tinygltf::TinyGLTF Loader;
+                        std::string err;
+                        std::string warn;
+                        Loader.LoadBinaryFromMemory(result.model.get(), &err, &warn, Tile->Content.B3dm->glb.data(), Tile->Content.B3dm->glb.size());
+                    }
+                    return result;
+                };
+        std::queue<TileMainThreadTask> &TaskQueue = MainThreadTaskQueue;
+        std::mutex &mutex = m;
+        pool.push_task([&mutex, LoadFunc, Tile, &TaskQueue, MainThreadFunc]() {
+            TileMainThreadTask ThreadTask;
+            ThreadTask.Result = LoadFunc(Tile);
+            ThreadTask.Func = MainThreadFunc;
+            mutex.lock();
+            TaskQueue.push(ThreadTask);
+            mutex.unlock();
+        });
+    }
+
+    void UCesium3DTilesetComponent::LoadTiles()
     {
         for (Cesium3DTile *Tile : LoadQueue)
         {
-            if (Tile->Content.B3dm)
-            {
-                std::ifstream stream(Tile->Content.URI, std::ios::binary);
-                stream >> *Tile->Content.B3dm;
-                tinygltf::TinyGLTF Loader;
-                tinygltf::Model model;
-                std::string err;
-                std::string warn;
-                Loader.LoadBinaryFromMemory(&model, &err, &warn, Tile->Content.B3dm->glb.data(), Tile->Content.B3dm->glb.size());
-                Tile->Content.Gltf = GameStatics::ParseToStaticMeshes(model);
-                for (std::shared_ptr<FMaterial> Material : Tile->Content.Gltf.Materials) {
-                    Material->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
+            LoadContent(Tile, [this](TileLoadingResult Result) { 
+                if (Result.model->meshes.size() != 0)
+                {
+                    Result.Tile->Content.Gltf = GameStatics::ParseToStaticMeshes(*Result.model);
+                    for (std::shared_ptr<FMaterial> Material : Result.Tile->Content.Gltf.Materials) {
+                        Material->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
+                    }
+                    Result.Tile->LoadingState = ETileLoadingState::Loaded;
+                    TilesToRenderThisFrame.push_back(Result.Tile);
                 }
-            }
-            Tile->bLoaded = true;
+            });
         }
         LoadQueue.clear();
     }
 
-    void Cesium3DTilesetSelector::UnloadTiles()
+    void UCesium3DTilesetComponent::UnloadTiles()
     {
         for (Cesium3DTile *Tile : UnloadQueue)
         {
+            if (Tile->LoadingState != ETileLoadingState::Loaded)
+                continue;
+            Tile->LoadingState = ETileLoadingState::Unloading;
             if (Tile->Content.B3dm)
             {
                 Tile->Content.B3dm->reset();
@@ -103,12 +157,12 @@ namespace nilou {
             Tile->Content.Gltf.Materials.clear();
             Tile->Content.Gltf.Textures.clear();
             Tile->Content.Gltf.StaticMeshes.clear();
-            Tile->bLoaded = false;
+            Tile->LoadingState = ETileLoadingState::Unloaded;
         }
         UnloadQueue.clear();
     }
 
-    void Cesium3DTilesetSelector::UpdateInternal(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
+    void UCesium3DTilesetComponent::UpdateInternal(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
     {
         bool bTileCulled = FrustumCull(Tile, ViewStates);
 
@@ -157,7 +211,7 @@ namespace nilou {
 
     void LRUCache::Load(Cesium3DTile *Tile)
     {
-        if (Tile->bLoaded)
+        if (Tile->LoadingState == ETileLoadingState::Loaded)
         {
             LoadedTiles.splice(LoadedTiles.begin(), LoadedTiles, Tile->iter);
             return;
@@ -169,37 +223,38 @@ namespace nilou {
             iter--;
 
             Cesium3DTile *LRUTile = *iter;
+            LRUTile->LoadingState = ETileLoadingState::Unloading;
             LRUTile->Content.B3dm = nullptr;
-            LRUTile->bLoaded = false;
-
             LoadedTiles.erase(iter);
+            LRUTile->LoadingState = ETileLoadingState::Unloaded;
         }
 
+        Tile->LoadingState = ETileLoadingState::Loading;
         Tile->Content.B3dm = std::make_shared<tiny3dtiles::B3DM>();
         std::ifstream stream(Tile->Content.URI, std::ios::binary);
         stream >> *Tile->Content.B3dm;
-        Tile->bLoaded = true;
+        Tile->LoadingState = ETileLoadingState::Loaded;
         Tile->iter = LoadedTiles.insert(LoadedTiles.begin(), Tile);
     }
 
-    void Cesium3DTilesetSelector::AddTileToUnloadQueue(Cesium3DTile *Tile)
+    void UCesium3DTilesetComponent::AddTileToUnloadQueue(Cesium3DTile *Tile)
     {
-        if (Tile->bLoaded == true)
+        if (Tile->LoadingState == ETileLoadingState::Loaded)
         {
             UnloadQueue.push_back(Tile);
         }
     }
 
-    void Cesium3DTilesetSelector::AddTileToRenderQueue(Cesium3DTile *Tile)
+    void UCesium3DTilesetComponent::AddTileToRenderQueue(Cesium3DTile *Tile)
     {
-        if (Tile->bLoaded == false)
+        if (Tile->LoadingState == ETileLoadingState::Unloaded)
         {
             LoadQueue.push_back(Tile);
         }
-        TilesToRenderThisFrame.push_back(Tile);
+        // TilesToRenderThisFrame.push_back(Tile);
     }
 
-    bool Cesium3DTilesetSelector::FrustumCull(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
+    bool UCesium3DTilesetComponent::FrustumCull(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
     {
         bool bCullWithChildrenBounds = !Tile->Children.empty();
         if (bCullWithChildrenBounds)
@@ -228,9 +283,9 @@ namespace nilou {
         return true;
     }
 
-    bool Cesium3DTilesetSelector::MeetsSSE(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
+    bool UCesium3DTilesetComponent::MeetsSSE(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
     {
-        double MaximumScreenSpaceError = Component->GetMaxScreenSpaceError();
+        double MaximumScreenSpaceError = GetMaxScreenSpaceError();
 
         double largestSSE = 0;
         for (auto &ViewState : ViewStates)
@@ -242,12 +297,6 @@ namespace nilou {
         return largestSSE <= MaximumScreenSpaceError;
     }
 
-    struct RendableTileContent
-    {
-        std::shared_ptr<UStaticMesh> StaticMesh;
-        TUniformBufferRef<FPrimitiveShaderParameters> TransformUBO;
-    };
-
     class FCesium3DTilesetSceneProxy : public FPrimitiveSceneProxy
     {
     public:
@@ -258,7 +307,7 @@ namespace nilou {
 
         }
 
-        void SetRenderTiles(const std::vector<RendableTileContent> Tiles)
+        void SetRenderTiles(std::vector<Cesium3DTile *> Tiles)
         {
             TilesToRenderThisFrame = Tiles;
         }
@@ -274,22 +323,28 @@ namespace nilou {
 		    {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
-                    for (auto &[StaticMesh, TransformUBO] : TilesToRenderThisFrame)
+                    for (Cesium3DTile *Tile : TilesToRenderThisFrame)
                     {
-                        TransformUBO->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * TransformUBO->Data.LocalToWorld;
-                        TransformUBO->InitRHI();
-                        const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
-                        for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
+                        if (Tile->LoadingState != ETileLoadingState::Loaded)
+                            continue;
+
+                        Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform;
+                        Tile->TransformRHI->UpdateUniformBuffer();
+                        for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
                         {
-                            const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
-                            FMeshBatch Mesh;
-                            Mesh.CastShadow = Section.bCastShadow;
-                            Mesh.Element.VertexFactory = &Section.VertexFactory;
-                            Mesh.Element.IndexBuffer = &Section.IndexBuffer;
-                            Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
-                            Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex];
-                            Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TransformUBO.get());
-                            Collector.AddMesh(ViewIndex, Mesh);
+                            const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
+                            for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
+                            {
+                                const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
+                                FMeshBatch Mesh;
+                                Mesh.CastShadow = Section.bCastShadow;
+                                Mesh.Element.VertexFactory = &Section.VertexFactory;
+                                Mesh.Element.IndexBuffer = &Section.IndexBuffer;
+                                Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
+                                Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex];
+                                Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI.get());
+                                Collector.AddMesh(ViewIndex, Mesh);
+                            }
                         }
                     }
                 }
@@ -298,7 +353,7 @@ namespace nilou {
 
     protected:
 
-        std::vector<RendableTileContent> TilesToRenderThisFrame;
+        std::vector<Cesium3DTile *> TilesToRenderThisFrame;
 
         dmat4 EcefToAbs;
 
@@ -306,7 +361,7 @@ namespace nilou {
 
     UCesium3DTilesetComponent::UCesium3DTilesetComponent(AActor *InOwner)
         : UPrimitiveComponent(InOwner)
-        , TileSelector(this)
+        // , TileSelector(this)
         , URI("")
         , Georeference(nullptr)
         , MaximumScreenSpaceError(16.0)
@@ -343,21 +398,21 @@ namespace nilou {
                 }
             }
 
-            const std::vector<Cesium3DTile *> &RenderTiles = TileSelector.Update(TilesetForSelection.get(), ViewStates);
-            std::vector<RendableTileContent> RenderTileMeshes;
-            for (Cesium3DTile *RenderTile : RenderTiles)
-            {
-                for (std::shared_ptr<UStaticMesh> StaticMesh : RenderTile->Content.Gltf.StaticMeshes)
-                {
-                    RendableTileContent content;
-                    content.StaticMesh = StaticMesh;
-                    content.TransformUBO = CreateUniformBuffer<FPrimitiveShaderParameters>();
-                    content.TransformUBO->Data.LocalToWorld = RenderTile->Transform;
-                    RenderTileMeshes.push_back(content);
-                }
-            }
+            Update(TilesetForSelection.get(), ViewStates);
+            // std::vector<RendableTileContent> RenderTileMeshes;
+            // for (Cesium3DTile *RenderTile : RenderTiles)
+            // {
+            //     for (std::shared_ptr<UStaticMesh> StaticMesh : RenderTile->Content.Gltf.StaticMeshes)
+            //     {
+            //         RendableTileContent content;
+            //         content.StaticMesh = StaticMesh;
+            //         content.TransformRHI = CreateUniformBuffer<FPrimitiveShaderParameters>();
+            //         content.TransformRHI->Data.LocalToWorld = RenderTile->Transform;
+            //         RenderTileMeshes.push_back(content);
+            //     }
+            // }
             FCesium3DTilesetSceneProxy *Proxy = static_cast<FCesium3DTilesetSceneProxy *>(SceneProxy);
-            Proxy->SetRenderTiles(RenderTileMeshes);
+            Proxy->SetRenderTiles(TilesToRenderThisFrame);
             Proxy->SetEcefToAbs(Georeference->GetEcefToAbs());
         }
     }

@@ -66,8 +66,8 @@ function BuildExternalProject(config)
     set_languages("cxx17")
     set_kind("static")
     add_includedirs("./External/include")
-    add_files("External/include/" .. config.projectName .. "/*.cpp")
-    add_files("External/include/" .. config.projectName .. "/*.c")
+    add_files("External/include/" .. config.projectName .. "/**.cpp")
+    add_files("External/include/" .. config.projectName .. "/**.c")
 end
 
 function BuildProject(config)
@@ -311,6 +311,17 @@ BuildProject({
     files = {
         "src/Runtime/UnitTests/TestShaderPreprocess/main.cpp"},
     enableException = true,
+    --unityBuildBatch = 8
+})
+
+BuildProject({
+    projectName = "TestMultithread",
+    projectType = "binary",
+    files = {
+        "src/Runtime/UnitTests/TestMultithread/main.cpp"},
+    enableException = true,
+    includePaths = include_paths,
+    link = {"./External/lib/async++"},
     --unityBuildBatch = 8
 })
 --

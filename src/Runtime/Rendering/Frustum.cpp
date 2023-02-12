@@ -1,5 +1,7 @@
 #include "Frustum.h"
 
+#include "Common/Log.h"
+
 namespace nilou {
 
     FPlane::FPlane() noexcept : FPlane(glm::dvec3(0.0, 0.0, 1.0), 0.0) {}
@@ -9,7 +11,7 @@ namespace nilou {
     {
         if (!Math::equalsEpsilon(glm::length(normal), 1.0, 1e-6)) 
         {
-            throw std::invalid_argument("normal must be normalized.");
+            NILOU_LOG(Fatal, "normal must be normalized.");
         }
     }
 
@@ -220,7 +222,7 @@ namespace nilou {
 
         const glm::dvec3 right = glm::cross(Direction, Up);
 
-        glm::dvec3 nearCenter = Direction * n + Position + nearCenter;
+        glm::dvec3 nearCenter = Direction * n + Position;
 
         // Left plane computation
         glm::dvec3 normal = right * l + nearCenter - Position;

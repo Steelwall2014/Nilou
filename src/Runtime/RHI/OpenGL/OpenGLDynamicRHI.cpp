@@ -383,25 +383,25 @@ namespace nilou {
         glViewport(x, y, width, height);
     }
 
-    void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
+    bool FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
     {
-        RHISetShaderUniformBuffer(
+        return RHISetShaderUniformBuffer(
             BoundPipelineState, PipelineStage, 
             BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), UniformBufferRHI);
     }
 
-    void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *UniformBufferRHI)
+    bool FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *UniformBufferRHI)
     {
         if (BoundPipelineState != ContextState.GraphicsPipelineState)
         {
             NILOU_LOG(Error, "RHISetShaderUniformBuffer BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return;
+            return false;
         }
 
         if (BaseIndex < 0)
         {
             NILOU_LOG(Error, "RHISetShaderUniformBuffer Invalid BaseIndex: " + std::to_string(BaseIndex));
-            return;
+            return false;
         }
         OpenGLUniformBuffer *GLUniformBuffer = static_cast<OpenGLUniformBuffer*>(UniformBufferRHI);
         OpenGLGraphicsPipelineState *GLPipelineState = static_cast<OpenGLGraphicsPipelineState*>(BoundPipelineState);
@@ -410,30 +410,30 @@ namespace nilou {
         //     RHIUseShaderProgram(GLPipelineState->Program.get());
 
         glBindBufferBase(GL_UNIFORM_BUFFER, BaseIndex, GLUniformBuffer->Resource);
-
+        return true;
         // if (ContextState.GraphicsPipelineState != GLPipelineState)
         //     RHIUseShaderProgram(ContextState.GraphicsPipelineState->Program.get());
     }
     
-    void FOpenGLDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI)
+    bool FOpenGLDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI)
     {
-        RHISetShaderSampler(
+        return RHISetShaderSampler(
             BoundPipelineState, PipelineStage, 
             BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), SamplerRHI);
     }
 
-    void FOpenGLDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI)
+    bool FOpenGLDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI)
     {
         if (BoundPipelineState != ContextState.GraphicsPipelineState)
         {
             NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return;
+            return false;
         }
 
         if (BaseIndex < 0)
         {
             NILOU_LOG(Error, "RHISetShaderSampler Invalid BaseIndex: " + std::to_string(BaseIndex));
-            return;
+            return false;
         }
         // if (ContextState.GraphicsPipelineState != BoundPipelineState)
         // {
@@ -454,26 +454,26 @@ namespace nilou {
                 glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.Params.Wrap_R));
             glUniform1i(BaseIndex, unit_id);
         }
-
+        return true;
         // if (ContextState.GraphicsPipelineState != BoundPipelineState)
         // {
         //     RHIUseShaderProgram(ContextState.GraphicsPipelineState->Program.get());
         // }
     }
 
-	void FOpenGLDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *Image, EDataAccessFlag AccessFlag)
+	bool FOpenGLDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *Image, EDataAccessFlag AccessFlag)
     {
-        RHISetShaderImage(
+        return RHISetShaderImage(
             BoundPipelineState, PipelineStage, 
             BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Image, AccessFlag);
     }
 
-	void FOpenGLDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *Image, EDataAccessFlag AccessFlag)
+	bool FOpenGLDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *Image, EDataAccessFlag AccessFlag)
     {
         if (BoundPipelineState != ContextState.GraphicsPipelineState)
         {
             NILOU_LOG(Error, "RHISetShaderImage BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return;
+            return false;
         }
 
         GLenum GLAccess;
@@ -493,6 +493,7 @@ namespace nilou {
         // if (ContextState.GraphicsPipelineState->Program != GLShader->Program)
         //     RHIUseShaderProgram(ContextState.GraphicsPipelineState->Program.get());
         RHIGetError();
+        return true;
     }
 
 	void FOpenGLDynamicRHI::RHISetVertexBuffer(FRHIGraphicsPipelineState *BoundPipelineState, FRHIVertexInput *VertexInput)
@@ -1013,11 +1014,13 @@ namespace nilou {
             OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->Shader.get());
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
+            #ifdef _DEBUG
             if (PSO->Program == nullptr)
             {
                 NILOU_LOG(Warning, Initializer.VertexShader->DebugCode);
                 NILOU_LOG(Warning, Initializer.PixelShader->DebugCode);
             }
+            #endif
             RHIGetError();
 
             FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;

@@ -8,6 +8,8 @@
 
 #include "Common/Actor/GeoreferenceActor.h"
 
+#include "thread_pool/BS_thread_pool.hpp"
+
 namespace nilou {
     class UCesium3DTilesetComponent;
 
@@ -23,11 +25,25 @@ namespace nilou {
         double sseDenominator; 
     };
 
+    struct TileLoadingResult
+    {
+        class Cesium3DTile *Tile;
+        std::shared_ptr<tinygltf::Model> model;
+    };
+
+    enum class ETileLoadingState
+    {
+        Unloaded,
+        Unloading,
+        Loading,
+        Loaded
+    };
+
     class Cesium3DTile
     {
     public:
         friend class LRUCache;
-        friend class Cesium3DTilesetSelector;
+        friend class UCesium3DTilesetComponent;
         struct TileContent
         {
             std::string URI;
@@ -40,12 +56,13 @@ namespace nilou {
         FOrientedBoundingBox BoundingVolume;    //  The bounding volume that has been transformed by parent transforms
         double GeometricError;
         glm::dmat4 Transform = glm::dmat4(1);   // The matrix that has been multiplied with parent transforms
-    
+        TUniformBufferRef<FPrimitiveShaderParameters> TransformRHI;
+        ETileLoadingState LoadingState;
+
         static std::shared_ptr<Cesium3DTile> BuildTile(
             std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform);
     private:
         std::list<Cesium3DTile *>::iterator iter;
-        bool bLoaded = false;
         bool IsLeaf() const { return Children.empty(); }
     };
 
@@ -77,43 +94,18 @@ namespace nilou {
 
     };
 
-    class Cesium3DTilesetSelector
+
+    struct TileMainThreadTask
     {
-    public:
-        Cesium3DTilesetSelector(UCesium3DTilesetComponent *InComponent): Component(InComponent) { }
-
-        const std::vector<Cesium3DTile *> &Update(Cesium3DTileset *Tileset, const std::vector<ViewState> &ViewStates);
-    
-    private:
-        void UpdateInternal(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates);
-
-        void AddTileToUnloadQueue(Cesium3DTile *Tile);
-
-        void AddTileToRenderQueue(Cesium3DTile *Tile);
-
-        void LoadTiles();
-
-        void UnloadTiles();
-
-        /** Return true if tile is culled */
-        bool FrustumCull(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates);
-
-        /** 
-         * @brief Return true if the largest sse of this tile in all frustums is smaller than MaximumScreenSpaceError. 
-         * For screen space error, see "Level of Detail For 3D Graphics"
-         */
-        bool MeetsSSE(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates);
-
-        // std::set<Cesium3DTile *> TilesToRenderLastFrame;
-        std::vector<Cesium3DTile *> TilesToRenderThisFrame;
-
-        std::vector<Cesium3DTile *> LoadQueue;
-        std::vector<Cesium3DTile *> UnloadQueue;
-
-        UCesium3DTilesetComponent *Component;
-
-        // LRUCache Cache;
+        TileLoadingResult Result;
+        std::function<void(TileLoadingResult)> Func;
     };
+
+    // class Cesium3DTilesetSelector
+    // {
+    // public:
+    //     Cesium3DTilesetSelector(UCesium3DTilesetComponent *InComponent);
+    // };
 
     }   // namespace Cesium3DTilesetSelection
 
@@ -157,7 +149,50 @@ namespace nilou {
     private:
         std::shared_ptr<Cesium3DTilesetSelection::Cesium3DTileset> TilesetForSelection;
 
-        Cesium3DTilesetSelection::Cesium3DTilesetSelector TileSelector;
+        // Cesium3DTilesetSelection::Cesium3DTilesetSelector TileSelector;
+
+        std::vector<Cesium3DTilesetSelection::Cesium3DTile *> TilesToRenderThisFrame;
+
+
+        
+
+        void Update(Cesium3DTilesetSelection::Cesium3DTileset *Tileset, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
+
+        void LoadContent( 
+            Cesium3DTilesetSelection::Cesium3DTile *Tile, 
+            std::function<void(Cesium3DTilesetSelection::TileLoadingResult)> MainThreadFunc);
+
+        void DispatchMainThreadTask();
+
+        void UpdateInternal(Cesium3DTilesetSelection::Cesium3DTile *Tile, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
+
+        void AddTileToUnloadQueue(Cesium3DTilesetSelection::Cesium3DTile *Tile);
+
+        void AddTileToRenderQueue(Cesium3DTilesetSelection::Cesium3DTile *Tile);
+
+        void LoadTiles();
+
+        void UnloadTiles();
+
+        /** Return true if tile is culled */
+        bool FrustumCull(Cesium3DTilesetSelection::Cesium3DTile *Tile, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
+
+        /** 
+         * @brief Return true if the largest sse of this tile in all frustums is smaller than MaximumScreenSpaceError. 
+         * For screen space error, see "Level of Detail For 3D Graphics"
+         */
+        bool MeetsSSE(Cesium3DTilesetSelection::Cesium3DTile *Tile, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
+
+        // std::set<Cesium3DTile *> TilesToRenderLastFrame;
+
+        std::vector<Cesium3DTilesetSelection::Cesium3DTile *> LoadQueue;
+        std::vector<Cesium3DTilesetSelection::Cesium3DTile *> UnloadQueue;
+
+        BS::thread_pool pool;
+
+        std::queue<Cesium3DTilesetSelection::TileMainThreadTask> MainThreadTaskQueue;
+
+        std::mutex m;
     };
 
 

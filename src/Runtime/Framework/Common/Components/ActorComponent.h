@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Common/CoreUObject/Object.h"
+#include "Common/Log.h"
 // #include "ActorComponent.generated.h"
 
 namespace nilou {

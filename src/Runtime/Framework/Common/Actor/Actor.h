@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "Common/Log.h"
 #include "Common/AssertionMacros.h"
 #include "Common/Components/SceneComponent.h"
 #include "Common/Components/ActorComponent.h"
