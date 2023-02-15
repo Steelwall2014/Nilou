@@ -22,7 +22,7 @@ namespace nilou {
             else
                 return nullptr; 
         }
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
         std::string DebugCode;
 #endif
     };

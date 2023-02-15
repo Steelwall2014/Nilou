@@ -35,11 +35,11 @@
 #include "ShaderInstance.h"
 
 
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
 #include "Common/InputManager.h"
-#endif // _DEBUG
+#endif // NILOU_DEBUG
 
-//#define _DEBUG_SHOWNORMAL
+//#define NILOU_DEBUG_SHOWNORMAL
 namespace nilou {
     FDynamicRHI *GDynamicRHI = nullptr;
 }
@@ -338,7 +338,7 @@ namespace nilou {
 namespace nilou {
     void nilou::FOpenGLDynamicRHI::GetError(const char *file, int line)
     {
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
         GLenum errorCode;
         while ((errorCode = glGetError()) != GL_NO_ERROR)
         {
@@ -369,7 +369,7 @@ namespace nilou {
             }
             error_msg += " | "s + file + " ("s + std::to_string(line) + ")"s;
         }
-#endif // _DEBUG
+#endif // NILOU_DEBUG
     }
 }
 
@@ -1014,7 +1014,7 @@ namespace nilou {
             OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->Shader.get());
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
-            #ifdef _DEBUG
+            #ifdef NILOU_DEBUG
             if (PSO->Program == nullptr)
             {
                 NILOU_LOG(Warning, Initializer.VertexShader->DebugCode);

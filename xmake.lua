@@ -1,40 +1,11 @@
 add_rules("mode.release", "mode.debug")
 add_rules("plugin.vsxmake.autoupdate")
---add_requires("vcpkg::gdal", {alias = "gdal"})
--- target("crossguid")
---     set_runtimes("MDd")
---     set_languages("clatest")
---     set_languages("cxx17")
---     set_kind("static")
---     add_includedirs("./External/include")
---     add_files("External/include/crossguid/*.cpp")
--- target("dds")
---     set_runtimes("MDd")
---     set_languages("clatest")
---     set_languages("cxx17")
---     set_kind("static")
---     add_includedirs("./External/include")
---     add_files("External/include/dds/*.cpp")
--- target("glad")
---     set_runtimes("MDd")
---     set_languages("clatest")
---     set_languages("cxx17")
---     set_kind("static")
---     add_includedirs("./External/include")
---     add_files("External/include/glad/*.c")
--- target("imgui")
---     set_runtimes("MDd")
---     set_languages("clatest")
---     set_languages("cxx17")
---     set_kind("static")
---     add_includedirs("./External/include")
---     add_files("External/include/imgui/*.cpp")
--- target("tinygltf")
---     set_languages("clatest")
---     set_languages("cxx17")
---     set_kind("static")
---     add_includedirs("./External/include")
---     add_files("External/include/tinygltf/*.cpp")
+set_runtimes("MD")
+add_requires("vcpkg::gdal", {configs = {shared = true}})
+add_requires("vcpkg::glfw3")
+add_requires("vcpkg::imgui[glfw-binding,opengl3-binding]", { alias = "imgui" })
+add_requires("vcpkg::draco")
+add_requireconfs("*", {external = false})
 
 
 function Execute(map, func)
@@ -57,11 +28,11 @@ function BuildExternalProject(config)
     target(config.projectName)
     Execute(config.macros, add_defines)
     Execute(config.link, add_links)
-    if is_mode("release") then
-        set_runtimes("MD")
-    else 
-        set_runtimes("MDd")
-    end 
+    -- if is_mode("release") then
+    --     set_runtimes("MD")
+    -- else 
+    --     set_runtimes("MDd")
+    -- end 
     set_languages("clatest")
     set_languages("cxx17")
     set_kind("static")
@@ -92,33 +63,40 @@ function BuildProject(config)
     Execute(config.includePaths, add_includedirs)
     Execute(config.depends, add_deps)
     Execute(config.link, add_links)
+    Execute(config.package, add_packages)
 
+    if config.enableException then 
+        set_exceptions("cxx")
+    else 
+        set_exceptions("no-cxx")
+    end
+
+    -- set_runtimes("MD")
     if is_mode("release") then
-        add_defines("_RELEASE")
+        add_defines("NILOU_RELEASE")
         Execute(config.releaseLink, add_links)
         set_optimize("fastest")
         if is_plat("windows") then
-            set_runtimes("MD")
             add_cxflags(
                 --"/NODEFAULTLIB:libc.lib", "/NODEFAULTLIB:libcmt.lib", "/NODEFAULTLIB:libcd.lib", "/NODEFAULTLIB:libcmtd.lib", "/NODEFAULTLIB:msvcrtd.lib", 
                 "/Zi", "/W0", "/MP", "/Ob2", "/Oi", "/Ot", "/Oy", "/GT", "/GF", "/GS-", "/Gy", "/arch:AVX2",
                 "/fp:precise", "/Gr", "/TP", {
                     force = true
                 })
-            SetException(config)
+            -- SetException(config)
         end
     else
-        add_defines("_DEBUG")
+        add_defines("NILOU_DEBUG")
         Execute(config.debugLink, add_links)
         set_optimize("none")
         if is_plat("windows") then
-            set_runtimes("MDd")
+            -- set_runtimes("MDd")
             add_cxflags(
                 --"/NODEFAULTLIB:libc.lib", "/NODEFAULTLIB:libcmt.lib", "/NODEFAULTLIB:libcd.lib", "/NODEFAULTLIB:libcmtd.lib", "/NODEFAULTLIB:msvcrt.lib", 
                 "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", {
                 force = true
             })
-            SetException(config)
+            -- SetException(config)
         end
     end
     
@@ -170,9 +148,9 @@ function copyFunc(target)
 end
 ]]--
 BuildExternalProject({projectName = "crossguid", macros = {"GUID_WINDOWS"}, link = {"Ole32"}})
-BuildExternalProject({projectName = "dds"})
+-- BuildExternalProject({projectName = "dds"})
 BuildExternalProject({projectName = "glad"})
-BuildExternalProject({projectName = "imgui"})
+-- BuildExternalProject({projectName = "imgui"})
 
 include_paths = {
         "./External/include", 
@@ -186,21 +164,21 @@ include_paths = {
         "./src/Runtime/Serialization",
         "./src/Runtime/RenderPass",
         "./src/Runtime/Geospatial",
-        "./Assets/Shaders", 
-        "./External/include/GDAL"}
+        "./Assets/Shaders"}
  
 BuildProject({
     projectName = "Nilou",
     projectType = "binary",
     macros = {},
-    depends = {"crossguid", "dds", "glad", "imgui"},
+    depends = {"crossguid", "glad"},
     files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"./External/lib/*", "kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco"},
     -- beforeBuildFunc = ExecuteHeaderTool,
-    afterBuildFunc = copyFunc,
+    -- afterBuildFunc = copyFunc,
     enableException = true,
     --unityBuildBatch = 8
 })
@@ -214,7 +192,7 @@ BuildProject({
     releaseLink = {"lib/release/*"},
     link = {"./External/lib/*", "kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
     -- beforeBuildFunc = ExecuteHeaderTool,
-    afterBuildFunc = copyFunc,
+    -- afterBuildFunc = copyFunc,
     enableException = true,
     --unityBuildBatch = 8
 })
@@ -224,7 +202,7 @@ BuildProject({
     projectName = "TestUniformProject",
     projectType = "binary",
     macros = {"WORLD_UP_Z_FORWARD_X_RIGHT_Y"},
-    depends = {"crossguid", "dds", "glad", "imgui"},
+    depends = {"crossguid", "glad", "imgui"},
     files = {
         "src/Runtime/Framework/Common/UniformBuffer.cpp", 
         "src/Runtime/Rendering/RenderResource.cpp", 
@@ -235,7 +213,7 @@ BuildProject({
     releaseLink = {"lib/release/*"},
     link = {"./External/lib/*", "kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
     beforeBuildFunc = ExecuteHeaderTool,
-    afterBuildFunc = copyFunc,
+    -- afterBuildFunc = copyFunc,
     enableException = true,
     --unityBuildBatch = 8
 })

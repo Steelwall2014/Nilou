@@ -1,8 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 #include <OpenGL/OpenGLDynamicRHI.h>
 #include <Common/InputManager.h>
@@ -117,15 +117,15 @@ namespace nilou {
             std::cout << "Failed to initialize GLAD" << std::endl;
             return -1;
         }
-
+ 
         // Setup Dear ImGui context
-        // IMGUI_CHECKVERSION();
-        // ImGui::CreateContext();
-        // ImGuiIO &io = ImGui::GetIO(); (void)io;
-        // ImGui::StyleColorsDark();
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO &io = ImGui::GetIO(); (void)io;
+        ImGui::StyleColorsDark();
 
-        // ImGui_ImplGlfw_InitForOpenGL(window, true);
-        // ImGui_ImplOpenGL3_Init("#version 130");
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 130");
 
         World = std::make_shared<UWorld>();
         Scene = std::make_shared<FScene>();
@@ -164,9 +164,9 @@ namespace nilou {
 //         m_DrawPasses.push_back(new SeabedSurfacePass);
 
 //         m_DrawPasses.push_back(new DeferredRenderPass);
-// #ifdef _DEBUG
+// #ifdef NILOU_DEBUG
 //         m_DrawPasses.push_back(new DebugHUDPass);
-// #endif // _DEBUG
+// #endif // NILOU_DEBUG
 //         auto &frame = g_pSceneManager->frame;
 //         for (auto &&pass : m_DrawPasses)
 //         {

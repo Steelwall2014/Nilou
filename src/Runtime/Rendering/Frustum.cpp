@@ -12,6 +12,7 @@ namespace nilou {
         if (!Math::equalsEpsilon(glm::length(normal), 1.0, 1e-6)) 
         {
             NILOU_LOG(Fatal, "normal must be normalized.");
+            std::cout << normal << std::endl;;
         }
     }
 

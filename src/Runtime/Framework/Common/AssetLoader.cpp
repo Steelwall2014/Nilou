@@ -2,6 +2,7 @@
 #include "Modules/ModuleManager.h"
 #include "Templates/ObjectMacros.h"
 #include <filesystem>
+#define TINYGLTF_ENABLE_DRACO
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -13,7 +14,7 @@
 #include <gdal_priv.h>
 #include "Interface/IApplication.h"
 
-#include <dds/dds.h>
+#include "DDS.h"
 
 #include "AssetLoader.h"
 #include "Common/Log.h"

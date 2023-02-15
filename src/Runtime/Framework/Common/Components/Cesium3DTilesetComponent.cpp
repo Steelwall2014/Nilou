@@ -179,9 +179,9 @@ namespace nilou {
                 else 
                 {
                     AddTileToUnloadQueue(Tile);
-                    for (std::shared_ptr<Cesium3DTile> Tile : Tile->Children)
+                    for (std::shared_ptr<Cesium3DTile> tile : Tile->Children)
                     {
-                        UpdateInternal(Tile.get(), ViewStates);
+                        UpdateInternal(tile.get(), ViewStates);
                     }
                 }
             }
@@ -190,9 +190,9 @@ namespace nilou {
                 if (Tile->Content.B3dm == nullptr)
                 {
                     AddTileToUnloadQueue(Tile);
-                    for (std::shared_ptr<Cesium3DTile> Tile : Tile->Children)
+                    for (std::shared_ptr<Cesium3DTile> tile : Tile->Children)
                     {
-                        UpdateInternal(Tile.get(), ViewStates);
+                        UpdateInternal(tile.get(), ViewStates);
                     }
                 }
                 else 

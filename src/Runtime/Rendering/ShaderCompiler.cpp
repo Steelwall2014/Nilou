@@ -19,7 +19,7 @@
 #include "VertexFactory.h"
 #include "Common/Log.h"
 
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
 #include <fstream>
 void Write(std::string filename, std::string code)
 {
@@ -253,7 +253,7 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
             ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment);
-        #ifdef _DEBUG
+        #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+".glsl", code);
         #endif
@@ -299,7 +299,7 @@ namespace nilou {
             ShaderInstance->Parameters, 
             {&Material->ParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
             Environment);
-        #ifdef _DEBUG
+        #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(
                 ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+
@@ -330,7 +330,7 @@ namespace nilou {
             ShaderInstance->Parameters, 
             {&Material->ParsedResult, &ShaderType->ParsedResult}, 
             Environment);
-        #ifdef _DEBUG
+        #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(
                 ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+

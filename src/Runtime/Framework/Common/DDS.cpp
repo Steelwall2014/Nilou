@@ -32,7 +32,7 @@ namespace dds {
 		GL_RG32F,
 		GL_RGBA32F_ARB
 	};
-
+ 
 	GLenum map_Format_Format[] = {
 		0,
 		GL_RED,

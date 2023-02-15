@@ -18,11 +18,11 @@ uniform sampler3D SingleScatteringMieLUT;
 
 void main()
 {        
-    if (CameraPosition.z < 0)
-    {
-        FragColor = vec4(0, 0, 0, 1.f);
-        return;
-    }
+//    if (CameraPosition.z < 0)
+//    {
+//        FragColor = vec4(0, 0, 0, 1.f);
+//        return;
+//    }
     vec3 SunLightDir = light.lightDirection;
     vec3 sun_direction = -normalize(SunLightDir);
     vec4 ndc = vec4(uv*2-1, gl_FragCoord.z*2-1, 1.0);

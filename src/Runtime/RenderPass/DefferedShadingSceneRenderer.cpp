@@ -15,7 +15,7 @@
 #include "BasePassRendering.h"
 #include "LightingPassRendering.h"
 
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
 #include "CoordinateAxis.h"
 #endif
 

@@ -11,13 +11,13 @@ namespace nilou {
         FHashedName(const std::string &RawName)
         {
             Hash = std::hash<std::string>()(RawName);
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
             DebugString = RawName;
 #endif
         }
     
         int64 Hash;
-#ifdef _DEBUG
+#ifdef NILOU_DEBUG
         std::string DebugString;
 #endif
 
