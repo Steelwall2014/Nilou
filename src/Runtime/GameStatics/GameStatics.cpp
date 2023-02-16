@@ -195,6 +195,13 @@ namespace nilou {
             // 因为occlusionMap在渲染中还没有用到，所以暂时先不处理
             // AccessTextures(gltf_material.occlusionTexture.index, "occlusionMap", "HAS_OCCLUSION");
             AccessTextures(gltf_material.normalTexture.index, "normalMap", "HAS_NORMAL");
+            
+            material_code << "#define _GLTF_METALLIC_FACTOR (" << std::to_string(gltf_material.pbrMetallicRoughness.metallicFactor) << ")\n";
+            material_code << "#define _GLTF_ROUGHNESS_FACTOR (" << std::to_string(gltf_material.pbrMetallicRoughness.roughnessFactor) << ")\n";
+            // material_code << "#define _GLTF_BASECOLOR_FACTOR_R (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[0]) << ")";
+            // material_code << "#define _GLTF_BASECOLOR_FACTOR_G (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[1]) << ")";
+            // material_code << "#define _GLTF_BASECOLOR_FACTOR_B (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[2]) << ")";
+            // material_code << "#define _GLTF_BASECOLOR_FACTOR_A (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[3]) << ")";
 
             material_code << R"(
                 vec4 MaterialGetBaseColor(VS_Out vs_out)
@@ -219,6 +226,7 @@ namespace nilou {
                 {
                 #if HAS_NORMAL
                     vec3 tangent_normal = texture(normalMap, vs_out.TexCoords).rgb;
+                    tangent_normal.y *= -1;     // glTF right-handed to Unreal left-handed
                     tangent_normal = normalize(tangent_normal * 2.0f - 1.0f);
                     return normalize(vs_out.TBN * tangent_normal);
                 #else
@@ -240,7 +248,7 @@ namespace nilou {
                 #if HAS_METALLICROUGHNESS
                     return texture(metallicRoughnessMap, vs_out.TexCoords).g;
                 #else
-                    return 0.5;
+                    return _GLTF_ROUGHNESS_FACTOR;
                 #endif
                 }
 
@@ -249,7 +257,7 @@ namespace nilou {
                 #if HAS_METALLICROUGHNESS
                     return texture(metallicRoughnessMap, vs_out.TexCoords).b;
                 #else
-                    return 0.5;
+                    return _GLTF_METALLIC_FACTOR;
                 #endif
                 }
 

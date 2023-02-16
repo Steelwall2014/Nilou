@@ -351,7 +351,15 @@ namespace nilou {
     }
     bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FOrientedBoundingBox &OBB) const
     {
-        return OBB.IntersectPlane(plane) == ECullingResult::CR_Outside;
+        // return OBB.IntersectPlane(plane) == ECullingResult::CR_Outside;
+        return  IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]+OBB.HalfAxes[1]+OBB.HalfAxes[2]) && 
+                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]+OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]-OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]+OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]-OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]-OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]+OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
+                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]-OBB.HalfAxes[1]-OBB.HalfAxes[2]);
     }
     bool FViewFrustum::IsBoxOutSideFrustum(const FBoundingBox &AABB) const
     {

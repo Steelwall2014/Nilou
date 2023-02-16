@@ -352,4 +352,147 @@ namespace nilou {
         }
 
     }
+
+    void BuildCuboidVerts(float width, float length, float height, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    {
+        /**                              z
+         *       _______________         |   x
+         *      /|    5        /|        |  /
+         *     /_________2____/ |        | /
+         *     |3|____________|1|        |/________ y
+         *     | /     0      | /
+         *     |/______4______|/
+         * 
+         *     0-4 are side faces.
+         *     4 is bottom, 5 is top.
+         */
+
+
+        vec3 halfAxis = vec3(width/2, length/2, height/2);
+        FDynamicMeshVertex vertex0, vertex1, vertex2, vertex3;
+        vertex0.TextureCoordinate[0] = vec2(0, 1);
+        vertex1.TextureCoordinate[0] = vec2(1, 1);
+        vertex2.TextureCoordinate[0] = vec2(1, 0);
+        vertex3.TextureCoordinate[0] = vec2(0, 0);
+        vec3 normal;
+        vec3 tangentx;
+        vec3 tangenty;
+
+        for (int face_index = 0; face_index < 6; face_index++)
+        {
+            OutIndices.push_back(face_index*4 + 0);
+            OutIndices.push_back(face_index*4 + 1);
+            OutIndices.push_back(face_index*4 + 2);
+            OutIndices.push_back(face_index*4 + 0);
+            OutIndices.push_back(face_index*4 + 2);
+            OutIndices.push_back(face_index*4 + 3);
+        }
+        
+        {   // face 0
+            normal = vec3(-1, 0, 0);
+            tangentx = vec3(0, 1, 0);
+            tangenty = vec3(0, 0, -1);
+            vertex0.Position = halfAxis * vec3(-1, -1, -1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(-1, 1, -1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(-1, 1, 1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(-1, -1, 1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+        {   // face 1
+            normal = vec3(0, 1, 0);
+            tangentx = vec3(1, 0, 0);
+            tangenty = vec3(0, 0, -1);
+            vertex0.Position = halfAxis * vec3(-1, 1, -1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(1, 1, -1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(1, 1, 1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(-1, 1, 1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+
+        {   // face 2
+            normal = vec3(1, 0, 0);
+            tangentx = vec3(0, -1, 0);
+            tangenty = vec3(0, 0, -1);
+            vertex0.Position = halfAxis * vec3(1, 1, -1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(1, -1, -1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(1, -1, 1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(1, 1, 1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+
+        {   // face 3
+            normal = vec3(0, -1, 0);
+            tangentx = vec3(-1, 0, 0);
+            tangenty = vec3(0, 0, -1);
+            vertex0.Position = halfAxis * vec3(1, -1, -1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(-1, -1, -1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(-1, -1, 1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(1, -1, 1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+
+        {   // face 4
+            normal = vec3(0, 0, -1);
+            tangentx = vec3(-1, 0, 0);
+            tangenty = vec3(0, 1, 0);
+            vertex0.Position = halfAxis * vec3(1, 1, -1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(-1, 1, -1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(-1, -1, -1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(1, -1, -1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+
+        {   // face 5
+            normal = vec3(0, 0, 1);
+            tangentx = vec3(1, 0, 0);
+            tangenty = vec3(0, 1, 0);
+            vertex0.Position = halfAxis * vec3(-1, 1, 1);
+            vertex0.SetTangents(tangentx, tangenty, normal);
+            vertex1.Position = halfAxis * vec3(1, 1, 1);
+            vertex1.SetTangents(tangentx, tangenty, normal);
+            vertex2.Position = halfAxis * vec3(1, -1, 1);
+            vertex2.SetTangents(tangentx, tangenty, normal);
+            vertex3.Position = halfAxis * vec3(-1, -1, 1);
+            vertex3.SetTangents(tangentx, tangenty, normal);
+            OutVerts.push_back(vertex0);
+            OutVerts.push_back(vertex1);
+            OutVerts.push_back(vertex2);
+            OutVerts.push_back(vertex3);
+        }
+    }
 }

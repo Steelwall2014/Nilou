@@ -10,17 +10,25 @@
 namespace tiny3dtiles {
 struct B3DM
 {
-    unsigned char magic[4];
+    char magic[4];
     unsigned int version, byteLength, 
         featureTableJSONByteLength, featureTableBinaryByteLength, 
-        batchTableJSONByteLength, batchTableBinaryByteLength;
-    std::string featureTableJSON;
+        batchTableJSONByteLength, batchTableBinaryByteLength, gltfByteLength;
     std::vector<unsigned char> featureTableBinary;
-    std::string batchTableJSON;
     std::vector<unsigned char> batchTableBinary;
     std::vector<unsigned char> glb;
-    void reset();
-    friend std::istream &operator>>(std::istream &stream, B3DM &b3dm);
+    std::string featureTableJSON;
+    std::string batchTableJSON;
+    void load_header(const std::string &path);
+    void load_header(std::istream &stream);
+    void load_glb(const std::string &path);
+    void load_glb(std::istream &stream);
+    void load(const std::string &path);
+    void load(std::istream &stream);
+    void reset_all();
+    void reset_header();
+    void reset_glb();
+    bool header_loaded() const;
 }; 
 
 struct BoundingVolume
@@ -39,8 +47,7 @@ public:
         BoundingVolume boundingVolume;
         std::string uri;
         std::shared_ptr<class Tileset> external_tileset = nullptr;
-        std::shared_ptr<B3DM> b3dm = nullptr;
-        void load_b3dm();
+        B3DM b3dm;
     };
     enum class Refinement
     {

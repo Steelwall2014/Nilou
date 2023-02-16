@@ -102,7 +102,7 @@ namespace nilou {
         *
         * @param center The center of the box.
         * @param halfAxes The three orthogonal half-axes of the bounding box.
-        * Equivalently, the transformation matrix to rotate and scale a 1x1x1 cube
+        * Equivalently, the transformation matrix to rotate and scale a 2x2x2 cube
         * centered at the origin.
         */
         FOrientedBoundingBox(const glm::dvec3& center, const glm::dmat3& halfAxes) noexcept
@@ -191,13 +191,13 @@ namespace nilou {
 
         /**
          * @brief Calculate if the axis-aligned bounding box is out of frustum, 
-         * ignoring near and far clip plane to get faster.
+         * ignoring near and far clip plane to make it faster.
          */
         bool IsBoxOutSideFrustumFast(const FBoundingBox &AABB) const;
 
         /**
          * @brief Calculate if the oriented bounding box is out of frustum, 
-         * ignoring near and far clip plane to get faster.
+         * ignoring near and far clip plane to make it faster.
          */
         bool IsBoxOutSideFrustumFast(const FOrientedBoundingBox &OBB) const;
 

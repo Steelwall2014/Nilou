@@ -39,15 +39,22 @@ namespace nilou {
         Loaded
     };
 
+    enum class ETileGltfUpAxis
+    {
+        X,
+        Y,
+        Z
+    };
+
     class Cesium3DTile
     {
     public:
-        friend class LRUCache;
+        // friend class LRUCache;
         friend class UCesium3DTilesetComponent;
         struct TileContent
         {
             std::string URI;
-            std::shared_ptr<tiny3dtiles::B3DM> B3dm = nullptr;
+            tiny3dtiles::B3DM B3dm;
             GLTFParseResult Gltf;
         };
         tiny3dtiles::Tile::Refinement Refine = tiny3dtiles::Tile::Refinement::REFINE;
@@ -58,11 +65,13 @@ namespace nilou {
         glm::dmat4 Transform = glm::dmat4(1);   // The matrix that has been multiplied with parent transforms
         TUniformBufferRef<FPrimitiveShaderParameters> TransformRHI;
         ETileLoadingState LoadingState;
+        ETileGltfUpAxis TileGltfUpAxis = ETileGltfUpAxis::Y;
+        glm::dvec3 RtcCenter;
 
         static std::shared_ptr<Cesium3DTile> BuildTile(
-            std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform);
+            std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform, ETileGltfUpAxis TileGltfUpAxis);
     private:
-        std::list<Cesium3DTile *>::iterator iter;
+        // std::list<Cesium3DTile *>::iterator iter;
         bool IsLeaf() const { return Children.empty(); }
     };
 
@@ -77,22 +86,22 @@ namespace nilou {
             std::shared_ptr<tiny3dtiles::Tileset> Tileset, const glm::dmat4 &parentTransform);
     };
 
-    class LRUCache
-    {
-    public:
-        LRUCache() { }
+    // class LRUCache
+    // {
+    // public:
+    //     LRUCache() { }
 
-        LRUCache(int Capacity);
+    //     LRUCache(int Capacity);
 
-        void Load(Cesium3DTile *Tile);
+    //     void Load(Cesium3DTile *Tile);
 
-        int Capacity;
+    //     int Capacity;
 
-    private:
+    // private:
 
-        std::list<Cesium3DTile *> LoadedTiles;
+    //     std::list<Cesium3DTile *> LoadedTiles;
 
-    };
+    // };
 
 
     struct TileMainThreadTask
@@ -124,9 +133,21 @@ namespace nilou {
         virtual FPrimitiveSceneProxy *CreateSceneProxy() override;
 
         virtual FBoundingBox CalcBounds(const FTransform &LocalToWorld) const override;
+
+        virtual void SendRenderDynamicData() override;
+
+        void SetShowBoundingBox(bool InShowBoundingBox);
+
+        bool GetShowBoundingBox() const { return bShowBoundingBox; }
+
+        void SetGeoreference(AGeoreferenceActor *InGeoreference);
+
+        AGeoreferenceActor *GetGeoreference() const { return Georeference; }
         
-        inline std::string GetURI() const { return URI; }
+        std::string GetURI() const { return URI; }
+
         void SetURI(const std::string &NewURI);
+
         inline double GetMaxScreenSpaceError() const { return MaximumScreenSpaceError; }
         inline void SetMaxScreenSpaceError(double NewMaxScreenSpaceError) { MaximumScreenSpaceError = NewMaxScreenSpaceError; }
         inline bool GetEnableFrustumCulling() const { return bEnableFrustumCulling; }
@@ -141,6 +162,8 @@ namespace nilou {
         double MaximumScreenSpaceError;
 
         bool bEnableFrustumCulling;
+
+        bool bShowBoundingBox;
 
         std::shared_ptr<tiny3dtiles::Tileset> Tileset;
 
@@ -192,7 +215,7 @@ namespace nilou {
 
         std::queue<Cesium3DTilesetSelection::TileMainThreadTask> MainThreadTaskQueue;
 
-        std::mutex m;
+        std::mutex mutex;
     };
 
 

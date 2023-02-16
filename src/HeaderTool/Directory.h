@@ -5,7 +5,6 @@
 #include <filesystem>
 
 #include "HeaderToolFile.h"
-#include "GameStatics.h"
 
 namespace HeaderTool {
     class Directory

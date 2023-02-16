@@ -184,16 +184,14 @@ BuildProject({
 })
 
 BuildProject({
-    projectName = "GltfMaterialImporter",
+    projectName = "HeaderTool",
     projectType = "binary",
-    files = {"src/GltfMaterialImporter/**.cpp"},
-    includePaths = include_paths,
-    debugLink = {"lib/debug/*"},
-    releaseLink = {"lib/release/*"},
-    link = {"./External/lib/*", "kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    -- beforeBuildFunc = ExecuteHeaderTool,
-    -- afterBuildFunc = copyFunc,
+    files = {
+        "src/HeaderTool/**.cpp"},
+    includePaths = {
+        "./src/HeaderTool/"},
     enableException = true,
+    -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
 
@@ -201,8 +199,8 @@ BuildProject({
 BuildProject({
     projectName = "TestUniformProject",
     projectType = "binary",
-    macros = {"WORLD_UP_Z_FORWARD_X_RIGHT_Y"},
-    depends = {"crossguid", "glad", "imgui"},
+    macros = {},
+    depends = {"crossguid", "glad"},
     files = {
         "src/Runtime/Framework/Common/UniformBuffer.cpp", 
         "src/Runtime/Rendering/RenderResource.cpp", 
@@ -211,24 +209,10 @@ BuildProject({
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"./External/lib/*", "kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
     beforeBuildFunc = ExecuteHeaderTool,
     -- afterBuildFunc = copyFunc,
     enableException = true,
-    --unityBuildBatch = 8
-})
-
-BuildProject({
-    projectName = "HeaderTool",
-    projectType = "binary",
-    files = {
-        "src/HeaderTool/**.cpp",
-        "./src/Runtime/GameStatics/**.cpp",},
-    includePaths = {
-        "./src/HeaderTool/",
-        "./src/Runtime/GameStatics/"},
-    enableException = true,
-    -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
 

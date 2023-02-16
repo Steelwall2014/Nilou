@@ -59,66 +59,127 @@ std::string GetFilePathExtension(const std::string &FileName)
   return "";
 }
 
-void B3DM::reset()
+void B3DM::load_header(const std::string &path)
+{
+    std::ifstream stream(path, std::ios::binary);
+    load_header(stream);
+}
+
+void B3DM::load_header(std::istream &stream)
+{
+    binary_istream in(stream);
+    in >> magic[0] >> magic[1] >> magic[2] >> magic[3];
+    in >> version >> byteLength >> featureTableJSONByteLength >> featureTableBinaryByteLength >> batchTableJSONByteLength >> batchTableBinaryByteLength;
+    gltfByteLength = 
+            byteLength-28-
+            featureTableJSONByteLength-batchTableJSONByteLength-
+            featureTableBinaryByteLength-batchTableBinaryByteLength;
+    featureTableJSON.resize(featureTableJSONByteLength);
+    for (int i = 0; i < featureTableJSONByteLength; i++)
+    {
+        in >> featureTableJSON[i];
+    }
+    if (featureTableBinaryByteLength != 0)
+    {
+        featureTableBinary.resize(featureTableBinaryByteLength);
+        for (int i = 0; i < featureTableBinaryByteLength; i++)
+            in >> featureTableBinary[i];
+        // featureTableBinary = std::make_shared<unsigned char>(featureTableBinaryByteLength);
+        // stream.readsome((char*)featureTableBinary.get(), featureTableBinaryByteLength);
+    }
+
+    batchTableJSON.resize(batchTableJSONByteLength);
+    for (int i = 0; i < batchTableJSONByteLength; i++)
+    {
+        in >> batchTableJSON[i];
+    }
+    if (batchTableBinaryByteLength != 0)
+    {
+        batchTableBinary.resize(batchTableBinaryByteLength);
+        for (int i = 0; i < batchTableBinaryByteLength; i++)
+            in >> batchTableBinary[i];
+        // batchTableBinary = std::make_shared<unsigned char>(batchTableBinaryByteLength);
+        // stream.readsome((char*)batchTableBinary.get(), batchTableBinaryByteLength);
+    }
+}
+
+void B3DM::load_glb(const std::string &path)
+{
+    std::ifstream stream(path, std::ios::binary);
+    load_glb(stream);
+}
+
+void B3DM::load_glb(std::istream &stream)
+{
+    if (!header_loaded())
+    {
+        load_header(stream);
+    }
+    else 
+    {
+        stream.seekg(byteLength-gltfByteLength);
+    }
+    binary_istream in(stream);
+
+    if (gltfByteLength != 0)
+    {
+        glb.resize(gltfByteLength);
+        for (int i = 0; i < gltfByteLength; i++)
+            in >> glb[i];
+        // glb = std::make_shared<unsigned char>(gltfByteLength);
+        // stream.readsome((char*)glb.get(), gltfByteLength);
+    }
+}
+
+void B3DM::load(const std::string &path) 
+{ 
+    std::ifstream stream(path, std::ios::binary);
+    load(stream);
+}
+void B3DM::load(std::istream &stream) 
+{ 
+    load_header(stream); 
+    load_glb(stream); 
+}
+
+void B3DM::reset_all()
+{
+    reset_header();
+    reset_glb();
+}
+
+void B3DM::reset_header()
 {
     std::memset(magic, 0, 4);
     version = byteLength = 
-    featureTableJSONByteLength = featureTableBinaryByteLength = 
-    batchTableJSONByteLength = batchTableBinaryByteLength = 0;
+        featureTableJSONByteLength = featureTableBinaryByteLength = 
+        batchTableJSONByteLength = batchTableBinaryByteLength = 0;
     featureTableJSON = "";
     featureTableBinary.clear();
+    // if (featureTableBinary != nullptr)
+    // {
+    //     featureTableBinary = nullptr;
+    // }
     batchTableJSON = "";
     batchTableBinary.clear();
+    // if (batchTableBinary != nullptr)
+    // {
+    //     batchTableBinary = nullptr;
+    // }
+}
+
+void B3DM::reset_glb()
+{
     glb.clear();
+    // if (glb != nullptr)
+    // {
+    //     glb = nullptr;
+    // }
 }
 
-std::istream &operator>>(std::istream &stream, B3DM &b3dm)
+bool B3DM::header_loaded() const
 {
-    binary_istream in(stream);
-    in >> b3dm.magic[0] >> b3dm.magic[1] >> b3dm.magic[2] >> b3dm.magic[3];
-    in >> b3dm.version >> b3dm.byteLength >> b3dm.featureTableJSONByteLength >> b3dm.featureTableBinaryByteLength >> b3dm.batchTableJSONByteLength >> b3dm.batchTableBinaryByteLength;
-    b3dm.featureTableJSON.resize(b3dm.featureTableJSONByteLength);
-    for (int i = 0; i < b3dm.featureTableJSONByteLength; i++)
-    {
-        in >> b3dm.featureTableJSON[i];
-    }
-    b3dm.featureTableBinary.resize(b3dm.featureTableBinaryByteLength);
-    for (int i = 0; i < b3dm.featureTableBinaryByteLength; i++)
-    {
-        in >> b3dm.featureTableBinary[i];
-    }
-    b3dm.batchTableJSON.resize(b3dm.batchTableJSONByteLength);
-    for (int i = 0; i < b3dm.batchTableJSONByteLength; i++)
-    {
-        in >> b3dm.batchTableJSON[i];
-    }
-    b3dm.batchTableBinary.resize(b3dm.batchTableBinaryByteLength);
-    for (int i = 0; i < b3dm.batchTableBinaryByteLength; i++)
-    {
-        in >> b3dm.batchTableBinary[i];
-    }
-    int gltf_size = 
-        b3dm.byteLength-28-
-        b3dm.featureTableJSONByteLength-b3dm.batchTableJSONByteLength-
-        b3dm.featureTableBinaryByteLength-b3dm.batchTableBinaryByteLength;
-    b3dm.glb.resize(gltf_size);
-    for (int i = 0; i < gltf_size; i++)
-    {
-        in >> b3dm.glb[i];
-    }
-    return stream;
-}
-
-void Tile::Content::load_b3dm()
-{
-    if (GetFilePathExtension(uri) == "b3dm")
-    {
-        if (b3dm == nullptr)
-            b3dm = std::make_shared<B3DM>();        
-        
-        std::ifstream stream(uri, std::ios::binary);
-        stream >> *b3dm;
-    }
+    return magic[0] == 'b' && magic[1] == '3' && magic[2] == 'd' && magic[3] == 'm';
 }
 
 void BoundingVolume::from_json(json boundingVolume)
@@ -198,22 +259,23 @@ std::shared_ptr<Tile> Loader::BuildTile(const nlohmann::json &tile_json, const f
         if (content_json.count("uri") != 0)
         {            
             tile->content.uri = content_json["uri"].get<std::string>();
-            fs::path path = fs::canonical(CurrentTilesetJSONFilePath.parent_path() / fs::path(tile->content.uri));
+            fs::path path = fs::weakly_canonical(CurrentTilesetJSONFilePath.parent_path() / fs::path(tile->content.uri));
             tile->content.uri = path.generic_string();
-            const std::string ext = GetFilePathExtension(tile->content.uri);
-            if (ext == "b3dm")
-            {
-                // std::ifstream blob(path, std::ios::binary);
-                tile->content.b3dm = std::make_shared<B3DM>();
-                // blob >> *tile->content.b3dm;
-            }
-            else if (ext == "json")
-            {
-                content_is_tileset = true;
-                std::ifstream tileset_json_file(path);
-                nlohmann::json tileset_json;
-                tileset_json_file >> tileset_json;
-                tile->content.external_tileset = BuildTileset(tileset_json, path);
+            if (fs::exists(path))
+            {            
+                const std::string ext = GetFilePathExtension(tile->content.uri);
+                if (ext == "b3dm")
+                {
+                    tile->content.b3dm.load_header(tile->content.uri);
+                }
+                else if (ext == "json")
+                {
+                    content_is_tileset = true;
+                    std::ifstream tileset_json_file(path);
+                    nlohmann::json tileset_json;
+                    tileset_json_file >> tileset_json;
+                    tile->content.external_tileset = BuildTileset(tileset_json, path);
+                }
             }
         }
         else 
@@ -257,10 +319,14 @@ std::shared_ptr<Tileset> Loader::BuildTileset(const nlohmann::json &tileset_json
 
 std::shared_ptr<Tileset> Loader::LoadTileset(const std::string &FilePath)
 {
-    std::ifstream input_3dtiles_root_json_file(FilePath);
-    nlohmann::json root_tileset_json;
-    input_3dtiles_root_json_file >> root_tileset_json;
-    return BuildTileset(root_tileset_json, fs::path(FilePath));
+    if (fs::exists(FilePath))
+    {
+        std::ifstream input_3dtiles_root_json_file(FilePath);
+        nlohmann::json root_tileset_json;
+        input_3dtiles_root_json_file >> root_tileset_json;
+        return BuildTileset(root_tileset_json, fs::path(FilePath));
+    }
+    return nullptr;
 }
 
 }   // namespace tiny3dtiles

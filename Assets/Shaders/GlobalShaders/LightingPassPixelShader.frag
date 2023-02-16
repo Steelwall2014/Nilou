@@ -53,7 +53,7 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     float NdotL = max(dot(N, L), 0.0); 
     float NdotV = max(dot(N, V), 0.0); 
     vec3 F0 = vec3(0.04); 
-    F0 = F0 * 0.5 + params.baseColor.rgb * 0.5;//mix(F0, params.baseColor.rgb, params.metallic);
+    F0 = mix(F0, params.baseColor.rgb, params.metallic);
     vec3 F = fresnel_Schlick(F0, clamp(dot(H, L), 0.0, 1.0));
     float G = GeometrySmith(NdotL, NdotV, params.roughness);
     float NDF = NDF_GGXTR(N, H, params.roughness);

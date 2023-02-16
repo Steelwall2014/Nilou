@@ -123,6 +123,38 @@ namespace nilou {
                 return vec3(0);
             }
         )");
+        
+        std::shared_ptr<FMaterial> WireframeMaterial = std::make_shared<FMaterial>("WireframeMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(WireframeMaterial->GetMaterialName(), WireframeMaterial);
+        WireframeMaterial->UpdateMaterialCode(
+        R"(
+            #include "../include/BasePassCommon.glsl"
+            vec4 MaterialGetBaseColor(VS_Out vs_out)
+            {
+                return vec4(0, 0, 0, 1);
+            }
+            vec3 MaterialGetEmissive(VS_Out vs_out)
+            {
+                return vec3(0);
+            }
+            vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
+            {
+                return normalize(vs_out.TBN * vec3(0, 0, 1));
+            }
+            float MaterialGetRoughness(VS_Out vs_out)
+            {
+                return 0.5;
+            }
+            float MaterialGetMetallic(VS_Out vs_out)
+            {
+                return 0.5;
+            }
+            vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
+            {
+                return vec3(0);
+            }
+        )");
+        WireframeMaterial->RasterizerState.FillMode = ERasterizerFillMode::FM_Wireframe;
     }
 
     UWorld::UWorld()
@@ -192,19 +224,20 @@ namespace nilou {
 
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
         
-        LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
-        LightActorTransform.SetRotator(FRotator(-45, -45, 0));
+        // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
+        LightActorTransform.SetRotator(FRotator(-45, 0, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
-        DirectionalLightActor->LightComponent->SetIntensity(20.f);
+        DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
         
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        GeoreferenceActor->SetGeoreferenceOrigin(84.77919, 45.65036, 619.61749);
+        GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
 
         std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_my_debug\tileset.json)");
+        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab_debug\tileset.json)");
         TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
     }
 
     void UWorld::Tick(double DeltaTime)

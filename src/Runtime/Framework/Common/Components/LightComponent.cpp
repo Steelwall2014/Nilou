@@ -18,7 +18,7 @@ namespace nilou {
         : USceneComponent(InOwner)
         , LightType(ELightType::LT_Spot)
         , LightColor(vec4(1.0f, 1.0f, 1.0f, 1.0f))
-        , Intensity(50.f)
+        , Intensity(5.f)
         , bCastShadow(true)
         , NearClipDistance(1.f)
         , FarClipDistance(1000000.f)
