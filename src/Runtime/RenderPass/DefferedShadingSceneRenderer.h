@@ -67,8 +67,8 @@ namespace nilou {
 
         virtual void Render();
 
-        virtual void AddCamera(FCameraSceneInfo *CameraInfo);
-        virtual void RemoveCamera(FCameraSceneInfo *CameraInfo);
+        virtual void AddCamera(FViewSceneInfo *CameraInfo);
+        virtual void RemoveCamera(FViewSceneInfo *CameraInfo);
 
     private:
 
@@ -121,20 +121,22 @@ namespace nilou {
 
         void RenderAtmospherePass(FDynamicRHI *RHICmdList);
 
+        void RenderViewElementPass(FDynamicRHI *RHICmdList);
+
         void RenderToScreen(FDynamicRHI *RHICmdList);
 
         FScene *Scene = nullptr;
         
         struct RenderViews
         {
-            RenderViews(FCameraSceneInfo *InCameraSceneInfo, const FSceneTextures &InSceneTextures)
-                : CameraSceneInfo(InCameraSceneInfo), SceneTextures(InSceneTextures) { }
-            FCameraSceneInfo *CameraSceneInfo;
+            RenderViews(FViewSceneInfo *InViewSceneInfo, const FSceneTextures &InSceneTextures)
+                : ViewSceneInfo(InViewSceneInfo), SceneTextures(InSceneTextures) { }
+            FViewSceneInfo *ViewSceneInfo;
             FSceneTextures SceneTextures;
             FParallelMeshDrawCommands MeshDrawCommands;
         };
         std::vector<RenderViews> Views;
-        // std::vector<FCameraSceneInfo *> Views;
+        // std::vector<FViewSceneInfo *> Views;
         // std::vector<FSceneTextures> PerViewSceneTextures;
         std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
         FMeshElementCollector Collector;

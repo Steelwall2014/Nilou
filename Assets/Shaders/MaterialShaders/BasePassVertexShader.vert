@@ -33,7 +33,7 @@ void main()
     vs_out.TexCoords = VertexFactoryGetTexCoord(VFIntermediates);
 	vs_out.WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
     vs_out.WorldPosition += MaterialGetWorldSpaceOffset(vs_out);
-    vs_out.ClipPosition = WorldToClip * vec4(vs_out.WorldPosition, 1);
+    vs_out.ClipPosition = RelWorldToClip * vec4(vs_out.WorldPosition, 1);
 //    pos.x *= -1;
     gl_Position = vs_out.ClipPosition;
 }

@@ -24,7 +24,6 @@ layout (std140) uniform FLightUniformBlock {
     FLightShaderParameters light;
 };
 
-// WorldToClip = ViewToClip * WorldToView
 #include "../include/ViewShaderParameters.glsl"
 
 struct ShadingParams

@@ -117,19 +117,19 @@ namespace nilou {
         UVVertexInput.Type = EVertexElementType::VET_Float2;
     }
 
-    void FDefferedShadingSceneRenderer::AddCamera(FCameraSceneInfo *CameraSceneInfo)
+    void FDefferedShadingSceneRenderer::AddCamera(FViewSceneInfo *ViewSceneInfo)
     {
         FSceneTextures SceneTextures;
-        CreateSceneTextures(CameraSceneInfo->GetResolution(), SceneTextures);
-        Views.emplace_back(CameraSceneInfo, SceneTextures);
+        CreateSceneTextures(ViewSceneInfo->GetResolution(), SceneTextures);
+        Views.emplace_back(ViewSceneInfo, SceneTextures);
         PerViewMeshBatches.push_back(std::vector<FMeshBatch>());
     }
 
-    void FDefferedShadingSceneRenderer::RemoveCamera(FCameraSceneInfo *CameraSceneInfo)
+    void FDefferedShadingSceneRenderer::RemoveCamera(FViewSceneInfo *ViewSceneInfo)
     {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            if (Views[ViewIndex].CameraSceneInfo = CameraSceneInfo)
+            if (Views[ViewIndex].ViewSceneInfo = ViewSceneInfo)
             {
                 Views.erase(Views.begin() + ViewIndex);
                 PerViewMeshBatches.erase(PerViewMeshBatches.begin() + ViewIndex);
@@ -140,13 +140,14 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
     {
+        // TODO: 有时间还是把下面这个东西放到FScene里吧，然后FScene来调Renderer的一个方法来更新framebuffer
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraSceneInfo = Views[ViewIndex].CameraSceneInfo;
-            if (CameraSceneInfo->bNeedsFramebufferUpdate)
+            FViewSceneInfo *ViewSceneInfo = Views[ViewIndex].ViewSceneInfo;
+            if (ViewSceneInfo->bNeedsFramebufferUpdate)
             {
-                CreateSceneTextures(CameraSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
-                CameraSceneInfo->SetNeedsFramebufferUpdate(false);
+                CreateSceneTextures(ViewSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
+                ViewSceneInfo->SetNeedsFramebufferUpdate(false);
             }
             PerViewMeshBatches[ViewIndex].clear();
             Views[ViewIndex].MeshDrawCommands.Clear();
@@ -157,11 +158,10 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene)
     {
-        std::vector<const FSceneView *> SceneViews;
+        std::vector<FViewSceneInfo*> SceneViews;
         for (auto &View : Views)
         {
-            const FSceneView &SceneView = View.CameraSceneInfo->SceneProxy->GetSceneView();
-            SceneViews.push_back(&SceneView);
+            SceneViews.push_back(View.ViewSceneInfo);
         }
 
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
@@ -198,6 +198,8 @@ namespace nilou {
 
         RenderAtmospherePass(RHICmdList);
 
+        RenderViewElementPass(RHICmdList);
+
         RenderToScreen(RHICmdList);
     }
 
@@ -223,9 +225,9 @@ namespace nilou {
     //             LightView.ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
     //             LightView.ProjectionMatrix = glm::perspective(fovy, ScreenAspect, LightInfo->SceneProxy->NearClipDistance, LightInfo->SceneProxy->FarClipDistance);//CalcSpotLightProjectionMatrix(LightInfo->SceneProxy->LightParameters);
     //             LightView.ViewFrustum = FViewFrustum(LightView.ViewMatrix, LightView.ProjectionMatrix);
-    //             for (auto &&CameraSceneInfo : Scene->AddedCameraSceneInfos)
+    //             for (auto &&ViewSceneInfo : Scene->AddedViewSceneInfos)
     //             {
-    //                 if (CameraSceneInfo->SceneProxy->GetSceneView().ViewFrustum.Intersects(LightView.ViewFrustum))
+    //                 if (ViewSceneInfo->SceneProxy->GetSceneView().ViewFrustum.Intersects(LightView.ViewFrustum))
     //                     LightInfo->LightViews.push_back(LightView);
     //             }
     //         }
@@ -303,7 +305,7 @@ namespace nilou {
     {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+            FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
             FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
 
             if (CameraInfo->Camera->IsMainCamera())

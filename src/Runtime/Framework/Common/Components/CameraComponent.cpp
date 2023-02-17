@@ -117,7 +117,7 @@ namespace nilou {
 
 
     FCameraSceneProxy::FCameraSceneProxy(UCameraComponent *InComponent)
-        : CameraSceneInfo(nullptr)
+        : ViewSceneInfo(nullptr)
     {
         InComponent->SceneProxy = this;
         ViewUniformBufferRHI = CreateUniformBuffer<FViewShaderParameters>();
@@ -127,8 +127,8 @@ namespace nilou {
         SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
         // ViewUniformBufferRHI->InitRHI();
         BeginInitResource(ViewUniformBufferRHI.get());
-        if (CameraSceneInfo)
-            CameraSceneInfo->SetNeedsUniformBufferUpdate(false);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
     void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)
@@ -138,8 +138,8 @@ namespace nilou {
         SceneView.Up = InUp;
         ViewUniformBufferRHI->Data.CameraPosition = InPosition;
         ViewUniformBufferRHI->Data.CameraDirection = InDirection;
-        if (CameraSceneInfo)
-            CameraSceneInfo->SetNeedsUniformBufferUpdate(true);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
     void FCameraSceneProxy::SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip)
@@ -151,21 +151,23 @@ namespace nilou {
         RelativeWorldToView[3][0] = 0;
         RelativeWorldToView[3][1] = 0;
         RelativeWorldToView[3][2] = 0;
-        ViewUniformBufferRHI->Data.WorldToView = RelativeWorldToView;
+        ViewUniformBufferRHI->Data.RelWorldToView = RelativeWorldToView;
         ViewUniformBufferRHI->Data.ViewToClip = InViewToClip;
-        ViewUniformBufferRHI->Data.WorldToClip = InViewToClip * RelativeWorldToView;
+        ViewUniformBufferRHI->Data.RelWorldToClip = InViewToClip * RelativeWorldToView;
+        ViewUniformBufferRHI->Data.AbsWorldToClip = InViewToClip * mat4(InWorldToView);
+        ViewUniformBufferRHI->Data.ClipToView = glm::inverse(InViewToClip);
         // dmat4 AbsWorldToClip = dmat4(InViewToClip) * InWorldToView;
-        ViewUniformBufferRHI->Data.ClipToWorld = glm::inverse(InViewToClip * RelativeWorldToView);
-        if (CameraSceneInfo)
-            CameraSceneInfo->SetNeedsUniformBufferUpdate(true);
+        ViewUniformBufferRHI->Data.RelClipToWorld = glm::inverse(InViewToClip * RelativeWorldToView);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
     void FCameraSceneProxy::SetCameraResolution(const ivec2 &InCameraResolution)
     {
         SceneView.ScreenResolution = InCameraResolution;
         ViewUniformBufferRHI->Data.CameraResolution = InCameraResolution;
-        if (CameraSceneInfo)
-            CameraSceneInfo->SetNeedsFramebufferUpdate(true);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
 
     void FCameraSceneProxy::SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist)
@@ -174,8 +176,8 @@ namespace nilou {
         SceneView.FarClipDistance = InCameraFarClipDist;
         ViewUniformBufferRHI->Data.CameraNearClipDist = InCameraNearClipDist;
         ViewUniformBufferRHI->Data.CameraFarClipDist = InCameraFarClipDist;
-        if (CameraSceneInfo)
-            CameraSceneInfo->SetNeedsFramebufferUpdate(true);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
 
     const FSceneView &FCameraSceneProxy::GetSceneView()

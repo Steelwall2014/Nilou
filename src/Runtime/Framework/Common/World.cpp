@@ -17,6 +17,11 @@
 #include "Common/Actor/SkyAtmosphereActor.h"
 #include "Common/Actor/GeoreferenceActor.h"
 #include "Common/Actor/Cesium3DTilesetActor.h"
+#include "Common/Actor/LineBatchActor.h"
+
+#include "Georeference.h"
+
+#include <ogrsf_frmts.h>
 
 namespace nilou {
 
@@ -235,9 +240,15 @@ namespace nilou {
         GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
 
         std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab_debug\tileset.json)");
-        TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(32);
+        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+
+        std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
+        std::vector<FBatchedLine> lines;
+        lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
+        LineBatchActor->LineBatchComponent->DrawLines(lines);
+
     }
 
     void UWorld::Tick(double DeltaTime)

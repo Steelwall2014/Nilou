@@ -77,13 +77,13 @@ namespace nilou {
         if (CameraSceneProxy == nullptr)
             return;
 
-        FCameraSceneInfo *CameraSceneInfo = new FCameraSceneInfo(CameraSceneProxy, InCamera, this);
-        CameraSceneProxy->CameraSceneInfo = CameraSceneInfo;
+        FViewSceneInfo *ViewSceneInfo = new FViewSceneInfo(CameraSceneProxy, InCamera, this);
+        CameraSceneProxy->ViewSceneInfo = ViewSceneInfo;
 
         FScene *Scene = this;
         {
-            Scene->AddCameraSceneInfo(CameraSceneInfo);
-            CameraSceneInfo->SceneProxy->UpdateUniformBuffer();
+            Scene->AddViewSceneInfo(ViewSceneInfo);
+            ViewSceneInfo->SceneProxy->UpdateUniformBuffer();
         }
     }
 
@@ -93,12 +93,12 @@ namespace nilou {
 
         if (CameraSceneProxy)
         {
-            FCameraSceneInfo* CameraSceneInfo = CameraSceneProxy->GetCameraSceneInfo();
+            FViewSceneInfo* ViewSceneInfo = CameraSceneProxy->GetViewSceneInfo();
             InCamera->SceneProxy = nullptr;
             
             FScene *Scene = this;
             {
-                Scene->RemoveCameraSceneInfo(CameraSceneInfo);
+                Scene->RemoveViewSceneInfo(ViewSceneInfo);
             }
         }
     }
@@ -206,25 +206,25 @@ namespace nilou {
         safe_erase(AddedLightSceneInfos, InLightInfo);
     }
 
-    void FScene::AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
+    void FScene::AddViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
-        AddedCameraSceneInfos.emplace(InCameraInfo);
+        AddedViewSceneInfos.emplace(InCameraInfo);
         FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
         RenderModule->Renderer->AddCamera(InCameraInfo);
     }
 
-    void FScene::RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo)
+    void FScene::RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
-        safe_erase(AddedCameraSceneInfos, InCameraInfo);
+        safe_erase(AddedViewSceneInfos, InCameraInfo);
         FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
         RenderModule->Renderer->RemoveCamera(InCameraInfo);
     }
 
     void FScene::UpdateViewInfos()
     {
-        for (auto &&CameraInfo : AddedCameraSceneInfos)
+        for (auto &&CameraInfo : AddedViewSceneInfos)
         {
-            // FCameraSceneInfo *CameraInfo = AddedCameraSceneInfos[ViewIndex].get();
+            // FViewSceneInfo *CameraInfo = AddedViewSceneInfos[ViewIndex].get();
             if (CameraInfo->bNeedsUniformBufferUpdate)
             {
                 CameraInfo->SceneProxy->UpdateUniformBuffer();

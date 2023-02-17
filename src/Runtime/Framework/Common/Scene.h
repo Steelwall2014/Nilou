@@ -8,6 +8,7 @@
 #include "Common/Components/LightComponent.h"
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
+#include "Common/BatchedLine.h"
 // #include "SceneNode.h"
 // #include "SceneObject.h"
 // #include "Common/Actor/ObserverActor.h"
@@ -68,10 +69,12 @@ namespace nilou {
         bool bNeedsUniformBufferUpdate = false;
     };
 
-    class FCameraSceneInfo
+    class FViewSceneInfo
     {
     public:
-        FCameraSceneInfo(FCameraSceneProxy *InSceneProxy, UCameraComponent *InCamera, FScene *InScene)
+        friend class FScene;
+        friend class FDefferedShadingSceneRenderer;
+        FViewSceneInfo(FCameraSceneProxy *InSceneProxy, UCameraComponent *InCamera, FScene *InScene)
             : Camera(InCamera)
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
@@ -91,9 +94,13 @@ namespace nilou {
 
         ivec2 GetResolution() const { return SceneProxy->GetSceneView().ScreenResolution; }
 
+        void DrawLine(const dvec3 &Start, const dvec3 &End, const vec3 &Color);
+
         FScene *Scene;
         UCameraComponent *Camera;
         FCameraSceneProxy *SceneProxy;
+        std::vector<FBatchedLine> LineElements;
+    private:
         bool bNeedsUniformBufferUpdate = false;
         bool bNeedsFramebufferUpdate = false;
     };
@@ -127,7 +134,7 @@ namespace nilou {
 
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
-        std::set<std::unique_ptr<FCameraSceneInfo>> AddedCameraSceneInfos;
+        std::set<std::unique_ptr<FViewSceneInfo>> AddedViewSceneInfos;
         std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
         FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;
@@ -143,8 +150,8 @@ namespace nilou {
         void AddLightSceneInfo(FLightSceneInfo *InLightInfo);
         void RemoveLightSceneInfo(FLightSceneInfo *InLightInfo);
 
-        void AddCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
-        void RemoveCameraSceneInfo(FCameraSceneInfo *InCameraInfo);
+        void AddViewSceneInfo(FViewSceneInfo *InCameraInfo);
+        void RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo);
 
         void UpdateViewInfos();
         void UpdatePrimitiveInfos();

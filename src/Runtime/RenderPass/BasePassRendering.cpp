@@ -130,11 +130,11 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
     {
-        // std::map<FCameraSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
+        // std::map<FViewSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
         {        
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+                FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
                 FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
                 FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
                 DrawCommands.Clear();
@@ -193,7 +193,7 @@ namespace nilou {
         {        
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+                FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
                 FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
                 FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true, true, true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);

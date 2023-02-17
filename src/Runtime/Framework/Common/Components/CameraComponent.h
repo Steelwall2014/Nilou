@@ -95,10 +95,12 @@ namespace nilou {
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-        SHADER_PARAMETER(mat4, WorldToView)
+        SHADER_PARAMETER(mat4, RelWorldToView)
         SHADER_PARAMETER(mat4, ViewToClip)
-        SHADER_PARAMETER(mat4, WorldToClip) // WorldToClip = ViewToClip * WorldToView
-        SHADER_PARAMETER(mat4, ClipToWorld) // Inverse of WorldToClip
+        SHADER_PARAMETER(mat4, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
+        SHADER_PARAMETER(mat4, ClipToView)  
+        SHADER_PARAMETER(mat4, RelClipToWorld)      // Inverse of RelWorldToClip
+        SHADER_PARAMETER(mat4, AbsWorldToClip)     
         SHADER_PARAMETER(dvec3, CameraPosition)
         SHADER_PARAMETER(vec3, CameraDirection)
         SHADER_PARAMETER(ivec2, CameraResolution)
@@ -106,7 +108,7 @@ namespace nilou {
         SHADER_PARAMETER(float, CameraFarClipDist)
     END_UNIFORM_BUFFER_STRUCT()
 
-    class FCameraSceneInfo;
+    class FViewSceneInfo;
     class FCameraSceneProxy
     {
         friend class FScene;
@@ -114,7 +116,7 @@ namespace nilou {
 
         FCameraSceneProxy(UCameraComponent *InComponent);
 
-        FCameraSceneInfo *GetCameraSceneInfo() { return CameraSceneInfo; }
+        FViewSceneInfo *GetViewSceneInfo() { return ViewSceneInfo; }
 
         void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
 
@@ -139,7 +141,7 @@ namespace nilou {
 
     protected:
         FSceneView SceneView;
-        FCameraSceneInfo *CameraSceneInfo;
+        FViewSceneInfo *ViewSceneInfo;
         TUniformBufferRef<FViewShaderParameters> ViewUniformBufferRHI;
     };
 }

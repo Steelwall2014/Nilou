@@ -14,7 +14,7 @@ namespace nilou {
         
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FCameraSceneInfo *CameraInfo = Views[ViewIndex].CameraSceneInfo;
+            FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
             FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
             if (CameraInfo->Camera->IsMainCamera())
             {

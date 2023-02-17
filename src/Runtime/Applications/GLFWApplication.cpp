@@ -175,7 +175,7 @@ namespace nilou {
 //         }
 
         InputActionMapping EnableCursor_mapping("EnableCursor");
-        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_ALT);
+        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
         g_pInputManager->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
         return 0;
     }
@@ -257,42 +257,43 @@ namespace nilou {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
 
-        auto process_key = [this](int key) {
-            int state = glfwGetKey(window, key);
-            if (state == GLFW_PRESS)
-                g_pInputManager->KeyPressed(key);
-            else if (state == GLFW_RELEASE)
-                g_pInputManager->KeyReleased(key);
-        };
+        #define DISPATCH_KEY_MESSAGE(key) \
+            { \
+                int state = glfwGetKey(window, key); \
+                if (state == GLFW_PRESS) \
+                    g_pInputManager->KeyPressed(key); \
+                else if (state == GLFW_RELEASE) \
+                    g_pInputManager->KeyReleased(key); \
+            }
 
-        process_key(GLFW_KEY_KP_0);
-        process_key(GLFW_KEY_KP_1);
-        process_key(GLFW_KEY_KP_2);
-        process_key(GLFW_KEY_KP_3);
-        process_key(GLFW_KEY_KP_4);
-        process_key(GLFW_KEY_KP_5);
-        process_key(GLFW_KEY_KP_6);
-        process_key(GLFW_KEY_KP_7);
-        process_key(GLFW_KEY_KP_8);
-        process_key(GLFW_KEY_KP_9);
-        process_key(GLFW_KEY_W);
-        process_key(GLFW_KEY_S);
-        process_key(GLFW_KEY_A);
-        process_key(GLFW_KEY_D);
-        process_key(GLFW_KEY_E);
-        process_key(GLFW_KEY_Q);
-        process_key(GLFW_KEY_O);
-        process_key(GLFW_KEY_G);
-        process_key(GLFW_KEY_B);
-        process_key(GLFW_KEY_SPACE);
-        process_key(GLFW_KEY_UP);
-        process_key(GLFW_KEY_DOWN);
-        process_key(GLFW_KEY_RIGHT);
-        process_key(GLFW_KEY_LEFT);
-        process_key(GLFW_KEY_PAGE_UP);
-        process_key(GLFW_KEY_PAGE_DOWN);
-        process_key(GLFW_KEY_LEFT_CONTROL);
-        process_key(GLFW_KEY_LEFT_ALT);
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_0)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_1)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_2)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_3)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_4)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_5)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_6)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_7)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_8)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_9)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_W)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_S)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_A)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_D)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_E)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_Q)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_O)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_G)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_B)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_SPACE)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_UP)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_DOWN)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_RIGHT)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_LEFT)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_PAGE_UP)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_PAGE_DOWN)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_LEFT_CONTROL)
+        DISPATCH_KEY_MESSAGE(GLFW_KEY_LEFT_ALT)
 
 
         //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)

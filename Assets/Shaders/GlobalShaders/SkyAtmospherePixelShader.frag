@@ -26,7 +26,7 @@ void main()
     vec3 SunLightDir = light.lightDirection;
     vec3 sun_direction = -normalize(SunLightDir);
     vec4 ndc = vec4(uv*2-1, gl_FragCoord.z*2-1, 1.0);
-    vec4 worldPos = ClipToWorld * ndc;
+    vec4 worldPos = RelClipToWorld * ndc;
     worldPos /= worldPos.w;
     vec3 v = normalize(worldPos.xyz);
     float CameraHeightInKM = float(CameraPosition.z / km);
