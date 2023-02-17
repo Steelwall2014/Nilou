@@ -4,6 +4,7 @@
 #include "Templates/ObjectMacros.h"
 #include "Common/Path.h"
 #include "Common/ContentManager.h"
+#include "RenderingThread.h"
 
 namespace nilou {
 
@@ -17,6 +18,8 @@ namespace nilou {
     void FMaterial::UpdateMaterialCode(const std::string &InCode)
     {
         ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
-        FShaderCompiler::CompileMaterialShader(this);
+        ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this](FDynamicRHI *DynamicRHI) {
+            FShaderCompiler::CompileMaterialShader(this, DynamicRHI);
+        });
     }
 }

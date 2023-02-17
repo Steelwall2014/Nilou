@@ -202,6 +202,16 @@ namespace nilou {
         ComputedVerticalFieldOfView = fovy;
     }
 
+    void FLightSceneProxy::UpdateUniformBuffer()
+    {
+        ENQUEUE_RENDER_COMMAND(FLightSceneProxy_UpdateUniformBuffer)(
+            [this](FDynamicRHI *DynamicRHI) 
+            {
+                LightUniformBufferRHI->UpdateUniformBuffer();
+            });
+        
+    }
+
     void FLightSceneProxy::SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam)
     {
         EAttenCurveType CurveType = AttenCurveParam.type;

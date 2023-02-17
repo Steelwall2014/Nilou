@@ -66,7 +66,7 @@ namespace nilou {
 
     RHIBufferRef FStaticMeshIndexBuffer::CreateRHIBuffer_RenderThread()
     {
-        return GDynamicRHI->RHICreateBuffer(Stride, NumIndices * Stride, 
+        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumIndices * Stride, 
             EBufferUsageFlags::IndexBuffer | EBufferUsageFlags::Static, Data);
     }
 }

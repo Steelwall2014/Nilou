@@ -70,7 +70,7 @@ namespace nilou {
 
         FUniformBuffer *GetUniformBuffer() const { return PrimitiveUniformBuffer.get(); }
 
-        void UpdateUniformBuffer() { PrimitiveUniformBuffer->UpdateUniformBuffer(); }
+        void UpdateUniformBuffer();
 
     protected:
 

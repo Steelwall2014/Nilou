@@ -84,7 +84,7 @@ namespace nilou {
             }
             virtual void InitRHI() override
             {
-                VertexBufferRHI = GDynamicRHI->RHICreateBuffer(sizeof(glm::vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
             glm::vec4 Vertices[4];
@@ -102,7 +102,7 @@ namespace nilou {
             }
             virtual void InitRHI() override
             {
-                VertexBufferRHI = GDynamicRHI->RHICreateBuffer(sizeof(glm::vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
             glm::vec2 Vertices[4];

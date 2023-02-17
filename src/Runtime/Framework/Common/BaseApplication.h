@@ -15,6 +15,7 @@ namespace nilou {
         virtual bool Initialize_RenderThread() { }
         virtual void Finalize();
         virtual void Tick(double);
+        virtual void Tick_RenderThread() { }
 
         virtual bool IsQuit();
         virtual GfxConfiguration &GetConfiguration();
@@ -30,7 +31,7 @@ namespace nilou {
     protected:
         float deltaTime = 0.0f;
         float accumTime = 0.0f;
-        static bool m_bQuit;
+        static std::atomic<bool> m_bQuit;
         GfxConfiguration m_Config;
         bool CursorEnabled = false;
         std::shared_ptr<UWorld> World;

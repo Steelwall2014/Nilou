@@ -168,11 +168,12 @@ namespace nilou {
     std::string ConcateShaderCodeAndParameters(
         std::set<FShaderParameterInfo> &OutShaderParameters, 
         std::array<FShaderParserResult*, N> ParsedResults, 
-        const FShaderCompilerEnvironment &Environment)
+        const FShaderCompilerEnvironment &Environment,
+        FDynamicRHI *DynamicRHI)
     {
         std::stringstream stream;
         stream << "#version 460\n";
-        if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
+        if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
             stream << "#define USING_OPENGL 1\n";
 
         for (auto &[key, value] : Environment.Definitions)
@@ -181,7 +182,7 @@ namespace nilou {
         {
             for (const FShaderParsedParameter &ParsedParameter : ParsedResult->ParsedParameters)
             {
-                if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
+                if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
                 {
                     // for OpenGL, the binding point of images will be determined by explicit binding qualifier
                     if (ParsedParameter.ParameterType == EShaderParameterType::SPT_Image)
@@ -199,7 +200,7 @@ namespace nilou {
                         OutShaderParameters.emplace(ParsedParameter.Name, -1, ParsedParameter.ParameterType);
                     }
                 }
-                // else if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+                // else if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
                 // {
                 //     int binding_point = ParameterMap.size();
                 //     std::regex re("\\{binding\\}");
@@ -212,7 +213,7 @@ namespace nilou {
             stream << ParsedResult->MainCode;
         }
 
-        // if (GDynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+        // if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
         // {
         //     std::regex re("\\{binding\\}");
         //     std::string Output = stream.str();
@@ -242,7 +243,7 @@ namespace nilou {
     // }
 
     void FShaderCompiler::CompileGlobalShader(
-        FDynamicRHI *RHICmdList, 
+        FDynamicRHI *DynamicRHI, 
         const FShaderPermutationParameters &ShaderParameter)
     {
         FShaderType *ShaderType = ShaderParameter.Type;
@@ -252,7 +253,7 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
-            ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment);
+            ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment, DynamicRHI);
         #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+".glsl", code);
@@ -260,15 +261,15 @@ namespace nilou {
         switch (ShaderType->ShaderFrequency) 
         {
             case EShaderFrequency::SF_Vertex:
-                ShaderInstance->Shader = RHICmdList->RHICreateVertexShader(code.c_str());
+                ShaderInstance->Shader = DynamicRHI->RHICreateVertexShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
                 break;
             case EShaderFrequency::SF_Pixel:
-                ShaderInstance->Shader = RHICmdList->RHICreatePixelShader(code.c_str());
+                ShaderInstance->Shader = DynamicRHI->RHICreatePixelShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
                 break;
             case EShaderFrequency::SF_Compute:
-                ShaderInstance->Shader = RHICmdList->RHICreateComputeShader(code.c_str());
+                ShaderInstance->Shader = DynamicRHI->RHICreateComputeShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Compute;
                 break;
         }
@@ -278,7 +279,7 @@ namespace nilou {
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(
-        FDynamicRHI *RHICmdList,
+        FDynamicRHI *DynamicRHI,
         FMaterial *Material, 
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
@@ -298,7 +299,7 @@ namespace nilou {
         std::string code = ConcateShaderCodeAndParameters<3>(
             ShaderInstance->Parameters, 
             {&Material->ParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
-            Environment);
+            Environment, DynamicRHI);
         #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(
@@ -306,7 +307,7 @@ namespace nilou {
                 Material->GetMaterialName()+" "+
                 VertexFactoryType->Name+std::to_string(VertexFactoryParams.PermutationId)+".glsl", code);
         #endif
-        ShaderInstance->Shader = RHICmdList->RHICreateVertexShader(code.c_str());
+        ShaderInstance->Shader = DynamicRHI->RHICreateVertexShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
         
         // AddVertexShaderInstance(ShaderInstance, *MaterialType, *VertexFactoryType, ShaderParameter);
@@ -315,7 +316,7 @@ namespace nilou {
     }
 
     void FShaderCompiler::CompilePixelMaterialShader(
-        FDynamicRHI *RHICmdList, 
+        FDynamicRHI *DynamicRHI, 
         FMaterial *Material, 
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
@@ -329,14 +330,14 @@ namespace nilou {
         std::string code = ConcateShaderCodeAndParameters<2>(
             ShaderInstance->Parameters, 
             {&Material->ParsedResult, &ShaderType->ParsedResult}, 
-            Environment);
+            Environment, DynamicRHI);
         #ifdef NILOU_DEBUG
             ShaderInstance->DebugCode = code;
             Write(
                 ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+
                 Material->GetMaterialName()+".glsl", code);
         #endif
-        ShaderInstance->Shader = RHICmdList->RHICreatePixelShader(code.c_str());
+        ShaderInstance->Shader = DynamicRHI->RHICreatePixelShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
 
         // AddPixelShaderInstance(ShaderInstance, *MaterialType, ShaderParameter);
@@ -345,7 +346,7 @@ namespace nilou {
     }
 
     // void FShaderCompiler::IterateOnMaterials(
-    //     FDynamicRHI *RHICmdList, 
+    //     FDynamicRHI *DynamicRHI, 
     //     const FShaderPermutationParameters &ShaderParameter)
     // {
     //     std::vector<FMaterialType *> &MaterialTypes = GetAllMaterialTypes();
@@ -364,19 +365,19 @@ namespace nilou {
     //             if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
     //             {
     //                 // Vertex Material Shader
-    //                 IterateOnVertexFactories(RHICmdList, ShaderParameter, MaterialParameters);
+    //                 IterateOnVertexFactories(DynamicRHI, ShaderParameter, MaterialParameters);
     //             }
     //             else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
     //             {
     //                 // Pixel Material Shader
-    //                 CompilePixelMaterialShader(RHICmdList, MaterialParameters, ShaderParameter);
+    //                 CompilePixelMaterialShader(DynamicRHI, MaterialParameters, ShaderParameter);
     //             }
     //         }
     //     }
     // }
 
     // void FShaderCompiler::IterateOnVertexFactories(
-    //     FDynamicRHI *RHICmdList, 
+    //     FDynamicRHI *DynamicRHI, 
     //     FMaterial *Material,
     //     const FShaderPermutationParameters &ShaderParameter)
     // {
@@ -392,7 +393,7 @@ namespace nilou {
     //             FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
     //             if (!VertexFactoryType->ShouldCompilePermutation(VFParameters))
     //                 continue;
-    //             CompileVertexMaterialShader(GDynamicRHI, Material, VFParameters, ShaderParameter);
+    //             CompileVertexMaterialShader(DynamicRHI, Material, VFParameters, ShaderParameter);
     //         }
     //     }
     // }
@@ -441,12 +442,12 @@ namespace nilou {
 
     }
 
-    void FShaderCompiler::CompileGlobalShaders()
+    void FShaderCompiler::CompileGlobalShaders(FDynamicRHI *DynamicRHI)
     {
         ForEachShader(
-            [](const FShaderPermutationParameters &ShaderParameter) 
+            [DynamicRHI](const FShaderPermutationParameters &ShaderParameter) 
             {
-                CompileGlobalShader(GDynamicRHI, ShaderParameter);
+                CompileGlobalShader(DynamicRHI, ShaderParameter);
             },
             [](FShaderType *ShaderType) 
             {
@@ -454,23 +455,23 @@ namespace nilou {
             });
     }
     
-    void FShaderCompiler::CompileMaterialShader(FMaterial *Material)
+    void FShaderCompiler::CompileMaterialShader(FMaterial *Material, FDynamicRHI *DynamicRHI)
     {
         ForEachShader(
-            [Material](const FShaderPermutationParameters &ShaderParameter) {   
+            [Material, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
-                    ForEachVertexFactory([Material, &ShaderParameter](const FVertexFactoryPermutationParameters &VFParameters) {
+                    ForEachVertexFactory([Material, &ShaderParameter, DynamicRHI](const FVertexFactoryPermutationParameters &VFParameters) {
                         CompileVertexMaterialShader(
-                            GDynamicRHI, Material, VFParameters, ShaderParameter, 
+                            DynamicRHI, Material, VFParameters, ShaderParameter, 
                             Material->ShaderMap.VertexShaderMap);
                     }, 
                     [](FVertexFactoryType *) { return true; });
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
-                    CompilePixelMaterialShader(GDynamicRHI, Material, ShaderParameter, Material->ShaderMap.PixelShaderMap);
+                    CompilePixelMaterialShader(DynamicRHI, Material, ShaderParameter, Material->ShaderMap.PixelShaderMap);
                 }
             },
             [](FShaderType *ShaderType) {

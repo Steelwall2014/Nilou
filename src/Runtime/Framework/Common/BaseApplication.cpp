@@ -2,7 +2,7 @@
 
 namespace nilou {
 
-    bool BaseApplication::m_bQuit = false;
+    std::atomic<bool> BaseApplication::m_bQuit = false;
 
     BaseApplication::BaseApplication(GfxConfiguration &cfg) :
         m_Config(cfg)

@@ -38,10 +38,6 @@
 #include "Common/InputManager.h"
 #endif // NILOU_DEBUG
 
-//#define NILOU_DEBUG_SHOWNORMAL
-namespace nilou {
-    FDynamicRHI *GDynamicRHI = nullptr;
-}
 
 using namespace std::literals;  // For the use of operator""s
 
@@ -50,6 +46,11 @@ using namespace std::literals;  // For the use of operator""s
 * State translation
 */
 namespace nilou {
+
+	void FDynamicRHI::CreateDynamicRHI_RenderThread()
+	{
+		FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
+	}
 
     static GLenum TranslateCompareFunction(ECompareFunction CompareFunction)
     {
@@ -905,8 +906,8 @@ namespace nilou {
         RHIGetError();
         FRHIGraphicsPipelineInitializer Initializer;
         Initializer.ComputeShader = ComputeShader;
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHIGetOrCreatePipelineStateObject(Initializer);
-        GDynamicRHI->RHISetGraphicsPipelineState(PSO);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHIGetOrCreatePipelineStateObject(Initializer);
+        FDynamicRHI::GetDynamicRHI()->RHISetGraphicsPipelineState(PSO);
         RHIGetError();
         return PSO;
     }

@@ -29,34 +29,34 @@ namespace nilou {
     
     void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
     {
-        OutSceneTextures.GeometryPassFrameBuffer = GDynamicRHI->RHICreateFramebuffer();
-        OutSceneTextures.FrameBuffer = GDynamicRHI->RHICreateFramebuffer();
+        OutSceneTextures.GeometryPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        OutSceneTextures.FrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
-        OutSceneTextures.SceneColor = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.BaseColor = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.RelativeWorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.WorldSpaceNormal = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.MetallicRoughness = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.Emissive = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.DepthStencil = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
@@ -185,7 +185,7 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::Render()
     {
-        FDynamicRHI *RHICmdList = GDynamicRHI;
+        FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
         InitViews(Scene);
 

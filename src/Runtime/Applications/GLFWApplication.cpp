@@ -114,7 +114,7 @@ namespace nilou {
         World->BeginPlay();
 //         run_time_modules.push_back(GetAssetLoader());
 //         run_time_modules.push_back(g_pSceneManager);
-//         run_time_modules.push_back(GDynamicRHI);
+//         run_time_modules.push_back(FDynamicRHI::GetDynamicRHI());
 //         run_time_modules.push_back(GetInputManager());
 //         run_time_modules.push_back(g_pShaderManager);
 //         _GM->GetError();
@@ -124,7 +124,7 @@ namespace nilou {
 //         _GM->GetError();
 //         g_pSceneManager->Initialize();
 //         _GM->GetError();
-//         GDynamicRHI->Initialize();
+//         FDynamicRHI::GetDynamicRHI()->Initialize();
 //         _GM->GetError();
 //         GetInputManager()->Initialize();
 
@@ -240,9 +240,14 @@ namespace nilou {
         // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 
-        glfwSwapBuffers(window);
         m_bQuit = glfwWindowShouldClose(window);
     }
+
+    void GLFWApplication::Tick_RenderThread()
+    {
+        glfwSwapBuffers(window);
+    }
+
     void GLFWApplication::Finalize()
     {
         // for (auto pass : m_DrawPasses)

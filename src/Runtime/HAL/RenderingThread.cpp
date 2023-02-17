@@ -10,21 +10,22 @@ namespace nilou {
 
     std::thread::id GRenderThreadId;
     
+    FRenderingThread *FRenderingThread::RenderingThread = nullptr;
 
     bool FRenderingThread::Init()
     {
+        RenderingThread = this;
         GRenderThreadId = std::this_thread::get_id();
+        GetAppication()->Initialize_RenderThread();
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {
             std::cout << "Failed to initialize GLAD" << std::endl;
             return false;
         }
-        GetAppication()->Initialize_RenderThread();
-        
-        GDynamicRHI = new FOpenGLDynamicRHI;
-        GDynamicRHI->Initialize();
+        FDynamicRHI::CreateDynamicRHI_RenderThread();
+        FDynamicRHI::GetDynamicRHI()->Initialize();
         AddShaderSourceDirectoryMapping("/Shaders", "D:\\Nilou\\Assets\\Shaders");
-        FShaderCompiler::CompileGlobalShaders();
+        FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
         Renderer = (FDefferedShadingSceneRenderer *)FSceneRenderer::CreateSceneRenderer(GetAppication()->GetScene());
         return true;
     }
@@ -33,7 +34,16 @@ namespace nilou {
     {
         while (!GetAppication()->IsQuit())
         {
-            std::cout << IsInRenderingThread();
+            int size = RenderCommands.size();
+            for (int i = 0; i < size; i++)
+            {
+                EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
+                mutex.lock();
+                RenderCommands.pop();
+                mutex.unlock();
+                RenderCommand.DoTask();
+            }
+            GetAppication()->Tick_RenderThread();
         }
         return 0;
     }

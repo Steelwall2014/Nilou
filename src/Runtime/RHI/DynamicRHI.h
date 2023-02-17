@@ -24,6 +24,9 @@ namespace nilou {
 	class FDynamicRHI
 	{
 	public:
+		static FDynamicRHI *GetDynamicRHI();
+		static void CreateDynamicRHI_RenderThread();
+
 		FDynamicRHI() {}
 		virtual ~FDynamicRHI() {}
 		virtual int Initialize() = 0;
@@ -113,10 +116,9 @@ namespace nilou {
 		virtual void RHIClearBuffer(uint32 flagbits) = 0;
 
 	protected:
+		static FDynamicRHI *DynamicRHI;
 		std::map<FRHIGraphicsPipelineInitializer, FRHIGraphicsPipelineStateRef> CachedPipelineStateObjects;
 	};
 
-	extern FDynamicRHI *GDynamicRHI;
-
-	#define RHIGetError() GDynamicRHI->GetError(__FILE__, __LINE__)
+	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)
 }

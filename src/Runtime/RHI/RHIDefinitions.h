@@ -1,7 +1,7 @@
 #pragma once
 #include "Platform.h"
 
-// #define _GM nilou::GDynamicRHI
+// #define _GM nilou::FDynamicRHI::GetDynamicRHI()
 // #define DEPTH_BUFFER_BIT 0x00000100
 // #define STENCIL_BUFFER_BIT 0x00000400
 // #define COLOR_BUFFER_BIT 0x00004000

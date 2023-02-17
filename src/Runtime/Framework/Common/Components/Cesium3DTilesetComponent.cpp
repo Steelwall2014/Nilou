@@ -42,7 +42,7 @@ namespace nilou {
         BoundingVolumeConvert(InternalTile->BoundingVolume, Tile->boundingVolume, InternalTile->Transform);
         InternalTile->Content.URI = Tile->content.uri;
         InternalTile->TransformRHI = CreateUniformBuffer<FPrimitiveShaderParameters>();
-        InternalTile->TransformRHI->InitRHI();
+        BeginInitResource(InternalTile->TransformRHI.get());
         if (!Tile->content.b3dm.featureTableJSON.empty())
         {
             nlohmann::json json;
@@ -398,6 +398,11 @@ namespace nilou {
                             dvec4(Tile->RtcCenter, 1)
                         );
                         Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
+                        ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_GetDynamicMeshElements)(
+                            [Tile](FDynamicRHI *DynamicRHI) 
+                            {
+                                Tile->TransformRHI->UpdateUniformBuffer();
+                            });
                         Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
                         {
@@ -418,12 +423,17 @@ namespace nilou {
                                     if (TileBoundingBoxUBO.find(Tile) == TileBoundingBoxUBO.end())
                                     {
                                         TileBoundingBoxUBO[Tile] = CreateUniformBuffer<FPrimitiveShaderParameters>();
-                                        TileBoundingBoxUBO[Tile]->InitRHI();
+                                        BeginInitResource(TileBoundingBoxUBO[Tile].get());
                                     }
                                     dmat4 translation;
                                     translation = glm::translate(translation, Tile->BoundingVolume.Center);
-                                    TileBoundingBoxUBO[Tile]->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * translation * dmat4(Tile->BoundingVolume.HalfAxes);
-                                    TileBoundingBoxUBO[Tile]->UpdateUniformBuffer();
+                                    TUniformBufferRef<FPrimitiveShaderParameters> UBO = TileBoundingBoxUBO[Tile];
+                                    UBO->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * translation * dmat4(Tile->BoundingVolume.HalfAxes);
+                                    ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_GetDynamicMeshElements)(
+                                        [UBO](FDynamicRHI *DynamicRHI) 
+                                        {
+                                            UBO->UpdateUniformBuffer();
+                                        });
                                     FMeshBatch DebugBoundingBoxMesh;
                                     DebugBoundingBoxMesh.CastShadow = Section.bCastShadow;
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
