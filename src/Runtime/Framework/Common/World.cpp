@@ -181,7 +181,7 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
-        std::shared_ptr<tinygltf::Model> Model = g_pAssetLoader->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
+        std::shared_ptr<tinygltf::Model> Model = GetAssetLoader()->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
         GLTFParseResult Mesh = GameStatics::ParseToStaticMeshes(*Model);
         for (auto &Texture : Mesh.Textures)
             FContentManager::GetContentManager().AddGlobalTexture(Texture->GetTextureName(), Texture);

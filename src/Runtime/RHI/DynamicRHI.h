@@ -3,8 +3,6 @@
 #include <vector>
 #include <memory>
 
-#include "Interface/IRuntimeModule.h"
-#include "Interface/IDrawPass.h"
 // #include "Common/CoordinateAxis.h"
 //#include "Common/GfxStructures.h"
 
@@ -12,17 +10,9 @@
 #include "RHIResources.h"
 #include "RHI.h"
 #include "VertexFactory.h"
-#include "Modules/ModuleManager.h"
 
 
 namespace nilou {
-
-	class IDynamicRHIModule : public IRuntimeModule
-	{
-	public:
-		/** Creates a new instance of the dynamic RHI implemented by the module. */
-		virtual class FDynamicRHI* CreateRHI() = 0;
-	};
 
 	enum class EGraphicsAPI
 	{
@@ -31,7 +21,7 @@ namespace nilou {
 		Vulkan,
 	};
 
-	class FDynamicRHI //: implements IRuntimeModule // : public GraphicsManager
+	class FDynamicRHI
 	{
 	public:
 		FDynamicRHI() {}

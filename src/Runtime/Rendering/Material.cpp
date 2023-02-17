@@ -16,9 +16,6 @@ namespace nilou {
 
     void FMaterial::UpdateMaterialCode(const std::string &InCode)
     {
-        // std::string MaterialCode = ProcessCodeInclude(InCode, MATERIAL_STATIC_PARENT_DIR);
-
-        // CodeInitializer.SourceCodeBody = ProcessCodeShaderParams(MaterialCode, CodeInitializer.ParameterCodes);
         ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
         FShaderCompiler::CompileMaterialShader(this);
     }

@@ -25,6 +25,8 @@ namespace nilou {
     IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
     IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
+    FDefferedShadingSceneRenderer *Renderer = nullptr;
+    
     void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
     {
         OutSceneTextures.GeometryPassFrameBuffer = GDynamicRHI->RHICreateFramebuffer();

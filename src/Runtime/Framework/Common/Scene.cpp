@@ -4,7 +4,6 @@
 #include "DynamicRHI.h"
 #include "Scene.h"
 #include "Common/BaseApplication.h"
-#include "Common/Renderer/Renderer.h"
 #include "DefferedShadingSceneRenderer.h"
 // #include "Common/Components/PrimitiveSceneProxy.h"
 // #include "Common/Components/LightSceneProxy.h"
@@ -209,15 +208,13 @@ namespace nilou {
     void FScene::AddViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
         AddedViewSceneInfos.emplace(InCameraInfo);
-        FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
-        RenderModule->Renderer->AddCamera(InCameraInfo);
+        Renderer->AddCamera(InCameraInfo);
     }
 
     void FScene::RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
         safe_erase(AddedViewSceneInfos, InCameraInfo);
-        FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
-        RenderModule->Renderer->RemoveCamera(InCameraInfo);
+        Renderer->RemoveCamera(InCameraInfo);
     }
 
     void FScene::UpdateViewInfos()

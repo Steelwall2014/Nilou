@@ -38,7 +38,7 @@ namespace nilou {
 
     // bool FTexture::LoadTexture(const char *filepath)
     // {
-    //     m_Image = g_pAssetLoader->SyncOpenAndReadImage(filepath);
+    //     m_Image = GetAssetLoader()->SyncOpenAndReadImage(filepath);
     //     return true;
     // }
 

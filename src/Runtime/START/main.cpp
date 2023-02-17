@@ -12,7 +12,7 @@ int main()
 {
     int ret;
 
-    if ((ret = GetAppication()->Initialize()) != 0) {
+    if ((ret = GetAppication()->Initialize()) != true) {
         printf("App Initialize failed, will exit now.");
         return ret;
     }

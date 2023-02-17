@@ -3,7 +3,6 @@
 #include <set>
 #include <string>
 
-#include "Interface/IRuntimeModule.h"
 #include "Texture.h"
 
 
@@ -14,18 +13,9 @@ namespace nilou {
     EPixelFormat TranslateToEPixelFormat(int channel, int bits, int pixel_type);
 
 	class Image;
-	class AssetLoader : public IRuntimeModule
+	class AssetLoader
 	{
 	public:
-		AssetLoader();
-
-		virtual ~AssetLoader() {};
-
-		virtual int StartupModule() override;
-		virtual void ShutdownModule() override;
-
-		virtual void Tick(double DeltaTime);
-
 		std::shared_ptr<tinygltf::Model> SyncReadGLTFModel(const char *filePath);
 
 		std::string SyncOpenAndReadText(const char *filePath);
@@ -42,5 +32,5 @@ namespace nilou {
         std::vector<std::string> m_strSearchPath;
 	};
 
-	extern AssetLoader *g_pAssetLoader;
+	AssetLoader *GetAssetLoader();
 }

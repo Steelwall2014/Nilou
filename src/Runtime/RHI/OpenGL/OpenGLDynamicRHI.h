@@ -4,8 +4,6 @@
 #include <vector>
 #include <memory>
 
-#include "Interface/IRuntimeModule.h"
-#include "Interface/IDrawPass.h"
 // #include "Common/CoordinateAxis.h"
 // #include "Common/GfxStructures.h"
 #include "OpenGL/OpenGLFramebuffer.h"

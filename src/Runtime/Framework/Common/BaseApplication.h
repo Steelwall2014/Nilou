@@ -1,27 +1,27 @@
 #pragma once
+#include <memory>
+#include "RenderingThread.h"
 #include "Common/Scene.h"
 #include "Common/World.h"
-#include "Interface/IApplication.h"
 #include "Common/GfxConfiguration.h"
 #include "Delegate.h"
-#include <memory>
 
 namespace nilou {
-    class BaseApplication : implements IApplication
+    class BaseApplication
     {
     public:
         BaseApplication(GfxConfiguration &cfg);
-        virtual int Initialize() override;
-        virtual void Finalize() override;
-        virtual void Tick(double) override;
+        virtual bool Initialize();
+        virtual bool Initialize_RenderThread() { }
+        virtual void Finalize();
+        virtual void Tick(double);
 
-        virtual bool IsQuit() override;
-        virtual GfxConfiguration &GetConfiguration() override;
-        virtual float GetTimeSinceStart() override;
-        virtual void SetWindowWidth(int width) override;
-        virtual void SetWindowHeight(int height) override;
-        virtual bool IsCursorEnabled() override;
-        virtual IRuntimeModule *GetModuleByName(const std::string &ModuleName) override;
+        virtual bool IsQuit();
+        virtual GfxConfiguration &GetConfiguration();
+        virtual float GetTimeSinceStart();
+        virtual void SetWindowWidth(int width);
+        virtual void SetWindowHeight(int height);
+        virtual bool IsCursorEnabled();
 
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
@@ -36,6 +36,8 @@ namespace nilou {
         std::shared_ptr<UWorld> World;
         std::shared_ptr<FScene> Scene;
         TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
+        std::unique_ptr<FRunnableThread> RenderingThread;
+        std::atomic<bool> RenderingThreadInitialized;
 
 
     private:

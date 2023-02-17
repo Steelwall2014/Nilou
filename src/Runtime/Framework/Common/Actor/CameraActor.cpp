@@ -34,42 +34,42 @@ namespace nilou {
         InputAxisMapping MoveForward_mapping("MoveForward");
         MoveForward_mapping.AddGroup(InputKey::KEY_W, 1.0f);
         MoveForward_mapping.AddGroup(InputKey::KEY_S, -1.0f);
-        g_pInputManager->BindAxis(MoveForward_mapping, this, &ACameraActor::MoveForward);
+        GetInputManager()->BindAxis(MoveForward_mapping, this, &ACameraActor::MoveForward);
 
         InputAxisMapping MoveRight_mapping("MoveRight");
         MoveRight_mapping.AddGroup(InputKey::KEY_D, 1.0f);
         MoveRight_mapping.AddGroup(InputKey::KEY_A, -1.0f);
-        g_pInputManager->BindAxis(MoveRight_mapping, this, &ACameraActor::MoveRight);
+        GetInputManager()->BindAxis(MoveRight_mapping, this, &ACameraActor::MoveRight);
 
         // InputAxisMapping RollClockWise_mapping("RollClockWise");
         // RollClockWise_mapping.AddGroup(InputKey::KEY_E, 1.0f);
         // RollClockWise_mapping.AddGroup(InputKey::KEY_Q, -1.0f);
-        // g_pInputManager->BindAxis(RollClockWise_mapping, this, &ACameraActor::RollClockWise);
+        // GetInputManager()->BindAxis(RollClockWise_mapping, this, &ACameraActor::RollClockWise);
 
         InputAxisMapping YawCamera_mapping("YawCamera");
         YawCamera_mapping.AddGroup(InputKey::KEY_RIGHT, 1.0f);
         YawCamera_mapping.AddGroup(InputKey::KEY_LEFT, -1.0f);
         YawCamera_mapping.AddGroup(InputKey::KEY_MOUSEX, 1.0f);
-        g_pInputManager->BindAxis(YawCamera_mapping, this, &ACameraActor::YawCamera);
+        GetInputManager()->BindAxis(YawCamera_mapping, this, &ACameraActor::YawCamera);
 
         InputAxisMapping PitchCamera_mapping("PitchCamera");
         PitchCamera_mapping.AddGroup(InputKey::KEY_UP, 1.0f);
         PitchCamera_mapping.AddGroup(InputKey::KEY_DOWN, -1.0f);
         PitchCamera_mapping.AddGroup(InputKey::KEY_MOUSEY, 1.0f);
-        g_pInputManager->BindAxis(PitchCamera_mapping, this, &ACameraActor::PitchCamera);
+        GetInputManager()->BindAxis(PitchCamera_mapping, this, &ACameraActor::PitchCamera);
 
         InputActionMapping Zoom_mapping("Zoom");
         Zoom_mapping.AddGroup(InputKey::KEY_MOUSE_RIGHT);
-        g_pInputManager->BindAction(Zoom_mapping, InputEvent::IE_Pressed, this, &ACameraActor::Zoom);
+        GetInputManager()->BindAction(Zoom_mapping, InputEvent::IE_Pressed, this, &ACameraActor::Zoom);
 
         InputActionMapping ToOrigin_mapping("ToOrigin");
         ToOrigin_mapping.AddGroup(InputKey::KEY_KP_0);
-        g_pInputManager->BindAction(ToOrigin_mapping, InputEvent::IE_Pressed, this, &ACameraActor::ToOrigin);
+        GetInputManager()->BindAction(ToOrigin_mapping, InputEvent::IE_Pressed, this, &ACameraActor::ToOrigin);
 
         InputAxisMapping SpeedUp_mapping("SpeedUp");
         SpeedUp_mapping.AddGroup(InputKey::KEY_PAGEUP, 1.0f);
         SpeedUp_mapping.AddGroup(InputKey::KEY_PAGEDOWN, -1.0f);
-        g_pInputManager->BindAxis(SpeedUp_mapping, this, &ACameraActor::SpeedUp);
+        GetInputManager()->BindAxis(SpeedUp_mapping, this, &ACameraActor::SpeedUp);
     }
 
     void ACameraActor::Tick(double DeltaTime)

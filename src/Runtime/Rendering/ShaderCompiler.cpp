@@ -88,7 +88,7 @@ namespace nilou {
                 std::filesystem::path absolute_path = std::filesystem::path(std::string(matches[1]));
                 if (AlreadyIncludedPathes.find(absolute_path.generic_string()) == AlreadyIncludedPathes.end())
                 {
-                    std::string SourceCode = nilou::g_pAssetLoader->SyncOpenAndReadText(absolute_path.generic_string().c_str());
+                    std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(absolute_path.generic_string().c_str());
                     AlreadyIncludedPathes.insert(absolute_path.generic_string());
                     fullSourceCode << ProcessCodeIncludeInternal(SourceCode, AlreadyIncludedPathes);
                 }

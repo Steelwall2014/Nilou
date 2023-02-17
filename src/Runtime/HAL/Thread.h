@@ -1,59 +1,98 @@
 #pragma once
-// #include <async++/async++.h>
 #include <string>
+
+#include <thread_pool/BS_thread_pool.hpp>
 
 #include "Platform.h"
 
 namespace nilou {
 
-    enum EThreadPriority
-    {
-        TPri_Normal,
-        TPri_AboveNormal,
-        TPri_BelowNormal,
-        TPri_Highest,
-        TPri_Lowest,
-        TPri_SlightlyBelowNormal,
-        TPri_TimeCritical,
-        TPri_Num,
-    };
+    // enum EThreadPriority
+    // {
+    //     TPri_Normal,
+    //     TPri_AboveNormal,
+    //     TPri_BelowNormal,
+    //     TPri_Highest,
+    //     TPri_Lowest,
+    //     TPri_SlightlyBelowNormal,
+    //     TPri_TimeCritical,
+    //     TPri_Num,
+    // };
 
     class FRunnable
     {
     public:
-        virtual bool Init();
-        virtual uint32 Run();
-        virtual void Stop();
-        virtual void Exit();
+        /**
+         * Initializes the runnable object.
+         *
+         * This method is called in the context of the thread object that aggregates this, not the
+         * thread that passes this runnable to a new thread.
+         *
+         * @return True if initialization was successful, false otherwise
+         * @see Run, Stop, Exit
+         */
+        virtual bool Init()
+        {
+            return true;
+        }
+
+        /**
+         * Runs the runnable object.
+         *
+         * This is where all per object thread work is done. This is only called if the initialization was successful.
+         *
+         * @return The exit code of the runnable object
+         * @see Init, Stop, Exit
+         */
+        virtual uint32 Run() = 0;
+
+        /**
+         * Stops the runnable object.
+         *
+         * This is called if a thread is requested to terminate early.
+         * @see Init, Run, Exit
+         */
+        virtual void Stop() { }
+
+        /**
+         * Exits the runnable object.
+         *
+         * Called in the context of the aggregating thread to perform any cleanup.
+         * @see Init, Run, Stop
+         */
+        virtual void Exit() { }
     };
 
     class FRunnableThread
     {
-        static uint32 RunnableTlsSlot;    // FRunnableThread的TLS插槽索引.
-
     public:
-        static uint32 GetTlsSlot();
-        // 静态类, 用于创建线程, 需提供一个FRunnable对象, 用于线程执行的任务.
-        static FRunnableThread* Create(FRunnable* InRunnable, const std::string ThreadName, EThreadPriority InThreadPri);
+        static std::unique_ptr<FRunnableThread> Create(FRunnable* InRunnable, const std::string &InThreadName/*, EThreadPriority InThreadPri*/);
 
-        virtual void SetThreadPriority( EThreadPriority NewPriority );
-        // 暂停/继续运行线程
-        virtual void Suspend( bool bShouldPause = true );
-        // 销毁线程, 通常需要指定等待标记bShouldWait为true, 否则可能引起内存泄漏或死锁!
-        virtual bool Kill( bool bShouldWait = true );
-        // 等待执行完毕, 会卡调用线程.
-        virtual void WaitForCompletion();
+        // virtual void SetThreadPriority( EThreadPriority NewPriority );
+        // virtual void Suspend( bool bShouldPause = true );
+        void Kill();
+        void WaitForCompletion();
         
-        const uint32 GetThreadID() const;
-        const std::string& GetThreadName() const;
+        const std::thread::id GetThreadID() const { return ThreadID; }
+        const std::string& GetThreadName() const { return ThreadName; }
+
+        bool IsRunnableInitialized() const { return bRunnableInitialized; }
+
+        ~FRunnableThread() { delete Runnable; }
 
     protected:
         std::string ThreadName;
-        FRunnable* Runnable; // 被执行对象
-        EThreadPriority ThreadPriority;
-        uint32 ThreadID;
+        FRunnable* Runnable;
+        // EThreadPriority ThreadPriority;
+        std::thread::id ThreadID;
+        std::thread Thread;
+
+        std::atomic<bool> bRunnableInitialized = false;
 
     private:
-        virtual void Tick();
+        void CreateInternal(FRunnable *InRunnable, const std::string &InThreadName);
+        // virtual void Tick();
     };
+
+    bool IsInGameThread();
 }

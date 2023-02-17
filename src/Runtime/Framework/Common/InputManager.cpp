@@ -1,5 +1,4 @@
 #include "InputManager.h"
-#include "Modules/ModuleManager.h"
 #include "Templates/ObjectMacros.h"
 
 #include <iostream>
@@ -11,15 +10,12 @@
 using namespace std;
 
 namespace nilou {
-    InputManager *g_pInputManager = new InputManager;
-    int InputManager::StartupModule() { return 0; }
 
-    void InputManager::ShutdownModule() {}
-
-    // void InputManager::Tick(double DeltaTime) 
-    // {
-
-    // }
+    InputManager *GetInputManager()
+    {  
+        static InputManager *GInputManager = new InputManager;
+        return GInputManager;
+    }
 
     void nilou::InputManager::KeyPressed(int key)
     {
@@ -103,76 +99,4 @@ namespace nilou {
             return true;
         return false;
     }
-    
-    IMPLEMENT_MODULE(InputManager);
-    //void InputManager::BindAxis(const std::string &key, BaseActor *obj, void(BaseActor:: *func)(float))
-
-
-    //void InputManager::UpArrowKeyDown() {
-    //    //g_pGameLogic->OnUpKeyDown();
-    //    if (!m_bUpKeyPressed) {
-    //        //g_pGameLogic->OnUpKey();
-    //        m_bUpKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::UpArrowKeyUp() {
-    //    //g_pGameLogic->OnUpKeyUp();
-    //    m_bUpKeyPressed = false;
-    //}
-
-    //void InputManager::DownArrowKeyDown() {
-    //    //g_pGameLogic->OnDownKeyDown();
-    //    if (!m_bDownKeyPressed) {
-    //        //g_pGameLogic->OnDownKey();
-    //        m_bDownKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::DownArrowKeyUp() {
-    //    //g_pGameLogic->OnDownKeyUp();
-    //    m_bDownKeyPressed = false;
-    //}
-
-    //void InputManager::LeftArrowKeyDown() {
-    //    //g_pGameLogic->OnLeftKeyDown();
-    //    if (!m_bLeftKeyPressed) {
-    //        //g_pGameLogic->OnLeftKey();
-    //        m_bLeftKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::LeftArrowKeyUp() {
-    //    //g_pGameLogic->OnLeftKeyUp();
-    //    m_bLeftKeyPressed = false;
-    //}
-
-    //void InputManager::RightArrowKeyDown() {
-    //    //g_pGameLogic->OnRightKeyDown();
-    //    if (!m_bRightKeyPressed) {
-    //        //g_pGameLogic->OnRightKey();
-    //        m_bRightKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::RightArrowKeyUp() {
-    //    //g_pGameLogic->OnRightKeyUp();
-    //    m_bRightKeyPressed = false;
-    //}
-
-    //void InputManager::LeftMouseButtonDown() {}
-
-    //void InputManager::LeftMouseButtonUp() {}
-
-    //void InputManager::LeftMouseDrag(int deltaX, int deltaY) {
-    //    //g_pGameLogic->OnAnalogStick(0, (float)deltaX, (float)deltaY);
-    //}
-
-    //void InputManager::RightMouseButtonDown() {}
-
-    //void InputManager::RightMouseButtonUp() {}
-
-    //void InputManager::RightMouseDrag(int deltaX, int deltaY) {
-    //    //g_pGameLogic->OnAnalogStick(1, (float)deltaX, (float)deltaY);
-    //}
 }

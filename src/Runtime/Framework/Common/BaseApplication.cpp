@@ -9,11 +9,13 @@ namespace nilou {
     {
     }
 
-    int BaseApplication::Initialize()
+    bool BaseApplication::Initialize()
     {
         m_bQuit = false;
 
-        return 0;
+        this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+
+        return true;
     }
 
 
@@ -54,11 +56,6 @@ namespace nilou {
     bool BaseApplication::IsCursorEnabled()
     {
         return CursorEnabled;
-    }
-
-    IRuntimeModule *BaseApplication::GetModuleByName(const std::string &ModuleName)
-    {
-        return GetModuleManager()->GetModule(ModuleName);
     }
 
     BaseApplication *GetAppication()

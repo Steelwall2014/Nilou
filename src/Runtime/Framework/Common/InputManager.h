@@ -7,7 +7,6 @@
 #include <GLFW/glfw3.h>
 
 #include "Delegate.h"
-#include "Interface/IRuntimeModule.h"
 
 namespace nilou {
 	class BaseActor;
@@ -129,7 +128,7 @@ namespace nilou {
 	typedef TMulticastDelegate<> FActionDelegate;
 
 	template<class UserClass>
-	class ActionDelegate : implements TDelegateInstance<UserClass>
+	class ActionDelegate : public TDelegateInstance<UserClass>
 	{
 	public:
 		ActionDelegate(UserClass *obj, void (UserClass:: *func)())
@@ -154,19 +153,9 @@ namespace nilou {
 	// 	}
 	// };
 
-    class InputManager : implements IRuntimeModule
+    class InputManager
     {
-	private:
-		std::map<InputKey, FAxisDelegate>		m_AxisDelegateMap;
-		std::map<InputKey, std::map<InputEvent, FActionDelegate>>	m_ActionDelegateMap;
-		std::map<InputKey, KeyState>			m_KeyStates;
     public:
-		InputManager();
-
-        int StartupModule() override;
-        void ShutdownModule() override;
-        // void Tick(double DeltaTime) override;
-
 		void KeyPressed(int key);
 		void KeyReleased(int key);
 		void MouseMove(float xoffset, float yoffset);
@@ -208,7 +197,11 @@ namespace nilou {
     private:
 		bool checkHasActionKeyEventBinding(InputKey key, InputEvent e);
 		bool checkHasAxisKeyBinding(InputKey key);
+
+		std::map<InputKey, FAxisDelegate>		m_AxisDelegateMap;
+		std::map<InputKey, std::map<InputEvent, FActionDelegate>>	m_ActionDelegateMap;
+		std::map<InputKey, KeyState>			m_KeyStates;
     };
 
-    extern InputManager *g_pInputManager;
+   InputManager *GetInputManager();
 }
