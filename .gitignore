@@ -4,5 +4,6 @@ build
 vsxmake2019
 .deprecated
 .xmake
+Asset/Shaders/.vs
 
 *.zip
