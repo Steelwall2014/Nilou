@@ -9,6 +9,7 @@
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
 #include "Common/BatchedLine.h"
+#include "ViewElementPDI.h"
 // #include "SceneNode.h"
 // #include "SceneObject.h"
 // #include "Common/Actor/ObserverActor.h"
@@ -79,7 +80,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-
+            PDI = std::make_shared<FViewElementPDI>();
         }
 
         void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
@@ -94,12 +95,10 @@ namespace nilou {
 
         ivec2 GetResolution() const { return SceneProxy->GetSceneView().ScreenResolution; }
 
-        void DrawLine(const dvec3 &Start, const dvec3 &End, const vec3 &Color);
-
         FScene *Scene;
         UCameraComponent *Camera;
         FCameraSceneProxy *SceneProxy;
-        std::vector<FBatchedLine> LineElements;
+        std::shared_ptr<FViewElementPDI> PDI;
     private:
         bool bNeedsUniformBufferUpdate = false;
         bool bNeedsFramebufferUpdate = false;

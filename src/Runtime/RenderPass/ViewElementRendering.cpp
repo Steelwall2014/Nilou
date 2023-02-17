@@ -13,13 +13,13 @@ namespace nilou {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FViewSceneInfo *ViewInfo = Views[ViewIndex].ViewSceneInfo;
-            if (ViewInfo->LineElements.empty())
+            if (ViewInfo->PDI->LineElements.empty())
                 continue;
             FStaticMeshVertexBuffer<vec3> PositionBuffer;
             FStaticMeshVertexBuffer<vec3> ColorBuffer;
             std::vector<vec3> Positions;
             std::vector<vec3> Colors;
-            for (auto &&Line : ViewInfo->LineElements)
+            for (auto &&Line : ViewInfo->PDI->LineElements)
             {
                 Positions.push_back(Line.Start);
                 Positions.push_back(Line.End);
@@ -63,7 +63,7 @@ namespace nilou {
 
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                 
-                RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
+                RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false>::CreateRHI();
                 RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
                 RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
                 RHIGetError();
@@ -88,7 +88,7 @@ namespace nilou {
                 RHICmdList->RHIDrawArrays(0, Positions.size());
             }
             RHICmdList->RHIEndRenderPass();
-            ViewInfo->LineElements.clear();
+            ViewInfo->PDI->LineElements.clear();
         }
     }
 

@@ -6,7 +6,12 @@ namespace nilou {
 
     void FViewElementPDI::DrawLine(const dvec3 &Start, const dvec3 &End, const vec3 &Color)
     {
-        ViewInfo->LineElements.push_back(FBatchedLine{Start, End, Color});
+        LineElements.emplace_back(Start, End, Color);
+    }
+
+    void FViewElementPDI::DrawLine(const FBatchedLine &Line)
+    {
+        LineElements.push_back(Line);
     }
 
 }
