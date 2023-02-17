@@ -1,7 +1,7 @@
 # Nilou
 一个自娱自乐的实时渲染引擎  
 ![](figures/nilou.png)
-_妮露老婆好美_
+_她真的好美_
 ## Overview
 
 原先是我的毕业设计，毕业设计中实现了pbr（部分）、GPU Driven的地形系统（还没搞RVT）、大气渲染（还有bug）、FFT海面（这个倒是很完整）  
@@ -20,12 +20,10 @@ xmake run Nilou
 - 像样的actor和component机制
 - 像样的渲染资源管理与渲染流程控制
 ## 相较于毕设还少了哪些
-- 大气渲染
 - FFT海面
 - 地形系统
 ## TODO
 - 完整的地形系统、pbr
-- 没有bug的大气渲染
 - 屏幕空间反射
 - TAA
 - ......
