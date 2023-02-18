@@ -86,13 +86,6 @@ namespace nilou {
     bool GLFWApplication::Initialize()
     {
         BaseApplication::Initialize();
-        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-        glfwSetCursorPosCallback(window, mouse_callback);
-        glfwSetMouseButtonCallback(window, mouse_button_callback);
-        glfwSetScrollCallback(window, scroll_callback);
-        glfwSetWindowPos(window, 100, 100);
-        // tell GLFW to capture our mouse
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
  
         // Setup Dear ImGui context
         // IMGUI_CHECKVERSION();
@@ -149,9 +142,6 @@ namespace nilou {
 //             _GM->GetError();
 //         }
 
-        InputActionMapping EnableCursor_mapping("EnableCursor");
-        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
-        GetInputManager()->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
         return true;
     }
 
@@ -177,6 +167,16 @@ namespace nilou {
             return false;
         }
         glfwMakeContextCurrent(window);
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+        glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetMouseButtonCallback(window, mouse_button_callback);
+        glfwSetScrollCallback(window, scroll_callback);
+        glfwSetWindowPos(window, 100, 100);
+        // tell GLFW to capture our mouse
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        InputActionMapping EnableCursor_mapping("EnableCursor");
+        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
+        GetInputManager()->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
         return true;
     }
 
@@ -184,8 +184,6 @@ namespace nilou {
     {
         deltaTime = DeltaTime;
         accumTime += deltaTime;
-        glfwPollEvents();
-        processInput();
 
         // ImGui_ImplOpenGL3_NewFrame();
         // ImGui_ImplGlfw_NewFrame();
@@ -225,13 +223,6 @@ namespace nilou {
                 World->SendAllEndOfFrameUpdates();
         }
 
-        {
-            if (Scene)
-            {
-                Scene->UpdateRenderInfos();
-            }
-        }
-
         // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // ImGui::End();
@@ -240,12 +231,14 @@ namespace nilou {
         // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 
-        m_bQuit = glfwWindowShouldClose(window);
     }
 
     void GLFWApplication::Tick_RenderThread()
     {
+        glfwPollEvents();
+        processInput();
         glfwSwapBuffers(window);
+        m_bQuit = glfwWindowShouldClose(window);
     }
 
     void GLFWApplication::Finalize()

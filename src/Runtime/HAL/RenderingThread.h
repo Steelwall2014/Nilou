@@ -19,7 +19,7 @@ namespace nilou {
 
         void DoTask()
         {
-            NILOU_LOG(Info, TraceBackString)
+            NILOU_LOG(Info, "Enqueued render command: " + std::string(TraceBackString))
             lambda(FDynamicRHI::GetDynamicRHI());
         }
 
@@ -50,8 +50,6 @@ namespace nilou {
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
 
     };
-
-    bool IsInRenderingThread();
 
     template <typename STR, typename Lambda>
     void EnqueueUniqueRenderCommand(Lambda &&lambda)

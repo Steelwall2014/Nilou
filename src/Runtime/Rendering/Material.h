@@ -87,6 +87,8 @@ namespace nilou {
         { 
         }
 
+        ~FMaterial();
+
         uint8 StencilRefValue = 0;
 
         FRasterizerStateInitializer RasterizerState;

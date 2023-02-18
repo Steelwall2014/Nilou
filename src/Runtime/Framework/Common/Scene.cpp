@@ -166,7 +166,6 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
             [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, &RenderMatrix, &Bounds] (FDynamicRHI *DynamicRHI) 
             {
-                PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
                 PrimitiveSceneProxy->CreateRenderThreadResources();
                 Scene->AddPrimitiveSceneInfo(PrimitiveSceneInfo);
             });

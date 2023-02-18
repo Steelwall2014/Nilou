@@ -22,4 +22,13 @@ namespace nilou {
             FShaderCompiler::CompileMaterialShader(this, DynamicRHI);
         });
     }
+
+    FMaterial::~FMaterial()
+    {
+        ENQUEUE_RENDER_COMMAND(FMaterial_Deconstructor)(
+            [this](FDynamicRHI *DynamicRHI) 
+            {
+                ShaderMap.RemoveAllShaders();
+            });
+    }
 }

@@ -106,7 +106,6 @@ namespace nilou {
 	public:
 		RHIResource(ERHIResourceType InResourceType) : ResourceType(InResourceType) {}
 		virtual ~RHIResource() {};
-		friend class FDynamicRHI;
 
 		ERHIResourceType ResourceType;
 	};

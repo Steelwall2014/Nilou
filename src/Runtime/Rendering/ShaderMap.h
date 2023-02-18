@@ -5,6 +5,8 @@
 // #include "Shader.h"
 // #include "VertexFactory.h"
 #include "ShaderInstance.h"
+#include "Thread.h"
+#include "Common/Log.h"
 
 namespace nilou {
 
@@ -80,6 +82,17 @@ namespace nilou {
             Shaders[HashedName][InParameters.PermutationId].AddShader(InShaderRHI, Args...);
         }
 
+        void RemoveAllShaders()
+        {
+            if (!IsInRenderingThread())
+                NILOU_LOG(Fatal, "FMaterialShaderMap::RemoveAllShaders MUST be called from rendering thread!")
+
+            for (auto &[key, value] : Shaders)
+            {
+                Shaders[key].clear();
+            }
+        }
+
         std::unordered_map<FHashedName, std::vector<ValueType>> Shaders;
     };
 
@@ -114,6 +127,17 @@ namespace nilou {
             Shaders[HashedName][InParameters.PermutationId] = InShaderRHI;
         }
 
+        void RemoveAllShaders()
+        {
+            if (!IsInRenderingThread())
+                NILOU_LOG(Fatal, "FMaterialShaderMap::RemoveAllShaders MUST be called from rendering thread!")
+
+            for (auto &[key, value] : Shaders)
+            {
+                Shaders[key].clear();
+            }
+        }
+
         std::unordered_map<FHashedName, std::vector<FShaderInstanceRef>> Shaders;
     };
 
@@ -122,7 +146,7 @@ namespace nilou {
         friend class FShaderCompiler;
     public:
         FShaderInstance *GetShader(
-            const FVertexFactoryPermutationParameters VFParameter, 
+            const FVertexFactoryPermutationParameters &VFParameter, 
             const FShaderPermutationParameters &ShaderParameter)
         {
             return VertexShaderMap.GetShader(VFParameter, ShaderParameter);
@@ -134,7 +158,7 @@ namespace nilou {
 
         void AddShader(
             FShaderInstanceRef Shader,
-            const FVertexFactoryPermutationParameters VFParameter, 
+            const FVertexFactoryPermutationParameters &VFParameter, 
             const FShaderPermutationParameters &ShaderParameter)
         {
             VertexShaderMap.AddShader(Shader, VFParameter, ShaderParameter);
@@ -144,6 +168,14 @@ namespace nilou {
             const FShaderPermutationParameters &ShaderParameter)
         {
             PixelShaderMap.AddShader(Shader, ShaderParameter);
+        }
+
+        void RemoveAllShaders()
+        {
+            if (!IsInRenderingThread())
+                NILOU_LOG(Fatal, "FMaterialShaderMap::RemoveAllShaders MUST be called from rendering thread!")
+            VertexShaderMap.RemoveAllShaders();
+            PixelShaderMap.RemoveAllShaders();
         }
     
     private:

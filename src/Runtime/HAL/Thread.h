@@ -95,4 +95,6 @@ namespace nilou {
     };
 
     bool IsInGameThread();
+
+    bool IsInRenderingThread();
 }
