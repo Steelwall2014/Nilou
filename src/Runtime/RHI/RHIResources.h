@@ -115,6 +115,7 @@ namespace nilou {
 	public:
 		RHIShader(ERHIResourceType InResourceType) : RHIResource(InResourceType) {}
 		virtual bool Success() { return false; }
+		virtual void ReleaseRHI() { }
 	};
 	using RHIShaderRef = std::shared_ptr<RHIShader>;
 	

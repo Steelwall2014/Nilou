@@ -19,8 +19,8 @@ namespace nilou {
 
         virtual ~FStaticMeshVertexBuffer()
         {
-            FVertexBuffer::~FVertexBuffer();
             CleanUp();
+            FVertexBuffer::~FVertexBuffer();
         }
 
         void Init(uint32 InNumVertices, bool bInNeedsCPUAccess = true);

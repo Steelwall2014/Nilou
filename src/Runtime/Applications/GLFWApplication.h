@@ -12,7 +12,7 @@ namespace nilou {
 
         virtual bool Initialize() override;
         virtual bool Initialize_RenderThread() override;
-        virtual void Finalize() override;
+        virtual void Finalize_RenderThread() override;
         virtual void Tick(double DeltaTime) override;
         virtual void Tick_RenderThread() override;
     private:

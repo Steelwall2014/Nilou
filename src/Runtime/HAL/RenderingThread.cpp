@@ -172,7 +172,7 @@ namespace nilou {
 
     uint32 FRenderingThread::Run()
     {
-        while (!GetAppication()->IsQuit())
+        while (!GetAppication()->ShouldRenderingThreadExit())
         {
             int size = RenderCommands.size();
             // std::cout << size << std::endl;
@@ -189,6 +189,19 @@ namespace nilou {
             GetAppication()->Tick_RenderThread();
         }
         return 0;
+    }
+
+    void FRenderingThread::Exit()
+    {
+        GetAppication()->Finalize_RenderThread();
+        for (int i = 0; i < RenderCommands.size(); i++)
+        {
+            EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
+            mutex.lock();
+            RenderCommands.pop();
+            mutex.unlock();
+            RenderCommand.DoTask();
+        }
     }
 
     bool IsInRenderingThread()

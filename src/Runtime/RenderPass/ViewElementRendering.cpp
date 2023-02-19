@@ -51,8 +51,8 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersVS(&FViewElementVS::StaticType, 0);
                 FShaderPermutationParameters PermutationParametersPS(&FViewElementPS::StaticType, 0);
 
-                FShaderInstance *ViewElementVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                FShaderInstance *ViewElementPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                FShaderInstance *ViewElementVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
+                FShaderInstance *ViewElementPS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
                 
                 FRHIGraphicsPipelineInitializer PSOInitializer;
 

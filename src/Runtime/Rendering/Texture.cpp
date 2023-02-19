@@ -14,7 +14,7 @@ namespace nilou {
 
     void FTexture::ReleaseRHI()
     {
-
+        TextureRHI = nullptr;
     }
 
     // FTexture::FTexture()

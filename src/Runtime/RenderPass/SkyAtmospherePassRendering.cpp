@@ -27,8 +27,8 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersPS(&FSkyAtmospherePS::StaticType, 0);
 
-                    FShaderInstance *SkyAtmosphereVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                    FShaderInstance *SkyAtmospherePS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    FShaderInstance *SkyAtmosphereVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *SkyAtmospherePS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 

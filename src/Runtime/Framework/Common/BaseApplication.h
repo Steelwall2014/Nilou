@@ -14,6 +14,7 @@ namespace nilou {
         virtual bool Initialize();
         virtual bool Initialize_RenderThread() { }
         virtual void Finalize();
+        virtual void Finalize_RenderThread() { }
         virtual void Tick(double);
         virtual void Tick_RenderThread() { }
 
@@ -23,6 +24,8 @@ namespace nilou {
         virtual void SetWindowWidth(int width);
         virtual void SetWindowHeight(int height);
         virtual bool IsCursorEnabled();
+
+        bool ShouldRenderingThreadExit() const { return bShouldRenderingThreadExit; }
 
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
@@ -38,7 +41,8 @@ namespace nilou {
         std::shared_ptr<FScene> Scene;
         TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
         std::unique_ptr<FRunnableThread> RenderingThread;
-        std::atomic<bool> RenderingThreadInitialized;
+        std::atomic<bool> RenderingThreadInitialized = false;
+        std::atomic<bool> bShouldRenderingThreadExit = false;
 
 
     private:

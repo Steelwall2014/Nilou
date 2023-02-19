@@ -26,6 +26,7 @@ namespace nilou {
             this->bRunnableInitialized = true;
             this->Runnable->Run();
             this->Runnable->Exit();
+            this->bRunnableExited = true;
         };
         Thread = std::thread(f);
     }

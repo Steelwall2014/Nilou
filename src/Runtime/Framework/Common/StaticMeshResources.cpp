@@ -203,5 +203,13 @@ namespace nilou {
     // {
     //     return VertexBuffers.TexCoords[0].GetNumVertices();
     // }
+
+    void UStaticMesh::ReleaseRenderResources()
+    {
+        for (int i = 0; i < RenderData->LODResources.size(); i++)
+        {
+            RenderData->LODResources[i]->ReleaseResources();
+        }
+    }
     
 }

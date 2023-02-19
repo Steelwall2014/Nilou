@@ -78,6 +78,8 @@ namespace nilou {
 
         bool IsRunnableInitialized() const { return bRunnableInitialized; }
 
+        bool IsRunnableExited() const { return bRunnableExited; }
+
         ~FRunnableThread() { delete Runnable; }
 
     protected:
@@ -88,6 +90,8 @@ namespace nilou {
         std::thread Thread;
 
         std::atomic<bool> bRunnableInitialized = false;
+
+        std::atomic<bool> bRunnableExited = false;
 
     private:
         void CreateInternal(FRunnable *InRunnable, const std::string &InThreadName);

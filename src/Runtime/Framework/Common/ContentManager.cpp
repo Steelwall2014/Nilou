@@ -1,5 +1,7 @@
 #include "ContentManager.h"
 #include "Texture.h"
+#include "Material.h"
+#include "Common/StaticMeshResources.h"
 
 #include "Common/Log.h"
 
@@ -55,11 +57,33 @@ namespace nilou {
     {
         GlobalStaticMeshes.Erase(name);
     }
-    std::shared_ptr<UStaticMesh> FContentManager::GetGlobalStaticMesh(const std::string &name)
+    UStaticMesh *FContentManager::GetGlobalStaticMesh(const std::string &name)
     {
         std::shared_ptr<UStaticMesh> Mesh = GlobalStaticMeshes.Get(name);
         if (Mesh == nullptr)
             NILOU_LOG(Error, "FContentManager::GetGlobalStaticMesh: StaticMesh \"" + name + "\" doesn't exist");
-        return Mesh;
+        return Mesh.get();
+    }
+    
+    void FContentManager::AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
+    {
+        GlobalShaders.AddShader(ShaderRHI, Parameters);
+    }
+
+    FShaderInstance *FContentManager::GetGlobalShader(const FShaderPermutationParameters &Parameters)
+    {
+        return GlobalShaders.GetShader(Parameters);
+    }
+
+
+    void FContentManager::ReleaseRenderResources()
+    {
+        ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
+            [this](FDynamicRHI*) {
+                GlobalTextures.Map.clear();
+                GlobalMaterials.Map.clear();
+                GlobalStaticMeshes.Map.clear();
+                GlobalShaders.RemoveAllShaders();
+            });
     }
 }

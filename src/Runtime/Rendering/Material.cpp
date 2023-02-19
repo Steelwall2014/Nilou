@@ -25,10 +25,11 @@ namespace nilou {
 
     FMaterial::~FMaterial()
     {
-        ENQUEUE_RENDER_COMMAND(FMaterial_Deconstructor)(
-            [this](FDynamicRHI *DynamicRHI) 
-            {
-                ShaderMap.RemoveAllShaders();
-            });
+        ReleaseRenderResources();
+    }
+
+    void FMaterial::ReleaseRenderResources()
+    {
+        ShaderMap.RemoveAllShaders();
     }
 }

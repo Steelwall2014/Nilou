@@ -9,6 +9,7 @@
 #include "DynamicRHI.h"
 #include "ShaderCompiler.h"
 #include "Common/AssertionMacros.h"
+#include "Common/ContentManager.h"
 #include "GameStatics.h"
 #include "Material.h"
 #include "Shader.h"
@@ -261,21 +262,21 @@ namespace nilou {
         switch (ShaderType->ShaderFrequency) 
         {
             case EShaderFrequency::SF_Vertex:
-                ShaderInstance->Shader = DynamicRHI->RHICreateVertexShader(code.c_str());
+                ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
                 break;
             case EShaderFrequency::SF_Pixel:
-                ShaderInstance->Shader = DynamicRHI->RHICreatePixelShader(code.c_str());
+                ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
                 break;
             case EShaderFrequency::SF_Compute:
-                ShaderInstance->Shader = DynamicRHI->RHICreateComputeShader(code.c_str());
+                ShaderInstance->ShaderRHI = DynamicRHI->RHICreateComputeShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Compute;
                 break;
         }
 
         // AddGlobalShaderInstance(ShaderInstance, ShaderParameter);
-        AddGlobalShaderInstance2(ShaderInstance, ShaderParameter);
+        FContentManager::GetContentManager().AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(
@@ -307,11 +308,9 @@ namespace nilou {
                 Material->GetMaterialName()+" "+
                 VertexFactoryType->Name+std::to_string(VertexFactoryParams.PermutationId)+".glsl", code);
         #endif
-        ShaderInstance->Shader = DynamicRHI->RHICreateVertexShader(code.c_str());
+        ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
         
-        // AddVertexShaderInstance(ShaderInstance, *MaterialType, *VertexFactoryType, ShaderParameter);
-        // AddVertexShaderInstance2(ShaderInstance, VertexFactoryParams, Material, ShaderParameter);
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
@@ -337,66 +336,11 @@ namespace nilou {
                 ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+
                 Material->GetMaterialName()+".glsl", code);
         #endif
-        ShaderInstance->Shader = DynamicRHI->RHICreatePixelShader(code.c_str());
+        ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
 
-        // AddPixelShaderInstance(ShaderInstance, *MaterialType, ShaderParameter);
-        // AddPixelShaderInstance2(ShaderInstance, Material, ShaderParameter);
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
-
-    // void FShaderCompiler::IterateOnMaterials(
-    //     FDynamicRHI *DynamicRHI, 
-    //     const FShaderPermutationParameters &ShaderParameter)
-    // {
-    //     std::vector<FMaterialType *> &MaterialTypes = GetAllMaterialTypes();
-    //     FShaderType *ShaderType = ShaderParameter.Type;
-
-    //     for (FMaterialType *MaterialType : MaterialTypes)
-    //     {
-    //         if (MaterialType->Name == "FMaterial")
-    //             continue;
-    //         MaterialType->ReadSourceCode();
-    //         for (int32 MaterialPermutationId = 0; MaterialPermutationId < MaterialType->PermutationCount; MaterialPermutationId++)
-    //         {
-    //             FMaterialPermutationParameters MaterialParameters(MaterialType, MaterialPermutationId);
-    //             if (!MaterialType->ShouldCompilePermutation(MaterialParameters))
-    //                 continue;
-    //             if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
-    //             {
-    //                 // Vertex Material Shader
-    //                 IterateOnVertexFactories(DynamicRHI, ShaderParameter, MaterialParameters);
-    //             }
-    //             else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
-    //             {
-    //                 // Pixel Material Shader
-    //                 CompilePixelMaterialShader(DynamicRHI, MaterialParameters, ShaderParameter);
-    //             }
-    //         }
-    //     }
-    // }
-
-    // void FShaderCompiler::IterateOnVertexFactories(
-    //     FDynamicRHI *DynamicRHI, 
-    //     FMaterial *Material,
-    //     const FShaderPermutationParameters &ShaderParameter)
-    // {
-    //     std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
-
-    //     for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
-    //     {
-    //         if (VertexFactoryType->Name == "FVertexFactory")
-    //             continue;
-    //         VertexFactoryType->ReadSourceCode();
-    //         for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
-    //         {
-    //             FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
-    //             if (!VertexFactoryType->ShouldCompilePermutation(VFParameters))
-    //                 continue;
-    //             CompileVertexMaterialShader(DynamicRHI, Material, VFParameters, ShaderParameter);
-    //         }
-    //     }
-    // }
 
     template<typename Func, typename Filter>
     void ForEachShader(Func f, Filter filter)

@@ -4,6 +4,7 @@
 
 #include "Common/MeshBatch.h"
 #include "Common/Scene.h"
+#include "Common/ContentManager.h"
 #include "MeshPassProcessor.h"
 #include "RHIResources.h"
 #include "SceneView.h"

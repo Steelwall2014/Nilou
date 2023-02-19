@@ -3,14 +3,12 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <gdal.h>
-#include <gdal_priv.h>
 #include <memory>
 
 #include <OpenGL/OpenGLDynamicRHI.h>
 #include <Common/InputManager.h>
 // #include <Common/SceneManager.h>
-// #include <Common/ShaderManager.h>
+#include <Common/ContentManager.h>
 #include <Common/AssetLoader.h>
 
 // #include "Common/DrawPass/ForwardRenderPass.h"
@@ -95,52 +93,6 @@ namespace nilou {
 
         // ImGui_ImplGlfw_InitForOpenGL(window, true);
         // ImGui_ImplOpenGL3_Init("#version 130");
-
-        World = std::make_shared<UWorld>();
-        Scene = std::make_shared<FScene>();
-        World->Scene = Scene.get();
-        Scene->World = World.get();
-
-        while (!RenderingThread->IsRunnableInitialized()) { }
-		GDALAllRegister();
-        World->InitWorld();
-        World->BeginPlay();
-//         run_time_modules.push_back(GetAssetLoader());
-//         run_time_modules.push_back(g_pSceneManager);
-//         run_time_modules.push_back(FDynamicRHI::GetDynamicRHI());
-//         run_time_modules.push_back(GetInputManager());
-//         run_time_modules.push_back(g_pShaderManager);
-//         _GM->GetError();
-//         g_pShaderManager->Initialize();
-//         _GM->GetError();
-//         GetAssetLoader()->Initialize();
-//         _GM->GetError();
-//         g_pSceneManager->Initialize();
-//         _GM->GetError();
-//         FDynamicRHI::GetDynamicRHI()->Initialize();
-//         _GM->GetError();
-//         GetInputManager()->Initialize();
-
-//         m_DrawPasses.push_back(new ShadowMappingPass);
-
-//         m_DrawPasses.push_back(new ForwardRenderPass);
-
-//         m_DrawPasses.push_back(new SkyboxPass);
-
-//         m_DrawPasses.push_back(new OceanSurfacePass);
-
-//         m_DrawPasses.push_back(new SeabedSurfacePass);
-
-//         m_DrawPasses.push_back(new DeferredRenderPass);
-// #ifdef NILOU_DEBUG
-//         m_DrawPasses.push_back(new DebugHUDPass);
-// #endif // NILOU_DEBUG
-//         auto &frame = g_pSceneManager->frame;
-//         for (auto &&pass : m_DrawPasses)
-//         {
-//             pass->Initialize(frame);
-//             _GM->GetError();
-//         }
 
         return true;
     }
@@ -241,12 +193,8 @@ namespace nilou {
         m_bQuit = glfwWindowShouldClose(window);
     }
 
-    void GLFWApplication::Finalize()
+    void GLFWApplication::Finalize_RenderThread()
     {
-        // for (auto pass : m_DrawPasses)
-        // {
-        //     delete pass;
-        // }
         glfwTerminate();
     }
 

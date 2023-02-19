@@ -97,6 +97,8 @@ namespace nilou {
 
         FBlendStateInitializer BlendState;
 
+        void ReleaseRenderResources();
+
         void SetMaterialName(const std::string Name)
         {
             MaterialName = Name;

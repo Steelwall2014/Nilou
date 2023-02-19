@@ -30,25 +30,21 @@ namespace nilou {
     {
         FRHIGraphicsPipelineInitializer Initializer;
 
-        // FShaderInstance *VertexShader = GetVertexShaderInstance(MaterialType, VertexFactoryType, PermutationParametersVS);
-        FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);//GetVertexShaderInstance2(VFPermutationParameters, MaterialPermutationParameters, PermutationParametersVS);
+        FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
         Initializer.VertexShader = VertexShader;
 
-        // FShaderInstance *PixelShader = GetPixelShaderInstance(MaterialType, PermutationParametersPS);
-        FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);//GetPixelShaderInstance2(MaterialPermutationParameters, PermutationParametersPS);
+        FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader;
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
         OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
         RHIGetError();
-        // Initializer.DepthStentilState = DepthState;
 
         OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
         RHIGetError();
 
         OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
         RHIGetError();
-        // Initializer.RasterizerState = RasterizerState;
 
         {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);

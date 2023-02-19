@@ -24,8 +24,8 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, 0);
 
-                    FShaderInstance *LightPassVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                    FShaderInstance *LightPassPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    FShaderInstance *LightPassVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *LightPassPS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 

@@ -41,7 +41,11 @@ namespace nilou {
 			}
 			return true;
 		}
-		virtual ~TOpenGLShader() { glDeleteShader(Resource); }
+		virtual void ReleaseRHI() override
+		{
+			glDeleteShader(Resource);
+		}
+		virtual ~TOpenGLShader() { ReleaseRHI(); }
 		TOpenGLShader(const char *shader_code)
 		{
 			Resource = glCreateShader(ShaderType);

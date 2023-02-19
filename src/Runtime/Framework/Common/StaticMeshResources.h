@@ -143,6 +143,7 @@ namespace nilou {
         std::unique_ptr<FStaticMeshRenderData> RenderData;
         std::vector<FMaterial *> MaterialSlots;
         FBoundingBox LocalBoundingBox;
-        // class UMaterial *Material;
+        ~UStaticMesh() { ReleaseRenderResources(); }
+        void ReleaseRenderResources();
     };
 }

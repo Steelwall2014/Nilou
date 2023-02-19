@@ -31,8 +31,9 @@ namespace nilou {
     class FRenderingThread : public FRunnable
     {
     public:
-        virtual bool Init();
-        virtual uint32 Run();
+        virtual bool Init() override;
+        virtual uint32 Run() override;
+        virtual void Exit() override;
 
         template <typename STR, typename Lambda>
         void EnqueueRenderCommand(Lambda &&lambda)

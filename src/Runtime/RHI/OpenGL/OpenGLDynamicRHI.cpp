@@ -999,7 +999,7 @@ namespace nilou {
         PSO->Initializer = Initializer;
         if (Initializer.ComputeShader != nullptr)
         {
-            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->Shader.get());
+            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->ShaderRHI.get());
             PSO->Program = RHICreateLinkedProgram(comp);
             FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;
             const std::set<FShaderParameterInfo> &ComputeShaderParams = Initializer.ComputeShader->Parameters;
@@ -1010,8 +1010,8 @@ namespace nilou {
             Initializer.PixelShader != nullptr)
         {
             RHIGetError();
-            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->Shader.get());
-            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->Shader.get());
+            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->ShaderRHI.get());
+            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->ShaderRHI.get());
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
             #ifdef NILOU_DEBUG

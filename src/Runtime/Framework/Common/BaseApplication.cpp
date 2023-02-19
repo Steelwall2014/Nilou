@@ -1,4 +1,9 @@
+#include <gdal.h>
+#include <gdal_priv.h>
+
 #include "GLFWApplication.h"
+
+#include "Common/ContentManager.h"
 
 namespace nilou {
 
@@ -14,13 +19,24 @@ namespace nilou {
         m_bQuit = false;
 
         this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
-
+        
+        World = std::make_shared<UWorld>();
+        Scene = std::make_shared<FScene>();
+        World->Scene = Scene.get();
+        Scene->World = World.get();
+        while (!RenderingThread->IsRunnableInitialized()) { }
+		GDALAllRegister();
+        World->InitWorld();
+        World->BeginPlay();
         return true;
     }
 
 
     void BaseApplication::Finalize()
     {
+        FContentManager::GetContentManager().ReleaseRenderResources();
+        bShouldRenderingThreadExit = true;
+        while (!RenderingThread->IsRunnableExited()) { }
     }
 
 
