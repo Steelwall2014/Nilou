@@ -17,9 +17,8 @@ namespace nilou {
         return GInputManager;
     }
 
-    void nilou::InputManager::KeyPressed(int key)
+    void nilou::InputManager::KeyPressed(InputKey input_key)
     {
-        InputKey input_key = (InputKey)key;
         KeyState former_state = m_KeyStates[input_key];
         m_KeyStates[input_key].Value = 1.0;
         m_KeyStates[input_key].bDown = true;
@@ -45,9 +44,8 @@ namespace nilou {
             //     dlg->execute(1.0);
     }
 
-    void InputManager::KeyReleased(int key)
+    void InputManager::KeyReleased(InputKey input_key)
     {
-        InputKey input_key = (InputKey)key;
         KeyState former_state = m_KeyStates[input_key];
         m_KeyStates[input_key].Value = 0.0;
         m_KeyStates[input_key].bDown = false;
@@ -55,7 +53,7 @@ namespace nilou {
         if (former_state.bDown == true)
         {
             if (checkHasActionKeyEventBinding(input_key, IE_Released))
-                m_ActionDelegateMap[input_key][IE_Pressed].Broadcast();
+                m_ActionDelegateMap[input_key][IE_Released].Broadcast();
                 // for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Released])
                 //     dlg->execute();
         }
@@ -63,21 +61,21 @@ namespace nilou {
 
     void InputManager::MouseMove(float xoffset, float yoffset)
     {
-        //m_KeyStates[KEY_MOUSEX].Value = xoffset;
-        ////m_KeyStates[KEY_MOUSEX].AccumulateValue += xoffset;
-        //m_KeyStates[KEY_MOUSEX].bDown = true;
-        if (checkHasAxisKeyBinding(KEY_MOUSEX))
-            m_AxisDelegateMap[KEY_MOUSEX].Broadcast(xoffset);
-            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEX])
+        //m_KeyStates[AXIS_MOUSEX].Value = xoffset;
+        ////m_KeyStates[AXIS_MOUSEX].AccumulateValue += xoffset;
+        //m_KeyStates[AXIS_MOUSEX].bDown = true;
+        if (checkHasAxisKeyBinding(AXIS_MOUSEX))
+            m_AxisDelegateMap[AXIS_MOUSEX].Broadcast(xoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[AXIS_MOUSEX])
             //     dlg->execute(xoffset);
-        if (checkHasAxisKeyBinding(KEY_MOUSEY))
-            m_AxisDelegateMap[KEY_MOUSEY].Broadcast(yoffset);
-            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEY])
+        if (checkHasAxisKeyBinding(AXIS_MOUSEY))
+            m_AxisDelegateMap[AXIS_MOUSEY].Broadcast(yoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[AXIS_MOUSEY])
             //     dlg->execute(yoffset);
 
-        //m_KeyStates[KEY_MOUSEY].Value = yoffset;
-        ////m_KeyStates[KEY_MOUSEY].AccumulateValue += yoffset;
-        //m_KeyStates[KEY_MOUSEY].bDown = true;
+        //m_KeyStates[AXIS_MOUSEY].Value = yoffset;
+        ////m_KeyStates[AXIS_MOUSEY].AccumulateValue += yoffset;
+        //m_KeyStates[AXIS_MOUSEY].bDown = true;
     }
 
     const KeyState &InputManager::GetKeyState(InputKey key)

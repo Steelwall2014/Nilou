@@ -49,13 +49,13 @@ namespace nilou {
         InputAxisMapping YawCamera_mapping("YawCamera");
         YawCamera_mapping.AddGroup(InputKey::KEY_RIGHT, 1.0f);
         YawCamera_mapping.AddGroup(InputKey::KEY_LEFT, -1.0f);
-        YawCamera_mapping.AddGroup(InputKey::KEY_MOUSEX, 1.0f);
+        YawCamera_mapping.AddGroup(InputKey::AXIS_MOUSEX, 1.0f);
         GetInputManager()->BindAxis(YawCamera_mapping, this, &ACameraActor::YawCamera);
 
         InputAxisMapping PitchCamera_mapping("PitchCamera");
         PitchCamera_mapping.AddGroup(InputKey::KEY_UP, 1.0f);
         PitchCamera_mapping.AddGroup(InputKey::KEY_DOWN, -1.0f);
-        PitchCamera_mapping.AddGroup(InputKey::KEY_MOUSEY, 1.0f);
+        PitchCamera_mapping.AddGroup(InputKey::AXIS_MOUSEY, 1.0f);
         GetInputManager()->BindAxis(PitchCamera_mapping, this, &ACameraActor::PitchCamera);
 
         InputActionMapping Zoom_mapping("Zoom");

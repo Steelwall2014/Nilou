@@ -21,8 +21,6 @@ namespace nilou {
 	};
 	enum InputKey
 	{
-		KEY_MOUSEX,
-		KEY_MOUSEY,
 		KEY_KP_0 = GLFW_KEY_KP_0,
 		KEY_KP_1 = GLFW_KEY_KP_1,
 		KEY_KP_2 = GLFW_KEY_KP_2,
@@ -53,7 +51,9 @@ namespace nilou {
 		KEY_PAGEUP = GLFW_KEY_PAGE_UP,
 		KEY_PAGEDOWN = GLFW_KEY_PAGE_DOWN,
 		KEY_LEFT_CONTROL = GLFW_KEY_LEFT_CONTROL,
-		KEY_LEFT_ALT = GLFW_KEY_LEFT_ALT
+		KEY_LEFT_ALT = GLFW_KEY_LEFT_ALT,
+		AXIS_MOUSEX,
+		AXIS_MOUSEY,
 	};
 	struct KeyState
 	{
@@ -156,8 +156,8 @@ namespace nilou {
     class InputManager
     {
     public:
-		void KeyPressed(int key);
-		void KeyReleased(int key);
+		void KeyPressed(InputKey key);
+		void KeyReleased(InputKey key);
 		void MouseMove(float xoffset, float yoffset);
 
 		template<class UserClass>

@@ -194,6 +194,8 @@ namespace nilou {
     void FRenderingThread::Exit()
     {
         GetAppication()->Finalize_RenderThread();
+
+        // Some release works may be done in the for loop.
         for (int i = 0; i < RenderCommands.size(); i++)
         {
             EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();

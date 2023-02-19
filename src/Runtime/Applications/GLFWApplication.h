@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "Common/BaseApplication.h"
+#include <Common/InputManager.h>
 
 class GLFWwindow;
 namespace nilou {
@@ -17,7 +18,10 @@ namespace nilou {
         virtual void Tick_RenderThread() override;
     private:
         GLFWwindow *window;
-        void processInput();
+        void DispatchScreenResizeMessage();
+        void DispatchMouseMoveMessage();
+        void DispatchKeyMessage();
+        void ProcessInput_RenderThread();
         void EnableCursor();
     };
 }
