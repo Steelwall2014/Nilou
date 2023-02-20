@@ -38,9 +38,8 @@ namespace nilou {
         template <typename STR, typename Lambda>
         void EnqueueRenderCommand(Lambda &&lambda)
         {
-            mutex.lock();
+            std::lock_guard<std::mutex> lock(mutex);
             RenderCommands.emplace(lambda, STR::Str());
-            mutex.unlock();
         }
 
         static FRenderingThread *RenderingThread;

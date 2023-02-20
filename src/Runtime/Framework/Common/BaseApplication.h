@@ -4,6 +4,7 @@
 #include "Common/Scene.h"
 #include "Common/World.h"
 #include "Common/GfxConfiguration.h"
+#include "Common/FrameSynchronizer.h"
 #include "Delegate.h"
 
 namespace nilou {
@@ -16,7 +17,7 @@ namespace nilou {
         virtual void Finalize();
         virtual void Finalize_RenderThread() { }
         virtual void Tick(double);
-        virtual void Tick_RenderThread() { }
+        virtual void Tick_RenderThread();
 
         virtual bool IsQuit();
         virtual GfxConfiguration &GetConfiguration();

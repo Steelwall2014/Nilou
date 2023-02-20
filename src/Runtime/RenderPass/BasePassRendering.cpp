@@ -15,7 +15,7 @@ namespace nilou {
         // const FMaterialType &MaterialType,
         // const FVertexFactoryType &VertexFactoryType,
         const FVertexFactoryPermutationParameters &VFPermutationParameters,
-        FMaterial *Material,
+        FMaterialRenderProxy *Material,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
         const FDepthStencilStateInitializer &DepthStencilStateInitializer,
@@ -35,6 +35,9 @@ namespace nilou {
 
         FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader;
+
+        if (VertexShader == nullptr || PixelShader == nullptr)
+            std::cout << 1;
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
         OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
@@ -96,7 +99,7 @@ namespace nilou {
                     if (!bResourceFound)
                     {
                         NILOU_LOG(Warning, 
-                            "Material: " + Material->GetMaterialName() + 
+                            "Material: " + Material->MaterialName + 
                             " |Vertex Factory: " + VFPermutationParameters.Type->Name + 
                             " |Vertex Shader: " + PermutationParametersVS.Type->Name + 
                             " |Pixel Shader: " + PermutationParametersPS.Type->Name + 
@@ -137,6 +140,8 @@ namespace nilou {
                 std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
                 for (FMeshBatch &Mesh : PerViewMeshBatches[ViewIndex])
                 {
+                    if (!Mesh.MaterialRenderProxy->bShaderCompiled)
+                        continue;
                     FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
                     RHIGetError();
 
@@ -160,7 +165,7 @@ namespace nilou {
                         // *Mesh.MaterialRenderProxy->GetType(),
                         // *Mesh.VertexFactory->GetType(),
                         VertexFactoryParams,
-                        Mesh.MaterialRenderProxy,
+                        Mesh.MaterialRenderProxy.get(),
                         PermutationParametersVS,
                         PermutationParametersPS,
                         Mesh.MaterialRenderProxy->DepthStencilState,
@@ -173,7 +178,7 @@ namespace nilou {
                         MeshDrawCommand);
 
                     // SkyAtmosphereMaterial needs to be rendered last
-                    if (Mesh.MaterialRenderProxy->GetMaterialName() == "SkyAtmosphereMaterial")
+                    if (Mesh.MaterialRenderProxy->MaterialName == "SkyAtmosphereMaterial")
                         SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
                     else
                         DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

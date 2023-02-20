@@ -97,7 +97,7 @@ namespace nilou {
 
         // int32 GetNumTexCoords() const;
 
-        bool IsInitialized() { return bIsInitialized; }
+        bool IsInitialized() const { return bIsInitialized; }
 
     private:
         bool bIsInitialized = false;

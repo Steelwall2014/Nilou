@@ -55,7 +55,7 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.MaterialRenderProxy = Material;
+                    Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();

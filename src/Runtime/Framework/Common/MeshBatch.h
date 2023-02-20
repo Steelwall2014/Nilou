@@ -40,7 +40,7 @@ namespace nilou {
     {
         FMeshBatchElement Element;
 
-	    class FMaterial* MaterialRenderProxy;
+	    std::shared_ptr<class FMaterialRenderProxy> MaterialRenderProxy;
 
         //uint32 ReverseCulling : 1;
         //uint32 bDisableBackfaceCulling : 1;

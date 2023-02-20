@@ -6,6 +6,7 @@
 #include "RenderingThread.h"
 #include "Common/BaseApplication.h"
 #include "Common/ContentManager.h"
+#include "Common/FrameSynchronizer.h"
 #include "Material.h"
 
 namespace nilou {
@@ -172,6 +173,9 @@ namespace nilou {
 
     uint32 FRenderingThread::Run()
     {
+        std::unique_lock<std::mutex> lock(FFrameSynchronizer::mutex);
+        FFrameSynchronizer::cv.wait(lock, []{return FFrameSynchronizer::ShouldRenderingThreadLoopRun;});
+        
         while (!GetAppication()->ShouldRenderingThreadExit())
         {
             int size = RenderCommands.size();
@@ -179,9 +183,9 @@ namespace nilou {
             for (int i = 0; i < size; i++)
             {
                 EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
-                mutex.lock();
+                std::unique_lock<std::mutex> lock(mutex);
                 RenderCommands.pop();
-                mutex.unlock();
+                lock.unlock();
                 RenderCommand.DoTask();
             }
             GetAppication()->GetScene()->UpdateRenderInfos();
@@ -199,9 +203,9 @@ namespace nilou {
         for (int i = 0; i < RenderCommands.size(); i++)
         {
             EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
-            mutex.lock();
+            std::unique_lock<std::mutex> lock(mutex);
             RenderCommands.pop();
-            mutex.unlock();
+            lock.unlock();
             RenderCommand.DoTask();
         }
     }

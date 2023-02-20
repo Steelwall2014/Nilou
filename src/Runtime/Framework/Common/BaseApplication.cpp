@@ -42,6 +42,50 @@ namespace nilou {
 
     void BaseApplication::Tick(double DeltaTime)
     {
+        World->Tick(DeltaTime);
+
+        if (Scene)
+        {
+            UWorld *World = Scene->World;
+            if (World)
+                World->SendAllEndOfFrameUpdates();
+        }
+
+        FFrameSynchronizer::MainThreadFrameCount++;
+        if (FFrameSynchronizer::MainThreadFrameCount == 1)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadLoopRun = true;
+            FFrameSynchronizer::cv.notify_all();
+        }
+        std::cout << "Main frame: " << FFrameSynchronizer::MainThreadFrameCount << std::endl;
+        if (FFrameSynchronizer::MainThreadFrameCount == FFrameSynchronizer::RenderingThreadFrameCount+1 || m_bQuit)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadWait = false;
+            FFrameSynchronizer::render_cv.notify_all();
+        }
+        else if (FFrameSynchronizer::MainThreadFrameCount > FFrameSynchronizer::RenderingThreadFrameCount+1)
+        {
+            FFrameSynchronizer::ShouldMainThreadWait = true;
+            std::unique_lock<std::mutex> lock(FFrameSynchronizer::main_mutex);
+            FFrameSynchronizer::main_cv.wait(lock, []() { return FFrameSynchronizer::ShouldMainThreadWait == false; });
+        }
+    }
+
+    void BaseApplication::Tick_RenderThread()
+    {
+        FFrameSynchronizer::RenderingThreadFrameCount++;
+        std::cout << "Render frame: " << FFrameSynchronizer::RenderingThreadFrameCount << std::endl;
+        if (FFrameSynchronizer::RenderingThreadFrameCount == FFrameSynchronizer::MainThreadFrameCount-1 || m_bQuit)
+        {
+            FFrameSynchronizer::ShouldMainThreadWait = false;
+            FFrameSynchronizer::main_cv.notify_all();
+        }
+        else if (FFrameSynchronizer::RenderingThreadFrameCount > FFrameSynchronizer::MainThreadFrameCount-1)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadWait = true;
+            std::unique_lock<std::mutex> lock(FFrameSynchronizer::render_mutex);
+            FFrameSynchronizer::render_cv.wait(lock, []() { return FFrameSynchronizer::ShouldRenderingThreadWait == false; });
+        }
     }
 
     bool BaseApplication::IsQuit()

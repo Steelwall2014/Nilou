@@ -113,9 +113,8 @@ namespace nilou {
         {
             TileMainThreadTask &Task = MainThreadTaskQueue.front();
             Task.Func(Task.Result);
-            mutex.lock();
+            std::lock_guard<std::mutex> lock(mutex);
             MainThreadTaskQueue.pop();
-            mutex.unlock();
         }
     }
 
@@ -159,9 +158,8 @@ namespace nilou {
             TileMainThreadTask ThreadTask;
             ThreadTask.Result = LoadFunc(Tile);
             ThreadTask.Func = MainThreadFunc;
-            mutex.lock();
+            std::lock_guard<std::mutex> lock(mutex);
             TaskQueue.push(ThreadTask);
-            mutex.unlock();
         });
     }
 
@@ -192,10 +190,14 @@ namespace nilou {
                 continue;
             Tile->LoadingState = ETileLoadingState::Unloading;
             Tile->Content.B3dm.reset_glb();
-            Tile->Content.Gltf.Materials.clear();
-            Tile->Content.Gltf.Textures.clear();
-            Tile->Content.Gltf.StaticMeshes.clear();
-            Tile->LoadingState = ETileLoadingState::Unloaded;
+            ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_UnloadTiles)(
+                [Tile](FDynamicRHI*) 
+                {
+                    Tile->Content.Gltf.Materials.clear();
+                    Tile->Content.Gltf.Textures.clear();
+                    Tile->Content.Gltf.StaticMeshes.clear();
+                    Tile->LoadingState = ETileLoadingState::Unloaded;
+                });
         }
         UnloadQueue.clear();
     }
@@ -355,9 +357,7 @@ namespace nilou {
             BuildCuboidVerts(2, 2, 2, OutVerts, OutIndices);
             IndexBuffer.Init(OutIndices);
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-            {
-                BeginInitResource(&IndexBuffer);
-            }
+            BeginInitResource(&IndexBuffer);
         }
 
         void SetRenderTiles(std::vector<Cesium3DTile *> Tiles)
@@ -403,7 +403,6 @@ namespace nilou {
                             {
                                 Tile->TransformRHI->UpdateUniformBuffer();
                             });
-                        Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
                         {
                             const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
@@ -415,7 +414,7 @@ namespace nilou {
                                 Mesh.Element.VertexFactory = &Section.VertexFactory;
                                 Mesh.Element.IndexBuffer = &Section.IndexBuffer;
                                 Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
-                                Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex];
+                                Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->CreateRenderProxy();
                                 Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI.get());
                                 Collector.AddMesh(ViewIndex, Mesh);
                                 if (bShowBoundingBox)
@@ -439,7 +438,7 @@ namespace nilou {
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
                                     DebugBoundingBoxMesh.Element.IndexBuffer = &IndexBuffer;
                                     DebugBoundingBoxMesh.Element.NumVertices = IndexBuffer.NumIndices;
-                                    DebugBoundingBoxMesh.MaterialRenderProxy = FContentManager::GetContentManager().GetGlobalMaterial("WireframeMaterial");
+                                    DebugBoundingBoxMesh.MaterialRenderProxy = FContentManager::GetContentManager().GetGlobalMaterial("WireframeMaterial")->CreateRenderProxy();
                                     DebugBoundingBoxMesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TileBoundingBoxUBO[Tile].get());
                                     Collector.AddMesh(ViewIndex, DebugBoundingBoxMesh);
                                 }

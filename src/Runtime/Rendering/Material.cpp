@@ -20,6 +20,7 @@ namespace nilou {
         ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
         ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this](FDynamicRHI *DynamicRHI) {
             FShaderCompiler::CompileMaterialShader(this, DynamicRHI);
+            bShaderCompiled = true;
         });
     }
 
@@ -30,6 +31,9 @@ namespace nilou {
 
     void FMaterial::ReleaseRenderResources()
     {
-        ShaderMap.RemoveAllShaders();
+        ENQUEUE_RENDER_COMMAND(FMaterial_ReleaseRenderResources)(
+            [this](FDynamicRHI *DynamicRHI) {
+                ShaderMap.RemoveAllShaders();
+            });
     }
 }

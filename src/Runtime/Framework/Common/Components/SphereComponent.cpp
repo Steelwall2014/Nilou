@@ -33,7 +33,10 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.MaterialRenderProxy = Material;
+                    if (Material)
+                        Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                    else
+                        Mesh.MaterialRenderProxy = FMaterial::GetDefaultMaterial()->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
@@ -59,7 +62,7 @@ namespace nilou {
         : UPrimitiveComponent(InOwner)
         , SphereRadius(1.f)
     {
-
+        Material = FMaterial::GetDefaultMaterial();
     }
 
     void USphereComponent::SetSphereRadius(float InSphereRadius)
