@@ -5,6 +5,7 @@ add_requires("vcpkg::gdal", {configs = {shared = true}})
 add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
+add_requires("vcpkg::magic-enum")
 add_requireconfs("*", {external = false})
 
 
@@ -176,7 +177,7 @@ BuildProject({
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
     -- beforeBuildFunc = ExecuteHeaderTool,
     -- afterBuildFunc = copyFunc,
     enableException = true,
