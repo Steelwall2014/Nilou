@@ -24,8 +24,8 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, 0);
 
-                    FShaderInstance *LightPassVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                    FShaderInstance *LightPassPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    FShaderInstance *LightPassVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *LightPassPS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 
@@ -38,7 +38,7 @@ namespace nilou {
                     
                     RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
                     RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
+                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
                     RHICmdList->RHISetDepthStencilState(DepthStencilState.get());

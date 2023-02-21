@@ -29,6 +29,8 @@ namespace nilou {
         {
 
         }
+
+        ~FTexture() { ReleaseResource(); }
 		
         virtual void InitRHI() override;
         virtual void ReleaseRHI() override;

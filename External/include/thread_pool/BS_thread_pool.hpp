@@ -513,6 +513,16 @@ public:
         waiting = false;
     }
 
+    /**
+     * @brief The number of threads in the pool.
+     */
+    concurrency_t thread_count = 0;
+
+    /**
+     * @brief A smart pointer to manage the memory allocated for the threads.
+     */
+    std::unique_ptr<std::thread[]> threads = nullptr;
+
 private:
     // ========================
     // Private member functions
@@ -624,16 +634,6 @@ private:
      * @brief A mutex to synchronize access to the task queue by different threads.
      */
     mutable std::mutex tasks_mutex = {};
-
-    /**
-     * @brief The number of threads in the pool.
-     */
-    concurrency_t thread_count = 0;
-
-    /**
-     * @brief A smart pointer to manage the memory allocated for the threads.
-     */
-    std::unique_ptr<std::thread[]> threads = nullptr;
 
     /**
      * @brief An atomic variable indicating that wait_for_tasks() is active and expects to be notified whenever a task is done.

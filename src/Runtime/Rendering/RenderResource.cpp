@@ -1,4 +1,5 @@
 #include "RenderResource.h"
+#include "RenderingThread.h"
 
 namespace nilou {
 
@@ -42,20 +43,20 @@ namespace nilou {
 
     void BeginInitResource(FRenderResource* Resource)
     {
-        //ENQUEUE_RENDER_COMMAND(InitCommand)(
-        //    [Resource](FRHICommandListImmediate& RHICmdList)
-        //    {
+        ENQUEUE_RENDER_COMMAND(BeginInitResource)(
+           [Resource](FDynamicRHI *DynamicRHI)
+           {
                 Resource->InitResource();
-        //    });
+           });
     }
 
     void BeginReleaseResource(FRenderResource* Resource)
     {
-        //ENQUEUE_RENDER_COMMAND(InitCommand)(
-        //    [Resource](FRHICommandListImmediate& RHICmdList)
-        //    {
+        ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
+           [Resource](FDynamicRHI *DynamicRHI)
+           {
                 Resource->ReleaseResource();
-        //    });
+           });
     }
 
     std::vector<int32>& GetFreeIndicesList()

@@ -1,41 +1,53 @@
 #pragma once
+#include <memory>
+#include "RenderingThread.h"
 #include "Common/Scene.h"
 #include "Common/World.h"
-#include "Interface/IApplication.h"
 #include "Common/GfxConfiguration.h"
+#include "Common/FrameSynchronizer.h"
 #include "Delegate.h"
-#include <memory>
 
 namespace nilou {
-    class BaseApplication : implements IApplication
+    class BaseApplication
     {
     public:
         BaseApplication(GfxConfiguration &cfg);
-        virtual int Initialize() override;
-        virtual void Finalize() override;
-        virtual void Tick(double) override;
+        virtual bool Initialize();
+        virtual bool Initialize_RenderThread() { }
+        virtual void Finalize();
+        virtual void Finalize_RenderThread() { }
+        virtual void Tick(double);
+        virtual void Tick_RenderThread();
 
-        virtual bool IsQuit() override;
-        virtual GfxConfiguration &GetConfiguration() override;
-        virtual float GetTimeSinceStart() override;
-        virtual void SetWindowWidth(int width) override;
-        virtual void SetWindowHeight(int height) override;
-        virtual bool IsCursorEnabled() override;
-        virtual IRuntimeModule *GetModuleByName(const std::string &ModuleName) override;
+        virtual bool IsQuit();
+        virtual GfxConfiguration &GetConfiguration();
+        virtual float GetTimeSinceStart();
+        virtual void SetWindowWidth(int width);
+        virtual void SetWindowHeight(int height);
+        virtual bool IsCursorEnabled();
+
+        bool ShouldRenderingThreadExit() const { return bShouldRenderingThreadExit; }
 
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
         TMulticastDelegate<FDynamicRHI*> &GetPreRenderDelegate() { return PreRenderDelegate; }
+        TMulticastDelegate<FDynamicRHI*> &GetPostRenderDelegate() { return PostRenderDelegate; }
+        TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
 
     protected:
         float deltaTime = 0.0f;
         float accumTime = 0.0f;
-        static bool m_bQuit;
+        static std::atomic<bool> m_bQuit;
         GfxConfiguration m_Config;
         bool CursorEnabled = false;
         std::shared_ptr<UWorld> World;
         std::shared_ptr<FScene> Scene;
         TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
+        TMulticastDelegate<FDynamicRHI*> PostRenderDelegate;
+        TMulticastDelegate<int, int> ScreenResizeDelegate;
+        std::unique_ptr<FRunnableThread> RenderingThread;
+        std::atomic<bool> RenderingThreadInitialized = false;
+        std::atomic<bool> bShouldRenderingThreadExit = false;
 
 
     private:

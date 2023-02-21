@@ -404,7 +404,7 @@ namespace nilou {
         virtual void InitRHI() override
         {
             FRenderResource::InitRHI();
-            UniformBufferRHI = GDynamicRHI->RHICreateUniformBuffer(Size, Usage, &Data);
+            UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, &Data);
         }
         virtual void ReleaseRHI() override
         {
@@ -415,7 +415,7 @@ namespace nilou {
 
         void UpdateUniformBuffer()
         {
-            GDynamicRHI->RHIUpdateUniformBuffer(UniformBufferRHI, &Data);
+            FDynamicRHI::GetDynamicRHI()->RHIUpdateUniformBuffer(UniformBufferRHI, &Data);
         }
 
         inline EUniformBufferUsage GetUsage()

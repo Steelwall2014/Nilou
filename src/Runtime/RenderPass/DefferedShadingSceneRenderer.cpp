@@ -25,36 +25,38 @@ namespace nilou {
     IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
     IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
+    FDefferedShadingSceneRenderer *Renderer = nullptr;
+    
     void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
     {
-        OutSceneTextures.GeometryPassFrameBuffer = GDynamicRHI->RHICreateFramebuffer();
-        OutSceneTextures.FrameBuffer = GDynamicRHI->RHICreateFramebuffer();
+        OutSceneTextures.GeometryPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        OutSceneTextures.FrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
-        OutSceneTextures.SceneColor = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.BaseColor = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.RelativeWorldSpacePosition = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.WorldSpaceNormal = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.MetallicRoughness = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.Emissive = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.DepthStencil = GDynamicRHI->RHICreateTexture2D(
+        OutSceneTextures.DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
@@ -99,9 +101,7 @@ namespace nilou {
         : Scene(Scene)
         , Collector(&PerViewMeshBatches)
     {
-        // PositionVertexBuffer.InitRHI();
         BeginInitResource(&PositionVertexBuffer);
-        // UVVertexBuffer.InitRHI();
         BeginInitResource(&UVVertexBuffer);
                     
         PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
@@ -115,9 +115,13 @@ namespace nilou {
         UVVertexInput.Offset = 0;
         UVVertexInput.Stride = sizeof(glm::vec2);
         UVVertexInput.Type = EVertexElementType::VET_Float2;
+
+        Scene->GetAddViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnAddView);
+        Scene->GetRemoveViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnRemoveView);
+        Scene->GetResizeViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnResizeView);
     }
 
-    void FDefferedShadingSceneRenderer::AddCamera(FViewSceneInfo *ViewSceneInfo)
+    void FDefferedShadingSceneRenderer::OnAddView(FViewSceneInfo *ViewSceneInfo)
     {
         FSceneTextures SceneTextures;
         CreateSceneTextures(ViewSceneInfo->GetResolution(), SceneTextures);
@@ -125,7 +129,7 @@ namespace nilou {
         PerViewMeshBatches.push_back(std::vector<FMeshBatch>());
     }
 
-    void FDefferedShadingSceneRenderer::RemoveCamera(FViewSceneInfo *ViewSceneInfo)
+    void FDefferedShadingSceneRenderer::OnRemoveView(FViewSceneInfo *ViewSceneInfo)
     {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
@@ -138,17 +142,22 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    void FDefferedShadingSceneRenderer::OnResizeView(FViewSceneInfo *ViewSceneInfo)
     {
-        // TODO: 有时间还是把下面这个东西放到FScene里吧，然后FScene来调Renderer的一个方法来更新framebuffer
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *ViewSceneInfo = Views[ViewIndex].ViewSceneInfo;
-            if (ViewSceneInfo->bNeedsFramebufferUpdate)
+            if (Views[ViewIndex].ViewSceneInfo = ViewSceneInfo)
             {
                 CreateSceneTextures(ViewSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
-                ViewSceneInfo->SetNeedsFramebufferUpdate(false);
+                break;
             }
+        }
+    }
+
+    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    {
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
             PerViewMeshBatches[ViewIndex].clear();
             Views[ViewIndex].MeshDrawCommands.Clear();
         }
@@ -183,7 +192,7 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::Render()
     {
-        FDynamicRHI *RHICmdList = GDynamicRHI;
+        FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
         InitViews(Scene);
 
@@ -201,6 +210,8 @@ namespace nilou {
         RenderViewElementPass(RHICmdList);
 
         RenderToScreen(RHICmdList);
+
+        GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList);
     }
 
     // void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
@@ -319,8 +330,8 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
 
-                    FShaderInstance *RenderToScreenVS = GetGlobalShaderInstance2(PermutationParametersVS);
-                    FShaderInstance *RenderToScreenPS = GetGlobalShaderInstance2(PermutationParametersPS);
+                    FShaderInstance *RenderToScreenVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *RenderToScreenPS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 

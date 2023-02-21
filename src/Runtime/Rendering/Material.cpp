@@ -4,6 +4,7 @@
 #include "Templates/ObjectMacros.h"
 #include "Common/Path.h"
 #include "Common/ContentManager.h"
+#include "RenderingThread.h"
 
 namespace nilou {
 
@@ -16,10 +17,25 @@ namespace nilou {
 
     void FMaterial::UpdateMaterialCode(const std::string &InCode)
     {
-        // std::string MaterialCode = ProcessCodeInclude(InCode, MATERIAL_STATIC_PARENT_DIR);
-
-        // CodeInitializer.SourceCodeBody = ProcessCodeShaderParams(MaterialCode, CodeInitializer.ParameterCodes);
         ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
-        FShaderCompiler::CompileMaterialShader(this);
+        ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this](FDynamicRHI *DynamicRHI) {
+            FShaderCompiler::CompileMaterialShader(this, DynamicRHI);
+            bShaderCompiled = true;
+        });
     }
+
+    std::shared_ptr<FMaterialInstance> FMaterial::CreateMaterialInstance()
+    {
+        std::shared_ptr<FMaterialInstance> MaterialInstance = std::make_shared<FMaterialInstance>(MaterialName+"_Instance");
+        MaterialInstance->BlendState = BlendState;
+        MaterialInstance->DepthStencilState = DepthStencilState;
+        MaterialInstance->RasterizerState = RasterizerState;
+        MaterialInstance->ShaderMap = ShaderMap;
+        MaterialInstance->UniformBuffers = UniformBuffers;
+        MaterialInstance->Textures = Textures;
+        MaterialInstance->bShaderCompiled = bShaderCompiled;
+        MaterialInstance->bUseWorldOffset = bUseWorldOffset;
+        return MaterialInstance;
+    }
+
 }

@@ -92,10 +92,3 @@
 		MaterialClass::FPermutationDomain::PermutationCount \
 		); \
 	FMaterialType* MaterialClass::GetType() const { return &StaticType; }
-
-#define IMPLEMENT_MODULE(ModuleName) \
-	ModuleName::ModuleName() \
-	{ \
-		GetModuleManager()->AddModule(#ModuleName, this); \
-	} \
-	ModuleName *G##ModuleName = new ModuleName;

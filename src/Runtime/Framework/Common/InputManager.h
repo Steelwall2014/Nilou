@@ -7,7 +7,6 @@
 #include <GLFW/glfw3.h>
 
 #include "Delegate.h"
-#include "Interface/IRuntimeModule.h"
 
 namespace nilou {
 	class BaseActor;
@@ -22,8 +21,6 @@ namespace nilou {
 	};
 	enum InputKey
 	{
-		KEY_MOUSEX,
-		KEY_MOUSEY,
 		KEY_KP_0 = GLFW_KEY_KP_0,
 		KEY_KP_1 = GLFW_KEY_KP_1,
 		KEY_KP_2 = GLFW_KEY_KP_2,
@@ -54,7 +51,9 @@ namespace nilou {
 		KEY_PAGEUP = GLFW_KEY_PAGE_UP,
 		KEY_PAGEDOWN = GLFW_KEY_PAGE_DOWN,
 		KEY_LEFT_CONTROL = GLFW_KEY_LEFT_CONTROL,
-		KEY_LEFT_ALT = GLFW_KEY_LEFT_ALT
+		KEY_LEFT_ALT = GLFW_KEY_LEFT_ALT,
+		AXIS_MOUSEX,
+		AXIS_MOUSEY,
 	};
 	struct KeyState
 	{
@@ -129,7 +128,7 @@ namespace nilou {
 	typedef TMulticastDelegate<> FActionDelegate;
 
 	template<class UserClass>
-	class ActionDelegate : implements TDelegateInstance<UserClass>
+	class ActionDelegate : public TDelegateInstance<UserClass>
 	{
 	public:
 		ActionDelegate(UserClass *obj, void (UserClass:: *func)())
@@ -154,21 +153,11 @@ namespace nilou {
 	// 	}
 	// };
 
-    class InputManager : implements IRuntimeModule
+    class InputManager
     {
-	private:
-		std::map<InputKey, FAxisDelegate>		m_AxisDelegateMap;
-		std::map<InputKey, std::map<InputEvent, FActionDelegate>>	m_ActionDelegateMap;
-		std::map<InputKey, KeyState>			m_KeyStates;
     public:
-		InputManager();
-
-        int StartupModule() override;
-        void ShutdownModule() override;
-        // void Tick(double DeltaTime) override;
-
-		void KeyPressed(int key);
-		void KeyReleased(int key);
+		void KeyPressed(InputKey key);
+		void KeyReleased(InputKey key);
 		void MouseMove(float xoffset, float yoffset);
 
 		template<class UserClass>
@@ -208,7 +197,11 @@ namespace nilou {
     private:
 		bool checkHasActionKeyEventBinding(InputKey key, InputEvent e);
 		bool checkHasAxisKeyBinding(InputKey key);
+
+		std::map<InputKey, FAxisDelegate>		m_AxisDelegateMap;
+		std::map<InputKey, std::map<InputEvent, FActionDelegate>>	m_ActionDelegateMap;
+		std::map<InputKey, KeyState>			m_KeyStates;
     };
 
-    extern InputManager *g_pInputManager;
+   InputManager *GetInputManager();
 }

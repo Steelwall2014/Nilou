@@ -90,8 +90,9 @@ namespace nilou {
         SetCastShadow(InComponent->bCastShadow);
         SetLightType(InComponent->LightType);
         SetShadowMapResolution(InComponent->GetShadowMapResolution());
-        // LightUniformBufferRHI->InitRHI();
         BeginInitResource(LightUniformBufferRHI.get());
+        if (LightSceneInfo)
+            LightSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
     void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)
@@ -200,6 +201,16 @@ namespace nilou {
         }
 
         ComputedVerticalFieldOfView = fovy;
+    }
+
+    void FLightSceneProxy::UpdateUniformBuffer()
+    {
+        ENQUEUE_RENDER_COMMAND(FLightSceneProxy_UpdateUniformBuffer)(
+            [this](FDynamicRHI *DynamicRHI) 
+            {
+                LightUniformBufferRHI->UpdateUniformBuffer();
+            });
+        
     }
 
     void FLightSceneProxy::SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam)

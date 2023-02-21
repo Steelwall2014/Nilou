@@ -42,10 +42,7 @@ namespace nilou {
 
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
 
-            // Enqueue initialization of render resource
-            {
-                BeginInitResource(&IndexBuffer);
-            }
+            BeginInitResource(&IndexBuffer);
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
@@ -55,7 +52,7 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.MaterialRenderProxy = Material;
+                    Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();

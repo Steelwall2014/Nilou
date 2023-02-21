@@ -1,5 +1,4 @@
 #include "GameStatics.h"
-#include "Modules/ModuleManager.h"
 #include "Templates/ObjectMacros.h"
 #include <filesystem>
 #define TINYGLTF_ENABLE_DRACO
@@ -12,7 +11,6 @@
 #include <iostream>
 #include <gdal.h>
 #include <gdal_priv.h>
-#include "Interface/IApplication.h"
 
 #include "DDS.h"
 
@@ -20,19 +18,13 @@
 #include "Common/Log.h"
 
 namespace nilou {
-	AssetLoader *g_pAssetLoader = new AssetLoader;
-	// std::string AssetLoader::SolutionDir = "D:\\UnderwaterRendering\\UnderwaterSimulationSystem\\";
-	// std::string AssetLoader::AssetDir = "D:\\UnderwaterRendering\\UnderwaterSimulationSystem\\Assets\\";
-	
-	// std::filesystem::path AssetLoader::WorkDirectory = g_pApp->GetConfiguration().workDir;
 
-	// std::set<std::filesystem::path> AssetLoader::ShaderDirectories = {
-	// 	g_pApp->GetConfiguration().workDir / std::filesystem::path(L"Assets/Shaders")
-	// };
 
-	// std::set<std::filesystem::path> AssetLoader::AssetDirectories = {
-	// 	g_pApp->GetConfiguration().workDir / std::filesystem::path(L"Assets")
-	// };
+	AssetLoader *GetAssetLoader()
+	{
+		static AssetLoader *GAssetLoader = new AssetLoader;
+		return GAssetLoader;
+	}
 
     EPixelFormat TranslateToEPixelFormat(int channel, int bits, int pixel_type)
     {
@@ -93,20 +85,6 @@ namespace nilou {
         }
         return PixelFormat;
     }
-
-	int AssetLoader::StartupModule()
-	{
-		GDALAllRegister();
-		return 0;
-	}
-
-	void AssetLoader::ShutdownModule()
-	{
-	}
-
-	void AssetLoader::Tick(double DeltaTime)
-	{
-	}
 
 	std::shared_ptr<tinygltf::Model> AssetLoader::SyncReadGLTFModel(const char *filePath)
 	{
@@ -293,6 +271,4 @@ namespace nilou {
 		}
 		return img;
 	}
-	
-	IMPLEMENT_MODULE(AssetLoader);
 }

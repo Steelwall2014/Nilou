@@ -19,7 +19,7 @@
 
 namespace nilou {
 
-    ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
+    static ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
     {
         ETextureFilters filter;
         switch (GLTFFilter) {
@@ -32,7 +32,7 @@ namespace nilou {
         }
         return filter;
     }
-    ETextureWrapModes GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
+    static ETextureWrapModes GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
     {
         ETextureWrapModes mode;
         switch (GLTFWrapMode) {

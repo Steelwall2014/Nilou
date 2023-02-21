@@ -44,7 +44,7 @@ public:
 	}
 
 };
-AssetLoader *g_pAssetLoader = new AssetLoader;
+AssetLoader *GetAssetLoader() = new AssetLoader;
 }
 
 class Shadinclude
@@ -140,7 +140,7 @@ std::string Shadinclude::Preprocess(const std::string &RawCode, const std::vecto
             // By using recursion, the new include file can be extracted
             // and inserted at this location in the shader source code
             isRecursiveCall = true;
-            std::string SourceCode = nilou::g_pAssetLoader->SyncOpenAndReadText(absolute_path.generic_string().c_str());
+            std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(absolute_path.generic_string().c_str());
             fullSourceCode << Preprocess(SourceCode, IncludeDir);// load(absolute_path.generic_string());
 
             // Do not add this line to the shader source code, as the include
@@ -166,7 +166,7 @@ std::string Shadinclude::load(std::string path, std::string includeIndentifier)
     static bool isRecursiveCall = false;
 
     std::string fullSourceCode = "";
-    std::string SourceCode = nilou::g_pAssetLoader->SyncOpenAndReadText(path.c_str());
+    std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(path.c_str());
     std::vector<std::string> Lines = GameStatics::Split(SourceCode, '\n');
     // std::ifstream file(path);
 
@@ -223,10 +223,10 @@ std::string Shadinclude::load(std::string path, std::string includeIndentifier)
 
 int main()
 {
-    // std::string SourceCode = nilou::g_pAssetLoader->SyncOpenAndReadText("D:\\UnderwaterRendering\\Nilou\\Assets\\Shaders\\waterbody\\include_test.glsl");
+    // std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText("D:\\UnderwaterRendering\\Nilou\\Assets\\Shaders\\waterbody\\include_test.glsl");
     // std::string res = Shadinclude::Preprocess(SourceCode, {"D:\\UnderwaterRendering\\Nilou\\Assets\\Shaders"});
     // std::filesystem::path FileAbsolutePath("D:\\UnderwaterRendering\\Nilou\\Assets\\Shaders\\waterbody\\include_test.glsl");
-    // std::stringstream Input(nilou::g_pAssetLoader->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str()));
+    // std::stringstream Input(nilou::GetAssetLoader()->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str()));
     // std::stringstream Output;
     // std::string lineBuffer;
     // std::regex re_version("^[ ]*#[ ]*version[ ]+[0-9].*");

@@ -19,8 +19,8 @@ namespace nilou {
 
         virtual ~FStaticMeshVertexBuffer()
         {
-            FVertexBuffer::~FVertexBuffer();
             CleanUp();
+            FVertexBuffer::~FVertexBuffer();
         }
 
         void Init(uint32 InNumVertices, bool bInNeedsCPUAccess = true);
@@ -140,7 +140,7 @@ namespace nilou {
     template<class VertexType>
     RHIBufferRef FStaticMeshVertexBuffer<VertexType>::CreateRHIBuffer_RenderThread()
     {
-        return GDynamicRHI->RHICreateBuffer(Stride, NumVertices * sizeof(VertexType), 
+        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumVertices * sizeof(VertexType), 
             EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Data);
     }
 

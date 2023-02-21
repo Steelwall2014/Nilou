@@ -105,7 +105,7 @@ namespace nilou {
                 // std::filesystem::path absolute_path = std::filesystem::path(std::string(matches[1]));
                 if (AlreadyIncludedPathes.find(absolute_path.generic_string()) == AlreadyIncludedPathes.end())
                 {
-                    std::string SourceCode = nilou::g_pAssetLoader->SyncOpenAndReadText(absolute_path.generic_string().c_str());
+                    std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(absolute_path.generic_string().c_str());
                     AlreadyIncludedPathes.insert(absolute_path.generic_string());
                     fullSourceCode << ParseIncludeInternal(SourceCode, absolute_path.parent_path(), AlreadyIncludedPathes);
                 }
@@ -135,7 +135,7 @@ namespace nilou {
         std::regex re_binding2("\\s*binding\\s*=\\s*[0-9]+,\\s*");      // like layout(binding = 0, std140)
         std::regex re_binding3("\\s*binding\\s*=\\s*[0-9]+\\s*"); // like layout(binding = 0)
         std::regex re_layout("layout\\s*\\(\\s*\\)"); // like layout()
-        std::regex re(R"(^(layout\s+\(.*\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;\s*$)");
+        std::regex re(R"(^\s*(layout\s+\(.*\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;\s*$)");
         while (std::regex_search(temp, matches, re))
         {
             FShaderParsedParameter ParsedParameter;

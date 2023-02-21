@@ -195,7 +195,7 @@ namespace nilou {
 
         void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
 
-        void UpdateUniformBuffer() { LightUniformBufferRHI->UpdateUniformBuffer(); }
+        void UpdateUniformBuffer();
         // virtual glm::mat4 GetLightProjectionMatrix() { return glm::mat4(); }
 
     protected:

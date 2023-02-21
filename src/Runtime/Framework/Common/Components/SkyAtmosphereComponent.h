@@ -193,6 +193,7 @@ public: \
 		inline RHITexture2D *GetTransmittanceLUT() const { return TransmittanceLUT.get(); }
 		inline RHITexture3D *GetMultiScatteringLUT() const { return MultiScatteringLUT.get(); }
 		inline RHITexture3D *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT.get(); }
+		inline TUniformBuffer<ShaderAtmosphereParametersBlock> *GetAtmosphereParametersBlock() const { return AtmosphereParameters.get(); }
 
 
 	protected:

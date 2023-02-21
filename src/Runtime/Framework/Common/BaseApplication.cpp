@@ -1,29 +1,89 @@
+#include <gdal.h>
+#include <gdal_priv.h>
+
 #include "GLFWApplication.h"
+
+#include "Common/ContentManager.h"
 
 namespace nilou {
 
-    bool BaseApplication::m_bQuit = false;
+    std::atomic<bool> BaseApplication::m_bQuit = false;
 
     BaseApplication::BaseApplication(GfxConfiguration &cfg) :
         m_Config(cfg)
     {
     }
 
-    int BaseApplication::Initialize()
+    bool BaseApplication::Initialize()
     {
         m_bQuit = false;
 
-        return 0;
+        this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+        
+        World = std::make_shared<UWorld>();
+        Scene = std::make_shared<FScene>();
+        World->Scene = Scene.get();
+        Scene->World = World.get();
+        while (!RenderingThread->IsRunnableInitialized()) { }
+		GDALAllRegister();
+        World->InitWorld();
+        World->BeginPlay();
+        return true;
     }
 
 
     void BaseApplication::Finalize()
     {
+        FContentManager::GetContentManager().ReleaseRenderResources();
+        bShouldRenderingThreadExit = true;
+        while (!RenderingThread->IsRunnableExited()) { }
     }
 
 
     void BaseApplication::Tick(double DeltaTime)
     {
+        World->Tick(DeltaTime);
+
+        if (Scene)
+        {
+            UWorld *World = Scene->World;
+            if (World)
+                World->SendAllEndOfFrameUpdates();
+        }
+
+        FFrameSynchronizer::MainThreadFrameCount++;
+        if (FFrameSynchronizer::MainThreadFrameCount == 1)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadLoopRun = true;
+            FFrameSynchronizer::cv.notify_all();
+        }
+        if (FFrameSynchronizer::MainThreadFrameCount == FFrameSynchronizer::RenderingThreadFrameCount+1 || m_bQuit)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadWait = false;
+            FFrameSynchronizer::render_cv.notify_all();
+        }
+        else if (FFrameSynchronizer::MainThreadFrameCount > FFrameSynchronizer::RenderingThreadFrameCount+1)
+        {
+            FFrameSynchronizer::ShouldMainThreadWait = true;
+            std::unique_lock<std::mutex> lock(FFrameSynchronizer::main_mutex);
+            FFrameSynchronizer::main_cv.wait(lock, []() { return FFrameSynchronizer::ShouldMainThreadWait == false; });
+        }
+    }
+
+    void BaseApplication::Tick_RenderThread()
+    {
+        FFrameSynchronizer::RenderingThreadFrameCount++;
+        if (FFrameSynchronizer::RenderingThreadFrameCount == FFrameSynchronizer::MainThreadFrameCount-1 || m_bQuit)
+        {
+            FFrameSynchronizer::ShouldMainThreadWait = false;
+            FFrameSynchronizer::main_cv.notify_all();
+        }
+        else if (FFrameSynchronizer::RenderingThreadFrameCount > FFrameSynchronizer::MainThreadFrameCount-1)
+        {
+            FFrameSynchronizer::ShouldRenderingThreadWait = true;
+            std::unique_lock<std::mutex> lock(FFrameSynchronizer::render_mutex);
+            FFrameSynchronizer::render_cv.wait(lock, []() { return FFrameSynchronizer::ShouldRenderingThreadWait == false; });
+        }
     }
 
     bool BaseApplication::IsQuit()
@@ -54,11 +114,6 @@ namespace nilou {
     bool BaseApplication::IsCursorEnabled()
     {
         return CursorEnabled;
-    }
-
-    IRuntimeModule *BaseApplication::GetModuleByName(const std::string &ModuleName)
-    {
-        return GetModuleManager()->GetModule(ModuleName);
     }
 
     BaseApplication *GetAppication()

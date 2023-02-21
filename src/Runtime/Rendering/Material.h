@@ -20,8 +20,6 @@
 
 namespace nilou {
 
-    // std::vector<class FMaterialType *> &GetAllMaterialTypes();
-
     enum class EShadingModel
     {
         SM_Unlit,
@@ -29,43 +27,11 @@ namespace nilou {
         SM_Subsurface
     };
 
-    // struct FMaterialPermutationParameters
-    // {
-    //     FMaterialType *Type;
-    //     int32 PermutationId;
-    //     FMaterialPermutationParameters(FMaterialType *InType=nullptr, int32 InPermutationId=0)
-    //         : Type(InType)
-    //         , PermutationId(InPermutationId)
-    //     {}
-    // };
-
-    // struct FMaterialType : public FShaderTypeBase
-    // {
-    // public:
-    //     friend class FShaderCompiler;
-
-    //     FMaterialType() { }
-
-    //     FMaterialType::FMaterialType(
-    //         const std::string &InMaterialName, 
-    //         const std::string &InMaterialFileName,
-    //         std::function<bool(const FMaterialPermutationParameters&)> InShouldCompilePermutation,
-    //         std::function<void(const FMaterialPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
-    //         int32 InPermutationCount)
-    //         : FShaderTypeBase(InMaterialName, InMaterialFileName, InPermutationCount)
-    //         , ShouldCompilePermutation(InShouldCompilePermutation)
-    //         , ModifyCompilationEnvironment(InModifyCompilationEnvironment)
-    //     {
-    //         GetAllMaterialTypes().push_back(this);
-    //     }
-    // private:
-    //     std::function<bool(const FMaterialPermutationParameters&)> ShouldCompilePermutation;
-    //     std::function<void(const const FMaterialPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
-    // };
-
     class FMaterial
     {
         friend class FShaderCompiler;
+        friend class FMaterialInstance;
+        friend class FMaterialRenderProxy;
     public:
 
         static FMaterial *GetDefaultMaterial();
@@ -95,6 +61,11 @@ namespace nilou {
 
         FBlendStateInitializer BlendState;
 
+        std::shared_ptr<FMaterialRenderProxy> CreateRenderProxy()
+        {
+            return std::make_shared<FMaterialRenderProxy>(this);
+        }
+
         void SetMaterialName(const std::string Name)
         {
             MaterialName = Name;
@@ -120,14 +91,6 @@ namespace nilou {
             return ShaderMap.GetShader(ShaderParameter);
         }
 
-        void FillShaderBindings(FElementShaderBindings &OutBindings)
-        { 
-            for (auto &[Name, Texture] : Textures)
-                OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
-            for (auto &[Name, UniformBuffer] : UniformBuffers)
-                OutBindings.SetElementShaderBinding(Name, UniformBuffer);
-        }
-
         void SetParameterValue(const std::string &Name, FTexture *Texture)
         {
             Textures[Name] = Texture;
@@ -137,6 +100,8 @@ namespace nilou {
         {
             UniformBuffers[Name] = UniformBuffer;
         }
+
+        std::shared_ptr<FMaterialInstance> CreateMaterialInstance();
 
     protected:
 
@@ -153,112 +118,71 @@ namespace nilou {
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
+        bool bShaderCompiled = false;
+
     };
 
-    // class FDefaultMaterial : public FMaterial
-    // {
-    //     DECLARE_MATERIAL_TYPE()
-    // public:
-    //     FDefaultMaterial() { }
-    //     FDefaultMaterial(
-    //         const FRasterizerStateInitializer &InRasterizerState, 
-    //         const FDepthStencilStateInitializer &InDepthStencilState) 
-    //         : FMaterial(InRasterizerState, InDepthStencilState)
-    //     { }
+    class FMaterialInstance : public FMaterial
+    {
+    public:
+        FMaterialInstance(const std::string &InMaterialName) 
+            : FMaterial(InMaterialName)
+        { }
+    };
 
-    // };
+    class FMaterialRenderProxy
+    {
+    public:
+        FMaterialRenderProxy(FMaterial *InMaterial)
+            : MaterialName(InMaterial->MaterialName)
+            , ShaderMap(InMaterial->ShaderMap)
+            , Textures(InMaterial->Textures)
+            , UniformBuffers(InMaterial->UniformBuffers)
+            , StencilRefValue(InMaterial->StencilRefValue)
+            , RasterizerState(InMaterial->RasterizerState)
+            , DepthStencilState(InMaterial->DepthStencilState)
+            , BlendState(InMaterial->BlendState)
+            , bShaderCompiled(InMaterial->bShaderCompiled)
+        {
 
-    // class FBasicMaterial : public FMaterial
-    // {
-    //     DECLARE_MATERIAL_TYPE()
-    // public:
-    //     virtual void INITSHADERBINDINGS() override
-    //     {
-    //     }
-    // };
+        }
 
-    // class FGLTFMaterial : public FMaterial
-    // {
-    //     DECLARE_MATERIAL_TYPE()
-    // public:
+        FShaderInstance *GetShader(
+            const FVertexFactoryPermutationParameters VFParameter, 
+            const FShaderPermutationParameters &ShaderParameter)
+        {
+            return ShaderMap.GetShader(VFParameter, ShaderParameter);
+        }
+        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter)
+        {
+            return ShaderMap.GetShader(ShaderParameter);
+        }
 
-    //     class FDimHasBaseColor : SHADER_PERMUTATION_BOOL("HAS_BASECOLOR");
-    //     class FDimHasEmissive : SHADER_PERMUTATION_BOOL("HAS_EMISSIVE");
-    //     class FDimHasNormal : SHADER_PERMUTATION_BOOL("HAS_NORMAL");
-    //     class FDimHasOcclusion : SHADER_PERMUTATION_BOOL("HAS_OCCLUSION");
-    //     class FDimHasMetallicRoughness : SHADER_PERMUTATION_BOOL("HAS_METALLICROUGHNESS");
+        void FillShaderBindings(FElementShaderBindings &OutBindings)
+        { 
+            for (auto &[Name, Texture] : Textures)
+                OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
+            for (auto &[Name, UniformBuffer] : UniformBuffers)
+                OutBindings.SetElementShaderBinding(Name, UniformBuffer);
+        }
 
-    //     using FPermutationDomain = TShaderPermutationDomain<
-    //                                     FDimHasBaseColor, 
-    //                                     FDimHasEmissive, 
-    //                                     FDimHasNormal, 
-    //                                     FDimHasOcclusion,
-    //                                     FDimHasMetallicRoughness>;
+        std::string MaterialName;
 
-    //     FGLTFMaterial(
-    //         const FRasterizerStateInitializer &InRasterizerState, 
-    //         const FDepthStencilStateInitializer &InDepthStencilState) 
-    //         : FMaterial(InRasterizerState, InDepthStencilState)
-    //     { }
+        FMaterialShaderMap ShaderMap;
 
-    //     /* Begin FMaterial Interface */
-    //     virtual void FillShaderBindings(FElementShaderBindings &OutBindings) override
-    //     { 
-    //         if (BaseColorTexture)
-    //             OutBindings.SetElementShaderBinding("baseColor", BaseColorTexture->GetSamplerRHI());
-    //         if (EmissiveTexture)
-    //             OutBindings.SetElementShaderBinding("emissiveMap", EmissiveTexture->GetSamplerRHI());
-    //         if (NormalTexture)
-    //             OutBindings.SetElementShaderBinding("normalMap", NormalTexture->GetSamplerRHI());
-    //         if (OcclusionTexture)
-    //             OutBindings.SetElementShaderBinding("occlusionMap", OcclusionTexture->GetSamplerRHI());
-    //         if (MetallicRoughnessTexture)
-    //             OutBindings.SetElementShaderBinding("roughnessMetallicMap", MetallicRoughnessTexture->GetSamplerRHI());
-    //     }
+        std::map<std::string, FTexture *> Textures;
 
-    //     virtual int32 GetPermutationId() 
-    //     { 
-    //         FPermutationDomain PermutationVector;
-    //         if (BaseColorTexture)
-    //             PermutationVector.Set<FDimHasBaseColor>(true);
-    //         if (EmissiveTexture)
-    //             PermutationVector.Set<FDimHasEmissive>(true);
-    //         if (NormalTexture)
-    //             PermutationVector.Set<FDimHasNormal>(true);
-    //         if (OcclusionTexture)
-    //             PermutationVector.Set<FDimHasOcclusion>(true);
-    //         if (MetallicRoughnessTexture)
-    //             PermutationVector.Set<FDimHasMetallicRoughness>(true);
-    //         return PermutationVector.ToDimensionValueId();
-    //     }
+        std::map<std::string, FUniformBuffer *> UniformBuffers;
 
-    //     static void ModifyCompilationEnvironment(const FMaterialPermutationParameters& Parameters, FShaderCompilerEnvironment& Environment) 
-    //     {
-    //         FPermutationDomain PermutationVector;
-    //         PermutationVector.FromDimensionValueId(Parameters.PermutationId);
-    //         PermutationVector.ModifyCompilationEnvironment(Environment);
-    //     }
+        uint8 StencilRefValue = 0;
 
-    //     static bool ShouldCompilePermutation(const FMaterialPermutationParameters&) { return true; }
+        FRasterizerStateInitializer RasterizerState;
 
-    //     /* End FMaterial Interface */
+        FDepthStencilStateInitializer DepthStencilState;
 
-    //     std::shared_ptr<FTexture> BaseColorTexture;
-    //     std::shared_ptr<FTexture> MetallicRoughnessTexture;
-    //     std::shared_ptr<FTexture> NormalTexture;
-    //     std::shared_ptr<FTexture> OcclusionTexture;
-    //     std::shared_ptr<FTexture> EmissiveTexture;
-    // };
+        FBlendStateInitializer BlendState;
 
-    // class FColorerMaterial : public FMaterial
-    // {
-    //     DECLARE_MATERIAL_TYPE()
-    // public:
-    //     FColorerMaterial() { }
-    //     FColorerMaterial(
-    //         const FRasterizerStateInitializer &InRasterizerState, 
-    //         const FDepthStencilStateInitializer &InDepthStencilState) 
-    //         : FMaterial(InRasterizerState, InDepthStencilState)
-    //     { }
-    // };
+        bool bShaderCompiled;
+    };
+
 }

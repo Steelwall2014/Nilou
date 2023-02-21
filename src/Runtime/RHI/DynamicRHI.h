@@ -3,8 +3,6 @@
 #include <vector>
 #include <memory>
 
-#include "Interface/IRuntimeModule.h"
-#include "Interface/IDrawPass.h"
 // #include "Common/CoordinateAxis.h"
 //#include "Common/GfxStructures.h"
 
@@ -12,17 +10,9 @@
 #include "RHIResources.h"
 #include "RHI.h"
 #include "VertexFactory.h"
-#include "Modules/ModuleManager.h"
 
 
 namespace nilou {
-
-	class IDynamicRHIModule : public IRuntimeModule
-	{
-	public:
-		/** Creates a new instance of the dynamic RHI implemented by the module. */
-		virtual class FDynamicRHI* CreateRHI() = 0;
-	};
 
 	enum class EGraphicsAPI
 	{
@@ -31,9 +21,12 @@ namespace nilou {
 		Vulkan,
 	};
 
-	class FDynamicRHI //: implements IRuntimeModule // : public GraphicsManager
+	class FDynamicRHI
 	{
 	public:
+		static FDynamicRHI *GetDynamicRHI();
+		static void CreateDynamicRHI_RenderThread();
+
 		FDynamicRHI() {}
 		virtual ~FDynamicRHI() {}
 		virtual int Initialize() = 0;
@@ -123,10 +116,9 @@ namespace nilou {
 		virtual void RHIClearBuffer(uint32 flagbits) = 0;
 
 	protected:
+		static FDynamicRHI *DynamicRHI;
 		std::map<FRHIGraphicsPipelineInitializer, FRHIGraphicsPipelineStateRef> CachedPipelineStateObjects;
 	};
 
-	extern FDynamicRHI *GDynamicRHI;
-
-	#define RHIGetError() GDynamicRHI->GetError(__FILE__, __LINE__)
+	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)
 }

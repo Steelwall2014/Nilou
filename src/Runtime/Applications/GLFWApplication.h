@@ -1,24 +1,27 @@
 #pragma once
 #include <vector>
 #include "Common/BaseApplication.h"
+#include <Common/InputManager.h>
 
 class GLFWwindow;
 namespace nilou {
     class IDrawPass;
-    class IRuntimeModule;
     class GLFWApplication : public BaseApplication
     {
     public:
         GLFWApplication(GfxConfiguration &config);
 
-        virtual int Initialize();
-        virtual void Finalize();
-        virtual void Tick(double DeltaTime);
+        virtual bool Initialize() override;
+        virtual bool Initialize_RenderThread() override;
+        virtual void Finalize_RenderThread() override;
+        virtual void Tick(double DeltaTime) override;
+        virtual void Tick_RenderThread() override;
     private:
         GLFWwindow *window;
-        // std::vector<IDrawPass *> m_DrawPasses;
-        // std::vector<IRuntimeModule *> run_time_modules;
-        void processInput();
+        void DispatchScreenResizeMessage();
+        void DispatchMouseMoveMessage();
+        void DispatchKeyMessage();
+        void ProcessInput_RenderThread();
         void EnableCursor();
     };
 }

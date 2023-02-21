@@ -106,7 +106,6 @@ namespace nilou {
 	public:
 		RHIResource(ERHIResourceType InResourceType) : ResourceType(InResourceType) {}
 		virtual ~RHIResource() {};
-		friend class FDynamicRHI;
 
 		ERHIResourceType ResourceType;
 	};
@@ -116,6 +115,7 @@ namespace nilou {
 	public:
 		RHIShader(ERHIResourceType InResourceType) : RHIResource(InResourceType) {}
 		virtual bool Success() { return false; }
+		virtual void ReleaseRHI() { }
 	};
 	using RHIShaderRef = std::shared_ptr<RHIShader>;
 	

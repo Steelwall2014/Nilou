@@ -3,13 +3,12 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <memory>
 
 #include <OpenGL/OpenGLDynamicRHI.h>
-#include <Common/InputManager.h>
 // #include <Common/SceneManager.h>
-// #include <Common/ShaderManager.h>
+#include <Common/ContentManager.h>
 #include <Common/AssetLoader.h>
-#include <memory>
 
 // #include "Common/DrawPass/ForwardRenderPass.h"
 // #include "Common/DrawPass/ShadowMappingPass.h"
@@ -20,14 +19,93 @@
 // #include "Common/DrawPass/DeferredRenderPass.h"
 
 #include "GLFWApplication.h"
-#include "Interface/IRuntimeModule.h"
-#include "Modules/ModuleManager.h"
-#include "Common/Renderer/Renderer.h"
 
 namespace nilou {
+
+    double lastX;
+    double lastY;
+    double MousePositionX;
+    double MousePositionY;
     bool firstMouse = true;
-    float lastX;
-    float lastY;
+    std::unordered_map<InputKey, int> KeyStates;
+    bool ScreenResized = false;
+
+
+    std::unordered_map<InputKey, int> CreateInputKey_GLFW_Map()
+    {
+        std::unordered_map<InputKey, int> Map;
+		Map[KEY_KP_0] = GLFW_KEY_KP_0;
+		Map[KEY_KP_1] = GLFW_KEY_KP_1;
+		Map[KEY_KP_2] = GLFW_KEY_KP_2;
+		Map[KEY_KP_3] = GLFW_KEY_KP_3;
+		Map[KEY_KP_4] = GLFW_KEY_KP_4;
+		Map[KEY_KP_5] = GLFW_KEY_KP_5;
+		Map[KEY_KP_6] = GLFW_KEY_KP_6;
+		Map[KEY_KP_7] = GLFW_KEY_KP_7;
+		Map[KEY_KP_8] = GLFW_KEY_KP_8;
+		Map[KEY_KP_9] = GLFW_KEY_KP_9;
+		Map[KEY_W] = GLFW_KEY_W;
+		Map[KEY_S] = GLFW_KEY_S;
+		Map[KEY_A] = GLFW_KEY_A;
+		Map[KEY_D] = GLFW_KEY_D;
+		Map[KEY_E] = GLFW_KEY_E;
+		Map[KEY_Q] = GLFW_KEY_Q;
+		Map[KEY_O] = GLFW_KEY_O;
+		Map[KEY_G] = GLFW_KEY_G;
+		Map[KEY_B] = GLFW_KEY_B;
+		Map[KEY_SPACE] = GLFW_KEY_SPACE;
+		Map[KEY_UP] = GLFW_KEY_UP;
+		Map[KEY_DOWN] = GLFW_KEY_DOWN;
+		Map[KEY_RIGHT] = GLFW_KEY_RIGHT;
+		Map[KEY_LEFT] = GLFW_KEY_LEFT;
+		Map[KEY_MOUSE_LEFT] = GLFW_MOUSE_BUTTON_LEFT;
+		Map[KEY_MOUSE_RIGHT] = GLFW_MOUSE_BUTTON_RIGHT;
+		Map[KEY_MOUSE_MIDDLE] = GLFW_MOUSE_BUTTON_MIDDLE;
+		Map[KEY_PAGEUP] = GLFW_KEY_PAGE_UP;
+		Map[KEY_PAGEDOWN] = GLFW_KEY_PAGE_DOWN;
+		Map[KEY_LEFT_CONTROL] = GLFW_KEY_LEFT_CONTROL;
+		Map[KEY_LEFT_ALT] = GLFW_KEY_LEFT_ALT;
+        return Map;
+    }
+    std::unordered_map<InputKey, int> InputKey_GLFW_Map = CreateInputKey_GLFW_Map();
+
+    std::unordered_map<int, InputKey> CreateGLFW_InputKey_Map()
+    {
+        std::unordered_map<int, InputKey> Map;
+		Map[GLFW_KEY_KP_0] = InputKey::KEY_KP_0;
+		Map[GLFW_KEY_KP_1] = InputKey::KEY_KP_1;
+		Map[GLFW_KEY_KP_2] = InputKey::KEY_KP_2;
+		Map[GLFW_KEY_KP_3] = InputKey::KEY_KP_3;
+		Map[GLFW_KEY_KP_4] = InputKey::KEY_KP_4;
+		Map[GLFW_KEY_KP_5] = InputKey::KEY_KP_5;
+		Map[GLFW_KEY_KP_6] = InputKey::KEY_KP_6;
+		Map[GLFW_KEY_KP_7] = InputKey::KEY_KP_7;
+		Map[GLFW_KEY_KP_8] = InputKey::KEY_KP_8;
+		Map[GLFW_KEY_KP_9] = InputKey::KEY_KP_9;
+		Map[GLFW_KEY_W] = InputKey::KEY_W;
+		Map[GLFW_KEY_S] = InputKey::KEY_S;
+		Map[GLFW_KEY_A] = InputKey::KEY_A;
+		Map[GLFW_KEY_D] = InputKey::KEY_D;
+		Map[GLFW_KEY_E] = InputKey::KEY_E;
+		Map[GLFW_KEY_Q] = InputKey::KEY_Q;
+		Map[GLFW_KEY_O] = InputKey::KEY_O;
+		Map[GLFW_KEY_G] = InputKey::KEY_G;
+		Map[GLFW_KEY_B] = InputKey::KEY_B;
+		Map[GLFW_KEY_SPACE] = InputKey::KEY_SPACE;
+		Map[GLFW_KEY_UP] = InputKey::KEY_UP;
+		Map[GLFW_KEY_DOWN] = InputKey::KEY_DOWN;
+		Map[GLFW_KEY_RIGHT] = InputKey::KEY_RIGHT;
+		Map[GLFW_KEY_LEFT] = InputKey::KEY_LEFT;
+		Map[GLFW_MOUSE_BUTTON_LEFT] = InputKey::KEY_MOUSE_LEFT;
+		Map[GLFW_MOUSE_BUTTON_RIGHT] = InputKey::KEY_MOUSE_RIGHT;
+		Map[GLFW_MOUSE_BUTTON_MIDDLE] = InputKey::KEY_MOUSE_MIDDLE;
+		Map[GLFW_KEY_PAGE_UP] = InputKey::KEY_PAGEUP;
+		Map[GLFW_KEY_PAGE_DOWN] = InputKey::KEY_PAGEDOWN;
+		Map[GLFW_KEY_LEFT_CONTROL] = InputKey::KEY_LEFT_CONTROL;
+		Map[GLFW_KEY_LEFT_ALT] = InputKey::KEY_LEFT_ALT;
+        return Map;
+    }
+    std::unordered_map<int, InputKey> GLFW_InputKey_Map = CreateGLFW_InputKey_Map();
 
     // Our state
     bool show_demo_window = true;
@@ -35,56 +113,63 @@ namespace nilou {
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     {
-        glViewport(0, 0, width, height);
-        // g_pSceneManager->GetScene()->Observer->SetCameraAspectRatio((float)width / (float)height);
         GetAppication()->SetWindowWidth(width);
         GetAppication()->SetWindowHeight(height);
+        ScreenResized = true;
     }
 
     void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {
+        InputKey key = GLFW_InputKey_Map[button];
         if (action == GLFW_PRESS)
-            g_pInputManager->KeyPressed(button);
+            KeyStates[key] = GLFW_PRESS;
         else if (action == GLFW_RELEASE)
-            g_pInputManager->KeyReleased(button);
+            KeyStates[key] = GLFW_RELEASE;
     }
 
     void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
     {
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
-
+        MousePositionX = xposIn;
+        MousePositionY = yposIn;
         if (firstMouse)
         {
-            lastX = xpos;
-            lastY = ypos;
+            lastX = MousePositionX;
+            lastY = MousePositionY;
             firstMouse = false;
         }
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos;
-
-        lastX = xpos;
-        lastY = ypos;
-
-        g_pInputManager->MouseMove(xoffset, yoffset);
-        //g_pInputManager->MouseYMove(yoffset);
+        //GetInputManager()->MouseYMove(yoffset);
     }
 
     // glfw: whenever the mouse scroll wheel scrolls, this callback is called
     // ----------------------------------------------------------------------
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
     {
-        //g_pInputManager->MouseScroll(static_cast<float>(yoffset));
+        //GetInputManager()->MouseScroll(static_cast<float>(yoffset));
     }
 
     GLFWApplication::GLFWApplication(GfxConfiguration &config)
         : BaseApplication(config)
     {
-        lastX = config.screenWidth / 2.0;
-        lastY = config.screenHeight / 2.0;
+        // lastX = config.screenWidth / 2.0;
+        // lastY = config.screenHeight / 2.0;
     }
-    int GLFWApplication::Initialize()
+    bool GLFWApplication::Initialize()
+    {
+        BaseApplication::Initialize();
+ 
+        // Setup Dear ImGui context
+        // IMGUI_CHECKVERSION();
+        // ImGui::CreateContext();
+        // ImGuiIO &io = ImGui::GetIO(); (void)io;
+        // ImGui::StyleColorsDark();
+
+        // ImGui_ImplGlfw_InitForOpenGL(window, true);
+        // ImGui_ImplOpenGL3_Init("#version 130");
+
+        return true;
+    }
+
+    bool GLFWApplication::Initialize_RenderThread()
     {
         int result;
         glfwInit();
@@ -97,12 +182,13 @@ namespace nilou {
         glfwWindowHint(GLFW_ALPHA_BITS, m_Config.alphaBits);
         glfwWindowHint(GLFW_DEPTH_BITS, m_Config.depthBits);
 
+
         window = glfwCreateWindow(m_Config.screenWidth, m_Config.screenHeight, "Nilou", NULL, NULL);
         if (window == NULL)
         {
             std::cout << "Failed to create GLFW window" << std::endl;
             glfwTerminate();
-            return -1;
+            return false;
         }
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -112,158 +198,56 @@ namespace nilou {
         glfwSetWindowPos(window, 100, 100);
         // tell GLFW to capture our mouse
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        {
-            std::cout << "Failed to initialize GLAD" << std::endl;
-            return -1;
-        }
- 
-        // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO(); (void)io;
-        ImGui::StyleColorsDark();
-
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 130");
-
-        World = std::make_shared<UWorld>();
-        Scene = std::make_shared<FScene>();
-        World->Scene = Scene.get();
-        Scene->World = World.get();
-        for (auto &[Name, Module] : GetModuleManager()->Modules)
-        {
-            Module->StartupModule();
-        }
-        World->InitWorld();
-        World->BeginPlay();
-//         run_time_modules.push_back(g_pAssetLoader);
-//         run_time_modules.push_back(g_pSceneManager);
-//         run_time_modules.push_back(GDynamicRHI);
-//         run_time_modules.push_back(g_pInputManager);
-//         run_time_modules.push_back(g_pShaderManager);
-//         _GM->GetError();
-//         g_pShaderManager->Initialize();
-//         _GM->GetError();
-//         g_pAssetLoader->Initialize();
-//         _GM->GetError();
-//         g_pSceneManager->Initialize();
-//         _GM->GetError();
-//         GDynamicRHI->Initialize();
-//         _GM->GetError();
-//         g_pInputManager->Initialize();
-
-//         m_DrawPasses.push_back(new ShadowMappingPass);
-
-//         m_DrawPasses.push_back(new ForwardRenderPass);
-
-//         m_DrawPasses.push_back(new SkyboxPass);
-
-//         m_DrawPasses.push_back(new OceanSurfacePass);
-
-//         m_DrawPasses.push_back(new SeabedSurfacePass);
-
-//         m_DrawPasses.push_back(new DeferredRenderPass);
-// #ifdef NILOU_DEBUG
-//         m_DrawPasses.push_back(new DebugHUDPass);
-// #endif // NILOU_DEBUG
-//         auto &frame = g_pSceneManager->frame;
-//         for (auto &&pass : m_DrawPasses)
-//         {
-//             pass->Initialize(frame);
-//             _GM->GetError();
-//         }
-
         InputActionMapping EnableCursor_mapping("EnableCursor");
         EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
-        g_pInputManager->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
-        return 0;
+        GetInputManager()->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
+        return true;
     }
+
     void GLFWApplication::Tick(double DeltaTime)
     {
-        //float currentFrame = static_cast<float>(glfwGetTime());
-        //deltaTime = currentFrame - lastFrame;
-        //lastFrame = currentFrame;
         deltaTime = DeltaTime;
         accumTime += deltaTime;
-        glfwPollEvents();
-        processInput();
 
-        // ImGui_ImplOpenGL3_NewFrame();
-        // ImGui_ImplGlfw_NewFrame();
-        // ImGui::NewFrame();
+        DispatchScreenResizeMessage();
+        DispatchMouseMoveMessage();
+        DispatchKeyMessage();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        //if (show_demo_window)
-        //    ImGui::ShowDemoWindow(&show_demo_window);
+        BaseApplication::Tick(DeltaTime);
+    }
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+    void GLFWApplication::DispatchScreenResizeMessage()
+    {
+        if (ScreenResized)
         {
-            // static float f = 0.0f;
-            // static int counter = 0;
-
-            // ImGui::Begin("Ocean");                          // Create a window called "Hello, world!" and append into it.
-
-            // ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            // ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-
-            // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            // ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
-
-            // if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            //    counter++;
-            // ImGui::SameLine();
-            // ImGui::Text("counter = %d", counter);
-
-            // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
+            GetScreenResizeDelegate().Broadcast(m_Config.screenWidth, m_Config.screenHeight);
+            ScreenResized = false;
         }
-        World->Tick(DeltaTime);
-
-        FRendererModule *RenderModule = static_cast<FRendererModule*>(GetModuleManager()->GetModule("FRendererModule"));
-        RenderModule->Draw(Scene.get());
-        // for (auto &module : run_time_modules) {
-        //     module->Tick(DeltaTime);
-        // }
-        // auto &frame = g_pSceneManager->frame;
-        // for (auto pass : m_DrawPasses)
-        // {
-        //     pass->Draw(frame);
-        //     _GM->GetError();
-        // }
-
-        // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // ImGui::End();
-        // ImGui::Render();
-
-        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-
-        glfwSwapBuffers(window);
-        m_bQuit = glfwWindowShouldClose(window);
-    }
-    void GLFWApplication::Finalize()
-    {
-        // for (auto pass : m_DrawPasses)
-        // {
-        //     delete pass;
-        // }
-        glfwTerminate();
     }
 
-    void GLFWApplication::processInput()
+    void GLFWApplication::DispatchMouseMoveMessage()
     {
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
+        if (!firstMouse)
+        {
+            float xoffset = MousePositionX - lastX;
+            float yoffset = lastY - MousePositionY;
 
+            lastX = MousePositionX;
+            lastY = MousePositionY;
+
+            GetInputManager()->MouseMove(xoffset, yoffset);
+        }
+    }
+
+    void GLFWApplication::DispatchKeyMessage()
+    {
         #define DISPATCH_KEY_MESSAGE(key) \
             { \
-                int state = glfwGetKey(window, key); \
+                int state = KeyStates[GLFW_InputKey_Map[key]]; \
                 if (state == GLFW_PRESS) \
-                    g_pInputManager->KeyPressed(key); \
+                    GetInputManager()->KeyPressed(GLFW_InputKey_Map[key]); \
                 else if (state == GLFW_RELEASE) \
-                    g_pInputManager->KeyReleased(key); \
+                    GetInputManager()->KeyReleased(GLFW_InputKey_Map[key]); \
             }
 
         DISPATCH_KEY_MESSAGE(GLFW_KEY_KP_0)
@@ -294,34 +278,81 @@ namespace nilou {
         DISPATCH_KEY_MESSAGE(GLFW_KEY_PAGE_DOWN)
         DISPATCH_KEY_MESSAGE(GLFW_KEY_LEFT_CONTROL)
         DISPATCH_KEY_MESSAGE(GLFW_KEY_LEFT_ALT)
+        DISPATCH_KEY_MESSAGE(GLFW_MOUSE_BUTTON_LEFT)
+        DISPATCH_KEY_MESSAGE(GLFW_MOUSE_BUTTON_RIGHT)
+        DISPATCH_KEY_MESSAGE(GLFW_MOUSE_BUTTON_MIDDLE)
+    }
 
+    void GLFWApplication::Tick_RenderThread()
+    {
+        glfwPollEvents();
+        ProcessInput_RenderThread();
+        glfwSwapBuffers(window);
+        m_bQuit = glfwWindowShouldClose(window);
 
-        //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        //    g_pInputManager->KeyWDown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        //    g_pInputManager->KeySDown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        //    g_pInputManager->KeyADown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        //    g_pInputManager->KeyDDown(1.0);
+        BaseApplication::Tick_RenderThread();
+    }
 
-        //if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        //    g_pInputManager->KeyUpDown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        //    g_pInputManager->KeyDownDown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        //    g_pInputManager->KeyRightDown(1.0);
-        //if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        //    g_pInputManager->KeyLeftDown(1.0);
+    void GLFWApplication::Finalize_RenderThread()
+    {
+        glfwTerminate();
+    }
+
+    void GLFWApplication::ProcessInput_RenderThread()
+    {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+
+        #define DISPATCH_KEY_STATE(key) \
+            { \
+                int state = glfwGetKey(window, key); \
+                if (state == GLFW_PRESS) \
+                    KeyStates[GLFW_InputKey_Map[key]] = GLFW_PRESS; \
+                else if (state == GLFW_RELEASE) \
+                    KeyStates[GLFW_InputKey_Map[key]] = GLFW_RELEASE; \
+            }
+
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_0)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_1)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_2)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_3)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_4)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_5)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_6)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_7)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_8)
+        DISPATCH_KEY_STATE(GLFW_KEY_KP_9)
+        DISPATCH_KEY_STATE(GLFW_KEY_W)
+        DISPATCH_KEY_STATE(GLFW_KEY_S)
+        DISPATCH_KEY_STATE(GLFW_KEY_A)
+        DISPATCH_KEY_STATE(GLFW_KEY_D)
+        DISPATCH_KEY_STATE(GLFW_KEY_E)
+        DISPATCH_KEY_STATE(GLFW_KEY_Q)
+        DISPATCH_KEY_STATE(GLFW_KEY_O)
+        DISPATCH_KEY_STATE(GLFW_KEY_G)
+        DISPATCH_KEY_STATE(GLFW_KEY_B)
+        DISPATCH_KEY_STATE(GLFW_KEY_SPACE)
+        DISPATCH_KEY_STATE(GLFW_KEY_UP)
+        DISPATCH_KEY_STATE(GLFW_KEY_DOWN)
+        DISPATCH_KEY_STATE(GLFW_KEY_RIGHT)
+        DISPATCH_KEY_STATE(GLFW_KEY_LEFT)
+        DISPATCH_KEY_STATE(GLFW_KEY_PAGE_UP)
+        DISPATCH_KEY_STATE(GLFW_KEY_PAGE_DOWN)
+        DISPATCH_KEY_STATE(GLFW_KEY_LEFT_CONTROL)
+        DISPATCH_KEY_STATE(GLFW_KEY_LEFT_ALT)
     }
 
     void GLFWApplication::EnableCursor()
     {
-        CursorEnabled = !CursorEnabled;
-        if (CursorEnabled)
-            glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        else
-            glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        ENQUEUE_RENDER_COMMAND(GLFWApplication_EnableCursor)(
+            [this](FDynamicRHI*) 
+            {
+                CursorEnabled = !CursorEnabled;
+                if (CursorEnabled)
+                    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                else
+                    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            });
     }
 
 }

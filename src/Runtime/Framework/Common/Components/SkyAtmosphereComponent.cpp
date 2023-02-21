@@ -1,6 +1,9 @@
 #include "SkyAtmosphereComponent.h"
 #include "Common/World.h"
 
+#include "RenderingThread.h"
+#include "Common/ContentManager.h"
+
 namespace nilou {
 
     const int TRANSMITTANCE_TEXTURE_WIDTH = 256;
@@ -100,6 +103,8 @@ namespace nilou {
     FSkyAtmosphereSceneProxy::FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent)
     {
         AtmosphereParameters = CreateUniformBuffer<ShaderAtmosphereParametersBlock>();
+        ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
+
 		FROM_COMPONENNT_TO_PROXY(SolarIrradiance)
 		FROM_COMPONENNT_TO_PROXY(SunAngularRadius)
 		FROM_COMPONENNT_TO_PROXY(BottomRadius)
@@ -114,35 +119,38 @@ namespace nilou {
 		FROM_COMPONENNT_TO_PROXY(AbsorptionExtinction)
 		FROM_COMPONENNT_TO_PROXY(GroundAlbedo)
 		FROM_COMPONENNT_TO_PROXY(Mu_s_Min)
-        AtmosphereParameters->InitRHI();
 
-        ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
+        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](FDynamicRHI *DynamicRHI) {
+            BeginInitResource(AtmosphereParameters.get());
 
-        TransmittanceLUT = GDynamicRHI->RHICreateTexture2D(
-            "SkyAtmosphere TransmittanceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-            TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, nullptr);
+            ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
 
-        IrradianceLUT = GDynamicRHI->RHICreateTexture2D(
-            "SkyAtmosphere IrradianceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-            IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, nullptr);
+            TransmittanceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+                "SkyAtmosphere TransmittanceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
+                TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, nullptr);
 
-        DeltaScatteringRayleighLUT = GDynamicRHI->RHICreateTexture3D(
-            "SkyAtmosphere SingleScatteringRayleighLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-            SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+            IrradianceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+                "SkyAtmosphere IrradianceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
+                IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, nullptr);
 
-        SingleScatteringMieLUT = GDynamicRHI->RHICreateTexture3D(
-            "SkyAtmosphere SingleScatteringMieLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-            SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+            DeltaScatteringRayleighLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
+                "SkyAtmosphere SingleScatteringRayleighLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
 
-        MultiScatteringLUT = GDynamicRHI->RHICreateTexture3D(
-            "SkyAtmosphere MultiScatteringLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-            SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+            SingleScatteringMieLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
+                "SkyAtmosphere SingleScatteringMieLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
 
-        ScatteringDensityLUT = GDynamicRHI->RHICreateTexture3D(
-            "SkyAtmosphere ScatteringDensityLUT", EPixelFormat::PF_R32G32B32A32F, 1,
-            SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
-        ScatteringOrderParameter->InitRHI();
-        DispatchPrecompute();
+            MultiScatteringLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
+                "SkyAtmosphere MultiScatteringLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+
+            ScatteringDensityLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
+                "SkyAtmosphere ScatteringDensityLUT", EPixelFormat::PF_R32G32B32A32F, 1,
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+            BeginInitResource(ScatteringOrderParameter.get());
+            DispatchPrecompute();
+        });
     }
 
     #undef FROM_COMPONENNT_TO_PROXY
@@ -165,77 +173,77 @@ namespace nilou {
     void FSkyAtmosphereSceneProxy::DispatchTransmittancePass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
-        FShaderInstance *TransmittanceShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(TransmittanceShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", TransmittanceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHIDispatch(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
+        FShaderInstance *TransmittanceShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(TransmittanceShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", TransmittanceLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
     }
 
     void FSkyAtmosphereSceneProxy::DispatchDirectIrradiancePass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
-        FShaderInstance *DirectIrradianceShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(DirectIrradianceShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        GDynamicRHI->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
+        FShaderInstance *DirectIrradianceShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(DirectIrradianceShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
     }
 
     void FSkyAtmosphereSceneProxy::DispatchScatteringPass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
-        FShaderInstance *ScatteringShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(ScatteringShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", SingleScatteringMieLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        FShaderInstance *ScatteringShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", SingleScatteringMieLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
     }
 
     void FSkyAtmosphereSceneProxy::DispatchScatteringDensityPass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
-        FShaderInstance *ScatteringDensityShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(ScatteringDensityShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", ScatteringDensityLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", FRHISampler(IrradianceLUT));
-        GDynamicRHI->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        FShaderInstance *ScatteringDensityShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringDensityShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", ScatteringDensityLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", FRHISampler(IrradianceLUT));
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
     }
 
     void FSkyAtmosphereSceneProxy::DispatchIndirectIrradiancePass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
-        FShaderInstance *IndirectIrradianceShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(IndirectIrradianceShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
-        GDynamicRHI->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
+        FShaderInstance *IndirectIrradianceShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(IndirectIrradianceShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
     }
 
     void FSkyAtmosphereSceneProxy::DispatchMultiScatteringPass()
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
-        FShaderInstance *MultiScatteringShader = GetGlobalShaderInstance2(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHISetComputeShader(MultiScatteringShader);
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        GDynamicRHI->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "DeltaScatteringLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        GDynamicRHI->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_ReadWrite);
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        GDynamicRHI->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", FRHISampler(ScatteringDensityLUT));
-        GDynamicRHI->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        FShaderInstance *MultiScatteringShader = FContentManager::GetContentManager().GetGlobalShader(PermutationParameters);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(MultiScatteringShader);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "DeltaScatteringLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_ReadWrite);
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
+        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", FRHISampler(ScatteringDensityLUT));
+        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
     }
 
 }

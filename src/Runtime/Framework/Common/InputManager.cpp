@@ -1,5 +1,4 @@
 #include "InputManager.h"
-#include "Modules/ModuleManager.h"
 #include "Templates/ObjectMacros.h"
 
 #include <iostream>
@@ -11,19 +10,15 @@
 using namespace std;
 
 namespace nilou {
-    InputManager *g_pInputManager = new InputManager;
-    int InputManager::StartupModule() { return 0; }
 
-    void InputManager::ShutdownModule() {}
+    InputManager *GetInputManager()
+    {  
+        static InputManager *GInputManager = new InputManager;
+        return GInputManager;
+    }
 
-    // void InputManager::Tick(double DeltaTime) 
-    // {
-
-    // }
-
-    void nilou::InputManager::KeyPressed(int key)
+    void nilou::InputManager::KeyPressed(InputKey input_key)
     {
-        InputKey input_key = (InputKey)key;
         KeyState former_state = m_KeyStates[input_key];
         m_KeyStates[input_key].Value = 1.0;
         m_KeyStates[input_key].bDown = true;
@@ -49,9 +44,8 @@ namespace nilou {
             //     dlg->execute(1.0);
     }
 
-    void InputManager::KeyReleased(int key)
+    void InputManager::KeyReleased(InputKey input_key)
     {
-        InputKey input_key = (InputKey)key;
         KeyState former_state = m_KeyStates[input_key];
         m_KeyStates[input_key].Value = 0.0;
         m_KeyStates[input_key].bDown = false;
@@ -59,7 +53,7 @@ namespace nilou {
         if (former_state.bDown == true)
         {
             if (checkHasActionKeyEventBinding(input_key, IE_Released))
-                m_ActionDelegateMap[input_key][IE_Pressed].Broadcast();
+                m_ActionDelegateMap[input_key][IE_Released].Broadcast();
                 // for (auto &&dlg : m_ActionDelegateMap[input_key][IE_Released])
                 //     dlg->execute();
         }
@@ -67,21 +61,21 @@ namespace nilou {
 
     void InputManager::MouseMove(float xoffset, float yoffset)
     {
-        //m_KeyStates[KEY_MOUSEX].Value = xoffset;
-        ////m_KeyStates[KEY_MOUSEX].AccumulateValue += xoffset;
-        //m_KeyStates[KEY_MOUSEX].bDown = true;
-        if (checkHasAxisKeyBinding(KEY_MOUSEX))
-            m_AxisDelegateMap[KEY_MOUSEX].Broadcast(xoffset);
-            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEX])
+        //m_KeyStates[AXIS_MOUSEX].Value = xoffset;
+        ////m_KeyStates[AXIS_MOUSEX].AccumulateValue += xoffset;
+        //m_KeyStates[AXIS_MOUSEX].bDown = true;
+        if (checkHasAxisKeyBinding(AXIS_MOUSEX))
+            m_AxisDelegateMap[AXIS_MOUSEX].Broadcast(xoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[AXIS_MOUSEX])
             //     dlg->execute(xoffset);
-        if (checkHasAxisKeyBinding(KEY_MOUSEY))
-            m_AxisDelegateMap[KEY_MOUSEY].Broadcast(yoffset);
-            // for (auto &&dlg : m_AxisDelegateMap[KEY_MOUSEY])
+        if (checkHasAxisKeyBinding(AXIS_MOUSEY))
+            m_AxisDelegateMap[AXIS_MOUSEY].Broadcast(yoffset);
+            // for (auto &&dlg : m_AxisDelegateMap[AXIS_MOUSEY])
             //     dlg->execute(yoffset);
 
-        //m_KeyStates[KEY_MOUSEY].Value = yoffset;
-        ////m_KeyStates[KEY_MOUSEY].AccumulateValue += yoffset;
-        //m_KeyStates[KEY_MOUSEY].bDown = true;
+        //m_KeyStates[AXIS_MOUSEY].Value = yoffset;
+        ////m_KeyStates[AXIS_MOUSEY].AccumulateValue += yoffset;
+        //m_KeyStates[AXIS_MOUSEY].bDown = true;
     }
 
     const KeyState &InputManager::GetKeyState(InputKey key)
@@ -103,76 +97,4 @@ namespace nilou {
             return true;
         return false;
     }
-    
-    IMPLEMENT_MODULE(InputManager);
-    //void InputManager::BindAxis(const std::string &key, BaseActor *obj, void(BaseActor:: *func)(float))
-
-
-    //void InputManager::UpArrowKeyDown() {
-    //    //g_pGameLogic->OnUpKeyDown();
-    //    if (!m_bUpKeyPressed) {
-    //        //g_pGameLogic->OnUpKey();
-    //        m_bUpKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::UpArrowKeyUp() {
-    //    //g_pGameLogic->OnUpKeyUp();
-    //    m_bUpKeyPressed = false;
-    //}
-
-    //void InputManager::DownArrowKeyDown() {
-    //    //g_pGameLogic->OnDownKeyDown();
-    //    if (!m_bDownKeyPressed) {
-    //        //g_pGameLogic->OnDownKey();
-    //        m_bDownKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::DownArrowKeyUp() {
-    //    //g_pGameLogic->OnDownKeyUp();
-    //    m_bDownKeyPressed = false;
-    //}
-
-    //void InputManager::LeftArrowKeyDown() {
-    //    //g_pGameLogic->OnLeftKeyDown();
-    //    if (!m_bLeftKeyPressed) {
-    //        //g_pGameLogic->OnLeftKey();
-    //        m_bLeftKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::LeftArrowKeyUp() {
-    //    //g_pGameLogic->OnLeftKeyUp();
-    //    m_bLeftKeyPressed = false;
-    //}
-
-    //void InputManager::RightArrowKeyDown() {
-    //    //g_pGameLogic->OnRightKeyDown();
-    //    if (!m_bRightKeyPressed) {
-    //        //g_pGameLogic->OnRightKey();
-    //        m_bRightKeyPressed = true;
-    //    }
-    //}
-
-    //void InputManager::RightArrowKeyUp() {
-    //    //g_pGameLogic->OnRightKeyUp();
-    //    m_bRightKeyPressed = false;
-    //}
-
-    //void InputManager::LeftMouseButtonDown() {}
-
-    //void InputManager::LeftMouseButtonUp() {}
-
-    //void InputManager::LeftMouseDrag(int deltaX, int deltaY) {
-    //    //g_pGameLogic->OnAnalogStick(0, (float)deltaX, (float)deltaY);
-    //}
-
-    //void InputManager::RightMouseButtonDown() {}
-
-    //void InputManager::RightMouseButtonUp() {}
-
-    //void InputManager::RightMouseDrag(int deltaX, int deltaY) {
-    //    //g_pGameLogic->OnAnalogStick(1, (float)deltaX, (float)deltaY);
-    //}
 }

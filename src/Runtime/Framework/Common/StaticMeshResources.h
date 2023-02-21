@@ -97,7 +97,7 @@ namespace nilou {
 
         // int32 GetNumTexCoords() const;
 
-        bool IsInitialized() { return bIsInitialized; }
+        bool IsInitialized() const { return bIsInitialized; }
 
     private:
         bool bIsInitialized = false;
@@ -143,6 +143,7 @@ namespace nilou {
         std::unique_ptr<FStaticMeshRenderData> RenderData;
         std::vector<FMaterial *> MaterialSlots;
         FBoundingBox LocalBoundingBox;
-        // class UMaterial *Material;
+        ~UStaticMesh() { ReleaseRenderResources(); }
+        void ReleaseRenderResources();
     };
 }

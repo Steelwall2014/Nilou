@@ -4,8 +4,6 @@
 #include <vector>
 #include <memory>
 
-#include "Interface/IRuntimeModule.h"
-#include "Interface/IDrawPass.h"
 // #include "Common/CoordinateAxis.h"
 // #include "Common/GfxStructures.h"
 #include "OpenGL/OpenGLFramebuffer.h"
@@ -22,16 +20,7 @@ namespace nilou {
 
 	constexpr int MAX_VERTEX_ATTRIBUTE_COUNT = 32;
 
-	// class FOpenGLRHIModule : public IDynamicRHIModule
-	// {
-	// public:
-	// 	FOpenGLRHIModule();
-	// 	virtual int StartupModule() override;		
-	// 	virtual void ShutdownModule() override;
-	// 	virtual class FDynamicRHI* CreateRHI() override;
-	// };
-
-	class FOpenGLDynamicRHI : public FDynamicRHI // : public GraphicsManager
+	class FOpenGLDynamicRHI : public FDynamicRHI
 	{
 	public:
 		FOpenGLDynamicRHI() {}
@@ -168,7 +157,5 @@ namespace nilou {
 		};
 		OpenGLTextureResource TextureResourceCast(RHITexture *texture);
 	};
-
-	extern FDynamicRHI *GDynamicRHI;
 
 }

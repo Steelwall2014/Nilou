@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include "ShaderMap.h"
 
 
 namespace nilou {
@@ -25,7 +26,12 @@ namespace nilou {
     
 		void AddGlobalStaticMesh(const std::string &name, std::shared_ptr<class UStaticMesh> mesh, bool overlap = false);
 		void RemoveGlobalStaticMesh(const std::string &name);
-		std::shared_ptr<class UStaticMesh> GetGlobalStaticMesh(const std::string &name);
+		class UStaticMesh *GetGlobalStaticMesh(const std::string &name);
+    
+		void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> mesh, bool overlap = false);
+		FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
+
+        void ReleaseRenderResources();
 
         static FContentManager &GetContentManager();
 
@@ -67,6 +73,7 @@ namespace nilou {
         FContentMap<std::string, std::shared_ptr<class FTexture>> GlobalTextures;
         FContentMap<std::string, std::shared_ptr<class FMaterial>> GlobalMaterials;
         FContentMap<std::string, std::shared_ptr<class UStaticMesh>> GlobalStaticMeshes;
+        TShaderMap<FShaderPermutationParameters> GlobalShaders;
     };
 
 }

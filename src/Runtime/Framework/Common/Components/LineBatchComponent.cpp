@@ -28,7 +28,7 @@ namespace nilou {
 		    {
                 for (int i = 0; i < BatchedLines.size(); i += 1)
                 {
-                    Views[0]->LineElements.push_back(BatchedLines[i]);
+                    Views[ViewIndex]->PDI->DrawLine(BatchedLines[i]);
                 }
             }
         }

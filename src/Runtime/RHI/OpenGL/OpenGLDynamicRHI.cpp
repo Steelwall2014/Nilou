@@ -17,7 +17,6 @@
 // #include "Common/QuadTree/QuadTreeStructures.h"
 
 
-#include "Modules/ModuleManager.h"
 #include "OpenGL/OpenGLBuffer.h"
 #include "OpenGL/OpenGLFramebuffer.h"
 #include "OpenGL/OpenGLResources.h"
@@ -39,10 +38,6 @@
 #include "Common/InputManager.h"
 #endif // NILOU_DEBUG
 
-//#define NILOU_DEBUG_SHOWNORMAL
-namespace nilou {
-    FDynamicRHI *GDynamicRHI = nullptr;
-}
 
 using namespace std::literals;  // For the use of operator""s
 
@@ -51,6 +46,11 @@ using namespace std::literals;  // For the use of operator""s
 * State translation
 */
 namespace nilou {
+
+	void FDynamicRHI::CreateDynamicRHI_RenderThread()
+	{
+		FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
+	}
 
     static GLenum TranslateCompareFunction(ECompareFunction CompareFunction)
     {
@@ -906,8 +906,8 @@ namespace nilou {
         RHIGetError();
         FRHIGraphicsPipelineInitializer Initializer;
         Initializer.ComputeShader = ComputeShader;
-        FRHIGraphicsPipelineState *PSO = GDynamicRHI->RHIGetOrCreatePipelineStateObject(Initializer);
-        GDynamicRHI->RHISetGraphicsPipelineState(PSO);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHIGetOrCreatePipelineStateObject(Initializer);
+        FDynamicRHI::GetDynamicRHI()->RHISetGraphicsPipelineState(PSO);
         RHIGetError();
         return PSO;
     }
@@ -999,7 +999,7 @@ namespace nilou {
         PSO->Initializer = Initializer;
         if (Initializer.ComputeShader != nullptr)
         {
-            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->Shader.get());
+            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->ShaderRHI.get());
             PSO->Program = RHICreateLinkedProgram(comp);
             FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;
             const std::set<FShaderParameterInfo> &ComputeShaderParams = Initializer.ComputeShader->Parameters;
@@ -1010,8 +1010,8 @@ namespace nilou {
             Initializer.PixelShader != nullptr)
         {
             RHIGetError();
-            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->Shader.get());
-            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->Shader.get());
+            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->ShaderRHI.get());
+            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->ShaderRHI.get());
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
             #ifdef NILOU_DEBUG

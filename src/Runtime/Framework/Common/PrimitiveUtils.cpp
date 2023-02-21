@@ -200,7 +200,6 @@ namespace nilou {
             vec3 TriTangentY = ConeVerts[i];
             vec3 TriTangentX = glm::cross(TriTangentZ, TriTangentY);
 
-
             FDynamicMeshVertex V0, V1, V2;
 
             V0.Color = Color;
@@ -208,29 +207,37 @@ namespace nilou {
             V2.Color = Color;
 
             V0.Position = vec3(0) + vec3(XOffset,0,0);
+            V1.Position = ConeVerts[i];
+            V2.Position = ConeVerts[(i + 1) % NumSides];
+            // vec3 V3_Position = ConeVerts[(i + 2) % NumSides];
+            vec3 V0V1 = V1.Position-V0.Position;
+            vec3 V0V2 = V2.Position-V0.Position;
+            // vec3 V0V3 = V3_Position-V0.Position;
+            vec3 V1V2 = V2.Position-V1.Position;
+            // vec3 V2V3 = V3_Position-V2.Position;
+
+            // UE圆锥体生成的法线在圆锥顶是错的
+            vec3 normal = glm::cross(V0V1, V0V2);
             V0.TextureCoordinate[0].x = 0.0f;
             V0.TextureCoordinate[0].y = (float)i / NumSides;
-            V0.SetTangents(TriTangentX, TriTangentY, vec3(-1, 0, 0));
+            V0.SetTangents(V1V2, glm::cross(normal, V1V2), normal);
             int32 I0 = OutVerts.size();
             OutVerts.push_back(V0);
 
-            V1.Position = ConeVerts[i];
             V1.TextureCoordinate[0].x = 1.0f;
             V1.TextureCoordinate[0].y = (float)i / NumSides;
             vec3 TriTangentZPrev = glm::cross(ConeVerts[i], ConeVerts[i == 0 ? NumSides - 1 : i - 1]); // Normal of the previous face connected to this face
-            V1.SetTangents(TriTangentX, TriTangentY, glm::normalize(TriTangentZPrev + TriTangentZ));
+            V1.SetTangents(TriTangentX, TriTangentY, TriTangentZPrev + TriTangentZ);
             int32 I1 = OutVerts.size();
             OutVerts.push_back(V1);
 
-            V2.Position = ConeVerts[(i + 1) % NumSides];
             V2.TextureCoordinate[0].x = 1.0f;
             V2.TextureCoordinate[0].y = (float)((i + 1) % NumSides) / NumSides;
             vec3 TriTangentZNext = glm::cross(ConeVerts[(i + 2) % NumSides], ConeVerts[(i + 1) % NumSides]); // Normal of the next face connected to this face
-            V2.SetTangents(TriTangentX, TriTangentY, glm::normalize(TriTangentZNext + TriTangentZ));
+            V2.SetTangents(TriTangentX, TriTangentY, TriTangentZNext + TriTangentZ);
             int32 I2 = OutVerts.size();
             OutVerts.push_back(V2);
 
-            // Flip winding for negative scale
             if(Scale >= 0.f)
             {
                 OutIndices.push_back(I0);

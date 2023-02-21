@@ -18,12 +18,10 @@ namespace nilou {
             std::vector<FDynamicMeshVertex> OutVerts;
             std::vector<uint32> OutIndices;
             GetSphereMesh(vec3(0), FRotator::ZeroRotator, vec3(SphereRadius), 30, 30, OutVerts, OutIndices);
-
-            {            
-                IndexBuffer.Init(OutIndices);
-                VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-                BeginInitResource(&IndexBuffer);
-            }
+            IndexBuffer.Init(OutIndices);
+            VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
+            BeginInitResource(&IndexBuffer);
+            
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
@@ -33,7 +31,10 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.MaterialRenderProxy = Material;
+                    if (Material)
+                        Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                    else
+                        Mesh.MaterialRenderProxy = FMaterial::GetDefaultMaterial()->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
@@ -59,7 +60,7 @@ namespace nilou {
         : UPrimitiveComponent(InOwner)
         , SphereRadius(1.f)
     {
-
+        Material = FMaterial::GetDefaultMaterial();
     }
 
     void USphereComponent::SetSphereRadius(float InSphereRadius)

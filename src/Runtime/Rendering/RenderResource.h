@@ -36,7 +36,7 @@ namespace nilou {
         RHIBufferRef VertexBufferRHI;
         
         virtual void InitRHI() {}
-        virtual void ReleaseRHI() {};
+        virtual void ReleaseRHI() { VertexBufferRHI = nullptr; }
     };
 
     class FIndexBuffer : public FRenderResource

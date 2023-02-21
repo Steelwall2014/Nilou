@@ -125,7 +125,6 @@ namespace nilou {
         SetViewProjectionMatrix(InComponent->CalcWorldToViewMatrix(), InComponent->CalcViewToClipMatrix());
         SetCameraResolution(InComponent->ScreenResolution);
         SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
-        // ViewUniformBufferRHI->InitRHI();
         BeginInitResource(ViewUniformBufferRHI.get());
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsUniformBufferUpdate(false);

@@ -11,14 +11,14 @@ namespace nilou {
     {
     public:
         std::set<FShaderParameterInfo> Parameters;
-        RHIShaderRef Shader;
+        RHIShaderRef ShaderRHI;
         EPipelineStage PipelineStage;
         EShaderMetaType ShaderMetaType; // Material or Global
 
         RHIComputeShader *GetComputeShader() 
         { 
             if (PipelineStage == EPipelineStage::PS_Compute) 
-                return static_cast<RHIComputeShader*>(Shader.get());
+                return static_cast<RHIComputeShader*>(ShaderRHI.get());
             else
                 return nullptr; 
         }

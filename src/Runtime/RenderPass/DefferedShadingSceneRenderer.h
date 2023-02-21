@@ -4,6 +4,7 @@
 
 #include "Common/MeshBatch.h"
 #include "Common/Scene.h"
+#include "Common/ContentManager.h"
 #include "MeshPassProcessor.h"
 #include "RHIResources.h"
 #include "SceneView.h"
@@ -67,8 +68,9 @@ namespace nilou {
 
         virtual void Render();
 
-        virtual void AddCamera(FViewSceneInfo *CameraInfo);
-        virtual void RemoveCamera(FViewSceneInfo *CameraInfo);
+        void OnAddView(FViewSceneInfo *CameraInfo);
+        void OnRemoveView(FViewSceneInfo *CameraInfo);
+        void OnResizeView(FViewSceneInfo *CameraInfo);
 
     private:
 
@@ -84,7 +86,7 @@ namespace nilou {
             }
             virtual void InitRHI() override
             {
-                VertexBufferRHI = GDynamicRHI->RHICreateBuffer(sizeof(glm::vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
             glm::vec4 Vertices[4];
@@ -102,7 +104,7 @@ namespace nilou {
             }
             virtual void InitRHI() override
             {
-                VertexBufferRHI = GDynamicRHI->RHICreateBuffer(sizeof(glm::vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
             glm::vec2 Vertices[4];
@@ -165,4 +167,6 @@ namespace nilou {
         //     PassNum
         // };
     };
+
+    extern FDefferedShadingSceneRenderer *Renderer;
 }

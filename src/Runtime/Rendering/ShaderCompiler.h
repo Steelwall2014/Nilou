@@ -24,34 +24,34 @@ namespace nilou {
     class FShaderCompiler 
     {   
     public:
-        static void CompileGlobalShaders();
+        static void CompileGlobalShaders(FDynamicRHI *DynamicRHI);
 
-        static void CompileMaterialShader(class FMaterial *Material);
+        static void CompileMaterialShader(class FMaterial *Material, FDynamicRHI *DynamicRHI);
 
     private:
         static void FShaderCompiler::CompileVertexMaterialShader(
-            FDynamicRHI *RHICmdList,
+            FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
             const FVertexFactoryPermutationParameters &VertexFactoryParams,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
         static void CompilePixelMaterialShader(
-            FDynamicRHI *RHICmdList,
+            FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FShaderPermutationParameters> &OutShaderMap);
         static void CompileGlobalShader(
-            FDynamicRHI *RHICmdList, 
+            FDynamicRHI *DynamicRHI, 
             const FShaderPermutationParameters &ShaderParams);
 
         /** Helper function for compiling material shaders */
         static void IterateOnMaterials(
-            FDynamicRHI *RHICmdList, 
+            FDynamicRHI *DynamicRHI, 
             const FShaderPermutationParameters &ShaderParams);
 
         /** Helper function for compiling vertex material shaders */
         static void FShaderCompiler::IterateOnVertexFactories(
-            FDynamicRHI *RHICmdList, 
+            FDynamicRHI *DynamicRHI, 
             FMaterial *Material,
             const FShaderPermutationParameters &ShaderParams);
 

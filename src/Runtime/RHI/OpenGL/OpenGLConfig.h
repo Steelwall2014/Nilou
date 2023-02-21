@@ -2,5 +2,5 @@
 // #include "OpenGL/OpenGLDynamicRHI.h"
 
 // namespace nilou {
-// 	//GraphicsManager *GDynamicRHI = new FOpenGLDynamicRHI;
+// 	//GraphicsManager *FDynamicRHI::GetDynamicRHI() = new FOpenGLDynamicRHI;
 // }

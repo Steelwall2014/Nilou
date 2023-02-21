@@ -8,13 +8,13 @@ namespace nilou {
     void FTexture::InitRHI()
     {
         FRenderResource::InitRHI();
-        TextureRHI = GDynamicRHI->RHICreateTexture2D(Name, Image->PixelFormat, NumMips, Image->Width, Image->Height, Image->data);
+        TextureRHI = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(Name, Image->PixelFormat, NumMips, Image->Width, Image->Height, Image->data);
         SamplerRHI.Texture = TextureRHI.get();
     }
 
     void FTexture::ReleaseRHI()
     {
-
+        TextureRHI = nullptr;
     }
 
     // FTexture::FTexture()
@@ -38,7 +38,7 @@ namespace nilou {
 
     // bool FTexture::LoadTexture(const char *filepath)
     // {
-    //     m_Image = g_pAssetLoader->SyncOpenAndReadImage(filepath);
+    //     m_Image = GetAssetLoader()->SyncOpenAndReadImage(filepath);
     //     return true;
     // }
 

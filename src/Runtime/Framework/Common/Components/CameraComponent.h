@@ -2,6 +2,7 @@
 #include "SceneComponent.h"
 #include "SceneView.h"
 #include "Templates/ObjectMacros.h"
+#include "RenderingThread.h"
 
 namespace nilou {
 
@@ -128,7 +129,11 @@ namespace nilou {
     
         void UpdateUniformBuffer() 
         { 
-            ViewUniformBufferRHI->UpdateUniformBuffer(); 
+            ENQUEUE_RENDER_COMMAND(FCameraSceneProxy_UpdateUniformBuffer)(
+                [this](FDynamicRHI *DynamicRHI) 
+                {
+                    ViewUniformBufferRHI->UpdateUniformBuffer();
+                }); 
             SceneView.ViewFrustum = FViewFrustum(
                 SceneView.Position, SceneView.Forward, SceneView.Up, 
                 SceneView.AspectRatio, SceneView.VerticalFieldOfView, 
