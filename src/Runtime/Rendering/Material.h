@@ -30,6 +30,7 @@ namespace nilou {
     class FMaterial
     {
         friend class FShaderCompiler;
+        friend class FMaterialInstance;
         friend class FMaterialRenderProxy;
     public:
 
@@ -52,8 +53,6 @@ namespace nilou {
         { 
         }
 
-        ~FMaterial();
-
         uint8 StencilRefValue = 0;
 
         FRasterizerStateInitializer RasterizerState;
@@ -61,8 +60,6 @@ namespace nilou {
         FDepthStencilStateInitializer DepthStencilState;
 
         FBlendStateInitializer BlendState;
-
-        void ReleaseRenderResources();
 
         std::shared_ptr<FMaterialRenderProxy> CreateRenderProxy()
         {
@@ -104,6 +101,8 @@ namespace nilou {
             UniformBuffers[Name] = UniformBuffer;
         }
 
+        std::shared_ptr<FMaterialInstance> CreateMaterialInstance();
+
     protected:
 
         std::string MaterialName;
@@ -121,6 +120,14 @@ namespace nilou {
 
         bool bShaderCompiled = false;
 
+    };
+
+    class FMaterialInstance : public FMaterial
+    {
+    public:
+        FMaterialInstance(const std::string &InMaterialName) 
+            : FMaterial(InMaterialName)
+        { }
     };
 
     class FMaterialRenderProxy

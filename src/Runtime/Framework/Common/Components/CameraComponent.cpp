@@ -126,7 +126,11 @@ namespace nilou {
         SetCameraResolution(InComponent->ScreenResolution);
         SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
         // ViewUniformBufferRHI->InitRHI();
-        BeginInitResource(ViewUniformBufferRHI.get());
+        ENQUEUE_RENDER_COMMAND(FCameraSceneProxy_Constructor)(
+            [this](FDynamicRHI*) 
+            {
+                BeginInitResource(ViewUniformBufferRHI.get());
+            });
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsUniformBufferUpdate(false);
     }

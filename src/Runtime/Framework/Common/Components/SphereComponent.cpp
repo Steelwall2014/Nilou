@@ -22,7 +22,11 @@ namespace nilou {
             {            
                 IndexBuffer.Init(OutIndices);
                 VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-                BeginInitResource(&IndexBuffer);
+                ENQUEUE_RENDER_COMMAND(FSphereSceneProxy_Constructor)(
+                    [this](FDynamicRHI*) 
+                    {
+                        BeginInitResource(&IndexBuffer);
+                    });
             }
         }
 

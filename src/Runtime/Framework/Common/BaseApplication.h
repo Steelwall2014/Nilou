@@ -31,6 +31,7 @@ namespace nilou {
         UWorld *GetWorld() { return World.get(); }
         FScene *GetScene() { return Scene.get(); }
         TMulticastDelegate<FDynamicRHI*> &GetPreRenderDelegate() { return PreRenderDelegate; }
+        TMulticastDelegate<FDynamicRHI*> &GetPostRenderDelegate() { return PostRenderDelegate; }
         TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
 
     protected:
@@ -42,6 +43,7 @@ namespace nilou {
         std::shared_ptr<UWorld> World;
         std::shared_ptr<FScene> Scene;
         TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
+        TMulticastDelegate<FDynamicRHI*> PostRenderDelegate;
         TMulticastDelegate<int, int> ScreenResizeDelegate;
         std::unique_ptr<FRunnableThread> RenderingThread;
         std::atomic<bool> RenderingThreadInitialized = false;

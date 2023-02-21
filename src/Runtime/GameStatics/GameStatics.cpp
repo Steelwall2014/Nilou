@@ -19,7 +19,7 @@
 
 namespace nilou {
 
-    ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
+    static ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
     {
         ETextureFilters filter;
         switch (GLTFFilter) {
@@ -32,7 +32,7 @@ namespace nilou {
         }
         return filter;
     }
-    ETextureWrapModes GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
+    static ETextureWrapModes GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
     {
         ETextureWrapModes mode;
         switch (GLTFWrapMode) {
@@ -146,7 +146,11 @@ namespace nilou {
 
             std::shared_ptr<FTexture> Texture = std::make_shared<FTexture>(
                 std::to_string(TextureIndex) + "_" + gltf_texture.name, NumMips, image);
-            BeginInitResource(Texture.get());
+            ENQUEUE_RENDER_COMMAND(FSphereSceneProxy_Constructor)(
+                [Texture](FDynamicRHI*) 
+                {
+                    BeginInitResource(Texture.get());
+                });
             
             RHITextureParams TextureParams;
             if (gltf_texture.sampler != -1)

@@ -142,7 +142,6 @@ namespace nilou {
                 return FDelegateHandle();
         }
 
-        template <typename UserClass>
         bool Remove(FDelegateHandle Handle)
         {
             for (auto iter = DelegateInstances.end()-1; iter >= DelegateInstances.begin(); iter--)

@@ -5,14 +5,23 @@
 #include <memory>
 
 #include <tinygltf/tiny_gltf.h>
+#include "UniformBuffer.h"
 
 namespace nilou {
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FCesium3DTilesMaterialBlock)
+        SHADER_PARAMETER(vec4, baseColorFactor)
+        SHADER_PARAMETER(vec3, emissiveFactor)
+        SHADER_PARAMETER(float, metallicFactor)
+        SHADER_PARAMETER(float, roughnessFactor)
+    END_UNIFORM_BUFFER_STRUCT()
 
     struct GLTFParseResult
     {
         std::vector<std::shared_ptr<class UStaticMesh>> StaticMeshes;
         std::vector<std::shared_ptr<class FMaterial>> Materials;
         std::vector<std::shared_ptr<class FTexture>> Textures;
+        TUniformBufferRef<FCesium3DTilesMaterialBlock> UniformBuffer;
     };
 
     class GameStatics

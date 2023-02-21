@@ -59,18 +59,21 @@ namespace nilou {
 
     void FPrimitiveSceneProxy::CreateRenderThreadResources()
     {
-        BeginInitResource(PrimitiveUniformBuffer.get());
+        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_CreateRenderThreadResources)(
+            [this](FDynamicRHI*) 
+            {
+                BeginInitResource(PrimitiveUniformBuffer.get());
+            });
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
     void FPrimitiveSceneProxy::DestroyRenderThreadResources()
     {
-        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_UpdateUniformBuffer)(
+        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_DestroyRenderThreadResources)(
             [this](FDynamicRHI *DynamicRHI)
             {
-                PrimitiveUniformBuffer->ReleaseRHI();
-                PrimitiveUniformBuffer = nullptr;
+                BeginReleaseResource(PrimitiveUniformBuffer.get());
             });
     }
 

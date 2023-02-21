@@ -24,16 +24,18 @@ namespace nilou {
         });
     }
 
-    FMaterial::~FMaterial()
+    std::shared_ptr<FMaterialInstance> FMaterial::CreateMaterialInstance()
     {
-        ReleaseRenderResources();
+        std::shared_ptr<FMaterialInstance> MaterialInstance = std::make_shared<FMaterialInstance>(MaterialName+"_Instance");
+        MaterialInstance->BlendState = BlendState;
+        MaterialInstance->DepthStencilState = DepthStencilState;
+        MaterialInstance->RasterizerState = RasterizerState;
+        MaterialInstance->ShaderMap = ShaderMap;
+        MaterialInstance->UniformBuffers = UniformBuffers;
+        MaterialInstance->Textures = Textures;
+        MaterialInstance->bShaderCompiled = bShaderCompiled;
+        MaterialInstance->bUseWorldOffset = bUseWorldOffset;
+        return MaterialInstance;
     }
 
-    void FMaterial::ReleaseRenderResources()
-    {
-        ENQUEUE_RENDER_COMMAND(FMaterial_ReleaseRenderResources)(
-            [this](FDynamicRHI *DynamicRHI) {
-                ShaderMap.RemoveAllShaders();
-            });
-    }
 }

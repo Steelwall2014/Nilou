@@ -1,6 +1,8 @@
 #include <fstream>
 #include <sstream>
+#include <regex>
 
+#include "Common/BaseApplication.h"
 #include "Common/StaticMeshResources.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
@@ -42,7 +44,6 @@ namespace nilou {
         BoundingVolumeConvert(InternalTile->BoundingVolume, Tile->boundingVolume, InternalTile->Transform);
         InternalTile->Content.URI = Tile->content.uri;
         InternalTile->TransformRHI = CreateUniformBuffer<FPrimitiveShaderParameters>();
-        BeginInitResource(InternalTile->TransformRHI.get());
         if (!Tile->content.b3dm.featureTableJSON.empty())
         {
             nlohmann::json json;
@@ -106,23 +107,24 @@ namespace nilou {
     //     TilesToRenderThisFrame = &InComponent->TilesToRenderThisFrame;
     // }
 
-    void UCesium3DTilesetComponent::DispatchMainThreadTask()
-    {
-        int TaskCount = MainThreadTaskQueue.size();
-        for (int TaskIndex = 0; TaskIndex < TaskCount; TaskIndex++)
-        {
-            TileMainThreadTask &Task = MainThreadTaskQueue.front();
-            Task.Func(Task.Result);
-            std::lock_guard<std::mutex> lock(mutex);
-            MainThreadTaskQueue.pop();
-        }
-    }
+    // void UCesium3DTilesetComponent::DispatchMainThreadTask()
+    // {
+    //     int TaskCount = MainThreadTaskQueue.size();
+    //     for (int TaskIndex = 0; TaskIndex < TaskCount; TaskIndex++)
+    //     {
+    //         std::unique_lock<std::mutex> lock(mutex);
+    //         TileMainThreadTask Task = MainThreadTaskQueue.front();
+    //         MainThreadTaskQueue.pop();
+    //         lock.unlock();
+    //         Task.Func(Task.Result);
+    //     }
+    // }
 
     void UCesium3DTilesetComponent::Update(Cesium3DTileset *Tileset, const std::vector<ViewState> &ViewStates)
     {
         TilesToRenderThisFrame.clear();
 
-        DispatchMainThreadTask();
+        // DispatchMainThreadTask();
 
         UpdateInternal(Tileset->Root.get(), ViewStates);
 
@@ -131,53 +133,283 @@ namespace nilou {
         LoadTiles();
     }
 
-    void UCesium3DTilesetComponent::LoadContent(
-        Cesium3DTile *Tile, 
-        std::function<void(TileLoadingResult)> MainThreadFunc)
+    static ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
     {
-        auto LoadFunc = [](Cesium3DTile *Tile) {
-                    Tile->LoadingState = ETileLoadingState::Loading;
-                    TileLoadingResult result;
-                    result.model = std::make_shared<tinygltf::Model>();
-                    result.Tile = Tile;
-                    if (Tile->Content.B3dm.header_loaded())
+        ETextureFilters filter;
+        switch (GLTFFilter) {
+            case TINYGLTF_TEXTURE_FILTER_NEAREST: filter = ETextureFilters::TF_Nearest; break;
+            case TINYGLTF_TEXTURE_FILTER_LINEAR: filter = ETextureFilters::TF_Linear; break;
+            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST: filter = ETextureFilters::TF_Nearest_Mipmap_Nearest; break;
+            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST: filter = ETextureFilters::TF_Linear_Mipmap_Nearest; break;
+            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR: filter = ETextureFilters::TF_Nearest_Mipmap_Linear; break;
+            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: filter = ETextureFilters::TF_Linear_Mipmap_Linear; break;
+        }
+        return filter;
+    }
+    static ETextureWrapModes GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
+    {
+        ETextureWrapModes mode;
+        switch (GLTFWrapMode) {
+            case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: mode = ETextureWrapModes::TW_Clamp; break;
+            case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: mode = ETextureWrapModes::TW_Mirrored_Repeat; break;
+            case TINYGLTF_TEXTURE_WRAP_REPEAT: mode = ETextureWrapModes::TW_Repeat; break;
+        }
+        return mode;
+    }
+    void ParseToMaterials(tinygltf::Model &model, 
+        std::vector<std::shared_ptr<FMaterial>> &OutMaterials, 
+        std::vector<std::shared_ptr<FTexture>> &OutTextures,
+        TUniformBufferRef<FCesium3DTilesMaterialBlock> &OutUniformBuffer)
+    {
+        OutMaterials.clear();
+        OutTextures.clear();
+        for (int TextureIndex = 0; TextureIndex < model.textures.size(); TextureIndex++)
+        {
+            tinygltf::Texture &gltf_texture = model.textures[TextureIndex];
+            tinygltf::Image gltf_image = model.images[gltf_texture.source];
+            std::shared_ptr<FImage> image = std::make_shared<FImage>();
+            image->Width = gltf_image.width;
+            image->Height = gltf_image.height;
+            image->Channel = gltf_image.component;
+            image->data_size = gltf_image.image.size();
+            image->data = new uint8[image->data_size];
+            image->PixelFormat = TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type);
+            memcpy(image->data, gltf_image.image.data(), image->data_size);
+
+            int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height));
+
+            std::shared_ptr<FTexture> Texture = std::make_shared<FTexture>(
+                std::to_string(TextureIndex) + "_" + gltf_texture.name, NumMips, image);
+            
+            RHITextureParams TextureParams;
+            if (gltf_texture.sampler != -1)
+            {
+                tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
+
+                if (sampler.minFilter != -1)
+                    TextureParams.Min_Filter = GLTFFilterToETextureFilters(sampler.minFilter);
+                if (sampler.magFilter != -1)
+                    TextureParams.Mag_Filter = GLTFFilterToETextureFilters(sampler.magFilter);
+                TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
+                TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
+            }
+            Texture->SetSamplerParams(TextureParams);
+            OutTextures.push_back(Texture);
+        }
+
+        for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
+        {
+            tinygltf::Material &gltf_material = model.materials[MaterialIndex];
+            FMaterial *Cesium3DTilesMaterial = FContentManager::GetContentManager().GetGlobalMaterial("Cesium3DTilesMaterial");
+            std::shared_ptr<FMaterialInstance> Material = Cesium3DTilesMaterial->CreateMaterialInstance();
+            auto AccessTextures = 
+                [&OutTextures, Material](int index, const std::string &sampler_name) {
+                if (index != -1)
+                {
+                    Material->SetParameterValue(sampler_name, OutTextures[index].get());
+                }
+            };
+            AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture");
+            AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
+            AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
+            AccessTextures(gltf_material.normalTexture.index, "normalTexture");
+            OutUniformBuffer = CreateUniformBuffer<FCesium3DTilesMaterialBlock>();
+            OutUniformBuffer->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
+            OutUniformBuffer->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
+            OutUniformBuffer->Data.baseColorFactor.b = gltf_material.pbrMetallicRoughness.baseColorFactor[2];
+            OutUniformBuffer->Data.baseColorFactor.a = gltf_material.pbrMetallicRoughness.baseColorFactor[3];
+            OutUniformBuffer->Data.emissiveFactor.r = gltf_material.emissiveFactor[0];
+            OutUniformBuffer->Data.emissiveFactor.g = gltf_material.emissiveFactor[1];
+            OutUniformBuffer->Data.emissiveFactor.b = gltf_material.emissiveFactor[2];
+            OutUniformBuffer->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
+            OutUniformBuffer->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
+            OutMaterials.push_back(Material);
+            Material->SetParameterValue("FCesium3DTilesMaterialBlock", OutUniformBuffer.get());
+        }
+    }
+    template<class T>
+    std::vector<T> BufferToVector(uint8 *pos, int count, size_t stride)
+    {
+        stride = stride == 0 ? sizeof(T) : stride;
+        std::vector<T> Vertices;
+        for (int i = 0; i < count; i++)
+        {
+            T *data = reinterpret_cast<T*>(pos);
+            Vertices.push_back(*data);
+            pos = pos + stride;
+        }
+        return Vertices;
+    }
+
+	GLTFParseResult ParseToStaticMeshes(tinygltf::Model &model)
+    {
+        GLTFParseResult Result;
+        std::vector<std::shared_ptr<UStaticMesh>> &StaticMeshes = Result.StaticMeshes;
+        std::vector<std::shared_ptr<FMaterial>> &Materials = Result.Materials;
+        std::vector<std::shared_ptr<FTexture>> &Textures = Result.Textures;
+        TUniformBufferRef<FCesium3DTilesMaterialBlock> &UniformBuffer = Result.UniformBuffer; 
+        ParseToMaterials(model, Materials, Textures, UniformBuffer);
+        for (auto &gltf_mesh : model.meshes)
+        {
+            std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
+            std::shared_ptr<FStaticMeshLODResources> Resource = std::make_shared<FStaticMeshLODResources>();
+            for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
+            {
+                tinygltf::Primitive &gltf_prim = gltf_mesh.primitives[prim_index];
+                FStaticVertexFactory::FDataType Data;
+                std::unique_ptr<FStaticMeshSection> Section = std::make_unique<FStaticMeshSection>();
+                
+                {   // Material
+                    if (gltf_prim.material != -1)
                     {
-                        Tile->Content.B3dm.load_glb(Tile->Content.URI);
-                        tinygltf::TinyGLTF Loader;
-                        std::string err;
-                        std::string warn;
-                        Loader.LoadBinaryFromMemory(result.model.get(), &err, &warn, Tile->Content.B3dm.glb.data(), Tile->Content.B3dm.glb.size());
-                        if (err != "")
-                            std::cout << err;
+                        Section->MaterialIndex = StaticMesh->MaterialSlots.size();
+                        StaticMesh->MaterialSlots.push_back(Materials[gltf_prim.material].get());
                     }
-                    return result;
+                }
+
+                {   // Index
+                    tinygltf::Accessor &indices_accessor = model.accessors[gltf_prim.indices];
+                    tinygltf::BufferView &indices_bufferview = model.bufferViews[indices_accessor.bufferView];
+                    tinygltf::Buffer &indices_buffer = model.buffers[indices_bufferview.buffer];
+                    uint8 *pos = indices_buffer.data.data() + indices_bufferview.byteOffset + indices_accessor.byteOffset;
+
+                    if (indices_accessor.type == TINYGLTF_TYPE_SCALAR)
+                    {
+                        if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                        {
+                            Section->IndexBuffer.Init(BufferToVector<uint8>(pos, indices_accessor.count, indices_bufferview.byteStride));
+                        }
+                        else if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) 
+                        {
+                            Section->IndexBuffer.Init(BufferToVector<uint16>(pos, indices_accessor.count, indices_bufferview.byteStride));
+                        }
+                        else if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) 
+                        {
+                            Section->IndexBuffer.Init(BufferToVector<uint32>(pos, indices_accessor.count, indices_bufferview.byteStride));
+                        }
+                    }
+                }
+
+                bool HaveTexCoords = false;
+                {   // Vertex
+                    for (auto &[attr_name, attr_index] : gltf_prim.attributes)
+                    {
+                        tinygltf::Accessor &attr_accessor = model.accessors[attr_index];
+                        tinygltf::BufferView &attr_bufferview = model.bufferViews[attr_accessor.bufferView];
+                        tinygltf::Buffer &attr_buffer = model.buffers[attr_bufferview.buffer];
+                        std::regex re("TEXCOORD_([0-9]+)");
+                        std::smatch match;
+                        if (attr_name == "POSITION")
+                        {
+                            if (attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
+                                Section->VertexBuffers.Positions.Init(BufferToVector<glm::vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Positions.BindToVertexFactoryData(Data.PositionComponent);
+                                StaticMesh->LocalBoundingBox.Min = vec3(attr_accessor.minValues[0], attr_accessor.minValues[1], attr_accessor.minValues[2]);
+                                StaticMesh->LocalBoundingBox.Max = vec3(attr_accessor.maxValues[0], attr_accessor.maxValues[1], attr_accessor.maxValues[2]);
+                            }
+                        }
+                        else if (attr_name == "NORMAL")
+                        {
+                            if (attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
+                                Section->VertexBuffers.Normals.Init(BufferToVector<glm::vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Normals.BindToVertexFactoryData(Data.NormalComponent);
+                            }
+                        }
+                        else if (attr_name == "TANGENT")
+                        {
+                            if (attr_accessor.type == TINYGLTF_TYPE_VEC4 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
+                                Section->VertexBuffers.Tangents.Init(BufferToVector<glm::vec4>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Tangents.BindToVertexFactoryData(Data.TangentComponent);
+                            }
+                        }
+                        else if (std::regex_match(attr_name, match, re))
+                        {
+                            int texcoord_index = std::stoi(match[1].str());
+                            if (texcoord_index < 0 || texcoord_index >= MAX_STATIC_TEXCOORDS)
+                            {
+                                NILOU_LOG(Error, "Invalid texcoord name: " + attr_name);
+                                continue;
+                            }
+                            if (attr_accessor.type == TINYGLTF_TYPE_VEC2 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                HaveTexCoords = true;
+                                uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
+                                Section->VertexBuffers.TexCoords[texcoord_index].Init(BufferToVector<glm::vec2>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.TexCoords[texcoord_index].BindToVertexFactoryData(Data.TexCoordComponent[texcoord_index]);
+                            }
+                        }
+                        else 
+                        {
+                            std::cout << "[ERROR] Attribute not supported: " << attr_name << std::endl;
+                        }
+                    }
+                }
+                Section->VertexFactory.SetData(Data);
+                Resource->Sections.push_back(std::move(Section));
+
+            }
+            StaticMeshes.push_back(StaticMesh);
+            StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
+            StaticMesh->RenderData->LODResources.push_back(Resource);
+        }
+        return Result;
+    }
+
+    void UCesium3DTilesetComponent::LoadContent(Cesium3DTile *Tile)
+    {
+        auto LoadFunc = [this, Tile]() {
+                    if (!Tile->Content.B3dm.header_loaded())
+                        return;
+                    std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
+                    if (!lock.owns_lock())
+                        return;
+                    tinygltf::Model model;
+                    Tile->LoadingState = ETileLoadingState::Loading;
+                    Tile->Content.B3dm.load_glb(Tile->Content.URI);
+                    tinygltf::TinyGLTF Loader;
+                    std::string err;
+                    std::string warn;
+                    Loader.LoadBinaryFromMemory(&model, &err, &warn, Tile->Content.B3dm.glb.data(), Tile->Content.B3dm.glb.size());
+                    auto Result = ParseToStaticMeshes(model);
+                    std::atomic<bool> RHIInitialized = false;
+                    std::mutex rhi_mutex;
+                    std::unique_lock<std::mutex> rhi_lock(rhi_mutex);
+                    std::condition_variable cv;
+                    ENQUEUE_RENDER_COMMAND(LoadContent)(
+                        [&Result, this, &RHIInitialized, &cv](FDynamicRHI*) {
+                            for (int i = 0; i < Result.Textures.size(); i++)
+                            {
+                                Result.Textures[i]->InitRHI();
+                            }
+                            for (int i = 0; i < Result.StaticMeshes.size(); i++)
+                            {
+                                Result.StaticMeshes[i]->RenderData->InitResources();
+                            }
+                            Result.UniformBuffer->InitRHI();
+                            RHIInitialized = true;
+                            cv.notify_all();
+                        });
+                    if (!RHIInitialized)
+                    {
+                        cv.wait(rhi_lock, [&RHIInitialized](){ return RHIInitialized.load(); });
+                    }
+                    Tile->Content.Gltf = Result;
+                    Tile->LoadingState = ETileLoadingState::Loaded;
                 };
-        std::queue<TileMainThreadTask> &TaskQueue = MainThreadTaskQueue;
-        std::mutex &mutex = this->mutex;
-        pool.push_task([&mutex, LoadFunc, Tile, &TaskQueue, MainThreadFunc]() {
-            TileMainThreadTask ThreadTask;
-            ThreadTask.Result = LoadFunc(Tile);
-            ThreadTask.Func = MainThreadFunc;
-            std::lock_guard<std::mutex> lock(mutex);
-            TaskQueue.push(ThreadTask);
-        });
+        pool.push_task(LoadFunc);
     }
 
     void UCesium3DTilesetComponent::LoadTiles()
     {
         for (Cesium3DTile *Tile : LoadQueue)
         {
-            LoadContent(Tile, [this](TileLoadingResult Result) { 
-                if (Result.model->meshes.size() != 0)
-                {
-                    Result.Tile->Content.Gltf = GameStatics::ParseToStaticMeshes(*Result.model);
-                    for (std::shared_ptr<FMaterial> Material : Result.Tile->Content.Gltf.Materials) {
-                        Material->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
-                    }
-                    Result.Tile->LoadingState = ETileLoadingState::Loaded;
-                    TilesToRenderThisFrame.push_back(Result.Tile);
-                }
-            });
+            LoadContent(Tile);
         }
         LoadQueue.clear();
     }
@@ -186,16 +418,18 @@ namespace nilou {
     {
         for (Cesium3DTile *Tile : UnloadQueue)
         {
-            if (Tile->LoadingState != ETileLoadingState::Loaded)
-                continue;
-            Tile->LoadingState = ETileLoadingState::Unloading;
-            Tile->Content.B3dm.reset_glb();
             ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_UnloadTiles)(
-                [Tile](FDynamicRHI*) 
+                [this, Tile](FDynamicRHI*) 
                 {
+                    std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
+                    if (!lock.owns_lock())
+                        return;
+                    Tile->LoadingState = ETileLoadingState::Unloading;
+                    Tile->Content.B3dm.reset_glb();
                     Tile->Content.Gltf.Materials.clear();
                     Tile->Content.Gltf.Textures.clear();
                     Tile->Content.Gltf.StaticMeshes.clear();
+                    Tile->Content.Gltf.UniformBuffer = nullptr;
                     Tile->LoadingState = ETileLoadingState::Unloaded;
                 });
         }
@@ -204,7 +438,7 @@ namespace nilou {
 
     void UCesium3DTilesetComponent::UpdateInternal(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
     {
-        bool bTileCulled = FrustumCull(Tile, ViewStates);
+        bool bTileCulled = bEnableFrustumCulling && FrustumCull(Tile, ViewStates);
 
         if (!bTileCulled)
         {
@@ -280,26 +514,14 @@ namespace nilou {
     void UCesium3DTilesetComponent::AddTileToUnloadQueue(Cesium3DTile *Tile)
     {
         if (Tile->LoadingState == ETileLoadingState::Loaded)
-        {
             UnloadQueue.push_back(Tile);
-        }
     }
 
     void UCesium3DTilesetComponent::AddTileToRenderQueue(Cesium3DTile *Tile)
     {
         if (Tile->LoadingState == ETileLoadingState::Unloaded)
-        {
             LoadQueue.push_back(Tile);
-        }
-        else 
-        {
-            TilesToRenderThisFrame.push_back(Tile);
-        }
-    }
-
-    bool isVisibleFromCamera(const FViewFrustum &frustum, FOrientedBoundingBox)
-    {
-        
+        TilesToRenderThisFrame.push_back(Tile);
     }
 
     bool UCesium3DTilesetComponent::FrustumCull(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
@@ -357,12 +579,19 @@ namespace nilou {
             BuildCuboidVerts(2, 2, 2, OutVerts, OutIndices);
             IndexBuffer.Init(OutIndices);
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-            BeginInitResource(&IndexBuffer);
+            ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_Constructor)(
+                [this](FDynamicRHI*) 
+                {
+                    BeginInitResource(&IndexBuffer);
+                });
+            PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
+            PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
         }
 
-        void SetRenderTiles(std::vector<Cesium3DTile *> Tiles)
+        void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)
         {
-            TilesToRenderThisFrame = Tiles;
+            std::unique_lock<std::mutex> lock(mutex);
+            TilesRenderingQueue.push(Tiles);
         }
 
         void SetEcefToAbs(const dmat4 &InEcefToAbs)
@@ -375,6 +604,45 @@ namespace nilou {
             this->bShowBoundingBox = InShowBoundingBox;
         }
 
+        void PreRenderCallBack(FDynamicRHI*)
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            TilesToRenderThisFrame = TilesRenderingQueue.front(); TilesRenderingQueue.pop();
+            lock.unlock();
+            for (auto iter = TilesToRenderThisFrame.begin(); iter != TilesToRenderThisFrame.end();)
+            {
+                Cesium3DTile *Tile = *iter;
+                bool locked = Tile->mutex.try_lock();
+                if (!locked)
+                {
+                    iter = TilesToRenderThisFrame.erase(iter);
+                }
+                else 
+                {
+                    iter++;
+                }
+            }
+        }
+
+        void PostRenderCallBack(FDynamicRHI*)
+        {
+            for (Cesium3DTile *Tile : TilesToRenderThisFrame)
+            {
+                Tile->mutex.unlock();
+            }
+        }
+
+        virtual void DestroyRenderThreadResources() override
+        {
+            GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
+            GetAppication()->GetPostRenderDelegate().Remove(PostRenderHandle);
+            for (Cesium3DTile *Tile : TilesToRenderThisFrame)
+            {
+                Tile->mutex.unlock();
+            }
+            FPrimitiveSceneProxy::DestroyRenderThreadResources();
+        }
+
         virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -383,8 +651,6 @@ namespace nilou {
                 {
                     for (Cesium3DTile *Tile : TilesToRenderThisFrame)
                     {
-                        if (Tile->LoadingState != ETileLoadingState::Loaded)
-                            continue;
                         dmat4 AxisTransform = dmat4(1);
                         if (Tile->TileGltfUpAxis == ETileGltfUpAxis::Y)
                             AxisTransform = Y_UP_TO_Z_UP;
@@ -398,11 +664,10 @@ namespace nilou {
                             dvec4(Tile->RtcCenter, 1)
                         );
                         Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
-                        ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_GetDynamicMeshElements)(
-                            [Tile](FDynamicRHI *DynamicRHI) 
-                            {
-                                Tile->TransformRHI->UpdateUniformBuffer();
-                            });
+                        if (!Tile->TransformRHI->IsInitialized())
+                            Tile->TransformRHI->InitRHI();
+                        else
+                            Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
                         {
                             const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
@@ -422,17 +687,13 @@ namespace nilou {
                                     if (TileBoundingBoxUBO.find(Tile) == TileBoundingBoxUBO.end())
                                     {
                                         TileBoundingBoxUBO[Tile] = CreateUniformBuffer<FPrimitiveShaderParameters>();
-                                        BeginInitResource(TileBoundingBoxUBO[Tile].get());
+                                        TileBoundingBoxUBO[Tile]->InitRHI();
                                     }
                                     dmat4 translation;
                                     translation = glm::translate(translation, Tile->BoundingVolume.Center);
                                     TUniformBufferRef<FPrimitiveShaderParameters> UBO = TileBoundingBoxUBO[Tile];
                                     UBO->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * translation * dmat4(Tile->BoundingVolume.HalfAxes);
-                                    ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_GetDynamicMeshElements)(
-                                        [UBO](FDynamicRHI *DynamicRHI) 
-                                        {
-                                            UBO->UpdateUniformBuffer();
-                                        });
+                                    UBO->UpdateUniformBuffer();
                                     FMeshBatch DebugBoundingBoxMesh;
                                     DebugBoundingBoxMesh.CastShadow = Section.bCastShadow;
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
@@ -450,8 +711,8 @@ namespace nilou {
         }
 
     protected:
-
-        std::vector<Cesium3DTile *> TilesToRenderThisFrame;
+        vector<Cesium3DTile *> TilesToRenderThisFrame;
+        std::queue<std::vector<Cesium3DTile *>> TilesRenderingQueue;
 
         dmat4 EcefToAbs;
 
@@ -461,6 +722,11 @@ namespace nilou {
         FStaticVertexFactory VertexFactory;
         std::unordered_map<Cesium3DTile *, TUniformBufferRef<FPrimitiveShaderParameters>> TileBoundingBoxUBO;
 
+    private:
+
+        std::mutex mutex;
+        FDelegateHandle PreRenderHandle;
+        FDelegateHandle PostRenderHandle;
 
     };
 
@@ -524,7 +790,7 @@ namespace nilou {
         if (Georeference)
             proxy->SetEcefToAbs(Georeference->GetEcefToAbs());
         if (TilesetForSelection)
-            proxy->SetRenderTiles(TilesToRenderThisFrame);
+            proxy->AddRenderingTiles(TilesToRenderThisFrame);
         UPrimitiveComponent::SendRenderDynamicData();
     }
 

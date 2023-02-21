@@ -49,6 +49,7 @@ namespace nilou {
     class Cesium3DTile
     {
     public:
+        // Cesium3DTile() : lock(mutex, std::defer_lock) {}
         // friend class LRUCache;
         friend class UCesium3DTilesetComponent;
         struct TileContent
@@ -67,6 +68,8 @@ namespace nilou {
         ETileLoadingState LoadingState;
         ETileGltfUpAxis TileGltfUpAxis = ETileGltfUpAxis::Y;
         glm::dvec3 RtcCenter;
+        std::mutex mutex;
+        // std::unique_lock<std::mutex> lock;
 
         static std::shared_ptr<Cesium3DTile> BuildTile(
             std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform, ETileGltfUpAxis TileGltfUpAxis);
@@ -181,11 +184,9 @@ namespace nilou {
 
         void Update(Cesium3DTilesetSelection::Cesium3DTileset *Tileset, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
 
-        void LoadContent( 
-            Cesium3DTilesetSelection::Cesium3DTile *Tile, 
-            std::function<void(Cesium3DTilesetSelection::TileLoadingResult)> MainThreadFunc);
+        void LoadContent(Cesium3DTilesetSelection::Cesium3DTile *Tile);
 
-        void DispatchMainThreadTask();
+        // void DispatchMainThreadTask();
 
         void UpdateInternal(Cesium3DTilesetSelection::Cesium3DTile *Tile, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
 
@@ -214,8 +215,6 @@ namespace nilou {
         BS::thread_pool pool;
 
         std::queue<Cesium3DTilesetSelection::TileMainThreadTask> MainThreadTaskQueue;
-
-        std::mutex mutex;
     };
 
 

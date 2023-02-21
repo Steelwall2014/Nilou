@@ -102,9 +102,14 @@ namespace nilou {
         , Collector(&PerViewMeshBatches)
     {
         // PositionVertexBuffer.InitRHI();
-        BeginInitResource(&PositionVertexBuffer);
-        // UVVertexBuffer.InitRHI();
-        BeginInitResource(&UVVertexBuffer);
+        
+        ENQUEUE_RENDER_COMMAND(FDefferedShadingSceneRenderer_Constructor)(
+            [this](FDynamicRHI*) 
+            {
+                BeginInitResource(&PositionVertexBuffer);
+                // UVVertexBuffer.InitRHI();
+                BeginInitResource(&UVVertexBuffer);
+            });
                     
         PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
         PositionVertexInput.Location = 0;
@@ -203,6 +208,8 @@ namespace nilou {
         RenderViewElementPass(RHICmdList);
 
         RenderToScreen(RHICmdList);
+
+        GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList);
     }
 
     // void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)

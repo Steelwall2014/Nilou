@@ -57,7 +57,6 @@ namespace nilou {
             FFrameSynchronizer::ShouldRenderingThreadLoopRun = true;
             FFrameSynchronizer::cv.notify_all();
         }
-        std::cout << "Main frame: " << FFrameSynchronizer::MainThreadFrameCount << std::endl;
         if (FFrameSynchronizer::MainThreadFrameCount == FFrameSynchronizer::RenderingThreadFrameCount+1 || m_bQuit)
         {
             FFrameSynchronizer::ShouldRenderingThreadWait = false;
@@ -74,7 +73,6 @@ namespace nilou {
     void BaseApplication::Tick_RenderThread()
     {
         FFrameSynchronizer::RenderingThreadFrameCount++;
-        std::cout << "Render frame: " << FFrameSynchronizer::RenderingThreadFrameCount << std::endl;
         if (FFrameSynchronizer::RenderingThreadFrameCount == FFrameSynchronizer::MainThreadFrameCount-1 || m_bQuit)
         {
             FFrameSynchronizer::ShouldMainThreadWait = false;

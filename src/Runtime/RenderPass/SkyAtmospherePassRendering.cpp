@@ -41,7 +41,7 @@ namespace nilou {
                     
                     RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always, true, CF_Equal>::CreateRHI();
                     RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::CreateRHI();
+                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
                     RHICmdList->RHISetDepthStencilState(DepthStencilState.get(), 255);
@@ -67,6 +67,12 @@ namespace nilou {
                             PSO, EPipelineStage::PS_Pixel, 
                             "SingleScatteringMieLUT", 
                             FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderUniformBuffer(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "AtmosphereParametersBlock", 
+                            Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
                         RHIGetError();
 
                         RHICmdList->RHISetShaderUniformBuffer(
