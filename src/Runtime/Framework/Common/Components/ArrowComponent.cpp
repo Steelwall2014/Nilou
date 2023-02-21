@@ -42,12 +42,7 @@ namespace nilou {
 
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
 
-            ENQUEUE_RENDER_COMMAND(FArrowSceneProxy_Constructor)(
-                [this](FDynamicRHI*) 
-                {
-                    BeginInitResource(&IndexBuffer);
-                }
-            );
+            BeginInitResource(&IndexBuffer);
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override

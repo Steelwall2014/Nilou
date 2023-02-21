@@ -47,10 +47,12 @@ namespace nilou {
     {
         FScene *Scene = this;
 
-        {
-			Scene->SkyAtmosphereStack.emplace_back(SkyAtmosphereSceneProxy);
-            Scene->SkyAtmosphere = SkyAtmosphereSceneProxy;
-        }
+        ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
+            [Scene, SkyAtmosphereSceneProxy](FDynamicRHI*)
+            {
+                Scene->SkyAtmosphereStack.emplace_back(SkyAtmosphereSceneProxy);
+                Scene->SkyAtmosphere = SkyAtmosphereSceneProxy;
+            });
 
     }
 
@@ -58,15 +60,15 @@ namespace nilou {
     {
         FScene *Scene = this;
 
-        {
-            safe_erase(Scene->SkyAtmosphereStack, SkyAtmosphereSceneProxy);
-            // auto iter = std::find(Scene->SkyAtmosphereStack.begin(), Scene->SkyAtmosphereStack.end(), SkyAtmosphereSceneProxy);
-            // Scene->SkyAtmosphereStack.erase(iter);
-            if (!SkyAtmosphereStack.empty())
-                Scene->SkyAtmosphere = SkyAtmosphereStack.back().get();
-            else
-                Scene->SkyAtmosphere = nullptr;
-        }
+        ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
+            [Scene, SkyAtmosphereSceneProxy](FDynamicRHI*)
+            {
+                safe_erase(Scene->SkyAtmosphereStack, SkyAtmosphereSceneProxy);
+                if (!Scene->SkyAtmosphereStack.empty())
+                    Scene->SkyAtmosphere = Scene->SkyAtmosphereStack.back().get();
+                else
+                    Scene->SkyAtmosphere = nullptr;
+            });
 
     }
 
@@ -116,10 +118,6 @@ namespace nilou {
         FLightSceneInfo *LightSceneInfo = new FLightSceneInfo(LightSceneProxy, InLight, this);
         LightSceneProxy->LightSceneInfo = LightSceneInfo;
 
-        // The DirectionalLightQueue will be used in atmosphere rendering to obtain the first added directional light
-        // if (LightSceneProxy->LightType == ELightType::LT_Directional)
-        //     DirectionalLightQueue.push_back(LightSceneInfo);
-
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddLight)(
             [Scene, LightSceneInfo] (FDynamicRHI *DynamicRHI) 
@@ -137,9 +135,6 @@ namespace nilou {
         {
             FLightSceneInfo* LightSceneInfo = LightSceneProxy->GetLightSceneInfo();
             InLight->SceneProxy = nullptr;
-
-            // if (LightSceneProxy->LightType == ELightType::LT_Directional)
-            //     DirectionalLightQueue.remove(LightSceneInfo);
             
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(RemoveLight)(
@@ -220,30 +215,29 @@ namespace nilou {
     void FScene::AddViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
         AddedViewSceneInfos.emplace(InCameraInfo);
-        Renderer->AddCamera(InCameraInfo);
+        GetAddViewDelegate().Broadcast(InCameraInfo);
     }
 
     void FScene::RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo)
     {
         safe_erase(AddedViewSceneInfos, InCameraInfo);
-        Renderer->RemoveCamera(InCameraInfo);
+        GetRemoveViewDelegate().Broadcast(InCameraInfo);
     }
 
     void FScene::UpdateViewInfos()
     {
         for (auto &&CameraInfo : AddedViewSceneInfos)
         {
-            // FViewSceneInfo *CameraInfo = AddedViewSceneInfos[ViewIndex].get();
             if (CameraInfo->bNeedsUniformBufferUpdate)
             {
                 CameraInfo->SceneProxy->UpdateUniformBuffer();
                 CameraInfo->SetNeedsUniformBufferUpdate(false);
             }
-            // if (CameraInfo->bNeedsFramebufferUpdate)
-            // {
-            //     CameraInfo->FrameBuffer = CreateSceneTextures(CameraInfo->SceneProxy->ScreenResolution, CameraInfo->SceneTextures);
-            //     CameraInfo->SetNeedsFramebufferUpdate(false);
-            // }
+            if (CameraInfo->bNeedsFramebufferUpdate)
+            {
+                GetResizeViewDelegate().Broadcast(CameraInfo.get());
+                CameraInfo->SetNeedsFramebufferUpdate(false);
+            }
         }
     }
 

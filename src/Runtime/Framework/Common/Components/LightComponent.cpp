@@ -90,12 +90,9 @@ namespace nilou {
         SetCastShadow(InComponent->bCastShadow);
         SetLightType(InComponent->LightType);
         SetShadowMapResolution(InComponent->GetShadowMapResolution());
-        // LightUniformBufferRHI->InitRHI();
-        ENQUEUE_RENDER_COMMAND(FLightSceneProxy_Constructor)(
-            [this](FDynamicRHI*) 
-            {
-                BeginInitResource(LightUniformBufferRHI.get());
-            });
+        BeginInitResource(LightUniformBufferRHI.get());
+        if (LightSceneInfo)
+            LightSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
     void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)

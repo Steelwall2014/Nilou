@@ -101,15 +101,8 @@ namespace nilou {
         : Scene(Scene)
         , Collector(&PerViewMeshBatches)
     {
-        // PositionVertexBuffer.InitRHI();
-        
-        ENQUEUE_RENDER_COMMAND(FDefferedShadingSceneRenderer_Constructor)(
-            [this](FDynamicRHI*) 
-            {
-                BeginInitResource(&PositionVertexBuffer);
-                // UVVertexBuffer.InitRHI();
-                BeginInitResource(&UVVertexBuffer);
-            });
+        BeginInitResource(&PositionVertexBuffer);
+        BeginInitResource(&UVVertexBuffer);
                     
         PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
         PositionVertexInput.Location = 0;
@@ -122,9 +115,13 @@ namespace nilou {
         UVVertexInput.Offset = 0;
         UVVertexInput.Stride = sizeof(glm::vec2);
         UVVertexInput.Type = EVertexElementType::VET_Float2;
+
+        Scene->GetAddViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnAddView);
+        Scene->GetRemoveViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnRemoveView);
+        Scene->GetResizeViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnResizeView);
     }
 
-    void FDefferedShadingSceneRenderer::AddCamera(FViewSceneInfo *ViewSceneInfo)
+    void FDefferedShadingSceneRenderer::OnAddView(FViewSceneInfo *ViewSceneInfo)
     {
         FSceneTextures SceneTextures;
         CreateSceneTextures(ViewSceneInfo->GetResolution(), SceneTextures);
@@ -132,7 +129,7 @@ namespace nilou {
         PerViewMeshBatches.push_back(std::vector<FMeshBatch>());
     }
 
-    void FDefferedShadingSceneRenderer::RemoveCamera(FViewSceneInfo *ViewSceneInfo)
+    void FDefferedShadingSceneRenderer::OnRemoveView(FViewSceneInfo *ViewSceneInfo)
     {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
@@ -145,17 +142,22 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    void FDefferedShadingSceneRenderer::OnResizeView(FViewSceneInfo *ViewSceneInfo)
     {
-        // TODO: 有时间还是把下面这个东西放到FScene里吧，然后FScene来调Renderer的一个方法来更新framebuffer
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *ViewSceneInfo = Views[ViewIndex].ViewSceneInfo;
-            if (ViewSceneInfo->bNeedsFramebufferUpdate)
+            if (Views[ViewIndex].ViewSceneInfo = ViewSceneInfo)
             {
                 CreateSceneTextures(ViewSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
-                ViewSceneInfo->SetNeedsFramebufferUpdate(false);
+                break;
             }
+        }
+    }
+
+    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    {
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
             PerViewMeshBatches[ViewIndex].clear();
             Views[ViewIndex].MeshDrawCommands.Clear();
         }

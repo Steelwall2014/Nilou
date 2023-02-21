@@ -18,16 +18,10 @@ namespace nilou {
             std::vector<FDynamicMeshVertex> OutVerts;
             std::vector<uint32> OutIndices;
             GetSphereMesh(vec3(0), FRotator::ZeroRotator, vec3(SphereRadius), 30, 30, OutVerts, OutIndices);
-
-            {            
-                IndexBuffer.Init(OutIndices);
-                VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-                ENQUEUE_RENDER_COMMAND(FSphereSceneProxy_Constructor)(
-                    [this](FDynamicRHI*) 
-                    {
-                        BeginInitResource(&IndexBuffer);
-                    });
-            }
+            IndexBuffer.Init(OutIndices);
+            VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
+            BeginInitResource(&IndexBuffer);
+            
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override

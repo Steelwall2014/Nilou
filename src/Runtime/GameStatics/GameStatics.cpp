@@ -146,11 +146,7 @@ namespace nilou {
 
             std::shared_ptr<FTexture> Texture = std::make_shared<FTexture>(
                 std::to_string(TextureIndex) + "_" + gltf_texture.name, NumMips, image);
-            ENQUEUE_RENDER_COMMAND(FSphereSceneProxy_Constructor)(
-                [Texture](FDynamicRHI*) 
-                {
-                    BeginInitResource(Texture.get());
-                });
+            BeginInitResource(Texture.get());
             
             RHITextureParams TextureParams;
             if (gltf_texture.sampler != -1)

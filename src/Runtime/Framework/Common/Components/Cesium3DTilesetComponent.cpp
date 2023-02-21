@@ -385,13 +385,13 @@ namespace nilou {
                         [&Result, this, &RHIInitialized, &cv](FDynamicRHI*) {
                             for (int i = 0; i < Result.Textures.size(); i++)
                             {
-                                Result.Textures[i]->InitRHI();
+                                BeginInitResource(Result.Textures[i].get());
                             }
                             for (int i = 0; i < Result.StaticMeshes.size(); i++)
                             {
                                 Result.StaticMeshes[i]->RenderData->InitResources();
                             }
-                            Result.UniformBuffer->InitRHI();
+                            BeginInitResource(Result.UniformBuffer.get());
                             RHIInitialized = true;
                             cv.notify_all();
                         });
@@ -579,11 +579,7 @@ namespace nilou {
             BuildCuboidVerts(2, 2, 2, OutVerts, OutIndices);
             IndexBuffer.Init(OutIndices);
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-            ENQUEUE_RENDER_COMMAND(FCesium3DTilesetSceneProxy_Constructor)(
-                [this](FDynamicRHI*) 
-                {
-                    BeginInitResource(&IndexBuffer);
-                });
+            BeginInitResource(&IndexBuffer);
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
             PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
         }
@@ -665,7 +661,7 @@ namespace nilou {
                         );
                         Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
                         if (!Tile->TransformRHI->IsInitialized())
-                            Tile->TransformRHI->InitRHI();
+                            BeginInitResource(Tile->TransformRHI.get());
                         else
                             Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
@@ -687,7 +683,7 @@ namespace nilou {
                                     if (TileBoundingBoxUBO.find(Tile) == TileBoundingBoxUBO.end())
                                     {
                                         TileBoundingBoxUBO[Tile] = CreateUniformBuffer<FPrimitiveShaderParameters>();
-                                        TileBoundingBoxUBO[Tile]->InitRHI();
+                                        BeginInitResource(TileBoundingBoxUBO[Tile].get());
                                     }
                                     dmat4 translation;
                                     translation = glm::translate(translation, Tile->BoundingVolume.Center);

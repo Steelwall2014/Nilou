@@ -30,16 +30,12 @@ namespace nilou {
         }
 
         {
-            ENQUEUE_RENDER_COMMAND(FStaticMeshVertexBuffers_InitFromDynamicVertex)(
-                [this](FDynamicRHI*) 
-                {
-                    BeginInitResource(&Positions);
-                    BeginInitResource(&Normals);
-                    BeginInitResource(&Tangents);
-                    for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
-                        BeginInitResource(&TexCoords[i]);
-                    BeginInitResource(&Colors);
-                });
+            BeginInitResource(&Positions);
+            BeginInitResource(&Normals);
+            BeginInitResource(&Tangents);
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+                BeginInitResource(&TexCoords[i]);
+            BeginInitResource(&Colors);
             
             FStaticVertexFactory::FDataType Data;
             Positions.BindToVertexFactoryData(Data.PositionComponent);
@@ -150,28 +146,24 @@ namespace nilou {
     {
         for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
-            ENQUEUE_RENDER_COMMAND(FStaticMeshVertexBuffers_InitResources)(
-                [this, SectionIndex](FDynamicRHI*) 
-                {
-                    FStaticMeshSection &Section = *Sections[SectionIndex].get();
-                    if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                        BeginInitResource(&Section.VertexBuffers.Colors);
-                    if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
-                        BeginInitResource(&Section.VertexBuffers.Positions);
-                    if (Section.VertexBuffers.Normals.GetVertexData() != nullptr)
-                        BeginInitResource(&Section.VertexBuffers.Normals);
-                    if (Section.VertexBuffers.Tangents.GetVertexData() != nullptr)
-                        BeginInitResource(&Section.VertexBuffers.Tangents);
-                    if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                        BeginInitResource(&Section.VertexBuffers.Colors);
-                    for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
-                    {
-                        if (Section.VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
-                            BeginInitResource(&Section.VertexBuffers.TexCoords[i]);
-                    }
-                    if (Section.IndexBuffer.GetIndiceData() != nullptr)
-                        BeginInitResource(&Section.IndexBuffer);
-                });
+            FStaticMeshSection &Section = *Sections[SectionIndex].get();
+            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginInitResource(&Section.VertexBuffers.Colors);
+            if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
+                BeginInitResource(&Section.VertexBuffers.Positions);
+            if (Section.VertexBuffers.Normals.GetVertexData() != nullptr)
+                BeginInitResource(&Section.VertexBuffers.Normals);
+            if (Section.VertexBuffers.Tangents.GetVertexData() != nullptr)
+                BeginInitResource(&Section.VertexBuffers.Tangents);
+            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginInitResource(&Section.VertexBuffers.Colors);
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+            {
+                if (Section.VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
+                    BeginInitResource(&Section.VertexBuffers.TexCoords[i]);
+            }
+            if (Section.IndexBuffer.GetIndiceData() != nullptr)
+                BeginInitResource(&Section.IndexBuffer);
         }
         bIsInitialized = true;
     }

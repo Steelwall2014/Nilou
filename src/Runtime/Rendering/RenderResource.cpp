@@ -43,8 +43,6 @@ namespace nilou {
 
     void BeginInitResource(FRenderResource* Resource)
     {
-        if (Resource == nullptr)
-            std::cout << 1;
         ENQUEUE_RENDER_COMMAND(BeginInitResource)(
            [Resource](FDynamicRHI *DynamicRHI)
            {
@@ -54,8 +52,6 @@ namespace nilou {
 
     void BeginReleaseResource(FRenderResource* Resource)
     {
-        if (Resource == nullptr)
-            std::cout << 1;
         ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
            [Resource](FDynamicRHI *DynamicRHI)
            {

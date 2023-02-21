@@ -121,7 +121,7 @@ namespace nilou {
 		FROM_COMPONENNT_TO_PROXY(Mu_s_Min)
 
         ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](FDynamicRHI *DynamicRHI) {
-            AtmosphereParameters->InitRHI();
+            BeginInitResource(AtmosphereParameters.get());
 
             ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
 
@@ -148,7 +148,7 @@ namespace nilou {
             ScatteringDensityLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
                 "SkyAtmosphere ScatteringDensityLUT", EPixelFormat::PF_R32G32B32A32F, 1,
                 SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
-            ScatteringOrderParameter->InitRHI();
+            BeginInitResource(ScatteringOrderParameter.get());
             DispatchPrecompute();
         });
     }

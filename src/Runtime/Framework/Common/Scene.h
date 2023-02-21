@@ -9,6 +9,7 @@
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
 #include "Common/BatchedLine.h"
+#include "Common/Delegate.h"
 #include "ViewElementPDI.h"
 // #include "SceneNode.h"
 // #include "SceneObject.h"
@@ -33,10 +34,6 @@ namespace nilou {
         {
             bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
         }
-
-        // FUniformBuffer *GetUniformBuffer() { return PrimitiveShaderUniformBuffer.get(); }
-    
-        // void UpdateUniformBuffer() { PrimitiveShaderUniformBuffer->UpdateUniformBuffer(); }
 
         FScene *Scene;
         UPrimitiveComponent *Primitive;
@@ -124,12 +121,9 @@ namespace nilou {
 
         void UpdateRenderInfos();
 
-
-        // void UpdatePrimitiveTransform(UPrimitiveComponent *InPrimitive);
-
-        // void UpdateAllPrimitiveSceneInfos();
-
-        // inline FLightSceneInfo *GetFirstDirectionalLight() const { return DirectionalLightQueue.empty() ? nullptr : DirectionalLightQueue.front(); }
+        TMulticastDelegate<FViewSceneInfo *> &GetAddViewDelegate() { return SceneAddViewDelegate; }
+        TMulticastDelegate<FViewSceneInfo *> &GetRemoveViewDelegate() { return SceneRemoveViewDelegate; }
+        TMulticastDelegate<FViewSceneInfo *> &GetResizeViewDelegate() { return SceneResizeViewortDelegate; }
 
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
@@ -140,9 +134,6 @@ namespace nilou {
 
     protected:
 
-        // std::list<FLightSceneInfo *> DirectionalLightQueue;
-
-        /** 下面几个在ue里是RenderThread */
         void AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
         void RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
 
@@ -155,5 +146,9 @@ namespace nilou {
         void UpdateViewInfos();
         void UpdatePrimitiveInfos();
         void UpdateLightInfos();
+
+        TMulticastDelegate<FViewSceneInfo *> SceneAddViewDelegate;
+        TMulticastDelegate<FViewSceneInfo *> SceneRemoveViewDelegate;
+        TMulticastDelegate<FViewSceneInfo *> SceneResizeViewortDelegate;
     };
 }

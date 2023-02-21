@@ -59,11 +59,7 @@ namespace nilou {
 
     void FPrimitiveSceneProxy::CreateRenderThreadResources()
     {
-        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_CreateRenderThreadResources)(
-            [this](FDynamicRHI*) 
-            {
-                BeginInitResource(PrimitiveUniformBuffer.get());
-            });
+        BeginInitResource(PrimitiveUniformBuffer.get());
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
     }

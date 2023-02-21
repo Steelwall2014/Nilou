@@ -68,8 +68,9 @@ namespace nilou {
 
         virtual void Render();
 
-        virtual void AddCamera(FViewSceneInfo *CameraInfo);
-        virtual void RemoveCamera(FViewSceneInfo *CameraInfo);
+        void OnAddView(FViewSceneInfo *CameraInfo);
+        void OnRemoveView(FViewSceneInfo *CameraInfo);
+        void OnResizeView(FViewSceneInfo *CameraInfo);
 
     private:
 
