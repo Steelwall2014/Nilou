@@ -26,18 +26,21 @@ namespace nilou {
     public:
         static void CompileGlobalShaders(FDynamicRHI *DynamicRHI);
 
-        static void CompileMaterialShader(class FMaterial *Material, FDynamicRHI *DynamicRHI);
+        static void CompileMaterialShader(class FMaterial *Material, 
+        FShaderParserResult &MaterialParsedResult,FDynamicRHI *DynamicRHI);
 
     private:
         static void FShaderCompiler::CompileVertexMaterialShader(
             FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
+            FShaderParserResult &MaterialParsedResult,
             const FVertexFactoryPermutationParameters &VertexFactoryParams,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
         static void CompilePixelMaterialShader(
             FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
+            FShaderParserResult &MaterialParsedResult,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FShaderPermutationParameters> &OutShaderMap);
         static void CompileGlobalShader(

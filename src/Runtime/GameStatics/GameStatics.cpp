@@ -90,7 +90,7 @@ namespace nilou {
         }
     }
 
-    size_t find_first_not_delim(const std::string &s, char delim, size_t pos)
+    static size_t find_first_not_delim(const std::string &s, char delim, size_t pos)
     {
         for (size_t i = pos; i < s.size(); i++)
             if (s[i] != delim)
@@ -112,7 +112,7 @@ namespace nilou {
     }
 
     template<class T>
-    std::vector<T> BufferToVector(uint8 *pos, int count, size_t stride)
+    static std::vector<T> BufferToVector(uint8 *pos, int count, size_t stride)
     {
         stride = stride == 0 ? sizeof(T) : stride;
         std::vector<T> Vertices;
@@ -125,7 +125,10 @@ namespace nilou {
         return Vertices;
     }
 
-    static void ParseToMaterials(tinygltf::Model &model, std::vector<std::shared_ptr<FMaterial>> &OutMaterials, std::vector<std::shared_ptr<FTexture>> &OutTextures)
+    static void ParseToMaterials(tinygltf::Model &model, 
+        std::vector<std::shared_ptr<UMaterialInstance>> &OutMaterials, 
+        std::vector<std::shared_ptr<UTexture>> &OutTextures,
+        std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>> &OutUniformBuffer)
     {
         OutMaterials.clear();
         OutTextures.clear();
@@ -144,9 +147,7 @@ namespace nilou {
 
             int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height));
 
-            std::shared_ptr<FTexture> Texture = std::make_shared<FTexture>(
-                std::to_string(TextureIndex) + "_" + gltf_texture.name, NumMips, image);
-            BeginInitResource(Texture.get());
+            std::unique_ptr<FTexture> Texture = std::make_unique<FTexture>(NumMips, image);
             
             RHITextureParams TextureParams;
             if (gltf_texture.sampler != -1)
@@ -161,127 +162,59 @@ namespace nilou {
                 TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
             Texture->SetSamplerParams(TextureParams);
-            OutTextures.push_back(Texture);
-            // FContentManager::GetContentManager().AddGlobalTexture(Texture->GetTextureName(), Texture);
+            
+            std::shared_ptr<UTexture> texture = std::make_shared<UTexture>(
+                std::to_string(TextureIndex) + "_" + gltf_texture.name, std::move(Texture));
+            OutTextures.push_back(texture);
         }
+
+        UMaterial *GLTFMaterial = FContentManager::GetContentManager().GetGlobalMaterial("GLTFMaterial");
+        if (GLTFMaterial == nullptr) return;
 
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
         {
             tinygltf::Material &gltf_material = model.materials[MaterialIndex];
-            FRasterizerStateInitializer RasterizerState;
+            std::shared_ptr<UMaterialInstance> Material = GLTFMaterial->CreateMaterialInstance();
             if (gltf_material.doubleSided)
-                RasterizerState.CullMode = CM_None;
-
-            std::shared_ptr<FMaterial> Material = std::make_shared<FMaterial>(
-                std::to_string(MaterialIndex) + "_" + gltf_material.name, RasterizerState, FDepthStencilStateInitializer(), FBlendStateInitializer());
-            // FContentManager::GetContentManager().AddGlobalMaterial(Material->GetMaterialName(), Material);
-
-            std::stringstream material_code;
-            material_code << "#include \"../include/BasePassCommon.glsl\"\n";
-
-            auto AccessTextures = [
-                &OutTextures, &material_code, 
-                &gltf_material, Material](int index, const std::string &sampler_name, const std::string &definition) {
+                Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
+            auto AccessTextures = 
+                [&OutTextures, Material](int index, const std::string &sampler_name) {
                 if (index != -1)
                 {
                     Material->SetParameterValue(sampler_name, OutTextures[index].get());
-                    material_code << "uniform sampler2D " << sampler_name << ";\n";
-                    material_code << "#define " << definition << " 1 \n";
                 }
             };
-            AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorMap", "HAS_BASECOLOR");
-            AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessMap", "HAS_METALLICROUGHNESS");
-            AccessTextures(gltf_material.emissiveTexture.index, "emissiveMap", "HAS_EMISSIVE");
-            // 因为occlusionMap在渲染中还没有用到，所以暂时先不处理
-            // AccessTextures(gltf_material.occlusionTexture.index, "occlusionMap", "HAS_OCCLUSION");
-            AccessTextures(gltf_material.normalTexture.index, "normalMap", "HAS_NORMAL");
-            
-            material_code << "#define _GLTF_METALLIC_FACTOR (" << std::to_string(gltf_material.pbrMetallicRoughness.metallicFactor) << ")\n";
-            material_code << "#define _GLTF_ROUGHNESS_FACTOR (" << std::to_string(gltf_material.pbrMetallicRoughness.roughnessFactor) << ")\n";
-            // material_code << "#define _GLTF_BASECOLOR_FACTOR_R (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[0]) << ")";
-            // material_code << "#define _GLTF_BASECOLOR_FACTOR_G (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[1]) << ")";
-            // material_code << "#define _GLTF_BASECOLOR_FACTOR_B (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[2]) << ")";
-            // material_code << "#define _GLTF_BASECOLOR_FACTOR_A (" << std::to_string(gltf_material.pbrMetallicRoughness.baseColorFactor[3]) << ")";
-
-            material_code << R"(
-                vec4 MaterialGetBaseColor(VS_Out vs_out)
-                {
-                #if HAS_BASECOLOR
-                    return texture(baseColorMap, vs_out.TexCoords);
-                #else
-                    return vec4(0, 0, 0, 1);
-                #endif
-                }
-
-                vec3 MaterialGetEmissive(VS_Out vs_out)
-                {
-                #if HAS_EMISSIVE
-                    return texture(emissiveMap, vs_out.TexCoords).rgb;
-                #else
-                    return vec3(0);
-                #endif
-                }
-
-                vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
-                {
-                #if HAS_NORMAL
-                    vec3 tangent_normal = texture(normalMap, vs_out.TexCoords).rgb;
-                    tangent_normal.y *= -1;     // glTF right-handed to Unreal left-handed
-                    tangent_normal = normalize(tangent_normal * 2.0f - 1.0f);
-                    return normalize(vs_out.TBN * tangent_normal);
-                #else
-                    return normalize(vs_out.TBN * vec3(0, 0, 1));
-                #endif
-                }
-
-                vec4 MaterialGetOcclusion(VS_Out vs_out)
-                {
-                #if HAS_OCCLUSION
-                    return texture(occlusionMap, vs_out.TexCoords);
-                #else
-                    return vec4(0, 0, 0, 0);
-                #endif
-                }
-
-                float MaterialGetRoughness(VS_Out vs_out)
-                {
-                #if HAS_METALLICROUGHNESS
-                    return texture(metallicRoughnessMap, vs_out.TexCoords).g;
-                #else
-                    return _GLTF_ROUGHNESS_FACTOR;
-                #endif
-                }
-
-                float MaterialGetMetallic(VS_Out vs_out)
-                {
-                #if HAS_METALLICROUGHNESS
-                    return texture(metallicRoughnessMap, vs_out.TexCoords).b;
-                #else
-                    return _GLTF_METALLIC_FACTOR;
-                #endif
-                }
-
-                vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
-                {
-                    return vec3(0);
-                }
-            )";
-            Material->UpdateMaterialCode(material_code.str());
+            AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture");
+            AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
+            AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
+            AccessTextures(gltf_material.normalTexture.index, "normalTexture");
+            OutUniformBuffer = std::make_shared<TUUniformBuffer<FGLTFMaterialBlock>>();
+            TUniformBuffer<FGLTFMaterialBlock> *OutUBOResource = OutUniformBuffer->GetResource();
+            OutUBOResource->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
+            OutUBOResource->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
+            OutUBOResource->Data.baseColorFactor.b = gltf_material.pbrMetallicRoughness.baseColorFactor[2];
+            OutUBOResource->Data.baseColorFactor.a = gltf_material.pbrMetallicRoughness.baseColorFactor[3];
+            OutUBOResource->Data.emissiveFactor.r = gltf_material.emissiveFactor[0];
+            OutUBOResource->Data.emissiveFactor.g = gltf_material.emissiveFactor[1];
+            OutUBOResource->Data.emissiveFactor.b = gltf_material.emissiveFactor[2];
+            OutUBOResource->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
+            OutUBOResource->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
             OutMaterials.push_back(Material);
+            Material->SetParameterValue("FGLTFMaterialBlock", OutUniformBuffer.get());
         }
     }
 
-	GLTFParseResult GameStatics::ParseToStaticMeshes(tinygltf::Model &model)
+	GLTFParseResult GameStatics::ParseToStaticMeshes(tinygltf::Model &model, bool need_init)
     {
         GLTFParseResult Result;
         std::vector<std::shared_ptr<UStaticMesh>> &StaticMeshes = Result.StaticMeshes;
-        std::vector<std::shared_ptr<FMaterial>> &Materials = Result.Materials;
-        std::vector<std::shared_ptr<FTexture>> &Textures = Result.Textures;
-        ParseToMaterials(model, Materials, Textures);
+        std::vector<std::shared_ptr<UMaterialInstance>> &Materials = Result.Materials;
+        std::vector<std::shared_ptr<UTexture>> &Textures = Result.Textures;
+        std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>> &UniformBuffer = Result.UniformBuffer; 
+        ParseToMaterials(model, Materials, Textures, UniformBuffer);
         for (auto &gltf_mesh : model.meshes)
         {
             std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
-            // FContentManager::GetContentManager().AddGlobalStaticMesh(StaticMesh->MeshName, StaticMesh);
             std::shared_ptr<FStaticMeshLODResources> Resource = std::make_shared<FStaticMeshLODResources>();
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
             {
@@ -381,38 +314,29 @@ namespace nilou {
                     }
                 }
                 Section->VertexFactory.SetData(Data);
-                // if (Data.PositionComponent.VertexBuffer && 
-                //     Data.NormalComponent.VertexBuffer && 
-                //     Data.TangentComponent.VertexBuffer && 
-                //     HaveTexCoords)
-                // {
-                //     Section->VertexFactory.SetData(Data);
-                // }
-                // else 
-                // {
-                    
-                //     NILOU_LOG(Error, "Currently only gltf models with positions, normals and tangents are accepted")   
-                // }
-                // if (Data.PositionComponent.VertexBuffer)
-                // {
-                //     if (Data.NormalComponent.VertexBuffer)
-                //         if (Data.TangentComponent.VertexBuffer && HaveTexCoords)
-                //             VertexFactory = std::make_shared<FStaticVertexFactory>("FStaticVertexFactory");
-                //         else 
-                //             VertexFactory = std::make_shared<FPositionAndNormalOnlyVertexFactory>("FPositionAndNormalOnlyVertexFactory");
-                //     else 
-                //         VertexFactory = std::make_shared<FPositionOnlyVertexFactory>("FPositionOnlyVertexFactory");
-                // }
                 Resource->Sections.push_back(std::move(Section));
 
             }
             StaticMeshes.push_back(StaticMesh);
-            {
-                Resource->InitResources();
-                StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
-                StaticMesh->RenderData->LODResources.push_back(Resource);
-            }
+            StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
+            StaticMesh->RenderData->LODResources.push_back(Resource);
         }
+
+        if (need_init)
+            Result.InitResource();
         return Result;
+    }
+
+    void GLTFParseResult::InitResource()
+    {
+        for (int i = 0; i < this->Textures.size(); i++)
+        {
+            BeginInitResource(this->Textures[i]->GetResource());
+        }
+        for (int i = 0; i < this->StaticMeshes.size(); i++)
+        {
+            this->StaticMeshes[i]->RenderData->InitResources();
+        }
+        BeginInitResource(this->UniformBuffer->GetResource());
     }
 }

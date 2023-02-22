@@ -52,7 +52,7 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                    Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
@@ -66,7 +66,7 @@ namespace nilou {
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;
         FStaticVertexFactory VertexFactory;
-        FMaterial *Material;
+        UMaterial *Material;
 
         vec3 Origin;
         vec4 ArrowColor;

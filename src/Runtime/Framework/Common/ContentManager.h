@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include "ShaderMap.h"
+#include "UniformBuffer.h"
 
 
 namespace nilou {
@@ -16,20 +17,23 @@ namespace nilou {
 
         }
     
-		void AddGlobalTexture(const std::string &name, std::shared_ptr<class FTexture> texture, bool overlap = false);
+		void AddGlobalTexture(const std::string &name, std::shared_ptr<class UTexture> texture, bool overlap = false);
 		void RemoveGlobalTexture(const std::string &name);
-		class FTexture *GetGlobalTexture(const std::string &name);
+		class UTexture *GetGlobalTexture(const std::string &name);
 
-		void AddGlobalMaterial(const std::string &name, std::shared_ptr<class FMaterial> material, bool overlap = false);
+		void AddGlobalMaterial(const std::string &name, std::shared_ptr<class UMaterial> material, bool overlap = false);
 		void RemoveGlobalMaterial(const std::string &name);
-		class FMaterial *GetGlobalMaterial(const std::string &name);
+		class UMaterial *GetGlobalMaterial(const std::string &name);
     
 		void AddGlobalStaticMesh(const std::string &name, std::shared_ptr<class UStaticMesh> mesh, bool overlap = false);
 		void RemoveGlobalStaticMesh(const std::string &name);
 		class UStaticMesh *GetGlobalStaticMesh(const std::string &name);
     
-		void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> mesh, bool overlap = false);
+		void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap = false);
 		FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
+    
+		void AddGlobalUniformBuffer(const std::string &name, std::shared_ptr<UUniformBuffer> Buffer, bool overlap = false);
+		class UUniformBuffer *GetGlobalUniformBuffer(const std::string &name);
 
         void ReleaseRenderResources();
 
@@ -70,10 +74,11 @@ namespace nilou {
             }
         };
 
-        FContentMap<std::string, std::shared_ptr<class FTexture>> GlobalTextures;
-        FContentMap<std::string, std::shared_ptr<class FMaterial>> GlobalMaterials;
+        FContentMap<std::string, std::shared_ptr<class UTexture>> GlobalTextures;
+        FContentMap<std::string, std::shared_ptr<class UMaterial>> GlobalMaterials;
         FContentMap<std::string, std::shared_ptr<class UStaticMesh>> GlobalStaticMeshes;
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
+        std::unordered_map<std::string, std::shared_ptr<UUniformBuffer>> GlobalUniformBuffers;
     };
 
 }

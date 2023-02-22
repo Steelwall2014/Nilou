@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "World.h"
 #include "Common/BaseApplication.h"
 #include "Common/Transform.h"
@@ -45,15 +47,34 @@ namespace nilou {
         bHasBegunPlay = true;
 
         // std::shared_ptr<tinygltf::Model> Model = GetAssetLoader()->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
-        // GLTFParseResult Mesh;
-        // GameStatics::ParseToStaticMeshes(*Model, Mesh);
+        // GLTFParseResult Mesh = GameStatics::ParseToStaticMeshes(*Model, false);
+        // nlohmann::json json;
+        // std::ifstream in("D:\\Nilou\\Content\\Textures\\test.json");
+        // in >> json;
+        // Mesh.Textures[0]->Serialize(json);
+        // std::string s = json.dump();
+        // std::ofstream out("D:\\Nilou\\Content\\Textures\\test.json");
+        // out << s;
+
+        // Mesh.Materials[0]->Serialize(json);
+        // std::ofstream out("D:\\Nilou\\Content\\Textures\\test_material.json");
+        // std::string s = json.dump();
+        // out << s;
+
+        // Mesh.UniformBuffer->Serialize(json);
+        // std::ofstream out("D:\\Nilou\\Content\\Textures\\test_ubo.json");
+        // std::string s = json.dump();
+        // out << s;
+
+        // Mesh.Textures[0]->Deserialize(json);
         // for (auto &Texture : Mesh.Textures)
-        //     FContentManager::GetContentManager().AddGlobalTexture(Texture->GetTextureName(), Texture);
+        //     FContentManager::GetContentManager().AddGlobalTexture(Texture->Name, Texture);
         // for (auto &Material : Mesh.Materials)
-        //     FContentManager::GetContentManager().AddGlobalMaterial(Material->GetMaterialName(), Material);
+        //     FContentManager::GetContentManager().AddGlobalMaterial(Material->Name, Material);
         // for (auto &StaticMesh : Mesh.StaticMeshes)
         //     FContentManager::GetContentManager().AddGlobalStaticMesh("WaterBottle.gltf", StaticMesh);
-
+        // FContentManager::GetContentManager().AddGlobalUniformBuffer("WaterBottle_ubo", Mesh.UniformBuffer);
+        // Mesh.InitResource();
         // FTransform MeshTransform;
         // MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
         // std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");

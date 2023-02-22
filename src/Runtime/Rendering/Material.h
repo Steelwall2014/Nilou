@@ -30,28 +30,25 @@ namespace nilou {
     class FMaterial
     {
         friend class FShaderCompiler;
-        friend class FMaterialInstance;
         friend class FMaterialRenderProxy;
+        friend class UMaterial;
     public:
 
-        static FMaterial *GetDefaultMaterial();
-
-        FMaterial(const std::string &InMaterialName)
-            : MaterialName(InMaterialName)
+        FMaterial()
         { 
         }
 
         FMaterial(
-            const std::string &InMaterialName,
             const FRasterizerStateInitializer &InRasterizerState, 
             const FDepthStencilStateInitializer &InDepthStencilState,
             const FBlendStateInitializer &InBlendState) 
-            : MaterialName(InMaterialName)
-            , RasterizerState(InRasterizerState)
+            : RasterizerState(InRasterizerState)
             , DepthStencilState(InDepthStencilState)
             , BlendState(InBlendState)
         { 
         }
+
+        std::string Name;
 
         uint8 StencilRefValue = 0;
 
@@ -66,30 +63,9 @@ namespace nilou {
             return std::make_shared<FMaterialRenderProxy>(this);
         }
 
-        void SetMaterialName(const std::string Name)
-        {
-            MaterialName = Name;
-        }
+        void UpdateMaterialCode(const std::string &InCode, bool bRecompile=true);
 
-        std::string GetMaterialName()
-        {
-            return MaterialName;
-        }
-
-        void UpdateMaterialCode(const std::string &InCode);
-
-        bool UseWorldOffset() { return bUseWorldOffset; }
-
-        FShaderInstance *GetShader(
-            const FVertexFactoryPermutationParameters VFParameter, 
-            const FShaderPermutationParameters &ShaderParameter)
-        {
-            return ShaderMap.GetShader(VFParameter, ShaderParameter);
-        }
-        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter)
-        {
-            return ShaderMap.GetShader(ShaderParameter);
-        }
+        // bool UseWorldOffset() { return bUseWorldOffset; }
 
         void SetParameterValue(const std::string &Name, FTexture *Texture)
         {
@@ -101,16 +77,9 @@ namespace nilou {
             UniformBuffers[Name] = UniformBuffer;
         }
 
-        std::shared_ptr<FMaterialInstance> CreateMaterialInstance();
-
     protected:
 
-        std::string MaterialName;
-
-        // FShaderCodeInitializer CodeInitializer;
-        FShaderParserResult ParsedResult;
-
-        bool bUseWorldOffset = false;
+        // bool bUseWorldOffset = false;
 
         FMaterialShaderMap ShaderMap;
 
@@ -122,19 +91,11 @@ namespace nilou {
 
     };
 
-    class FMaterialInstance : public FMaterial
-    {
-    public:
-        FMaterialInstance(const std::string &InMaterialName) 
-            : FMaterial(InMaterialName)
-        { }
-    };
-
     class FMaterialRenderProxy
     {
     public:
         FMaterialRenderProxy(FMaterial *InMaterial)
-            : MaterialName(InMaterial->MaterialName)
+            : Name(InMaterial->Name)
             , ShaderMap(InMaterial->ShaderMap)
             , Textures(InMaterial->Textures)
             , UniformBuffers(InMaterial->UniformBuffers)
@@ -142,7 +103,6 @@ namespace nilou {
             , RasterizerState(InMaterial->RasterizerState)
             , DepthStencilState(InMaterial->DepthStencilState)
             , BlendState(InMaterial->BlendState)
-            , bShaderCompiled(InMaterial->bShaderCompiled)
         {
 
         }
@@ -166,7 +126,7 @@ namespace nilou {
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer);
         }
 
-        std::string MaterialName;
+        std::string Name;
 
         FMaterialShaderMap ShaderMap;
 
@@ -181,8 +141,82 @@ namespace nilou {
         FDepthStencilStateInitializer DepthStencilState;
 
         FBlendStateInitializer BlendState;
+    };
 
-        bool bShaderCompiled;
+    UCLASS()
+    class UMaterial : public UObject
+    {
+        friend class UMaterialInstance;
+        GENERATE_CLASS_INFO()
+    public:
+
+        UMaterial()
+            : Name("")
+            , MaterialResource(std::make_unique<FMaterial>())
+        {
+
+        }
+
+        UMaterial(const std::string &InName)
+            : Name(InName)
+            , MaterialResource(std::make_unique<FMaterial>())
+        {
+            MaterialResource->Name = Name;
+        }
+
+        static UMaterial *GetDefaultMaterial();
+
+        std::string Name;
+
+        std::string Code;
+
+        std::filesystem::path Path;
+
+        void UpdateCode(const std::string &InCode, bool bRecompile=true);
+
+        void SetParameterValue(const std::string &Name, UTexture *Texture)
+        {
+            Textures[Name] = Texture;
+            MaterialResource->SetParameterValue(Name, Texture->GetResource());
+        }
+
+        template<typename T>
+        void SetParameterValue(const std::string &Name, TUUniformBuffer<T> *UniformBuffer)
+        {
+            UniformBuffers[Name] = UniformBuffer;
+            MaterialResource->SetParameterValue(Name, UniformBuffer->GetResource());
+        }
+
+        virtual void Serialize(nlohmann::json &json) override;
+
+        virtual void Deserialize(nlohmann::json &json) override;
+
+        std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
+
+        FMaterial *GetResource() { return MaterialResource.get(); }
+
+        std::map<std::string, UTexture *> GetTextureBindings() const { return Textures; }
+
+        std::map<std::string, UUniformBuffer *> GetUniformBufferBindings() const { return UniformBuffers; }
+
+    protected:
+
+        std::map<std::string, UTexture *> Textures;
+
+        std::map<std::string, UUniformBuffer *> UniformBuffers;
+
+        std::unique_ptr<FMaterial> MaterialResource;
+        
+    };
+
+    UCLASS()
+    class UMaterialInstance : public UMaterial
+    {
+        GENERATE_CLASS_INFO()
+    public:
+
+        virtual void Serialize(nlohmann::json &json) override;
+
     };
 
 }

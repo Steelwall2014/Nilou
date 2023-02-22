@@ -141,7 +141,7 @@ namespace nilou {
         UStaticMesh(const std::string &Name) : MeshName(Name) { }
         std::string MeshName;
         std::unique_ptr<FStaticMeshRenderData> RenderData;
-        std::vector<FMaterial *> MaterialSlots;
+        std::vector<class UMaterial *> MaterialSlots;
         FBoundingBox LocalBoundingBox;
         ~UStaticMesh() { ReleaseRenderResources(); }
         void ReleaseRenderResources();

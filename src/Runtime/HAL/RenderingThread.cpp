@@ -17,9 +17,9 @@ namespace nilou {
 
     void CreateMaterials()
     {
-        std::shared_ptr<FMaterial> DefaultMaterial = std::make_shared<FMaterial>("DefaultMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(DefaultMaterial->GetMaterialName(), DefaultMaterial);
-        DefaultMaterial->UpdateMaterialCode(
+        std::shared_ptr<UMaterial> DefaultMaterial = std::make_shared<UMaterial>("DefaultMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(DefaultMaterial->Name, DefaultMaterial);
+        DefaultMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
             vec4 MaterialGetBaseColor(VS_Out vs_out)
@@ -48,10 +48,10 @@ namespace nilou {
             }
         )");
 
-        std::shared_ptr<FMaterial> ColoredMaterial = std::make_shared<FMaterial>("ColoredMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(ColoredMaterial->GetMaterialName(), ColoredMaterial);
-        ColoredMaterial->RasterizerState.CullMode = CM_None;
-        ColoredMaterial->UpdateMaterialCode(
+        std::shared_ptr<UMaterial> ColoredMaterial = std::make_shared<UMaterial>("ColoredMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(ColoredMaterial->Name, ColoredMaterial);
+        ColoredMaterial->GetResource()->RasterizerState.CullMode = CM_None;
+        ColoredMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
             vec4 MaterialGetBaseColor(VS_Out vs_out)
@@ -80,17 +80,18 @@ namespace nilou {
             }
         )");
 
-        std::shared_ptr<FMaterial> SkyAtmosphereMaterial = std::make_shared<FMaterial>("SkyAtmosphereMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(SkyAtmosphereMaterial->GetMaterialName(), SkyAtmosphereMaterial);
-        SkyAtmosphereMaterial->RasterizerState.CullMode = CM_None;
-        SkyAtmosphereMaterial->DepthStencilState.bEnableFrontFaceStencil = true;
-        SkyAtmosphereMaterial->DepthStencilState.FrontFaceStencilTest = ECompareFunction::CF_Always;
-        SkyAtmosphereMaterial->DepthStencilState.FrontFacePassStencilOp = EStencilOp::SO_Replace;
-        SkyAtmosphereMaterial->DepthStencilState.bEnableBackFaceStencil = true;
-        SkyAtmosphereMaterial->DepthStencilState.BackFaceStencilTest = ECompareFunction::CF_Always;
-        SkyAtmosphereMaterial->DepthStencilState.BackFacePassStencilOp = EStencilOp::SO_Replace;
-        SkyAtmosphereMaterial->StencilRefValue = 255;
-        SkyAtmosphereMaterial->UpdateMaterialCode(
+        std::shared_ptr<UMaterial> SkyAtmosphereMaterial = std::make_shared<UMaterial>("SkyAtmosphereMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(SkyAtmosphereMaterial->Name, SkyAtmosphereMaterial);
+        FMaterial *SkyAtmosphereMaterialResource = SkyAtmosphereMaterial->GetResource();
+        SkyAtmosphereMaterialResource->RasterizerState.CullMode = CM_None;
+        SkyAtmosphereMaterialResource->DepthStencilState.bEnableFrontFaceStencil = true;
+        SkyAtmosphereMaterialResource->DepthStencilState.FrontFaceStencilTest = ECompareFunction::CF_Always;
+        SkyAtmosphereMaterialResource->DepthStencilState.FrontFacePassStencilOp = EStencilOp::SO_Replace;
+        SkyAtmosphereMaterialResource->DepthStencilState.bEnableBackFaceStencil = true;
+        SkyAtmosphereMaterialResource->DepthStencilState.BackFaceStencilTest = ECompareFunction::CF_Always;
+        SkyAtmosphereMaterialResource->DepthStencilState.BackFacePassStencilOp = EStencilOp::SO_Replace;
+        SkyAtmosphereMaterialResource->StencilRefValue = 255;
+        SkyAtmosphereMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
             vec4 MaterialGetBaseColor(VS_Out vs_out)
@@ -119,9 +120,9 @@ namespace nilou {
             }
         )");
         
-        std::shared_ptr<FMaterial> WireframeMaterial = std::make_shared<FMaterial>("WireframeMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(WireframeMaterial->GetMaterialName(), WireframeMaterial);
-        WireframeMaterial->UpdateMaterialCode(
+        std::shared_ptr<UMaterial> WireframeMaterial = std::make_shared<UMaterial>("WireframeMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(WireframeMaterial->Name, WireframeMaterial);
+        WireframeMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
             vec4 MaterialGetBaseColor(VS_Out vs_out)
@@ -149,11 +150,11 @@ namespace nilou {
                 return vec3(0);
             }
         )");
-        WireframeMaterial->RasterizerState.FillMode = ERasterizerFillMode::FM_Wireframe;
+        WireframeMaterial->GetResource()->RasterizerState.FillMode = ERasterizerFillMode::FM_Wireframe;
         
-        std::shared_ptr<FMaterial> Cesium3DTilesMaterial = std::make_shared<FMaterial>("Cesium3DTilesMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(Cesium3DTilesMaterial->GetMaterialName(), Cesium3DTilesMaterial);
-        Cesium3DTilesMaterial->UpdateMaterialCode(
+        std::shared_ptr<UMaterial> GLTFMaterial = std::make_shared<UMaterial>("GLTFMaterial");
+        FContentManager::GetContentManager().AddGlobalMaterial(GLTFMaterial->Name, GLTFMaterial);
+        GLTFMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
 
@@ -162,7 +163,7 @@ namespace nilou {
             uniform sampler2D emissiveTexture;
             // uniform sampler2D normalTexture;
 
-            layout (std140) uniform FCesium3DTilesMaterialBlock {
+            layout (std140) uniform FGLTFMaterialBlock {
                 vec4 baseColorFactor;
                 vec3 emissveFactor;
                 float metallicFactor;
@@ -206,43 +207,42 @@ namespace nilou {
         NoColorImg->Width = 1; NoColorImg->Height = 1; NoColorImg->Channel = 4; NoColorImg->data_size = 4;
         NoColorImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoColorImg->data = new uint8[4];
         NoColorImg->data[0] = 255; NoColorImg->data[1] = 255; NoColorImg->data[2] = 255; NoColorImg->data[3] = 255;
-        std::shared_ptr<FTexture> NoColorTexture = std::make_shared<FTexture>("NoColorTexture", 1, NoColorImg);
-        NoColorTexture->SetSamplerParams(texParams);
+        std::shared_ptr<UTexture> NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
+        NoColorTexture->GetResource()->SetSamplerParams(texParams);
         FContentManager::GetContentManager().AddGlobalTexture("NoColorTexture", NoColorTexture);
-        BeginInitResource(NoColorTexture.get());
+        BeginInitResource(NoColorTexture->GetResource());
 
         std::shared_ptr<FImage> NoMetallicRoughnessImg = std::make_shared<FImage>();
         NoMetallicRoughnessImg->Width = 1; NoMetallicRoughnessImg->Height = 1; NoMetallicRoughnessImg->Channel = 4; NoMetallicRoughnessImg->data_size = 4;
         NoMetallicRoughnessImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoMetallicRoughnessImg->data = new uint8[4];
         NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
-        std::shared_ptr<FTexture> NoMetallicRoughnessTexture = std::make_shared<FTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
+        std::shared_ptr<UTexture> NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
         FContentManager::GetContentManager().AddGlobalTexture("NoMetallicRoughnessTexture", NoMetallicRoughnessTexture);
-        NoMetallicRoughnessTexture->SetSamplerParams(texParams);
-        BeginInitResource(NoMetallicRoughnessTexture.get());
+        NoMetallicRoughnessTexture->GetResource()->SetSamplerParams(texParams);
+        BeginInitResource(NoMetallicRoughnessTexture->GetResource());
 
         std::shared_ptr<FImage> NoEmissiveImg = std::make_shared<FImage>();
         NoEmissiveImg->Width = 1; NoEmissiveImg->Height = 1; NoEmissiveImg->Channel = 4; NoEmissiveImg->data_size = 4;
         NoEmissiveImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoEmissiveImg->data = new uint8[4];
         NoEmissiveImg->data[0] = 0; NoEmissiveImg->data[1] = 0; NoEmissiveImg->data[2] = 0; NoEmissiveImg->data[3] = 255;
-        std::shared_ptr<FTexture> NoEmissiveTexture = std::make_shared<FTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
+        std::shared_ptr<UTexture> NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
         FContentManager::GetContentManager().AddGlobalTexture("NoEmissiveTexture", NoEmissiveTexture);
-        NoEmissiveTexture->SetSamplerParams(texParams);
-        BeginInitResource(NoEmissiveTexture.get());
+        NoEmissiveTexture->GetResource()->SetSamplerParams(texParams);
+        BeginInitResource(NoEmissiveTexture->GetResource());
 
         std::shared_ptr<FImage> NoNormalImg = std::make_shared<FImage>();
         NoNormalImg->Width = 1; NoNormalImg->Height = 1; NoNormalImg->Channel = 4; NoNormalImg->data_size = 4;
         NoNormalImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoNormalImg->data = new uint8[4];
         NoNormalImg->data[0] = 127; NoNormalImg->data[1] = 127; NoNormalImg->data[2] = 255; NoNormalImg->data[3] = 255;
-        std::shared_ptr<FTexture> NoNormalTexture = std::make_shared<FTexture>("NoNormalTexture", 1, NoNormalImg);
+        std::shared_ptr<UTexture> NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
         FContentManager::GetContentManager().AddGlobalTexture("NoNormalTexture", NoNormalTexture);
-        NoNormalTexture->SetSamplerParams(texParams);
-        BeginInitResource(NoNormalTexture.get());
+        NoNormalTexture->GetResource()->SetSamplerParams(texParams);
+        BeginInitResource(NoNormalTexture->GetResource());
 
-        Cesium3DTilesMaterial->SetParameterValue("baseColorTexture", NoColorTexture.get());
-        Cesium3DTilesMaterial->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
-        Cesium3DTilesMaterial->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
-        Cesium3DTilesMaterial->SetParameterValue("normalTexture", NoNormalTexture.get());
-        Cesium3DTilesMaterial->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
+        GLTFMaterial->SetParameterValue("baseColorTexture", NoColorTexture.get());
+        GLTFMaterial->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
+        GLTFMaterial->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
+        GLTFMaterial->SetParameterValue("normalTexture", NoNormalTexture.get());
     }
 
     bool FRenderingThread::Init()

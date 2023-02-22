@@ -1,5 +1,6 @@
 #pragma once
 #include "PrimitiveComponent.h"
+#include "Material.h"
 
 namespace nilou {
 
@@ -36,7 +37,7 @@ namespace nilou {
             return GetComponentTransform().GetMinimumAxisScale();
         }
 
-        inline void SetMaterial(FMaterial *InMaterial) 
+        inline void SetMaterial(UMaterial *InMaterial) 
         { 
             if (Material != InMaterial)
             {
@@ -45,7 +46,7 @@ namespace nilou {
             }
         }
 
-        inline FMaterial *GetMaterial() const { return Material; }
+        inline UMaterial *GetMaterial() const { return Material; }
 
         //~ Begin UPrimitiveComponent Interface.
         virtual FPrimitiveSceneProxy *CreateSceneProxy() override;
@@ -60,7 +61,7 @@ namespace nilou {
         /** The radius of the sphere**/
         float SphereRadius;
 
-        FMaterial *Material;
+        UMaterial *Material;
 
     };
 

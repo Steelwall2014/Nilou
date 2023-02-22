@@ -195,6 +195,20 @@ BuildProject({
     -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
+ 
+BuildProject({
+    projectName = "GLTFImporter",
+    projectType = "binary",
+    macros = {},
+    depends = {"crossguid", "glad"},
+    files = {"src/GLTFImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+    includePaths = include_paths,
+    debugLink = {"lib/debug/*"},
+    releaseLink = {"lib/release/*"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+    enableException = true,
+})
 
 
 BuildProject({

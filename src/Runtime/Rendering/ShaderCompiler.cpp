@@ -255,10 +255,7 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
             ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment, DynamicRHI);
-        #ifdef NILOU_DEBUG
-            ShaderInstance->DebugCode = code;
-            Write(ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+".glsl", code);
-        #endif
+
         switch (ShaderType->ShaderFrequency) 
         {
             case EShaderFrequency::SF_Vertex:
@@ -282,6 +279,7 @@ namespace nilou {
     void FShaderCompiler::CompileVertexMaterialShader(
         FDynamicRHI *DynamicRHI,
         FMaterial *Material, 
+        FShaderParserResult &MaterialParsedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap)
@@ -299,15 +297,9 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<3>(
             ShaderInstance->Parameters, 
-            {&Material->ParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
+            {&MaterialParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
             Environment, DynamicRHI);
-        #ifdef NILOU_DEBUG
-            ShaderInstance->DebugCode = code;
-            Write(
-                ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+
-                Material->GetMaterialName()+" "+
-                VertexFactoryType->Name+std::to_string(VertexFactoryParams.PermutationId)+".glsl", code);
-        #endif
+
         ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
         
@@ -317,6 +309,7 @@ namespace nilou {
     void FShaderCompiler::CompilePixelMaterialShader(
         FDynamicRHI *DynamicRHI, 
         FMaterial *Material, 
+        FShaderParserResult &MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
     {
@@ -328,14 +321,9 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<2>(
             ShaderInstance->Parameters, 
-            {&Material->ParsedResult, &ShaderType->ParsedResult}, 
+            {&MaterialParsedResult, &ShaderType->ParsedResult}, 
             Environment, DynamicRHI);
-        #ifdef NILOU_DEBUG
-            ShaderInstance->DebugCode = code;
-            Write(
-                ShaderType->Name+std::to_string(ShaderParameter.PermutationId)+" "+
-                Material->GetMaterialName()+".glsl", code);
-        #endif
+
         ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
 
@@ -399,23 +387,24 @@ namespace nilou {
             });
     }
     
-    void FShaderCompiler::CompileMaterialShader(FMaterial *Material, FDynamicRHI *DynamicRHI)
+    void FShaderCompiler::CompileMaterialShader(FMaterial *Material, 
+        FShaderParserResult &MaterialParsedResult,FDynamicRHI *DynamicRHI)
     {
         ForEachShader(
-            [Material, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
+            [Material, &MaterialParsedResult, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
-                    ForEachVertexFactory([Material, &ShaderParameter, DynamicRHI](const FVertexFactoryPermutationParameters &VFParameters) {
+                    ForEachVertexFactory([Material, &MaterialParsedResult, &ShaderParameter, DynamicRHI](const FVertexFactoryPermutationParameters &VFParameters) {
                         CompileVertexMaterialShader(
-                            DynamicRHI, Material, VFParameters, ShaderParameter, 
+                            DynamicRHI, Material, MaterialParsedResult, VFParameters, ShaderParameter, 
                             Material->ShaderMap.VertexShaderMap);
                     }, 
                     [](FVertexFactoryType *) { return true; });
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
-                    CompilePixelMaterialShader(DynamicRHI, Material, ShaderParameter, Material->ShaderMap.PixelShaderMap);
+                    CompilePixelMaterialShader(DynamicRHI, Material, MaterialParsedResult, ShaderParameter, Material->ShaderMap.PixelShaderMap);
                 }
             },
             [](FShaderType *ShaderType) {

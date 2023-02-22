@@ -32,9 +32,9 @@ namespace nilou {
                 {
                     FMeshBatch Mesh;
                     if (Material)
-                        Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                        Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
                     else
-                        Mesh.MaterialRenderProxy = FMaterial::GetDefaultMaterial()->CreateRenderProxy();
+                        Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial()->GetResource()->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
@@ -48,7 +48,7 @@ namespace nilou {
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;
         FStaticVertexFactory VertexFactory;
-        FMaterial *Material;
+        UMaterial *Material;
 
         float SphereRadius;
 
@@ -60,7 +60,7 @@ namespace nilou {
         : UPrimitiveComponent(InOwner)
         , SphereRadius(1.f)
     {
-        Material = FMaterial::GetDefaultMaterial();
+        Material = UMaterial::GetDefaultMaterial();
     }
 
     void USphereComponent::SetSphereRadius(float InSphereRadius)

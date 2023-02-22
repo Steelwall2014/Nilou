@@ -52,6 +52,7 @@ namespace nilou {
 
     void BeginReleaseResource(FRenderResource* Resource)
     {
+        if (!Resource->IsInitialized()) return;
         ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
            [Resource](FDynamicRHI *DynamicRHI)
            {

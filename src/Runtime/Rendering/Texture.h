@@ -1,6 +1,7 @@
 #pragma once
 
-// #include "Common/Image.h"
+#include "Common/CoreUObject/Object.h"
+
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RenderResource.h"
@@ -21,10 +22,10 @@ namespace nilou {
 
     class FTexture : public FRenderResource
     {
+        friend class UTexture;
 	public:
-		FTexture(const std::string &InName, int32 InNumMips, std::shared_ptr<FImage> InImage)
-            : Name(InName)
-            , NumMips(InNumMips)
+		FTexture(int32 InNumMips=1, std::shared_ptr<FImage> InImage=nullptr)
+            : NumMips(InNumMips)
             , Image(InImage)
         {
 
@@ -51,17 +52,84 @@ namespace nilou {
             InitRHI();
         }
 
-        std::string GetTextureName()
-        {
-            return Name;
-        }
-
     protected:
 		std::shared_ptr<FImage> Image;
-		std::string Name;
         int32 NumMips;
         FRHISampler SamplerRHI;
         RHITextureRef TextureRHI;
+    };
+
+    UCLASS()
+    class UTexture : public UObject
+    {
+        GENERATE_CLASS_INFO()
+    public:
+        UTexture()
+            : Name("")
+            , TextureResource(std::make_unique<FTexture>())
+        {
+
+        }
+
+        UTexture(const std::string &InName, std::unique_ptr<FTexture> InTextureResource=nullptr)
+            : Name(InName)
+            , TextureResource(std::move(InTextureResource))
+        {
+
+        }
+
+        UTexture(const std::string &InName, int32 InNumMips, std::shared_ptr<FImage> InImage)
+            : Name(InName)
+            , TextureResource(std::make_unique<FTexture>(InNumMips, InImage))
+        {
+
+        }
+
+		std::string Name;
+
+        std::filesystem::path Path;
+
+        ETextureWrapModes GetWrapS()
+        {
+            return TextureResource->GetSamplerRHI()->Params.Wrap_S;
+        }
+
+        ETextureWrapModes GetWrapR()
+        {
+            return TextureResource->GetSamplerRHI()->Params.Wrap_R;
+        }
+
+        ETextureWrapModes GetWrapT()
+        {
+            return TextureResource->GetSamplerRHI()->Params.Wrap_T;
+        }
+
+        ETextureFilters GetMagFilter()
+        {
+            return TextureResource->GetSamplerRHI()->Params.Mag_Filter;
+        }
+
+        ETextureFilters GetMinFilter()
+        {
+            return TextureResource->GetSamplerRHI()->Params.Min_Filter;
+        }
+
+        ETextureType GetTextureType()
+        {
+            return TextureResource->GetSamplerRHI()->Texture->GetTextureType();
+        }
+
+        FTexture *GetResource()
+        {
+            return TextureResource.get();
+        }
+
+        virtual void Serialize(nlohmann::json &json) override;
+
+        virtual void Deserialize(nlohmann::json &json) override;
+    
+    protected:
+        std::unique_ptr<FTexture> TextureResource;
     };
 
 }

@@ -7,6 +7,7 @@
 #include <vcruntime.h>
 #include <vector>
 
+#include "Common/CoreUObject/Object.h"
 #include "Common/AssertionMacros.h"
 #include "Common/Containers/Array.h"
 #include "Platform.h"
@@ -458,4 +459,45 @@ namespace nilou {
     {
         return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
     }
+
+    UCLASS()
+    class UUniformBuffer : public UObject
+    {
+        GENERATE_CLASS_INFO()
+    public:
+
+        std::filesystem::path Path;
+
+    };
+
+    template<typename T>
+    class TUUniformBuffer : public UUniformBuffer
+    {
+    public:
+
+        TUUniformBuffer()
+            : UniformBufferResource(std::make_unique<TUniformBuffer<T>>())
+        {
+
+        }
+
+        virtual void Serialize(nlohmann::json &json) override
+        {
+            json["ClassName"] = "TUUniformBuffer";
+            nlohmann::json &content = json["Content"];
+            TStaticSerializer<T>::Serialize(UniformBufferResource->Data, content["Data"]);
+        }
+
+        virtual void Deserialize(nlohmann::json &json) override
+        {
+            if (!SerializeHelper::CheckIsType(json, "TTUniformBuffer")) return;
+            nlohmann::json &content = json["Content"];
+            TStaticSerializer<T>::Deserialize(UniformBufferResource->Data, content["Data"]);
+        }
+
+        TUniformBuffer<T> *GetResource() { return UniformBufferResource.get(); };
+
+    private:
+        std::unique_ptr<TUniformBuffer<T>> UniformBufferResource;
+    };
 }

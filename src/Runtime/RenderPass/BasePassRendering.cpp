@@ -99,7 +99,7 @@ namespace nilou {
                     if (!bResourceFound)
                     {
                         NILOU_LOG(Warning, 
-                            "Material: " + Material->MaterialName + 
+                            "Material: " + Material->Name + 
                             " |Vertex Factory: " + VFPermutationParameters.Type->Name + 
                             " |Vertex Shader: " + PermutationParametersVS.Type->Name + 
                             " |Pixel Shader: " + PermutationParametersPS.Type->Name + 
@@ -140,8 +140,6 @@ namespace nilou {
                 std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
                 for (FMeshBatch &Mesh : PerViewMeshBatches[ViewIndex])
                 {
-                    if (!Mesh.MaterialRenderProxy->bShaderCompiled)
-                        continue;
                     FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
                     RHIGetError();
 
@@ -178,7 +176,7 @@ namespace nilou {
                         MeshDrawCommand);
 
                     // SkyAtmosphereMaterial needs to be rendered last
-                    if (Mesh.MaterialRenderProxy->MaterialName == "SkyAtmosphereMaterial")
+                    if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
                         SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
                     else
                         DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

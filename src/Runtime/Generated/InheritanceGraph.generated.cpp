@@ -29,5 +29,9 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_USphereComponent, EUClasses::MC_UPrimitiveComponent);
 	AddEdge(EUClasses::MC_UVirtualHeightfieldMeshComponent, EUClasses::MC_UPrimitiveComponent);
 	AddNode(EUClasses::MC_UObject);
+	AddEdge(EUClasses::MC_UMaterial, EUClasses::MC_UObject);
+	AddEdge(EUClasses::MC_UMaterialInstance, EUClasses::MC_UMaterial);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UObject);
+	AddEdge(EUClasses::MC_UUniformBuffer, EUClasses::MC_UObject);
 }
 }

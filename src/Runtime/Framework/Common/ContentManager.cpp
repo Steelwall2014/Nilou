@@ -14,7 +14,7 @@ namespace nilou {
         return GContentManager;
     }
 
-    void FContentManager::AddGlobalTexture(const std::string &name, std::shared_ptr<FTexture> texture, bool overlap)
+    void FContentManager::AddGlobalTexture(const std::string &name, std::shared_ptr<UTexture> texture, bool overlap)
     {
         if (!GlobalTextures.Insert(name, texture, overlap))
             NILOU_LOG(Error, "FContentManager::AddGlobalTexture: Texture \"" + name + "\" already exists, but overlap parameter is set to false");
@@ -23,15 +23,15 @@ namespace nilou {
     {
         GlobalTextures.Erase(name);
     }
-    FTexture *FContentManager::GetGlobalTexture(const std::string &name)
+    UTexture *FContentManager::GetGlobalTexture(const std::string &name)
     {
-        FTexture *Texture = GlobalTextures.Get(name).get();
+        UTexture *Texture = GlobalTextures.Get(name).get();
         if (Texture == nullptr)
             NILOU_LOG(Error, "FContentManager::GetGlobalTexture: Texture \"" + name + "\" doesn't exist");
         return Texture;
     }
 
-    void FContentManager::AddGlobalMaterial(const std::string &name, std::shared_ptr<FMaterial> material, bool overlap)
+    void FContentManager::AddGlobalMaterial(const std::string &name, std::shared_ptr<UMaterial> material, bool overlap)
     {
         if (!GlobalMaterials.Insert(name, material, overlap))
             NILOU_LOG(Error, "FContentManager::AddGlobalMaterial: Material \"" + name + "\" already exists, but overlap parameter is set to false");
@@ -40,9 +40,9 @@ namespace nilou {
     {
         GlobalMaterials.Erase(name);
     }
-    FMaterial *FContentManager::GetGlobalMaterial(const std::string &name)
+    UMaterial *FContentManager::GetGlobalMaterial(const std::string &name)
     {
-        FMaterial *Material = GlobalMaterials.Get(name).get();
+        UMaterial *Material = GlobalMaterials.Get(name).get();
         if (Material == nullptr)
             NILOU_LOG(Error, "FContentManager::GetGlobalMaterial: Material \"" + name + "\" doesn't exist");
         return Material;
@@ -74,6 +74,17 @@ namespace nilou {
     {
         return GlobalShaders.GetShader(Parameters);
     }
+    
+    void FContentManager::AddGlobalUniformBuffer(const std::string &name, std::shared_ptr<UUniformBuffer> ShaderRHI, bool overlap)
+    {
+        if (overlap || GlobalUniformBuffers.find(name) == GlobalUniformBuffers.end())
+            GlobalUniformBuffers[name] = ShaderRHI;
+    }
+
+    UUniformBuffer *FContentManager::GetGlobalUniformBuffer(const std::string &name)
+    {
+        return GlobalUniformBuffers[name].get();
+    }
 
 
     void FContentManager::ReleaseRenderResources()
@@ -84,6 +95,7 @@ namespace nilou {
                 GlobalMaterials.Map.clear();
                 GlobalStaticMeshes.Map.clear();
                 GlobalShaders.RemoveAllShaders();
+                GlobalUniformBuffers.clear();
             });
     }
 }

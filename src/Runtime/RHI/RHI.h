@@ -4,6 +4,7 @@
 #include <array>
 #include "RHIDefinitions.h"
 #include "Templates/EnumAsByte.h"
+#include "SerializeHelper.h"
 
 namespace nilou {
         
@@ -121,6 +122,50 @@ namespace nilou {
 		}
 	};
 
+	template<>
+	class TStaticSerializer<FDepthStencilStateInitializer>
+	{
+	public:
+		static void Serialize(const FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json)
+		{
+			json["ClassName"] = "FDepthStencilStateInitializer";
+			nlohmann::json &content = json["Content"];
+			content["EnableDepthWrite"] = DepthStencilState.bEnableDepthWrite;
+			content["EnableFrontFaceStencil"] = DepthStencilState.bEnableFrontFaceStencil;
+			content["EnableBackFaceStencil"] = DepthStencilState.bEnableBackFaceStencil;
+			content["StencilReadMask"] = DepthStencilState.StencilReadMask;
+			content["StencilWriteMask"] = DepthStencilState.StencilWriteMask;
+			content["DepthTest"] = magic_enum::enum_name(DepthStencilState.DepthTest);
+			content["FrontFaceStencilTest"] = magic_enum::enum_name(DepthStencilState.FrontFaceStencilTest);
+			content["FrontFaceStencilFailStencilOp"] = magic_enum::enum_name(DepthStencilState.FrontFaceStencilFailStencilOp);
+			content["FrontFaceDepthFailStencilOp"] = magic_enum::enum_name(DepthStencilState.FrontFaceDepthFailStencilOp);
+			content["FrontFacePassStencilOp"] = magic_enum::enum_name(DepthStencilState.FrontFacePassStencilOp);
+			content["BackFaceStencilTest"] = magic_enum::enum_name(DepthStencilState.BackFaceStencilTest);
+			content["BackFaceStencilFailStencilOp"] = magic_enum::enum_name(DepthStencilState.BackFaceStencilFailStencilOp);
+			content["BackFaceDepthFailStencilOp"] = magic_enum::enum_name(DepthStencilState.BackFaceDepthFailStencilOp);
+			content["BackFacePassStencilOp"] = magic_enum::enum_name(DepthStencilState.BackFacePassStencilOp);
+		}
+		static void Deserialize(FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json)
+		{
+            if (!SerializeHelper::CheckIsType(json, "FDepthStencilStateInitializer")) return;
+			nlohmann::json &content = json["Content"];
+			DepthStencilState.bEnableDepthWrite = content["EnableDepthWrite"].get<bool>();
+			DepthStencilState.bEnableFrontFaceStencil = content["EnableFrontFaceStencil"].get<bool>();
+			DepthStencilState.bEnableBackFaceStencil = content["EnableBackFaceStencil"].get<bool>();
+			DepthStencilState.StencilReadMask = content["StencilReadMask"].get<uint8>();
+			DepthStencilState.StencilWriteMask = content["StencilWriteMask"].get<uint8>();
+			DepthStencilState.DepthTest = magic_enum::enum_cast<ECompareFunction>(content["DepthTest"].get<std::string>()).value();
+			DepthStencilState.FrontFaceStencilTest = magic_enum::enum_cast<ECompareFunction>(content["FrontFaceStencilTest"].get<std::string>()).value();
+			DepthStencilState.FrontFaceStencilFailStencilOp = magic_enum::enum_cast<EStencilOp>(content["FrontFaceStencilFailStencilOp"].get<std::string>()).value();
+			DepthStencilState.FrontFaceDepthFailStencilOp = magic_enum::enum_cast<EStencilOp>(content["FrontFaceDepthFailStencilOp"].get<std::string>()).value();
+			DepthStencilState.FrontFacePassStencilOp = magic_enum::enum_cast<EStencilOp>(content["FrontFacePassStencilOp"].get<std::string>()).value();
+			DepthStencilState.BackFaceStencilTest = magic_enum::enum_cast<ECompareFunction>(content["BackFaceStencilTest"].get<std::string>()).value();
+			DepthStencilState.BackFaceStencilFailStencilOp = magic_enum::enum_cast<EStencilOp>(content["BackFaceStencilFailStencilOp"].get<std::string>()).value();
+			DepthStencilState.BackFaceDepthFailStencilOp = magic_enum::enum_cast<EStencilOp>(content["BackFaceDepthFailStencilOp"].get<std::string>()).value();
+			DepthStencilState.BackFacePassStencilOp = magic_enum::enum_cast<EStencilOp>(content["BackFacePassStencilOp"].get<std::string>()).value();
+		}
+	};
+
     struct FRasterizerStateInitializer
     {
         ERasterizerFillMode FillMode;
@@ -147,6 +192,26 @@ namespace nilou {
 				   this->bEnableLineAA == B.bEnableLineAA*/;
 		}
     };
+
+	template<>
+	class TStaticSerializer<FRasterizerStateInitializer>
+	{
+	public:
+		static void Serialize(const FRasterizerStateInitializer &BlendState, nlohmann::json &json)
+		{
+			json["ClassName"] = "FRasterizerStateInitializer";
+			nlohmann::json &content = json["Content"];
+			content["FillMode"] = magic_enum::enum_name(BlendState.FillMode);
+			content["CullMode"] = magic_enum::enum_name(BlendState.CullMode);
+		}
+		static void Deserialize(FRasterizerStateInitializer &BlendState, nlohmann::json &json)
+		{
+            if (!SerializeHelper::CheckIsType(json, "FRasterizerStateInitializer")) return;
+			nlohmann::json &content = json["Content"];
+			BlendState.CullMode = magic_enum::enum_cast<ERasterizerCullMode>(content["CullMode"].get<std::string>()).value();
+			BlendState.FillMode = magic_enum::enum_cast<ERasterizerFillMode>(content["FillMode"].get<std::string>()).value();
+		}
+	};
 
 	class FBlendStateInitializer
 	{
@@ -208,6 +273,51 @@ namespace nilou {
 		std::array<FRenderTarget, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargets;
 		bool bUseIndependentRenderTargetBlendStates;
 		// bool bUseAlphaToCoverage;
+	};
+
+	template<>
+	class TStaticSerializer<FBlendStateInitializer>
+	{
+	public:
+		static void Serialize(const FBlendStateInitializer &BlendState, nlohmann::json &json)
+		{
+			json["ClassName"] = "FBlendStateInitializer";
+			nlohmann::json &content = json["Content"];
+			content["UseIndependentRenderTargetBlendStates"] = BlendState.bUseIndependentRenderTargetBlendStates;
+			nlohmann::json &render_targets = content["RenderTargets"];
+			for (int i = 0; i < MAX_SIMULTANEOUS_RENDERTARGETS; i++)
+			{
+				nlohmann::json render_target;
+				render_target["ColorBlendOp"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorBlendOp);
+				render_target["AlphaBlendOp"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaBlendOp);
+				render_target["AlphaDestBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaDestBlend);
+				render_target["AlphaSrcBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaSrcBlend);
+				render_target["ColorDestBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorDestBlend);
+				render_target["ColorSrcBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorSrcBlend);
+				render_target["ColorWriteMask"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorWriteMask);
+				render_targets.push_back(render_target);
+			}
+		}
+		static void Deserialize(FBlendStateInitializer &BlendState, nlohmann::json &json)
+		{
+            if (!SerializeHelper::CheckIsType(json, "FBlendStateInitializer")) return;
+
+			nlohmann::json content = json["Content"];
+			BlendState.bUseIndependentRenderTargetBlendStates = content["UseIndependentRenderTargetBlendStates"];
+
+			nlohmann::json render_targets = content["RenderTargets"];
+			for (int i = 0; i < MAX_SIMULTANEOUS_RENDERTARGETS; i++)
+			{
+				nlohmann::json render_target = render_targets[i];
+				BlendState.RenderTargets[i].ColorBlendOp = magic_enum::enum_cast<EBlendOperation>(render_target["ColorBlendOp"].get<std::string>()).value();
+				BlendState.RenderTargets[i].AlphaBlendOp = magic_enum::enum_cast<EBlendOperation>(render_target["AlphaBlendOp"].get<std::string>()).value();
+				BlendState.RenderTargets[i].AlphaDestBlend = magic_enum::enum_cast<EBlendFactor>(render_target["AlphaDestBlend"].get<std::string>()).value();
+				BlendState.RenderTargets[i].AlphaSrcBlend = magic_enum::enum_cast<EBlendFactor>(render_target["AlphaSrcBlend"].get<std::string>()).value();
+				BlendState.RenderTargets[i].ColorDestBlend = magic_enum::enum_cast<EBlendFactor>(render_target["ColorDestBlend"].get<std::string>()).value();
+				BlendState.RenderTargets[i].ColorSrcBlend = magic_enum::enum_cast<EBlendFactor>(render_target["ColorSrcBlend"].get<std::string>()).value();
+				BlendState.RenderTargets[i].ColorWriteMask = magic_enum::enum_cast<EColorWriteMask>(render_target["ColorWriteMask"].get<std::string>()).value();
+			}
+		}
 	};
 
 }
