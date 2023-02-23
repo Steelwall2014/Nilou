@@ -18,15 +18,14 @@ namespace nilou {
     {
         m_bQuit = false;
 
+        ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
         
         World = std::make_shared<UWorld>();
         Scene = std::make_shared<FScene>();
         World->Scene = Scene.get();
         Scene->World = World.get();
-        ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         while (!RenderingThread->IsRunnableInitialized()) { }
-        ContentManager->Init();
 		GDALAllRegister();
         World->InitWorld();
         World->BeginPlay();

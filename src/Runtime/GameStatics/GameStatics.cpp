@@ -168,7 +168,7 @@ namespace nilou {
             OutTextures.push_back(texture);
         }
 
-        UMaterial *GLTFMaterial = GetContentManager()->GetGlobalMaterial("GLTFMaterial");
+        UMaterial *GLTFMaterial = dynamic_cast<UMaterial*>(GetContentManager()->GetContentByPath("/Cesium3DTilesMaterial.json"));
         if (GLTFMaterial == nullptr) return;
 
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)

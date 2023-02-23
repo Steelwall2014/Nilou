@@ -19,7 +19,7 @@ namespace nilou {
         int i = 0;
         std::string temp;
         std::string res;
-        while (i < 3)
+        while (i < 3 && !in.eof())
         {
             in.read(&c, 1);
             if (c == ' ' || c == '\n' || c == '\t')
@@ -61,17 +61,19 @@ namespace nilou {
             else 
             {
                 fs::path Path = dir_entry.path();
-                auto file_entry = std::make_unique<FContentManager::DirectoryEntry>();
-                file_entry->bIsDirty = false;
-                file_entry->bIsDirectory = false;
-                file_entry->Path = Path;
-                file_entry->Name = Path.filename().generic_string();
-                file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
-                std::ifstream in{file_entry->Path.generic_string()};
+                std::ifstream in{Path.generic_string()};
                 std::string class_name = ReadClassName(in);
                 if (class_name != "")
+                {
+                    auto file_entry = std::make_unique<FContentManager::DirectoryEntry>();
+                    file_entry->bIsDirty = false;
+                    file_entry->bIsDirectory = false;
+                    file_entry->Path = Path;
+                    file_entry->Name = Path.filename().generic_string();
+                    file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
                     file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
-                directory_entry->Children[file_entry->Name] = std::move(file_entry);
+                    directory_entry->Children[file_entry->Name] = std::move(file_entry);
+                }
             }
         }
         return directory_entry;
@@ -289,56 +291,56 @@ namespace nilou {
         DirectoryEntry::Serialize(ContentEntry.get());
     }
 
-    void FContentManager::AddGlobalTexture(const std::string &name, std::shared_ptr<UTexture> texture, bool overlap)
-    {
-        if (!GlobalTextures.Insert(name, texture, overlap))
-            NILOU_LOG(Error, "FContentManager::AddGlobalTexture: Texture \"" + name + "\" already exists, but overlap parameter is set to false");
-    }
-    void FContentManager::RemoveGlobalTexture(const std::string &name)
-    {
-        GlobalTextures.Erase(name);
-    }
-    UTexture *FContentManager::GetGlobalTexture(const std::string &name)
-    {
-        UTexture *Texture = GlobalTextures.Get(name).get();
-        if (Texture == nullptr)
-            NILOU_LOG(Error, "FContentManager::GetGlobalTexture: Texture \"" + name + "\" doesn't exist");
-        return Texture;
-    }
+    // void FContentManager::AddGlobalTexture(const std::string &name, std::shared_ptr<UTexture> texture, bool overlap)
+    // {
+    //     if (!GlobalTextures.Insert(name, texture, overlap))
+    //         NILOU_LOG(Error, "FContentManager::AddGlobalTexture: Texture \"" + name + "\" already exists, but overlap parameter is set to false");
+    // }
+    // void FContentManager::RemoveGlobalTexture(const std::string &name)
+    // {
+    //     GlobalTextures.Erase(name);
+    // }
+    // UTexture *FContentManager::GetGlobalTexture(const std::string &name)
+    // {
+    //     UTexture *Texture = GlobalTextures.Get(name).get();
+    //     if (Texture == nullptr)
+    //         NILOU_LOG(Error, "FContentManager::GetGlobalTexture: Texture \"" + name + "\" doesn't exist");
+    //     return Texture;
+    // }
 
-    void FContentManager::AddGlobalMaterial(const std::string &name, std::shared_ptr<UMaterial> material, bool overlap)
-    {
-        if (!GlobalMaterials.Insert(name, material, overlap))
-            NILOU_LOG(Error, "FContentManager::AddGlobalMaterial: Material \"" + name + "\" already exists, but overlap parameter is set to false");
-    }
-    void FContentManager::RemoveGlobalMaterial(const std::string &name)
-    {
-        GlobalMaterials.Erase(name);
-    }
-    UMaterial *FContentManager::GetGlobalMaterial(const std::string &name)
-    {
-        UMaterial *Material = GlobalMaterials.Get(name).get();
-        if (Material == nullptr)
-            NILOU_LOG(Error, "FContentManager::GetGlobalMaterial: Material \"" + name + "\" doesn't exist");
-        return Material;
-    }
+    // void FContentManager::AddGlobalMaterial(const std::string &name, std::shared_ptr<UMaterial> material, bool overlap)
+    // {
+    //     if (!GlobalMaterials.Insert(name, material, overlap))
+    //         NILOU_LOG(Error, "FContentManager::AddGlobalMaterial: Material \"" + name + "\" already exists, but overlap parameter is set to false");
+    // }
+    // void FContentManager::RemoveGlobalMaterial(const std::string &name)
+    // {
+    //     GlobalMaterials.Erase(name);
+    // }
+    // UMaterial *FContentManager::GetGlobalMaterial(const std::string &name)
+    // {
+    //     UMaterial *Material = GlobalMaterials.Get(name).get();
+    //     if (Material == nullptr)
+    //         NILOU_LOG(Error, "FContentManager::GetGlobalMaterial: Material \"" + name + "\" doesn't exist");
+    //     return Material;
+    // }
 
-    void FContentManager::AddGlobalStaticMesh(const std::string &name, std::shared_ptr<UStaticMesh> mesh, bool overlap)
-    {
-        if (!GlobalStaticMeshes.Insert(name, mesh, overlap))
-            NILOU_LOG(Error, "FContentManager::AddGlobalStaticMesh: StaticMesh \"" + name + "\" already exists, but overlap parameter is set to false");
-    }
-    void FContentManager::RemoveGlobalStaticMesh(const std::string &name)
-    {
-        GlobalStaticMeshes.Erase(name);
-    }
-    UStaticMesh *FContentManager::GetGlobalStaticMesh(const std::string &name)
-    {
-        std::shared_ptr<UStaticMesh> Mesh = GlobalStaticMeshes.Get(name);
-        if (Mesh == nullptr)
-            NILOU_LOG(Error, "FContentManager::GetGlobalStaticMesh: StaticMesh \"" + name + "\" doesn't exist");
-        return Mesh.get();
-    }
+    // void FContentManager::AddGlobalStaticMesh(const std::string &name, std::shared_ptr<UStaticMesh> mesh, bool overlap)
+    // {
+    //     if (!GlobalStaticMeshes.Insert(name, mesh, overlap))
+    //         NILOU_LOG(Error, "FContentManager::AddGlobalStaticMesh: StaticMesh \"" + name + "\" already exists, but overlap parameter is set to false");
+    // }
+    // void FContentManager::RemoveGlobalStaticMesh(const std::string &name)
+    // {
+    //     GlobalStaticMeshes.Erase(name);
+    // }
+    // UStaticMesh *FContentManager::GetGlobalStaticMesh(const std::string &name)
+    // {
+    //     std::shared_ptr<UStaticMesh> Mesh = GlobalStaticMeshes.Get(name);
+    //     if (Mesh == nullptr)
+    //         NILOU_LOG(Error, "FContentManager::GetGlobalStaticMesh: StaticMesh \"" + name + "\" doesn't exist");
+    //     return Mesh.get();
+    // }
     
     void FContentManager::AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
     {
@@ -350,27 +352,27 @@ namespace nilou {
         return GlobalShaders.GetShader(Parameters);
     }
     
-    void FContentManager::AddGlobalUniformBuffer(const std::string &name, std::shared_ptr<FUniformBuffer> ShaderRHI, bool overlap)
-    {
-        if (overlap || GlobalUniformBuffers.find(name) == GlobalUniformBuffers.end())
-            GlobalUniformBuffers[name] = ShaderRHI;
-    }
+    // void FContentManager::AddGlobalUniformBuffer(const std::string &name, std::shared_ptr<FUniformBuffer> ShaderRHI, bool overlap)
+    // {
+    //     if (overlap || GlobalUniformBuffers.find(name) == GlobalUniformBuffers.end())
+    //         GlobalUniformBuffers[name] = ShaderRHI;
+    // }
 
-    FUniformBuffer *FContentManager::GetGlobalUniformBuffer(const std::string &name)
-    {
-        return GlobalUniformBuffers[name].get();
-    }
+    // FUniformBuffer *FContentManager::GetGlobalUniformBuffer(const std::string &name)
+    // {
+    //     return GlobalUniformBuffers[name].get();
+    // }
 
 
     void FContentManager::ReleaseRenderResources()
     {
         ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
             [this](FDynamicRHI*) {
-                GlobalTextures.Map.clear();
-                GlobalMaterials.Map.clear();
-                GlobalStaticMeshes.Map.clear();
+                // GlobalTextures.Map.clear();
+                // GlobalMaterials.Map.clear();
+                // GlobalStaticMeshes.Map.clear();
                 GlobalShaders.RemoveAllShaders();
-                GlobalUniformBuffers.clear();
+                // GlobalUniformBuffers.clear();
             });
     }
 

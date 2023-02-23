@@ -27,7 +27,7 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return GetContentManager()->GetGlobalMaterial("DefaultMaterial");
+        return dynamic_cast<UMaterial*>(GetContentManager()->GetContentByPath("/DefaultMaterial.json"));//GetContentManager()->GetGlobalMaterial("DefaultMaterial");
     }
 
     void UMaterial::UpdateCode(const std::string &InCode, bool bRecompile)
@@ -65,6 +65,7 @@ namespace nilou {
         Name = content["Name"];
         Code = content["Code"];
         Path = InPath;
+        MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
         TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"]);
         TStaticSerializer<FRasterizerStateInitializer>::Deserialize(MaterialResource->RasterizerState, content["RasterizerState"]);
@@ -85,6 +86,8 @@ namespace nilou {
         MaterialInstance->Code = Code;
         MaterialInstance->Path = Path;
         MaterialInstance->Textures = Textures;
+        MaterialInstance->MaterialResource->Name = MaterialResource->Name;
+        MaterialInstance->MaterialResource->StencilRefValue = MaterialResource->StencilRefValue;
         MaterialInstance->MaterialResource->BlendState = MaterialResource->BlendState;
         MaterialInstance->MaterialResource->DepthStencilState = MaterialResource->DepthStencilState;
         MaterialInstance->MaterialResource->RasterizerState = MaterialResource->RasterizerState;

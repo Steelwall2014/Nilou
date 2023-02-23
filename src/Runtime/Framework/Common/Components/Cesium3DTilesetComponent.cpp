@@ -156,7 +156,6 @@ namespace nilou {
                     ENQUEUE_RENDER_COMMAND(LoadContent)(
                         [&Result, this, &RHIInitialized, &cv](FDynamicRHI*) 
                         {
-                            Result.Materials[0]->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
                             Result.InitResource();
                             RHIInitialized = true;
                             cv.notify_all();
@@ -348,7 +347,7 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
             PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
-            WireframeMaterial = GetContentManager()->GetGlobalMaterial("WireframeMaterial");
+            WireframeMaterial = dynamic_cast<UMaterial*>(GetContentManager()->GetContentByPath("/WireframeMaterial.json"));
         }
 
         void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)
