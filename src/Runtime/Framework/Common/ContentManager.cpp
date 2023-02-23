@@ -1,5 +1,7 @@
 #include <fstream>
 
+#include <thread_pool/BS_thread_pool.hpp>
+
 #include "ContentManager.h"
 #include "Texture.h"
 #include "Material.h"
@@ -124,25 +126,18 @@ namespace nilou {
         }
     }
 
-    void FContentManager::DirectoryEntry::Deserialize(DirectoryEntry *Entry)
+    void FContentManager::DirectoryEntry::Deserialize(DirectoryEntry *Entry, std::vector<FContentManager::DirectoryEntry*> &OutEntries)
     {
         if (Entry->bIsDirectory)
         {
             for (auto &[Name, Child] : Entry->Children)
             {
-                Deserialize(Child.get());
+                Deserialize(Child.get(), OutEntries);
             }
         }
         else 
-        {                
-            nlohmann::json json;
-            std::ifstream in{Entry->Path.generic_string()};
-            in >> json;
-            if (json.contains("ClassName"))
-            {
-                if (Entry->Object != nullptr)
-                    Entry->Object->Deserialize(json, Entry->RelativePath);
-            }
+        {              
+            OutEntries.push_back(Entry);
         }
     }
 
@@ -154,7 +149,31 @@ namespace nilou {
 
     void FContentManager::Init()
     {
-        DirectoryEntry::Deserialize(ContentEntry.get());
+        std::vector<DirectoryEntry*> Entries;
+        DirectoryEntry::Deserialize(ContentEntry.get(), Entries);
+        BS::thread_pool pool;
+        std::vector<std::future<nlohmann::json>> futures;
+        for (int i = 0; i < Entries.size(); i++)
+        {
+            auto future = pool.submit([](DirectoryEntry *Entry) {
+                nlohmann::json json;
+                std::ifstream in{Entry->Path.generic_string()};
+                in >> json;
+                return json;
+            }, Entries[i]);
+            futures.push_back(std::move(future));
+        }
+        pool.wait_for_tasks();
+        for (int i = 0; i < futures.size(); i++)
+        {
+            auto &future = futures[i];
+            nlohmann::json json = future.get();
+            if (json.contains("ClassName"))
+            {
+                if (Entries[i]->Object != nullptr)
+                    Entries[i]->Object->Deserialize(json, Entries[i]->RelativePath);
+            }
+        }
     }
 
     UObject *FContentManager::GetContentByPath(const fs::path &InPath)

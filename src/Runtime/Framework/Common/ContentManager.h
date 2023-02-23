@@ -95,7 +95,7 @@ namespace nilou {
             static UObject *Search(DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth);
 
             static void Serialize(DirectoryEntry *Entry);
-            static void Deserialize(DirectoryEntry *Entry);
+            static void Deserialize(DirectoryEntry *Entry, std::vector<FContentManager::DirectoryEntry*> &OutEntries);
         };
         std::filesystem::path ContentBasePath;
         std::unique_ptr<DirectoryEntry> ContentEntry;
