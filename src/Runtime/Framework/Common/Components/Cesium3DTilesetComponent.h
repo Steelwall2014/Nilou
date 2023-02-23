@@ -13,6 +13,23 @@
 namespace nilou {
     class UCesium3DTilesetComponent;
 
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FGLTFMaterialBlock)
+        SHADER_PARAMETER(vec4, baseColorFactor)
+        SHADER_PARAMETER(vec3, emissiveFactor)
+        SHADER_PARAMETER(float, metallicFactor)
+        SHADER_PARAMETER(float, roughnessFactor)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    struct GLTFParseResult
+    {
+        std::vector<std::shared_ptr<class UStaticMesh>> StaticMeshes;
+        std::vector<std::shared_ptr<class UMaterialInstance>> Materials;
+        std::vector<std::shared_ptr<class UTexture>> Textures;
+        TUniformBufferRef<FGLTFMaterialBlock> UniformBuffer;
+        void InitResource();
+    };
+    
     namespace Cesium3DTilesetSelection {
 
     struct ViewState

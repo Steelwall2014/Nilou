@@ -8,16 +8,6 @@
 #include "Common/Log.h"
 
 namespace nilou {
-	// class OpenGLShader;
-	// class OpenGLVertexShader;
-	// class OpenGLPixelShader;
-	// class OpenGLComputeShader;
-	// class OpenGLLinkedProgram;
-	// typedef std::shared_ptr<OpenGLShader> OpenGLShaderRef;
-	// typedef std::shared_ptr<OpenGLVertexShader> OpenGLVertexShaderRef;
-	// typedef std::shared_ptr<OpenGLPixelShader> OpenGLPixelShaderRef;
-	// typedef std::shared_ptr<OpenGLComputeShader> OpenGLComputeShaderRef;
-	// typedef std::shared_ptr<OpenGLLinkedProgram> OpenGLLinkedProgramRef;
 
 	template<typename BaseType, GLenum ShaderType>
 	class TOpenGLShader : public BaseType
@@ -93,22 +83,5 @@ namespace nilou {
 		friend class FOpenGLDynamicRHI;
 	};
 	using OpenGLLinkedProgramRef = std::shared_ptr<OpenGLLinkedProgram>;
-	// class OpenGLVertexShader : public OpenGLShader
-	// {
-	// public:
-	// 	OpenGLVertexShader(const char *shader_code) : OpenGLShader(shader_code, GL_VERTEX_SHADER) {};
-	// };
-
-	// class OpenGLPixelShader : public OpenGLShader
-	// {
-	// public:
-	// 	OpenGLPixelShader(const char *shader_code) : OpenGLShader(shader_code, GL_FRAGMENT_SHADER) {};
-	// };
-
-	// class OpenGLComputeShader : public OpenGLShader
-	// {
-	// public:
-	// 	OpenGLComputeShader(const char *shader_code) : OpenGLShader(shader_code, GL_COMPUTE_SHADER) {};
-	// };
 
 }

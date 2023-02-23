@@ -17,15 +17,6 @@ int main()
         return ret;
     }
 
-
-
-    //for (auto &module : run_time_modules) {
-    //    if ((ret = module->Initialize()) != 0) {
-    //        std::cerr << "Failed. err = " << ret;
-    //        return EXIT_FAILURE;
-    //    }
-    //}
-
     clock_t DeltaTime, lastFrame = 0;
     while (!GetAppication()->IsQuit()) {
         clock_t currentFrame = clock();

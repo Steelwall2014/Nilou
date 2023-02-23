@@ -48,18 +48,4 @@ namespace nilou {
         
     };
     using FOpenGLVertexDeclarationRef = std::shared_ptr<FOpenGLVertexDeclaration>;
-
-    // class FOpenGLSamplerState : public FRHISamplerState
-    // {
-    // public:
-    //     GLuint Resource;
-    //     RHITextureParams TextureParams;
-    // };
-
-    // class FOpenGLPipelineState : public FRHIGraphicsPipelineState
-    // {
-    // public:
-    //     GLuint Program;
-    // };
-    // using FOpenGLPipelineStateRef = std::shared_ptr<FOpenGLPipelineState>;
 }

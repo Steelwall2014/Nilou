@@ -106,46 +106,6 @@ namespace nilou {
 
     IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
 
-
-    // void FPositionOnlyVertexFactory::GetVertexInputList()
-    // {
-	//     // FVertexDeclarationElementList Elements;
-    //     VertexInputList.clear();
-    //     if (Data.PositionComponent.VertexBuffer != nullptr)
-    //     {
-    //         VertexInputList.push_back(AccessStreamComponent(Data.PositionComponent, 0));
-    //     }
-    //     // return Elements;
-    // }
-
-    // void FPositionOnlyVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
-    // { 
-
-    // }
-    // IMPLEMENT_VERTEX_FACTORY_TYPE(FPositionOnlyVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
-    
-
-    // void FPositionAndNormalOnlyVertexFactory::GetVertexInputList()
-    // {
-	//     // FVertexDeclarationElementList Elements;
-    //     VertexInputList.clear();
-    //     if (Data.PositionComponent.VertexBuffer != nullptr)
-    //     {
-    //         VertexInputList.push_back(AccessStreamComponent(Data.PositionComponent, 0));
-    //     }
-    //     if (Data.NormalComponent.VertexBuffer != nullptr)
-    //     {
-    //         VertexInputList.push_back(AccessStreamComponent(Data.NormalComponent, 1));
-    //     }
-    //     // return Elements;
-    // }
-
-    // void FPositionAndNormalOnlyVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
-    // { 
-    //     OutEnvironment.SetDefine("SUPPORTS_NORMAL_VERT");
-    // }
-    // IMPLEMENT_VERTEX_FACTORY_TYPE(FPositionAndNormalOnlyVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
-
     void FStaticMeshLODResources::InitResources()
     {
         for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
@@ -238,7 +198,7 @@ namespace nilou {
         {
             fs::path material_path = content["MaterialSlots"][i].get<std::string>();
             material_path = fs::weakly_canonical(Path.parent_path() / fs::path(material_path));
-            UMaterial *Material = dynamic_cast<UMaterial *>(GetContentManager()->GetContentByPath(material_path));
+            UMaterial *Material = GetContentManager()->GetMaterialByPath(material_path);
             MaterialSlots.push_back(Material);
         }
     }

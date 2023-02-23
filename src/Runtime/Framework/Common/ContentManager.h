@@ -20,9 +20,33 @@ namespace nilou {
          * Get the content (e.g. UTexture, UMaterial) by path
          * @param InPath The path relative to FPath::ContentDir()
          * 
-         * @return The object pointer. User need to cast it manually;
+         * @return The object pointer. User need to cast it manually.
          */
         UObject *GetContentByPath(const std::filesystem::path &InPath);
+
+        /**
+         * Get the material by path
+         * @param InPath The path relative to FPath::ContentDir()
+         * 
+         * @return The material pointer. 
+         */
+        class UMaterial *GetMaterialByPath(const std::filesystem::path &InPath);
+
+        /**
+         * Get the texture by path
+         * @param InPath The path relative to FPath::ContentDir()
+         * 
+         * @return The texture pointer. 
+         */
+        class UTexture *GetTextureByPath(const std::filesystem::path &InPath);
+
+        /**
+         * Get the staic mesh by path
+         * @param InPath The path relative to FPath::ContentDir()
+         * 
+         * @return The staic mesh pointer. 
+         */
+        class UStaticMesh *GetStaticMeshByPath(const std::filesystem::path &InPath);
 
         /**
          * Create content (e.g. UTexture, UMaterial) at given path
@@ -41,60 +65,12 @@ namespace nilou {
 
         void Flush();
     
-		// void AddGlobalTexture(const std::string &name, std::shared_ptr<class UTexture> texture, bool overlap = false);
-		// void RemoveGlobalTexture(const std::string &name);
-		// class UTexture *GetGlobalTexture(const std::string &name);
-
-		// void AddGlobalMaterial(const std::string &name, std::shared_ptr<class UMaterial> material, bool overlap = false);
-		// void RemoveGlobalMaterial(const std::string &name);
-		// class UMaterial *GetGlobalMaterial(const std::string &name);
-    
-		// void AddGlobalStaticMesh(const std::string &name, std::shared_ptr<class UStaticMesh> mesh, bool overlap = false);
-		// void RemoveGlobalStaticMesh(const std::string &name);
-		// class UStaticMesh *GetGlobalStaticMesh(const std::string &name);
-    
 		void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap = false);
 		FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
-    
-		// void AddGlobalUniformBuffer(const std::string &name, std::shared_ptr<FUniformBuffer> Buffer, bool overlap = false);
-		// class FUniformBuffer *GetGlobalUniformBuffer(const std::string &name);
 
         void ReleaseRenderResources();
 
     private:
-
-        template<class Key, class Value>
-        struct FContentMap
-        {
-            std::map<Key, Value> Map;
-            bool Insert(const Key &key, const Value &value, bool overlap=false)
-            {
-                auto iter = Map.find(key);
-                if (iter == Map.end() || overlap)
-                {
-                    Map[key] = value;
-                }
-                else 
-                {
-                    return false;
-                }
-                return true;
-            }
-            Value Get(const Key &key)
-            {
-                auto iter = Map.find(key);
-                if (iter == Map.end())
-                    return nullptr;
-                else
-                    return iter->second;
-            }
-            void Erase(const Key &key)
-            {
-                auto iter = Map.find(key);
-                if (iter != Map.end())
-                    Map.erase(iter);
-            }
-        };
 
         class DirectoryEntry
         {
@@ -126,11 +102,7 @@ namespace nilou {
 
         DirectoryEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
 
-        // FContentMap<std::string, std::shared_ptr<class UTexture>> GlobalTextures;
-        // FContentMap<std::string, std::shared_ptr<class UMaterial>> GlobalMaterials;
-        // FContentMap<std::string, std::shared_ptr<class UStaticMesh>> GlobalStaticMeshes;
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
-        // std::unordered_map<std::string, std::shared_ptr<FUniformBuffer>> GlobalUniformBuffers;
     };
 
     FContentManager *GetContentManager();

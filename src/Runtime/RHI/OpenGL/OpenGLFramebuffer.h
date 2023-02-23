@@ -12,7 +12,6 @@ namespace nilou {
 	{
 	public:
 		GLuint	Resource;
-		// std::map<GLenum, OpenGLTextureRef> Attachments;
 		OpenGLFramebuffer();
 		OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture);
 		OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index);

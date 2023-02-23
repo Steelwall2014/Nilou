@@ -27,7 +27,7 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return dynamic_cast<UMaterial*>(GetContentManager()->GetContentByPath("/DefaultMaterial.json"));//GetContentManager()->GetGlobalMaterial("DefaultMaterial");
+        return GetContentManager()->GetMaterialByPath("/DefaultMaterial.json");//GetContentManager()->GetGlobalMaterial("DefaultMaterial");
     }
 
     void UMaterial::UpdateCode(const std::string &InCode, bool bRecompile)

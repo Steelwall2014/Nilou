@@ -178,12 +178,11 @@ namespace nilou {
         void SetTextureParameterValue(const std::string &Name, const std::filesystem::path &TexturePath)
         {
             Textures[Name] = TexturePath;
-            UTexture *Texture = dynamic_cast<UTexture*>(GetContentManager()->GetContentByPath(TexturePath));
+            UTexture *Texture = GetContentManager()->GetTextureByPath(TexturePath);
             if (Texture)
             {
                 MaterialResource->SetParameterValue(Name, Texture);
             }
-            // MaterialResource->SetParameterValue(Name, Texture->GetResource());
         }
 
         void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)

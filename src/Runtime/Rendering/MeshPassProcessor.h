@@ -18,20 +18,6 @@ namespace nilou {
         std::vector<std::pair<int, FRHISampler *>> SamplerBindings[EPipelineStage::PipelineStageNum];
         std::vector<FRHIVertexInput> VertexAttributeBindings;
     };
-    // class FMaterialParameterMapInfo
-    // {
-    // public:
-    //     std::vector<FShaderParameterInfo> UniformBuffers;
-    //     std::vector<FShaderParameterInfo> TextureSamplers;
-    // };
-
-    // class FMaterialShaderBindings
-    // {
-    // public:
-    //     FMaterialParameterMapInfo ParameterMapInfo;
-    //     std::vector<RHIUniformBuffer *> UniformBufferBindings;
-    //     std::vector<FRHISamplerState *> SamplerBindings;
-    // };
 
 
     class FMeshDrawCommand
@@ -84,17 +70,4 @@ namespace nilou {
 
         void SubmitDraw(class FDynamicRHI *RHICmdList);
     };
-
-    // class FMeshPassProcessor
-    // {
-    // public:
-    //     virtual void AddMeshBatch(const FMeshBatch &Mesh, std::vector<FMeshDrawCommand> *OutDrawCommandList) = 0;
-
-    // };
-
-    // class FBasePassMeshProcessor : public FMeshPassProcessor
-    // {
-    // public:
-    //     virtual void AddMeshBatch(const FMeshBatch &Mesh, std::vector<FMeshDrawCommand> *OutDrawCommandList) override;
-    // };
 }

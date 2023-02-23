@@ -12,7 +12,6 @@
 #include "RHI.h"
 #include "HashedName.h"
 #include "ShaderCompiler.h"
-#include "ShaderSegment.h"
 #include "ShaderType.h"
 #include "ShaderPermutation.h"
 

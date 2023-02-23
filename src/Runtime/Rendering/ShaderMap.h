@@ -10,37 +10,6 @@
 
 namespace nilou {
 
-    // class FGlobalShaderMap &GetGlobalShaderMap();
-    // std::unordered_map<FHashedName, class FMaterialShaderMap *> &GetMaterialShaderMap();
-    // FShaderInstance *GetVertexShaderInstance(
-    //     const FMaterialType &MaterialType,
-    //     const FVertexFactoryType &VertexFactoryType,
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-    // FShaderInstance *GetPixelShaderInstance(
-    //     const FMaterialType &MaterialType,
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-    // FShaderInstance *GetGlobalShaderInstance(
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-    
-    // void AddVertexShaderInstance(
-    //     FShaderInstanceRef ShaderInstance,
-    //     const FMaterialType &MaterialType,
-    //     const FVertexFactoryType &VertexFactoryType,
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-    // void AddPixelShaderInstance(
-    //     FShaderInstanceRef ShaderInstance,
-    //     const FMaterialType &MaterialType,
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-    // void AddGlobalShaderInstance(
-    //     FShaderInstanceRef ShaderInstance,
-    //     const FShaderPermutationParameters &PermutationParameters
-    // );
-
     template<class TPermutationParameters, class... Ts>
     class TShaderMap
     {  
@@ -87,13 +56,6 @@ namespace nilou {
             if (!IsInRenderingThread())
                 NILOU_LOG(Fatal, "FMaterialShaderMap::RemoveAllShaders MUST be called from rendering thread!")
 
-            // for (auto &[key, value] : Shaders)
-            // {
-            //     for (auto &&ShaderMap : value)
-            //     {
-            //         ShaderMap.RemoveAllShaders();
-            //     }
-            // }
             Shaders.clear();
         }
 
@@ -136,13 +98,6 @@ namespace nilou {
             if (!IsInRenderingThread())
                 NILOU_LOG(Fatal, "FMaterialShaderMap::RemoveAllShaders MUST be called from rendering thread!")
 
-            // for (auto &[key, value] : Shaders)
-            // {
-            //     for (auto &&Shader : value)
-            //     {
-            //         Shader->ShaderRHI->ReleaseRHI();
-            //     }
-            // }
             Shaders.clear();
         }
 
