@@ -30,6 +30,8 @@ namespace nilou {
 
         void Init(uint32 InNumIndices, EIndexBufferStride DesiredStride);
 
+        void Init(void *Data, uint32 InNumIndices, uint32 Stride);
+
         void Init(const std::vector<uint8>& InIndices);
         void Init(const std::vector<uint16>& InIndices);
         void Init(const std::vector<uint32>& InIndices);
@@ -62,7 +64,7 @@ namespace nilou {
 
         // uint32 NumIndices;
 
-        bool bNeedsCPUAccess = true;
+        // bool bNeedsCPUAccess = true;
 
     };
 

@@ -14,7 +14,7 @@ namespace nilou {
             StaticMeshComponent->AttachToComponent(GetRootComponent());
         }
 
-        void SetStaticMesh(std::shared_ptr<UStaticMesh> StaticMesh);
+        void SetStaticMesh(UStaticMesh *StaticMesh);
 
 
 

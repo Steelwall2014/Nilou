@@ -25,10 +25,10 @@ enum class EUClasses {
 	MC_USphereComponent,
 	MC_UVirtualHeightfieldMeshComponent,
 	MC_UObject,
+	MC_UStaticMesh,
 	MC_UMaterial,
 	MC_UMaterialInstance,
 	MC_UTexture,
-	MC_UUniformBuffer,
 	MC_UClassNum,
 };
 }

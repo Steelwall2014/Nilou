@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
 namespace nilou {
 std::string AGeoreferenceActor::GetClassName() { return "AGeoreferenceActor"; }
 EUClasses AGeoreferenceActor::GetClassEnum() { return EUClasses::MC_AGeoreferenceActor; }
@@ -7,5 +7,9 @@ const UClass *AGeoreferenceActor::StaticClass()
 {
 	static UClass *StaticClass = new UClass("AGeoreferenceActor", EUClasses::MC_AGeoreferenceActor);
 	return StaticClass;
+}
+std::unique_ptr<UObject> AGeoreferenceActor::CreateDefaultObject()
+{
+    return std::make_unique<AGeoreferenceActor>();
 }
 }

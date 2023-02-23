@@ -9,7 +9,6 @@
 
 #include "Common/Log.h"
 #include "Common/StaticMeshResources.h"
-#include "Common/ContentManager.h"
 #include "Material.h"
 #include "RHIDefinitions.h"
 #include "StaticMeshVertexBuffer.h"
@@ -56,54 +55,14 @@ static std::vector<T> BufferToVector(uint8 *pos, int count, size_t stride)
     }
     return Vertices;
 }
-std::shared_ptr<UMaterial> Material;
-static void CreateGLTFMaterial()
+std::shared_ptr<UTexture> NoColorTexture;
+std::shared_ptr<UTexture> NoMetallicRoughnessTexture;
+std::shared_ptr<UTexture> NoEmissiveTexture;
+std::shared_ptr<UTexture> NoNormalTexture;
+
+static std::shared_ptr<UMaterial> CreateGLTFMaterial()
 {
-    Material = std::make_shared<UMaterial>("GLTFMaterial");
-    Material->UpdateCode(
-    R"(
-        #include "../include/BasePassCommon.glsl"
-
-        uniform sampler2D baseColorTexture;
-        uniform sampler2D metallicRoughnessTexture;
-        uniform sampler2D emissiveTexture;
-        // uniform sampler2D normalTexture;
-
-        layout (std140) uniform FGLTFMaterialBlock {
-            vec4 baseColorFactor;
-            vec3 emissveFactor;
-            float metallicFactor;
-            float roughnessFactor;
-        };
-
-        vec4 MaterialGetBaseColor(VS_Out vs_out)
-        {
-            return texture(baseColorTexture, vs_out.TexCoords) * baseColorFactor;
-        }
-        vec3 MaterialGetEmissive(VS_Out vs_out)
-        {
-            return texture(emissiveTexture, vs_out.TexCoords).rgb * emissveFactor;
-        }
-        vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
-        {
-            // vec3 tangent_normal = texture(normalTexture, vs_out.TexCoords).rgb;
-            vec3 tangent_normal = vec3(0.5, 0.5, 1.0);
-            tangent_normal = normalize(tangent_normal * 2.0f - 1.0f);
-            return normalize(vs_out.TBN * tangent_normal);
-        }
-        float MaterialGetRoughness(VS_Out vs_out)
-        {
-            return texture(metallicRoughnessTexture, vs_out.TexCoords).g;
-        }
-        float MaterialGetMetallic(VS_Out vs_out)
-        {
-            return texture(metallicRoughnessTexture, vs_out.TexCoords).b;
-        }
-        vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
-        {
-            return vec3(0);
-        }
-    )", false);
+    auto Material = std::make_shared<UMaterial>("GLTFMaterial");
     RHITextureParams texParams;
     texParams.Mag_Filter = ETextureFilters::TF_Nearest;
     texParams.Min_Filter = ETextureFilters::TF_Nearest;
@@ -113,17 +72,15 @@ static void CreateGLTFMaterial()
     NoColorImg->Width = 1; NoColorImg->Height = 1; NoColorImg->Channel = 4; NoColorImg->data_size = 4;
     NoColorImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoColorImg->data = new uint8[4];
     NoColorImg->data[0] = 255; NoColorImg->data[1] = 255; NoColorImg->data[2] = 255; NoColorImg->data[3] = 255;
-    std::shared_ptr<UTexture> NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
+    NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
     NoColorTexture->GetResource()->SetSamplerParams(texParams);
-    FContentManager::GetContentManager().AddGlobalTexture("NoColorTexture", NoColorTexture);
     // BeginInitResource(NoColorTexture->GetResource());
 
     std::shared_ptr<FImage> NoMetallicRoughnessImg = std::make_shared<FImage>();
     NoMetallicRoughnessImg->Width = 1; NoMetallicRoughnessImg->Height = 1; NoMetallicRoughnessImg->Channel = 4; NoMetallicRoughnessImg->data_size = 4;
     NoMetallicRoughnessImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoMetallicRoughnessImg->data = new uint8[4];
     NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
-    std::shared_ptr<UTexture> NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
-    FContentManager::GetContentManager().AddGlobalTexture("NoMetallicRoughnessTexture", NoMetallicRoughnessTexture);
+    NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
     NoMetallicRoughnessTexture->GetResource()->SetSamplerParams(texParams);
     // BeginInitResource(NoMetallicRoughnessTexture->GetResource());
 
@@ -131,8 +88,7 @@ static void CreateGLTFMaterial()
     NoEmissiveImg->Width = 1; NoEmissiveImg->Height = 1; NoEmissiveImg->Channel = 4; NoEmissiveImg->data_size = 4;
     NoEmissiveImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoEmissiveImg->data = new uint8[4];
     NoEmissiveImg->data[0] = 0; NoEmissiveImg->data[1] = 0; NoEmissiveImg->data[2] = 0; NoEmissiveImg->data[3] = 255;
-    std::shared_ptr<UTexture> NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
-    FContentManager::GetContentManager().AddGlobalTexture("NoEmissiveTexture", NoEmissiveTexture);
+    NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
     NoEmissiveTexture->GetResource()->SetSamplerParams(texParams);
     // BeginInitResource(NoEmissiveTexture->GetResource());
 
@@ -140,8 +96,7 @@ static void CreateGLTFMaterial()
     NoNormalImg->Width = 1; NoNormalImg->Height = 1; NoNormalImg->Channel = 4; NoNormalImg->data_size = 4;
     NoNormalImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoNormalImg->data = new uint8[4];
     NoNormalImg->data[0] = 127; NoNormalImg->data[1] = 127; NoNormalImg->data[2] = 255; NoNormalImg->data[3] = 255;
-    std::shared_ptr<UTexture> NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
-    FContentManager::GetContentManager().AddGlobalTexture("NoNormalTexture", NoNormalTexture);
+    NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
     NoNormalTexture->GetResource()->SetSamplerParams(texParams);
     // BeginInitResource(NoNormalTexture->GetResource());
 
@@ -149,12 +104,12 @@ static void CreateGLTFMaterial()
     Material->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
     Material->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
     Material->SetParameterValue("normalTexture", NoNormalTexture.get());
+    return Material;
 }
 
 static void ParseToMaterials(tinygltf::Model &model, 
     std::vector<std::shared_ptr<UMaterial>> &OutMaterials, 
-    std::vector<std::shared_ptr<UTexture>> &OutTextures,
-    std::vector<std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>>> &OutUniformBuffers)
+    std::vector<std::shared_ptr<UTexture>> &OutTextures)
 {
     OutMaterials.clear();
     OutTextures.clear();
@@ -197,10 +152,11 @@ static void ParseToMaterials(tinygltf::Model &model,
     for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
     {
         tinygltf::Material &gltf_material = model.materials[MaterialIndex];
+        auto Material = CreateGLTFMaterial();
         if (gltf_material.doubleSided)
             Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         auto AccessTextures = 
-            [&OutTextures](int index, const std::string &sampler_name) {
+            [&OutTextures, &Material](int index, const std::string &sampler_name) {
             if (index != -1)
             {
                 Material->SetParameterValue(sampler_name, OutTextures[index].get());
@@ -210,20 +166,62 @@ static void ParseToMaterials(tinygltf::Model &model,
         AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
         AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
         AccessTextures(gltf_material.normalTexture.index, "normalTexture");
-        auto OutUniformBuffer = std::make_shared<TUUniformBuffer<FGLTFMaterialBlock>>();
-        TUniformBuffer<FGLTFMaterialBlock> *OutUBOResource = OutUniformBuffer->GetResource();
-        OutUBOResource->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
-        OutUBOResource->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
-        OutUBOResource->Data.baseColorFactor.b = gltf_material.pbrMetallicRoughness.baseColorFactor[2];
-        OutUBOResource->Data.baseColorFactor.a = gltf_material.pbrMetallicRoughness.baseColorFactor[3];
-        OutUBOResource->Data.emissiveFactor.r = gltf_material.emissiveFactor[0];
-        OutUBOResource->Data.emissiveFactor.g = gltf_material.emissiveFactor[1];
-        OutUBOResource->Data.emissiveFactor.b = gltf_material.emissiveFactor[2];
-        OutUBOResource->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
-        OutUBOResource->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
+
+        std::string defines;
+        auto &baseColorFactor = gltf_material.pbrMetallicRoughness.baseColorFactor;
+        defines += "#define baseColorFactor_r (" + std::to_string(baseColorFactor[0]) + ")\n";
+        defines += "#define baseColorFactor_g (" + std::to_string(baseColorFactor[1]) + ")\n";
+        defines += "#define baseColorFactor_b (" + std::to_string(baseColorFactor[2]) + ")\n";
+        defines += "#define baseColorFactor_a (" + std::to_string(baseColorFactor[3]) + ")\n";
+
+        auto &emissiveFactor = gltf_material.emissiveFactor;
+        defines += "#define emissiveFactor_r (" + std::to_string(emissiveFactor[0]) + ")\n";
+        defines += "#define emissiveFactor_g (" + std::to_string(emissiveFactor[1]) + ")\n";
+        defines += "#define emissiveFactor_b (" + std::to_string(emissiveFactor[2]) + ")\n";
+
+        defines += "#define metallicFactor (" + std::to_string(gltf_material.pbrMetallicRoughness.metallicFactor) + ")\n";
+        defines += "#define roughnessFactor (" + std::to_string(gltf_material.pbrMetallicRoughness.roughnessFactor) + ")\n";
+
+        Material->UpdateCode(
+            defines+
+        R"(
+            #include "../include/BasePassCommon.glsl"
+
+            uniform sampler2D baseColorTexture;
+            uniform sampler2D metallicRoughnessTexture;
+            uniform sampler2D emissiveTexture;
+            uniform sampler2D normalTexture;
+
+            vec4 MaterialGetBaseColor(VS_Out vs_out)
+            {
+                vec4 baseColorFactor = vec4(baseColorFactor_r, baseColorFactor_g, baseColorFactor_b, baseColorFactor_a);
+                return texture(baseColorTexture, vs_out.TexCoords) * baseColorFactor;
+            }
+            vec3 MaterialGetEmissive(VS_Out vs_out)
+            {
+                vec3 emissiveFactor = vec3(emissiveFactor_r, emissiveFactor_g, emissiveFactor_b);
+                return texture(emissiveTexture, vs_out.TexCoords).rgb * emissiveFactor;
+            }
+            vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
+            {
+                vec3 tangent_normal = texture(normalTexture, vs_out.TexCoords).rgb;
+                tangent_normal = normalize(tangent_normal * 2.0f - 1.0f);
+                return normalize(vs_out.TBN * tangent_normal);
+            }
+            float MaterialGetRoughness(VS_Out vs_out)
+            {
+                return texture(metallicRoughnessTexture, vs_out.TexCoords).g * roughnessFactor;
+            }
+            float MaterialGetMetallic(VS_Out vs_out)
+            {
+                return texture(metallicRoughnessTexture, vs_out.TexCoords).b * metallicFactor;
+            }
+            vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
+            {
+                return vec3(0);
+            }
+        )", false);
         OutMaterials.push_back(Material);
-        OutUniformBuffers.push_back(OutUniformBuffer);
-        Material->SetParameterValue("FGLTFMaterialBlock", OutUniformBuffer.get());
     }
 }
 
@@ -233,7 +231,6 @@ struct ParseResult
     std::vector<std::shared_ptr<UStaticMesh>> StaticMeshes;
     std::vector<std::shared_ptr<UMaterial>> Materials;
     std::vector<std::shared_ptr<UTexture>> Textures;
-    std::vector<std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>>> UniformBuffers;
 };
 ParseResult ParseToStaticMeshes(tinygltf::Model &model)
 {
@@ -241,12 +238,11 @@ ParseResult ParseToStaticMeshes(tinygltf::Model &model)
     std::vector<std::shared_ptr<UStaticMesh>> &StaticMeshes = Result.StaticMeshes;
     std::vector<std::shared_ptr<UMaterial>> &Materials = Result.Materials;
     std::vector<std::shared_ptr<UTexture>> &Textures = Result.Textures;
-    auto &UniformBuffers = Result.UniformBuffers; 
-    ParseToMaterials(model, Materials, Textures, UniformBuffers);
+    ParseToMaterials(model, Materials, Textures);
     for (auto &gltf_mesh : model.meshes)
     {
         std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
-        std::shared_ptr<FStaticMeshLODResources> Resource = std::make_shared<FStaticMeshLODResources>();
+        std::unique_ptr<FStaticMeshLODResources> Resource = std::make_unique<FStaticMeshLODResources>();
         for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
         {
             tinygltf::Primitive &gltf_prim = gltf_mesh.primitives[prim_index];
@@ -350,7 +346,7 @@ ParseResult ParseToStaticMeshes(tinygltf::Model &model)
         }
         StaticMeshes.push_back(StaticMesh);
         StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
-        StaticMesh->RenderData->LODResources.push_back(Resource);
+        StaticMesh->RenderData->LODResources.push_back(std::move(Resource));
     }
 
     return Result;
@@ -374,30 +370,30 @@ int main()
     }
     for (int i = 0; i < Mesh.Materials.size(); i++)
     {
+        nlohmann::json material;
+        Mesh.Materials[i]->Serialize(material);
+        nlohmann::json &content = material["Content"];
+        for (auto &[Name, Texture] : Mesh.Materials[i]->GetTextureBindings())
         {
-            nlohmann::json ubo;
-            Mesh.UniformBuffers[i]->Serialize(ubo);
-            std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + "_ubo.json");
-            std::ofstream out{out_path.generic_string()};
-            std::string s = ubo.dump();
-            out << s;
+            content["Textures"][Name] = Texture->Name + ".json";
         }
+        std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".json");
+        std::ofstream out{out_path.generic_string()};
+        std::string s = material.dump();
+        out << s;
+    }
+    for (int i = 0; i < Mesh.StaticMeshes.size(); i++)
+    {
+        nlohmann::json mesh;
+        Mesh.StaticMeshes[i]->Serialize(mesh);
+        nlohmann::json &content = mesh["Content"];
+        for (int j = 0; j < Mesh.StaticMeshes[i]->MaterialSlots.size(); j++)
         {
-            nlohmann::json material;
-            Mesh.Materials[i]->Serialize(material);
-            nlohmann::json &content = material["Content"];
-            for (auto &[Name, Texture] : Mesh.Materials[i]->GetTextureBindings())
-            {
-                content["Textures"][Name] = Texture->Name + ".json";
-            }
-            for (auto &[Name, UBO] : Mesh.Materials[i]->GetUniformBufferBindings())
-            {
-                content["UniformBuffers"][Name] = Mesh.Materials[i]->Name + "_ubo.json";
-            }
-            std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".json");
-            std::ofstream out{out_path.generic_string()};
-            std::string s = material.dump();
-            out << s;
+            content["MaterialSlots"][j] = Mesh.StaticMeshes[i]->MaterialSlots[j]->Name + ".json";
         }
+        std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.StaticMeshes[i]->Name + ".json");
+        std::ofstream out{out_path.generic_string()};
+        std::string s = mesh.dump();
+        out << s;
     }
 }

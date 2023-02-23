@@ -17,6 +17,7 @@
 #include "Texture.h"
 #include "VertexFactory.h"
 #include "ShaderParameter.h"
+#include "Common/ContentManager.h"
 
 namespace nilou {
 
@@ -67,7 +68,7 @@ namespace nilou {
 
         // bool UseWorldOffset() { return bUseWorldOffset; }
 
-        void SetParameterValue(const std::string &Name, FTexture *Texture)
+        void SetParameterValue(const std::string &Name, UTexture *Texture)
         {
             Textures[Name] = Texture;
         }
@@ -83,7 +84,7 @@ namespace nilou {
 
         FMaterialShaderMap ShaderMap;
 
-        std::map<std::string, FTexture *> Textures;
+        std::map<std::string, UTexture *> Textures;
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
@@ -121,7 +122,7 @@ namespace nilou {
         void FillShaderBindings(FElementShaderBindings &OutBindings)
         { 
             for (auto &[Name, Texture] : Textures)
-                OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
+                OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
             for (auto &[Name, UniformBuffer] : UniformBuffers)
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer);
         }
@@ -130,7 +131,7 @@ namespace nilou {
 
         FMaterialShaderMap ShaderMap;
 
-        std::map<std::string, FTexture *> Textures;
+        std::map<std::string, UTexture *> Textures;
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
@@ -174,36 +175,33 @@ namespace nilou {
 
         void UpdateCode(const std::string &InCode, bool bRecompile=true);
 
-        void SetParameterValue(const std::string &Name, UTexture *Texture)
+        void SetTextureParameterValue(const std::string &Name, const std::filesystem::path &TexturePath)
         {
-            Textures[Name] = Texture;
-            MaterialResource->SetParameterValue(Name, Texture->GetResource());
+            Textures[Name] = TexturePath;
+            UTexture *Texture = dynamic_cast<UTexture*>(GetContentManager()->GetContentByPath(TexturePath));
+            if (Texture)
+            {
+                MaterialResource->SetParameterValue(Name, Texture);
+            }
+            // MaterialResource->SetParameterValue(Name, Texture->GetResource());
         }
 
-        template<typename T>
-        void SetParameterValue(const std::string &Name, TUUniformBuffer<T> *UniformBuffer)
+        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)
         {
-            UniformBuffers[Name] = UniformBuffer;
-            MaterialResource->SetParameterValue(Name, UniformBuffer->GetResource());
+            MaterialResource->SetParameterValue(Name, UniformBuffer);
         }
 
-        virtual void Serialize(nlohmann::json &json) override;
+        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
 
-        virtual void Deserialize(nlohmann::json &json) override;
+        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) override;
 
         std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
 
         FMaterial *GetResource() { return MaterialResource.get(); }
 
-        std::map<std::string, UTexture *> GetTextureBindings() const { return Textures; }
-
-        std::map<std::string, UUniformBuffer *> GetUniformBufferBindings() const { return UniformBuffers; }
-
     protected:
 
-        std::map<std::string, UTexture *> Textures;
-
-        std::map<std::string, UUniformBuffer *> UniformBuffers;
+        std::map<std::string, std::filesystem::path> Textures;
 
         std::unique_ptr<FMaterial> MaterialResource;
         
@@ -215,7 +213,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        virtual void Serialize(nlohmann::json &json) override;
+        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
 
     };
 

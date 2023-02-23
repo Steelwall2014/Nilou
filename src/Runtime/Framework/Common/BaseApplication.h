@@ -5,6 +5,7 @@
 #include "Common/World.h"
 #include "Common/GfxConfiguration.h"
 #include "Common/FrameSynchronizer.h"
+#include "Common/ContentManager.h"
 #include "Delegate.h"
 
 namespace nilou {
@@ -33,6 +34,7 @@ namespace nilou {
         TMulticastDelegate<FDynamicRHI*> &GetPreRenderDelegate() { return PreRenderDelegate; }
         TMulticastDelegate<FDynamicRHI*> &GetPostRenderDelegate() { return PostRenderDelegate; }
         TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
+        FContentManager *GetContentManager() { return ContentManager.get(); }
 
     protected:
         float deltaTime = 0.0f;
@@ -42,6 +44,7 @@ namespace nilou {
         bool CursorEnabled = false;
         std::shared_ptr<UWorld> World;
         std::shared_ptr<FScene> Scene;
+        std::unique_ptr<FContentManager> ContentManager;
         TMulticastDelegate<FDynamicRHI*> PreRenderDelegate;
         TMulticastDelegate<FDynamicRHI*> PostRenderDelegate;
         TMulticastDelegate<int, int> ScreenResizeDelegate;

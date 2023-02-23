@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/ActorComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/ActorComponent.h"
 namespace nilou {
 std::string UActorComponent::GetClassName() { return "UActorComponent"; }
 EUClasses UActorComponent::GetClassEnum() { return EUClasses::MC_UActorComponent; }
@@ -7,5 +7,9 @@ const UClass *UActorComponent::StaticClass()
 {
 	static UClass *StaticClass = new UClass("UActorComponent", EUClasses::MC_UActorComponent);
 	return StaticClass;
+}
+std::unique_ptr<UObject> UActorComponent::CreateDefaultObject()
+{
+    return std::make_unique<UActorComponent>();
 }
 }

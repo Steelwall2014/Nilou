@@ -46,6 +46,23 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
+        UStaticMesh *Mesh = dynamic_cast<UStaticMesh*>(GetContentManager()->GetContentByPath("Testgltf/WaterBottle.gltf_mesh_0.json"));
+        if (Mesh)
+        {
+            FTransform MeshTransform;
+            MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
+            std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");
+            StaticMeshActor->SetStaticMesh(Mesh);
+        }
+        // std::shared_ptr<FImage> NoMetallicRoughnessImg = std::make_shared<FImage>();
+        // NoMetallicRoughnessImg->Width = 1; NoMetallicRoughnessImg->Height = 1; NoMetallicRoughnessImg->Channel = 4; NoMetallicRoughnessImg->data_size = 4;
+        // NoMetallicRoughnessImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoMetallicRoughnessImg->data = new uint8[4];
+        // NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
+        // std::unique_ptr<UTexture> NoMetallicRoughnessTexture = std::make_unique<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
+        // BeginInitResource(NoMetallicRoughnessTexture->GetResource());
+        // GetContentManager()->CreateDirectory("/Testgltf/0_WaterBottle.gltf_texture_0.json");
+        // GetContentManager()->CreateFile("/NoMetallicRoughnessTexture.json", std::move(NoMetallicRoughnessTexture));
+        // GetContentManager()->Flush();
         // std::shared_ptr<tinygltf::Model> Model = GetAssetLoader()->SyncReadGLTFModel(R"(D:\Nilou\Assets\Models\WaterBottle.gltf)");
         // GLTFParseResult Mesh = GameStatics::ParseToStaticMeshes(*Model, false);
         // nlohmann::json json;
@@ -66,14 +83,21 @@ namespace nilou {
         // std::string s = json.dump();
         // out << s;
 
+        // nlohmann::json json;
+        // std::ifstream in("D:\\Nilou\\Content\\Testgltf\\GLTFMaterial.json");
+        // in >> json;
+        // std::shared_ptr<UMaterial> material = std::make_shared<UMaterial>();
+        // material->Path = "/Content/Testgltf/GLTFMaterial.json";
+        // material->Deserialize(json);
+        
         // Mesh.Textures[0]->Deserialize(json);
         // for (auto &Texture : Mesh.Textures)
-        //     FContentManager::GetContentManager().AddGlobalTexture(Texture->Name, Texture);
+        //     GetContentManager()->AddGlobalTexture(Texture->Name, Texture);
         // for (auto &Material : Mesh.Materials)
-        //     FContentManager::GetContentManager().AddGlobalMaterial(Material->Name, Material);
+        //     GetContentManager()->AddGlobalMaterial(Material->Name, Material);
         // for (auto &StaticMesh : Mesh.StaticMeshes)
-        //     FContentManager::GetContentManager().AddGlobalStaticMesh("WaterBottle.gltf", StaticMesh);
-        // FContentManager::GetContentManager().AddGlobalUniformBuffer("WaterBottle_ubo", Mesh.UniformBuffer);
+        //     GetContentManager()->AddGlobalStaticMesh("WaterBottle.gltf", StaticMesh);
+        // GetContentManager()->AddGlobalUniformBuffer("WaterBottle_ubo", Mesh.UniformBuffer);
         // Mesh.InitResource();
         // FTransform MeshTransform;
         // MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
@@ -82,7 +106,7 @@ namespace nilou {
         
         std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
-        SphereActor->SphereComponent->SetMaterial(FContentManager::GetContentManager().GetGlobalMaterial("SkyAtmosphereMaterial"));
+        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetGlobalMaterial("SkyAtmosphereMaterial"));
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
         std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
 

@@ -16,43 +16,43 @@ namespace nilou {
         SHADER_PARAMETER(float, roughnessFactor)
     END_UNIFORM_BUFFER_STRUCT()
     
-    template<>
-    class TStaticSerializer<FGLTFMaterialBlock>
-    {
-    public:
-        static void Serialize(const FGLTFMaterialBlock &Object, nlohmann::json &json)
-        {
-            json["ClassName"] = "FGLTFMaterialBlock";
-            nlohmann::json &content = json["Content"];
-            content["baseColorFactor"] = {Object.baseColorFactor.r, Object.baseColorFactor.g, Object.baseColorFactor.b, Object.baseColorFactor.a};
-            content["emissiveFactor"] = {Object.emissiveFactor.r, Object.emissiveFactor.g, Object.emissiveFactor.b};
-            content["metallicFactor"] = Object.metallicFactor;
-            content["roughnessFactor"] = Object.roughnessFactor;
-        }
-        static void Deserialize(FGLTFMaterialBlock &Object, nlohmann::json &json)
-        {
-            if (!SerializeHelper::CheckIsType(json, "FGLTFMaterialBlock")) return;
+    // template<>
+    // class TStaticSerializer<FGLTFMaterialBlock>
+    // {
+    // public:
+    //     static void Serialize(const FGLTFMaterialBlock &Object, nlohmann::json &json)
+    //     {
+    //         json["ClassName"] = "FGLTFMaterialBlock";
+    //         nlohmann::json &content = json["Content"];
+    //         content["baseColorFactor"] = {Object.baseColorFactor.r, Object.baseColorFactor.g, Object.baseColorFactor.b, Object.baseColorFactor.a};
+    //         content["emissiveFactor"] = {Object.emissiveFactor.r, Object.emissiveFactor.g, Object.emissiveFactor.b};
+    //         content["metallicFactor"] = Object.metallicFactor;
+    //         content["roughnessFactor"] = Object.roughnessFactor;
+    //     }
+    //     static void Deserialize(FGLTFMaterialBlock &Object, nlohmann::json &json)
+    //     {
+    //         if (!SerializeHelper::CheckIsType(json, "FGLTFMaterialBlock")) return;
             
-            nlohmann::json &content = json["Content"];
-            Object.baseColorFactor.r = content["baseColorFactor"][0];
-            Object.baseColorFactor.g = content["baseColorFactor"][1];
-            Object.baseColorFactor.b = content["baseColorFactor"][2];
-            Object.baseColorFactor.a = content["baseColorFactor"][3];
-            Object.emissiveFactor.r = content["emissiveFactor"][0];
-            Object.emissiveFactor.g = content["emissiveFactor"][1];
-            Object.emissiveFactor.b = content["emissiveFactor"][2];
-            Object.metallicFactor = content["metallicFactor"];
-            Object.roughnessFactor = content["roughnessFactor"];
+    //         nlohmann::json &content = json["Content"];
+    //         Object.baseColorFactor.r = content["baseColorFactor"][0];
+    //         Object.baseColorFactor.g = content["baseColorFactor"][1];
+    //         Object.baseColorFactor.b = content["baseColorFactor"][2];
+    //         Object.baseColorFactor.a = content["baseColorFactor"][3];
+    //         Object.emissiveFactor.r = content["emissiveFactor"][0];
+    //         Object.emissiveFactor.g = content["emissiveFactor"][1];
+    //         Object.emissiveFactor.b = content["emissiveFactor"][2];
+    //         Object.metallicFactor = content["metallicFactor"];
+    //         Object.roughnessFactor = content["roughnessFactor"];
             
-        }
-    };
+    //     }
+    // };
 
     struct GLTFParseResult
     {
         std::vector<std::shared_ptr<class UStaticMesh>> StaticMeshes;
         std::vector<std::shared_ptr<class UMaterialInstance>> Materials;
         std::vector<std::shared_ptr<class UTexture>> Textures;
-        std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>> UniformBuffer;
+        TUniformBufferRef<FGLTFMaterialBlock> UniformBuffer;
         void InitResource();
     };
 

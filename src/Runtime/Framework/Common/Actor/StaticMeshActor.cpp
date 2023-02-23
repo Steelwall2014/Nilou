@@ -2,7 +2,7 @@
 
 namespace nilou {
 
-    void AStaticMeshActor::SetStaticMesh(std::shared_ptr<UStaticMesh> StaticMesh)
+    void AStaticMeshActor::SetStaticMesh(UStaticMesh *StaticMesh)
     {
         if (StaticMesh)
         {

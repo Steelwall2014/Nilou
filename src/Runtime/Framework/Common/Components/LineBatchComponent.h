@@ -10,7 +10,7 @@ namespace nilou {
     {
         GENERATE_CLASS_INFO()
     public:
-        ULineBatchComponent(AActor *InOwner)
+        ULineBatchComponent(AActor *InOwner=nullptr)
             : UPrimitiveComponent(InOwner)
         { 
         }

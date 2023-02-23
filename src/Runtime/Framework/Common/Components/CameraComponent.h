@@ -27,7 +27,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        UCameraComponent(AActor *InOwner, bool bIsMainCamera=false) 
+        UCameraComponent(AActor *InOwner=nullptr, bool bIsMainCamera=false) 
             : USceneComponent(InOwner)
             , SceneProxy(nullptr)
             , bIsMainCamera(bIsMainCamera)

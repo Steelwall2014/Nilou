@@ -16,9 +16,23 @@ namespace nilou {
         
         bool IsA(const UClass *Class);
 
-        virtual void Serialize(nlohmann::json &json) { }
+        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) { }
 
-        virtual void Deserialize(nlohmann::json &json) { }
+        /**
+         * @param json The out json object
+         * @param Path The path of current object, relative to FPath::ContentDir(). 
+         * It is used for referencing other contents.
+         */
+        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) { }
 
+    };
+
+    class FObjectFactory
+    {
+    public:
+        static std::unique_ptr<UObject> CreateDefaultObjectByName(const std::string &ClassName);
+    private:
+        FObjectFactory();
+        std::unordered_map<std::string, std::function<std::unique_ptr<UObject>(void)>> FunctionMap;
     };
 }

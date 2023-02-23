@@ -348,7 +348,7 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
             PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
-            WireframeMaterial = FContentManager::GetContentManager().GetGlobalMaterial("WireframeMaterial");
+            WireframeMaterial = GetContentManager()->GetGlobalMaterial("WireframeMaterial");
         }
 
         void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)

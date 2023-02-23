@@ -15,15 +15,16 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        UStaticMeshComponent(AActor *InOwner)
+        UStaticMeshComponent(AActor *InOwner=nullptr)
             : UPrimitiveComponent(InOwner)
+            , StaticMesh(nullptr)
         { 
             // Material = std::make_shared<FDefaultMaterial>();
         }
 
-        void SetStaticMesh(std::shared_ptr<UStaticMesh> StaticMesh);
+        void SetStaticMesh(UStaticMesh *StaticMesh);
 
-        std::shared_ptr<UStaticMesh> StaticMesh;
+        UStaticMesh *StaticMesh;
         std::vector<UMaterial *> MaterialSlots;
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */

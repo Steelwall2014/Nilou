@@ -19,7 +19,7 @@ namespace nilou {
     }
 
 
-    void UTexture::Serialize(nlohmann::json &json)
+    void UTexture::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
     {
         json["ClassName"] = "UTexture";
         nlohmann::json content = nlohmann::json();
@@ -47,7 +47,7 @@ namespace nilou {
         json["Content"] = content;
     }
 
-    void UTexture::Deserialize(nlohmann::json &json)
+    void UTexture::Deserialize(nlohmann::json &json, const std::filesystem::path &Path)
     {
         if (json["ClassName"] != "UTexture") return;
 

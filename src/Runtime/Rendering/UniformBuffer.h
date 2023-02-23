@@ -16,40 +16,6 @@
 #include "Common/Maths.h"
 #include "DynamicRHI.h"
 
-// #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
-//     struct TypeName \
-//     { \
-//     private: \
-//         static TypeName DummyObject; \
-//         static FUniformBufferStructDeclaration *StaticDeclaration; \
-//         inline void SetStaticDeclaration(FUniformBufferStructDeclaration *StaticDeclaration) \
-//         { \
-//             TypeName::StaticDeclaration = StaticDeclaration; \
-//         } \
-//     public: \
-//         static inline const FUniformBufferStructDeclaration *GetStaticDeclaration() \
-//         { \
-//             return TypeName::StaticDeclaration; \
-//         } \
-//         inline TypeName() \
-//         { \
-//             nilou::FUniformBufferBuilder::BeginUniformBufferStruct(#TypeName);
-// #define SHADER_PARAMETER(Type, FieldName) \
-//             nilou::FUniformBufferBuilder::DeclareUniformBufferStructMember(GetDummyObject<Type>(), #FieldName);
-// #define SHADER_PARAMETER_ARRAY(Type, N, FieldName) \
-//             nilou::FUniformBufferBuilder::DeclareUniformBufferStructMember(GetDummyObject<Type[N]>(), #FieldName);
-// #define SHADER_PARAMETER_NESTED_STRUCT(Type, FieldName) \
-//             nilou::FUniformBufferBuilder::DeclareUniformBufferStructMember(#Type, #FieldName);
-// #define SHADER_PARAMETER_NESTED_STRUCT_ARRAY(Type, N, FieldName) \
-//             nilou::FUniformBufferBuilder::DeclareUniformBufferStructMember(#Type, N, #FieldName);
-// #define END_UNIFORM_BUFFER_STRUCT() \
-//             SetStaticDeclaration(&nilou::FUniformBufferBuilder::EndUniformBufferStruct());\
-//         } \
-//     }; 
-
-// #define IMPLEMENT_UNIFORM_BUFFER_STRUCT(TypeName) \
-//     FUniformBufferStructDeclaration *TypeName::StaticDeclaration = nullptr; \
-//     TypeName TypeName::DummyObject;
     
 /** Alignment of the shader parameters struct is required to be 16-byte boundaries. */
 #define SHADER_PARAMETER_STRUCT_ALIGNMENT 16
@@ -366,17 +332,10 @@ namespace nilou {
     #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
         struct TypeName \
         { 
-    // #define SHADER_PARAMETER(Type, MemberName) \
-    //         TShaderParameterTypeInfo<Type>::TAlignedType MemberName;
-    // #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \
-    //         TShaderParameterTypeInfo<Type[N]>::TAlignedType MemberName;
-
-    
     #define SHADER_PARAMETER(Type, MemberName) \
             alignas(TShaderParameterTypeInfo<Type>::Alignment) Type MemberName;
     #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \
             TAlignedStaticArray<Type, N, TShaderParameterTypeInfo<Type[N]>::Alignment> MemberName;
-            
     #define SHADER_PARAMETER_STRUCT(Type, MemberName) \
             Type MemberName;
     #define SHADER_PARAMETER_STRUCT_ARRAY(Type, N, MemberName) \
@@ -460,44 +419,46 @@ namespace nilou {
         return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
     }
 
-    UCLASS()
-    class UUniformBuffer : public UObject
-    {
-        GENERATE_CLASS_INFO()
-    public:
+    // UCLASS()
+    // class UUniformBuffer : public UObject
+    // {
+    //     GENERATE_CLASS_INFO()
+    // public:
 
-        std::filesystem::path Path;
+    //     std::filesystem::path Path;
 
-    };
+    //     static std::unordered_map<std::string, std::function<void(const T&, nlohmann::json&)>> SerializeFunctionMap;
+    //     static std::unordered_map<std::string, std::function<void(T&, nlohmann::json&)>> DeserializeFunctionMap;
+    // };
 
-    template<typename T>
-    class TUUniformBuffer : public UUniformBuffer
-    {
-    public:
+    // template<typename T>
+    // class TUUniformBuffer : public UUniformBuffer
+    // {
+    // public:
 
-        TUUniformBuffer()
-            : UniformBufferResource(std::make_unique<TUniformBuffer<T>>())
-        {
+    //     TUUniformBuffer()
+    //         : UniformBufferResource(std::make_unique<TUniformBuffer<T>>())
+    //     {
 
-        }
+    //     }
 
-        virtual void Serialize(nlohmann::json &json) override
-        {
-            json["ClassName"] = "TUUniformBuffer";
-            nlohmann::json &content = json["Content"];
-            TStaticSerializer<T>::Serialize(UniformBufferResource->Data, content["Data"]);
-        }
+    //     virtual void Serialize(nlohmann::json &json) override
+    //     {
+    //         json["ClassName"] = "TUUniformBuffer";
+    //         nlohmann::json &content = json["Content"];
+    //         TStaticSerializer<T>::Serialize(UniformBufferResource->Data, content["Data"]);
+    //     }
 
-        virtual void Deserialize(nlohmann::json &json) override
-        {
-            if (!SerializeHelper::CheckIsType(json, "TTUniformBuffer")) return;
-            nlohmann::json &content = json["Content"];
-            TStaticSerializer<T>::Deserialize(UniformBufferResource->Data, content["Data"]);
-        }
+    //     virtual void Deserialize(nlohmann::json &json) override
+    //     {
+    //         if (!SerializeHelper::CheckIsType(json, "TTUniformBuffer")) return;
+    //         nlohmann::json &content = json["Content"];
+    //         TStaticSerializer<T>::Deserialize(UniformBufferResource->Data, content["Data"]);
+    //     }
 
-        TUniformBuffer<T> *GetResource() { return UniformBufferResource.get(); };
+    //     TUniformBuffer<T> *GetResource() { return UniformBufferResource.get(); };
 
-    private:
-        std::unique_ptr<TUniformBuffer<T>> UniformBufferResource;
-    };
+    // private:
+    //     std::unique_ptr<TUniformBuffer<T>> UniformBufferResource;
+    // };
 }

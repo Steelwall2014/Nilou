@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/SphereComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
 namespace nilou {
 std::string USphereComponent::GetClassName() { return "USphereComponent"; }
 EUClasses USphereComponent::GetClassEnum() { return EUClasses::MC_USphereComponent; }
@@ -7,5 +7,9 @@ const UClass *USphereComponent::StaticClass()
 {
 	static UClass *StaticClass = new UClass("USphereComponent", EUClasses::MC_USphereComponent);
 	return StaticClass;
+}
+std::unique_ptr<UObject> USphereComponent::CreateDefaultObject()
+{
+    return std::make_unique<USphereComponent>();
 }
 }

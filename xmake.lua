@@ -29,11 +29,7 @@ function BuildExternalProject(config)
     target(config.projectName)
     Execute(config.macros, add_defines)
     Execute(config.link, add_links)
-    -- if is_mode("release") then
-    --     set_runtimes("MD")
-    -- else 
-    --     set_runtimes("MDd")
-    -- end 
+    set_optimize("fastest")
     set_languages("clatest")
     set_languages("cxx17")
     set_kind("static")
@@ -149,6 +145,7 @@ function copyFunc(target)
 end
 ]]--
 BuildExternalProject({projectName = "crossguid", macros = {"GUID_WINDOWS"}, link = {"Ole32"}})
+BuildExternalProject({projectName = "base64"})
 -- BuildExternalProject({projectName = "dds"})
 BuildExternalProject({projectName = "glad"})
 -- BuildExternalProject({projectName = "imgui"})
@@ -171,7 +168,7 @@ BuildProject({
     projectName = "Nilou",
     projectType = "binary",
     macros = {},
-    depends = {"crossguid", "glad"},
+    depends = {"crossguid", "glad", "base64"},
     files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},
@@ -200,7 +197,7 @@ BuildProject({
     projectName = "GLTFImporter",
     projectType = "binary",
     macros = {},
-    depends = {"crossguid", "glad"},
+    depends = {"crossguid", "glad", "base64"},
     files = {"src/GLTFImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},

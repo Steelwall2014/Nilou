@@ -86,8 +86,9 @@ namespace nilou {
     }
     void FParallelMeshDrawCommands::DispatchDraw(FDynamicRHI *RHICmdList)
     {
-        for (auto &&MeshDrawCommand : MeshCommands)
+        for (int i = 0; i < MeshCommands.size(); i++)
         {
+            auto &&MeshDrawCommand = MeshCommands[i];
             MeshDrawCommand.SubmitDraw(RHICmdList);
         }
     }
@@ -330,8 +331,8 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
 
-                    FShaderInstance *RenderToScreenVS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersVS);
-                    FShaderInstance *RenderToScreenPS = FContentManager::GetContentManager().GetGlobalShader(PermutationParametersPS);
+                    FShaderInstance *RenderToScreenVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *RenderToScreenPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 

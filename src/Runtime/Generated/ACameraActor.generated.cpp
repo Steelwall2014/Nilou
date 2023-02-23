@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Actor/CameraActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
 namespace nilou {
 std::string ACameraActor::GetClassName() { return "ACameraActor"; }
 EUClasses ACameraActor::GetClassEnum() { return EUClasses::MC_ACameraActor; }
@@ -7,5 +7,9 @@ const UClass *ACameraActor::StaticClass()
 {
 	static UClass *StaticClass = new UClass("ACameraActor", EUClasses::MC_ACameraActor);
 	return StaticClass;
+}
+std::unique_ptr<UObject> ACameraActor::CreateDefaultObject()
+{
+    return std::make_unique<ACameraActor>();
 }
 }

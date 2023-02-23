@@ -120,8 +120,12 @@ int main(int argc, char *argv[])
 
     std::string MarkedClassesEnumBody;
 
+    std::string IncludedPaths;
+
+    std::vector<string> ClassNames;
+
     Directory dir(DirectoryName);
-    dir.ForEachFile(true, [&ImplementationBody, GeneratedCodePath, &MarkedClassesEnumBody, rel_path] (File File) {
+    dir.ForEachFile(true, [&ClassNames, &IncludedPaths, &ImplementationBody, GeneratedCodePath, &MarkedClassesEnumBody, rel_path] (File File) {
         if (EndsWith(File.GetFilePath(), ".h"))
         {
             vector<string> Lines = File.ReadLines();
@@ -163,6 +167,7 @@ int main(int argc, char *argv[])
                             ImplementationBody += "\tAddEdge(EUClasses::MC_" + ClassName + ", EUClasses::MC_" + ParentClassName + ");\n";
                         }
                     }
+                    ClassNames.push_back(ClassName);
 
                     string file_name = File.GetFilePath();
                     file_name.erase(0, file_name.find_last_of("/"));
@@ -170,25 +175,10 @@ int main(int argc, char *argv[])
 
                     /********** SomeClass.generated.cpp **********/
                     ofstream out_stream(GeneratedCodePath + "/" + ClassName + ".generated.cpp", ios::out);
-                    // string content = 
-                    //     "#pragma once\n"
-                    //     "#include \"ClassInfo.h\"\n"
-                    //     "namespace nilou {\n"
-                    //     "\tclass " + ClassName + ";\n"
-                    //     "\ttemplate <>\n"
-                    //     "\tstruct TClassInfo<" + ClassName + "> {\n"
-                    //     "\t\tstatic std::string StaticClassName() { return \"" + ClassName + "\";}\n"
-                    //     "\t\tstatic EUClasses StaticClassEnum() { return EUClasses::MC_" + ClassName + "; }\n"
-                    //     "\t\tstatic const UClass *StaticClass() \n"
-                    //     "\t\t{ \n"
-                    //     "\t\t\tstatic UClass *StaticClass = new UClass(TClassInfo<"+ClassName+">::StaticClassName(), TClassInfo<"+ClassName+">::StaticClassEnum()); \n"
-                    //     "\t\t\treturn StaticClass;\n" 
-                    //     "\t\t}\n"
-                    //     "\t};\n" 
-                    //     "}\n";
                     string filepath = File.GetFilePath();
                     if (filepath[0] == '.' && filepath[1] == '/')
                         filepath.erase(0, 2);
+                    IncludedPaths += "#include \"" + rel_path + filepath + "\"\n";
                     string content = 
                         "#include \"" + rel_path + filepath + "\"\n"
                         "namespace nilou {\n"
@@ -200,6 +190,8 @@ int main(int argc, char *argv[])
                         "\tstatic UClass *StaticClass = new UClass(\"" + ClassName + "\", EUClasses::MC_" + ClassName + ");\n"
                         "\treturn StaticClass;\n"
                         "}\n"
+                        "std::unique_ptr<UObject> "+ClassName+"::CreateDefaultObject()\n"
+                        "{\n    return std::make_unique<"+ClassName+">();\n}\n"
                         "}\n";
 
                     out_stream << content;
@@ -237,6 +229,20 @@ int main(int argc, char *argv[])
         << "\tMC_UClassNum,\n"
            "};\n}";
     /********** MarkedClasses.generated.h **********/
+
+    /********** ObjectFactory.generated.cpp **********/
+    out_stream = ofstream(GeneratedCodePath + "/ObjectFactory.generated.cpp", ios::out);
+    out_stream 
+        << IncludedPaths << 
+        "using namespace nilou;\n"
+        "FObjectFactory::FObjectFactory()\n"
+        "{\n";
+        for (auto &ClassName : ClassNames)
+        {
+            out_stream << "    FunctionMap[\""+ClassName+"\"] = &"+ClassName+"::CreateDefaultObject;\n";
+        }
+        out_stream << "}";
+    /********** ObjectFactory.generated.cpp **********/
 
     return 0;
 }

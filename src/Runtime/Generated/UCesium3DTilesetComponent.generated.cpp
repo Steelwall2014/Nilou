@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/Cesium3DTilesetComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/Cesium3DTilesetComponent.h"
 namespace nilou {
 std::string UCesium3DTilesetComponent::GetClassName() { return "UCesium3DTilesetComponent"; }
 EUClasses UCesium3DTilesetComponent::GetClassEnum() { return EUClasses::MC_UCesium3DTilesetComponent; }
@@ -7,5 +7,9 @@ const UClass *UCesium3DTilesetComponent::StaticClass()
 {
 	static UClass *StaticClass = new UClass("UCesium3DTilesetComponent", EUClasses::MC_UCesium3DTilesetComponent);
 	return StaticClass;
+}
+std::unique_ptr<UObject> UCesium3DTilesetComponent::CreateDefaultObject()
+{
+    return std::make_unique<UCesium3DTilesetComponent>();
 }
 }

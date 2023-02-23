@@ -273,7 +273,7 @@ namespace nilou {
         }
 
         // AddGlobalShaderInstance(ShaderInstance, ShaderParameter);
-        FContentManager::GetContentManager().AddGlobalShader(ShaderParameter, ShaderInstance);
+        GetContentManager()->AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(

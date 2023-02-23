@@ -23,9 +23,11 @@ namespace nilou {
             FVertexBuffer::~FVertexBuffer();
         }
 
-        void Init(uint32 InNumVertices, bool bInNeedsCPUAccess = true);
+        void Init(uint32 InNumVertices);
 
-        void Init(const std::vector<VertexType>& InVertices, bool bInNeedsCPUAccess = true);
+        void Init(const std::vector<VertexType>& InVertices);
+
+        void Init(void *InData, uint32 Stride, uint32 InNumVertices);
 
         void CleanUp();
 
@@ -95,12 +97,12 @@ namespace nilou {
 
         uint32 NumVertices;
 
-        bool bNeedsCPUAccess = true;
+        // bool bNeedsCPUAccess = true;
 
     };
 
     template<class VertexType>
-    void FStaticMeshVertexBuffer<VertexType>::Init(uint32 InNumVertices, bool bInNeedsCPUAccess)
+    void FStaticMeshVertexBuffer<VertexType>::Init(uint32 InNumVertices)
     {
         Stride = sizeof(VertexType);
         NumVertices = InNumVertices;
@@ -109,7 +111,7 @@ namespace nilou {
     }
 
     template<class VertexType>
-    void FStaticMeshVertexBuffer<VertexType>::Init(const std::vector<VertexType>& InPositions, bool bInNeedsCPUAccess)
+    void FStaticMeshVertexBuffer<VertexType>::Init(const std::vector<VertexType>& InPositions)
     {
         Stride = sizeof(VertexType);
         NumVertices = InPositions.size();
@@ -117,6 +119,18 @@ namespace nilou {
         {
             Data = (uint8 *)std::realloc(Data, NumVertices * sizeof(VertexType));
             memcpy(Data, InPositions.data(), NumVertices * sizeof(VertexType));
+        }
+    }
+
+    template<class VertexType>
+    void FStaticMeshVertexBuffer<VertexType>::Init(void *InData, uint32 InStride, uint32 InNumVertices)
+    {
+        Stride = InStride;
+        NumVertices = InNumVertices;
+        if (NumVertices > 0)
+        {
+            Data = (uint8 *)std::realloc(Data, NumVertices * InStride);
+            memcpy(Data, InData, NumVertices * InStride);
         }
     }
 
@@ -140,7 +154,7 @@ namespace nilou {
     template<class VertexType>
     RHIBufferRef FStaticMeshVertexBuffer<VertexType>::CreateRHIBuffer_RenderThread()
     {
-        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumVertices * sizeof(VertexType), 
+        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumVertices * Stride, 
             EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Data);
     }
 

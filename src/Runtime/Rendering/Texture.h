@@ -124,9 +124,9 @@ namespace nilou {
             return TextureResource.get();
         }
 
-        virtual void Serialize(nlohmann::json &json) override;
+        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
 
-        virtual void Deserialize(nlohmann::json &json) override;
+        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) override;
     
     protected:
         std::unique_ptr<FTexture> TextureResource;

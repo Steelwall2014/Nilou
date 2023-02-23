@@ -1,5 +1,7 @@
 #include "StaticMeshResources.h"
 #include "Common/DynamicMeshResources.h"
+#include "Common/ContentManager.h"
+#include "Material.h"
 #include "DynamicRHI.h"
 #include "RHIResources.h"
 #include "RenderResource.h"
@@ -8,6 +10,8 @@
 #include <set>
 
 namespace nilou {
+
+    namespace fs = std::filesystem;
 
     void FStaticMeshVertexBuffers::InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<FDynamicMeshVertex> &Vertices)
     {
@@ -209,6 +213,33 @@ namespace nilou {
         for (int i = 0; i < RenderData->LODResources.size(); i++)
         {
             RenderData->LODResources[i]->ReleaseResources();
+        }
+    }
+
+    void UStaticMesh::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
+    {
+        json["ClassName"] = "UStaticMesh";
+        nlohmann::json &content = json["Content"];
+        content["Name"] = Name;
+        TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"]);
+        TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"]);
+    }
+
+    void UStaticMesh::Deserialize(nlohmann::json &json, const std::filesystem::path &InPath)
+    {
+        if (!SerializeHelper::CheckIsType(json, "UStaticMesh")) return;
+        nlohmann::json &content = json["Content"];
+        Name = content["Name"];
+        Path = InPath;
+        TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"]);
+        TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"]);
+        RenderData->InitResources();
+        for (int i = 0; i < content["MaterialSlots"].size(); i++)
+        {
+            fs::path material_path = content["MaterialSlots"][i].get<std::string>();
+            material_path = fs::weakly_canonical(Path.parent_path() / fs::path(material_path));
+            UMaterial *Material = dynamic_cast<UMaterial *>(GetContentManager()->GetContentByPath(material_path));
+            MaterialSlots.push_back(Material);
         }
     }
     

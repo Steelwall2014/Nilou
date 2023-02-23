@@ -128,7 +128,7 @@ namespace nilou {
     static void ParseToMaterials(tinygltf::Model &model, 
         std::vector<std::shared_ptr<UMaterialInstance>> &OutMaterials, 
         std::vector<std::shared_ptr<UTexture>> &OutTextures,
-        std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>> &OutUniformBuffer)
+        TUniformBufferRef<FGLTFMaterialBlock> &OutUniformBuffer)
     {
         OutMaterials.clear();
         OutTextures.clear();
@@ -168,7 +168,7 @@ namespace nilou {
             OutTextures.push_back(texture);
         }
 
-        UMaterial *GLTFMaterial = FContentManager::GetContentManager().GetGlobalMaterial("GLTFMaterial");
+        UMaterial *GLTFMaterial = GetContentManager()->GetGlobalMaterial("GLTFMaterial");
         if (GLTFMaterial == nullptr) return;
 
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
@@ -181,24 +181,23 @@ namespace nilou {
                 [&OutTextures, Material](int index, const std::string &sampler_name) {
                 if (index != -1)
                 {
-                    Material->SetParameterValue(sampler_name, OutTextures[index].get());
+                    Material->GetResource()->SetParameterValue(sampler_name, OutTextures[index].get());
                 }
             };
             AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture");
             AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
             AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
             AccessTextures(gltf_material.normalTexture.index, "normalTexture");
-            OutUniformBuffer = std::make_shared<TUUniformBuffer<FGLTFMaterialBlock>>();
-            TUniformBuffer<FGLTFMaterialBlock> *OutUBOResource = OutUniformBuffer->GetResource();
-            OutUBOResource->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
-            OutUBOResource->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
-            OutUBOResource->Data.baseColorFactor.b = gltf_material.pbrMetallicRoughness.baseColorFactor[2];
-            OutUBOResource->Data.baseColorFactor.a = gltf_material.pbrMetallicRoughness.baseColorFactor[3];
-            OutUBOResource->Data.emissiveFactor.r = gltf_material.emissiveFactor[0];
-            OutUBOResource->Data.emissiveFactor.g = gltf_material.emissiveFactor[1];
-            OutUBOResource->Data.emissiveFactor.b = gltf_material.emissiveFactor[2];
-            OutUBOResource->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
-            OutUBOResource->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
+            OutUniformBuffer = CreateUniformBuffer<FGLTFMaterialBlock>();
+            OutUniformBuffer->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
+            OutUniformBuffer->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
+            OutUniformBuffer->Data.baseColorFactor.b = gltf_material.pbrMetallicRoughness.baseColorFactor[2];
+            OutUniformBuffer->Data.baseColorFactor.a = gltf_material.pbrMetallicRoughness.baseColorFactor[3];
+            OutUniformBuffer->Data.emissiveFactor.r = gltf_material.emissiveFactor[0];
+            OutUniformBuffer->Data.emissiveFactor.g = gltf_material.emissiveFactor[1];
+            OutUniformBuffer->Data.emissiveFactor.b = gltf_material.emissiveFactor[2];
+            OutUniformBuffer->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
+            OutUniformBuffer->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
             OutMaterials.push_back(Material);
             Material->SetParameterValue("FGLTFMaterialBlock", OutUniformBuffer.get());
         }
@@ -210,12 +209,12 @@ namespace nilou {
         std::vector<std::shared_ptr<UStaticMesh>> &StaticMeshes = Result.StaticMeshes;
         std::vector<std::shared_ptr<UMaterialInstance>> &Materials = Result.Materials;
         std::vector<std::shared_ptr<UTexture>> &Textures = Result.Textures;
-        std::shared_ptr<TUUniformBuffer<FGLTFMaterialBlock>> &UniformBuffer = Result.UniformBuffer; 
+        TUniformBufferRef<FGLTFMaterialBlock> &UniformBuffer = Result.UniformBuffer; 
         ParseToMaterials(model, Materials, Textures, UniformBuffer);
         for (auto &gltf_mesh : model.meshes)
         {
             std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
-            std::shared_ptr<FStaticMeshLODResources> Resource = std::make_shared<FStaticMeshLODResources>();
+            std::unique_ptr<FStaticMeshLODResources> Resource = std::make_unique<FStaticMeshLODResources>();
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
             {
                 tinygltf::Primitive &gltf_prim = gltf_mesh.primitives[prim_index];
@@ -319,7 +318,7 @@ namespace nilou {
             }
             StaticMeshes.push_back(StaticMesh);
             StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
-            StaticMesh->RenderData->LODResources.push_back(Resource);
+            StaticMesh->RenderData->LODResources.push_back(std::move(Resource));
         }
 
         if (need_init)
@@ -337,6 +336,6 @@ namespace nilou {
         {
             this->StaticMeshes[i]->RenderData->InitResources();
         }
-        BeginInitResource(this->UniformBuffer->GetResource());
+        BeginInitResource(this->UniformBuffer.get());
     }
 }

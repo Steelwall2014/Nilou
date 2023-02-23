@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/SceneComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneComponent.h"
 namespace nilou {
 std::string USceneComponent::GetClassName() { return "USceneComponent"; }
 EUClasses USceneComponent::GetClassEnum() { return EUClasses::MC_USceneComponent; }
@@ -7,5 +7,9 @@ const UClass *USceneComponent::StaticClass()
 {
 	static UClass *StaticClass = new UClass("USceneComponent", EUClasses::MC_USceneComponent);
 	return StaticClass;
+}
+std::unique_ptr<UObject> USceneComponent::CreateDefaultObject()
+{
+    return std::make_unique<USceneComponent>();
 }
 }

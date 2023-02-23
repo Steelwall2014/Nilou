@@ -3,7 +3,7 @@
 
 #include "GLFWApplication.h"
 
-#include "Common/ContentManager.h"
+#include "Path.h"
 
 namespace nilou {
 
@@ -24,7 +24,9 @@ namespace nilou {
         Scene = std::make_shared<FScene>();
         World->Scene = Scene.get();
         Scene->World = World.get();
+        ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         while (!RenderingThread->IsRunnableInitialized()) { }
+        ContentManager->Init();
 		GDALAllRegister();
         World->InitWorld();
         World->BeginPlay();
@@ -34,7 +36,7 @@ namespace nilou {
 
     void BaseApplication::Finalize()
     {
-        FContentManager::GetContentManager().ReleaseRenderResources();
+        ContentManager->ReleaseRenderResources();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }
     }

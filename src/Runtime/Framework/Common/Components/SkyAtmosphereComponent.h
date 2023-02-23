@@ -58,7 +58,7 @@ public: \
     {
         GENERATE_CLASS_INFO()
     public:
-        USkyAtmosphereComponent(AActor *InOwner);
+        USkyAtmosphereComponent(AActor *InOwner=nullptr);
 
 		// The solar irradiance at the top of the atmosphere.
 		SKY_DECLARE_FUNCTION(vec3, SolarIrradiance)

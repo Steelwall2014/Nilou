@@ -26,7 +26,8 @@
         virtual std::string GetClassName(); \
         virtual EUClasses GetClassEnum(); \
         virtual const UClass *GetClass(); \
-        static const UClass *StaticClass();
+        static const UClass *StaticClass(); \
+		static std::unique_ptr<UObject> CreateDefaultObject();
 
 #define DECLARE_VERTEX_FACTORY_TYPE(FactoryClass) \
     public: \

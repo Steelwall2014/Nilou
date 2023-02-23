@@ -18,7 +18,7 @@ namespace nilou {
     void CreateMaterials()
     {
         std::shared_ptr<UMaterial> DefaultMaterial = std::make_shared<UMaterial>("DefaultMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(DefaultMaterial->Name, DefaultMaterial);
+        GetContentManager()->AddGlobalMaterial(DefaultMaterial->Name, DefaultMaterial);
         DefaultMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
@@ -49,7 +49,7 @@ namespace nilou {
         )");
 
         std::shared_ptr<UMaterial> ColoredMaterial = std::make_shared<UMaterial>("ColoredMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(ColoredMaterial->Name, ColoredMaterial);
+        GetContentManager()->AddGlobalMaterial(ColoredMaterial->Name, ColoredMaterial);
         ColoredMaterial->GetResource()->RasterizerState.CullMode = CM_None;
         ColoredMaterial->UpdateCode(
         R"(
@@ -81,7 +81,7 @@ namespace nilou {
         )");
 
         std::shared_ptr<UMaterial> SkyAtmosphereMaterial = std::make_shared<UMaterial>("SkyAtmosphereMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(SkyAtmosphereMaterial->Name, SkyAtmosphereMaterial);
+        GetContentManager()->AddGlobalMaterial(SkyAtmosphereMaterial->Name, SkyAtmosphereMaterial);
         FMaterial *SkyAtmosphereMaterialResource = SkyAtmosphereMaterial->GetResource();
         SkyAtmosphereMaterialResource->RasterizerState.CullMode = CM_None;
         SkyAtmosphereMaterialResource->DepthStencilState.bEnableFrontFaceStencil = true;
@@ -121,7 +121,7 @@ namespace nilou {
         )");
         
         std::shared_ptr<UMaterial> WireframeMaterial = std::make_shared<UMaterial>("WireframeMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(WireframeMaterial->Name, WireframeMaterial);
+        GetContentManager()->AddGlobalMaterial(WireframeMaterial->Name, WireframeMaterial);
         WireframeMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
@@ -153,7 +153,7 @@ namespace nilou {
         WireframeMaterial->GetResource()->RasterizerState.FillMode = ERasterizerFillMode::FM_Wireframe;
         
         std::shared_ptr<UMaterial> GLTFMaterial = std::make_shared<UMaterial>("GLTFMaterial");
-        FContentManager::GetContentManager().AddGlobalMaterial(GLTFMaterial->Name, GLTFMaterial);
+        GetContentManager()->AddGlobalMaterial(GLTFMaterial->Name, GLTFMaterial);
         GLTFMaterial->UpdateCode(
         R"(
             #include "../include/BasePassCommon.glsl"
@@ -165,7 +165,7 @@ namespace nilou {
 
             layout (std140) uniform FGLTFMaterialBlock {
                 vec4 baseColorFactor;
-                vec3 emissveFactor;
+                vec3 emissiveFactor;
                 float metallicFactor;
                 float roughnessFactor;
             };
@@ -176,7 +176,7 @@ namespace nilou {
             }
             vec3 MaterialGetEmissive(VS_Out vs_out)
             {
-                return texture(emissiveTexture, vs_out.TexCoords).rgb * emissveFactor;
+                return texture(emissiveTexture, vs_out.TexCoords).rgb * emissiveFactor;
             }
             vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
             {
@@ -209,7 +209,7 @@ namespace nilou {
         NoColorImg->data[0] = 255; NoColorImg->data[1] = 255; NoColorImg->data[2] = 255; NoColorImg->data[3] = 255;
         std::shared_ptr<UTexture> NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
         NoColorTexture->GetResource()->SetSamplerParams(texParams);
-        FContentManager::GetContentManager().AddGlobalTexture("NoColorTexture", NoColorTexture);
+        GetContentManager()->AddGlobalTexture("NoColorTexture", NoColorTexture);
         BeginInitResource(NoColorTexture->GetResource());
 
         std::shared_ptr<FImage> NoMetallicRoughnessImg = std::make_shared<FImage>();
@@ -217,7 +217,7 @@ namespace nilou {
         NoMetallicRoughnessImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoMetallicRoughnessImg->data = new uint8[4];
         NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
         std::shared_ptr<UTexture> NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
-        FContentManager::GetContentManager().AddGlobalTexture("NoMetallicRoughnessTexture", NoMetallicRoughnessTexture);
+        GetContentManager()->AddGlobalTexture("NoMetallicRoughnessTexture", NoMetallicRoughnessTexture);
         NoMetallicRoughnessTexture->GetResource()->SetSamplerParams(texParams);
         BeginInitResource(NoMetallicRoughnessTexture->GetResource());
 
@@ -226,7 +226,7 @@ namespace nilou {
         NoEmissiveImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoEmissiveImg->data = new uint8[4];
         NoEmissiveImg->data[0] = 0; NoEmissiveImg->data[1] = 0; NoEmissiveImg->data[2] = 0; NoEmissiveImg->data[3] = 255;
         std::shared_ptr<UTexture> NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
-        FContentManager::GetContentManager().AddGlobalTexture("NoEmissiveTexture", NoEmissiveTexture);
+        GetContentManager()->AddGlobalTexture("NoEmissiveTexture", NoEmissiveTexture);
         NoEmissiveTexture->GetResource()->SetSamplerParams(texParams);
         BeginInitResource(NoEmissiveTexture->GetResource());
 
@@ -235,14 +235,14 @@ namespace nilou {
         NoNormalImg->PixelFormat = EPixelFormat::PF_R8G8B8A8; NoNormalImg->data = new uint8[4];
         NoNormalImg->data[0] = 127; NoNormalImg->data[1] = 127; NoNormalImg->data[2] = 255; NoNormalImg->data[3] = 255;
         std::shared_ptr<UTexture> NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
-        FContentManager::GetContentManager().AddGlobalTexture("NoNormalTexture", NoNormalTexture);
+        GetContentManager()->AddGlobalTexture("NoNormalTexture", NoNormalTexture);
         NoNormalTexture->GetResource()->SetSamplerParams(texParams);
         BeginInitResource(NoNormalTexture->GetResource());
 
-        GLTFMaterial->SetParameterValue("baseColorTexture", NoColorTexture.get());
-        GLTFMaterial->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
-        GLTFMaterial->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
-        GLTFMaterial->SetParameterValue("normalTexture", NoNormalTexture.get());
+        GLTFMaterial->GetResource()->SetParameterValue("baseColorTexture", NoColorTexture.get());
+        GLTFMaterial->GetResource()->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
+        GLTFMaterial->GetResource()->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
+        GLTFMaterial->GetResource()->SetParameterValue("normalTexture", NoNormalTexture.get());
     }
 
     bool FRenderingThread::Init()

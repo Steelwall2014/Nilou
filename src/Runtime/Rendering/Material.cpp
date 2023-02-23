@@ -1,3 +1,4 @@
+#include "Common/Path.h"
 #include "Material.h"
 #include "Common/AssetLoader.h"
 #include "RHIDefinitions.h"
@@ -6,16 +7,18 @@
 #include "Common/ContentManager.h"
 #include "RenderingThread.h"
 
+namespace fs = std::filesystem;
+
 namespace nilou {
 
     const std::filesystem::path MATERIAL_STATIC_PARENT_DIR = FPath::MaterialDir();
 
     void FMaterial::UpdateMaterialCode(const std::string &InCode, bool bRecompile)
     {
-        FShaderParserResult ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
         if (bRecompile)
         {
-            ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this, &ParsedResult](FDynamicRHI *DynamicRHI) {
+            ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this, InCode](FDynamicRHI *DynamicRHI) {
+                FShaderParserResult ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
                 FShaderCompiler::CompileMaterialShader(this, ParsedResult, DynamicRHI);
                 bShaderCompiled = true;
             });
@@ -24,7 +27,7 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return FContentManager::GetContentManager().GetGlobalMaterial("DefaultMaterial");
+        return GetContentManager()->GetGlobalMaterial("DefaultMaterial");
     }
 
     void UMaterial::UpdateCode(const std::string &InCode, bool bRecompile)
@@ -34,7 +37,7 @@ namespace nilou {
             MaterialResource->UpdateMaterialCode(Code, bRecompile);
     }
 
-    void UMaterial::Serialize(nlohmann::json &json)
+    void UMaterial::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
     {
         json["ClassName"] = "UMaterial";
         nlohmann::json &content = json["Content"];
@@ -44,20 +47,35 @@ namespace nilou {
         TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"]);
         TStaticSerializer<FRasterizerStateInitializer>::Serialize(MaterialResource->RasterizerState, content["RasterizerState"]);
         TStaticSerializer<FDepthStencilStateInitializer>::Serialize(MaterialResource->DepthStencilState, content["DepthStencilState"]);
+        nlohmann::json &textures = content["Textures"];
+        for (auto &[Name, Texture] : Textures)
+        {
+            if (!Texture.empty())
+            {
+                textures[Name] = FPath::RelativePath(Path.generic_string(), Texture.generic_string());
+            }
+        }
     }
 
-    void UMaterial::Deserialize(nlohmann::json &json)
+    void UMaterial::Deserialize(nlohmann::json &json, const std::filesystem::path &InPath)
     {
         if (!SerializeHelper::CheckIsType(json, "UMaterial") && 
             !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
         Code = content["Code"];
+        Path = InPath;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
         TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"]);
         TStaticSerializer<FRasterizerStateInitializer>::Deserialize(MaterialResource->RasterizerState, content["RasterizerState"]);
         TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(MaterialResource->DepthStencilState, content["DepthStencilState"]);
         MaterialResource->UpdateMaterialCode(Code);
+        nlohmann::json &textures = content["Textures"];
+        for (auto &[name, texture] : textures.items())
+        {
+            fs::path texture_path = fs::weakly_canonical(Path.parent_path() / fs::path(texture.get<std::string>()));
+            SetTextureParameterValue(name, texture_path);
+        }
     }
 
     std::shared_ptr<UMaterialInstance> UMaterial::CreateMaterialInstance()
@@ -66,7 +84,6 @@ namespace nilou {
         MaterialInstance->Name = Name;
         MaterialInstance->Code = Code;
         MaterialInstance->Path = Path;
-        MaterialInstance->UniformBuffers = UniformBuffers;
         MaterialInstance->Textures = Textures;
         MaterialInstance->MaterialResource->BlendState = MaterialResource->BlendState;
         MaterialInstance->MaterialResource->DepthStencilState = MaterialResource->DepthStencilState;
@@ -79,9 +96,9 @@ namespace nilou {
         return MaterialInstance;
     }
 
-    void UMaterialInstance::Serialize(nlohmann::json &json)
+    void UMaterialInstance::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
     {
-        UMaterial::Serialize(json);
+        UMaterial::Serialize(json, Path);
         json["ClassName"] = "UMaterialInstance";
     }
 

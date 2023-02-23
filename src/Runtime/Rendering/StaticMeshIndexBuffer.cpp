@@ -27,6 +27,14 @@ namespace nilou {
         
     }
 
+    void FStaticMeshIndexBuffer::Init(void *InData, uint32 InNumIndices, uint32 InStride)
+    {
+        Stride = InStride;
+        NumIndices = InNumIndices;
+        Data = new uint8[NumIndices * Stride];
+        std::memcpy(Data, InData, NumIndices * Stride);
+    }
+
     void FStaticMeshIndexBuffer::Init(const std::vector<uint8>& InIndices)
     {
         Stride = sizeof(uint8);

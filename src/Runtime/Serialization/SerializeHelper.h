@@ -14,7 +14,6 @@ namespace nilou {
         {
             return json.contains("ClassName") && json["ClassName"] == Name;
         }
-        static std::string Base64Header_OctetStream;
     };
 
     template<typename T>

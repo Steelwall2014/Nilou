@@ -3,7 +3,7 @@
 
 namespace nilou {
 
-    void UStaticMeshComponent::SetStaticMesh(std::shared_ptr<UStaticMesh> InStaticMesh)
+    void UStaticMeshComponent::SetStaticMesh(UStaticMesh *InStaticMesh)
     {
         StaticMesh = InStaticMesh;
         StaticMesh->RenderData->InitResources();

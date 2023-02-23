@@ -32,4 +32,34 @@ namespace nilou {
         return MaterialDirectory;
     }
 
+    std::filesystem::path FPath::ContentDir()
+    {
+        static std::filesystem::path ContentDirectory = "D:\\Nilou\\Content";
+        return ContentDirectory;
+    }
+
+    std::string FPath::RelativePath(const std::string &from, const std::string &to)
+    {
+        std::string result;
+        int i,j,k;
+        i = j = 0;
+        while(from[i] != '\0' && to[i] != '\0' && from[i] == to[i]){
+            i++;
+        }
+        k = i;
+        while(from[k] != '\0'){
+            if(from[k++] == '/'){
+                result.push_back('.');
+                result.push_back('.');
+                result.push_back('/');
+            }else{
+                continue;
+            }
+        }
+        while(to[i] != '\0'){
+            result.push_back(to[i++]);
+        }
+        return result;
+    }
+
 }
