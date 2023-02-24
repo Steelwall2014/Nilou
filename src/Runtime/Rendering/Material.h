@@ -175,14 +175,9 @@ namespace nilou {
 
         void UpdateCode(const std::string &InCode, bool bRecompile=true);
 
-        void SetTextureParameterValue(const std::string &Name, const std::filesystem::path &TexturePath)
+        void SetParameterValue(const std::string &Name, UTexture *Texture)
         {
-            Textures[Name] = TexturePath;
-            UTexture *Texture = GetContentManager()->GetTextureByPath(TexturePath);
-            if (Texture)
-            {
-                MaterialResource->SetParameterValue(Name, Texture);
-            }
+            MaterialResource->SetParameterValue(Name, Texture);
         }
 
         void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)
@@ -190,17 +185,17 @@ namespace nilou {
             MaterialResource->SetParameterValue(Name, UniformBuffer);
         }
 
-        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Serialize(FArchive &Ar) override;
 
-        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Deserialize(FArchive &Ar) override;
 
         std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
 
         FMaterial *GetResource() { return MaterialResource.get(); }
 
-    protected:
-
         std::map<std::string, std::filesystem::path> Textures;
+
+    protected:
 
         std::unique_ptr<FMaterial> MaterialResource;
         
@@ -212,7 +207,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Serialize(FArchive &Ar) override;
 
     };
 

@@ -16,7 +16,11 @@
 #include "VertexFactory.h"
 
 using namespace nilou;
+namespace fs = std::filesystem;
 
+std::string in_gltf = R"(D:\Nilou\Assets\Models\WaterBottle.gltf)";
+std::string out_dir = "Testgltf";
+std::string content_dir = "D:\\Nilou\\Content";
 
 static ETextureFilters GLTFFilterToETextureFilters(uint32 GLTFFilter)
 {
@@ -55,14 +59,18 @@ static std::vector<T> BufferToVector(uint8 *pos, int count, size_t stride)
     }
     return Vertices;
 }
-std::shared_ptr<UTexture> NoColorTexture;
-std::shared_ptr<UTexture> NoMetallicRoughnessTexture;
-std::shared_ptr<UTexture> NoEmissiveTexture;
-std::shared_ptr<UTexture> NoNormalTexture;
 
-static std::shared_ptr<UMaterial> CreateGLTFMaterial()
+static void ParseToMaterials(tinygltf::Model &model, 
+    std::vector<std::shared_ptr<UMaterial>> &OutMaterials, 
+    std::vector<std::shared_ptr<UTexture>> &OutTextures)
 {
-    auto Material = std::make_shared<UMaterial>("GLTFMaterial");
+
+
+
+    std::shared_ptr<UTexture> NoColorTexture;
+    std::shared_ptr<UTexture> NoMetallicRoughnessTexture;
+    std::shared_ptr<UTexture> NoEmissiveTexture;
+    std::shared_ptr<UTexture> NoNormalTexture;
     RHITextureParams texParams;
     texParams.Mag_Filter = ETextureFilters::TF_Nearest;
     texParams.Min_Filter = ETextureFilters::TF_Nearest;
@@ -74,6 +82,8 @@ static std::shared_ptr<UMaterial> CreateGLTFMaterial()
     NoColorImg->data[0] = 255; NoColorImg->data[1] = 255; NoColorImg->data[2] = 255; NoColorImg->data[3] = 255;
     NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
     NoColorTexture->GetResource()->SetSamplerParams(texParams);
+    NoColorTexture->SerializationPath = out_dir / fs::path("NoColorTexture.json");
+    NoColorTexture->Name = "NoColorTexture";
     // BeginInitResource(NoColorTexture->GetResource());
 
     std::shared_ptr<FImage> NoMetallicRoughnessImg = std::make_shared<FImage>();
@@ -82,6 +92,8 @@ static std::shared_ptr<UMaterial> CreateGLTFMaterial()
     NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
     NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
     NoMetallicRoughnessTexture->GetResource()->SetSamplerParams(texParams);
+    NoMetallicRoughnessTexture->SerializationPath = out_dir / fs::path("NoMetallicRoughnessTexture.json");
+    NoMetallicRoughnessTexture->Name = "NoMetallicRoughnessTexture";
     // BeginInitResource(NoMetallicRoughnessTexture->GetResource());
 
     std::shared_ptr<FImage> NoEmissiveImg = std::make_shared<FImage>();
@@ -90,6 +102,8 @@ static std::shared_ptr<UMaterial> CreateGLTFMaterial()
     NoEmissiveImg->data[0] = 0; NoEmissiveImg->data[1] = 0; NoEmissiveImg->data[2] = 0; NoEmissiveImg->data[3] = 255;
     NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
     NoEmissiveTexture->GetResource()->SetSamplerParams(texParams);
+    NoEmissiveTexture->SerializationPath = out_dir / fs::path("NoEmissiveTexture.json");
+    NoEmissiveTexture->Name = "NoEmissiveTexture";
     // BeginInitResource(NoEmissiveTexture->GetResource());
 
     std::shared_ptr<FImage> NoNormalImg = std::make_shared<FImage>();
@@ -98,19 +112,13 @@ static std::shared_ptr<UMaterial> CreateGLTFMaterial()
     NoNormalImg->data[0] = 127; NoNormalImg->data[1] = 127; NoNormalImg->data[2] = 255; NoNormalImg->data[3] = 255;
     NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
     NoNormalTexture->GetResource()->SetSamplerParams(texParams);
-    // BeginInitResource(NoNormalTexture->GetResource());
+    NoNormalTexture->SerializationPath = out_dir / fs::path("NoNormalTexture.json");
+    NoNormalTexture->Name = "NoNormalTexture";
 
-    Material->SetParameterValue("baseColorTexture", NoColorTexture.get());
-    Material->SetParameterValue("metallicRoughnessTexture", NoMetallicRoughnessTexture.get());
-    Material->SetParameterValue("emissiveTexture", NoEmissiveTexture.get());
-    Material->SetParameterValue("normalTexture", NoNormalTexture.get());
-    return Material;
-}
 
-static void ParseToMaterials(tinygltf::Model &model, 
-    std::vector<std::shared_ptr<UMaterial>> &OutMaterials, 
-    std::vector<std::shared_ptr<UTexture>> &OutTextures)
-{
+
+
+
     OutMaterials.clear();
     OutTextures.clear();
     for (int TextureIndex = 0; TextureIndex < model.textures.size(); TextureIndex++)
@@ -146,26 +154,33 @@ static void ParseToMaterials(tinygltf::Model &model,
         
         std::shared_ptr<UTexture> texture = std::make_shared<UTexture>(
             std::to_string(TextureIndex) + "_" + gltf_texture.name, std::move(Texture));
+        texture->SerializationPath = out_dir / fs::path(texture->Name + ".json");
         OutTextures.push_back(texture);
     }
 
     for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
     {
         tinygltf::Material &gltf_material = model.materials[MaterialIndex];
-        auto Material = CreateGLTFMaterial();
+        auto Material = std::make_shared<UMaterial>(std::to_string(MaterialIndex) + "_" + gltf_material.name);
+        Material->Path = out_dir / fs::path(Material->Name + ".json");
         if (gltf_material.doubleSided)
             Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         auto AccessTextures = 
-            [&OutTextures, &Material](int index, const std::string &sampler_name) {
+            [&OutTextures, &Material](int index, const std::string &sampler_name, std::shared_ptr<UTexture> NoValueTexture) {
             if (index != -1)
             {
-                Material->SetParameterValue(sampler_name, OutTextures[index].get());
+                Material->Textures[sampler_name] = OutTextures[index]->SerializationPath;
+            }
+            else 
+            {
+                Material->Textures[sampler_name] = NoValueTexture->SerializationPath;
+                OutTextures.push_back(NoValueTexture);
             }
         };
-        AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture");
-        AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
-        AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
-        AccessTextures(gltf_material.normalTexture.index, "normalTexture");
+        AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture", NoColorTexture);
+        AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture", NoMetallicRoughnessTexture);
+        AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture", NoEmissiveTexture);
+        AccessTextures(gltf_material.normalTexture.index, "normalTexture", NoNormalTexture);
 
         std::string defines;
         auto &baseColorFactor = gltf_material.pbrMetallicRoughness.baseColorFactor;
@@ -354,46 +369,33 @@ ParseResult ParseToStaticMeshes(tinygltf::Model &model)
 
 int main()
 {
-    CreateGLTFMaterial();
-    std::string in_gltf = R"(D:\Nilou\Assets\Models\WaterBottle.gltf)";
-    std::string out_dir = "D:\\Nilou\\Content\\Testgltf";
     std::shared_ptr<tinygltf::Model> Model = GetAssetLoader()->SyncReadGLTFModel(in_gltf.c_str());
     ParseResult Mesh = ParseToStaticMeshes(*Model);
     for (auto Texture : Mesh.Textures)
     {
-        nlohmann::json texture;
-        Texture->Serialize(texture);
-        std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Texture->Name + ".json");
+        FArchive Ar;
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Texture->Name + ".json");
+        Texture->Serialize(Ar);
         std::ofstream out{out_path.generic_string()};
-        std::string s = texture.dump();
+        std::string s = Ar.json.dump();
         out << s;
     }
     for (int i = 0; i < Mesh.Materials.size(); i++)
     {
-        nlohmann::json material;
-        Mesh.Materials[i]->Serialize(material);
-        nlohmann::json &content = material["Content"];
-        for (auto &[Name, Texture] : Mesh.Materials[i]->GetTextureBindings())
-        {
-            content["Textures"][Name] = Texture->Name + ".json";
-        }
-        std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".json");
+        FArchive Ar;
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".json");
+        Mesh.Materials[i]->Serialize(Ar);
         std::ofstream out{out_path.generic_string()};
-        std::string s = material.dump();
+        std::string s = Ar.json.dump();
         out << s;
     }
     for (int i = 0; i < Mesh.StaticMeshes.size(); i++)
     {
-        nlohmann::json mesh;
-        Mesh.StaticMeshes[i]->Serialize(mesh);
-        nlohmann::json &content = mesh["Content"];
-        for (int j = 0; j < Mesh.StaticMeshes[i]->MaterialSlots.size(); j++)
-        {
-            content["MaterialSlots"][j] = Mesh.StaticMeshes[i]->MaterialSlots[j]->Name + ".json";
-        }
-        std::filesystem::path out_path = std::filesystem::path(out_dir) / std::filesystem::path(Mesh.StaticMeshes[i]->Name + ".json");
+        FArchive Ar;
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.StaticMeshes[i]->Name + ".json");
+        Mesh.StaticMeshes[i]->Serialize(Ar);
         std::ofstream out{out_path.generic_string()};
-        std::string s = mesh.dump();
+        std::string s = Ar.json.dump();
         out << s;
     }
 }

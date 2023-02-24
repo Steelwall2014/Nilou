@@ -87,8 +87,6 @@ namespace nilou {
 
 		std::string Name;
 
-        std::filesystem::path Path;
-
         ETextureWrapModes GetWrapS()
         {
             return TextureResource->GetSamplerRHI()->Params.Wrap_S;
@@ -124,9 +122,9 @@ namespace nilou {
             return TextureResource.get();
         }
 
-        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Serialize(FArchive &Ar) override;
 
-        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Deserialize(FArchive &Ar) override;
     
     protected:
         std::unique_ptr<FTexture> TextureResource;

@@ -37,8 +37,9 @@ namespace nilou {
             MaterialResource->UpdateMaterialCode(Code, bRecompile);
     }
 
-    void UMaterial::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
+    void UMaterial::Serialize(FArchive &Ar)
     {
+        nlohmann::json &json = Ar.json;
         json["ClassName"] = "UMaterial";
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
@@ -52,19 +53,19 @@ namespace nilou {
         {
             if (!Texture.empty())
             {
-                textures[Name] = FPath::RelativePath(Path.generic_string(), Texture.generic_string());
+                textures[Name] = Texture.generic_string();
             }
         }
     }
 
-    void UMaterial::Deserialize(nlohmann::json &json, const std::filesystem::path &InPath)
+    void UMaterial::Deserialize(FArchive &Ar)
     {
+        nlohmann::json &json = Ar.json;
         if (!SerializeHelper::CheckIsType(json, "UMaterial") && 
             !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
         Code = content["Code"];
-        Path = InPath;
         MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
         TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"]);
@@ -72,10 +73,11 @@ namespace nilou {
         TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(MaterialResource->DepthStencilState, content["DepthStencilState"]);
         MaterialResource->UpdateMaterialCode(Code);
         nlohmann::json &textures = content["Textures"];
-        for (auto &[name, texture] : textures.items())
+        for (auto &[sampler_name, texture] : textures.items())
         {
-            fs::path texture_path = fs::weakly_canonical(Path.parent_path() / fs::path(texture.get<std::string>()));
-            SetTextureParameterValue(name, texture_path);
+            fs::path texture_path = texture.get<std::string>();
+            UTexture *Texture = GetContentManager()->GetTextureByPath(texture_path);
+            MaterialResource->SetParameterValue(sampler_name, Texture);
         }
     }
 
@@ -99,9 +101,10 @@ namespace nilou {
         return MaterialInstance;
     }
 
-    void UMaterialInstance::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
+    void UMaterialInstance::Serialize(FArchive &Ar)
     {
-        UMaterial::Serialize(json, Path);
+        nlohmann::json &json = Ar.json;
+        UMaterial::Serialize(Ar);
         json["ClassName"] = "UMaterialInstance";
     }
 

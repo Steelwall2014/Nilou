@@ -154,9 +154,9 @@ namespace nilou {
 
         FBoundingBox LocalBoundingBox;
 
-        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Serialize(FArchive &Ar) override;
 
-        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) override;
+        virtual void Deserialize(FArchive &Ar) override;
 
         ~UStaticMesh() { ReleaseRenderResources(); }
         void ReleaseRenderResources();

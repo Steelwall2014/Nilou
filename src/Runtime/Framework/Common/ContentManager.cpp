@@ -74,6 +74,7 @@ namespace nilou {
                     file_entry->Name = Path.filename().generic_string();
                     file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
                     file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
+                    file_entry->Object->SerializationPath = file_entry->RelativePath;
                     directory_entry->Children[file_entry->Name] = std::move(file_entry);
                 }
             }
@@ -116,12 +117,12 @@ namespace nilou {
         }
         else 
         {         
-            if (Entry->bIsDirty && Entry->bNeedFlush)
+            if (Entry->bIsDirty && Entry->bNeedFlush && !Entry->Object->SerializationPath.empty())
             {
-                nlohmann::json json;
+                FArchive Ar;
                 std::ofstream out{Entry->Path.generic_string()};
-                Entry->Object->Serialize(json, Entry->RelativePath);
-                out << json.dump();
+                Entry->Object->Serialize(Ar);
+                out << Ar.json.dump();
             }
         }
     }
@@ -167,11 +168,14 @@ namespace nilou {
         for (int i = 0; i < futures.size(); i++)
         {
             auto &future = futures[i];
-            nlohmann::json json = future.get();
-            if (json.contains("ClassName"))
+            FArchive Ar;
+            Ar.json = future.get();
+            if (Ar.json.contains("ClassName"))
             {
                 if (Entries[i]->Object != nullptr)
-                    Entries[i]->Object->Deserialize(json, Entries[i]->RelativePath);
+                {
+                    Entries[i]->Object->Deserialize(Ar);
+                }
             }
         }
     }

@@ -1,3 +1,5 @@
+#include <set>
+
 #include "StaticMeshResources.h"
 #include "Common/DynamicMeshResources.h"
 #include "Common/ContentManager.h"
@@ -7,7 +9,8 @@
 #include "RenderResource.h"
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
-#include <set>
+#include "Path.h"
+
 
 namespace nilou {
 
@@ -176,28 +179,35 @@ namespace nilou {
         }
     }
 
-    void UStaticMesh::Serialize(nlohmann::json &json, const std::filesystem::path &Path)
+    void UStaticMesh::Serialize(FArchive &Ar)
     {
+        nlohmann::json &json = Ar.json;
         json["ClassName"] = "UStaticMesh";
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
         TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"]);
         TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"]);
+        for (int i = 0; i < MaterialSlots.size(); i++)
+        {
+            if (!MaterialSlots[i]->Path.empty())
+            {
+                content["MaterialSlots"][i] = MaterialSlots[i]->Path.generic_string();
+            }
+        }
     }
 
-    void UStaticMesh::Deserialize(nlohmann::json &json, const std::filesystem::path &InPath)
+    void UStaticMesh::Deserialize(FArchive &Ar)
     {
+        nlohmann::json &json = Ar.json;
         if (!SerializeHelper::CheckIsType(json, "UStaticMesh")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
-        Path = InPath;
         TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"]);
         TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"]);
         RenderData->InitResources();
         for (int i = 0; i < content["MaterialSlots"].size(); i++)
         {
             fs::path material_path = content["MaterialSlots"][i].get<std::string>();
-            material_path = fs::weakly_canonical(Path.parent_path() / fs::path(material_path));
             UMaterial *Material = GetContentManager()->GetMaterialByPath(material_path);
             MaterialSlots.push_back(Material);
         }

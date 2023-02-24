@@ -1,19 +1,14 @@
 #pragma once
 #include <string>
 
+#include <json/json.hpp>
+
 namespace nilou {
 
     class FArchive
     {
     public:
-        virtual FArchive &operator<<(const class FRasterizerStateInitializer &RasterizerState);
-        virtual FArchive &operator>>(class FRasterizerStateInitializer &RasterizerState);
-
-        virtual FArchive &operator<<(const class FDepthStencilStateInitializer &DepthStencilState);
-        virtual FArchive &operator>>(class FDepthStencilStateInitializer &DepthStencilState);
-
-        virtual FArchive &operator<<(const std::string &String);
-        virtual FArchive &operator>>(std::string &String);
+        nlohmann::json json;
     };
 
 }

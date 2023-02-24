@@ -4,6 +4,7 @@
 #include "MarkedClasses.generated.h"
 #include "Templates/ObjectMacros.h"
 #include "SerializeHelper.h"
+#include "Archive.h"
 // #include "Object.generated.h"
 namespace nilou {
     class UClass;
@@ -14,17 +15,23 @@ namespace nilou {
     public: 
         GENERATE_CLASS_INFO()
         
-        bool IsA(const UClass *Class);
-
-        virtual void Serialize(nlohmann::json &json, const std::filesystem::path &Path) { }
 
         /**
-         * @param json The out json object
-         * @param Path The path of current object, relative to FPath::ContentDir(). 
-         * It is used for referencing other contents.
+         * @brief Returns whether the class of the current object is derived from given Class parameter
          */
-        virtual void Deserialize(nlohmann::json &json, const std::filesystem::path &Path) { }
+        bool IsA(const UClass *Class);
 
+        virtual void Serialize(FArchive &Ar) { }
+
+        virtual void Deserialize(FArchive &Ar) { }
+
+        /**
+         * @brief The path of the file which contains this object.
+         * The path is used for serialization, relative to FPath::ContentDir().
+         * Note: If it's empty, then the object will not be written to disk while serializing.
+         * It will be automatically filled while deserializing.
+         */
+        std::filesystem::path SerializationPath;
     };
 
     class FObjectFactory
