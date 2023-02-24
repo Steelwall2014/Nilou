@@ -4,6 +4,7 @@
 #include <memory>
 #include "ShaderMap.h"
 #include "UniformBuffer.h"
+#include "Common/Path.h"
 
 
 namespace nilou {
@@ -49,12 +50,40 @@ namespace nilou {
         class UStaticMesh *GetStaticMeshByPath(const std::filesystem::path &InPath);
 
         /**
-         * Create content (e.g. UTexture, UMaterial) at given path
+         * @brief Create a defualt content (e.g. UTexture, UMaterial) at given path
+         * The path shouldn't be occupied by other content/directory sharing the same name.
+         * 
+         * @tparam The desired content class
+         * 
          * @param InPath The path relative to FPath::ContentDir()
-         * @param Content The created content
+         * 
+         * @return The pointer to the created object, nullptr if target path is occupied.
          * 
          */
-        bool CreateFile(const std::filesystem::path &InPath, std::unique_ptr<UObject> Content, bool bOverlap=true, bool bNeedFlush=true);
+        template<typename T>
+        T *CreateFile(const std::filesystem::path &InPath, bool bNeedFlush=true)
+        {
+            DirectoryEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
+            if (entry)
+            {
+                std::string filename = InPath.filename().generic_string();
+                if (entry->Children.find(filename) == entry->Children.end())
+                {
+                    auto Entry = std::make_unique<DirectoryEntry>();
+                    Entry->AbsolutePath = entry->AbsolutePath / InPath.filename();
+                    Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
+                    Entry->Name = InPath.filename().generic_string();
+                    Entry->bIsDirectory = false;
+                    Entry->bIsDirty = true;
+                    Entry->bNeedFlush = bNeedFlush;
+                    Entry->Object = std::make_unique<T>();
+                    T *raw_p = Entry->Object.get();
+                    entry->Children[filename] = std::move(Entry);
+                    return raw_p;
+                }
+            }
+            return nullptr;
+        }
 
         /**
          * Create directory at given path
@@ -82,7 +111,7 @@ namespace nilou {
             /**
              * The absolute path of the directory entry
              */
-            std::filesystem::path Path;
+            std::filesystem::path AbsolutePath;
             /**
              * The path relative to root entry
              */

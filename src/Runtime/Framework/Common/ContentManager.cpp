@@ -8,7 +8,6 @@
 #include "Common/StaticMeshResources.h"
 
 #include "Common/Log.h"
-#include "Common/Path.h"
 #include "Common/BaseApplication.h"
 
 namespace nilou {
@@ -50,7 +49,7 @@ namespace nilou {
         auto directory_entry = std::make_unique<FContentManager::DirectoryEntry>();
         directory_entry->bIsDirty = false;
         directory_entry->bIsDirectory = true;
-        directory_entry->Path = DirectoryPath;
+        directory_entry->AbsolutePath = DirectoryPath;
         directory_entry->Name = DirectoryPath.filename().generic_string();
         directory_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), DirectoryPath.generic_string());
         for (const fs::directory_entry &dir_entry : fs::directory_iterator(DirectoryPath))
@@ -70,7 +69,7 @@ namespace nilou {
                     auto file_entry = std::make_unique<FContentManager::DirectoryEntry>();
                     file_entry->bIsDirty = false;
                     file_entry->bIsDirectory = false;
-                    file_entry->Path = Path;
+                    file_entry->AbsolutePath = Path;
                     file_entry->Name = Path.filename().generic_string();
                     file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
                     file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
@@ -109,7 +108,7 @@ namespace nilou {
         if (Entry->bIsDirectory)
         {
             if (Entry->bIsDirty && Entry->bNeedFlush)
-                fs::create_directory(Entry->Path);
+                fs::create_directory(Entry->AbsolutePath);
             for (auto &[Name, Child] : Entry->Children)
             {
                 Serialize(Child.get());
@@ -120,7 +119,7 @@ namespace nilou {
             if (Entry->bIsDirty && Entry->bNeedFlush && !Entry->Object->SerializationPath.empty())
             {
                 FArchive Ar;
-                std::ofstream out{Entry->Path.generic_string()};
+                std::ofstream out{Entry->AbsolutePath.generic_string()};
                 Entry->Object->Serialize(Ar);
                 out << Ar.json.dump();
             }
@@ -158,7 +157,7 @@ namespace nilou {
         {
             auto future = pool.submit([](DirectoryEntry *Entry) {
                 nlohmann::json json;
-                std::ifstream in{Entry->Path.generic_string()};
+                std::ifstream in{Entry->AbsolutePath.generic_string()};
                 in >> json;
                 return json;
             }, Entries[i]);
@@ -231,8 +230,8 @@ namespace nilou {
             else 
             {
                 auto Entry = std::make_unique<DirectoryEntry>();
-                Entry->Path = temp_entry->Path / fs::path(tokens[depth]);
-                Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->Path.generic_string());
+                Entry->AbsolutePath = temp_entry->AbsolutePath / fs::path(tokens[depth]);
+                Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
                 Entry->Name = tokens[depth];
                 Entry->bIsDirectory = true;
                 Entry->bIsDirty = true;
@@ -247,46 +246,6 @@ namespace nilou {
             return temp_entry;
         else
             return nullptr;
-    }
-
-    bool FContentManager::CreateFile(const std::filesystem::path &InPath, std::unique_ptr<UObject> Content, bool bOverlap, bool bNeedFlush)
-    {
-        DirectoryEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
-        if (entry)
-        {
-            std::string filename = InPath.filename().generic_string();
-            if (entry->Children.find(filename) != entry->Children.end())
-            {
-                if (entry->Children[filename]->bIsDirectory)
-                    return false;
-                else if (bOverlap)
-                {
-                    entry->Children[filename]->Object = std::move(Content);
-                    entry->Children[filename]->bIsDirty = true;
-                    entry->Children[filename]->bNeedFlush = bNeedFlush;
-                    return true;
-                }
-                else 
-                {
-                    return false;
-                }
-            }
-            else 
-            {
-                auto Entry = std::make_unique<DirectoryEntry>();
-                Entry->Path = entry->Path / InPath.filename();
-                Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->Path.generic_string());
-                Entry->Name = InPath.filename().generic_string();
-                Entry->bIsDirectory = false;
-                Entry->bIsDirty = true;
-                Entry->bNeedFlush = bNeedFlush;
-                Entry->Object = std::move(Content);
-                entry->Children[filename] = std::move(Entry);
-                return true;
-            }
-        }
-        return false;
-        return true;
     }
 
     void FContentManager::Flush()
