@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
+#include "../../src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
 namespace nilou {
 std::string AGeoreferenceActor::GetClassName() { return "AGeoreferenceActor"; }
 EUClasses AGeoreferenceActor::GetClassEnum() { return EUClasses::MC_AGeoreferenceActor; }

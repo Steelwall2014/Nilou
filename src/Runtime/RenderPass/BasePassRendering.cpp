@@ -10,7 +10,7 @@ namespace nilou {
 
 
 
-    void BuildMeshDrawCommand(
+    static void BuildMeshDrawCommand(
         FDynamicRHI *RHICmdList,
         // const FMaterialType &MaterialType,
         // const FVertexFactoryType &VertexFactoryType,
@@ -21,8 +21,7 @@ namespace nilou {
         const FDepthStencilStateInitializer &DepthStencilStateInitializer,
         const FRasterizerStateInitializer &RasterizerStateInitializer,
         const FBlendStateInitializer &BlendStateInitializer,
-        FElementShaderBindings &MeshBindings,    // for vertex factory and material
-        FElementShaderBindings &ShaderBindings,  // for shader
+        FInputShaderBindings &InputBindings, 
         std::vector<FRHIVertexInput> &VertexInputs,
         const FMeshBatchElement &Element,
         FMeshDrawCommand &OutMeshDrawCommand
@@ -36,11 +35,10 @@ namespace nilou {
         FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader;
 
-        if (VertexShader == nullptr || PixelShader == nullptr)
-            std::cout << 1;
-
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
+        auto BasePassDepthStencilState = DepthStencilStateInitializer;
+        BasePassDepthStencilState.DepthTest = ECompareFunction::CF_Equal;
+        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(BasePassDepthStencilState);
         RHIGetError();
 
         OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
@@ -54,7 +52,7 @@ namespace nilou {
             RHIGetError();
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
-            Material->FillShaderBindings(MeshBindings);
+            Material->FillShaderBindings(InputBindings);
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
@@ -68,13 +66,7 @@ namespace nilou {
                     if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
                     {          
                         if (FUniformBuffer *UniformBuffer = 
-                                    MeshBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
-                        {
-                            StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
-                            bResourceFound = true;
-                        }       
-                        else if (FUniformBuffer *UniformBuffer = 
-                                    ShaderBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
+                                    InputBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
                         {
                             StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
                             bResourceFound = true;
@@ -83,13 +75,7 @@ namespace nilou {
                     else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
                     {  
                         if (FRHISampler *Sampler = 
-                                    MeshBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                        {
-                            StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
-                            bResourceFound = true;
-                        }       
-                        else if (FRHISampler *Sampler = 
-                                    ShaderBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
+                                    InputBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
                         {
                             StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
                             bResourceFound = true;
@@ -104,7 +90,7 @@ namespace nilou {
                             " |Vertex Shader: " + PermutationParametersVS.Type->Name + 
                             " |Pixel Shader: " + PermutationParametersPS.Type->Name + 
                             " |Pipeline Stage: " + std::to_string(PipelineStage) + " |\"" + 
-                            Binding.Name + "\" Not Found");
+                            Binding.Name + "\" Resource not provided");
                     }
 
                 }
@@ -137,8 +123,8 @@ namespace nilou {
                 FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
                 FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
                 DrawCommands.Clear();
-                std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
-                for (FMeshBatch &Mesh : PerViewMeshBatches[ViewIndex])
+                // std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
+                for (FMeshBatch &Mesh : Views[ViewIndex].MeshBatches)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
                     RHIGetError();
@@ -151,8 +137,8 @@ namespace nilou {
                     FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
                     RHIGetError();
 
-                    FElementShaderBindings Bindings;
-                    Bindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
+                    FInputShaderBindings InputBindings = Mesh.Element.Bindings;
+                    InputBindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
                     RHIGetError();
 
                     FMeshDrawCommand MeshDrawCommand;
@@ -169,23 +155,22 @@ namespace nilou {
                         Mesh.MaterialRenderProxy->DepthStencilState,
                         Mesh.MaterialRenderProxy->RasterizerState,
                         Mesh.MaterialRenderProxy->BlendState,
-                        Mesh.Element.Bindings,
-                        Bindings,
+                        InputBindings,
                         VertexInputs,
                         Mesh.Element,
                         MeshDrawCommand);
 
                     // SkyAtmosphereMaterial needs to be rendered last
-                    if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
-                        SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
-                    else
+                    // if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
+                    //     SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
+                    // else
                         DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                     RHIGetError();
                     
                 }
 
-                for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
-                    DrawCommands.AddMeshDrawCommand(DrawCommand);
+                // for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
+                //     DrawCommands.AddMeshDrawCommand(DrawCommand);
             }
         }
 
@@ -194,7 +179,7 @@ namespace nilou {
             {
                 FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
                 FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true, true, true);
+                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);
 
                 FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;

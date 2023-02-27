@@ -98,14 +98,15 @@ namespace nilou {
         DEFINE_DYNAMIC_DATA(glm::ivec2,  ShadowMapResolution)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
-        DEFINE_DYNAMIC_DATA(ELightType,  LightType)
+        // DEFINE_DYNAMIC_DATA(ELightType,  LightType)
         DEFINE_DYNAMIC_DATA(float,       Intensity)
-        DEFINE_DYNAMIC_DATA(float,       NearClipDistance)
-        DEFINE_DYNAMIC_DATA(float,       FarClipDistance)
         DEFINE_DYNAMIC_DATA(bool,        bCastShadow)
         
     public:
         ULightComponent(AActor *InOwner = nullptr);
+
+		inline void SetLightType(const ELightType &InLightType) { LightType = InLightType; MarkRenderStateDirty(); } 
+		inline ELightType GetLightType() const { return LightType; } 
 
         virtual class FLightSceneProxy *CreateSceneProxy();
 
@@ -118,6 +119,10 @@ namespace nilou {
         virtual void SendRenderDynamicData() override;
 
         class FLightSceneProxy *SceneProxy;
+
+    private:
+
+        ELightType LightType;
     };
 
     // UCLASS()
@@ -151,17 +156,14 @@ namespace nilou {
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
-        SHADER_PARAMETER(mat4, WorldToClip)     // WorldToClip = ViewToClip * WorldToView
-        SHADER_PARAMETER(int, LightShadowMapLayerIndex)
+        SHADER_PARAMETER(dmat4, WorldToClip)
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightDistAttenParams)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
-        SHADER_PARAMETER(int, ShadowMappingStartIndex)
-        SHADER_PARAMETER(int, ShadowMappingEndIndex)
-        SHADER_PARAMETER(vec4, lightColor)
         SHADER_PARAMETER(dvec3, lightPosition)
+        SHADER_PARAMETER(vec4, lightColor)
         SHADER_PARAMETER(vec3, lightDirection)
         SHADER_PARAMETER(int, lightType) 
         SHADER_PARAMETER(float, lightIntensity)
@@ -177,7 +179,7 @@ namespace nilou {
 
         FLightSceneInfo *GetLightSceneInfo() { return LightSceneInfo; }
 
-        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection);
+        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
 
         void SetLightIntensity(float Intensity);
 
@@ -189,31 +191,34 @@ namespace nilou {
 
         void SetShadowMapResolution(glm::ivec2 ShadowMapResolution);
 
-        void SetFrustumClipDistances(float Near, float Far);
-
         void SetLightDistAttenParams(const FAttenCurve &AttenCurveParam);
 
         void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
 
         void UpdateUniformBuffer();
-        // virtual glm::mat4 GetLightProjectionMatrix() { return glm::mat4(); }
+
+        FSceneLightView GetSceneLightView() const;
+
+        glm::dvec3 Position;
+
+        glm::vec3 Direction;
+
+        glm::vec3 Up;
+
+        ELightType LightType;
+
+        glm::ivec2 ShadowMapResolution;
+
+        float ScreenAspect;
+
+        float VerticalFieldOfView;
 
     protected:
-        // ULightComponent *Component;
+    
         FLightSceneInfo *LightSceneInfo;
 
         void SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam);
-        // FLightParameters LightParameters;
-        // glm::mat4 LightToWorld;
-        // glm::mat4 WorldToLight;
-        glm::vec3 Position;
-        glm::vec3 Direction;
-        ELightType LightType;
-        glm::ivec2 ShadowMapResolution;
-        float ScreenAspect;
-        float ComputedVerticalFieldOfView;
-        float NearClipDistance;
-        float FarClipDistance;
+
         TUniformBufferRef<FLightShaderParameters> LightUniformBufferRHI;
     };
 

@@ -937,7 +937,10 @@ namespace nilou {
                 binding.ParameterType = ParamInfo.ParameterType;
                 int binding_point = glGetUniformLocation(PipelineResource, ParamInfo.ParameterName.c_str());
                 if (binding_point == -1)
+                {
                     NILOU_LOG(Warning, "Shader parameter " + ParamInfo.ParameterName + " is omitted in glsl")
+                    continue;
+                }
                 RHIGetError();
                 binding.BindingPoint = binding_point;
                 DescriptorSet.Bindings[binding.Name] = binding;
@@ -1450,6 +1453,30 @@ namespace nilou {
 * Utils
 */
 namespace nilou {
+
+    FRHIRenderQueryRef FOpenGLDynamicRHI::RHICreateRenderQuery()
+    {
+        FOpenGLRenderQueryRef GLQuery = std::make_shared<FOpenGLRenderQuery>();
+        return GLQuery;
+    }
+
+    void FOpenGLDynamicRHI::RHIBeginRenderQuery(FRHIRenderQuery *RenderQuery)
+    {
+        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
+        glBeginQuery(GL_SAMPLES_PASSED, Query->Resource);
+    }
+
+    void FOpenGLDynamicRHI::RHIEndRenderQuery(FRHIRenderQuery *RenderQuery)
+    {
+        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
+        glEndQuery(GL_SAMPLES_PASSED);
+    }
+
+    void FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRHIRenderQuery *RenderQuery)
+    {
+        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
+        glGetQueryObjectui64v(Query->Resource, GL_QUERY_RESULT, &Query->Result);
+    }
 
     void FOpenGLDynamicRHI::RHIUseShaderProgram(OpenGLLinkedProgram *program)
     {

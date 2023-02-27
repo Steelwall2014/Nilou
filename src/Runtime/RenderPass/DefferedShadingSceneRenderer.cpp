@@ -31,6 +31,7 @@ namespace nilou {
     {
         OutSceneTextures.GeometryPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
         OutSceneTextures.FrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        OutSceneTextures.PreZPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         OutSceneTextures.SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
@@ -69,6 +70,23 @@ namespace nilou {
         
         OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.SceneColor);
         OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+        
+        OutSceneTextures.PreZPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+    }
+    
+    FShadowMapTextures::FShadowMapTextures(const ivec2 &ShadowMapResolution, int ShadowMapArraySize)
+    {
+        DepthArray = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2DArray(
+            "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
+            ShadowMapResolution.x, ShadowMapResolution.y, ShadowMapArraySize, nullptr);
+        
+        for (int i = 0; i < ShadowMapArraySize; i++)
+        {
+            FrameBuffers.push_back(FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer(
+                EFramebufferAttachment::FA_Depth_Stencil_Attachment, 
+                DepthArray, 
+                i));
+        }
     }
 
     FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FScene *Scene)
@@ -100,7 +118,6 @@ namespace nilou {
 
     FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FScene *Scene)
         : Scene(Scene)
-        , Collector(&PerViewMeshBatches)
     {
         BeginInitResource(&PositionVertexBuffer);
         BeginInitResource(&UVVertexBuffer);
@@ -120,6 +137,9 @@ namespace nilou {
         Scene->GetAddViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnAddView);
         Scene->GetRemoveViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnRemoveView);
         Scene->GetResizeViewDelegate().Add(this, &FDefferedShadingSceneRenderer::OnResizeView);
+
+        Scene->GetAddLightDelegate().Add(this, &FDefferedShadingSceneRenderer::OnAddLight);
+        Scene->GetRemoveLightDelegate().Add(this, &FDefferedShadingSceneRenderer::OnRemoveLight);
     }
 
     void FDefferedShadingSceneRenderer::OnAddView(FViewSceneInfo *ViewSceneInfo)
@@ -127,7 +147,31 @@ namespace nilou {
         FSceneTextures SceneTextures;
         CreateSceneTextures(ViewSceneInfo->GetResolution(), SceneTextures);
         Views.emplace_back(ViewSceneInfo, SceneTextures);
-        PerViewMeshBatches.push_back(std::vector<FMeshBatch>());
+        for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+        {
+            FLightSceneInfo *LightSceneInfo = Lights[LightIndex].LightSceneInfo;
+            if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Directional)
+            {
+                Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 8));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(8));
+                Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(8));
+                Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(8));
+            }
+            else if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Point) 
+            {
+                Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 6));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(6));
+                Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(6));
+                Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(6));
+            }
+            else if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Spot) 
+            {
+                Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 1));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(1));
+                Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(1));
+                Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(1));
+            }
+        }
     }
 
     void FDefferedShadingSceneRenderer::OnRemoveView(FViewSceneInfo *ViewSceneInfo)
@@ -137,7 +181,14 @@ namespace nilou {
             if (Views[ViewIndex].ViewSceneInfo = ViewSceneInfo)
             {
                 Views.erase(Views.begin() + ViewIndex);
-                PerViewMeshBatches.erase(PerViewMeshBatches.begin() + ViewIndex);
+
+                for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+                {
+                    Lights[LightIndex].ShadowMapTextures.erase(Lights[LightIndex].ShadowMapTextures.begin() + ViewIndex);
+                    Lights[LightIndex].ShadowMapUniformBuffers.erase(Lights[LightIndex].ShadowMapUniformBuffers.begin() + ViewIndex);
+                    Lights[LightIndex].ShadowMapMeshBatches.erase(Lights[LightIndex].ShadowMapMeshBatches.begin() + ViewIndex);
+                    Lights[LightIndex].ShadowMapMeshDrawCommands.erase(Lights[LightIndex].ShadowMapMeshDrawCommands.begin() + ViewIndex);
+                }
                 break;
             }
         }
@@ -155,39 +206,86 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    void FDefferedShadingSceneRenderer::OnAddLight(FLightSceneInfo *LightInfo)
     {
+        auto &Light = Lights.emplace_back(LightInfo);
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            PerViewMeshBatches[ViewIndex].clear();
-            Views[ViewIndex].MeshDrawCommands.Clear();
+            if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
+            {
+                Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 8));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(8));
+                Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(8));
+                Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(8));
+            }
+            else if (LightInfo->SceneProxy->LightType == ELightType::LT_Point) 
+            {
+                Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 6));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(6));
+                Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(6));
+                Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(6));
+            }
+            else if (LightInfo->SceneProxy->LightType == ELightType::LT_Spot) 
+            {
+                Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 1));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(1));
+                Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(1));
+                Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(1));
+            }
         }
-        // Compute Visibility
-        ComputeViewVisibility(Scene);
     }
 
-    void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene)
+    void FDefferedShadingSceneRenderer::OnRemoveLight(FLightSceneInfo *LightInfo)
     {
-        std::vector<FViewSceneInfo*> SceneViews;
-        for (auto &View : Views)
+        for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
-            SceneViews.push_back(View.ViewSceneInfo);
+            if (Lights[LightIndex].LightSceneInfo = LightInfo)
+            {
+                Lights.erase(Lights.begin() + LightIndex);
+                break;
+            }
+        }
+    }
+
+
+    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
+    {
+        Collector.PerViewMeshBatches.clear();
+        Collector.PerViewPDI.clear();
+        std::vector<FSceneView> SceneViews;
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
+            Views[ViewIndex].MeshBatches.clear();
+            Views[ViewIndex].MeshDrawCommands.Clear();
+            SceneViews.push_back(Views[ViewIndex].ViewSceneInfo->SceneProxy->GetSceneView());
+            Collector.PerViewMeshBatches.push_back(&Views[ViewIndex].MeshBatches);
+            Collector.PerViewPDI.push_back(Views[ViewIndex].PDI);
         }
 
+        // Compute Visibility
+        ComputeViewVisibility(Scene, SceneViews);
+    }
+
+    void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView> &SceneViews)
+    {
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
-            PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, 0x7fffffff, Collector);
+            uint32 ViewBits = 0;
+            for (int ViewIndex = 0; ViewIndex < SceneViews.size(); ViewIndex++)
+            {
+                bool bFrustumCulled = SceneViews[ViewIndex].ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds());
+                if (!bFrustumCulled)
+                    ViewBits |= (1 << ViewIndex);
+            }
+            PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, ViewBits, Collector);
         }
-
-        // for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        // std::vector<FSceneView> LightSceneViews;
+        // for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++) 
         // {
-        //     for (FMeshPassProcessor *Pass : RenderPasses)
-        //     {
-        //         Pass->BuildMeshDrawCommands(
-        //             *Views[ViewIndex], 
-        //             PerViewMeshBatches[ViewIndex], 
-        //             PerViewDrawCommands[ViewIndex].PerPassMeshCommands[Pass].MeshCommands);
-        //     }
+        //     Lights[LightIndex].MeshBatches.clear();
+        //     Lights[LightIndex].MeshDrawCommands.Clear();
+        //     LightSceneViews.push_back(Lights[LightIndex].LightSceneInfo->SceneProxy);
+        //     LightCollector.PerViewMeshBatches.push_back(&Lights[LightIndex].MeshBatches);
         // }
     }
 
@@ -199,7 +297,9 @@ namespace nilou {
 
         GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList);
 
-        // RenderCSMShadowPass(RHICmdList);
+        RenderPreZPass(RHICmdList);
+
+        RenderCSMShadowPass(RHICmdList);
 
         RenderBasePass(RHICmdList);
         // // Dispatch Draw Commands
@@ -214,102 +314,6 @@ namespace nilou {
 
         GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList);
     }
-
-    // void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
-    // {
-    //     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
-    //     {
-    //         if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
-    //         {
-    //             // glm::vec3 Front = LightInfo->Light->GetForwardVector();
-    //             // glm::vec3 Position = LightInfo->Light->GetComponentLocation();
-    //             // glm::mat4 ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
-    //             // FSceneLightView LightView;
-                
-    //         }
-    //         else if (LightInfo->SceneProxy->LightType == ELightType::LT_Spot)
-    //         {
-    //             FSceneLightView LightView;
-    //             glm::vec3 Front = LightInfo->SceneProxy->Direction;
-    //             glm::vec3 Position = LightInfo->SceneProxy->Position;
-    //             float fovy = LightInfo->SceneProxy->ComputedVerticalFieldOfView;
-    //             float ScreenAspect = LightInfo->SceneProxy->ScreenAspect;
-    //             LightView.ViewMatrix = glm::lookAt(Position, Position + Front, WORLD_UP);
-    //             LightView.ProjectionMatrix = glm::perspective(fovy, ScreenAspect, LightInfo->SceneProxy->NearClipDistance, LightInfo->SceneProxy->FarClipDistance);//CalcSpotLightProjectionMatrix(LightInfo->SceneProxy->LightParameters);
-    //             LightView.ViewFrustum = FViewFrustum(LightView.ViewMatrix, LightView.ProjectionMatrix);
-    //             for (auto &&ViewSceneInfo : Scene->AddedViewSceneInfos)
-    //             {
-    //                 if (ViewSceneInfo->SceneProxy->GetSceneView().ViewFrustum.Intersects(LightView.ViewFrustum))
-    //                     LightInfo->LightViews.push_back(LightView);
-    //             }
-    //         }
-    //     }
-
-    //     std::vector<FParallelMeshDrawCommands> PerLightViewDrawCommands;
-    //     for (auto &&LightInfo : Scene->AddedLightSceneInfos)
-    //     {
-    //         for (FSceneLightView &LightView : LightInfo->LightViews)
-    //         {
-    //             FParallelMeshDrawCommands ParallelCommands;
-    //             for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
-    //             {
-    //                 // if (LightView.ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds()))
-    //                 //     continue;
-    //                 FMeshBatch Mesh;
-    //                 PrimitiveInfo->SceneProxy->GetDynamicMeshElement(Mesh, LightView);
-    //                 if (!Mesh.CastShadow)
-    //                     continue;
-    //                 // FRHIGraphicsPipelineInitializer StateData;
-
-    //                 // FShadowDepthVS::FPermutationDomain PermutationVectorVS;
-    //                 // FShaderPermutationParameters PermutationParameters;
-    //                 // PermutationParameters.ShaderType = &FShadowDepthVS::StaticType;
-    //                 // PermutationParameters.PermutationId = PermutationVectorVS.ToDimensionValueId();
-    //                 // FShaderInstance *VertexShader = GetVertexShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), *Mesh.VertexFactory->GetType(), PermutationParameters);
-
-    //                 // FShadowDepthPS::FPermutationDomain PermutationVectorPS;
-    //                 // PermutationParameters.ShaderType = &FShadowDepthPS::StaticType;
-    //                 // PermutationParameters.PermutationId = PermutationVectorPS.ToDimensionValueId();
-    //                 // FShaderInstance *PixelShader = GetPixelShaderInstance(*FMaterial::GetDefaultMaterial()->GetType(), PermutationParameters);
-
-    //                 // RHIDepthStencilStateRef DepthState = RHICmdList->RHICreateDepthStencilState(Mesh.MaterialRenderProxy->DepthStencilState);
-    //                 // StateData.DepthStentilState = DepthState;
-
-    //                 // RHIRasterizerStateRef RasterizerState = RHICmdList->RHICreateRasterizerState(Mesh.MaterialRenderProxy->RasterizerState);
-    //                 // StateData.RasterizerState = RasterizerState;
-
-    //                 // std::map<std::string, RHIUniformBuffer *> UniformBufferBindings; 
-    //                 // std::map<std::string, FRHISampler *> SamplerBindings; 
-    //                 // std::vector<FRHIVertexInput *> VertexInputs; 
-    //                 // Mesh.MaterialRenderProxy->FillShaderBindings(UniformBufferBindings, SamplerBindings);
-    //                 // Mesh.VertexFactory->FillShaderBindings(UniformBufferBindings, SamplerBindings, VertexInputs);
-
-    //                 // {
-    //                 //     FMeshDrawCommand MeshDrawCommand;
-    //                 //     MeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(StateData);
-    //                 //     MeshDrawCommand.IndexBuffer = Mesh.Element.IndexBuffer->IndexBufferRHI.get();
-    //                 //     MeshDrawCommand.ShaderBindings.UniformBufferBindings = UniformBufferBindings;
-    //                 //     MeshDrawCommand.ShaderBindings.SamplerBindings = SamplerBindings;
-    //                 //     MeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
-    //                 //     if (Mesh.Element.NumVertices == 0)
-    //                 //     {
-    //                 //         MeshDrawCommand.IndirectArgs.Buffer = Mesh.Element.IndirectArgsBuffer;
-    //                 //         MeshDrawCommand.IndirectArgs.Offset = Mesh.Element.IndirectArgsOffset;
-    //                 //         MeshDrawCommand.UseIndirect = true;
-    //                 //     }
-    //                 //     else
-    //                 //     {
-    //                 //         MeshDrawCommand.DirectArgs.NumInstances = Mesh.Element.NumInstances;
-    //                 //         MeshDrawCommand.DirectArgs.NumVertices = Mesh.Element.NumVertices;
-    //                 //         MeshDrawCommand.UseIndirect = false;
-    //                 //     }
-    //                 //     ParallelCommands.MeshCommands.push_back(MeshDrawCommand);
-    //                 // }
-    //             }
-    //         }
-    //     }
-    // }
-
 
 
     

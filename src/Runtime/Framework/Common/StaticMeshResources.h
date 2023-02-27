@@ -80,7 +80,7 @@ namespace nilou {
         FStaticVertexFactory VertexFactory;
 
         /** If true, this section will cast a shadow. */
-        bool bCastShadow;
+        bool bCastShadow = true;
 
         int32 GetNumVertices() const;
     };
@@ -145,8 +145,6 @@ namespace nilou {
             , RenderData(std::make_unique<FStaticMeshRenderData>())
         { }
         std::string Name;
-
-        std::filesystem::path Path;
 
         std::unique_ptr<FStaticMeshRenderData> RenderData;
 
@@ -265,7 +263,7 @@ namespace nilou {
                         int NumIndices = section["IndexBuffer"]["NumIndices"];
                         int Stride = section["IndexBuffer"]["Stride"];
                         std::string Data = SerializeHelper::Base64Decode(section["IndexBuffer"]["Data"]);
-                        Section->IndexBuffer.Init(Data.data(), Data.size(), Stride);
+                        Section->IndexBuffer.Init(Data.data(), NumIndices, Stride);
                     }
                     FStaticVertexFactory::FDataType VFData;
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Positions"))

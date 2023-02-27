@@ -63,6 +63,7 @@ namespace nilou {
         template<typename T>
         T *CreateFile(const std::filesystem::path &InPath, bool bNeedFlush=true)
         {
+            static_assert(TIsDerivedFrom<T, UObject>::Value, "");
             DirectoryEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
             if (entry)
             {
@@ -77,7 +78,8 @@ namespace nilou {
                     Entry->bIsDirty = true;
                     Entry->bNeedFlush = bNeedFlush;
                     Entry->Object = std::make_unique<T>();
-                    T *raw_p = Entry->Object.get();
+                    Entry->Object->SerializationPath = InPath;
+                    T *raw_p = dynamic_cast<T*>(Entry->Object.get());
                     entry->Children[filename] = std::move(Entry);
                     return raw_p;
                 }

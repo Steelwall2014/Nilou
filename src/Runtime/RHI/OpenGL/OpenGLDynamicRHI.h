@@ -102,6 +102,10 @@ namespace nilou {
 		/**
 		* Utils
 		*/
+		virtual FRHIRenderQueryRef RHICreateRenderQuery() override;
+		virtual void RHIBeginRenderQuery(FRHIRenderQuery* RenderQuery) override;
+		virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) override;
+		virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) override;
 		virtual void RHIGenerateMipmap(RHITextureRef texture) override;
 		virtual void *RHIMapComputeBuffer(RHIBufferRef buffer, EDataAccessFlag access) override;
 		virtual void RHIUnmapComputeBuffer(RHIBufferRef buffer) override;

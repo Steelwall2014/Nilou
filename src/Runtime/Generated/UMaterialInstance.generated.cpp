@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Rendering/Material.h"
+#include "../../src/Runtime/Rendering/Material.h"
 namespace nilou {
 std::string UMaterialInstance::GetClassName() { return "UMaterialInstance"; }
 EUClasses UMaterialInstance::GetClassEnum() { return EUClasses::MC_UMaterialInstance; }

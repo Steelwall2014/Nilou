@@ -27,7 +27,7 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return GetContentManager()->GetMaterialByPath("/DefaultMaterial.json");//GetContentManager()->GetGlobalMaterial("DefaultMaterial");
+        return GetContentManager()->GetMaterialByPath("/Materials/DefaultMaterial.json");
     }
 
     void UMaterial::UpdateCode(const std::string &InCode, bool bRecompile)
@@ -86,7 +86,7 @@ namespace nilou {
         std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>();
         MaterialInstance->Name = Name;
         MaterialInstance->Code = Code;
-        MaterialInstance->Path = Path;
+        MaterialInstance->SerializationPath = SerializationPath;
         MaterialInstance->Textures = Textures;
         MaterialInstance->MaterialResource->Name = MaterialResource->Name;
         MaterialInstance->MaterialResource->StencilRefValue = MaterialResource->StencilRefValue;

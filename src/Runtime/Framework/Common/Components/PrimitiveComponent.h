@@ -21,6 +21,7 @@ namespace nilou {
         UPrimitiveComponent(AActor *InOwner = nullptr)
             : USceneComponent(InOwner)
             , SceneProxy(nullptr)
+            , bCastShadow(true)
         { }
 
         FPrimitiveSceneProxy *SceneProxy;
@@ -35,9 +36,13 @@ namespace nilou {
 
         virtual void SendRenderTransform() override;
 
-        bool bCastShadow;
+        void SetCastShadow(bool bInCastShadow) { bCastShadow = bInCastShadow; MarkRenderStateDirty(); }
 
-        bool bNeverDistanceCull;
+        bool GetCastShadow() const { return bCastShadow; }
+
+    protected:
+
+        bool bCastShadow;
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveShaderParameters)
@@ -47,11 +52,12 @@ namespace nilou {
     class FPrimitiveSceneProxy
     {
         friend class FScene;
+        friend class FDefferedShadingSceneRenderer;
     public:
         
         FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName = "");
 
-        virtual void GetDynamicMeshElements(const std::vector<class FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) { };
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) { };
         // virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &View) { };
     
         virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
@@ -74,8 +80,7 @@ namespace nilou {
 
     protected:
 
-        bool bRenderInDepthPass;
-        bool bRenderInMainPass;
+        bool bCastShadow;
 
         std::string Name;
 

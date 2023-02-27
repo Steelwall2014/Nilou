@@ -10,7 +10,7 @@ uniform sampler2D WorldSpaceNormal;
 uniform sampler2D MetallicRoughness;
 uniform sampler2D Emissive;
 
-#include "LightShaderParameters.glsl"
+#include "../include/LightShaderParameters.glsl"
 #include "../include/PBRFunctions.glsl"
 
 //layout (std140) buffer FLightSSBO {

@@ -6,15 +6,9 @@
 
 namespace nilou {
 
-    enum class ECameraType
-    {
-        CT_Perspective,
-        CT_Ortho,
-    };
-
     // struct FCameraParameters
     // {
-    //     // ECameraType CameraType;
+    //     // EViewType CameraType;
 
     //     FCameraParameters();
     // };
@@ -52,7 +46,7 @@ namespace nilou {
 
         virtual void SendRenderDynamicData() override;
 
-        glm::mat4 CalcWorldToViewMatrix();
+        glm::dmat4 CalcWorldToViewMatrix();
 
         glm::mat4 CalcViewToClipMatrix();
 
@@ -126,6 +120,8 @@ namespace nilou {
         void SetCameraResolution(const ivec2 &InCameraResolution);
 
         void SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist);
+
+        void SetFieldOfView(float InVerticalFieldOfView);
     
         void UpdateUniformBuffer() 
         { 
@@ -134,18 +130,26 @@ namespace nilou {
                 {
                     ViewUniformBufferRHI->UpdateUniformBuffer();
                 }); 
-            SceneView.ViewFrustum = FViewFrustum(
-                SceneView.Position, SceneView.Forward, SceneView.Up, 
-                SceneView.AspectRatio, SceneView.VerticalFieldOfView, 
-                SceneView.NearClipDistance, SceneView.FarClipDistance); 
         }
 
         TUniformBuffer<FViewShaderParameters> *GetViewUniformBuffer() { return ViewUniformBufferRHI.get(); }
 
-        const FSceneView &GetSceneView();
+        FSceneView GetSceneView();
 
     protected:
-        FSceneView SceneView;
+
+        glm::dmat4 ProjectionMatrix;
+        glm::dmat4 ViewMatrix;
+        dvec3 Position;
+        dvec3 Forward;
+        dvec3 Up;
+        double AspectRatio;
+        double VerticalFieldOfView;
+        double NearClipDistance;
+        double FarClipDistance;
+        glm::ivec2 ScreenResolution;
+        EViewType ViewType;
+    
         FViewSceneInfo *ViewSceneInfo;
         TUniformBufferRef<FViewShaderParameters> ViewUniformBufferRHI;
     };

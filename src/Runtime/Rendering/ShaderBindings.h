@@ -9,7 +9,7 @@
 #include "Templates/TypeTraits.h"
 namespace nilou {
 
-    class FElementShaderBindings
+    class FInputShaderBindings
     {
     public:
         template<class T>

@@ -20,13 +20,10 @@ namespace nilou {
         , LightColor(vec4(1.0f, 1.0f, 1.0f, 1.0f))
         , Intensity(5.f)
         , bCastShadow(true)
-        , NearClipDistance(1.f)
-        , FarClipDistance(1000000.f)
         , ShadowMapResolution(ivec2(1024))
     {
 
     }
-
 
     FLightSceneProxy *ULightComponent::CreateSceneProxy()
     {
@@ -56,7 +53,7 @@ namespace nilou {
 
     void ULightComponent::SendRenderTransform()
     {
-        SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector());
+        SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
 
         USceneComponent::SendRenderTransform();
     }
@@ -65,11 +62,9 @@ namespace nilou {
     {
         SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
         SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);
-        SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector());
         SceneProxy->SetLightColor(LightColor);
         SceneProxy->SetLightIntensity(Intensity);
         SceneProxy->SetCastShadow(bCastShadow);
-        SceneProxy->SetLightType(LightType);
         SceneProxy->SetShadowMapResolution(ShadowMapResolution);
 
         USceneComponent::SendRenderDynamicData();
@@ -80,11 +75,9 @@ namespace nilou {
     { 
         InComponent->SceneProxy = this;
         LightUniformBufferRHI = CreateUniformBuffer<FLightShaderParameters>();
-        LightUniformBufferRHI->Data.ShadowMappingStartIndex = 0;
-        LightUniformBufferRHI->Data.ShadowMappingEndIndex = 0;
         SetLightDistAttenParams(InComponent->LightDistAttenuation);
         SetLightAngleAttenParams(InComponent->LightAngleAttenuation);
-        SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector());
+        SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector(), InComponent->GetUpVector());
         SetLightColor(InComponent->LightColor);
         SetLightIntensity(InComponent->Intensity);
         SetCastShadow(InComponent->bCastShadow);
@@ -95,10 +88,11 @@ namespace nilou {
             LightSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
-    void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection)
+    void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)
     {
         Position = InPosition;
         Direction = InDirection;
+        Up = InUp;
         LightUniformBufferRHI->Data.lightPosition = InPosition;
         LightUniformBufferRHI->Data.lightDirection = InDirection;
         if (LightSceneInfo)
@@ -142,14 +136,6 @@ namespace nilou {
             LightSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
-    void FLightSceneProxy::SetFrustumClipDistances(float Near, float Far)
-    {
-        NearClipDistance = Near;
-        FarClipDistance = Far;
-        if (LightSceneInfo)
-            LightSceneInfo->SetNeedsUniformBufferUpdate(true);
-    }
-
     void FLightSceneProxy::SetLightDistAttenParams(const FAttenCurve &AttenCurveParam) 
     { 
         SetLightAttenParams(LightUniformBufferRHI->Data.lightDistAttenParams, AttenCurveParam); 
@@ -157,50 +143,8 @@ namespace nilou {
 
     void FLightSceneProxy::SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam)
     {
+        VerticalFieldOfView = glm::radians(90.0);
         SetLightAttenParams(LightUniformBufferRHI->Data.lightAngleAttenParams, AttenCurveParam);
-        float ScreenAspect = (float)ShadowMapResolution.x / (float)ShadowMapResolution.y;
-        float fovy = glm::radians(90.f);
-        switch (AttenCurveParam.type) {
-            case EAttenCurveType::ACT_Linear:
-            case EAttenCurveType::ACT_Smooth:
-                fovy = AttenCurveParam.u.linear_params.end_atten;
-                break;
-            case EAttenCurveType::ACT_Inverse:
-            {
-                float kl = AttenCurveParam.u.inverse_params.kl;
-                float kc = AttenCurveParam.u.inverse_params.kc;
-                float offset = AttenCurveParam.u.inverse_params.offset;
-                float scale = AttenCurveParam.scale;
-                if (offset == 0)
-                    fovy = ( scale / ( KINDA_SMALL_NUMBER-offset ) - kc*scale) / kl;
-            }
-            case EAttenCurveType::ACT_InverseSquare:
-            {
-                fovy = glm::radians(60.f);
-                // float kl = AttenCurveParam.u.inverse_squre_params.kl;
-                // float kc = AttenCurveParam.u.inverse_squre_params.kc;
-                // float kq = AttenCurveParam.u.inverse_squre_params.kq;
-                // float offset = AttenCurveParam.u.inverse_squre_params.offset;
-                // float scale = AttenCurveParam.scale;
-                // // if (offset > 0)
-                // // {
-                //     float under_sqrt = kl*kl - 4.f*kq*(1.f/offset+kc);
-                //     if (under_sqrt >= 0)
-                //         fovy = ( sqrt(under_sqrt)*scale - kl*scale ) / (2*kq);
-                //     else 
-                //         NILOU_LOG(Error, "Invalid Light Angle Attenuation Parameter: Can't attenuate to zero");
-                // }
-                // else {
-                //     float under_sqrt = kl*kl - 4.f*kq*(1.f/offset+kc);
-                //     if (under_sqrt >= 0)
-                //         fovy = ( sqrt(under_sqrt)*scale - kl*scale ) / (2*kq);
-                //     else 
-                //         std::cout << "Invalid Light Angle Attenuation Parameter: Can't attenuate to zero";
-                // }
-            }
-        }
-
-        ComputedVerticalFieldOfView = fovy;
     }
 
     void FLightSceneProxy::UpdateUniformBuffer()

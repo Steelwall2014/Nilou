@@ -63,9 +63,9 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	return VFIntermediates;
 }
 
-vec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
+dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 {
-	return vec3(VFIntermediates.FloatLocalToWorld * vec4(POSITION, 1));
+	return dvec3(LocalToWorld * dvec4(POSITION, 1));
 }
 
 vec3 VertexFactoryGetWorldNormal(FVertexFactoryIntermediates VFIntermediates)

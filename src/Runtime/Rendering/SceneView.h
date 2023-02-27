@@ -4,6 +4,13 @@
 #include "Frustum.h"
 
 namespace nilou {
+
+    enum class EViewType
+    {
+        CT_Perspective,
+        CT_Ortho,
+    };
+    
     class FSceneView 
     {
     public:
@@ -18,6 +25,7 @@ namespace nilou {
         double NearClipDistance;
         double FarClipDistance;
         glm::ivec2 ScreenResolution;
+        EViewType ViewType;
     };
 
     using FSceneLightView = FSceneView;

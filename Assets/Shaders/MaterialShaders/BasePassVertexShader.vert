@@ -1,25 +1,6 @@
 #version 460
 
 #include "../include/ViewShaderParameters.glsl"
-//#include "../include/BasePassCommon.glsl"
-//struct VS_Out {
-//    mat3 TBN;
-//    vec3 WorldPosition;
-//    vec4 ClipPosition;
-//    vec3 WorldNormal;
-//    vec3 WorldTangent;
-//    vec3 WorldBitangent;
-//    vec4 Color;
-//    vec2 TexCoords;
-//};
-
-//out vec3 WorldPosition;
-//out vec3 WorldNormal;
-//out vec2 UV;
-//out mat3 TBN;
-#include "../include/HandedCoordinateSystem.glsl"
-//#include "../VertexFactories/StaticMeshVertexFactory.glsl"
-//#include "../Materials/ColoredMaterial.glsl"
 
 out VS_Out vs_out;
 void main()
@@ -31,7 +12,9 @@ void main()
 	vs_out.TBN = mat3(vec3(tangent), bitanget, vs_out.WorldNormal);
     vs_out.Color = VertexFactoryGetColor(VFIntermediates);
     vs_out.TexCoords = VertexFactoryGetTexCoord(VFIntermediates);
-	vs_out.WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
+    dvec3 WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
+    vs_out.WorldPosition = vec3(WorldPosition - CameraPosition);
+//	vs_out.WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
     vs_out.WorldPosition += MaterialGetWorldSpaceOffset(vs_out);
     vs_out.ClipPosition = RelWorldToClip * vec4(vs_out.WorldPosition, 1);
 //    pos.x *= -1;

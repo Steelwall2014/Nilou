@@ -150,7 +150,8 @@ namespace nilou {
         FPrimitiveSceneProxy *PrimitiveSceneProxy = InPrimitive->CreateSceneProxy();
         if (PrimitiveSceneProxy == nullptr)
             return;
-
+            
+        InPrimitive->SceneProxy = PrimitiveSceneProxy;
         FPrimitiveSceneInfo *PrimitiveSceneInfo = new FPrimitiveSceneInfo(PrimitiveSceneProxy, InPrimitive, this);
         PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
 
@@ -159,9 +160,10 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, &RenderMatrix, &Bounds] (FDynamicRHI *DynamicRHI) 
+            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (FDynamicRHI *DynamicRHI) 
             {
                 PrimitiveSceneProxy->CreateRenderThreadResources();
+                PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
                 Scene->AddPrimitiveSceneInfo(PrimitiveSceneInfo);
             });
     }
@@ -195,6 +197,7 @@ namespace nilou {
     void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
         AddedPrimitiveSceneInfos.emplace(InPrimitiveInfo);
+        InPrimitiveInfo->OcclusionQuery = FDynamicRHI::GetDynamicRHI()->RHICreateRenderQuery();
     }
 
     void FScene::RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
@@ -205,11 +208,13 @@ namespace nilou {
     void FScene::AddLightSceneInfo(FLightSceneInfo *InLightInfo)
     {
         AddedLightSceneInfos.emplace(InLightInfo);
+        GetAddLightDelegate().Broadcast(InLightInfo);
     }
 
     void FScene::RemoveLightSceneInfo(FLightSceneInfo *InLightInfo)
     {
         safe_erase(AddedLightSceneInfos, InLightInfo);
+        GetRemoveLightDelegate().Broadcast(InLightInfo);
     }
 
     void FScene::AddViewSceneInfo(FViewSceneInfo *InCameraInfo)

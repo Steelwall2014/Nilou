@@ -162,7 +162,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     {
         tinygltf::Material &gltf_material = model.materials[MaterialIndex];
         auto Material = std::make_shared<UMaterial>(std::to_string(MaterialIndex) + "_" + gltf_material.name);
-        Material->Path = out_dir / fs::path(Material->Name + ".json");
+        Material->SerializationPath = out_dir / fs::path(Material->Name + ".json");
         if (gltf_material.doubleSided)
             Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         auto AccessTextures = 

@@ -13,6 +13,7 @@ namespace nilou {
         ULineBatchComponent(AActor *InOwner=nullptr)
             : UPrimitiveComponent(InOwner)
         { 
+            SetCastShadow(false);
         }
 
         void DrawLines(const std::vector<FBatchedLine> &InLines);

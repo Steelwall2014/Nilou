@@ -58,6 +58,9 @@ namespace nilou {
         UBMT_vec2,
         UBMT_vec3,
         UBMT_vec4,
+        UBMT_dvec2,
+        UBMT_dvec3,
+        UBMT_dvec4,
         UBMT_bvec2,
         UBMT_bvec3,
         UBMT_bvec4,
@@ -70,6 +73,9 @@ namespace nilou {
         UBMT_mat2,
         UBMT_mat3,
         UBMT_mat4,
+        UBMT_dmat2,
+        UBMT_dmat3,
+        UBMT_dmat4,
         UBMT_struct
     };
 
@@ -84,6 +90,7 @@ namespace nilou {
 
 	    // using TAlignedType = TypeParameter;
         static_assert(std::is_same<TypeParameter, bool>::value != true, "Boolean type for uniform buffer is not supported, you have to use int32 in cpp and bool in glsl");
+        static_assert(true, "Using unsupported type in uniform buffer!");
     };
 
     // template<>
@@ -166,6 +173,42 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+	
+	    // using TAlignedType = TAlignedTypedef<vec4, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dvec2>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec2;
+        static constexpr int32 NumRows = 1;
+        static constexpr int32 NumColumns = 2;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 16;
+	
+	    // using TAlignedType = TAlignedTypedef<vec2, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dvec3>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec3;
+        static constexpr int32 NumRows = 1;
+        static constexpr int32 NumColumns = 3;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 32;
+	
+	    // using TAlignedType = TAlignedTypedef<vec3, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dvec4>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec4;
+        static constexpr int32 NumRows = 1;
+        static constexpr int32 NumColumns = 4;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 32;
 	
 	    // using TAlignedType = TAlignedTypedef<vec4, Alignment>;
     };
@@ -310,6 +353,42 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+	
+	    // using TAlignedType = TAlignedTypedef<mat4, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dmat2>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat2;
+        static constexpr int32 NumRows = 2;
+        static constexpr int32 NumColumns = 2;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 32;
+	
+	    // using TAlignedType = TAlignedTypedef<mat2, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dmat3>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat3;
+        static constexpr int32 NumRows = 3;
+        static constexpr int32 NumColumns = 3;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 32;
+	
+	    // using TAlignedType = TAlignedTypedef<mat3, Alignment>;
+    };
+
+    template<>
+    struct TShaderParameterTypeInfo<dmat4>
+    {
+        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat4;
+        static constexpr int32 NumRows = 4;
+        static constexpr int32 NumColumns = 4;
+        static constexpr int32 NumElements = 0;
+        static constexpr int32 Alignment = 32;
 	
 	    // using TAlignedType = TAlignedTypedef<mat4, Alignment>;
     };

@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "../../src/Runtime/Rendering/Texture.h"
 namespace nilou {
 std::string UTexture::GetClassName() { return "UTexture"; }
 EUClasses UTexture::GetClassEnum() { return EUClasses::MC_UTexture; }

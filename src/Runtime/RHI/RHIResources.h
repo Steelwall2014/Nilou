@@ -411,4 +411,11 @@ namespace nilou {
 			
 		}
 	};
+
+	class FRHIRenderQuery : public RHIResource
+	{
+	public:
+		FRHIRenderQuery() : RHIResource(RRT_RenderQuery) {}
+	};
+	using FRHIRenderQueryRef = std::shared_ptr<FRHIRenderQuery>;
 }

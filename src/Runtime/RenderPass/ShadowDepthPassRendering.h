@@ -3,14 +3,6 @@
 #include "Templates/ObjectMacros.h"
 
 namespace nilou {
-
-    class FShadowDepthVS : public FMaterialShader
-    {
-        DECLARE_SHADER_TYPE()
-    };
-
-    class FShadowDepthPS : public FMaterialShader
-    {
-        DECLARE_SHADER_TYPE()
-    };
+    DECLARE_MATERIAL_SHADER(FShadowDepthVS)
+    DECLARE_GLOBAL_SHADER(FShadowDepthPS)
 }

@@ -43,6 +43,7 @@ namespace nilou {
         , PrimitiveSceneInfo(nullptr)
     {
         Name = InName;
+        bCastShadow = Primitive->GetCastShadow();
         Primitive->SceneProxy = this;
         PrimitiveUniformBuffer = CreateUniformBuffer<FPrimitiveShaderParameters>();
         SetTransform(Primitive->GetRenderMatrix(), Primitive->GetBounds());
@@ -66,11 +67,7 @@ namespace nilou {
 
     void FPrimitiveSceneProxy::DestroyRenderThreadResources()
     {
-        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_DestroyRenderThreadResources)(
-            [this](FDynamicRHI *DynamicRHI)
-            {
-                BeginReleaseResource(PrimitiveUniformBuffer.get());
-            });
+        BeginReleaseResource(PrimitiveUniformBuffer.get());
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer()

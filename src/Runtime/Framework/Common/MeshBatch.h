@@ -3,12 +3,13 @@
 #include <vector>
 #include "UniformBuffer.h"
 #include "ShaderBindings.h"
+#include "ViewElementPDI.h"
 
 namespace nilou {
 
     struct FMeshBatchElement
     {
-        FElementShaderBindings Bindings;
+        FInputShaderBindings Bindings;
 
 	    const class FVertexFactory* VertexFactory;
 
@@ -60,15 +61,20 @@ namespace nilou {
     class FMeshElementCollector
     {
     public:
-        FMeshElementCollector(std::vector<std::vector<FMeshBatch>> *InPerViewMeshBatches)
-            : PerViewMeshBatches(InPerViewMeshBatches) { }
+        FMeshElementCollector() { }
 
         void AddMesh(int32 ViewIndex, const FMeshBatch &MeshBatch)
         {
-            (*PerViewMeshBatches)[ViewIndex].push_back(MeshBatch);
+            PerViewMeshBatches[ViewIndex]->push_back(MeshBatch);
         }
 
-        std::vector<std::vector<FMeshBatch>> *PerViewMeshBatches;
+        void AddBatchedLine(int32 ViewIndex, const FBatchedLine &MeshBatch)
+        {
+            PerViewPDI[ViewIndex]->DrawLine(MeshBatch);
+        }
+
+        std::vector<std::vector<FMeshBatch>*> PerViewMeshBatches;
+        std::vector<FViewElementPDI*> PerViewPDI;
     };
 
 }

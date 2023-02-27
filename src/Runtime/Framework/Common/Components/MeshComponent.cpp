@@ -44,7 +44,7 @@ namespace nilou {
         Component->SceneProxy = this;
     }
 
-    void FStaticMeshSceneProxy::GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector)
+    void FStaticMeshSceneProxy::GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector)
     {
         for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		{

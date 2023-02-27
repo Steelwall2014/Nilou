@@ -189,9 +189,9 @@ namespace nilou {
         TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"]);
         for (int i = 0; i < MaterialSlots.size(); i++)
         {
-            if (!MaterialSlots[i]->Path.empty())
+            if (!MaterialSlots[i]->SerializationPath.empty())
             {
-                content["MaterialSlots"][i] = MaterialSlots[i]->Path.generic_string();
+                content["MaterialSlots"][i] = MaterialSlots[i]->SerializationPath.generic_string();
             }
         }
     }

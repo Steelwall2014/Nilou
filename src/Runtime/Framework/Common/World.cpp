@@ -50,14 +50,28 @@ namespace nilou {
         if (Mesh)
         {
             FTransform MeshTransform;
-            MeshTransform.SetTranslation(glm::vec3(1, 1, 1));
-            std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh");
-            StaticMeshActor->SetStaticMesh(Mesh);
+            MeshTransform.SetRotator(FRotator(0, 0, -90));
+            // for (int i = -1; i <= 1; i++)
+            // {
+            //     for (int j = -1; j <= 1; j++)
+            //     {
+            //         MeshTransform.SetTranslation(glm::vec3(i, j, 1));
+            //         std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
+            //         StaticMeshActor->SetStaticMesh(Mesh);
+            //     }
+            // }
         }
+
+        FTransform CubeTransform;
+        CubeTransform.SetScale3D(vec3(15, 15, 0.05));
+        UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.json");
+        std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
+        StaticMeshActor->SetStaticMesh(Cube);
         
         std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
+        SphereActor->SphereComponent->SetCastShadow(false);
         SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
-        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/SkyAtmosphereMaterial.json"));
+        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.json"));
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
         std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
 
@@ -69,8 +83,8 @@ namespace nilou {
         CameraActor->SetMoveSpeed(100);
 
         FTransform LightActorTransform;
-        LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
-        LightActorTransform.SetRotator(FRotator(-45, 0, 0));
+        // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
+        LightActorTransform.SetRotator(FRotator(-90, 0, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
@@ -85,10 +99,10 @@ namespace nilou {
         // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
         TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
-        // std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
-        // std::vector<FBatchedLine> lines;
-        // lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
-        // LineBatchActor->LineBatchComponent->DrawLines(lines);
+        std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
+        std::vector<FBatchedLine> lines;
+        lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
+        LineBatchActor->LineBatchComponent->DrawLines(lines);
 
     }
 

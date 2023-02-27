@@ -59,6 +59,16 @@ namespace nilou {
         FPlane(const glm::dvec3& point, const glm::dvec3& normal);
 
         /**
+        * @brief Construct a new plane from three points in the plane.
+        *
+        * @param A First point in the plane.
+        * @param B Second point in the plane.
+        * @param C Third point in the plane.
+        *
+        */
+        FPlane(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& C);
+
+        /**
         * @brief Computes the signed shortest distance of a point to this plane.
         * The sign of the distance determines which side of the plane the point
         * is on.  If the distance is positive, the point is in the half-space
@@ -129,6 +139,8 @@ namespace nilou {
 
         glm::dvec3 Center;
         double Radius;
+
+        FBoundingSphere TransformBy(const dmat4 &Transform) const;
     };
 
     // Axis Aligned
@@ -138,10 +150,19 @@ namespace nilou {
         dvec3 Min;
         dvec3 Max;
         FBoundingBox() { Min = Max = dvec3(0); }
+
         FBoundingBox(const dvec3 &Min, const dvec3 &Max);
-        FBoundingBox(const FOrientedBoundingBox &OBB) :FBoundingBox(OBB.Center, OBB.HalfAxes[0], OBB.HalfAxes[1], OBB.HalfAxes[2]) { }
+
+        FBoundingBox(const FOrientedBoundingBox &OBB) 
+            : FBoundingBox(OBB.Center, OBB.HalfAxes[0], OBB.HalfAxes[1], OBB.HalfAxes[2]) { }
+
         FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection);
-        FBoundingBox TransformBy(const FTransform &Transform);
+
+        FBoundingBox TransformBy(const FTransform &Transform) const;
+
+        void FromBoundingSphere(const FBoundingSphere &Sphere);
+
+        ECullingResult IntersectPlane(const FPlane& plane) const noexcept;
     };
 
     template<>
@@ -186,8 +207,8 @@ namespace nilou {
             const double VerticalFieldOfView,
             const double NearClipDistance,
             const double FarClipDistance);
+
         /**
-         * [DEPRECATED]
          * @brief Extract frustum planes using view and projection matrix
          * 
          * @param view World to view matrix
@@ -233,6 +254,22 @@ namespace nilou {
         bool operator==(const FViewFrustum &Other);
     private:
         bool IsOutSidePlane(const FPlane &plane, glm::dvec3 position) const;
+    };
+
+    class FConvexVolume
+    {
+    public:
+        
+	    std::vector<FPlane> Planes;
+
+        FConvexVolume()
+        { }
+
+        FConvexVolume(const std::vector<FPlane>& InPlanes) :
+            Planes(InPlanes)
+        { }
+
+        bool IntersectBox(const FBoundingBox &Box);
     };
 
 }

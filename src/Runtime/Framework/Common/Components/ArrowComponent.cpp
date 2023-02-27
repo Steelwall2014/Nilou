@@ -24,7 +24,7 @@ namespace nilou {
             // , bIsScreenSizeScaled(Component->bIsScreenSizeScaled)
             // , ScreenSize(Component->ScreenSize)
         {
-            Material = GetContentManager()->GetMaterialByPath("/ColoredMaterial.json");
+            Material = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.json");
 
             const float HeadAngle = glm::radians(ARROW_HEAD_ANGLE);
             const float DefaultLength = ArrowSize * ARROW_SCALE;
@@ -45,13 +45,14 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
+                    Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;

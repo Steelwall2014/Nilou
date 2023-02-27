@@ -19,6 +19,13 @@ namespace nilou {
     FPlane::FPlane(const glm::dvec3& point, const glm::dvec3& normal)
         : FPlane(normal, -glm::dot(normal, point)) {}
 
+    FPlane::FPlane(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& C)
+    {
+        Normal = glm::normalize(glm::cross(B-A, C-A));
+        Distance = -glm::dot(Normal, A);
+    }
+
+
     double FPlane::GetPointDistance(const glm::dvec3& point) const noexcept 
     {
         return glm::dot(this->Normal, point) + this->Distance;
@@ -41,11 +48,19 @@ namespace nilou {
     {
         const glm::dvec3 normal = plane.Normal;
 
-        const glm::dvec3& boxVertex = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+        const glm::dvec3& boxVertex1 = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+        const glm::dvec3& boxVertex2 = -HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+        const glm::dvec3& boxVertex3 = HalfAxes[0] - HalfAxes[1] + HalfAxes[2];
+        const glm::dvec3& boxVertex4 = HalfAxes[0] + HalfAxes[1] - HalfAxes[2];
 
         // plane is used as if it is its normal; the first three components are
         // assumed to be normalized
-        const double radEffective = glm::abs(glm::dot(normal, boxVertex));
+        const double radEffective1 = glm::abs(glm::dot(normal, boxVertex1));
+        const double radEffective2 = glm::abs(glm::dot(normal, boxVertex2));
+        const double radEffective3 = glm::abs(glm::dot(normal, boxVertex3));
+        const double radEffective4 = glm::abs(glm::dot(normal, boxVertex4));
+
+        const double radEffective = glm::max(radEffective1, glm::max(radEffective2, glm::max(radEffective3, radEffective4)));
 
         const double distanceToPlane = plane.GetPointDistance(Center);
 
@@ -60,6 +75,13 @@ namespace nilou {
         return ECullingResult::CR_Intersecting;
     }
 
+    FBoundingSphere FBoundingSphere::TransformBy(const dmat4 &Transform) const
+    {
+        dvec4 center = Transform * dvec4(Center, 1);
+        FBoundingSphere NewSphere(center, Radius);
+        return NewSphere;
+    }
+
     FBoundingBox::FBoundingBox(const glm::dvec3 &Min, const glm::dvec3 &Max)
         : Min(Min)
         , Max(Max)
@@ -68,23 +90,17 @@ namespace nilou {
 
     FBoundingBox::FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection)
     {
-        double x =  xDirection.x > 0 ? xDirection.x : -xDirection.x +
-                    yDirection.x > 0 ? yDirection.x : -yDirection.x +
-                    zDirection.x > 0 ? zDirection.x : -zDirection.x;
+        double x =  glm::abs(xDirection.x) + glm::abs(yDirection.x) + glm::abs(zDirection.x);
         
-        double y =  xDirection.y > 0 ? xDirection.y : -xDirection.y +
-                    yDirection.y > 0 ? yDirection.y : -yDirection.y +
-                    zDirection.y > 0 ? zDirection.y : -zDirection.y;
+        double y =  glm::abs(xDirection.y) + glm::abs(yDirection.y) + glm::abs(zDirection.y);
 
-        double z =  xDirection.z > 0 ? xDirection.z : -xDirection.z +
-                    yDirection.z > 0 ? yDirection.z : -yDirection.z +
-                    zDirection.z > 0 ? zDirection.z : -zDirection.z;
+        double z =  glm::abs(xDirection.z) + glm::abs(yDirection.z) + glm::abs(zDirection.z);
 
         Min = Center - dvec3(x, y, z);
         Max = Center + dvec3(x, y, z);
     }
 
-    FBoundingBox FBoundingBox::TransformBy(const FTransform &Transform)
+    FBoundingBox FBoundingBox::TransformBy(const FTransform &Transform) const
     {
         FBoundingBox NewBox;
         glm::dmat4 M = Transform.ToMatrix();
@@ -192,6 +208,53 @@ namespace nilou {
         return NewBox;
     }
 
+    void FBoundingBox::FromBoundingSphere(const FBoundingSphere &Sphere)
+    {
+        Min = Sphere.Center - dvec3(Sphere.Radius);
+        Max = Sphere.Center + dvec3(Sphere.Radius);
+    }
+
+    ECullingResult FBoundingBox::IntersectPlane(const FPlane& plane) const noexcept
+    {
+        const glm::dvec3 normal = plane.Normal;
+
+        const dvec3 Center = (Min+Max) / 2.0;
+
+        // const glm::dvec3& boxVertex1 = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+        // const glm::dvec3& boxVertex2 = -HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+        // const glm::dvec3& boxVertex3 = HalfAxes[0] - HalfAxes[1] + HalfAxes[2];
+        // const glm::dvec3& boxVertex4 = HalfAxes[0] + HalfAxes[1] - HalfAxes[2];
+
+        
+        glm::dvec3 boxVertex;
+        boxVertex.x = normal.x > 0 ? Max.x : Min.x;
+        boxVertex.y = normal.y > 0 ? Max.y : Min.y;
+        boxVertex.z = normal.z > 0 ? Max.z : Min.z;
+
+        // plane is used as if it is its normal; the first three components are
+        // assumed to be normalized
+        // const double radEffective1 = glm::abs(glm::dot(normal, boxVertex));
+        // const double radEffective2 = glm::abs(glm::dot(normal, boxVertex2));
+        // const double radEffective3 = glm::abs(glm::dot(normal, boxVertex3));
+        // const double radEffective4 = glm::abs(glm::dot(normal, boxVertex4));
+
+        // const double radEffective = glm::max(radEffective1, glm::max(radEffective2, glm::max(radEffective3, radEffective4)));
+
+        const double radEffective = glm::abs(glm::dot(normal, boxVertex));
+
+        const double distanceToPlane = plane.GetPointDistance(Center);
+
+        if (distanceToPlane <= -radEffective) {
+            // The entire box is on the negative side of the plane normal
+            return ECullingResult::CR_Outside;
+        }
+        if (distanceToPlane >= radEffective) {
+            // The entire box is on the positive side of the plane normal
+            return ECullingResult::CR_Inside;
+        }
+        return ECullingResult::CR_Intersecting;
+    }
+
     void NormalizePlane(glm::dvec4 &plane)
     {
         float mag;
@@ -286,7 +349,7 @@ namespace nilou {
         Planes[0].Normal.y = VP[3][1] + VP[0][1];
         Planes[0].Normal.z = VP[3][2] + VP[0][2];
         Planes[0].Distance = (VP[3][3] + VP[0][3]);
-        Planes[0].Distance /= Planes[0].Normal.length();
+        Planes[0].Distance /= glm::length(Planes[0].Normal);
         Planes[0].Normal = glm::normalize(Planes[0].Normal);
 
         // Left clipping plane
@@ -294,7 +357,7 @@ namespace nilou {
         Planes[1].Normal.y = VP[3][1] - VP[0][1];
         Planes[1].Normal.z = VP[3][2] - VP[0][2];
         Planes[1].Distance = (VP[3][3] - VP[0][3]);
-        Planes[1].Distance /= Planes[1].Normal.length();
+        Planes[1].Distance /= glm::length(Planes[1].Normal);
         Planes[1].Normal = glm::normalize(Planes[1].Normal);
 
         // Top clipping plane
@@ -302,7 +365,7 @@ namespace nilou {
         Planes[2].Normal.y = VP[3][1] - VP[1][1];
         Planes[2].Normal.z = VP[3][2] - VP[1][2];
         Planes[2].Distance = (VP[3][3] - VP[1][3]);
-        Planes[2].Distance /= Planes[2].Normal.length();
+        Planes[2].Distance /= glm::length(Planes[2].Normal);
         Planes[2].Normal = glm::normalize(Planes[2].Normal);
 
         // Bottom clipping plane
@@ -310,7 +373,7 @@ namespace nilou {
         Planes[3].Normal.y = VP[3][1] + VP[1][1];
         Planes[3].Normal.z = VP[3][2] + VP[1][2];
         Planes[3].Distance = (VP[3][3] + VP[1][3]);
-        Planes[3].Distance /= Planes[3].Normal.length();
+        Planes[3].Distance /= glm::length(Planes[3].Normal);
         Planes[3].Normal = glm::normalize(Planes[3].Normal);
 
         // Near clipping plane
@@ -318,7 +381,7 @@ namespace nilou {
         Planes[4].Normal.y = VP[3][1] + VP[2][1];
         Planes[4].Normal.z = VP[3][2] + VP[2][2];
         Planes[4].Distance = (VP[3][3] + VP[2][3]);
-        Planes[4].Distance /= Planes[4].Normal.length();
+        Planes[4].Distance /= glm::length(Planes[4].Normal);
         Planes[4].Normal = glm::normalize(Planes[4].Normal);
 
         // Far clipping plane
@@ -326,7 +389,7 @@ namespace nilou {
         Planes[5].Normal.y = VP[3][1] - VP[2][1];
         Planes[5].Normal.z = VP[3][2] - VP[2][2];
         Planes[5].Distance = (VP[3][3] - VP[2][3]);
-        Planes[5].Distance /= Planes[5].Normal.length();
+        Planes[5].Distance /= glm::length(Planes[5].Normal);
         Planes[5].Normal = glm::normalize(Planes[5].Normal);
 
     }
@@ -351,15 +414,7 @@ namespace nilou {
     }
     bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FOrientedBoundingBox &OBB) const
     {
-        // return OBB.IntersectPlane(plane) == ECullingResult::CR_Outside;
-        return  IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]+OBB.HalfAxes[1]+OBB.HalfAxes[2]) && 
-                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]+OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]-OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]+OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]-OBB.HalfAxes[1]+OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center+OBB.HalfAxes[0]-OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]+OBB.HalfAxes[1]-OBB.HalfAxes[2]) &&
-                IsOutSidePlane(plane, OBB.Center-OBB.HalfAxes[0]-OBB.HalfAxes[1]-OBB.HalfAxes[2]);
+        return OBB.IntersectPlane(plane) == ECullingResult::CR_Outside;
     }
     bool FViewFrustum::IsBoxOutSideFrustum(const FBoundingBox &AABB) const
     {
@@ -411,6 +466,16 @@ namespace nilou {
     bool FViewFrustum::IsOutSidePlane(const FPlane &plane, glm::dvec3 position) const
     {
         return glm::dot(plane.Normal, position) + plane.Distance < 0;
+    }
+
+    bool FConvexVolume::IntersectBox(const FBoundingBox &Box)
+    {
+        for (int i = 0; i < Planes.size(); i++)
+        {
+            if (Box.IntersectPlane(Planes[i]) == ECullingResult::CR_Outside)
+                return false;
+        }
+        return true;
     }
 
 }

@@ -119,7 +119,7 @@ namespace nilou {
             return ShaderMap.GetShader(ShaderParameter);
         }
 
-        void FillShaderBindings(FElementShaderBindings &OutBindings)
+        void FillShaderBindings(FInputShaderBindings &OutBindings)
         { 
             for (auto &[Name, Texture] : Textures)
                 OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
@@ -170,8 +170,6 @@ namespace nilou {
         std::string Name;
 
         std::string Code;
-
-        std::filesystem::path Path;
 
         void UpdateCode(const std::string &InCode, bool bRecompile=true);
 

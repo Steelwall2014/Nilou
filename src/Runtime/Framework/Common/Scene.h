@@ -27,7 +27,6 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-
         }
 
         void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
@@ -38,6 +37,7 @@ namespace nilou {
         FScene *Scene;
         UPrimitiveComponent *Primitive;
         FPrimitiveSceneProxy *SceneProxy;
+        FRHIRenderQueryRef OcclusionQuery;
         bool bNeedsUniformBufferUpdate = false;
     };
 
@@ -60,9 +60,6 @@ namespace nilou {
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
-        std::vector<FSceneLightView> LightViews;
-        std::vector<RHIFramebufferRef> ShadowMapRenderTarget;
-        std::vector<std::vector<RHITexture2DRef>> ShadowMapDepthTextures;
         int LightUniformBufferIndex;
         bool bNeedsUniformBufferUpdate = false;
     };
@@ -125,6 +122,9 @@ namespace nilou {
         TMulticastDelegate<FViewSceneInfo *> &GetRemoveViewDelegate() { return SceneRemoveViewDelegate; }
         TMulticastDelegate<FViewSceneInfo *> &GetResizeViewDelegate() { return SceneResizeViewortDelegate; }
 
+        TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
+        TMulticastDelegate<FLightSceneInfo *> &GetRemoveLightDelegate() { return SceneRemoveLightDelegate; }
+
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
         std::set<std::unique_ptr<FViewSceneInfo>> AddedViewSceneInfos;
@@ -150,5 +150,8 @@ namespace nilou {
         TMulticastDelegate<FViewSceneInfo *> SceneAddViewDelegate;
         TMulticastDelegate<FViewSceneInfo *> SceneRemoveViewDelegate;
         TMulticastDelegate<FViewSceneInfo *> SceneResizeViewortDelegate;
+
+        TMulticastDelegate<FLightSceneInfo *> SceneAddLightDelegate;
+        TMulticastDelegate<FLightSceneInfo *> SceneRemoveLightDelegate;
     };
 }

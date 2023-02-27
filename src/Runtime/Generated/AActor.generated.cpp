@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/Actor.h"
+#include "../../src/Runtime/Framework/Common/Actor/Actor.h"
 namespace nilou {
 std::string AActor::GetClassName() { return "AActor"; }
 EUClasses AActor::GetClassEnum() { return EUClasses::MC_AActor; }

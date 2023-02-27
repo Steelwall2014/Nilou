@@ -24,13 +24,14 @@ namespace nilou {
             
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
+                    Mesh.CastShadow = bCastShadow;
                     if (Material)
                         Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
                     else
@@ -78,7 +79,7 @@ namespace nilou {
 
     FBoundingBox USphereComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
-	    return FBoundingBox(vec3(0), vec3(2*SphereRadius)).TransformBy(LocalToWorld);
+	    return FBoundingBox(-vec3(SphereRadius), vec3(SphereRadius)).TransformBy(LocalToWorld);
     }
 
 

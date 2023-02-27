@@ -22,13 +22,13 @@ namespace nilou {
             BatchedLines = InComponent->BatchedLines;
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
                 for (int i = 0; i < BatchedLines.size(); i += 1)
                 {
-                    Views[ViewIndex]->PDI->DrawLine(BatchedLines[i]);
+                    Collector.AddBatchedLine(ViewIndex, BatchedLines[i]);
                 }
             }
         }

@@ -36,6 +36,7 @@ namespace nilou {
     class FSceneTextures
     {
     public:
+        RHIFramebufferRef PreZPassFrameBuffer;
         RHIFramebufferRef GeometryPassFrameBuffer;
         RHIFramebufferRef FrameBuffer;
         RHITexture2DRef BaseColor;
@@ -45,6 +46,51 @@ namespace nilou {
         RHITexture2DRef Emissive;
         RHITexture2DRef DepthStencil;
         RHITexture2DRef SceneColor;
+    };
+
+    class FShadowMapTextures
+    {
+    public:
+        std::vector<RHIFramebufferRef> FrameBuffers;
+        RHITexture2DArrayRef DepthArray;
+        FShadowMapTextures(const ivec2 &ShadowMapResolution, int ShadowMapArraySize);
+    };
+
+    class FShadowMapUniformBuffers
+    {
+    public:
+        FShadowMapUniformBuffers(int LightFrustumSize)
+        {
+            for (int i = 0; i < LightFrustumSize; i++)
+            {
+                auto ubo = CreateUniformBuffer<FShadowMappingParameters>();
+                ubo->InitRHI();
+                UniformBuffers.push_back(ubo);
+            }
+        }
+        std::vector<TUniformBufferRef<FShadowMappingParameters>> UniformBuffers;
+    };
+
+    class FShadowMapMeshDrawCommands
+    {
+    public:
+        FShadowMapMeshDrawCommands(int LightFrustumSize)
+        {
+            for (int i = 0; i < LightFrustumSize; i++)
+                DrawCommands.push_back(FParallelMeshDrawCommands());
+        }
+        std::vector<FParallelMeshDrawCommands> DrawCommands;
+    };
+
+    class FShadowMapMeshBatches
+    {
+    public:
+        FShadowMapMeshBatches(int LightFrustumSize)
+        {
+            for (int i = 0; i < LightFrustumSize; i++)
+                MeshBatches.push_back(std::vector<FMeshBatch>());
+        }
+        std::vector<std::vector<FMeshBatch>> MeshBatches;
     };
 
     // class FViewCommands
@@ -71,6 +117,9 @@ namespace nilou {
         void OnAddView(FViewSceneInfo *CameraInfo);
         void OnRemoveView(FViewSceneInfo *CameraInfo);
         void OnResizeView(FViewSceneInfo *CameraInfo);
+
+        void OnAddLight(FLightSceneInfo *LightInfo);
+        void OnRemoveLight(FLightSceneInfo *LightInfo);
 
     private:
 
@@ -115,11 +164,13 @@ namespace nilou {
         // void SetupMeshPass(FSceneView &View, const std::vector<FMeshBatch> &ViewMeshBatches, std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
         void InitViews(FScene *Scene);
 
-        void ComputeViewVisibility(FScene *Scene);
-
-        void RenderBasePass(FDynamicRHI *RHICmdList);
+        void ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView> &SceneViews);
+        
+        void RenderPreZPass(FDynamicRHI *RHICmdList);
         
         void RenderCSMShadowPass(FDynamicRHI *RHICmdList);
+
+        void RenderBasePass(FDynamicRHI *RHICmdList);
 
         void RenderLightingPass(FDynamicRHI *RHICmdList);
 
@@ -134,15 +185,33 @@ namespace nilou {
         struct RenderViews
         {
             RenderViews(FViewSceneInfo *InViewSceneInfo, const FSceneTextures &InSceneTextures)
-                : ViewSceneInfo(InViewSceneInfo), SceneTextures(InSceneTextures) { }
+                : ViewSceneInfo(InViewSceneInfo)
+                , SceneTextures(InSceneTextures)
+                , PDI(InViewSceneInfo->PDI.get())
+            { }
             FViewSceneInfo *ViewSceneInfo;
             FSceneTextures SceneTextures;
             FParallelMeshDrawCommands MeshDrawCommands;
+            std::vector<FMeshBatch> MeshBatches;
+            FViewElementPDI* PDI;
         };
         std::vector<RenderViews> Views;
-        // std::vector<FViewSceneInfo *> Views;
-        // std::vector<FSceneTextures> PerViewSceneTextures;
-        std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
+        
+        struct RenderLights
+        {
+            RenderLights(FLightSceneInfo *InLightSceneInfo)
+                : LightSceneInfo(InLightSceneInfo) { }
+            FLightSceneInfo *LightSceneInfo;
+            std::vector<FShadowMapTextures> ShadowMapTextures;
+            std::vector<FShadowMapUniformBuffers> ShadowMapUniformBuffers;
+            std::vector<FShadowMapMeshDrawCommands> ShadowMapMeshDrawCommands;
+            std::vector<FShadowMapMeshBatches> ShadowMapMeshBatches;
+        };
+        std::vector<RenderLights> Lights;
+
+
+
+        // The collector used for scene rendering
         FMeshElementCollector Collector;
 
         // std::vector<FViewCommands> PerViewDrawCommands;

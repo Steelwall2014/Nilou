@@ -3,7 +3,7 @@ layout (location = 0) out vec4 FragColor;
 
 in vec2 uv;
 
-#include "LightShaderParameters.glsl"
+#include "../include/LightShaderParameters.glsl"
 #include "../SkyAtmosphere/unit_definitions.glsl"
 #include "../SkyAtmosphere/atmosphere_definitions.glsl"
 #include "../include/ViewShaderParameters.glsl"

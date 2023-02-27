@@ -61,6 +61,7 @@ namespace nilou {
         if (SceneProxy)
         {
             SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
+            SceneProxy->SetFieldOfView(VerticalFieldOfView);
             if (bCameraResolutionDirty)
             {
                 SceneProxy->SetCameraResolution(ScreenResolution);
@@ -71,19 +72,19 @@ namespace nilou {
         USceneComponent::SendRenderDynamicData();
     }
 
-    glm::mat4 UCameraComponent::CalcWorldToViewMatrix()
+    glm::dmat4 UCameraComponent::CalcWorldToViewMatrix()
     {
-        glm::vec3 forward = GetForwardVector();
-        glm::vec3 location = GetComponentLocation();
-        glm::vec3 up = GetUpVector();
+        glm::dvec3 forward = GetForwardVector();
+        glm::dvec3 location = GetComponentLocation();
+        glm::dvec3 up = GetUpVector();
         return glm::lookAt(location, location+forward, up);
     }
 
     glm::mat4 UCameraComponent::CalcViewToClipMatrix()
     {
-        // if (CameraParameters.CameraType == ECameraType::CT_Perspective)
+        // if (CameraParameters.CameraType == EViewType::CT_Perspective)
             return glm::perspective(VerticalFieldOfView, AspectRatio, NearClipDistance, FarClipDistance);
-        // else if (CameraParameters.CameraType == ECameraType::CT_Ortho) 
+        // else if (CameraParameters.CameraType == EViewType::CT_Ortho) 
         //     return glm::ortho(CameraParameters.VerticalFieldOfView, CameraParameters.AspectRatio, CameraParameters.NearClipDistance, CameraParameters.FarClipDistance);
     }
 
@@ -132,9 +133,9 @@ namespace nilou {
 
     void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)
     {
-        SceneView.Position = InPosition;
-        SceneView.Forward = InDirection;
-        SceneView.Up = InUp;
+        Position = InPosition;
+        Forward = InDirection;
+        Up = InUp;
         ViewUniformBufferRHI->Data.CameraPosition = InPosition;
         ViewUniformBufferRHI->Data.CameraDirection = InDirection;
         if (ViewSceneInfo)
@@ -143,8 +144,8 @@ namespace nilou {
 
     void FCameraSceneProxy::SetViewProjectionMatrix(const glm::dmat4 &InWorldToView, const glm::mat4 &InViewToClip)
     {
-        SceneView.ViewMatrix = InWorldToView;
-        SceneView.ProjectionMatrix = InViewToClip;
+        ViewMatrix = InWorldToView;
+        ProjectionMatrix = InViewToClip;
 
         mat4 RelativeWorldToView = InWorldToView;
         RelativeWorldToView[3][0] = 0;
@@ -163,7 +164,8 @@ namespace nilou {
 
     void FCameraSceneProxy::SetCameraResolution(const ivec2 &InCameraResolution)
     {
-        SceneView.ScreenResolution = InCameraResolution;
+        ScreenResolution = InCameraResolution;
+        AspectRatio = (float)InCameraResolution.x / (float)InCameraResolution.y;
         ViewUniformBufferRHI->Data.CameraResolution = InCameraResolution;
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
@@ -171,16 +173,37 @@ namespace nilou {
 
     void FCameraSceneProxy::SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist)
     {
-        SceneView.NearClipDistance = InCameraNearClipDist;
-        SceneView.FarClipDistance = InCameraFarClipDist;
+        NearClipDistance = InCameraNearClipDist;
+        FarClipDistance = InCameraFarClipDist;
         ViewUniformBufferRHI->Data.CameraNearClipDist = InCameraNearClipDist;
         ViewUniformBufferRHI->Data.CameraFarClipDist = InCameraFarClipDist;
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
 
-    const FSceneView &FCameraSceneProxy::GetSceneView()
+    void FCameraSceneProxy::SetFieldOfView(float InVerticalFieldOfView)
     {
+        VerticalFieldOfView = InVerticalFieldOfView;
+    }
+
+    FSceneView FCameraSceneProxy::GetSceneView()
+    {
+        FSceneView SceneView;
+        SceneView.ViewFrustum = FViewFrustum(
+            Position, Forward, Up, 
+            AspectRatio, VerticalFieldOfView, 
+            NearClipDistance, FarClipDistance);
+        SceneView.ProjectionMatrix = ProjectionMatrix;
+        SceneView.ViewMatrix = ViewMatrix;
+        SceneView.Position = Position;
+        SceneView.Forward = Forward;
+        SceneView.Up = Up;
+        SceneView.AspectRatio = AspectRatio;
+        SceneView.VerticalFieldOfView = VerticalFieldOfView;
+        SceneView.NearClipDistance = NearClipDistance;
+        SceneView.FarClipDistance = FarClipDistance;
+        SceneView.ScreenResolution = ScreenResolution;
+        SceneView.ViewType = ViewType;
         return SceneView;
     }
 }

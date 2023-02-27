@@ -111,8 +111,8 @@
         },
         "StencilRefValue": 0,
         "Textures": {
-            "emissiveTexture": "NoEmissiveTexture.json",
-            "metallicRoughnessTexture": "NoMetallicRoughnessTexture.json"
+            "emissiveTexture": "/Textures/NoEmissiveTexture.json",
+            "metallicRoughnessTexture": "/Textures/NoMetallicRoughnessTexture.json"
         }
     }
 }

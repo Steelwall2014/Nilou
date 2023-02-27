@@ -96,7 +96,7 @@ namespace nilou {
             OutTextures.push_back(texture);
         }
 
-        UMaterial *GLTFMaterial = GetContentManager()->GetMaterialByPath("/Cesium3DTilesMaterial.json");
+        UMaterial *GLTFMaterial = GetContentManager()->GetMaterialByPath("/Materials/Cesium3DTilesMaterial.json");
         if (GLTFMaterial == nullptr) return;
 
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
@@ -604,7 +604,7 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
             PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
-            WireframeMaterial = GetContentManager()->GetMaterialByPath("/WireframeMaterial.json");
+            WireframeMaterial = GetContentManager()->GetMaterialByPath("/Materials/WireframeMaterial.json");
         }
 
         void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)
@@ -626,7 +626,15 @@ namespace nilou {
         void PreRenderCallBack(FDynamicRHI*)
         {
             std::unique_lock<std::mutex> lock(mutex);
-            TilesToRenderThisFrame = TilesRenderingQueue.front(); TilesRenderingQueue.pop();
+            if (!TilesRenderingQueue.empty())
+            {
+                TilesToRenderThisFrame = TilesRenderingQueue.front(); 
+                TilesRenderingQueue.pop();
+            }
+            else 
+            {
+                TilesToRenderThisFrame.clear();
+            }
             lock.unlock();
             for (auto iter = TilesToRenderThisFrame.begin(); iter != TilesToRenderThisFrame.end();)
             {
@@ -662,7 +670,7 @@ namespace nilou {
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FViewSceneInfo*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
@@ -714,7 +722,7 @@ namespace nilou {
                                     UBO->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * translation * dmat4(Tile->BoundingVolume.HalfAxes);
                                     UBO->UpdateUniformBuffer();
                                     FMeshBatch DebugBoundingBoxMesh;
-                                    DebugBoundingBoxMesh.CastShadow = Section.bCastShadow;
+                                    DebugBoundingBoxMesh.CastShadow = false;
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
                                     DebugBoundingBoxMesh.Element.IndexBuffer = &IndexBuffer;
                                     DebugBoundingBoxMesh.Element.NumVertices = IndexBuffer.NumIndices;
@@ -843,10 +851,11 @@ namespace nilou {
     {
         if (TilesetForSelection)
         {
-            dvec3 center = LocalToWorld.TransformPosition(TilesetForSelection->Root->BoundingVolume.Center);
-            dvec3 xDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[0]);
-            dvec3 yDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[1]);
-            dvec3 zDirection = LocalToWorld.TransformVector(TilesetForSelection->Root->BoundingVolume.HalfAxes[2]);
+            const dmat4 &EcefToAbs = Georeference->GetEcefToAbs();
+            dvec3 center = LocalToWorld.TransformPosition(EcefToAbs * dvec4(TilesetForSelection->Root->BoundingVolume.Center, 1));
+            dvec3 xDirection = LocalToWorld.TransformVector(dmat3(EcefToAbs) * TilesetForSelection->Root->BoundingVolume.HalfAxes[0]);
+            dvec3 yDirection = LocalToWorld.TransformVector(dmat3(EcefToAbs) * TilesetForSelection->Root->BoundingVolume.HalfAxes[1]);
+            dvec3 zDirection = LocalToWorld.TransformVector(dmat3(EcefToAbs) * TilesetForSelection->Root->BoundingVolume.HalfAxes[2]);
 
             return FBoundingBox(center, xDirection, yDirection, zDirection);
         }
@@ -855,13 +864,18 @@ namespace nilou {
 
     void UCesium3DTilesetComponent::SetURI(const std::string &NewURI)
     { 
-        URI = NewURI; 
-        tiny3dtiles::Loader Loader;
-        Tileset = Loader.LoadTileset(URI);
-        if (Tileset)
-            TilesetForSelection = Cesium3DTileset::Build(Tileset, dmat4(1));
-        else
-            TilesetForSelection = nullptr;
+        if (NewURI != URI)
+        {
+            URI = NewURI; 
+            tiny3dtiles::Loader Loader;
+            Tileset = Loader.LoadTileset(URI);
+            if (Tileset)
+                TilesetForSelection = Cesium3DTileset::Build(Tileset, dmat4(1));
+            else
+                TilesetForSelection = nullptr;
+            UpdateBounds();
+            MarkRenderStateDirty();
+        }
     }
 
     void UCesium3DTilesetComponent::SetShowBoundingBox(bool InShowBoundingBox)
@@ -873,6 +887,7 @@ namespace nilou {
     void UCesium3DTilesetComponent::SetGeoreference(AGeoreferenceActor *InGeoreference)
     {
         Georeference = InGeoreference;
+        UpdateBounds();
         MarkRenderDynamicDataDirty();
     }
 }

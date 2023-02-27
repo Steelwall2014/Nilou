@@ -256,6 +256,7 @@ namespace nilou {
         {
             RootComponent->SetWorldLocation(Transform.GetLocation());
             RootComponent->SetWorldRotation(Transform.GetRotation());
+            RootComponent->SetWorldScale3D(Transform.GetScale3D());
         }
         
 	    OnConstruction(Transform);

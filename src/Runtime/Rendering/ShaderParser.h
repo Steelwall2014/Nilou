@@ -27,7 +27,7 @@ namespace nilou {
         out << "Parsed Parameters: \n";
         for (const FShaderParsedParameter &Parameter : ParsedResult.ParsedParameters)
         {
-            out << "*********************\n";
+            out << "************************************************************************************\n";
             out << "Name: " << Parameter.Name << "\n";
             out << "Parameter type: ";
             switch (Parameter.ParameterType) {
@@ -47,7 +47,7 @@ namespace nilou {
             out << "Code: " << Parameter.Code << "\n";
         }
         if (!ParsedResult.ParsedParameters.empty())
-            out << "*********************\n";
+            out << "************************************************************************************\n\n\n";
         return out;
     }
 
