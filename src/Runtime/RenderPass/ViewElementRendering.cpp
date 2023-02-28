@@ -45,7 +45,7 @@ namespace nilou {
             ColorInput.Stride = sizeof(vec3);
             
             FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-            FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get());
+            FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get(), ViewInfo->GetResolution());
             RHICmdList->RHIBeginRenderPass(PassInfo);
             {
                 FShaderPermutationParameters PermutationParametersVS(&FViewElementVS::StaticType, 0);

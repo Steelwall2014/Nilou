@@ -386,6 +386,7 @@ namespace nilou {
 	{
 	public:
 		RHIFramebuffer *Framebuffer;
+		ivec2 Viewport;
 		bool bClearColorBuffer;
 		glm::vec4 ClearColor;
 		bool bClearDepthBuffer;
@@ -394,6 +395,7 @@ namespace nilou {
 		int ClearStencil;
 		FRHIRenderPassInfo(
 			RHIFramebuffer *InFramebuffer, 
+			ivec2 InViewport,
 			bool bInClearColorBuffer=false, 
 			bool bInClearDepthBuffer=false, 
 			bool bInClearStencilBuffer=false, 
@@ -401,6 +403,7 @@ namespace nilou {
 			float InClearDepth=1.0f,
 			int InClearStencil=0)
 			: Framebuffer(InFramebuffer)
+			, Viewport(InViewport)
 			, bClearColorBuffer(bInClearColorBuffer)
 			, bClearDepthBuffer(bInClearDepthBuffer)
 			, bClearStencilBuffer(bInClearStencilBuffer)

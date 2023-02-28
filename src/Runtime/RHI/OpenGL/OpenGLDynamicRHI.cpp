@@ -378,9 +378,14 @@ namespace nilou {
 */
 namespace nilou {
 
-    void FOpenGLDynamicRHI::RHISetViewport(GLint x, GLint y, GLsizei width, GLsizei height)
+    void FOpenGLDynamicRHI::RHISetViewport(int32 Width, int32 Height)
     {
-        glViewport(x, y, width, height);
+        if (Width != ContextState.ViewportWidth || Height != ContextState.ViewportHeight)
+        {
+            ContextState.ViewportWidth = Width;
+            ContextState.ViewportHeight = Height;
+            glViewport(0, 0, Width, Height);
+        }
     }
 
     bool FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
@@ -1334,6 +1339,7 @@ namespace nilou {
 	void FOpenGLDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
     {
         RHIBindFramebuffer(InInfo.Framebuffer);
+        RHISetViewport(InInfo.Viewport.x, InInfo.Viewport.y);
 
         int ClearBits = 0;
         if (InInfo.bClearColorBuffer)
@@ -1554,21 +1560,9 @@ namespace nilou {
             std::cout << "RHI Version " << GLVersion.major << "." 
                     << GLVersion.minor << " loaded" << std::endl;
             RHIGetError();
-            if (GLAD_GL_VERSION_3_3)
-            {
-                glDisable(GL_BLEND);
-                // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                //glClearDepth(1.0f);
-                // glEnable(GL_DEPTH_TEST);
-                glFrontFace(GL_CCW);
-                // glDepthMask(true);
-                // glEnable(GL_CULL_FACE);
-                // glCullFace(GL_BACK);
-                //glEnable(GL_PROGRAM_POINT_SIZE);
-            }
             auto config = GetAppication()->GetConfiguration();
             RHIGetError();
-            glViewport(0, 0, config.screenWidth, config.screenHeight);
+            RHISetViewport(config.screenWidth, config.screenHeight);
             RHIGetError();
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);

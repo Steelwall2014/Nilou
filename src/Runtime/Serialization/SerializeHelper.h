@@ -22,11 +22,9 @@ namespace nilou {
     public:
         static void Serialize(const T &Object, nlohmann::json &json) 
         { 
-            static_assert(true, "Template specialization is required for TStaticSerializer");
         }
         static void Deserialize(T &Object, nlohmann::json &json) 
         { 
-            static_assert(true, "Template specialization is required for TStaticSerializer");
         }
     };
 

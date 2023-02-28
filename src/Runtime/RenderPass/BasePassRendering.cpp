@@ -179,7 +179,7 @@ namespace nilou {
             {
                 FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
                 FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get()/*nullptr*/, true);
+                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get(), CameraInfo->GetResolution(), true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);
 
                 FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;

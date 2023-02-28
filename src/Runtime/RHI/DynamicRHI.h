@@ -37,7 +37,7 @@ namespace nilou {
 		/**
 		* Set state
 		*/
-		virtual void RHISetViewport(int32 x, int32 y, int32 width, int32 height) = 0;
+		virtual void RHISetViewport(int32 Width, int32 Height) = 0;
 		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) = 0;
 		virtual void RHISetBlendState(RHIBlendState *newState) = 0;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) = 0;

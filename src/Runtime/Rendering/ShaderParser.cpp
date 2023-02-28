@@ -149,14 +149,14 @@ namespace nilou {
                 {
                     ParsedParameter.ParameterType = EShaderParameterType::SPT_Image;
                     ParsedParameter.Name = parameter_name;
-                    ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";";
+                    ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";\n";
                 }
                 else 
                 {
                     NILOU_LOG(Error, "image1/2/3D variables must have an explicit binding point");
                 }
             }
-            else if (parameter_type == "sampler2D" || parameter_type == "sampler3D")
+            else if (parameter_type == "sampler2D" || parameter_type == "sampler3D" || parameter_type == "sampler2DArray")
             {
                 prefix = std::regex_replace(prefix, re_binding1, "");
                 prefix = std::regex_replace(prefix, re_binding2, "");
@@ -164,7 +164,7 @@ namespace nilou {
                 prefix = std::regex_replace(prefix, re_layout, "");
                 ParsedParameter.ParameterType = EShaderParameterType::SPT_Sampler;
                 ParsedParameter.Name = parameter_name;
-                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";";
+                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_name + ";\n";
             }
             else if (std::regex_match(parameter_type, std::regex("(vec(2|3|4)|(d|b|i|u)vec(2|3|4)|mat(2|3|4)|float|double|int|uint|bool)")))
             {
@@ -182,7 +182,7 @@ namespace nilou {
                 parameter_name = matches[2].str();
                 std::string parameter_body = matches[3].str();
                 ParsedParameter.Name = parameter_name;
-                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_body + ";";
+                ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_body + ";\n";
             }
             ParsedResult.ParsedParameters.push_back(ParsedParameter);
             Output << matches.prefix() << ParsedParameter.Code;

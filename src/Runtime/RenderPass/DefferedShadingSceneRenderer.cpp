@@ -27,51 +27,52 @@ namespace nilou {
 
     FDefferedShadingSceneRenderer *Renderer = nullptr;
     
-    void CreateSceneTextures(const ivec2 &ScreenResolution, FSceneTextures &OutSceneTextures)
+    FSceneTextures::FSceneTextures(const ivec2 &ScreenResolution)
     {
-        OutSceneTextures.GeometryPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
-        OutSceneTextures.FrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
-        OutSceneTextures.PreZPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        Viewport = ScreenResolution;
+        GeometryPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        FrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
+        PreZPassFrameBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
-        OutSceneTextures.SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+        DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.BaseColor);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, OutSceneTextures.RelativeWorldSpacePosition);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, OutSceneTextures.WorldSpaceNormal);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, OutSceneTextures.MetallicRoughness);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, OutSceneTextures.Emissive);
-        OutSceneTextures.GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, BaseColor);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, RelativeWorldSpacePosition);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, WorldSpaceNormal);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, MetallicRoughness);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, Emissive);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
         
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, OutSceneTextures.SceneColor);
-        OutSceneTextures.FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, SceneColor);
+        FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
         
-        OutSceneTextures.PreZPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, OutSceneTextures.DepthStencil);
+        PreZPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
     }
     
     FShadowMapTextures::FShadowMapTextures(const ivec2 &ShadowMapResolution, int ShadowMapArraySize)
@@ -144,30 +145,28 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::OnAddView(FViewSceneInfo *ViewSceneInfo)
     {
-        FSceneTextures SceneTextures;
-        CreateSceneTextures(ViewSceneInfo->GetResolution(), SceneTextures);
-        Views.emplace_back(ViewSceneInfo, SceneTextures);
+        Views.emplace_back(ViewSceneInfo, FSceneTextures(ViewSceneInfo->GetResolution()));
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightSceneInfo *LightSceneInfo = Lights[LightIndex].LightSceneInfo;
             if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Directional)
             {
                 Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 8));
-                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(8));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<CASCADED_SHADOWMAP_SPLIT_COUNT>());
                 Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(8));
                 Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(8));
             }
             else if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Point) 
             {
                 Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 6));
-                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(6));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<6>());
                 Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(6));
                 Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(6));
             }
             else if (LightSceneInfo->SceneProxy->LightType == ELightType::LT_Spot) 
             {
                 Lights[LightIndex].ShadowMapTextures.push_back(FShadowMapTextures(LightSceneInfo->SceneProxy->ShadowMapResolution, 1));
-                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(1));
+                Lights[LightIndex].ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<1>());
                 Lights[LightIndex].ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(1));
                 Lights[LightIndex].ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(1));
             }
@@ -200,7 +199,7 @@ namespace nilou {
         {
             if (Views[ViewIndex].ViewSceneInfo = ViewSceneInfo)
             {
-                CreateSceneTextures(ViewSceneInfo->GetResolution(), Views[ViewIndex].SceneTextures);
+                Views[ViewIndex].SceneTextures = FSceneTextures(ViewSceneInfo->GetResolution());
                 break;
             }
         }
@@ -214,21 +213,21 @@ namespace nilou {
             if (LightInfo->SceneProxy->LightType == ELightType::LT_Directional)
             {
                 Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 8));
-                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(8));
-                Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(8));
-                Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(8));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<CASCADED_SHADOWMAP_SPLIT_COUNT>());
+                Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(CASCADED_SHADOWMAP_SPLIT_COUNT));
+                Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(CASCADED_SHADOWMAP_SPLIT_COUNT));
             }
             else if (LightInfo->SceneProxy->LightType == ELightType::LT_Point) 
             {
                 Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 6));
-                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(6));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<6>());
                 Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(6));
                 Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(6));
             }
             else if (LightInfo->SceneProxy->LightType == ELightType::LT_Spot) 
             {
                 Light.ShadowMapTextures.push_back(FShadowMapTextures(LightInfo->SceneProxy->ShadowMapResolution, 1));
-                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers(1));
+                Light.ShadowMapUniformBuffers.push_back(FShadowMapUniformBuffers::Create<1>());
                 Light.ShadowMapMeshBatches.push_back(FShadowMapMeshBatches(1));
                 Light.ShadowMapMeshDrawCommands.push_back(FShadowMapMeshDrawCommands(1));
             }
@@ -327,7 +326,7 @@ namespace nilou {
             if (CameraInfo->Camera->IsMainCamera())
             {
 
-                FRHIRenderPassInfo PassInfo(nullptr, true, true, true);
+                FRHIRenderPassInfo PassInfo(nullptr, CameraInfo->GetResolution(), true, true, true);
                 RHICmdList->RHIBeginRenderPass(PassInfo);
                 {
                     

@@ -19,7 +19,7 @@ namespace nilou {
             if (CameraInfo->Camera->IsMainCamera())
             {
 
-                FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get());
+                FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get(), CameraInfo->GetResolution());
                 RHICmdList->RHIBeginRenderPass(PassInfo);
                 {
                     

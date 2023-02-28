@@ -410,7 +410,7 @@ namespace nilou {
                     std::mutex rhi_mutex;
                     std::unique_lock<std::mutex> rhi_lock(rhi_mutex);
                     std::condition_variable cv;
-                    ENQUEUE_RENDER_COMMAND(LoadContent)(
+                    ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_LoadContent)(
                         [&Result, this, &RHIInitialized, &cv](FDynamicRHI*) 
                         {
                             Result.InitResource();

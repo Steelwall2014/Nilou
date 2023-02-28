@@ -1,9 +1,15 @@
 #version 460
 
-layout (std140) uniform FShadowMappingParameters {
-    dmat4 WorldToClip;
-};
+#include "../include/ViewShaderParameters.glsl"
 
+#include "../include/ShadowMapShaderParameters.glsl"
+
+layout (std140) uniform FShadowMappingBlock {
+    FShadowMappingParameters Frustums[FrustumCount];
+};
+layout (std140) uniform FShadowMapFrustumIndex {
+    int FrustumIndex;
+};
 void main()
 {
     VS_Out vs_out;
@@ -16,6 +22,7 @@ void main()
     vs_out.TexCoords = VertexFactoryGetTexCoord(VFIntermediates);
 	dvec3 WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
     WorldPosition += MaterialGetWorldSpaceOffset(vs_out);
-    vec4 ClipPosition = vec4(WorldToClip * dvec4(WorldPosition, 1));
+    vs_out.WorldPosition = vec3(WorldPosition - CameraPosition);
+    vec4 ClipPosition = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(WorldPosition, 1));
     gl_Position = ClipPosition;
 }

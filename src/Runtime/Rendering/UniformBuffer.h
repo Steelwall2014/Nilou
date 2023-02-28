@@ -90,7 +90,6 @@ namespace nilou {
 
 	    // using TAlignedType = TypeParameter;
         static_assert(std::is_same<TypeParameter, bool>::value != true, "Boolean type for uniform buffer is not supported, you have to use int32 in cpp and bool in glsl");
-        static_assert(true, "Using unsupported type in uniform buffer!");
     };
 
     // template<>
@@ -437,6 +436,7 @@ namespace nilou {
     public:
         TUniformBuffer()
             : Size(sizeof(UniformBufferStruct))
+            , Usage(EUniformBufferUsage::UniformBuffer_MultiFrame)
         { }
 
         /** Begin FRenderResource Interface */

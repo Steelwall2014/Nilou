@@ -46,6 +46,8 @@ namespace nilou {
         RHITexture2DRef Emissive;
         RHITexture2DRef DepthStencil;
         RHITexture2DRef SceneColor;
+        ivec2 Viewport;
+        FSceneTextures(const ivec2 &ScreenResolution);
     };
 
     class FShadowMapTextures
@@ -59,16 +61,32 @@ namespace nilou {
     class FShadowMapUniformBuffers
     {
     public:
-        FShadowMapUniformBuffers(int LightFrustumSize)
+    
+        template<int FrustumCount>
+        static FShadowMapUniformBuffers Create()
         {
-            for (int i = 0; i < LightFrustumSize; i++)
-            {
-                auto ubo = CreateUniformBuffer<FShadowMappingParameters>();
-                ubo->InitRHI();
-                UniformBuffers.push_back(ubo);
-            }
+            FShadowMapUniformBuffers obj;
+            auto UBO = CreateUniformBuffer<FShadowMappingBlock<FrustumCount>>();
+            UBO->SetUsage(EUniformBufferUsage::UniformBuffer_SingleFrame);
+            obj.UniformBuffer = UBO;
+            obj.FrustumCount = FrustumCount;
+            UBO->InitRHI();
+            return obj;
         }
-        std::vector<TUniformBufferRef<FShadowMappingParameters>> UniformBuffers;
+
+        template<int FrustumCount>
+        static TUniformBuffer<FShadowMappingBlock<FrustumCount>> *Cast(FShadowMapUniformBuffers &ShadowMapUniformBuffer)
+        {
+            if (ShadowMapUniformBuffer.FrustumCount != FrustumCount)
+                return nullptr;
+            return static_cast<TUniformBuffer<FShadowMappingBlock<FrustumCount>>*>(ShadowMapUniformBuffer.UniformBuffer.get());
+        }
+
+        std::shared_ptr<FUniformBuffer> UniformBuffer;
+        int FrustumCount;
+
+    private:
+        FShadowMapUniformBuffers() { }
     };
 
     class FShadowMapMeshDrawCommands
@@ -161,6 +179,22 @@ namespace nilou {
             glm::vec2 Vertices[4];
         };
 
+        struct ShadowMapSplitIndexUBOs
+        {
+            ShadowMapSplitIndexUBOs()
+            {
+                for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
+                {
+                    UBOs[i] = CreateUniformBuffer<FShadowMapFrustumIndex>();
+                    UBOs[i]->SetUsage(EUniformBufferUsage::UniformBuffer_MultiFrame);
+                    UBOs[i]->Data.FrustumIndex = i;
+                    UBOs[i]->InitRHI();
+                }
+            }
+            std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
+        };
+        ShadowMapSplitIndexUBOs SplitIndexUBO;
+
         // void SetupMeshPass(FSceneView &View, const std::vector<FMeshBatch> &ViewMeshBatches, std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
         void InitViews(FScene *Scene);
 
@@ -202,6 +236,9 @@ namespace nilou {
             RenderLights(FLightSceneInfo *InLightSceneInfo)
                 : LightSceneInfo(InLightSceneInfo) { }
             FLightSceneInfo *LightSceneInfo;
+
+            // 如果是平行光，那么下面这些vector每一个元素对应一个view
+            // 如果是点光源或者射灯，那么下面这些vector的长度为1
             std::vector<FShadowMapTextures> ShadowMapTextures;
             std::vector<FShadowMapUniformBuffers> ShadowMapUniformBuffers;
             std::vector<FShadowMapMeshDrawCommands> ShadowMapMeshDrawCommands;

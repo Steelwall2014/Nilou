@@ -395,12 +395,15 @@ namespace nilou {
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
-                    ForEachVertexFactory([Material, &MaterialParsedResult, &ShaderParameter, DynamicRHI](const FVertexFactoryPermutationParameters &VFParameters) {
+                    ForEachVertexFactory(
+                    [Material, &MaterialParsedResult, &ShaderParameter, DynamicRHI]
+                    (const FVertexFactoryPermutationParameters &VFParameters) {
                         CompileVertexMaterialShader(
                             DynamicRHI, Material, MaterialParsedResult, VFParameters, ShaderParameter, 
                             Material->ShaderMap.VertexShaderMap);
                     }, 
-                    [](FVertexFactoryType *) { return true; });
+                    [](FVertexFactoryType *) 
+                    { return true; });
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {

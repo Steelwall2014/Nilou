@@ -51,15 +51,15 @@ namespace nilou {
         {
             FTransform MeshTransform;
             MeshTransform.SetRotator(FRotator(0, 0, -90));
-            // for (int i = -1; i <= 1; i++)
-            // {
-            //     for (int j = -1; j <= 1; j++)
-            //     {
-            //         MeshTransform.SetTranslation(glm::vec3(i, j, 1));
-            //         std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
-            //         StaticMeshActor->SetStaticMesh(Mesh);
-            //     }
-            // }
+            for (int i = -1; i <= 1; i++)
+            {
+                for (int j = -1; j <= 1; j++)
+                {
+                    MeshTransform.SetTranslation(glm::vec3(i, j, 1));
+                    std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
+                    StaticMeshActor->SetStaticMesh(Mesh);
+                }
+            }
         }
 
         FTransform CubeTransform;
@@ -84,7 +84,7 @@ namespace nilou {
 
         FTransform LightActorTransform;
         // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
-        LightActorTransform.SetRotator(FRotator(-90, 0, 0));
+        LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);

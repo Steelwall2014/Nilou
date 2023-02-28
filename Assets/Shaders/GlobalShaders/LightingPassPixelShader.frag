@@ -1,5 +1,4 @@
 #version 460
-//#define STATIC_LIGHT_NUM 10
 layout (location = 0) out vec4 FragColor;
 
 in vec2 uv;
@@ -12,14 +11,8 @@ uniform sampler2D Emissive;
 
 #include "../include/LightShaderParameters.glsl"
 #include "../include/PBRFunctions.glsl"
+#include "../include/functions.glsl"
 
-//layout (std140) buffer FLightSSBO {
-//    FLightShaderParameters lights[STATIC_LIGHT_NUM];
-//};
-
-//layout (std140) uniform FLightUniformBlock {
-//    FLightShaderParameters lights[STATIC_LIGHT_NUM];
-//};
 layout (std140) uniform FLightUniformBlock {
     FLightShaderParameters light;
 };
@@ -36,6 +29,59 @@ struct ShadingParams
     float metallic;
     float roughness;
 };
+
+#include "../include/ShadowMapShaderParameters.glsl"
+uniform sampler2DArray ShadowMaps;
+layout (std140) uniform FShadowMappingBlock {
+    FShadowMappingParameters Frustums[FrustumCount];
+};
+
+float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, float bias)
+{
+    vec4 ViewSpacePosition = RelWorldToView * vec4(RelativePosition, 1);
+    float depth = abs(ViewSpacePosition.z);
+    int FrustumIndex = -1;
+    for (int i = FrustumCount-1; i >= 0; i--)
+    {
+        if (depth < Frustums[i].FrustumFar)
+            FrustumIndex = i;
+    }
+    if (FrustumIndex != -1)
+    {
+        vec4 LightClipNDC = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(RelativePosition+CameraPosition, 1));
+        LightClipNDC /= LightClipNDC.w;
+        LightClipNDC = LightClipNDC * 0.5 + 0.5;
+        vec2 ShadowMapUV = LightClipNDC.xy;
+        float SceneLightSpaceDepth = LightClipNDC.z;
+        vec2 Resolution = vec2(Frustums[FrustumIndex].Resolution);
+        float result = 0;
+        int gridSize = 3;
+        for (int i = -gridSize; i <= gridSize; i++)
+        {
+            for (int j = -gridSize; j <= gridSize; j++)
+            {
+                vec2 uv_offset = vec2(i, j) / Resolution;
+                vec2 sampleUV = ShadowMapUV + uv_offset;
+
+                vec2 texelPos = sampleUV * Resolution;
+                vec2 texelPosFraction = fract(texelPos);
+
+                vec2 samplePosCenter = floor(texelPos);
+                samplePosCenter /= Resolution;
+
+                vec4 ShadowMapDepth = textureGather(ShadowMaps, vec3(samplePosCenter, FrustumIndex));
+                vec4 depth = step(vec4(SceneLightSpaceDepth), ShadowMapDepth + vec4(bias));
+                float d1 = lerp(depth.w, depth.z, texelPosFraction.x);
+                float d2 = lerp(depth.x, depth.y, texelPosFraction.x);
+                float d = lerp(d1, d2, texelPosFraction.y);
+                result += d;
+            }
+        }
+        return clamp(result / float((gridSize * 2 + 1) * (gridSize * 2 + 1)), 0, 1);
+    }
+
+    return 0;
+}
 
 vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
 {
@@ -60,8 +106,8 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     float denominator = 4.0 * max(NdotV, 0.0) * max(NdotL, 0.0) + 0.001; 
     vec3 BRDF = nominator / denominator;
 
-    float bias = max(0.01 * (1.0 - NdotL), 0.001);
-    float visibility = 1;//ShadowCalculation(fragPosLightSpace, light.lightShadowMapLayerIndex, bias);
+    float bias = 0.002;//max(0.04 * (1.0 - NdotL), 0.004);
+    float visibility = ShadowCalculation(light, params.relativePosition, bias);
 
     float atten = 1;
     if (light.lightType == LT_Point || light.lightType == LT_Spot)   // Point or Spot

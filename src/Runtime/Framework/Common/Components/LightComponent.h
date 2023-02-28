@@ -149,6 +149,8 @@ namespace nilou {
     // class FScene;
     // class ULightComponent;
 
+    constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
+
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightAttenParameters)
         SHADER_PARAMETER(vec4, AttenCurveParams)
         SHADER_PARAMETER(float, AttenCurveScale)
@@ -157,6 +159,19 @@ namespace nilou {
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
         SHADER_PARAMETER(dmat4, WorldToClip)
+        SHADER_PARAMETER(ivec2, Resolution)
+        SHADER_PARAMETER(float, FrustumFar)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    template<int N>
+    BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingBlock)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, N, Frustums)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    // Manually assign the alignment.
+    // There is only a single int member in the struct, so the alignment should be 16 instead of 4
+    BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMapFrustumIndex)
+        alignas(16) int FrustumIndex;
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)

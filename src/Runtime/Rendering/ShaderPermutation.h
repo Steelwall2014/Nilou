@@ -61,6 +61,78 @@ namespace nilou {
         }
     };
 
+    
+    /** Defines at compile time a permutation dimension made of specific int32. */
+    template <int32... Ts>
+    struct TShaderPermutationSparseInt
+    {
+        /** Setup the dimension's type in permutation domain as integer. */
+        using Type = int32;
+
+        /** Setup the dimension's number of permutation. */
+        static constexpr int32 PermutationCount = 0;
+        
+        /** Setup the dimension as non multi-dimensional, so that the ModifyCompilationEnvironement's
+         * define can conventily be set up in SHADER_PERMUTATION_SPARSE_INT.
+         */
+        static constexpr bool IsMultiDimensional = false;
+
+
+        /** Converts dimension's integer value to dimension's value id, bu in this case fail because the dimension value was wrong. */
+        static int32 ToDimensionValueId(Type E)
+        {
+            return int32(0);
+        }
+
+        /** Converts dimension's value id to dimension's integer value (exact reciprocal of ToDimensionValueId). */
+        static Type FromDimensionValueId(int32 PermutationId)
+        {
+            return Type(0);
+        }
+    };
+
+    template <int32 TUniqueValue, int32... Ts>
+    struct TShaderPermutationSparseInt<TUniqueValue, Ts...>
+    {
+        /** Setup the dimension's type in permutation domain as integer. */
+        using Type = int32;
+
+        /** Setup the dimension's number of permutation. */
+        static constexpr int32 PermutationCount = TShaderPermutationSparseInt<Ts...>::PermutationCount + 1;
+        
+        /** Setup the dimension as non multi-dimensional, so that the ModifyCompilationEnvironement's
+         * define can conventily be set up in SHADER_PERMUTATION_SPARSE_INT.
+         */
+        static constexpr bool IsMultiDimensional = false;
+
+
+        /** Converts dimension's integer value to dimension's value id. */
+        static int32 ToDimensionValueId(Type E)
+        {
+            if (E == TUniqueValue)
+            {
+                return PermutationCount - 1;
+            }
+            return TShaderPermutationSparseInt<Ts...>::ToDimensionValueId(E);
+        }
+
+        /** Pass down a int32 to FShaderCompilerEnvironment::SetDefine(). */
+        static int32 ToDefineValue(Type E)
+        {
+            return int32(E);
+        }
+
+        /** Converts dimension's value id to dimension's integer value (exact reciprocal of ToDimensionValueId). */
+        static Type FromDimensionValueId(int32 PermutationId)
+        {
+            if (PermutationId == PermutationCount - 1)
+            {
+                return TUniqueValue;
+            }
+            return TShaderPermutationSparseInt<Ts...>::FromDimensionValueId(PermutationId);
+        }
+    };
+
     #define SHADER_PERMUTATION_BOOL(InDefineName) \
         public FShaderPermutationBool { \
         public: \
@@ -73,6 +145,11 @@ namespace nilou {
         }
     #define SHADER_PERMUTATION_RANGE_INT(InDefineName, Start, Count) \
         public TShaderPermutationInt<Count, Start> { \
+        public: \
+            static constexpr const char* DefineName = InDefineName; \
+        }
+    #define SHADER_PERMUTATION_SPARSE_INT(InDefineName, ...) \
+        public TShaderPermutationSparseInt<__VA_ARGS__> { \
         public: \
             static constexpr const char* DefineName = InDefineName; \
         }

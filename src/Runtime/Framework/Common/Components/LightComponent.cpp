@@ -20,7 +20,7 @@ namespace nilou {
         , LightColor(vec4(1.0f, 1.0f, 1.0f, 1.0f))
         , Intensity(5.f)
         , bCastShadow(true)
-        , ShadowMapResolution(ivec2(1024))
+        , ShadowMapResolution(ivec2(2048))
     {
 
     }

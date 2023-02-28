@@ -33,7 +33,7 @@ namespace nilou {
 		/**
 		* Set state
 		*/
-		virtual void RHISetViewport(int32 x, int32 y, int32 width, int32 height) override;
+		virtual void RHISetViewport(int32 Width, int32 Height) override;
 		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) override;
 		virtual void RHISetBlendState(RHIBlendState *newState) override;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override;
@@ -134,7 +134,9 @@ namespace nilou {
 			OpenGLRasterizerState RasterizerState;
 			OpenGLDepthStencilState DepthStencilState;
 			OpenGLBlendState BlendState;
-			uint32 StencilRef;
+			uint32 StencilRef = 0;
+			int32 ViewportWidth = 0;
+			int32 ViewportHeight = 0;
 		};
 		OpenGLContext ContextState;
 

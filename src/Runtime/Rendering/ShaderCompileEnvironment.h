@@ -17,12 +17,12 @@ namespace nilou {
 
         void SetDefine(const std::string &Name, bool Value)
         {
-            Definitions[Name] = Value ? "1" : "0";
+            Definitions[Name] = Value ? "(1)" : "(0)";
         }
 
         void SetDefine(const std::string &Name, int32 Value)
         {
-            Definitions[Name] = std::to_string(Value);
+            Definitions[Name] = "("+std::to_string(Value)+")";
         }
 
         std::map<std::string, std::string> Definitions;
