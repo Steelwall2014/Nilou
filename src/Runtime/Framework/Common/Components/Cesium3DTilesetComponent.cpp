@@ -223,7 +223,7 @@ namespace nilou {
                             int texcoord_index = std::stoi(match[1].str());
                             if (texcoord_index < 0 || texcoord_index >= MAX_STATIC_TEXCOORDS)
                             {
-                                NILOU_LOG(Error, "Invalid texcoord name: " + attr_name);
+                                NILOU_LOG(Error, "Invalid texcoord name: %s", attr_name);
                                 continue;
                             }
                             if (attr_accessor.type == TINYGLTF_TYPE_VEC2 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)

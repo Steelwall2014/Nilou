@@ -85,12 +85,18 @@ namespace nilou {
                     if (!bResourceFound)
                     {
                         NILOU_LOG(Warning, 
-                            "Material: " + Material->Name + 
-                            " |Vertex Factory: " + VFPermutationParameters.Type->Name + 
-                            " |Vertex Shader: " + PermutationParametersVS.Type->Name + 
-                            " |Pixel Shader: " + PermutationParametersPS.Type->Name + 
-                            " |Pipeline Stage: " + std::to_string(PipelineStage) + " |\"" + 
-                            Binding.Name + "\" Resource not provided");
+                            "Material: %s"
+                            " |Vertex Factory: %s"
+                            " |Vertex Shader: %s"
+                            " |Pixel Shader: %s"
+                            " |Pipeline Stage: %s"
+                            " |\"%s\" Resource not provided",
+                            Material->Name,
+                            VFPermutationParameters.Type->Name,
+                            PermutationParametersVS.Type->Name,
+                            PermutationParametersVS.Type->Name,
+                            magic_enum::enum_name(static_cast<EPipelineStage>(PipelineStage)),
+                            Binding.Name);
                     }
 
                 }

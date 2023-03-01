@@ -169,8 +169,8 @@ namespace nilou {
             else if (std::regex_match(parameter_type, std::regex("(vec(2|3|4)|(d|b|i|u)vec(2|3|4)|mat(2|3|4)|float|double|int|uint|bool)")))
             {
                 NILOU_LOG(Error, 
-                    "All uniform variables must be inside a uniform block but " 
-                    + parameter_name + " is out of a uniform block")
+                    "All uniform variables must be inside a uniform block but %s is out of a uniform block",
+                    parameter_name)
             }
             else 
             {

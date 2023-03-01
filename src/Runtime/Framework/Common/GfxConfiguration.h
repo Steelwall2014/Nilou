@@ -4,6 +4,8 @@
 #include <cwchar>
 #include <filesystem>
 
+#include "Log.h"
+
 namespace nilou {
 	struct GfxConfiguration {
 		/// Inline all-elements constructor.

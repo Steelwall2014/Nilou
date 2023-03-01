@@ -13,7 +13,7 @@ namespace nilou {
             return iter->second.BindingPoint;
         else
         {
-            NILOU_LOG(Error, "Shader Parameter " + Name + " Not found")
+            NILOU_LOG(Error, "Shader Parameter %s Not found", Name)
             return -1;
         }
     }

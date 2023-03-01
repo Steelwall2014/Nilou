@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Components/SceneComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneComponent.h"
 namespace nilou {
 std::string USceneComponent::GetClassName() { return "USceneComponent"; }
 EUClasses USceneComponent::GetClassEnum() { return EUClasses::MC_USceneComponent; }

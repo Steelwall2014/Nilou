@@ -26,7 +26,7 @@ namespace nilou {
 			if (!success)
 			{
 				glGetShaderInfoLog(Resource, 512, NULL, infoLog);
-				NILOU_LOG(Error, "Vertex/Pixel/Compute shader compilation failed\n" + std::string(infoLog))
+				NILOU_LOG(Error, "Vertex/Pixel/Compute shader compilation failed\n%s", infoLog)
 				return false;
 			}
 			return true;

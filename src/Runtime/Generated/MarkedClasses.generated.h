@@ -12,6 +12,7 @@ enum class EUClasses {
 	MC_ASkyAtmosphereActor,
 	MC_ASphereActor,
 	MC_AStaticMeshActor,
+	MC_AVirtualHeightfieldMeshActor,
 	MC_UActorComponent,
 	MC_UArrowComponent,
 	MC_UCameraComponent,

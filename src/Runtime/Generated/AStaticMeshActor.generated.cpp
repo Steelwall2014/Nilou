@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Actor/StaticMeshActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/StaticMeshActor.h"
 namespace nilou {
 std::string AStaticMeshActor::GetClassName() { return "AStaticMeshActor"; }
 EUClasses AStaticMeshActor::GetClassEnum() { return EUClasses::MC_AStaticMeshActor; }

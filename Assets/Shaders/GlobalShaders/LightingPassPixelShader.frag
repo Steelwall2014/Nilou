@@ -106,7 +106,7 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     float denominator = 4.0 * max(NdotV, 0.0) * max(NdotL, 0.0) + 0.001; 
     vec3 BRDF = nominator / denominator;
 
-    float bias = 0.002;//max(0.04 * (1.0 - NdotL), 0.004);
+    float bias = 0.01;//max(0.04 * (1.0 - NdotL), 0.004);
     float visibility = ShadowCalculation(light, params.relativePosition, bias);
 
     float atten = 1;

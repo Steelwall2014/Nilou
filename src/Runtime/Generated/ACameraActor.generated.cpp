@@ -1,4 +1,4 @@
-#include "../../src/Runtime/Framework/Common/Actor/CameraActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
 namespace nilou {
 std::string ACameraActor::GetClassName() { return "ACameraActor"; }
 EUClasses ACameraActor::GetClassEnum() { return EUClasses::MC_ACameraActor; }

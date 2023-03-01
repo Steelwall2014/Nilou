@@ -31,7 +31,7 @@ function BuildExternalProject(config)
     Execute(config.link, add_links)
     set_optimize("fastest")
     set_languages("clatest")
-    set_languages("cxx17")
+    set_languages("cxx20")
     set_kind("static")
     add_includedirs("./External/include")
     add_files("External/include/" .. config.projectName .. "/**.cpp")
@@ -50,7 +50,7 @@ function BuildProject(config)
     end
 
     set_languages("clatest")
-    set_languages("cxx17")
+    set_languages("cxx20")
     projectType = config.projectType
     if projectType ~= nil then
         set_kind(projectType)
@@ -192,7 +192,7 @@ BuildProject({
     -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
- 
+
 BuildProject({
     projectName = "GLTFImporter",
     projectType = "binary",

@@ -48,8 +48,8 @@ int main()
 
 //     }
 
-//     std::regex re(R"(^(layout\s+\((.*)\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
-//     std::string code = R"(
+    std::regex re(R"(^(layout\s+\((.*)\)\s+uniform|uniform)\s+([a-zA-Z_]+\w*)\s*(\{([\s\S]*?)\}|[a-zA-Z_]+\w*)\s*;$)");
+    std::string code = R"(
 // uniform sampler2D TransmittanceLUT;
 // layout (binding=0) uniform sampler3D ScatteringDensityLUT;
 // layout (rgba32f, binding=0) uniform image3D DeltaScatteringLUT;
@@ -57,11 +57,11 @@ int main()
 // layout (std140) uniform ScatteringOrderBlock {
 //     int scattering_order;
 // };)";
-//     std::smatch matches;
-//     while (std::regex_search(code, matches, re))
-//     {
-//         code = matches.suffix();
-//     }
+    std::smatch matches;
+    while (std::regex_search(code, matches, re))
+    {
+        code = matches.suffix();
+    }
     // std::regex_search(code, matches, re);
     // std::regex_search(code, matches, re);
     // std::regex_search(code, matches, re);

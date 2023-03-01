@@ -12,7 +12,7 @@ namespace nilou {
 		float exp_scale;
 		float linear_term;
 		float constant_term;
-        DensityProfileLayer() = default;
+        // DensityProfileLayer() = default;
         DensityProfileLayer &operator=(const DensityProfileLayer &) = default;
         bool operator!=(const DensityProfileLayer &Other) const = default; 
 	};
@@ -23,7 +23,7 @@ namespace nilou {
 	// (null density) to 1 (maximum density).
 	struct DensityProfile {
 		DensityProfileLayer layers[2];
-        DensityProfile() = default;
+        // DensityProfile() = default;
         DensityProfile(const DensityProfileLayer &layer1, const DensityProfileLayer &layer2)
         {
             layers[0] = layer1;
