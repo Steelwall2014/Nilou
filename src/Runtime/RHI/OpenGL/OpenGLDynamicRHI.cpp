@@ -155,7 +155,7 @@ namespace nilou {
             case 1 : return GL_UNSIGNED_BYTE;
             case 2 : return GL_UNSIGNED_SHORT;
             case 4 : return GL_UNSIGNED_INT;
-            default: NILOU_LOG(Error, "Invalid index buffer stride: %i", Stride); return GL_UNSIGNED_INT;
+            default: NILOU_LOG(Error, "Invalid index buffer stride: {}", Stride); return GL_UNSIGNED_INT;
         };
     }
 
@@ -200,7 +200,7 @@ namespace nilou {
             case ETextureFilters::TF_Linear_Mipmap_Nearest: return GL_LINEAR_MIPMAP_NEAREST;
             case ETextureFilters::TF_Nearest_Mipmap_Linear: return GL_NEAREST_MIPMAP_LINEAR;
             case ETextureFilters::TF_Linear_Mipmap_Linear: return GL_LINEAR_MIPMAP_LINEAR;
-            default: NILOU_LOG(Error, "Unknown TextureFilter: %i", (int)TextureFilter) return GL_LINEAR;
+            default: NILOU_LOG(Error, "Unknown TextureFilter: {}", (int)TextureFilter) return GL_LINEAR;
         }
     }
 
@@ -249,7 +249,7 @@ namespace nilou {
             case EPixelFormat::PF_R32G32F:      Format = GL_RG;     InternalFormat = GL_RG32F;  Type = GL_FLOAT; break;
             case EPixelFormat::PF_R32G32B32F:   Format = GL_RGB;     InternalFormat = GL_RGB32F;  Type = GL_FLOAT; break;
             case EPixelFormat::PF_R32G32B32A32F:Format = GL_RGBA;   InternalFormat = GL_RGBA32F;Type = GL_FLOAT; break;
-            default: NILOU_LOG(Error, "Unknown PixelFormat: %i", (int)PixelFormat) break;
+            default: NILOU_LOG(Error, "Unknown PixelFormat: {}", (int)PixelFormat) break;
         }
 
         return { Format, InternalFormat, Type };
@@ -287,7 +287,7 @@ namespace nilou {
 		    case EPixelFormat::PF_R32G32F: return 8;
 		    case EPixelFormat::PF_R32G32B32F: return 12;
 		    case EPixelFormat::PF_R32G32B32A32F: return 16;
-            default: NILOU_LOG(Error, "Unknown PixelFormat: %i", (int)PixelFormat) return 0;
+            default: NILOU_LOG(Error, "Unknown PixelFormat: {}", (int)PixelFormat) return 0;
         }
     }
 
@@ -405,7 +405,7 @@ namespace nilou {
 
         if (BaseIndex < 0)
         {
-            NILOU_LOG(Error, "RHISetShaderUniformBuffer Invalid BaseIndex: %i", BaseIndex);
+            NILOU_LOG(Error, "RHISetShaderUniformBuffer Invalid BaseIndex: {}", BaseIndex);
             return false;
         }
         OpenGLUniformBuffer *GLUniformBuffer = static_cast<OpenGLUniformBuffer*>(UniformBufferRHI);
@@ -437,7 +437,7 @@ namespace nilou {
 
         if (BaseIndex < 0)
         {
-            NILOU_LOG(Error, "RHISetShaderSampler Invalid BaseIndex: %i", BaseIndex);
+            NILOU_LOG(Error, "RHISetShaderSampler Invalid BaseIndex: {}", BaseIndex);
             return false;
         }
         // if (ContextState.GraphicsPipelineState != BoundPipelineState)
@@ -943,7 +943,7 @@ namespace nilou {
                 int binding_point = glGetUniformLocation(PipelineResource, ParamInfo.ParameterName.c_str());
                 if (binding_point == -1)
                 {
-                    NILOU_LOG(Warning, "Shader parameter %s is omitted in glsl", binding.Name)
+                    NILOU_LOG(Warning, "Shader parameter {} is omitted in glsl", binding.Name)
                     continue;
                 }
                 RHIGetError();
@@ -1025,8 +1025,8 @@ namespace nilou {
             #ifdef NILOU_DEBUG
             if (PSO->Program == nullptr)
             {
-                NILOU_LOG(Warning, "%s", Initializer.VertexShader->DebugCode);
-                NILOU_LOG(Warning, "%s", Initializer.PixelShader->DebugCode);
+                NILOU_LOG(Warning, "{}", Initializer.VertexShader->DebugCode);
+                NILOU_LOG(Warning, "{}", Initializer.PixelShader->DebugCode);
             }
             #endif
             RHIGetError();
@@ -1051,7 +1051,7 @@ namespace nilou {
 
         if (!vert->Success())
         {
-            NILOU_LOG(Info, "%s", code)
+            NILOU_LOG(Info, "{}", code)
             return nullptr;
         }
 
@@ -1064,7 +1064,7 @@ namespace nilou {
 
         if (!pixel->Success())
         {
-            NILOU_LOG(Info, "%s", code)
+            NILOU_LOG(Info, "{}", code)
             return nullptr;
         }
 
@@ -1077,7 +1077,7 @@ namespace nilou {
 
         if (!comp->Success())
         {
-            NILOU_LOG(Info, "%s", code)
+            NILOU_LOG(Info, "{}", code)
             return nullptr;
         }
 

@@ -19,7 +19,7 @@ namespace nilou {
 
         void DoTask()
         {
-            NILOU_LOG(Info, "Enqueued render command: %s", TraceBackString)
+            NILOU_LOG(Info, "Enqueued render command: {}", TraceBackString)
             lambda(FDynamicRHI::GetDynamicRHI());
         }
 

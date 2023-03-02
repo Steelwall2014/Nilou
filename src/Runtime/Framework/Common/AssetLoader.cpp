@@ -125,7 +125,7 @@ namespace nilou {
 			if (std::filesystem::exists(FilePath) && std::filesystem::is_regular_file(FilePath))
 				absolute_path = FilePath;
 			else
-			 	NILOU_LOG(Error, "File not found: %s", FilePath.generic_string());
+			 	NILOU_LOG(Error, "File not found: {}", FilePath.generic_string());
 		}
 		else 
 		{

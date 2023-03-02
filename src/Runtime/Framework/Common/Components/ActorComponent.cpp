@@ -57,7 +57,7 @@ namespace nilou {
     {
         if (IsRegistered())
         {
-            NILOU_LOG(Info, "RegisterComponentWithWorld (%s) Already registered. Aborting.", GetClassName());
+            NILOU_LOG(Info, "RegisterComponentWithWorld ({}) Already registered. Aborting.", GetClassName());
             return;
         }
         if (InWorld == nullptr)
@@ -70,7 +70,7 @@ namespace nilou {
             if(InWorld != MyOwner->GetWorld())
             {
                 // The only time you should specify a scene that is not Owner->GetWorld() is when you don't have an Actor
-                NILOU_LOG(Info, "RegisterComponentWithWorld: (%s) Specifying a world, but an Owner Actor found, and InWorld is not GetOwner()->GetWorld()", GetClassName());
+                NILOU_LOG(Info, "RegisterComponentWithWorld: ({}) Specifying a world, but an Owner Actor found, and InWorld is not GetOwner()->GetWorld()", GetClassName());
             }
         }
         if (!bHasBeenCreated)

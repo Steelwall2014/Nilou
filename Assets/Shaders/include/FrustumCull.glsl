@@ -1,5 +1,4 @@
 
-uniform vec4 FrustumPlanes[6];
 
 bool IsOutSidePlane(vec4 plane, vec3 position){
     return dot(plane.xyz,position) + plane.w < 0; 

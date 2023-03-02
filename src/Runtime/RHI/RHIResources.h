@@ -21,7 +21,7 @@ namespace nilou {
 		ETextureWrapModes Wrap_S; 
 		ETextureWrapModes Wrap_T; 
 		ETextureWrapModes Wrap_R;
-		RHITextureParams()
+		RHITextureParams()	// TODO 弄一个有默认参数的构造函数
 			: Mag_Filter(ETextureFilters::TF_Linear)
 			, Min_Filter(ETextureFilters::TF_Linear)
 			, Wrap_S(ETextureWrapModes::TW_Repeat)

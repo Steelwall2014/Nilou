@@ -18,12 +18,14 @@ layout(std430, binding=2) readonly buffer LODParams_Buffer{
 layout(binding = 3) uniform atomic_uint patch_index;
 layout(r16f, binding=4) uniform image2D LODMap;
 
-uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
-uniform sampler2D DisplacementMap;              // optional，没有设置的话代表没有水平偏移
-uniform float DisplacementMapMeterSize;
-uniform uint LODMapSize;
+layout(std140, binding = 5) uniform FCreatePatchBlock {
+    vec4 FrustumPlanes[6];
+    uint LodTextureSize;
+};
 
-#include "../include/FrustumCull.incl"
+uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
+
+#include "../include/FrustumCull.glsl"
 
 
 uvec2 GetUpperLeftSectorLoc(uvec2 nodeLoc, uint lod)
@@ -36,7 +38,7 @@ uvec2 GetLowerRightSectorLoc(uvec2 nodeLoc, uint lod)
 }
 uint GetLOD(ivec2 location)
 {
-    if (location.x < 0 || location.y < 0 || location.x >= LODMapSize || location.y >= LODMapSize)
+    if (location.x < 0 || location.y < 0 || location.x >= LodTextureSize || location.y >= LodTextureSize)
         return 0;
     return uint(imageLoad(LODMap, location).r);
 }
@@ -51,32 +53,33 @@ void main()
     // x+
     uint index = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x * 8 + gl_LocalInvocationID.y;
     uvec3 nodeLoc = uvec3(NodeIDs_Final[gl_WorkGroupID.x * 3], NodeIDs_Final[gl_WorkGroupID.x * 3+1], NodeIDs_Final[gl_WorkGroupID.x * 3+2]);
-    float node_size = LODParams[nodeLoc.z].NodeMeterSize;
-    vec2 node_offset = vec2(nodeLoc.x * node_size, nodeLoc.y * node_size);
+    vec2 node_size = vec2(LODParams[nodeLoc.z].NodeMeterSize_x, LODParams[nodeLoc.z].NodeMeterSize_y);
+
+    vec2 node_offset = vec2(nodeLoc) * node_size;
     uvec2 patch_local_id = uvec2(gl_LocalInvocationID.x, gl_LocalInvocationID.y);
-    float patch_size = node_size / 8.f;
-    vec2 patch_offset = vec2(patch_local_id.x * patch_size, patch_local_id.y * patch_size);
+    vec2 patch_size = node_size / 8.f;
+    vec2 patch_offset = vec2(patch_local_id) * patch_size;
 
     RenderPatch temp_patch;
     temp_patch.offset_x = node_offset.x + patch_offset.x;
     temp_patch.offset_y = node_offset.y + patch_offset.y;
     temp_patch.lod = nodeLoc.z;
 
-    ivec2 patchGlobalLoc = ivec2(temp_patch.offset_x / patch_size, temp_patch.offset_y / patch_size);
-    vec2 MinMax_uv = (vec2(patchGlobalLoc) + vec2(0.5)) / (8.0 * float(LODParams[nodeLoc.z].NodeSideNum));
+    ivec2 patchGlobalLoc = ivec2(temp_patch.offset_x / patch_offset.x, temp_patch.offset_y / patch_offset.y);
+    vec2 MinMax_uv = (vec2(patchGlobalLoc) + vec2(0.5)) / (8.0 * vec2(LODParams[nodeLoc.z].NodeSideNum_x, LODParams[nodeLoc.z].NodeSideNum_y));
     vec2 MinMax = texture2D(MinMaxMap[temp_patch.lod], MinMax_uv).rg;
     vec2 upper_left = vec2(temp_patch.offset_x, temp_patch.offset_y);
-    vec2 upper_right = upper_left + vec2(0, patch_size);
-    vec2 lower_left = upper_left + vec2(patch_size, 0);
-    vec2 lower_right = upper_left + vec2(patch_size);
+    vec2 upper_right = upper_left + vec2(0, patch_size.y);
+    vec2 lower_left = upper_left + vec2(patch_size.x, 0);
+    vec2 lower_right = upper_left + patch_size;
 
-    vec2 upper_left_uv = upper_left / DisplacementMapMeterSize;
-    float duv = patch_size / DisplacementMapMeterSize;
-
-    upper_left += texture(DisplacementMap, upper_left_uv).xy;
-    upper_right += texture(DisplacementMap, upper_left_uv + vec2(0, duv)).xy;
-    lower_left += texture(DisplacementMap, upper_left_uv + vec2(duv, 0)).xy;
-    lower_right += texture(DisplacementMap, upper_left_uv + vec2(duv)).xy;
+//    vec2 upper_left_uv = upper_left / DisplacementMapMeterSize;
+//    float duv = patch_size / DisplacementMapMeterSize;
+//
+//    upper_left += texture(DisplacementMap, upper_left_uv).xy;
+//    upper_right += texture(DisplacementMap, upper_left_uv + vec2(0, duv)).xy;
+//    lower_left += texture(DisplacementMap, upper_left_uv + vec2(duv, 0)).xy;
+//    lower_right += texture(DisplacementMap, upper_left_uv + vec2(duv)).xy;
 
     // 手动扩大bounding box，留一些冗余
     float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 10;

@@ -6,6 +6,7 @@ add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
+add_requires("vcpkg::glslang")
 add_requireconfs("*", {external = false})
 
 
@@ -174,7 +175,7 @@ BuildProject({
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     -- beforeBuildFunc = ExecuteHeaderTool,
     -- afterBuildFunc = copyFunc,
     enableException = true,
@@ -205,6 +206,20 @@ BuildProject({
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
     enableException = true,
+})
+
+
+BuildProject({
+    projectName = "TestGlslang",
+    projectType = "binary",
+    depends = {"crossguid", "glad", "base64"},
+    files = {
+        "src/Runtime/UnitTests/TestGlslang/main.cpp",
+        "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+    includePaths = include_paths,
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    enableException = true,
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
 })
 
 

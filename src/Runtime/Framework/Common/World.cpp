@@ -90,7 +90,7 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(FTransform::Identity, "test VHM");
+        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(FTransform::Identity, "test VHM");
 
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");

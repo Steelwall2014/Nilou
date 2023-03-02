@@ -78,12 +78,12 @@ namespace nilou {
                 if (!bResourceFound)
                 {
                         NILOU_LOG(Warning, 
-                            "Material: %s"
-                            " |Vertex Factory: %s"
-                            " |Vertex Shader: %s"
-                            " |Pixel Shader: %s"
-                            " |Pipeline Stage: %s"
-                            " |\"%s\" Resource not provided",
+                            "Material: {}"
+                            " |Vertex Factory: {}"
+                            " |Vertex Shader: {}"
+                            " |Pixel Shader: {}"
+                            " |Pipeline Stage: {}"
+                            " |\"{}\" Resource not provided",
                             Material->Name,
                             VFPermutationParameters.Type->Name,
                             PermutationParametersVS.Type->Name,
