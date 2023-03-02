@@ -14,14 +14,9 @@ namespace fs = std::filesystem;
 namespace nilou {
 
 
-    FShaderParserResult FShaderParser::Parse()
+    std::string FShaderParser::Parse()
     {
-        Code = ParseInclude();
-        // NILOU_LOG(Info, Code)
-        Code = ParseParameters();
-        // NILOU_LOG(Info, Code)
-        ParsedResult.MainCode = Code;
-        return ParsedResult;
+        return ParseInclude();
     }
 
     std::filesystem::path ShaderIncludePathToAbsolute(const std::string &IncludePathStr, const std::filesystem::path &FileParentDir)
@@ -184,7 +179,7 @@ namespace nilou {
                 ParsedParameter.Name = parameter_name;
                 ParsedParameter.Code = prefix + " " + parameter_type + " " + parameter_body + ";\n";
             }
-            ParsedResult.ParsedParameters.push_back(ParsedParameter);
+            // ParsedResult.ParsedParameters.push_back(ParsedParameter);
             Output << matches.prefix() << ParsedParameter.Code;
             temp = matches.suffix();
         }

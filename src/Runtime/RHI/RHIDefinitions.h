@@ -510,7 +510,7 @@ namespace nilou {
 	{
 		PS_Vertex,
 		PS_Pixel,
-		PS_Geometry,
+		// PS_Geometry,
 		PS_Compute,
 
 		PipelineStageNum

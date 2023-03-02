@@ -8,8 +8,8 @@ uniform sampler2D SceneColor;
 void main()
 {
 #if USING_OPENGL
-	FragColor = texture2D(SceneColor, vec2(1-uv.x, uv.y));
+	FragColor = texture(SceneColor, vec2(1-uv.x, uv.y));
 #else
-	FragColor = texture2D(SceneColor, uv);
+	FragColor = texture(SceneColor, uv);
 #endif
 }

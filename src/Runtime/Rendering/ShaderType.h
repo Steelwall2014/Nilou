@@ -65,7 +65,7 @@ namespace nilou {
         FHashedName HashedName;
         // std::set<FShaderParameterCode> ShaderParameterCodes;
         // FShaderCodeInitializer CodeInitializer;
-        FShaderParserResult ParsedResult;
+        std::string PreprocessedCode;
         int32 PermutationCount;
         
         FShaderTypeBase::FShaderTypeBase() { }

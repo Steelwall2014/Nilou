@@ -18,14 +18,6 @@
 
 namespace nilou {
 
-    // class FShaderParameterMapInfo
-    // {
-    // public:
-    //     std::vector<FShaderParameterInfo> UniformBuffers;
-    //     std::vector<FShaderParameterInfo> TextureSamplers;
-    //     std::vector<FShaderParameterInfo> VertexAttributes;
-    // };
-
     template<EShaderFrequency ShaderFrequency, bool IsMaterialShader>
     struct TShaderFrequencyAssertHelper
     { };
@@ -38,7 +30,7 @@ namespace nilou {
         static_assert(ShaderFrequency != EShaderFrequency::SF_Compute, "If the shader is derived from FMaterialShader, the ShaderFrequency MUST NOT be SF_Compute. ");
     };
 
-    class FShader// : public FShaderSegment
+    class FShader
     {
 
     /*==========FShaderType Interface===============*/
@@ -64,11 +56,6 @@ namespace nilou {
     class FMaterialShader : public FShader
     {
         DECLARE_SHADER_TYPE()
-    };
-
-    class FGlobalShaderResourceParameter
-    {
-        
     };
 
     class FGlobalShader : public FShader

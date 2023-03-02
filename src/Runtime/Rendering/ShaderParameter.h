@@ -8,11 +8,13 @@ namespace nilou {
 
     enum class EShaderParameterType
     {
+        SPT_None,
         SPT_Sampler,
         // SPT_Uniform,
         SPT_UniformBuffer,
         // SPT_ShaderStructureBuffer,
         SPT_Image,
+        SPT_AtomicUint,
     };
 
     class FShaderParameterInfo

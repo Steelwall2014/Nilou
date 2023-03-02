@@ -16,11 +16,11 @@ void main()
     vec2 patch_lowerright_uv = (vec2(gl_GlobalInvocationID.xy) + vec2(1, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
     vec2 patch_center_uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5, 0.5)) * PatchOriginalMeterSize / HeightMapMeterSize;
 
-    float ul_height = texture2D(HeightMap, patch_upperleft_uv).r;
-    float ur_height = texture2D(HeightMap, patch_upperright_uv).r;
-    float ll_height = texture2D(HeightMap, patch_lowerleft_uv).r;
-    float lr_height = texture2D(HeightMap, patch_lowerright_uv).r;
-    float center_height = texture2D(HeightMap, patch_center_uv).r;
+    float ul_height = texture(HeightMap, patch_upperleft_uv).r;
+    float ur_height = texture(HeightMap, patch_upperright_uv).r;
+    float ll_height = texture(HeightMap, patch_lowerleft_uv).r;
+    float lr_height = texture(HeightMap, patch_lowerright_uv).r;
+    float center_height = texture(HeightMap, patch_center_uv).r;
 
     float min_height = min(ul_height, min(ur_height, min(ll_height, min(center_height, lr_height))));
     float max_height = max(ul_height, max(ur_height, max(ll_height, max(center_height, lr_height))));

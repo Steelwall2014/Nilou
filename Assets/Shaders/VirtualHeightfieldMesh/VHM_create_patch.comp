@@ -67,7 +67,7 @@ void main()
 
     ivec2 patchGlobalLoc = ivec2(temp_patch.offset_x / patch_offset.x, temp_patch.offset_y / patch_offset.y);
     vec2 MinMax_uv = (vec2(patchGlobalLoc) + vec2(0.5)) / (8.0 * vec2(LODParams[nodeLoc.z].NodeSideNum_x, LODParams[nodeLoc.z].NodeSideNum_y));
-    vec2 MinMax = texture2D(MinMaxMap[temp_patch.lod], MinMax_uv).rg;
+    vec2 MinMax = texture(MinMaxMap[temp_patch.lod], MinMax_uv).rg;
     vec2 upper_left = vec2(temp_patch.offset_x, temp_patch.offset_y);
     vec2 upper_right = upper_left + vec2(0, patch_size.y);
     vec2 lower_left = upper_left + vec2(patch_size.x, 0);

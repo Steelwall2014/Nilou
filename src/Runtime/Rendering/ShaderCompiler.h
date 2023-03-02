@@ -12,10 +12,6 @@ namespace nilou {
     void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory);
     std::string GetShaderAbsolutePathFromVirtualPath(const std::string &VirtualFilePath);
 
-    std::string ProcessCodeInclude(const std::string &RawSourceCode, const std::filesystem::path &FileParentDir);
-
-    std::string ProcessCodeShaderParams(const std::string &RawSourceCode, std::set<class FShaderParameterCode> &);
-
     class FDynamicRHI;
     class FVertexFactoryPermutationParameters;
     class FShaderPermutationParameters;
@@ -27,20 +23,20 @@ namespace nilou {
         static void CompileGlobalShaders(FDynamicRHI *DynamicRHI);
 
         static void CompileMaterialShader(class FMaterial *Material, 
-        FShaderParserResult &MaterialParsedResult,FDynamicRHI *DynamicRHI);
+            const std::string &MaterialParsedResult, FDynamicRHI *DynamicRHI);
 
     private:
         static void FShaderCompiler::CompileVertexMaterialShader(
             FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
-            FShaderParserResult &MaterialParsedResult,
+            const std::string &MaterialParsedResult,
             const FVertexFactoryPermutationParameters &VertexFactoryParams,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
         static void CompilePixelMaterialShader(
             FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
-            FShaderParserResult &MaterialParsedResult,
+            const std::string &MaterialParsedResult,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FShaderPermutationParameters> &OutShaderMap);
         static void CompileGlobalShader(

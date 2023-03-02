@@ -40,11 +40,7 @@ namespace nilou {
             FileAbsolutePath = fs::path(GetShaderAbsolutePathFromVirtualPath(VirtualFilePath));
             std::string RawSourceCode = GetAssetLoader()->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
             NILOU_LOG(Info, "Parsing {}", FileAbsolutePath.generic_string());
-            ParsedResult = FShaderParser(RawSourceCode, FileAbsolutePath.parent_path()).Parse();
-            std::stringstream ParseInfo;
-            ParseInfo << "Parse complete " + FileAbsolutePath.generic_string() << "\n"
-                      << ParsedResult;
-            NILOU_LOG(Info, "{}", ParseInfo.str());
+            PreprocessedCode = FShaderParser(RawSourceCode, FileAbsolutePath.parent_path()).Parse();
 
             HashedName = FHashedName(Name+FileAbsolutePath.generic_string());
 

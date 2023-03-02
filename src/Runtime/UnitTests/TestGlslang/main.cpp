@@ -59,7 +59,7 @@ int main()
 {
     glslang::InitializeProcess();
     TShader *Shader = new TShader(EShLanguage::EShLangCompute);
-    std::ifstream in{"D:\\Nilou\\Assets\\Shaders\\VirtualHeightfieldMesh\\VHM_create_nodelist.comp"};
+    std::ifstream in{"D:\\Nilou\\Assets\\Shaders\\VirtualHeightfieldMesh\\VHM_create_lod_texture.comp"};
     char buffer[1024];
     std::stringstream res;
     while (in.getline(buffer, sizeof(buffer)))
@@ -95,16 +95,17 @@ int main()
         int j = obj.getBinding();
     }
 
-    auto sampler = program.getUniform(0);
+    // auto sampler = program.getUniform(0);
 
-    // int uniform_num = program.getNumUniformVariables();
-    // for (int i = 0; i < uniform_num; i++)
-    // {
-    //     auto name = program.getUniformName(i);
-    //     auto binding = program.getUniformBinding(i);
-    //     auto obj = program.getUniform(i);
-    //     std::cout << name;
-    // }
+    int uniform_num = program.getNumUniformVariables();
+    for (int i = 0; i < uniform_num; i++)
+    {
+        auto name = program.getUniformName(i);
+        auto binding = program.getUniformBinding(i);
+        auto obj = program.getUniform(i);
+        bool b = obj.getType()->isImage();
+        std::cout << name;
+    }
 
     int uniform_block_num = program.getNumUniformBlocks();
     for (int i = 0; i < uniform_block_num; i++)

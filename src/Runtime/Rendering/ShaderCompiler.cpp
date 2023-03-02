@@ -5,6 +5,8 @@
 #include <regex>
 #include <sstream>
 #include <vector>
+#include <glslang/Public/ResourceLimits.h>
+#include <glslang/MachineIndependent/localintermediate.h>
 
 #include "DynamicRHI.h"
 #include "ShaderCompiler.h"
@@ -28,88 +30,6 @@ void Write(std::string filename, std::string code)
     out << code;
 }
 #endif
-
-namespace fs = std::filesystem;
-
-namespace nilou {
-
-    std::string ProcessCodeIncludePath(const std::string &RawSourceCode, const std::filesystem::path &FileParentDir)
-    {
-        std::smatch matches;
-        std::stringstream Input(RawSourceCode);
-        std::stringstream Output;
-        std::string lineBuffer;
-        std::regex re_version("^[ ]*#[ ]*version[ ]+[0-9]+.*");
-        std::regex re_include("^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*");
-        while (std::getline(Input, lineBuffer))
-        {
-            if (std::regex_match(lineBuffer, matches, re_version))
-            {
-                continue;
-            }
-            else if (std::regex_match(lineBuffer, matches, re_include))
-            {
-                std::string included_path_str = matches[1];
-                fs::path included_path = fs::path(included_path_str);
-                if (included_path.is_absolute())
-                {
-                    Output << lineBuffer << "\n";
-                    continue;
-                }
-                std::filesystem::path LocalFileParentDir = FileParentDir;
-                while (GameStatics::StartsWith(included_path_str, "../") || GameStatics::StartsWith(included_path_str, "..\\"))
-                {
-                    included_path_str = included_path_str.substr(3);
-                    LocalFileParentDir = LocalFileParentDir.parent_path();
-                }
-                included_path = LocalFileParentDir / fs::path(included_path_str);
-                Output << "#include \"" << included_path.generic_string() << "\"\n";
-            }
-            else 
-            {
-                Output << lineBuffer << "\n";
-            }
-        }
-        return Output.str();
-    }
-
-    std::string ProcessCodeIncludeInternal(const std::string &RawSourceCode, std::set<std::string> &AlreadyIncludedPathes)
-    {
-        std::stringstream input(RawSourceCode);
-        std::stringstream fullSourceCode;
-
-        std::string lineBuffer;
-        std::regex re("^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*");
-        while (std::getline(input, lineBuffer))
-        {
-            std::smatch matches;
-            if (std::regex_match(lineBuffer, matches, re))
-            {
-                /** The include path has been preprocessed in FShaderTypeBase construct function so it's now an absolute path */
-                std::filesystem::path absolute_path = std::filesystem::path(std::string(matches[1]));
-                if (AlreadyIncludedPathes.find(absolute_path.generic_string()) == AlreadyIncludedPathes.end())
-                {
-                    std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(absolute_path.generic_string().c_str());
-                    AlreadyIncludedPathes.insert(absolute_path.generic_string());
-                    fullSourceCode << ProcessCodeIncludeInternal(SourceCode, AlreadyIncludedPathes);
-                }
-            }
-            else 
-            {
-                fullSourceCode << lineBuffer + '\n';
-            }
-        }
-
-        return fullSourceCode.str();
-    }
-
-    std::string ProcessCodeInclude(const std::string &RawSourceCode, const std::filesystem::path &FileParentDir)
-    {
-        std::set<std::string> AlreadyIncludedPathes;
-        std::string NewRawSourceCode = ProcessCodeIncludePath(RawSourceCode, FileParentDir);
-        return ProcessCodeIncludeInternal(NewRawSourceCode, AlreadyIncludedPathes);
-    }
-}
 
 namespace nilou {
 
@@ -167,8 +87,8 @@ namespace nilou {
 
     template<int N>
     std::string ConcateShaderCodeAndParameters(
-        std::set<FShaderParameterInfo> &OutShaderParameters, 
-        std::array<FShaderParserResult*, N> ParsedResults, 
+        /*std::set<FShaderParameterInfo> &OutShaderParameters, */
+        std::array<const std::string*, N> PreprocessResults, 
         const FShaderCompilerEnvironment &Environment,
         FDynamicRHI *DynamicRHI)
     {
@@ -179,69 +99,13 @@ namespace nilou {
 
         for (auto &[key, value] : Environment.Definitions)
             stream << "#define " << key << " " << value << "\n";
-        for (FShaderParserResult* ParsedResult : ParsedResults)
+        for (const std::string* Code : PreprocessResults)
         {
-            for (const FShaderParsedParameter &ParsedParameter : ParsedResult->ParsedParameters)
-            {
-                if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-                {
-                    // for OpenGL, the binding point of images will be determined by explicit binding qualifier
-                    if (ParsedParameter.ParameterType == EShaderParameterType::SPT_Image)
-                    {
-                        std::regex re("binding[ ]*=[ ]*([0-9])");
-                        std::smatch matches;
-                        if (std::regex_search(ParsedParameter.Code, matches, re))
-                        {
-                            OutShaderParameters.emplace(ParsedParameter.Name, stoi(matches[1].str()), ParsedParameter.ParameterType);
-                        }
-                    }
-                    // for OpenGL, the binding point of samplers and uniform blocks will be determined when pipeline state is created
-                    else 
-                    {                        
-                        OutShaderParameters.emplace(ParsedParameter.Name, -1, ParsedParameter.ParameterType);
-                    }
-                }
-                // else if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-                // {
-                //     int binding_point = ParameterMap.size();
-                //     std::regex re("\\{binding\\}");
-                //     std::string Code = std::regex_replace(ParsedParameter.Code, re, "binding="+std::to_string(binding_point));
-                //     // stream << Code << "\n";
-                //     ParameterMap[ParsedParameter.Name] = FShaderParameterInfo(ParsedParameter.Name, binding_point, ParsedParameter.ParameterType);
-                // }
-            }
-
-            stream << ParsedResult->MainCode;
+            stream << *Code;
         }
-
-        // if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-        // {
-        //     std::regex re("\\{binding\\}");
-        //     std::string Output = stream.str();
-        //     std::smatch match;
-        //     while (std::regex_search(Output, match, re))
-        //     {
-        //         int binding_point = ParsedParameters.size();
-        //         Output = std::regex_replace(Output, re, "binding="+std::to_string(binding_point), std::regex_constants::format_first_only);
-        //     }
-        // }
 
         return stream.str();
     }
-
-    // template<int N>
-    // std::vector<FShaderParameterInfo> ConcateShaderParameters(std::array<const FShaderTypeBase *, N> ShaderTypes)
-    // {
-    //     std::vector<FShaderParameterInfo> ParameterMap;
-    //     for (const FShaderTypeBase *ShaderType : ShaderTypes)
-    //     {
-    //         for (auto &ParameterCode : ShaderType->ShaderParameterCodes)
-    //         {
-    //             ParameterMap.push_back(FShaderParameterInfo(ParameterCode.Name, ParameterMap.size()));
-    //         }
-    //     }
-    //     return ParameterMap;
-    // }
 
     void FShaderCompiler::CompileGlobalShader(
         FDynamicRHI *DynamicRHI, 
@@ -254,32 +118,56 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
-            ShaderInstance->Parameters, {&ShaderType->ParsedResult}, Environment, DynamicRHI);
+            /*ShaderInstance->Parameters, */{&ShaderType->PreprocessedCode}, Environment, DynamicRHI);
+        const char *code_c_str = code.c_str();
+        ShaderInstance->ShaderName = ShaderType->Name;
 
         switch (ShaderType->ShaderFrequency) 
         {
             case EShaderFrequency::SF_Vertex:
                 ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
+                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
+                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  glslang::EShClientNone, 0);
                 break;
             case EShaderFrequency::SF_Pixel:
                 ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
+                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
+                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  glslang::EShClientNone, 0);
                 break;
             case EShaderFrequency::SF_Compute:
                 ShaderInstance->ShaderRHI = DynamicRHI->RHICreateComputeShader(code.c_str());
                 ShaderInstance->PipelineStage = EPipelineStage::PS_Compute;
+                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangCompute);
+                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  glslang::EShClientNone, 0);
                 break;
         }
-
-        // AddGlobalShaderInstance(ShaderInstance, ShaderParameter);
+        
+        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
+        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
+        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
+        std::string preprocess;
+        glslang::TShader::ForbidIncluder includer;
+        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 460, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
+        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 460, false, EShMsgDefault);
+        if (!res)
+        {
+            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
+            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
+            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
+                ShaderType->Name, 
+                info,
+                debuginfo);
+            ShaderInstance->ShaderGlsl == nullptr;
+        }
         GetContentManager()->AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(
         FDynamicRHI *DynamicRHI,
         FMaterial *Material, 
-        FShaderParserResult &MaterialParsedResult,
+        const std::string &MaterialPreprocessedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap)
@@ -296,12 +184,34 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<3>(
-            ShaderInstance->Parameters, 
-            {&MaterialParsedResult, &VertexFactoryType->ParsedResult, &ShaderType->ParsedResult}, 
+            {&MaterialPreprocessedResult, &VertexFactoryType->PreprocessedCode, &ShaderType->PreprocessedCode}, 
             Environment, DynamicRHI);
+        const char *code_c_str = code.c_str();
+        ShaderInstance->ShaderName = ShaderType->Name;
 
         ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
+
+        ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
+        ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  glslang::EShClientNone, 0);
+        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
+        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
+        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
+        std::string preprocess;
+        glslang::TShader::ForbidIncluder includer;
+        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 100, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
+        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 100, false, EShMsgDefault);
+        if (!res)
+        {
+
+            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
+            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
+            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
+                ShaderType->Name, 
+                info,
+                debuginfo);
+            ShaderInstance->ShaderGlsl == nullptr;
+        }
         
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
@@ -309,7 +219,7 @@ namespace nilou {
     void FShaderCompiler::CompilePixelMaterialShader(
         FDynamicRHI *DynamicRHI, 
         FMaterial *Material, 
-        FShaderParserResult &MaterialParsedResult,
+        const std::string& MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
     {
@@ -320,12 +230,34 @@ namespace nilou {
 
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<2>(
-            ShaderInstance->Parameters, 
-            {&MaterialParsedResult, &ShaderType->ParsedResult}, 
+            {&MaterialParsedResult, &ShaderType->PreprocessedCode}, 
             Environment, DynamicRHI);
+        const char *code_c_str = code.c_str();
+        ShaderInstance->ShaderName = ShaderType->Name;
 
         ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
         ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
+        
+        ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
+        ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  glslang::EShClientNone, 0);
+        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
+        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
+        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
+        std::string preprocess;
+        glslang::TShader::ForbidIncluder includer;
+        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 100, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
+        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 100, false, EShMsgDefault);
+        if (!res)
+        {
+
+            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
+            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
+            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
+                ShaderType->Name, 
+                info,
+                debuginfo);
+            ShaderInstance->ShaderGlsl == nullptr;
+        }
 
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
@@ -388,7 +320,7 @@ namespace nilou {
     }
     
     void FShaderCompiler::CompileMaterialShader(FMaterial *Material, 
-        FShaderParserResult &MaterialParsedResult,FDynamicRHI *DynamicRHI)
+        const std::string &MaterialParsedResult,FDynamicRHI *DynamicRHI)
     {
         ForEachShader(
             [Material, &MaterialParsedResult, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   

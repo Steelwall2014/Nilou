@@ -1,18 +1,9 @@
 #version 430
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#define MIN_LOD_NUM 3
-#define MAX_LOD_NUM 12
-struct WorldLODParam
-{
-    float NodeMeterSize_x;
-    float NodeMeterSize_y;
-    uint NodeSideNum_x;
-    uint NodeSideNum_y;
-    uint NodeDescriptionIndexOffset;
-};
-//#include "VHM_MinMaxLODNum.glsl"
-//#include "VHM_WorldLODParam.glsl"
+#include "VHM_MinMaxLODNum.glsl"
+#include "VHM_WorldLODParam.glsl"
+
 layout(binding = 0) uniform atomic_uint index_B;
 layout(binding = 1) uniform atomic_uint index_Final;
 
@@ -46,11 +37,6 @@ layout(std140) uniform FCreateNodeListBlock {
 
 uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
 
-
-uint fromNodeLoctoNodeDescriptionIndex(uvec2 nodeLoc, uint lod, const WorldLODParam param)
-{
-    return param.NodeDescriptionIndexOffset + nodeLoc.y * param.NodeSideNum_x + nodeLoc.y;
-}
 //float GetNodeSize(uint lod)
 //{
 //    return LODParams[lod].NodeMeterSize;

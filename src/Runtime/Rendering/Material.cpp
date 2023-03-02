@@ -18,8 +18,8 @@ namespace nilou {
         if (bRecompile)
         {
             ENQUEUE_RENDER_COMMAND(UpdateMaterialCode)([this, InCode](FDynamicRHI *DynamicRHI) {
-                FShaderParserResult ParsedResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
-                FShaderCompiler::CompileMaterialShader(this, ParsedResult, DynamicRHI);
+                std::string PreprocessResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
+                FShaderCompiler::CompileMaterialShader(this, PreprocessResult, DynamicRHI);
                 bShaderCompiled = true;
             });
         }
