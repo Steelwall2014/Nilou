@@ -204,7 +204,21 @@ BuildProject({
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
+    enableException = true,
+})
+
+BuildProject({
+    projectName = "TextureImporter",
+    projectType = "binary",
+    macros = {},
+    depends = {"crossguid", "glad", "base64"},
+    files = {"src/TextureImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+    includePaths = include_paths,
+    debugLink = {"lib/debug/*"},
+    releaseLink = {"lib/release/*"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     enableException = true,
 })
 

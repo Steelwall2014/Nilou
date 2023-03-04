@@ -82,58 +82,5 @@ namespace nilou {
         virtual ~OpenGLUniformBuffer() { glDeleteBuffers(1, &Resource); }
     };
     using OpenGLUniformBufferRef = std::shared_ptr<OpenGLUniformBuffer>;
-    // class OpenGLShaderStorageBuffer : public TOpenGLBuffer<RHIShaderStorageBuffer>
-    // {
-    // public:
-    //     OpenGLShaderStorageBuffer(
-    //         uint32 InSize,
-    //         void *InData,
-    //         GLenum InUsage
-    //     )
-    //     : TOpenGLBuffer<RHIShaderStorageBuffer>(
-    //         GL_SHADER_STORAGE_BUFFER,
-    //         0,
-    //         InSize,
-    //         InData,
-    //         InUsage)
-    //     {}
-    // };
-
-    // class OpenGLAtomicCounterBuffer : public TOpenGLBuffer<RHIAtomicCounterBuffer>
-    // {
-    // public:
-    //     OpenGLAtomicCounterBuffer(
-    //         uint32 InValue,
-    //         GLenum InUsage
-    //     )
-    //     : TOpenGLBuffer<RHIAtomicCounterBuffer>(
-    //         GL_ATOMIC_COUNTER_BUFFER,
-    //         0,
-    //         4,
-    //         &InValue,
-    //         InUsage)
-    //     {}
-    // };
-
-    struct DrawArraysIndirectCommand
-    {
-        GLsizei 	 Count;
-        unsigned int instanceCount;
-        unsigned int first;
-        unsigned int baseInstance;
-    };
-    struct DrawElementsIndirectCommand
-    {
-        GLsizei 	 Count;
-        unsigned int instanceCount;
-        unsigned int firstIndex;
-        unsigned int baseVertex;
-        unsigned int baseInstance;
-    };
-    struct DispatchIndirectCommand {
-        unsigned int num_groups_x;
-        unsigned int num_groups_y;
-        unsigned int num_groups_z;
-    };
 
 }

@@ -1,19 +1,7 @@
 #version 460
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-struct WorldLODParam
-{
-    float NodeMeterSize_x;
-    float NodeMeterSize_y;
-    uint NodeSideNum_x;
-    uint NodeSideNum_y;
-    uint NodeDescriptionIndexOffset;
-};
-
-uint fromNodeLoctoNodeDescriptionIndex(uvec2 nodeLoc, uint lod, const WorldLODParam param)
-{
-    return param.NodeDescriptionIndexOffset + nodeLoc.y * param.NodeSideNum_x + nodeLoc.y;
-}
+#include "VHM_WorldLODParam.glsl"
 
 layout(std430, binding=1) readonly buffer NodeDescription_Buffer{
     uint NodeDevided[];
@@ -24,8 +12,13 @@ layout(std430, binding=2) readonly buffer LODParams_Buffer{
 };
 layout(r16f, binding=3) uniform image2D LODMap;
 
-uniform uint LODNum;
 
+layout (std140) uniform FQuadTreeParameters {
+    uvec2   NodeCount;
+    uint    LODNum;
+    uint    NumQuadsPerPatch;
+    uint    NumPatchesPerNode;
+};
 
 uvec2 fromSectorLoctoNodeLoc(uvec2 sector_loc, uint lod)
 {

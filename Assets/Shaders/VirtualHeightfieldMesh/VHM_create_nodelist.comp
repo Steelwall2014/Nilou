@@ -14,14 +14,8 @@ layout(std430, binding=3) writeonly buffer NodeIDs_TempB_Buffer{
     uvec2 NodeIDs_TempB[];
 };
 layout(std430, binding=4) writeonly buffer NodeIDs_Final_Buffer{
-    // 这里不用uvec3为了规避内存对齐的问题：在c++里面uvec3数组是紧密排列的，glsl里uvec3数组会填充一个uint的大小
-    uint NodeIDs_Final[];
+    uvec4 NodeIDs_Final[];
 };
-//layout(std430, binding=3) buffer NodeIndex{
-//    atomic_uint index_A;
-//    uint index_B;
-//    uint index_Final;
-//};
 layout(std430, binding=5) readonly buffer LODParams_Buffer{
     WorldLODParam LODParams[];
 };
@@ -32,31 +26,39 @@ layout(std430, binding=6) writeonly buffer NodeDescription_Buffer{
 layout(std140) uniform FCreateNodeListBlock {
     uint MaxLOD;
     uint PassLOD;
-    vec3 CameraPosition;
+    float ScreenSizeDenominator;
 };
 
-uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
+layout (std140) uniform FPrimitiveShaderParameters {
+    dmat4 LocalToWorld;
+};
+
+#include "../include/ViewShaderParameters.glsl"
+
+uniform sampler2D MinMaxMap;
 
 //float GetNodeSize(uint lod)
 //{
 //    return LODParams[lod].NodeMeterSize;
 //}
-vec3 GetNodePositionWS(uvec2 nodeLoc, uint lod)
+dvec4 GetNodePositionWS(uvec2 nodeLoc, uint lod)
 {
     vec2 xy_center_coord = (vec2(nodeLoc) + vec2(0.5)) * vec2(LODParams[lod].NodeMeterSize_x, LODParams[lod].NodeMeterSize_y);
     vec2 uv = (vec2(nodeLoc) + vec2(0.5)) / vec2(LODParams[lod].NodeSideNum_x, LODParams[lod].NodeSideNum_y);
-    vec2 minmax = texture(MinMaxMap[lod+3], uv).rg;
+    vec2 minmax = textureLod(MinMaxMap, uv, float(lod+3)).rg;
     float height = (minmax.r + minmax.g) / 2;
-    return vec3(xy_center_coord, height);
+    return LocalToWorld * dvec4(xy_center_coord, height, 1);
 }
-bool EvaluateNode(uvec2 nodeLoc, uint lod){
-    vec3 positionWS = GetNodePositionWS(nodeLoc, lod);
-    float dis = distance(CameraPosition, positionWS);
-    float nodeSize = max(LODParams[lod].NodeMeterSize_x, LODParams[lod].NodeMeterSize_y);
-    float f = dis / (nodeSize * 1.5);
-    if (f < 1) 
-        return true;
-    return false;
+bool MeetScreenSize(uvec2 nodeLoc, uint lod){
+    dvec4 positionWS = GetNodePositionWS(nodeLoc, lod);
+    float dis = float(distance(dvec3(CameraPosition), dvec3(positionWS)));
+    float nodeSize = max(LODParams[lod].NodeMeterSize_x, LODParams[lod].NodeMeterSize_y) * 0.1;
+    float ScreenSize = nodeSize * CameraResolution.y / (dis * ScreenSizeDenominator);
+    return ScreenSize < 500;
+//    float f = dis / (nodeSize * 1.5);
+//    if (f < 1) 
+//        return false;
+//    return true;
 }
 
 void main()
@@ -73,7 +75,7 @@ void main()
         nodeLoc = NodeIDs_TempA[gl_GlobalInvocationID.x];
     }
     uint index = fromNodeLoctoNodeDescriptionIndex(nodeLoc, PassLOD, LODParams[PassLOD]);
-    if(PassLOD > 0 && EvaluateNode(nodeLoc, PassLOD)){
+    if(PassLOD > 0 && !MeetScreenSize(nodeLoc, PassLOD)){
         //divide
         uint i = atomicCounterIncrement(index_B);
         NodeIDs_TempB[i] = nodeLoc * 2;
@@ -100,9 +102,9 @@ void main()
 //            return;
         
         uint i = atomicCounterIncrement(index_Final);
-        NodeIDs_Final[i*3] = nodeLoc.x;
-        NodeIDs_Final[i*3+1] = nodeLoc.y;
-        NodeIDs_Final[i*3+2] = PassLOD;
+        NodeIDs_Final[i].x = nodeLoc.x;
+        NodeIDs_Final[i].y = nodeLoc.y;
+        NodeIDs_Final[i].z = PassLOD;
         
 //        NodeIDs_Final[i] = uvec3(nodeLoc, PassLOD);
     }

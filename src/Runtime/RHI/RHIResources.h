@@ -421,4 +421,25 @@ namespace nilou {
 		FRHIRenderQuery() : RHIResource(RRT_RenderQuery) {}
 	};
 	using FRHIRenderQueryRef = std::shared_ptr<FRHIRenderQuery>;
+
+    struct DrawArraysIndirectCommand
+    {
+        int32 	Count;
+        uint32 	instanceCount;
+        uint32 	first;
+        uint32 	baseInstance;
+    };
+    struct DrawElementsIndirectCommand
+    {
+        int32	Count;
+        uint32 	instanceCount;
+        uint32 	firstIndex;
+        uint32 	baseVertex;
+        uint32 	baseInstance;
+    };
+    struct DispatchIndirectCommand {
+        uint32 	num_groups_x;
+        uint32 	num_groups_y;
+        uint32 	num_groups_z;
+    };
 }

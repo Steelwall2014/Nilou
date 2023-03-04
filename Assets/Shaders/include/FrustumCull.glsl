@@ -16,12 +16,12 @@ bool IsBoxOutSidePlane(vec4 plane, vec3 box[8])
 }
 bool FrustumCull(vec3 box[8])
 {
-    return IsBoxOutSidePlane(FrustumPlanes[0], box) || 
-    IsBoxOutSidePlane(FrustumPlanes[1], box) || 
-    IsBoxOutSidePlane(FrustumPlanes[2], box) || 
-    IsBoxOutSidePlane(FrustumPlanes[3], box) || 
-    IsBoxOutSidePlane(FrustumPlanes[4], box) || 
-    IsBoxOutSidePlane(FrustumPlanes[5], box);
+    return IsBoxOutSidePlane(vec4(FrustumPlanes[0]), box) || 
+    IsBoxOutSidePlane(vec4(FrustumPlanes[1]), box) || 
+    IsBoxOutSidePlane(vec4(FrustumPlanes[2]), box) || 
+    IsBoxOutSidePlane(vec4(FrustumPlanes[3]), box) || 
+    IsBoxOutSidePlane(vec4(FrustumPlanes[4]), box) || 
+    IsBoxOutSidePlane(vec4(FrustumPlanes[5]), box);
 }
 
 void CreateBox(vec2 upper_left, vec2 lower_right, vec2 MinMax, out vec3 box[8])

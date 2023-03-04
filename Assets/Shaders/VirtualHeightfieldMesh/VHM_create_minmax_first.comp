@@ -2,14 +2,23 @@
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 uniform sampler2D HeightMap;
-layout(rg32f, binding=2) uniform image2D OutMinMaxMap;
+layout(rg16f, binding=2) uniform image2D OutMinMaxMap;
 
-uniform float PatchOriginalMeterSize;   // 最小的patch的大小
+layout (std140) uniform FQuadTreeParameters {
+    uvec2   NodeCount;
+    uint    LODNum;
+    uint    NumQuadsPerPatch;
+    uint    NumPatchesPerNode;
+};
 
-uniform float HeightMapMeterSize;   // 一整张HeightMap的大小
+//uniform float PatchOriginalMeterSize;   // 最小的patch的大小
+
+//uniform float HeightMapMeterSize;   // 一整张HeightMap的大小
 
 void main()
 {
+    vec2 PatchOriginalMeterSize = vec2(NumQuadsPerPatch);
+    vec2 HeightMapMeterSize = NumQuadsPerPatch * NumPatchesPerNode * NodeCount;
     vec2 patch_upperleft_uv = vec2(gl_GlobalInvocationID.xy) * PatchOriginalMeterSize / HeightMapMeterSize;
     vec2 patch_upperright_uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
     vec2 patch_lowerleft_uv = (vec2(gl_GlobalInvocationID.xy) + vec2(1, 0)) * PatchOriginalMeterSize / HeightMapMeterSize;

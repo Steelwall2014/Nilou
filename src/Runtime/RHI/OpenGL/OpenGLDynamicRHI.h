@@ -46,6 +46,14 @@ namespace nilou {
 		virtual void RHISetVertexBuffer(FRHIGraphicsPipelineState *, FRHIVertexInput *) override;
 		virtual void RHISetRasterizerState(RHIRasterizerState *newState) override;
 		virtual void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0) override;
+		
+		/**
+		* Binding buffers
+		*/
+		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
+		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
+		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override;
+		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage) override;
 
 		/**
 		* Create/Update data
@@ -62,6 +70,8 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
 		virtual RHIBufferRef RHICreateAtomicCounterBuffer(unsigned int Value) override;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
+		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
+				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
 		virtual RHITexture2DRef RHICreateTexture2D(
 			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data
 		) override;
@@ -80,13 +90,9 @@ namespace nilou {
 			EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index
 		) override;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
-		
-		/**
-		* Binding buffers
-		*/
-		virtual void RHIBindComputeBuffer(uint32 index, RHIBufferRef buffer) override;
-		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override;
-		virtual void RHIBindBufferData(RHIBufferRef buffer, unsigned int size, void *data, EBufferUsageFlags usage) override;
+		virtual RHITexture2DRef RHICreateTextureView2D(
+			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels
+		) override;
 
 		/**
 		* Render pass

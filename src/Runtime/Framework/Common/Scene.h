@@ -118,6 +118,16 @@ namespace nilou {
 
         void UpdateRenderInfos();
 
+        FViewSceneInfo *GetMainCamera()
+        {
+            for (auto &&ViewInfo : AddedViewSceneInfos)
+            {
+                if (ViewInfo->Camera->IsMainCamera())
+                    return ViewInfo.get();
+            }
+            return nullptr;
+        }
+
         TMulticastDelegate<FViewSceneInfo *> &GetAddViewDelegate() { return SceneAddViewDelegate; }
         TMulticastDelegate<FViewSceneInfo *> &GetRemoveViewDelegate() { return SceneRemoveViewDelegate; }
         TMulticastDelegate<FViewSceneInfo *> &GetResizeViewDelegate() { return SceneResizeViewortDelegate; }

@@ -27,7 +27,7 @@ namespace nilou {
             , bIsMainCamera(bIsMainCamera)
             , VerticalFieldOfView(glm::radians(50.f))
             , NearClipDistance(0.1)
-            , FarClipDistance(10000)
+            , FarClipDistance(30000)
             , AspectRatio(1.f)
             , ScreenResolution(glm::ivec2(1024, 1024))
         { 
@@ -90,6 +90,7 @@ namespace nilou {
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
+        SHADER_PARAMETER_STRUCT_ARRAY(dvec4, 6, FrustumPlanes)
         SHADER_PARAMETER(mat4, RelWorldToView)
         SHADER_PARAMETER(mat4, ViewToClip)
         SHADER_PARAMETER(mat4, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
@@ -101,6 +102,7 @@ namespace nilou {
         SHADER_PARAMETER(ivec2, CameraResolution)
         SHADER_PARAMETER(float, CameraNearClipDist)
         SHADER_PARAMETER(float, CameraFarClipDist)
+        SHADER_PARAMETER(float, CameraVerticalFieldOfView)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FViewSceneInfo;
@@ -122,6 +124,8 @@ namespace nilou {
         void SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist);
 
         void SetFieldOfView(float InVerticalFieldOfView);
+
+        void UpdateFrustum();
     
         void UpdateUniformBuffer() 
         { 
@@ -136,8 +140,7 @@ namespace nilou {
 
         FSceneView GetSceneView();
 
-    protected:
-
+        FViewFrustum ViewFrustum;
         glm::dmat4 ProjectionMatrix;
         glm::dmat4 ViewMatrix;
         dvec3 Position;
@@ -150,6 +153,7 @@ namespace nilou {
         glm::ivec2 ScreenResolution;
         EViewType ViewType;
     
+    protected:
         FViewSceneInfo *ViewSceneInfo;
         TUniformBufferRef<FViewShaderParameters> ViewUniformBufferRHI;
     };

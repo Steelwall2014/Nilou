@@ -5,12 +5,12 @@
 // TODO: shader代码的动态生成（加一些define之类的）
 #if FOR_PATCH_MINMAX
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-#elif FOR_NODE_MINMAX
+#else
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 #endif
 
-layout(rg32f, binding=1) uniform image2D InMinMaxMap;
-layout(rg32f, binding=2) uniform image2D OutMinMaxMap;
+layout(rg16f, binding=1) uniform image2D InMinMaxMap;
+layout(rg16f, binding=2) uniform image2D OutMinMaxMap;
 
 void main()
 {

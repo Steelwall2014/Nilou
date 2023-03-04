@@ -90,8 +90,11 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(FTransform::Identity, "test VHM");
-
+        FTransform VHMTransform;
+        VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
+        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        VHMActor->VHMComponent->SetHeightfieldTexture(GetContentManager()->GetTextureByPath("/Textures/Karelia.json"));
+        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.json"));
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);

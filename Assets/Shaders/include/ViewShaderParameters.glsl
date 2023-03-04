@@ -1,6 +1,7 @@
 #ifndef VIEWSHADERPARAMETERS_H
 #define VIEWSHADERPARAMETERS_H
 layout (std140) uniform FViewShaderParameters {
+    dvec4 FrustumPlanes[6];
     mat4 RelWorldToView;
     mat4 ViewToClip;
     mat4 RelWorldToClip;
@@ -12,5 +13,6 @@ layout (std140) uniform FViewShaderParameters {
     ivec2 CameraResolution;
     float CameraNearClipDist;
     float CameraFarClipDist;
+    float CameraVerticalFieldOfView;
 };
 #endif

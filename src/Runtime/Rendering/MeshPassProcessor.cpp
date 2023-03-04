@@ -43,6 +43,11 @@ namespace nilou {
                 RHICmdList->RHISetShaderSampler(PSO, (EPipelineStage)PipelineStage, BindingPoint, *Sampler);
                 RHIGetError();
             }
+            for (auto &[BindingPoint, Buffer] : ShaderBindings.BufferBindings[PipelineStage])
+            {
+                RHICmdList->RHIBindComputeBuffer(PSO, (EPipelineStage)PipelineStage, BindingPoint, Buffer);
+                RHIGetError();
+            }
         }
 
         for (FRHIVertexInput &VertexInput : ShaderBindings.VertexAttributeBindings)

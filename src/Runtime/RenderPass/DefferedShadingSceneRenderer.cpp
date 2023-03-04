@@ -294,7 +294,7 @@ namespace nilou {
 
         InitViews(Scene);
 
-        GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList);
+        GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList, Scene);
 
         RenderPreZPass(RHICmdList);
 
@@ -311,7 +311,7 @@ namespace nilou {
 
         RenderToScreen(RHICmdList);
 
-        GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList);
+        GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList, Scene);
     }
 
 

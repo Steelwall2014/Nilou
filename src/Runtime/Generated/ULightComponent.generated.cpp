@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/LightComponent.h"
+#include "../../src/Runtime/Framework/Common/Components/LightComponent.h"
 namespace nilou {
 std::string ULightComponent::GetClassName() { return "ULightComponent"; }
 EUClasses ULightComponent::GetClassEnum() { return EUClasses::MC_ULightComponent; }

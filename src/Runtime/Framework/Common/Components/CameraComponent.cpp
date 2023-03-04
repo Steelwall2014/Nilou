@@ -138,6 +138,7 @@ namespace nilou {
         Up = InUp;
         ViewUniformBufferRHI->Data.CameraPosition = InPosition;
         ViewUniformBufferRHI->Data.CameraDirection = InDirection;
+        UpdateFrustum();
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
@@ -177,6 +178,7 @@ namespace nilou {
         FarClipDistance = InCameraFarClipDist;
         ViewUniformBufferRHI->Data.CameraNearClipDist = InCameraNearClipDist;
         ViewUniformBufferRHI->Data.CameraFarClipDist = InCameraFarClipDist;
+        UpdateFrustum();
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
@@ -184,15 +186,16 @@ namespace nilou {
     void FCameraSceneProxy::SetFieldOfView(float InVerticalFieldOfView)
     {
         VerticalFieldOfView = InVerticalFieldOfView;
+        ViewUniformBufferRHI->Data.CameraVerticalFieldOfView = InVerticalFieldOfView;
+        UpdateFrustum();
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
 
     FSceneView FCameraSceneProxy::GetSceneView()
     {
         FSceneView SceneView;
-        SceneView.ViewFrustum = FViewFrustum(
-            Position, Forward, Up, 
-            AspectRatio, VerticalFieldOfView, 
-            NearClipDistance, FarClipDistance);
+        SceneView.ViewFrustum = ViewFrustum;
         SceneView.ProjectionMatrix = ProjectionMatrix;
         SceneView.ViewMatrix = ViewMatrix;
         SceneView.Position = Position;
@@ -206,4 +209,18 @@ namespace nilou {
         SceneView.ViewType = ViewType;
         return SceneView;
     }
+
+    void FCameraSceneProxy::UpdateFrustum()
+    {
+        ViewFrustum = FViewFrustum(
+            Position, Forward, Up, 
+            AspectRatio, VerticalFieldOfView, 
+            NearClipDistance, FarClipDistance);
+        for (int i = 0; i < 6; i++)
+            ViewUniformBufferRHI->Data.FrustumPlanes[i] = dvec4(ViewFrustum.Planes[i].Normal, ViewFrustum.Planes[i].Distance);
+        if (ViewSceneInfo)
+            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+    }
+
+
 }

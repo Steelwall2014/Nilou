@@ -912,6 +912,57 @@ namespace nilou {
 }
 
 /**
+* Binding buffers
+*/
+namespace nilou {
+
+    void FOpenGLDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer)
+    {
+        RHIBindComputeBuffer(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), buffer);
+    }
+
+    void FOpenGLDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHIBindComputeBuffer BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return;
+        }
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
+        glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
+        glBindBufferBase(GLBuffer->Target, BaseIndex, GLBuffer->Resource);
+    }
+
+    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage)
+    {
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
+        GLenum GLUsage = GL_STATIC_DRAW;
+        if (EnumHasAnyFlags(usage, EBufferUsageFlags::Dynamic))
+            GLUsage = GL_DYNAMIC_DRAW;
+        glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
+        glBufferData(GLBuffer->Target, size, data, GLUsage);
+        glBindBuffer(GLBuffer->Target, 0);
+    }
+    void FOpenGLDynamicRHI::RHIBindFramebuffer(RHIFramebuffer *framebuffer)
+    {
+        OpenGLFramebuffer *GLFramebuffer = static_cast<OpenGLFramebuffer*>(framebuffer);
+        if (ContextState.Framebuffer != GLFramebuffer)
+        {
+            ContextState.Framebuffer = GLFramebuffer;
+            if (GLFramebuffer)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, GLFramebuffer->Resource);
+                glDrawBuffers(GLFramebuffer->m_ColorAttachments.size(), GLFramebuffer->m_ColorAttachments.data());
+            }
+            else
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }
+}
+
+/**
 * Create/Update data
 */
 namespace nilou {
@@ -980,6 +1031,14 @@ namespace nilou {
                     continue;
                 }
                 max_sampler_binding_point = std::max(max_sampler_binding_point, binding.BindingPoint);
+            }
+            else if (binding.ParameterType == EShaderParameterType::SPT_AtomicUint)
+            {
+                if (binding.BindingPoint == -1)
+                {
+                    NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
+                    continue;
+                }
             }
             else 
             {
@@ -1256,12 +1315,22 @@ namespace nilou {
         DispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
         return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DispatchIndirect | EBufferUsageFlags::Dynamic, &command);
     }
+    RHIBufferRef FOpenGLDynamicRHI::RHICreateDrawElementsIndirectBuffer(
+        int32	Count,
+        uint32 	instanceCount,
+        uint32 	firstIndex,
+        uint32 	baseVertex,
+        uint32 	baseInstance)
+    {
+        DrawElementsIndirectCommand command{ Count, instanceCount, firstIndex, baseVertex, baseInstance };
+        return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DrawIndirect | EBufferUsageFlags::Dynamic, &command);
+    }
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTexture2D(
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data
     )
     {
-        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(this, 0, GL_TEXTURE_2D, GL_COLOR_ATTACHMENT0, InSizeX, InSizeY, 1, NumMips, InFormat, name);
+        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
@@ -1275,7 +1344,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
     )
     {
-        OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(this, 0, GL_TEXTURE_2D_ARRAY, GL_COLOR_ATTACHMENT0, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
+        OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
@@ -1289,7 +1358,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
     )
     {
-        OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(this, 0, GL_TEXTURE_3D, GL_COLOR_ATTACHMENT0, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
+        OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
@@ -1304,7 +1373,7 @@ namespace nilou {
     )
     {
         RHIGetError();
-        OpenGLTextureCubeRef Texture = std::make_shared<OpenGLTextureCube>(this, 0, GL_TEXTURE_CUBE_MAP, GL_COLOR_ATTACHMENT0, InSizeX, InSizeY, 1, NumMips, InFormat, name);
+        OpenGLTextureCubeRef Texture = std::make_shared<OpenGLTextureCube>(0, GL_TEXTURE_CUBE_MAP, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         RHIGetError();
@@ -1353,44 +1422,33 @@ namespace nilou {
         }
         // TexMngr.FreeUnit(unit_id);
     }
-}
-
-/**
-* Binding buffers
-*/
-namespace nilou {
-
-    void FOpenGLDynamicRHI::RHIBindComputeBuffer(uint32 index, RHIBufferRef buffer)
+    RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinLevel, uint32 NumLevels)
     {
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
-        glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
-        glBindBufferBase(GLBuffer->Target, index, GLBuffer->Resource);
-    }
-
-    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBufferRef buffer, unsigned int size, void *data, EBufferUsageFlags usage)
-    {
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
-        GLenum GLUsage = GL_STATIC_DRAW;
-        if (EnumHasAnyFlags(usage, EBufferUsageFlags::Dynamic))
-            GLUsage = GL_DYNAMIC_DRAW;
-        glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
-        glBufferData(GLBuffer->Target, size, data, GLUsage);
-        glBindBuffer(GLBuffer->Target, 0);
-    }
-    void FOpenGLDynamicRHI::RHIBindFramebuffer(RHIFramebuffer *framebuffer)
-    {
-        OpenGLFramebuffer *GLFramebuffer = static_cast<OpenGLFramebuffer*>(framebuffer);
-        if (ContextState.Framebuffer != GLFramebuffer)
+        int GLResource;
+        if (OriginTexture->GetTextureType() == ETextureType::TT_Texture2D)
         {
-            ContextState.Framebuffer = GLFramebuffer;
-            if (GLFramebuffer)
-            {
-                glBindFramebuffer(GL_FRAMEBUFFER, GLFramebuffer->Resource);
-                glDrawBuffers(GLFramebuffer->m_ColorAttachments.size(), GLFramebuffer->m_ColorAttachments.data());
-            }
-            else
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            OpenGLTexture2D* GLTexture = static_cast<OpenGLTexture2D*>(OriginTexture); 
+            GLResource = GLTexture->Resource;
         }
+        else if (OriginTexture->GetTextureType() == ETextureType::TT_Texture2DArray) 
+        {
+            OpenGLTexture2DArray* GLTexture = static_cast<OpenGLTexture2DArray*>(OriginTexture); 
+            GLResource = GLTexture->Resource;
+        }
+        else 
+        {
+            return nullptr;
+        }
+        uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinLevel));
+        OpenGLTexture2DRef OutTexture = std::make_shared<OpenGLTexture2D>(
+            0, GL_TEXTURE_2D, 
+            size.x, size.y, 1, 
+            NumLevels, InFormat, OriginTexture->GetName() + "_View");
+        glGenTextures(1, &OutTexture->Resource);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(OriginTexture->GetFormat());
+        glTextureView(OutTexture->Resource, GL_TEXTURE_2D, GLResource, InternalFormat, MinLevel, NumLevels, 0, 1);
+        return OutTexture;
     }
 }
 
@@ -1484,7 +1542,6 @@ namespace nilou {
     void FOpenGLDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
     {
         glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
-        TexMngr.FreeAllUnit(); // RHIClearTextureUnit();
     }
 
     void FOpenGLDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs)
@@ -1495,7 +1552,6 @@ namespace nilou {
 
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, GLIndirectArgs->Resource);
         glDispatchComputeIndirect(0);
-        TexMngr.FreeAllUnit(); // RHIClearTextureUnit();
     }
 
     void FOpenGLDynamicRHI::RHIEndRenderPass()

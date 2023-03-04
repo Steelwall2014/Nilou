@@ -19,6 +19,11 @@
 
 namespace nilou {
 
+	AssetLoader::AssetLoader()
+	{
+		GDALAllRegister();
+	}
+
 
 	AssetLoader *GetAssetLoader()
 	{
@@ -189,23 +194,7 @@ namespace nilou {
 
 	std::shared_ptr<FImage> AssetLoader::SyncOpenAndReadImage(const char *filePath)
 	{
-		std::filesystem::path absolute_path;
-		std::filesystem::path FilePath = std::filesystem::path(filePath);
-		if (FilePath.is_absolute())
-		{
-			if (std::filesystem::exists(absolute_path) && std::filesystem::is_regular_file(absolute_path))
-				absolute_path = FilePath;
-		}
-		else 
-		{
-			// for (const std::filesystem::path &WorkDir : AssetLoader::WorkDirectory)
-			// {
-			// 	absolute_path = WorkDir / FilePath;
-				
-			// 	if (std::filesystem::exists(absolute_path) && std::filesystem::is_regular_file(absolute_path))
-			// 		break;
-			// }
-		}
+		std::filesystem::path absolute_path = std::filesystem::path(filePath);
 
 		std::string AbsolutePath = absolute_path.generic_string();
 
@@ -267,6 +256,7 @@ namespace nilou {
 		{
 			img = std::make_shared<FImage>();
 			img->data = stbi_load(AbsolutePath.c_str(), (int *)&img->Width, (int *)&img->Height, (int *)&img->Channel, 0);
+			img->data_size = img->Width * img->Height * img->Channel;
 			img->PixelFormat = TranslateToEPixelFormat(img->Channel, 8, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE);
 		}
 		return img;

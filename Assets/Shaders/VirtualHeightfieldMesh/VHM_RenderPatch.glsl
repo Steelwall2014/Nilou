@@ -1,3 +1,6 @@
+#ifndef VHM_RENDERPATCH_H
+#define VHM_RENDERPATCH_H
+
 struct RenderPatch
 {
     uint DeltaLod_x_pos;
@@ -8,3 +11,5 @@ struct RenderPatch
     float offset_y;
     uint lod;
 };
+
+#endif

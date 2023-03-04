@@ -23,7 +23,7 @@ namespace nilou {
         const FDepthStencilStateInitializer &DepthStencilStateInitializer,
         const FRasterizerStateInitializer &RasterizerStateInitializer,
         const FBlendStateInitializer &BlendStateInitializer,
-        FInputShaderBindings &InputeBindings,
+        FInputShaderBindings &InputBindings,
         std::vector<FRHIVertexInput> &VertexInputs,
         const FMeshBatchElement &Element,
         FMeshDrawCommand &OutMeshDrawCommand
@@ -47,7 +47,7 @@ namespace nilou {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
-            Material->FillShaderBindings(InputeBindings);
+            Material->FillShaderBindings(InputBindings);
        
             auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PS_Vertex]; // alias
             auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PS_Vertex]; // alias
@@ -55,25 +55,8 @@ namespace nilou {
             
             for (auto [Name,Binding] : DescriptorSets.Bindings)
             {
-                bool bResourceFound = false;
-                if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
-                {          
-                    if (FUniformBuffer *UniformBuffer = 
-                                InputeBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
-                    {
-                        StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
-                        bResourceFound = true;
-                    }
-                }
-                else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
-                {  
-                    if (FRHISampler *Sampler = 
-                                InputeBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                    {
-                        StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
-                        bResourceFound = true;
-                    }
-                }
+                bool bResourceFound = OutMeshDrawCommand.ShaderBindings.SetShaderBinding(
+                    static_cast<EPipelineStage>(PS_Vertex), Binding, InputBindings);
 
                 if (!bResourceFound)
                 {

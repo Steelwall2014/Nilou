@@ -623,7 +623,7 @@ namespace nilou {
             this->bShowBoundingBox = InShowBoundingBox;
         }
 
-        void PreRenderCallBack(FDynamicRHI*)
+        void PreRenderCallBack(FDynamicRHI*, FScene*)
         {
             std::unique_lock<std::mutex> lock(mutex);
             if (!TilesRenderingQueue.empty())
@@ -651,7 +651,7 @@ namespace nilou {
             }
         }
 
-        void PostRenderCallBack(FDynamicRHI*)
+        void PostRenderCallBack(FDynamicRHI*, FScene*)
         {
             for (Cesium3DTile *Tile : TilesToRenderThisFrame)
             {
@@ -705,7 +705,7 @@ namespace nilou {
                                 Mesh.CastShadow = Section.bCastShadow;
                                 Mesh.Element.VertexFactory = &Section.VertexFactory;
                                 Mesh.Element.IndexBuffer = &Section.IndexBuffer;
-                                Mesh.Element.NumVertices = Section.IndexBuffer.NumIndices;
+                                Mesh.Element.NumVertices = Section.GetNumVertices();
                                 Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->GetResource()->CreateRenderProxy();
                                 Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI.get());
                                 Collector.AddMesh(ViewIndex, Mesh);
@@ -725,7 +725,7 @@ namespace nilou {
                                     DebugBoundingBoxMesh.CastShadow = false;
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
                                     DebugBoundingBoxMesh.Element.IndexBuffer = &IndexBuffer;
-                                    DebugBoundingBoxMesh.Element.NumVertices = IndexBuffer.NumIndices;
+                                    DebugBoundingBoxMesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
                                     DebugBoundingBoxMesh.MaterialRenderProxy = WireframeMaterial->GetResource()->CreateRenderProxy();
                                     DebugBoundingBoxMesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TileBoundingBoxUBO[Tile].get());
                                     Collector.AddMesh(ViewIndex, DebugBoundingBoxMesh);

@@ -26,7 +26,6 @@ namespace nilou {
         World->Scene = Scene.get();
         Scene->World = World.get();
         while (!RenderingThread->IsRunnableInitialized()) { }
-		GDALAllRegister();
         World->InitWorld();
         World->BeginPlay();
         return true;

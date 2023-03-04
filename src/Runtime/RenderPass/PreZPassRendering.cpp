@@ -55,25 +55,8 @@ namespace nilou {
             
             for (auto [Name,Binding] : DescriptorSets.Bindings)
             {
-                bool bResourceFound = false;
-                if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
-                {          
-                    if (FUniformBuffer *UniformBuffer = 
-                                InputBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
-                    {
-                        StageUniformBufferBindings.push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
-                        bResourceFound = true;
-                    }
-                }
-                else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
-                {  
-                    if (FRHISampler *Sampler = 
-                                InputBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                    {
-                        StageSamplerBindings.push_back({Binding.BindingPoint, Sampler});
-                        bResourceFound = true;
-                    }   
-                }
+                bool bResourceFound = OutMeshDrawCommand.ShaderBindings.SetShaderBinding(
+                    static_cast<EPipelineStage>(PS_Vertex), Binding, InputBindings);
 
                 if (!bResourceFound)
                 {

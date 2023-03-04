@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/StaticMeshResources.h"
+#include "../../src/Runtime/Framework/Common/StaticMeshResources.h"
 namespace nilou {
 std::string UStaticMesh::GetClassName() { return "UStaticMesh"; }
 EUClasses UStaticMesh::GetClassEnum() { return EUClasses::MC_UStaticMesh; }

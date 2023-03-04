@@ -16,6 +16,7 @@ namespace nilou {
 	class AssetLoader
 	{
 	public:
+		AssetLoader();
 		std::shared_ptr<tinygltf::Model> SyncReadGLTFModel(const char *filePath);
 
 		std::string SyncOpenAndReadText(const char *filePath);

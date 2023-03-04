@@ -6,8 +6,7 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "VHM_WorldLODParam.glsl"
 
 layout(std430, binding=0) readonly buffer NodeIDs_Final_Buffer{
-    // 这是为了规避内存对齐的问题：在c++里面uvec3数组是紧密排列的，glsl里uvec3数组会填充一个uint的大小
-    uint NodeIDs_Final[];
+    uvec4 NodeIDs_Final[];
 };
 layout(std430, binding=1) writeonly buffer Patch_Buffer{
     RenderPatch patches[];
@@ -19,11 +18,16 @@ layout(binding = 3) uniform atomic_uint patch_index;
 layout(r16f, binding=4) uniform image2D LODMap;
 
 layout(std140, binding = 5) uniform FCreatePatchBlock {
-    vec4 FrustumPlanes[6];
-    uint LodTextureSize;
+    uvec2 LodTextureSize;
 };
 
-uniform sampler2D MinMaxMap[MAX_LOD_NUM+3];
+layout (std140) uniform FPrimitiveShaderParameters {
+    dmat4 LocalToWorld;
+};
+
+#include "../include/ViewShaderParameters.glsl"
+
+uniform sampler2D MinMaxMap;
 
 #include "../include/FrustumCull.glsl"
 
@@ -38,7 +42,7 @@ uvec2 GetLowerRightSectorLoc(uvec2 nodeLoc, uint lod)
 }
 uint GetLOD(ivec2 location)
 {
-    if (location.x < 0 || location.y < 0 || location.x >= LodTextureSize || location.y >= LodTextureSize)
+    if (location.x < 0 || location.y < 0 || location.x >= LodTextureSize.x || location.y >= LodTextureSize.y)
         return 0;
     return uint(imageLoad(LODMap, location).r);
 }
@@ -52,7 +56,7 @@ void main()
     // ↓
     // x+
     uint index = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x * 8 + gl_LocalInvocationID.y;
-    uvec3 nodeLoc = uvec3(NodeIDs_Final[gl_WorkGroupID.x * 3], NodeIDs_Final[gl_WorkGroupID.x * 3+1], NodeIDs_Final[gl_WorkGroupID.x * 3+2]);
+    uvec3 nodeLoc = NodeIDs_Final[gl_WorkGroupID.x].xyz;
     vec2 node_size = vec2(LODParams[nodeLoc.z].NodeMeterSize_x, LODParams[nodeLoc.z].NodeMeterSize_y);
 
     vec2 node_offset = vec2(nodeLoc) * node_size;
@@ -67,7 +71,7 @@ void main()
 
     ivec2 patchGlobalLoc = ivec2(temp_patch.offset_x / patch_offset.x, temp_patch.offset_y / patch_offset.y);
     vec2 MinMax_uv = (vec2(patchGlobalLoc) + vec2(0.5)) / (8.0 * vec2(LODParams[nodeLoc.z].NodeSideNum_x, LODParams[nodeLoc.z].NodeSideNum_y));
-    vec2 MinMax = texture(MinMaxMap[temp_patch.lod], MinMax_uv).rg;
+    vec2 MinMax = textureLod(MinMaxMap, MinMax_uv, float(temp_patch.lod)).rg;
     vec2 upper_left = vec2(temp_patch.offset_x, temp_patch.offset_y);
     vec2 upper_right = upper_left + vec2(0, patch_size.y);
     vec2 lower_left = upper_left + vec2(patch_size.x, 0);
@@ -82,10 +86,10 @@ void main()
 //    lower_right += texture(DisplacementMap, upper_left_uv + vec2(duv)).xy;
 
     // 手动扩大bounding box，留一些冗余
-    float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 10;
-    float max_x = max(upper_left.x, max(upper_right.x, max(lower_left.x, lower_right.x))) + 10;
-    float min_y = min(upper_left.y, min(upper_right.y, min(lower_left.y, lower_right.y))) - 10;
-    float max_y = max(upper_left.y, max(upper_right.y, max(lower_left.y, lower_right.y))) + 10;
+    float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 20;
+    float max_x = max(upper_left.x, max(upper_right.x, max(lower_left.x, lower_right.x))) + 20;
+    float min_y = min(upper_left.y, min(upper_right.y, min(lower_left.y, lower_right.y))) - 20;
+    float max_y = max(upper_left.y, max(upper_right.y, max(lower_left.y, lower_right.y))) + 20;
     vec3 box[8];
     box[0] = vec3(min_x, min_y, MinMax.r);
     box[1] = vec3(min_x, max_y, MinMax.r);
@@ -96,8 +100,8 @@ void main()
     box[6] = vec3(max_x, min_y, MinMax.g);
     box[7] = vec3(max_x, max_y, MinMax.g);
 //    CreateBox(upper_left, lower_right, MinMax, box);
-    if (FrustumCull(box))
-        return;
+//    if (FrustumCull(box))
+//        return;
         
     uvec2 patchLoc_in_node = gl_LocalInvocationID.xy;
 

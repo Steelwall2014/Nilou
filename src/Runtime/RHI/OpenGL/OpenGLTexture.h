@@ -15,17 +15,12 @@ namespace nilou {
 	public:
 		GLuint 			Resource;
 		GLenum 			Target;
-		GLenum			Attachment;
 		OpenGLTextureBase(
-			class FOpenGLDynamicRHI* InOpenGLRHI,
 			GLuint InResource,
-			GLenum InTarget,
-			GLenum InAttachment
+			GLenum InTarget
 		)
-		: OpenGLRHI(InOpenGLRHI)
-		, Resource(InResource)
+		: Resource(InResource)
 		, Target(InTarget)
-		, Attachment(InAttachment)
 		{ }
 		virtual ~OpenGLTextureBase() { glDeleteTextures(1, &Resource); } 
 	protected:
@@ -38,10 +33,8 @@ namespace nilou {
 	{
 	public:
 		TOpenGLTexture(
-			class FOpenGLDynamicRHI* InOpenGLRHI,
 			GLuint InResource,
 			GLenum InTarget,
-			GLenum InAttachment,
 			uint32 InSizeX,
 			uint32 InSizeY,
 			uint32 InSizeZ,
@@ -49,7 +42,7 @@ namespace nilou {
 			EPixelFormat InFormat,
 			const std::string &InTextureName
 		)
-		: OpenGLTextureBase(InOpenGLRHI, InResource, InTarget, InAttachment)
+		: OpenGLTextureBase(InResource, InTarget)
 		, BaseType(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
 		{}
 	};

@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/CoreUObject/Object.h"
+#include "../../src/Runtime/Framework/Common/CoreUObject/Object.h"
 namespace nilou {
 std::string UObject::GetClassName() { return "UObject"; }
 EUClasses UObject::GetClassEnum() { return EUClasses::MC_UObject; }

@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/PrimitiveComponent.h"
+#include "../../src/Runtime/Framework/Common/Components/PrimitiveComponent.h"
 namespace nilou {
 std::string UPrimitiveComponent::GetClassName() { return "UPrimitiveComponent"; }
 EUClasses UPrimitiveComponent::GetClassEnum() { return EUClasses::MC_UPrimitiveComponent; }

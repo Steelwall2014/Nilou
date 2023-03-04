@@ -502,4 +502,42 @@ namespace nilou {
             OutVerts.push_back(vertex3);
         }
     }
+
+    void BuildFlatSurfaceVerts(uvec2 NumVertsXY, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    {
+        for (int i = 0; i < NumVertsXY.x; i++)
+        {
+            for (int j = 0; j < NumVertsXY.y; j++)
+            {
+                FDynamicMeshVertex Vertex;
+                Vertex.Position = vec3(i, j, 0);
+                Vertex.TextureCoordinate[0] = (vec2(i, j)+ vec2(0.5)) / vec2(NumVertsXY-uvec2(1));
+                Vertex.SetTangents(
+                    vec3(1, 0, 0), 
+                    vec3(0, -1, 0), 
+                    vec3(0, 0, 1));
+                OutVerts.push_back(Vertex);
+            }
+        }
+        int index = 0;
+        for (int i = 0; i < NumVertsXY.x-1; i++)
+        {
+            for (int j = 0; j < NumVertsXY.y-1; j++)
+            {
+                unsigned int lower_left_index = i * NumVertsXY.y + j;
+                unsigned int upper_left_index = lower_left_index + 1;
+                unsigned int lower_right_index = (i + 1) * NumVertsXY.y + j;
+                unsigned int upper_right_index = lower_right_index + 1;
+
+                OutIndices.push_back(lower_right_index);
+                OutIndices.push_back(upper_right_index);
+                OutIndices.push_back(lower_left_index);
+
+                OutIndices.push_back(upper_right_index);
+                OutIndices.push_back(upper_left_index);
+                OutIndices.push_back(lower_left_index);
+
+            }
+        }
+    }
 }
