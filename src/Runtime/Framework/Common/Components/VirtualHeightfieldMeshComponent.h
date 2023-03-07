@@ -88,7 +88,7 @@ namespace nilou {
             }
         }
 
-        inline void SetHeightfieldTexture(UTexture *InHeightfieldTexture)
+        inline void SetHeightfieldTexture(UVirtualTexture *InHeightfieldTexture)
         { 
             if (HeightfieldTexture != InHeightfieldTexture)
             {
@@ -107,7 +107,7 @@ namespace nilou {
 
         UMaterial *Material = nullptr;
 
-        UTexture *HeightfieldTexture = nullptr;
+        UVirtualTexture *HeightfieldTexture = nullptr;
 
         float HeightfieldMin = 0, HeightfieldMax = 50;
         

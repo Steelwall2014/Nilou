@@ -445,8 +445,8 @@ namespace nilou {
 
         {
             OpenGLTextureResource GLTexture = TextureResourceCast(SamplerRHI.Texture);
-            int unit_id = TexMngr.AllocUnit();
-            glActiveTexture(GL_TEXTURE0 + unit_id);
+            // int unit_id = TexMngr.AllocUnit();
+            glActiveTexture(GL_TEXTURE0 + BaseIndex);
             glBindTexture(GLTexture.Target, GLTexture.Resource);
             glTexParameteri(GLTexture.Target, GL_TEXTURE_MAG_FILTER, TranslateTextureFilter(SamplerRHI.Params.Mag_Filter));
             glTexParameteri(GLTexture.Target, GL_TEXTURE_MIN_FILTER, TranslateTextureFilter(SamplerRHI.Params.Min_Filter));
@@ -454,7 +454,7 @@ namespace nilou {
             glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_T, TranslateWrapMode(SamplerRHI.Params.Wrap_T));
             if (GLTexture.Target == GL_TEXTURE_CUBE_MAP || GLTexture.Target == GL_TEXTURE_3D)
                 glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.Params.Wrap_R));
-            glUniform1i(BaseIndex, unit_id);
+            glUniform1i(BaseIndex, BaseIndex);
         }
         return true;
     }
@@ -1388,6 +1388,22 @@ namespace nilou {
         glBindTexture(Texture->Target, 0);
         return Texture;
     }
+    RHITexture2DRef FOpenGLDynamicRHI::RHICreateSparseTexture2D(
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+    )
+    {
+        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
+        glGenTextures(1, &Texture->Resource);
+        // glActiveTexture(GL_TEXTURE0);
+        glBindTexture(Texture->Target, Texture->Resource);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
+        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+		glTexParameteri(Texture->Target, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
+        glTexStorage2D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
+        
+
+        return Texture;
+    }
 
     RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer()
     {
@@ -1504,7 +1520,7 @@ namespace nilou {
             Count,
             InstanceCount
         );
-        EndDraw();
+        // EndDraw();
     }
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -1521,7 +1537,7 @@ namespace nilou {
             0,
             InstanceCount
         );
-        EndDraw();
+        // EndDraw();
         RHIGetError();
     }
 
@@ -1536,7 +1552,7 @@ namespace nilou {
             TranslateIndexBufferStride(IndexBuffer->GetStride()),
             reinterpret_cast<void*>(IndirectOffset)
         );
-        EndDraw();
+        // EndDraw();
     }
 
     void FOpenGLDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
@@ -1560,7 +1576,7 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::EndDraw()
     {
-        TexMngr.FreeAllUnit();
+        // TexMngr.FreeAllUnit();
         for (int i = 0; i < MAX_VERTEX_ATTRIBUTE_COUNT; i++)
         {
             if (ContextState.VertexAttributeEnabled[i] == true)
@@ -1663,6 +1679,45 @@ namespace nilou {
         glClear(flagbits);
     }
 
+	void FOpenGLDynamicRHI::RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel)
+    {
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
+        OpenGLTextureResource GLResource = TextureResourceCast(Texture);
+		glm::ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
+  
+		glBindTexture(GLResource.Target, GLResource.Resource);
+        glTexPageCommitmentARB(GLResource.Target, MipmapLevel,
+					PageSize.x * TileX, PageSize.y * TileY, 0,
+					PageSize.x, PageSize.y, 1,
+					GL_FALSE);
+    }
+
+	void FOpenGLDynamicRHI::RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data)
+    {
+        RHIGetError();
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
+        OpenGLTextureResource GLResource = TextureResourceCast(Texture);
+		glm::ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
+		glBindTexture(GLResource.Target, GLResource.Resource);
+        uint32 offset_x = PageSize.x * TileX;
+        uint32 offset_y = PageSize.y * TileY;
+        uint32 size_x = PageSize.x;
+        uint32 size_y = PageSize.y;
+        glTexPageCommitmentARB(GLResource.Target, MipmapLevel,
+					offset_x, offset_y, 0,
+					size_x, size_y, 1,
+					GL_TRUE);
+        RHIGetError();
+        glTexSubImage2D(GLResource.Target, MipmapLevel,
+					offset_x, offset_y,
+					size_x, size_y,
+					Format, Type,
+					Data);
+        RHIGetError();
+
+    }
+
+
     int nilou::FOpenGLDynamicRHI::Initialize()
     {
         //bool ret = Initialize();
@@ -1689,9 +1744,39 @@ namespace nilou {
             *GetResources() = *GetDefaultResources();
             GetResources()->maxAtomicCounterBindings = 5;
 
-            // axis = CoordinateAxis(10, 0.1);
-            // InitializeDefaultMaterial();
-            // InitializeDrawPasses();
+            magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
+                magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
+                    
+                    ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
+                    if (PixelFormat == EPixelFormat::PF_UNKNOWN)
+                    {
+                        PageSize = ivec3(1);
+                        return;
+                    }
+
+                    auto [Format, InternalFormat, Type] = TranslatePixelFormat(PixelFormat);
+                    GLenum Target;
+                    switch (TextureType) 
+                    {
+                    case ETextureType::TT_Texture2D:
+                        Target = GL_TEXTURE_2D;
+                        break;
+                    case ETextureType::TT_Texture2DArray:
+                        Target = GL_TEXTURE_2D_ARRAY;
+                        break;
+                    case ETextureType::TT_Texture3D:
+                        Target = GL_TEXTURE_3D;
+                        break;
+                    case ETextureType::TT_TextureCube:
+                        Target = GL_TEXTURE_CUBE_MAP;
+                        break;
+                    }
+                    glGetInternalformativ(Target, InternalFormat, GL_VIRTUAL_PAGE_SIZE_X_ARB, 1, &PageSize.x);
+                    glGetInternalformativ(Target, InternalFormat, GL_VIRTUAL_PAGE_SIZE_Y_ARB, 1, &PageSize.y);
+                    glGetInternalformativ(Target, InternalFormat, GL_VIRTUAL_PAGE_SIZE_Z_ARB, 1, &PageSize.z); 
+                    
+                });
+            }); 
 
         }
         return ret;

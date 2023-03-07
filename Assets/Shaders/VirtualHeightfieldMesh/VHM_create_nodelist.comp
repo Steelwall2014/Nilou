@@ -37,6 +37,8 @@ layout (std140) uniform FPrimitiveShaderParameters {
 
 uniform sampler2D MinMaxMap;
 
+#include "../include/FrustumCull.glsl"
+
 //float GetNodeSize(uint lod)
 //{
 //    return LODParams[lod].NodeMeterSize;
@@ -51,14 +53,45 @@ dvec4 GetNodePositionWS(uvec2 nodeLoc, uint lod)
 }
 bool MeetScreenSize(uvec2 nodeLoc, uint lod){
     dvec4 positionWS = GetNodePositionWS(nodeLoc, lod);
-    float dis = float(distance(dvec3(CameraPosition), dvec3(positionWS)));
-    float nodeSize = max(LODParams[lod].NodeMeterSize_x, LODParams[lod].NodeMeterSize_y) * 0.1;
-    float ScreenSize = nodeSize * CameraResolution.y / (dis * ScreenSizeDenominator);
-    return ScreenSize < 500;
-//    float f = dis / (nodeSize * 1.5);
-//    if (f < 1) 
-//        return false;
-//    return true;
+    double dis = distance(dvec3(CameraPosition), dvec3(positionWS));
+    dvec2 scale_xy;
+    scale_xy.x = sqrt(LocalToWorld[0][0]*LocalToWorld[0][0] + LocalToWorld[0][1]*LocalToWorld[0][1] + LocalToWorld[0][2]*LocalToWorld[0][2]);
+    scale_xy.y = sqrt(LocalToWorld[1][0]*LocalToWorld[1][0] + LocalToWorld[1][1]*LocalToWorld[1][1] + LocalToWorld[1][2]*LocalToWorld[1][2]);
+    double nodeSize = max(LODParams[lod].NodeMeterSize_x*scale_xy.x, LODParams[lod].NodeMeterSize_y*scale_xy.y);
+
+//    float ScreenSize = nodeSize * CameraResolution.y / (dis * ScreenSizeDenominator);
+//    return ScreenSize < 500;
+    double f = (nodeSize * 2.5) / dis;
+    return f <= 1;
+}
+
+bool IsBoxOutSidePlane(const dvec4 plane, const dvec3 Center, const mat3 HalfAxes)
+{
+    const vec3 normal = vec3(plane.xyz);
+
+    const vec3 boxVertex1 = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+    const vec3 boxVertex2 = -HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
+    const vec3 boxVertex3 = HalfAxes[0] - HalfAxes[1] + HalfAxes[2];
+    const vec3 boxVertex4 = HalfAxes[0] + HalfAxes[1] - HalfAxes[2];
+    const float radEffective1 = abs(dot(normal, boxVertex1));
+    const float radEffective2 = abs(dot(normal, boxVertex2));
+    const float radEffective3 = abs(dot(normal, boxVertex3));
+    const float radEffective4 = abs(dot(normal, boxVertex4));
+    const double radEffective = max(radEffective1, max(radEffective2, max(radEffective3, radEffective4)));
+    const double distanceToPlane = dot(plane.xyz, Center) + plane.w;
+
+    return distanceToPlane <= -radEffective;
+}
+
+bool IsBoxOutSideFrustum(const dvec4 Planes[6], const dvec3 Center, const mat3 HalfAxes)
+{
+    return 
+        IsBoxOutSidePlane(Planes[0], Center, HalfAxes) || 
+        IsBoxOutSidePlane(Planes[1], Center, HalfAxes) || 
+        IsBoxOutSidePlane(Planes[2], Center, HalfAxes) || 
+        IsBoxOutSidePlane(Planes[3], Center, HalfAxes) || 
+        IsBoxOutSidePlane(Planes[4], Center, HalfAxes) || 
+        IsBoxOutSidePlane(Planes[5], Center, HalfAxes);
 }
 
 void main()
@@ -91,7 +124,43 @@ void main()
     {
         // 曾经尝试对提前对Node进行剪裁，但是似乎帧率还不如在后面对patch剪裁
         NodeDevided[index] = 0;
+        
+        vec2 node_size = vec2(LODParams[PassLOD].NodeMeterSize_x, LODParams[PassLOD].NodeMeterSize_y);
+        vec2 node_offset = vec2(nodeLoc) * node_size;
+        vec2 MinMax_uv = (vec2(nodeLoc) + vec2(0.5)) / vec2(LODParams[PassLOD].NodeSideNum_x, LODParams[PassLOD].NodeSideNum_y);
+        vec2 MinMax = textureLod(MinMaxMap, MinMax_uv, PassLOD+3).rg;
 
+        // Make it a little larger to get some redundancy
+        mat3 HalfAxes = 1.1 * mat3(LocalToWorld) * mat3(
+            vec3(node_size.x, 0, 0)*0.5, 
+            vec3(0, node_size.y, 0)*0.5, 
+            vec3(0, 0, MinMax.g-MinMax.r)*0.5);
+        dvec3 BoxCenter = dvec3(LocalToWorld * dvec4(node_offset+node_size/2, (MinMax.r+MinMax.g)/2, 1));
+        bool bFrustumCulled = IsBoxOutSideFrustum(FrustumPlanes, BoxCenter, HalfAxes);
+
+//        vec2 upper_left = node_offset;
+//        vec2 upper_right = upper_left + vec2(0, node_size.y);
+//        vec2 lower_left = upper_left + vec2(node_size.x, 0);
+//        vec2 lower_right = upper_left + node_size;
+//        float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 20;
+//        float max_x = max(upper_left.x, max(upper_right.x, max(lower_left.x, lower_right.x))) + 20;
+//        float min_y = min(upper_left.y, min(upper_right.y, min(lower_left.y, lower_right.y))) - 20;
+//        float max_y = max(upper_left.y, max(upper_right.y, max(lower_left.y, lower_right.y))) + 20;
+//        vec3 box[8];
+//        box[0] = vec3(LocalToWorld * dvec4(min_x, min_y, MinMax.r, 1));
+//        box[1] = vec3(LocalToWorld * dvec4(min_x, max_y, MinMax.r, 1));
+//        box[2] = vec3(LocalToWorld * dvec4(max_x, min_y, MinMax.r, 1));
+//        box[3] = vec3(LocalToWorld * dvec4(max_x, max_y, MinMax.r, 1));
+//        box[4] = vec3(LocalToWorld * dvec4(min_x, min_y, MinMax.g, 1));
+//        box[5] = vec3(LocalToWorld * dvec4(min_x, max_y, MinMax.g, 1));
+//        box[6] = vec3(LocalToWorld * dvec4(max_x, min_y, MinMax.g, 1));
+//        box[7] = vec3(LocalToWorld * dvec4(max_x, max_y, MinMax.g, 1));
+//        bool bFrustumCulled = FrustumCull(box);
+
+        if (bFrustumCulled)
+            return;
+//        if (FrustumCull(box))
+//            return;
 //        vec2 uv = (vec2(nodeLoc) + vec2(0.5)) / float(LODParams[PassLOD].NodeSideNum);
 //        vec2 MinMax = texture2D(MinMaxMap[PassLOD+3], uv).rg;
 //        vec2 upper_left = vec2(nodeLoc) * LODParams[PassLOD].NodeMeterSize;

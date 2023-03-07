@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
                             {
                                 ParentClassName = Split(ParentClassName, ' ')[1];
                             }
-                            ImplementationBody += "\tAddEdge(EUClasses::MC_" + ClassName + ", EUClasses::MC_" + ParentClassName + ");\n";
+                            ImplementationBody += "\tAddEdge(EUClasses::MC_" + ParentClassName + ", EUClasses::MC_" + ClassName + ");\n";
                         }
                     }
                     ClassNames.push_back(ClassName);

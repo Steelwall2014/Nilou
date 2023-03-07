@@ -1,11 +1,12 @@
 #pragma once
+#include <half/half.hpp>
+#include <string>
 
 #include "Common/CoreUObject/Object.h"
 
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RenderResource.h"
-#include <string>
 namespace nilou {
 
 	class FImage 
@@ -17,12 +18,12 @@ namespace nilou {
         unsigned char *data{ nullptr };
         size_t data_size{ 0 };
 		EPixelFormat PixelFormat;
+        void* Get(int row, int col);
 		~FImage() { delete[] data; }
 	};
 
     class FTexture : public FRenderResource
     {
-        friend class UTexture;
 	public:
 		FTexture(int32 InNumMips=1, std::shared_ptr<FImage> InImage=nullptr)
             : NumMips(InNumMips)
@@ -31,7 +32,7 @@ namespace nilou {
 
         }
 
-        ~FTexture() { ReleaseResource(); }
+        virtual ~FTexture() { ReleaseResource(); }
 		
         virtual void InitRHI() override;
         virtual void ReleaseRHI() override;
@@ -52,11 +53,22 @@ namespace nilou {
             InitRHI();
         }
 
-    protected:
 		std::shared_ptr<FImage> Image;
         int32 NumMips;
         FRHISampler SamplerRHI;
         RHITextureRef TextureRHI;
+    };
+
+    class FSparseTexture : public FTexture
+    {
+	public:
+		FSparseTexture(int32 InNumMips=1, std::shared_ptr<FImage> InImage=nullptr)
+            : FTexture(InNumMips, InImage)
+        {
+
+        }
+		
+        virtual void InitRHI() override;
     };
 
     UCLASS()
@@ -125,9 +137,69 @@ namespace nilou {
         virtual void Serialize(FArchive &Ar) override;
 
         virtual void Deserialize(FArchive &Ar) override;
+
+        virtual void ReleaseRenderResources()
+        {
+            BeginReleaseResource(TextureResource.get());
+        }
     
     protected:
         std::unique_ptr<FTexture> TextureResource;
+    };
+
+    struct VirtualTextureTile
+    {
+        uint32 TileX;
+        uint32 TileY;
+        uint32 MipmapLevel;
+        uint32 DataOffset;
+        bool bCommited = false;
+    };
+
+    UCLASS()
+    class UVirtualTexture : public UTexture
+    {
+        GENERATE_CLASS_INFO()
+    public:
+        UVirtualTexture();
+
+        virtual void Serialize(FArchive &Ar) override;
+
+        virtual void Deserialize(FArchive &Ar) override;
+
+        void UpdateBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
+
+        void UnloadTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
+
+        void UpdateTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
+
+        uvec2 GetNumTiles() const { return uvec2(NumTileX, NumTileY); }
+
+        ivec3 GetPageSize() const { return PageSize; }
+
+        uint32 GetBytePerTile() const { return BytePerTile; }
+
+        uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
+
+   private:
+
+        uint32 NumTileX;
+        uint32 NumTileY;
+
+        ivec3 PageSize;
+
+        void LruUpdate(VirtualTextureTile *Tile);
+
+        void LruMoveToFront(std::list<VirtualTextureTile*>::iterator iter);
+
+        uint32 BytePerTile;
+
+        std::vector<std::vector<std::vector<VirtualTextureTile>>> Tiles;
+
+        std::list<VirtualTextureTile*> LoadedTiles;
+
+        std::unordered_map<VirtualTextureTile*, std::list<VirtualTextureTile*>::iterator> TileToIterMap;
+
     };
 
 }

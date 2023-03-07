@@ -22,7 +22,7 @@ namespace nilou {
         return false;
     }
 
-    void FInheritanceGraph::AddEdge(EUClasses DerivedClassEnum, EUClasses ParentClassEnum)
+    void FInheritanceGraph::AddEdge(EUClasses ParentClassEnum, EUClasses DerivedClassEnum)
     {
         AddNode(ParentClassEnum);
         AddNode(DerivedClassEnum);
@@ -35,7 +35,7 @@ namespace nilou {
     {
         if (Nodes.find(ClassEnum) == Nodes.end())
         {
-            Nodes[ClassEnum] = new FInheritanceNode;
+            Nodes[ClassEnum] = new FInheritanceNode(ClassEnum);
         }
     }
 

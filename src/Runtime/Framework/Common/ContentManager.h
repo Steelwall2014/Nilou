@@ -134,6 +134,10 @@ namespace nilou {
         DirectoryEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
 
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
+
+        void ForEachContent(std::function<void(UObject*)> &&Func);
+
+        void ForEachContentInternal(DirectoryEntry* Entry, std::function<void(UObject*)> &&Func);
     };
 
     FContentManager *GetContentManager();

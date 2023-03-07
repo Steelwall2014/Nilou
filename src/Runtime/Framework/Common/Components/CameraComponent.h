@@ -21,17 +21,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        UCameraComponent(AActor *InOwner=nullptr, bool bIsMainCamera=false) 
-            : USceneComponent(InOwner)
-            , SceneProxy(nullptr)
-            , bIsMainCamera(bIsMainCamera)
-            , VerticalFieldOfView(glm::radians(50.f))
-            , NearClipDistance(0.1)
-            , FarClipDistance(30000)
-            , AspectRatio(1.f)
-            , ScreenResolution(glm::ivec2(1024, 1024))
-        { 
-        }
+        UCameraComponent(AActor *InOwner=nullptr, bool bIsMainCamera=false);
 
         virtual class FCameraSceneProxy *CreateSceneProxy(); 
 
@@ -85,8 +75,6 @@ namespace nilou {
         glm::ivec2 ScreenResolution;
 
         bool bIsMainCamera;
-
-        bool bCameraResolutionDirty = false;
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)

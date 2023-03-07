@@ -142,15 +142,18 @@ namespace nilou {
             , NodeCount(Component->NodeCount)
             , NumPatchesPerNode(Component->NumPatchesPerNode)
             , NumQuadsPerPatch(Component->NumQuadsPerPatch)
-            , NodeIDs_Final_Maxlength(Component->NumMaxRenderingNodes * sizeof(uvec4))
-            , NodeIDs_Temp_Maxlength(Component->NumMaxRenderingNodes * sizeof(uvec2))
+            , NumMaxRenderingNodes(Component->NumMaxRenderingNodes)
         {
             if (Component->Material)
                 Material = Component->Material->GetResource();
             if (Component->HeightfieldTexture)
-                HeightField = Component->HeightfieldTexture->GetResource()->GetSamplerRHI();
+            {
+                HeightField = Component->HeightfieldTexture;
+                HeightFieldSampler = Component->HeightfieldTexture->GetResource()->GetSamplerRHI();
+            }
             if (Material == nullptr || HeightField == nullptr)
                 return;
+            NodesFinalFeedback = std::make_unique<uvec4[]>(Component->NumMaxRenderingNodes);
             uvec2 temp_NodeCount = NodeCount;
             while (temp_NodeCount.x % 2 == 0 && temp_NodeCount.y % 2 == 0)
             {
@@ -215,6 +218,8 @@ namespace nilou {
             }
 
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PreRenderCallBack);
+            PreRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PostRenderCallBack);
+
             ENQUEUE_RENDER_COMMAND(FVirtualHeightfieldMeshSceneProxy_Constructor)(
                 [this](FDynamicRHI *RHICmdList)
                 {
@@ -222,20 +227,20 @@ namespace nilou {
                         "NormalTexture", 
                         EPixelFormat::PF_R16G16B16A16F, 
                         1, 
-                        HeightField->Texture->GetSizeXYZ().x, 
-                        HeightField->Texture->GetSizeXYZ().y, 
+                        HeightFieldSampler->Texture->GetSizeXYZ().x, 
+                        HeightFieldSampler->Texture->GetSizeXYZ().y, 
                         nullptr);
                     NormalSampler.Texture = NormalTexture.get();
-                    NormalSampler.Params = HeightField->Params;
+                    NormalSampler.Params = HeightFieldSampler->Params;
                     TangentTexture = RHICmdList->RHICreateTexture2D(
                         "TangentTexture", 
                         EPixelFormat::PF_R16G16B16A16F, 
                         1, 
-                        HeightField->Texture->GetSizeXYZ().x, 
-                        HeightField->Texture->GetSizeXYZ().y, 
+                        HeightFieldSampler->Texture->GetSizeXYZ().x, 
+                        HeightFieldSampler->Texture->GetSizeXYZ().y, 
                         nullptr);
                     TangentSampler.Texture = TangentTexture.get();
-                    TangentSampler.Params = HeightField->Params;
+                    TangentSampler.Params = HeightFieldSampler->Params;
 
                     LodTexture = RHICmdList->RHICreateTexture2D(
                         "LodTexture", 
@@ -267,15 +272,17 @@ namespace nilou {
                     NodeDescriptionBuffer = RHICmdList->RHICreateShaderStorageBuffer(
                         NumAllNodes * 4, 
                         0);
-                    FinalNodeListBuffer = RHICmdList->RHICreateShaderStorageBuffer(NodeIDs_Final_Maxlength, nullptr);
-                    NodeIDs_TempA = RHICmdList->RHICreateShaderStorageBuffer(NodeIDs_Temp_Maxlength, nullptr);
-                    NodeIDs_TempB = RHICmdList->RHICreateShaderStorageBuffer(NodeIDs_Temp_Maxlength, nullptr);
+                    FinalNodeListBuffer = RHICmdList->RHICreateShaderStorageBuffer(
+                        NumMaxRenderingNodes*sizeof(uvec4), nullptr);
+                    NodeIDs_TempA = RHICmdList->RHICreateShaderStorageBuffer(
+                        NumMaxRenderingNodes*sizeof(uvec2), nullptr);
+                    NodeIDs_TempB = RHICmdList->RHICreateShaderStorageBuffer(
+                        NumMaxRenderingNodes*sizeof(uvec2), nullptr);
 
                     FinalNodeListIndirectArgs = RHICmdList->RHICreateDispatchIndirectBuffer(0, 1, 1);
                     PatchListBuffer = RHICmdList->RHICreateShaderStorageBuffer(
-                        NodeIDs_Final_Maxlength * 
-                        NumPatchesPerNode*NumPatchesPerNode * 
-                        sizeof(RenderPatch), nullptr);
+                        NumMaxRenderingNodes*NumPatchesPerNode*NumPatchesPerNode*sizeof(RenderPatch), 
+                        nullptr);
 
                     CreateNodeListBlock = CreateUniformBuffer<FCreateNodeListBlock>();
                     CreateNodeListBlock->Data.MaxLOD = LodCount-1;
@@ -300,12 +307,34 @@ namespace nilou {
                 });
         }
 
-        void PreRenderCallBack(FDynamicRHI*, FScene* Scene)
+        void PreRenderCallBack(FDynamicRHI* RHICmdList, FScene* Scene)
         {
             FViewSceneInfo *ViewInfo = Scene->GetMainCamera();
             CreateNodeListGPU(ViewInfo->SceneProxy->GetViewUniformBuffer());
             CreateLodTexture();
             CreatePatch(ViewInfo->SceneProxy->GetViewUniformBuffer());
+
+            uint32* final_nodelist_size = (uint32*)RHICmdList->RHIMapComputeBuffer(FinalNodeListIndirectArgs, EDataAccessFlag::DA_ReadOnly);
+            uint32 NodesFinalFeedbackSize = *final_nodelist_size;
+            RHICmdList->RHIUnmapComputeBuffer(FinalNodeListIndirectArgs);
+            
+            uvec4* data = (uvec4*)RHICmdList->RHIMapComputeBuffer(FinalNodeListBuffer, EDataAccessFlag::DA_ReadOnly);
+            memcpy(NodesFinalFeedback.get(), data, NodesFinalFeedbackSize * sizeof(uvec4));
+            RHICmdList->RHIUnmapComputeBuffer(FinalNodeListBuffer);
+
+            vec2 HeightTextureMeterSize = NumQuadsPerPatch * NumPatchesPerNode * NodeCount;
+            for (int i = 0; i < NodesFinalFeedbackSize; i++)
+            {
+                uvec4 Node = NodesFinalFeedback[i];
+                uint32 Lod = Node.z;
+                vec2 node_min = vec2(Node) * LodParams[Lod].NodeMeterSize;
+                vec2 node_max = (vec2(Node)+vec2(1)) * LodParams[Lod].NodeMeterSize;
+                HeightField->UpdateBound(node_min / HeightTextureMeterSize, node_max / HeightTextureMeterSize, 0);
+            }
+        }
+
+        void PostRenderCallBack(FDynamicRHI* RHICmdList, FScene* Scene)
+        {
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
@@ -317,14 +346,14 @@ namespace nilou {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
                     FMeshBatch Mesh;
-                    Mesh.CastShadow = false;
+                    Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("Patch_Buffer", PatchListBuffer.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters.get());
-                    Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightField);
+                    Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightFieldSampler);
                     Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
                     Mesh.Element.Bindings.SetElementShaderBinding("TangentTexture", &TangentSampler);
 
@@ -339,23 +368,80 @@ namespace nilou {
 
         void BuildMinMaxTexture()
         {
-            {   // First pass
-                FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxFirstPassShader::StaticType, 0);
-                FShaderInstance *CreateMinMaxFirstPassShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-                FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxFirstPassShader);
+            constexpr int BUILD_MINMAX_LOCAL_SIZE = 32;
+            BEGIN_UNIFORM_BUFFER_STRUCT(FBuildMinMaxBlock)
+                SHADER_PARAMETER(uvec2, Offset)
+            END_UNIFORM_BUFFER_STRUCT()
+            auto BuildMinMaxBlock = CreateUniformBuffer<FBuildMinMaxBlock>();
+            BuildMinMaxBlock->InitRHI();
 
-                FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
-                    PSO, EPipelineStage::PS_Compute, 
-                    "FQuadTreeParameters", QuadTreeParameters->GetRHI());
-                FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
-                    PSO, EPipelineStage::PS_Compute, 
-                    "HeightMap", *HeightField);
-                FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
-                    PSO, EPipelineStage::PS_Compute, 
-                    "OutMinMaxMap", HeightMinMaxTextureViews[0].get(), EDataAccessFlag::DA_WriteOnly);
-                uvec2 group_num = LodParams[0].NodeSideNum;     // 一个work group负责一个node
-                FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
-                FDynamicRHI::GetDynamicRHI()->RHIImageMemoryBarrier();
+            FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxFirstPassShader::StaticType, 0);
+            FShaderInstance *CreateMinMaxFirstPassShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxFirstPassShader);
+            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+                PSO, EPipelineStage::PS_Compute, 
+                "FQuadTreeParameters", QuadTreeParameters->GetRHI());
+            FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
+                PSO, EPipelineStage::PS_Compute, 
+                "HeightMap", *HeightFieldSampler);
+            FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+                PSO, EPipelineStage::PS_Compute, 
+                "OutMinMaxMap", HeightMinMaxTextureViews[0].get(), EDataAccessFlag::DA_WriteOnly);
+            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+                PSO, EPipelineStage::PS_Compute, 
+                "FBuildMinMaxBlock", BuildMinMaxBlock->GetRHI());
+
+            uint32 MaxPhysicalMemoryByte = HeightField->MaxPhysicalMemoryByte;
+            uint32 BytePerTile = HeightField->GetBytePerTile();
+            int32 TileNumLimit = MaxPhysicalMemoryByte / BytePerTile;
+            uvec2 NumTiles = HeightField->GetNumTiles();
+            if (NumTiles.x * NumTiles.y < TileNumLimit)
+            {
+                BuildMinMaxBlock->Data.Offset = uvec2(0, 0);
+                BuildMinMaxBlock->UpdateUniformBuffer();
+                HeightField->UpdateBound(vec2(0), vec2(1), 0);
+                int group_num_y = HeightMinMaxTexture->GetSizeY() / BUILD_MINMAX_LOCAL_SIZE;
+                int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
+                FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+            }
+            else 
+            {
+                uint32 NumRowsPerDispatch = TileNumLimit / NumTiles.x;
+                if (NumRowsPerDispatch == 0)
+                {
+                    int DispatchCountPerRow = glm::ceil(float(NumTiles.x) / float(TileNumLimit));
+                    for (int Row = 0; Row < NumTiles.y; Row++)
+                    {
+                        float Row_Min = float(Row) / NumTiles.y;
+                        float Row_Max = float(Row+1) / NumTiles.y;
+                        for (int i = 0; i < DispatchCountPerRow; i++)
+                        {
+                            float Col_Min = float(i) * NumTiles.x/DispatchCountPerRow / NumTiles.x;
+                            float Col_Max = float(i+1) * NumTiles.x/DispatchCountPerRow / NumTiles.x;
+                            HeightField->UpdateBound(vec2(Col_Min, Row_Min), vec2(Col_Max, Row_Max), 0);
+                            int group_num_y = HeightMinMaxTexture->GetSizeY() * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
+                            int group_num_x = HeightMinMaxTexture->GetSizeX() * (Col_Max - Col_Min) / BUILD_MINMAX_LOCAL_SIZE;
+                            BuildMinMaxBlock->Data.Offset = uvec2(HeightMinMaxTexture->GetSizeX() * Col_Min, HeightMinMaxTexture->GetSizeY() * Row_Min);
+                            BuildMinMaxBlock->UpdateUniformBuffer();
+                            FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+                        }
+                    }
+                }
+                else 
+                {
+                    int DispatchCount = glm::ceil(float(NumTiles.y) / float(NumRowsPerDispatch));
+                    for (int i = 0; i < DispatchCount; i++)
+                    {
+                        float Row_Min = float(i) * NumRowsPerDispatch / NumTiles.y;
+                        float Row_Max = float(i+1) * NumRowsPerDispatch / NumTiles.y;
+                        HeightField->UpdateBound(vec2(0, Row_Min), vec2(1, Row_Max), 0);
+                        int group_num_y = HeightMinMaxTexture->GetSizeXYZ().y * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
+                        int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
+                        BuildMinMaxBlock->Data.Offset = uvec2(0, HeightMinMaxTexture->GetSizeXYZ().y * Row_Min);
+                        BuildMinMaxBlock->UpdateUniformBuffer();
+                        FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+                    }
+                }
             }
 
             FVHMCreateMinMaxShader::FPermutationDomain PermutationVector;
@@ -372,9 +458,8 @@ namespace nilou {
                     FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "OutMinMaxMap", HeightMinMaxTextureViews[LOD].get(), EDataAccessFlag::DA_WriteOnly);
-                    uvec2 group_num = LodParams[LOD].NodeSideNum;     // 一个work group负责一个node
+                    uvec2 group_num = LodParams[LOD].NodeSideNum;
                     FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
-                    FDynamicRHI::GetDynamicRHI()->RHIImageMemoryBarrier();
                 }
             }
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(false);
@@ -390,9 +475,8 @@ namespace nilou {
                     FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "OutMinMaxMap", HeightMinMaxTextureViews[LOD].get(), EDataAccessFlag::DA_WriteOnly);
-                    uvec2 group_num = LodParams[LOD-3].NodeSideNum;     // 一个work group负责一个node
+                    uvec2 group_num = LodParams[LOD-3].NodeSideNum;
                     FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
-                    FDynamicRHI::GetDynamicRHI()->RHIImageMemoryBarrier();
                 }
             }
         }
@@ -406,7 +490,7 @@ namespace nilou {
 
             RHICmdList->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute, 
-                "Heightfield", *HeightField);
+                "Heightfield", *HeightFieldSampler);
 
             RHICmdList->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
@@ -423,16 +507,16 @@ namespace nilou {
             END_UNIFORM_BUFFER_STRUCT()
 
             auto BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
-            BuildNormalTangentBlock->Data.HeightfieldWidth = HeightField->Texture->GetSizeXYZ().x;
-            BuildNormalTangentBlock->Data.HeightfieldHeight = HeightField->Texture->GetSizeXYZ().y;
-            BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightField->Texture->GetSizeXYZ());
+            BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
+            BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
+            BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
             BuildNormalTangentBlock->InitRHI();
 
             RHICmdList->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FBuildNormalTangentBlock", BuildNormalTangentBlock->GetRHI());
 
-            RHICmdList->RHIDispatch(HeightField->Texture->GetSizeXYZ().x, HeightField->Texture->GetSizeXYZ().y, 1);
+            RHICmdList->RHIDispatch(HeightFieldSampler->Texture->GetSizeXYZ().x, HeightFieldSampler->Texture->GetSizeXYZ().y, 1);
         }
 
         void CreateNodeListGPU(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
@@ -503,8 +587,6 @@ namespace nilou {
                 RHIGetError();
                 FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(indirectArgs.get());
 
-                FDynamicRHI::GetDynamicRHI()->RHIStorageMemoryBarrier();
-
                 RHIGetError();
                 FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(IndexB, indirectArgs, 0, 0, 4);
                 
@@ -566,21 +648,21 @@ namespace nilou {
             FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODMap", LodTexture.get(), EDataAccessFlag::DA_ReadOnly);
-            RHITextureParams params;
-            params.Mag_Filter = ETextureFilters::TF_Nearest;
-            params.Min_Filter = ETextureFilters::TF_Nearest;
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
-                PSO, EPipelineStage::PS_Compute, 
-                "MinMaxMap", FRHISampler(HeightMinMaxTexture.get(), params));
+            // RHITextureParams params;
+            // params.Mag_Filter = ETextureFilters::TF_Nearest;
+            // params.Min_Filter = ETextureFilters::TF_Nearest;
+            // FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "MinMaxMap", FRHISampler(HeightMinMaxTexture.get(), params));
             FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FCreatePatchBlock", CreatePatchBlock->GetRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FViewShaderParameters", ViewShaderParameters->GetRHI());
+            // FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
+            // FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "FViewShaderParameters", ViewShaderParameters->GetRHI());
 
             FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(FinalNodeListIndirectArgs.get());
             FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(AtomicPatchCounterBuffer, DrawIndirectArgs, 0, 4, 4);
@@ -589,7 +671,8 @@ namespace nilou {
         }
 
 	    FMaterial* Material = nullptr;
-        FRHISampler* HeightField = nullptr;
+        UVirtualTexture* HeightField = nullptr;
+        FRHISampler* HeightFieldSampler = nullptr;
         RHITexture2DRef NormalTexture;
         FRHISampler NormalSampler;
         RHITexture2DRef TangentTexture;
@@ -619,8 +702,7 @@ namespace nilou {
         TUniformBufferRef<FCreatePatchBlock> CreatePatchBlock;
 
         std::vector<WorldLodParam> LodParams;
-		uint32 NodeIDs_Temp_Maxlength = 0, NodeIDs_Final_Maxlength = 0;
-		uint32 FinalNodeListSize;
+		uint32 NumMaxRenderingNodes;
         uint32 NumAllNodes;
 
         uint32 NumQuadsPerPatch;
@@ -631,6 +713,8 @@ namespace nilou {
         FDelegateHandle PreRenderHandle;
         FDelegateHandle PostRenderHandle;
 
+        std::unique_ptr<uvec4[]> NodesFinalFeedback;
+
     };
 
 
@@ -638,7 +722,7 @@ namespace nilou {
     UVirtualHeightfieldMeshComponent::UVirtualHeightfieldMeshComponent(AActor *InOwner)
         : UPrimitiveComponent(InOwner)
     {
-
+        // bCastShadow = false;
     }
 
     FBoundingBox UVirtualHeightfieldMeshComponent::CalcBounds(const FTransform& LocalToWorld) const

@@ -30,6 +30,7 @@ enum class EUClasses {
 	MC_UMaterial,
 	MC_UMaterialInstance,
 	MC_UTexture,
+	MC_UVirtualTexture,
 	MC_UClassNum,
 };
 }

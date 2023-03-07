@@ -9,11 +9,10 @@
         "-j=12",
         "--clang-tidy",
         "--all-scopes-completion",
-        "--completion-style=detailed",
+        "--completion-style=bundled",
         "--header-insertion=never",
         "--pch-storage=memory",
         "--cross-file-rename=true",
-        // "-style=file:D:\\UnderwaterRendering\\Nilou\\.vscode\\.clang-format"
-        //"--query-driver=clang-cl"
+        "--function-arg-placeholders=false"
     ],
 }

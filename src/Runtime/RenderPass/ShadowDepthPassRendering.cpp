@@ -2,6 +2,9 @@
 #include "Common/Log.h"
 #include "Material.h"
 
+
+constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 3.0f;
+
 namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
@@ -209,7 +212,7 @@ namespace nilou {
             {
                 Scales.push_back(CurrentScale);
                 TotalScale += CurrentScale;
-                CurrentScale *= 2.0;
+                CurrentScale *= CASCADED_SHADOWMAP_SPLIT_FACTOR;
             }
             for (int i = 0; i < Scales.size(); i++)
                 Scales[i] /= TotalScale;
@@ -280,7 +283,7 @@ namespace nilou {
                     LightCollector.PerViewMeshBatches.push_back(&MeshBatches);
                     double near, far;
                     far = DBL_MAX;
-                    near = DBL_MIN;
+                    near = -DBL_MAX;
                     for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
                     {
                         if (!PrimitiveInfo->SceneProxy->bCastShadow)
@@ -298,8 +301,10 @@ namespace nilou {
                             PrimitiveInfo->SceneProxy->GetDynamicMeshElements({SceneView}, 0x1, LightCollector);
                         }
                     }
-                    if (near == DBL_MIN) near = 0;
-                    if (far == DBL_MAX) far = 0;
+                    // if (near == -DBL_MAX) near = 0;
+                    // if (far == DBL_MAX) far = 0;
+                    near = Radius;
+                    far = -Radius;
 
                     // {   // To remove jittering
                     //     float cascadeAABBSize = Sphere.Radius * 2.0f;
@@ -315,7 +320,7 @@ namespace nilou {
                     //     Center = glm::inverse(view_matrix) * LightSpaceCenter;
                     // }
 
-                    dvec3 Position = Center - Direction * (near+1);
+                    dvec3 Position = Center - Direction * (near);
                     ViewMatrix = glm::lookAt(
                         Position, 
                         Center, 
@@ -326,7 +331,7 @@ namespace nilou {
                         Sphere.Radius,
                         -Sphere.Radius,
                         Sphere.Radius,
-                        0.0, glm::abs(far-near)+5);
+                        0.0, glm::abs(far-near));
 
                     auto UniformBuffer = FShadowMapUniformBuffers::Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>(Light.ShadowMapUniformBuffers[ViewIndex]);
                     UniformBuffer->Data.Frustums[SplitIndex].WorldToClip = ProjectionMatrix * ViewMatrix;

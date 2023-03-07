@@ -88,6 +88,9 @@ namespace nilou {
 		virtual RHITextureCubeRef RHICreateTextureCube(
 			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data[6]
 		) = 0;
+		virtual RHITexture2DRef RHICreateSparseTexture2D(
+			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+		) = 0;
 		virtual RHIFramebufferRef RHICreateFramebuffer() = 0;
 		virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) = 0;
 		virtual RHIFramebufferRef RHICreateFramebuffer(
@@ -124,9 +127,17 @@ namespace nilou {
 		virtual void RHIImageMemoryBarrier() = 0;
 		virtual void RHIStorageMemoryBarrier() = 0;
 		virtual void RHIClearBuffer(uint32 flagbits) = 0;
+		virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) = 0;
+		virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) = 0;
+		
+		// The page size is represented as X, Y and Z.
+		// They correspond to column, row, and channel.
+		// The direction of each axis is the same as UV's.
+		static ivec3 RHIGetSparseTexturePageSize(ETextureType TextureType, EPixelFormat PixelFormat);
 
 	protected:
 		static FDynamicRHI *DynamicRHI;
+		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
 		std::map<FRHIGraphicsPipelineInitializer, FRHIGraphicsPipelineStateRef> CachedPipelineStateObjects;
 	};
 

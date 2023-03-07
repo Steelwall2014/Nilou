@@ -84,6 +84,9 @@ namespace nilou {
 		virtual RHITextureCubeRef RHICreateTextureCube(
 			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data[6]
 		) override;
+		virtual RHITexture2DRef RHICreateSparseTexture2D(
+			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+		) override;
 		virtual RHIFramebufferRef RHICreateFramebuffer() override;
 		virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) override;
 		virtual RHIFramebufferRef RHICreateFramebuffer(
@@ -120,6 +123,8 @@ namespace nilou {
 		virtual void RHIImageMemoryBarrier() override;
 		virtual void RHIStorageMemoryBarrier() override;
 		virtual void RHIClearBuffer(uint32 flagbits) override;
+		virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) override;
+		virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override;
 
 	private:
 		OpenGLLinkedProgramRef m_CurrentShader;

@@ -93,7 +93,7 @@ namespace nilou {
         FTransform VHMTransform;
         VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
         std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        VHMActor->VHMComponent->SetHeightfieldTexture(GetContentManager()->GetTextureByPath("/Textures/Karelia.json"));
+        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.json")));
         VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.json"));
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");

@@ -5,6 +5,18 @@
 
 namespace nilou {
 
+    UCameraComponent::UCameraComponent(AActor *InOwner, bool bIsMainCamera) 
+        : USceneComponent(InOwner)
+        , SceneProxy(nullptr)
+        , bIsMainCamera(bIsMainCamera)
+        , VerticalFieldOfView(glm::radians(50.f))
+        , NearClipDistance(0.1)
+        , FarClipDistance(30000)
+        , AspectRatio(1.f)
+        , ScreenResolution(glm::ivec2(1024, 1024))
+    { 
+    }
+
     void UCameraComponent::OnRegister()
     {
         UWorld *World = GetWorld();
@@ -60,13 +72,8 @@ namespace nilou {
     {
         if (SceneProxy)
         {
-            SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
             SceneProxy->SetFieldOfView(VerticalFieldOfView);
-            if (bCameraResolutionDirty)
-            {
-                SceneProxy->SetCameraResolution(ScreenResolution);
-                bCameraResolutionDirty = false;
-            }
+            SceneProxy->SetCameraResolution(ScreenResolution);
         }
 
         USceneComponent::SendRenderDynamicData();
@@ -95,16 +102,21 @@ namespace nilou {
 
     void UCameraComponent::SetFieldOfView(float InVerticalFieldOfView)
     {
-        VerticalFieldOfView = InVerticalFieldOfView;
-        MarkRenderDynamicDataDirty();
+        if (VerticalFieldOfView != InVerticalFieldOfView)
+        {
+            VerticalFieldOfView = InVerticalFieldOfView;
+            MarkRenderDynamicDataDirty();
+        }
     }
 
     void UCameraComponent::SetCameraResolution(const ivec2 &CameraResolution)
     {
-        ScreenResolution = CameraResolution;
-        AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
-        bCameraResolutionDirty = true;
-        MarkRenderDynamicDataDirty();
+        if (ScreenResolution != CameraResolution)
+        {
+            ScreenResolution = CameraResolution;
+            AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
+            MarkRenderDynamicDataDirty();
+        }
     }
 
     FViewFrustum UCameraComponent::CalcViewFrustum()
@@ -168,6 +180,7 @@ namespace nilou {
         ScreenResolution = InCameraResolution;
         AspectRatio = (float)InCameraResolution.x / (float)InCameraResolution.y;
         ViewUniformBufferRHI->Data.CameraResolution = InCameraResolution;
+        UpdateFrustum();
         if (ViewSceneInfo)
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
     }
@@ -218,8 +231,9 @@ namespace nilou {
             NearClipDistance, FarClipDistance);
         for (int i = 0; i < 6; i++)
             ViewUniformBufferRHI->Data.FrustumPlanes[i] = dvec4(ViewFrustum.Planes[i].Normal, ViewFrustum.Planes[i].Distance);
-        if (ViewSceneInfo)
-            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+
+        // if (ViewSceneInfo)
+        //     ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
 

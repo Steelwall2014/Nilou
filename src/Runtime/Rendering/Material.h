@@ -193,6 +193,14 @@ namespace nilou {
 
         std::map<std::string, std::filesystem::path> Textures;
 
+        virtual void ReleaseRenderResources()
+        {
+            ENQUEUE_RENDER_COMMAND(Material_ReleaseRenderResources)(
+                [this](FDynamicRHI*) {
+                    MaterialResource->ShaderMap.RemoveAllShaders();
+                });
+        }
+
     protected:
 
         std::unique_ptr<FMaterial> MaterialResource;

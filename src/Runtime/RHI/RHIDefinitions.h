@@ -399,7 +399,9 @@ namespace nilou {
 		PF_R32F,
 		PF_R32G32F,
 		PF_R32G32B32F,
-		PF_R32G32B32A32F
+		PF_R32G32B32A32F,
+
+		PF_PixelFormatNum
 	};
 
 	enum class ETextureFilters : uint8
@@ -447,10 +449,12 @@ namespace nilou {
 
 	enum class ETextureType
 	{
-		TT_Texture2D,
+		TT_Texture2D = 0,
 		TT_Texture2DArray,
 		TT_Texture3D,
 		TT_TextureCube,
+
+		TT_TextureTypeNum,
 	};
 
 	enum ERHIResourceType

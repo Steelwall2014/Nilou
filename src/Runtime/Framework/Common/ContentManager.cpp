@@ -268,11 +268,49 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
             [this](FDynamicRHI*) {
                 GlobalShaders.RemoveAllShaders();
+                ForEachContent(
+                    [](UObject* Obj) {
+                        if (Obj->IsA(UStaticMesh::StaticClass()))
+                        {
+                            UStaticMesh* mesh = static_cast<UStaticMesh*>(Obj);
+                            mesh->ReleaseRenderResources();
+                        }
+                        else if (Obj->IsA(UTexture::StaticClass())) 
+                        {
+                            UTexture* texture = static_cast<UTexture*>(Obj);
+                            texture->ReleaseRenderResources();
+                        }
+                        else if (Obj->IsA(UMaterial::StaticClass())) 
+                        {
+                            UMaterial* material = static_cast<UMaterial*>(Obj);
+                            material->ReleaseRenderResources();
+                        }
+                    });
             });
     }
 
     FContentManager *GetContentManager()
     {
         return GetAppication()->GetContentManager();
+    }
+
+    void FContentManager::ForEachContent(std::function<void(UObject*)> &&Func)
+    {
+        ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(UObject*)>>(Func));
+    }
+
+    void FContentManager::ForEachContentInternal(DirectoryEntry* Entry, std::function<void(UObject*)> &&Func)
+    {
+        if (Entry->bIsDirectory)
+        {
+            for (auto &[Name, Child] : Entry->Children)
+            {
+                ForEachContentInternal(Child.get(), std::forward<std::function<void(UObject*)>>(Func));
+            }
+        }
+        else 
+        {              
+            Func(Entry->Object.get());
+        }
     }
 }

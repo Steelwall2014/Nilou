@@ -13,6 +13,7 @@ namespace nilou {
     class FInheritanceNode
     {
     public:
+        FInheritanceNode(EUClasses InClassEnum) : ClassEnum(InClassEnum) { }
         EUClasses ClassEnum;
         std::set<FInheritanceNode *> ParentClasses;
         std::set<FInheritanceNode *> DerivedClasses;
