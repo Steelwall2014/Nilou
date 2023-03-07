@@ -82,7 +82,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     NoColorImg->data[0] = 255; NoColorImg->data[1] = 255; NoColorImg->data[2] = 255; NoColorImg->data[3] = 255;
     NoColorTexture = std::make_shared<UTexture>("NoColorTexture", 1, NoColorImg);
     NoColorTexture->GetResource()->SetSamplerParams(texParams);
-    NoColorTexture->SerializationPath = out_dir / fs::path("NoColorTexture.json");
+    NoColorTexture->SerializationPath = out_dir / fs::path("NoColorTexture.nasset");
     NoColorTexture->Name = "NoColorTexture";
     // BeginInitResource(NoColorTexture->GetResource());
 
@@ -92,7 +92,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     NoMetallicRoughnessImg->data[0] = 0; NoMetallicRoughnessImg->data[1] = 255; NoMetallicRoughnessImg->data[2] = 255; NoMetallicRoughnessImg->data[3] = 255;
     NoMetallicRoughnessTexture = std::make_shared<UTexture>("NoMetallicRoughnessTexture", 1, NoMetallicRoughnessImg);
     NoMetallicRoughnessTexture->GetResource()->SetSamplerParams(texParams);
-    NoMetallicRoughnessTexture->SerializationPath = out_dir / fs::path("NoMetallicRoughnessTexture.json");
+    NoMetallicRoughnessTexture->SerializationPath = out_dir / fs::path("NoMetallicRoughnessTexture.nasset");
     NoMetallicRoughnessTexture->Name = "NoMetallicRoughnessTexture";
     // BeginInitResource(NoMetallicRoughnessTexture->GetResource());
 
@@ -102,7 +102,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     NoEmissiveImg->data[0] = 0; NoEmissiveImg->data[1] = 0; NoEmissiveImg->data[2] = 0; NoEmissiveImg->data[3] = 255;
     NoEmissiveTexture = std::make_shared<UTexture>("NoEmissiveTexture", 1, NoEmissiveImg);
     NoEmissiveTexture->GetResource()->SetSamplerParams(texParams);
-    NoEmissiveTexture->SerializationPath = out_dir / fs::path("NoEmissiveTexture.json");
+    NoEmissiveTexture->SerializationPath = out_dir / fs::path("NoEmissiveTexture.nasset");
     NoEmissiveTexture->Name = "NoEmissiveTexture";
     // BeginInitResource(NoEmissiveTexture->GetResource());
 
@@ -112,7 +112,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     NoNormalImg->data[0] = 127; NoNormalImg->data[1] = 127; NoNormalImg->data[2] = 255; NoNormalImg->data[3] = 255;
     NoNormalTexture = std::make_shared<UTexture>("NoNormalTexture", 1, NoNormalImg);
     NoNormalTexture->GetResource()->SetSamplerParams(texParams);
-    NoNormalTexture->SerializationPath = out_dir / fs::path("NoNormalTexture.json");
+    NoNormalTexture->SerializationPath = out_dir / fs::path("NoNormalTexture.nasset");
     NoNormalTexture->Name = "NoNormalTexture";
 
 
@@ -154,7 +154,7 @@ static void ParseToMaterials(tinygltf::Model &model,
         
         std::shared_ptr<UTexture> texture = std::make_shared<UTexture>(
             std::to_string(TextureIndex) + "_" + gltf_texture.name, std::move(Texture));
-        texture->SerializationPath = out_dir / fs::path(texture->Name + ".json");
+        texture->SerializationPath = out_dir / fs::path(texture->Name + ".nasset");
         OutTextures.push_back(texture);
     }
 
@@ -162,7 +162,7 @@ static void ParseToMaterials(tinygltf::Model &model,
     {
         tinygltf::Material &gltf_material = model.materials[MaterialIndex];
         auto Material = std::make_shared<UMaterial>(std::to_string(MaterialIndex) + "_" + gltf_material.name);
-        Material->SerializationPath = out_dir / fs::path(Material->Name + ".json");
+        Material->SerializationPath = out_dir / fs::path(Material->Name + ".nasset");
         if (gltf_material.doubleSided)
             Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         auto AccessTextures = 
@@ -374,28 +374,31 @@ int main()
     for (auto Texture : Mesh.Textures)
     {
         FArchive Ar;
-        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Texture->Name + ".json");
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Texture->Name + ".nasset");
         Texture->Serialize(Ar);
-        std::ofstream out{out_path.generic_string()};
-        std::string s = Ar.json.dump();
-        out << s;
+        Ar.WriteToPath(out_path);
+        // std::ofstream out{out_path.generic_string()};
+        // std::string s = Ar.json.dump();
+        // out << s;
     }
     for (int i = 0; i < Mesh.Materials.size(); i++)
     {
         FArchive Ar;
-        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".json");
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.Materials[i]->Name + ".nasset");
         Mesh.Materials[i]->Serialize(Ar);
-        std::ofstream out{out_path.generic_string()};
-        std::string s = Ar.json.dump();
-        out << s;
+        Ar.WriteToPath(out_path);
+        // std::ofstream out{out_path.generic_string()};
+        // std::string s = Ar.json.dump();
+        // out << s;
     }
     for (int i = 0; i < Mesh.StaticMeshes.size(); i++)
     {
         FArchive Ar;
-        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.StaticMeshes[i]->Name + ".json");
+        std::filesystem::path out_path = content_dir / std::filesystem::path(out_dir) / std::filesystem::path(Mesh.StaticMeshes[i]->Name + ".nasset");
         Mesh.StaticMeshes[i]->Serialize(Ar);
-        std::ofstream out{out_path.generic_string()};
-        std::string s = Ar.json.dump();
-        out << s;
+        Ar.WriteToPath(out_path);
+        // std::ofstream out{out_path.generic_string()};
+        // std::string s = Ar.json.dump();
+        // out << s;
     }
 }

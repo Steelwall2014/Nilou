@@ -164,16 +164,18 @@ namespace nilou {
     class TStaticSerializer<FStaticMeshRenderData>
     {
     public:
-        static void Serialize(const FStaticMeshRenderData &Object, nlohmann::json &json)
+        static void Serialize(const FStaticMeshRenderData &Object, nlohmann::json &json, FArchiveBuffers &Buffers)
         {
             json["ClassName"] = "FStaticMeshRenderData";
             nlohmann::json &content = json["Content"];
-            for (auto &LODResource : Object.LODResources)
+            for (int LODResourceIndex = 0; LODResourceIndex < Object.LODResources.size(); LODResourceIndex++)
             {
-                nlohmann::json lod_resource;
-                for (auto &Section : LODResource->Sections)
+                auto &LODResource = Object.LODResources[LODResourceIndex];
+                nlohmann::json &lod_resource = content["LODResources"][LODResourceIndex];
+                for (int SectionIndex = 0; SectionIndex < LODResource->Sections.size(); SectionIndex++)
                 {
-                    nlohmann::json section;
+                    auto &Section = LODResource->Sections[SectionIndex];
+                    nlohmann::json &section = lod_resource["Sections"][SectionIndex];
 
                     if (void *Data = Section->IndexBuffer.GetIndiceData())
                     {
@@ -181,9 +183,10 @@ namespace nilou {
                         int Stride = Section->IndexBuffer.Stride;
                         section["IndexBuffer"]["NumIndices"] = NumIndices;
                         section["IndexBuffer"]["Stride"] = Stride;
-                        section["IndexBuffer"]["Data"] = SerializeHelper::Base64Encode(
-                                (const unsigned char *)Data, 
-                                NumIndices*Stride);
+                        Buffers.AddBuffer(section["IndexBuffer"]["Data"], NumIndices*Stride, Data);
+                            // SerializeHelper::Base64Encode(
+                            //     (const unsigned char *)Data, 
+                            //     NumIndices*Stride);
                     }
                     if (void *Data = Section->VertexBuffers.Positions.GetVertexData())
                     {
@@ -191,9 +194,13 @@ namespace nilou {
                         int Stride = Section->VertexBuffers.Positions.GetStride();
                         section["VertexBuffers"]["Positions"]["NumVertices"] = NumVertices;
                         section["VertexBuffers"]["Positions"]["Stride"] = Stride;
-                        section["VertexBuffers"]["Positions"]["Data"] = SerializeHelper::Base64Encode(
-                                (const unsigned char *)Section->VertexBuffers.Positions.GetVertexData(), 
-                                NumVertices*Stride);
+                        Buffers.AddBuffer(
+                            section["VertexBuffers"]["Positions"]["Data"], 
+                            NumVertices*Stride, 
+                            Section->VertexBuffers.Positions.GetVertexData());
+                        // section["VertexBuffers"]["Positions"]["Data"] = SerializeHelper::Base64Encode(
+                        //         (const unsigned char *)Section->VertexBuffers.Positions.GetVertexData(), 
+                        //         NumVertices*Stride);
                     }
                     if (void *Data = Section->VertexBuffers.Colors.GetVertexData())
                     {
@@ -201,9 +208,13 @@ namespace nilou {
                         int Stride = Section->VertexBuffers.Colors.GetStride();
                         section["VertexBuffers"]["Colors"]["NumVertices"] = NumVertices;
                         section["VertexBuffers"]["Colors"]["Stride"] = Stride;
-                        section["VertexBuffers"]["Colors"]["Data"] = SerializeHelper::Base64Encode(
-                                (const unsigned char *)Section->VertexBuffers.Colors.GetVertexData(), 
-                                NumVertices*Stride);
+                        Buffers.AddBuffer(
+                            section["VertexBuffers"]["Colors"]["Data"], 
+                            NumVertices*Stride, 
+                            Section->VertexBuffers.Colors.GetVertexData());
+                        // section["VertexBuffers"]["Colors"]["Data"] = SerializeHelper::Base64Encode(
+                        //         (const unsigned char *)Section->VertexBuffers.Colors.GetVertexData(), 
+                        //         NumVertices*Stride);
                     }
                     if (void *Data = Section->VertexBuffers.Normals.GetVertexData())
                     {
@@ -211,9 +222,13 @@ namespace nilou {
                         int Stride = Section->VertexBuffers.Normals.GetStride();
                         section["VertexBuffers"]["Normals"]["NumVertices"] = NumVertices;
                         section["VertexBuffers"]["Normals"]["Stride"] = Stride;
-                        section["VertexBuffers"]["Normals"]["Data"] = SerializeHelper::Base64Encode(
-                                (const unsigned char *)Section->VertexBuffers.Normals.GetVertexData(), 
-                                NumVertices*Stride);
+                        Buffers.AddBuffer(
+                            section["VertexBuffers"]["Normals"]["Data"], 
+                            NumVertices*Stride, 
+                            Section->VertexBuffers.Normals.GetVertexData());
+                        // section["VertexBuffers"]["Normals"]["Data"] = SerializeHelper::Base64Encode(
+                        //         (const unsigned char *)Section->VertexBuffers.Normals.GetVertexData(), 
+                        //         NumVertices*Stride);
                     }
                     if (void *Data = Section->VertexBuffers.Tangents.GetVertexData())
                     {
@@ -221,9 +236,13 @@ namespace nilou {
                         int Stride = Section->VertexBuffers.Tangents.GetStride();
                         section["VertexBuffers"]["Tangents"]["NumVertices"] = NumVertices;
                         section["VertexBuffers"]["Tangents"]["Stride"] = Stride;
-                        section["VertexBuffers"]["Tangents"]["Data"] = SerializeHelper::Base64Encode(
-                                (const unsigned char *)Data, 
-                                NumVertices*Stride);
+                        Buffers.AddBuffer(
+                            section["VertexBuffers"]["Tangents"]["Data"], 
+                            NumVertices*Stride, 
+                            Section->VertexBuffers.Tangents.GetVertexData());
+                        // section["VertexBuffers"]["Tangents"]["Data"] = SerializeHelper::Base64Encode(
+                        //         (const unsigned char *)Data, 
+                        //         NumVertices*Stride);
                     }
                     for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
                     {
@@ -233,17 +252,19 @@ namespace nilou {
                             int Stride = Section->VertexBuffers.TexCoords[i].GetStride();
                             section["VertexBuffers"]["TexCoords"][i]["NumVertices"] = NumVertices;
                             section["VertexBuffers"]["TexCoords"][i]["Stride"] = Stride;
-                            section["VertexBuffers"]["TexCoords"][i]["Data"] = SerializeHelper::Base64Encode(
-                                    (const unsigned char *)Data, 
-                                    NumVertices*Stride);
+                            Buffers.AddBuffer(
+                                section["VertexBuffers"]["TexCoords"][i]["Data"], 
+                                NumVertices*Stride, 
+                                Section->VertexBuffers.TexCoords[i].GetVertexData());
+                            // section["VertexBuffers"]["TexCoords"][i]["Data"] = SerializeHelper::Base64Encode(
+                            //         (const unsigned char *)Data, 
+                            //         NumVertices*Stride);
                         }
                     }
-                    lod_resource["Sections"].push_back(section);
                 }
-                content["LODResources"].push_back(lod_resource);
             }
         }
-        static void Deserialize(FStaticMeshRenderData &Object, nlohmann::json &json)
+        static void Deserialize(FStaticMeshRenderData &Object, nlohmann::json &json, void* Buffer)
         {
             if (!SerializeHelper::CheckIsType(json, "FStaticMeshRenderData")) return;
             
@@ -262,40 +283,45 @@ namespace nilou {
                     {
                         int NumIndices = section["IndexBuffer"]["NumIndices"];
                         int Stride = section["IndexBuffer"]["Stride"];
-                        std::string Data = SerializeHelper::Base64Decode(section["IndexBuffer"]["Data"]);
-                        Section->IndexBuffer.Init(Data.data(), NumIndices, Stride);
+                        int BufferOffset = section["IndexBuffer"]["Data"]["BufferOffset"];
+                        // std::string Data = SerializeHelper::Base64Decode(section["IndexBuffer"]["Data"]);
+                        Section->IndexBuffer.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, NumIndices, Stride);
                     }
                     FStaticVertexFactory::FDataType VFData;
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Positions"))
                     {
                         int NumVertices = section["VertexBuffers"]["Positions"]["NumVertices"];
                         int Stride = section["VertexBuffers"]["Positions"]["Stride"];
-                        std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Positions"]["Data"]);
-                        Section->VertexBuffers.Positions.Init(Data.data(), Stride, NumVertices);
+                        int BufferOffset = section["VertexBuffers"]["Positions"]["Data"]["BufferOffset"];
+                        // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Positions"]["Data"]);
+                        Section->VertexBuffers.Positions.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
                         Section->VertexBuffers.Positions.BindToVertexFactoryData(VFData.PositionComponent);
                     }
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Normals"))
                     {
                         int NumVertices = section["VertexBuffers"]["Normals"]["NumVertices"];
                         int Stride = section["VertexBuffers"]["Normals"]["Stride"];
-                        std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Normals"]["Data"]);
-                        Section->VertexBuffers.Normals.Init(Data.data(), Stride, NumVertices);
+                        int BufferOffset = section["VertexBuffers"]["Normals"]["Data"]["BufferOffset"];
+                        // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Normals"]["Data"]);
+                        Section->VertexBuffers.Normals.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
                         Section->VertexBuffers.Normals.BindToVertexFactoryData(VFData.NormalComponent);
                     }
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Tangents"))
                     {
                         int NumVertices = section["VertexBuffers"]["Tangents"]["NumVertices"];
                         int Stride = section["VertexBuffers"]["Tangents"]["Stride"];
-                        std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Tangents"]["Data"]);
-                        Section->VertexBuffers.Tangents.Init(Data.data(), Stride, NumVertices);
+                        int BufferOffset = section["VertexBuffers"]["Tangents"]["Data"]["BufferOffset"];
+                        // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Tangents"]["Data"]);
+                        Section->VertexBuffers.Tangents.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
                         Section->VertexBuffers.Tangents.BindToVertexFactoryData(VFData.TangentComponent);
                     }
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Colors"))
                     {
                         int NumVertices = section["VertexBuffers"]["Colors"]["NumVertices"];
                         int Stride = section["VertexBuffers"]["Colors"]["Stride"];
-                        std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Colors"]["Data"]);
-                        Section->VertexBuffers.Colors.Init(Data.data(), Stride, NumVertices);
+                        int BufferOffset = section["VertexBuffers"]["Colors"]["Data"]["BufferOffset"];
+                        // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Colors"]["Data"]);
+                        Section->VertexBuffers.Colors.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
                         Section->VertexBuffers.Colors.BindToVertexFactoryData(VFData.ColorComponent);
                     }
                     if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("TexCoords"))
@@ -304,8 +330,9 @@ namespace nilou {
                         {
                             int NumVertices = section["VertexBuffers"]["TexCoords"][i]["NumVertices"];
                             int Stride = section["VertexBuffers"]["TexCoords"][i]["Stride"];
-                            std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["TexCoords"][i]["Data"]);
-                            Section->VertexBuffers.TexCoords[i].Init(Data.data(), Stride, NumVertices);
+                            int BufferOffset = section["VertexBuffers"]["TexCoords"][i]["Data"]["BufferOffset"];
+                            // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["TexCoords"][i]["Data"]);
+                            Section->VertexBuffers.TexCoords[i].Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
                             Section->VertexBuffers.TexCoords[i].BindToVertexFactoryData(VFData.TexCoordComponent[i]);
                         }
                     }

@@ -27,7 +27,7 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return GetContentManager()->GetMaterialByPath("/Materials/DefaultMaterial.json");
+        return GetContentManager()->GetMaterialByPath("/Materials/DefaultMaterial.nasset");
     }
 
     void UMaterial::UpdateCode(const std::string &InCode, bool bRecompile)
@@ -45,9 +45,9 @@ namespace nilou {
         content["Name"] = Name;
         content["Code"] = Code;
         content["StencilRefValue"] = MaterialResource->StencilRefValue;
-        TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"]);
-        TStaticSerializer<FRasterizerStateInitializer>::Serialize(MaterialResource->RasterizerState, content["RasterizerState"]);
-        TStaticSerializer<FDepthStencilStateInitializer>::Serialize(MaterialResource->DepthStencilState, content["DepthStencilState"]);
+        TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"], Ar.OutBuffers);
+        TStaticSerializer<FRasterizerStateInitializer>::Serialize(MaterialResource->RasterizerState, content["RasterizerState"], Ar.OutBuffers);
+        TStaticSerializer<FDepthStencilStateInitializer>::Serialize(MaterialResource->DepthStencilState, content["DepthStencilState"], Ar.OutBuffers);
         nlohmann::json &textures = content["Textures"];
         for (auto &[Name, Texture] : Textures)
         {
@@ -68,9 +68,9 @@ namespace nilou {
         Code = content["Code"];
         MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
-        TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"]);
-        TStaticSerializer<FRasterizerStateInitializer>::Deserialize(MaterialResource->RasterizerState, content["RasterizerState"]);
-        TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(MaterialResource->DepthStencilState, content["DepthStencilState"]);
+        TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"], Ar.InBuffer.get());
+        TStaticSerializer<FRasterizerStateInitializer>::Deserialize(MaterialResource->RasterizerState, content["RasterizerState"], Ar.InBuffer.get());
+        TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(MaterialResource->DepthStencilState, content["DepthStencilState"], Ar.InBuffer.get());
         MaterialResource->UpdateMaterialCode(Code);
         nlohmann::json &textures = content["Textures"];
         for (auto &[sampler_name, texture] : textures.items())

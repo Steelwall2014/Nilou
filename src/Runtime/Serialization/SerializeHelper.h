@@ -3,6 +3,8 @@
 #include <json/json.hpp>
 #include <magic_enum.hpp>
 
+#include "Archive.h"
+
 namespace nilou {
 
     class SerializeHelper
@@ -20,10 +22,10 @@ namespace nilou {
     class TStaticSerializer
     {
     public:
-        static void Serialize(const T &Object, nlohmann::json &json) 
+        static void Serialize(const T &Object, nlohmann::json &json, FArchiveBuffers &Buffers) 
         { 
         }
-        static void Deserialize(T &Object, nlohmann::json &json) 
+        static void Deserialize(T &Object, nlohmann::json &json, void* Buffer) 
         { 
         }
     };

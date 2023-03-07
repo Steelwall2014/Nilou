@@ -9,6 +9,32 @@
 
 namespace nilou {
 
+    class DirectoryEntry
+    {
+    public:
+        bool bIsDirty;
+        bool bIsDirectory;
+        bool bNeedFlush = true;
+        std::string Name;
+        /**
+         * The absolute path of the directory entry
+         */
+        std::filesystem::path AbsolutePath;
+        /**
+         * The path relative to root entry
+         */
+        std::filesystem::path RelativePath;
+        std::unordered_map<std::string, std::unique_ptr<DirectoryEntry>> Children;
+        std::unique_ptr<UObject> Object;
+
+        static std::unique_ptr<DirectoryEntry> Build(const std::filesystem::path &DirectoryPath, const std::filesystem::path &ContentBasePath);
+
+        static UObject *Search(DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth);
+
+        static void Serialize(DirectoryEntry *Entry);
+        static void Deserialize(DirectoryEntry *Entry, std::vector<DirectoryEntry*> &OutEntries);
+    };
+
     class FContentManager
     {
     
@@ -61,9 +87,11 @@ namespace nilou {
          * 
          */
         template<typename T>
-        T *CreateFile(const std::filesystem::path &InPath, bool bNeedFlush=true)
+        T *CreateFile(const std::filesystem::path &Path, bool bNeedFlush=true)
         {
             static_assert(TIsDerivedFrom<T, UObject>::Value, "");
+            std::filesystem::path InPath = Path;
+            InPath.replace_extension(".nasset");
             DirectoryEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
             if (entry)
             {
@@ -101,33 +129,13 @@ namespace nilou {
 
         void ReleaseRenderResources();
 
+        void ForEachContent(std::function<void(UObject*)> &&Func);
+
+        void ForEachEntry(std::function<void(DirectoryEntry*)> &&Func);
+
     private:
 
-        class DirectoryEntry
-        {
-        public:
-            bool bIsDirty;
-            bool bIsDirectory;
-            bool bNeedFlush = true;
-            std::string Name;
-            /**
-             * The absolute path of the directory entry
-             */
-            std::filesystem::path AbsolutePath;
-            /**
-             * The path relative to root entry
-             */
-            std::filesystem::path RelativePath;
-            std::unordered_map<std::string, std::unique_ptr<DirectoryEntry>> Children;
-            std::unique_ptr<UObject> Object;
 
-            static std::unique_ptr<DirectoryEntry> Build(const std::filesystem::path &DirectoryPath, const std::filesystem::path &ContentBasePath);
-
-            static UObject *Search(DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth);
-
-            static void Serialize(DirectoryEntry *Entry);
-            static void Deserialize(DirectoryEntry *Entry, std::vector<FContentManager::DirectoryEntry*> &OutEntries);
-        };
         std::filesystem::path ContentBasePath;
         std::unique_ptr<DirectoryEntry> ContentEntry;
 
@@ -135,9 +143,9 @@ namespace nilou {
 
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
 
-        void ForEachContent(std::function<void(UObject*)> &&Func);
-
         void ForEachContentInternal(DirectoryEntry* Entry, std::function<void(UObject*)> &&Func);
+
+        void ForEachEntryInternal(DirectoryEntry* Entry, std::function<void(DirectoryEntry*)> &&Func);
     };
 
     FContentManager *GetContentManager();

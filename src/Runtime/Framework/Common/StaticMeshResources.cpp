@@ -185,8 +185,8 @@ namespace nilou {
         json["ClassName"] = "UStaticMesh";
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
-        TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"]);
-        TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"]);
+        TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.OutBuffers);
+        TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"], Ar.OutBuffers);
         for (int i = 0; i < MaterialSlots.size(); i++)
         {
             if (!MaterialSlots[i]->SerializationPath.empty())
@@ -202,8 +202,8 @@ namespace nilou {
         if (!SerializeHelper::CheckIsType(json, "UStaticMesh")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
-        TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"]);
-        TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"]);
+        TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.InBuffer.get());
+        TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"], Ar.InBuffer.get());
         RenderData->InitResources();
         for (int i = 0; i < content["MaterialSlots"].size(); i++)
         {

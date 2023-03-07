@@ -85,7 +85,8 @@ namespace nilou {
             image["Channel"] = TextureResource->Image->Channel;
             image["DataSize"] = TextureResource->Image->data_size;
             image["PixelFormat"] = magic_enum::enum_name(TextureResource->Image->PixelFormat);
-            image["Data"] = SerializeHelper::Base64Encode(TextureResource->Image->data, TextureResource->Image->data_size);
+            // image["Data"] = SerializeHelper::Base64Encode(TextureResource->Image->data, TextureResource->Image->data_size);
+            Ar.OutBuffers.AddBuffer(image["Data"], TextureResource->Image->data_size, TextureResource->Image->data);
             
         }
     }
@@ -112,9 +113,10 @@ namespace nilou {
         Image->Channel = image["Channel"];
         Image->data_size = image["DataSize"];
         Image->PixelFormat = magic_enum::enum_cast<EPixelFormat>(std::string(image["PixelFormat"])).value();
-        std::string data = SerializeHelper::Base64Decode(image["Data"].get<std::string>());
-        Image->data = new unsigned char[data.size()];
-        std::memcpy(Image->data, data.data(), data.size());
+        uint32 BufferOffset = image["Data"]["BufferOffset"];
+        // std::string data = SerializeHelper::Base64Decode(image["Data"].get<std::string>());
+        Image->data = new unsigned char[Image->data_size];
+        std::memcpy(Image->data, Ar.InBuffer.get()+BufferOffset, Image->data_size);
         
         int NumMips = 1;
         if (texture_resource.contains("NumMips"))
@@ -267,8 +269,8 @@ namespace nilou {
             image["Channel"] = TextureResource->Image->Channel;
             image["DataSize"] = TextureResource->Image->data_size;
             image["PixelFormat"] = magic_enum::enum_name(TextureResource->Image->PixelFormat);
-            image["Data"] = SerializeHelper::Base64Encode(TextureResource->Image->data, TextureResource->Image->data_size);
-            
+            //  = {"Buffer"};//SerializeHelper::Base64Encode(TextureResource->Image->data, TextureResource->Image->data_size);
+            Ar.OutBuffers.AddBuffer(image["Data"], TextureResource->Image->data_size, TextureResource->Image->data);
         }
     }
 
@@ -294,9 +296,10 @@ namespace nilou {
         Image->Channel = image["Channel"];
         Image->data_size = image["DataSize"];
         Image->PixelFormat = magic_enum::enum_cast<EPixelFormat>(std::string(image["PixelFormat"])).value();
-        std::string data = SerializeHelper::Base64Decode(image["Data"].get<std::string>());
-        Image->data = new unsigned char[data.size()];
-        std::memcpy(Image->data, data.data(), data.size());
+        uint32 BufferOffset = image["Data"]["BufferOffset"];
+        // std::string data = SerializeHelper::Base64Decode(image["Data"].get<std::string>());
+        Image->data = new unsigned char[Image->data_size];
+        std::memcpy(Image->data, Ar.InBuffer.get()+BufferOffset, Image->data_size);
         // 暂时是写死成texture2d
         PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(ETextureType::TT_Texture2D, Image->PixelFormat);
         BytePerTile = PageSize.x * PageSize.y * TranslatePixelFormatToBytePerPixel(Image->PixelFormat);

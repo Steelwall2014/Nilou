@@ -126,7 +126,7 @@ namespace nilou {
 	class TStaticSerializer<FDepthStencilStateInitializer>
 	{
 	public:
-		static void Serialize(const FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json)
+		static void Serialize(const FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json, FArchiveBuffers &Buffers)
 		{
 			json["ClassName"] = "FDepthStencilStateInitializer";
 			nlohmann::json &content = json["Content"];
@@ -145,7 +145,7 @@ namespace nilou {
 			content["BackFaceDepthFailStencilOp"] = magic_enum::enum_name(DepthStencilState.BackFaceDepthFailStencilOp);
 			content["BackFacePassStencilOp"] = magic_enum::enum_name(DepthStencilState.BackFacePassStencilOp);
 		}
-		static void Deserialize(FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json)
+		static void Deserialize(FDepthStencilStateInitializer &DepthStencilState, nlohmann::json &json, void* Buffer)
 		{
             if (!SerializeHelper::CheckIsType(json, "FDepthStencilStateInitializer")) return;
 			nlohmann::json &content = json["Content"];
@@ -197,14 +197,14 @@ namespace nilou {
 	class TStaticSerializer<FRasterizerStateInitializer>
 	{
 	public:
-		static void Serialize(const FRasterizerStateInitializer &BlendState, nlohmann::json &json)
+		static void Serialize(const FRasterizerStateInitializer &BlendState, nlohmann::json &json, FArchiveBuffers &Buffers)
 		{
 			json["ClassName"] = "FRasterizerStateInitializer";
 			nlohmann::json &content = json["Content"];
 			content["FillMode"] = magic_enum::enum_name(BlendState.FillMode);
 			content["CullMode"] = magic_enum::enum_name(BlendState.CullMode);
 		}
-		static void Deserialize(FRasterizerStateInitializer &BlendState, nlohmann::json &json)
+		static void Deserialize(FRasterizerStateInitializer &BlendState, nlohmann::json &json, void* Buffer)
 		{
             if (!SerializeHelper::CheckIsType(json, "FRasterizerStateInitializer")) return;
 			nlohmann::json &content = json["Content"];
@@ -279,7 +279,7 @@ namespace nilou {
 	class TStaticSerializer<FBlendStateInitializer>
 	{
 	public:
-		static void Serialize(const FBlendStateInitializer &BlendState, nlohmann::json &json)
+		static void Serialize(const FBlendStateInitializer &BlendState, nlohmann::json &json, FArchiveBuffers &Buffers)
 		{
 			json["ClassName"] = "FBlendStateInitializer";
 			nlohmann::json &content = json["Content"];
@@ -298,7 +298,7 @@ namespace nilou {
 				render_targets.push_back(render_target);
 			}
 		}
-		static void Deserialize(FBlendStateInitializer &BlendState, nlohmann::json &json)
+		static void Deserialize(FBlendStateInitializer &BlendState, nlohmann::json &json, void* Buffer)
 		{
             if (!SerializeHelper::CheckIsType(json, "FBlendStateInitializer")) return;
 

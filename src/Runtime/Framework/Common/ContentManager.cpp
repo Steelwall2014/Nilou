@@ -43,10 +43,10 @@ namespace nilou {
         return res;
     }
 
-    std::unique_ptr<FContentManager::DirectoryEntry> 
-    FContentManager::DirectoryEntry::Build(const fs::path &DirectoryPath, const fs::path &ContentBasePath)
+    std::unique_ptr<DirectoryEntry> 
+    DirectoryEntry::Build(const fs::path &DirectoryPath, const fs::path &ContentBasePath)
     {
-        auto directory_entry = std::make_unique<FContentManager::DirectoryEntry>();
+        auto directory_entry = std::make_unique<DirectoryEntry>();
         directory_entry->bIsDirty = false;
         directory_entry->bIsDirectory = true;
         directory_entry->AbsolutePath = DirectoryPath;
@@ -62,26 +62,28 @@ namespace nilou {
             else 
             {
                 fs::path Path = dir_entry.path();
+                if (Path.extension().generic_string() != ".nasset")
+                    continue;
                 std::ifstream in{Path.generic_string()};
-                std::string class_name = ReadClassName(in);
-                if (class_name != "")
-                {
-                    auto file_entry = std::make_unique<FContentManager::DirectoryEntry>();
-                    file_entry->bIsDirty = false;
-                    file_entry->bIsDirectory = false;
-                    file_entry->AbsolutePath = Path;
-                    file_entry->Name = Path.filename().generic_string();
-                    file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
-                    file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
-                    file_entry->Object->SerializationPath = file_entry->RelativePath;
-                    directory_entry->Children[file_entry->Name] = std::move(file_entry);
-                }
+                // std::string class_name = ReadClassName(in);
+                // if (class_name != "")
+                // {
+                auto file_entry = std::make_unique<DirectoryEntry>();
+                file_entry->bIsDirty = false;
+                file_entry->bIsDirectory = false;
+                file_entry->AbsolutePath = Path;
+                file_entry->Name = Path.filename().generic_string();
+                file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
+                // file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
+                // file_entry->Object->SerializationPath = file_entry->RelativePath;
+                directory_entry->Children[file_entry->Name] = std::move(file_entry);
+                // }
             }
         }
         return directory_entry;
     }
 
-    UObject *FContentManager::DirectoryEntry::Search(FContentManager::DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth)
+    UObject *DirectoryEntry::Search(DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth)
     {
         if (tokens[depth] == Entry->Name)
         {
@@ -103,7 +105,7 @@ namespace nilou {
         return nullptr;
     }
 
-    void FContentManager::DirectoryEntry::Serialize(DirectoryEntry *Entry)
+    void DirectoryEntry::Serialize(DirectoryEntry *Entry)
     {
         if (Entry->bIsDirectory)
         {
@@ -119,14 +121,13 @@ namespace nilou {
             if (Entry->bIsDirty && Entry->bNeedFlush && !Entry->Object->SerializationPath.empty())
             {
                 FArchive Ar;
-                std::ofstream out{Entry->AbsolutePath.generic_string()};
                 Entry->Object->Serialize(Ar);
-                out << Ar.json.dump();
+                Ar.WriteToPath(Entry->AbsolutePath);
             }
         }
     }
 
-    void FContentManager::DirectoryEntry::Deserialize(DirectoryEntry *Entry, std::vector<FContentManager::DirectoryEntry*> &OutEntries)
+    void DirectoryEntry::Deserialize(DirectoryEntry *Entry, std::vector<DirectoryEntry*> &OutEntries)
     {
         if (Entry->bIsDirectory)
         {
@@ -152,30 +153,34 @@ namespace nilou {
         std::vector<DirectoryEntry*> Entries;
         DirectoryEntry::Deserialize(ContentEntry.get(), Entries);
         BS::thread_pool pool;
-        std::vector<std::future<nlohmann::json>> futures;
+        std::vector<std::future<FArchive>> futures;
         for (int i = 0; i < Entries.size(); i++)
         {
             auto future = pool.submit([](DirectoryEntry *Entry) {
-                nlohmann::json json;
-                std::ifstream in{Entry->AbsolutePath.generic_string()};
-                in >> json;
-                return json;
+                FArchive Ar;
+                std::filesystem::path InPath = Entry->AbsolutePath;
+                InPath.replace_extension(".nasset");
+                Ar.LoadFromPath(InPath);
+                return Ar;
             }, Entries[i]);
             futures.push_back(std::move(future));
         }
         pool.wait_for_tasks();
+        std::vector<FArchive> Archives;
         for (int i = 0; i < futures.size(); i++)
         {
             auto &future = futures[i];
-            FArchive Ar;
-            Ar.json = future.get();
+            FArchive Ar = future.get();
             if (Ar.json.contains("ClassName"))
             {
-                if (Entries[i]->Object != nullptr)
-                {
-                    Entries[i]->Object->Deserialize(Ar);
-                }
+                Entries[i]->Object = FObjectFactory::CreateDefaultObjectByName(Ar.json["ClassName"]);
+                Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
             }
+            Archives.push_back(std::move(Ar));
+        }
+        for (int i = 0; i < Archives.size(); i++)
+        {
+            Entries[i]->Object->Deserialize(Archives[i]);
         }
     }
 
@@ -211,7 +216,7 @@ namespace nilou {
             return false;
     }
 
-    FContentManager::DirectoryEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush)
+    DirectoryEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush)
     {
         std::string path = InPath.generic_string();
         auto tokens = GameStatics::Split(path, '/');
@@ -299,6 +304,11 @@ namespace nilou {
         ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(UObject*)>>(Func));
     }
 
+    void FContentManager::ForEachEntry(std::function<void(DirectoryEntry*)> &&Func)
+    {
+        ForEachEntryInternal(ContentEntry.get(), std::forward<std::function<void(DirectoryEntry*)>>(Func));
+    }
+
     void FContentManager::ForEachContentInternal(DirectoryEntry* Entry, std::function<void(UObject*)> &&Func)
     {
         if (Entry->bIsDirectory)
@@ -311,6 +321,21 @@ namespace nilou {
         else 
         {              
             Func(Entry->Object.get());
+        }
+    }
+
+    void FContentManager::ForEachEntryInternal(DirectoryEntry* Entry, std::function<void(DirectoryEntry*)> &&Func)
+    {
+        if (Entry->bIsDirectory)
+        {
+            for (auto &[Name, Child] : Entry->Children)
+            {
+                ForEachEntryInternal(Child.get(), std::forward<std::function<void(DirectoryEntry*)>>(Func));
+            }
+        }
+        else 
+        {              
+            Func(Entry);
         }
     }
 }

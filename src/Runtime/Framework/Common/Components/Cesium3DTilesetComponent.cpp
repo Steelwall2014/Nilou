@@ -96,7 +96,7 @@ namespace nilou {
             OutTextures.push_back(texture);
         }
 
-        UMaterial *GLTFMaterial = GetContentManager()->GetMaterialByPath("/Materials/Cesium3DTilesMaterial.json");
+        UMaterial *GLTFMaterial = GetContentManager()->GetMaterialByPath("/Materials/Cesium3DTilesMaterial.nasset");
         if (GLTFMaterial == nullptr) return;
 
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
@@ -604,7 +604,7 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PreRenderCallBack);
             PostRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FCesium3DTilesetSceneProxy::PostRenderCallBack);
-            WireframeMaterial = GetContentManager()->GetMaterialByPath("/Materials/WireframeMaterial.json");
+            WireframeMaterial = GetContentManager()->GetMaterialByPath("/Materials/WireframeMaterial.nasset");
         }
 
         void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)

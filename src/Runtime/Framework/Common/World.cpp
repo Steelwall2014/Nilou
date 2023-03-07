@@ -47,7 +47,7 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
-        UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.json");
+        UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
         if (Mesh)
         {
             FTransform MeshTransform;
@@ -63,16 +63,30 @@ namespace nilou {
             }
         }
 
+        // std::vector<FDynamicMeshVertex> OutVerts;
+        // std::vector<uint32> OutIndices;
+        // BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
+        // UStaticMesh *cube = GetContentManager()->CreateFile<UStaticMesh>("StaticMeshes/Cube.nasset");
+        // cube->LocalBoundingBox = FBoundingBox(dvec3(-0.5), dvec3(0.5));
+        // cube->MaterialSlots.push_back(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        // std::unique_ptr<FStaticMeshLODResources> resources = std::make_unique<FStaticMeshLODResources>();
+        // std::unique_ptr<FStaticMeshSection> section = std::make_unique<FStaticMeshSection>();
+        // section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
+        // section->IndexBuffer.Init(OutIndices);
+        // resources->Sections.push_back(std::move(section));
+        // cube->RenderData->LODResources.push_back(std::move(resources));
+        // cube->Name = "Cube";
+
         FTransform CubeTransform;
         CubeTransform.SetScale3D(vec3(15, 15, 0.05));
-        UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.json");
+        UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
         std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
         StaticMeshActor->SetStaticMesh(Cube);
         
         std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetCastShadow(false);
         SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
-        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.json"));
+        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset"));
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
         std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
 
@@ -90,11 +104,11 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        FTransform VHMTransform;
-        VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
-        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.json")));
-        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.json"));
+        // FTransform VHMTransform;
+        // VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
+        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture")));
+        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial"));
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
@@ -109,6 +123,12 @@ namespace nilou {
         std::vector<FBatchedLine> lines;
         lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
+
+        // GetContentManager()->ForEachEntry([](DirectoryEntry* Entry) {
+        //     Entry->bIsDirty = true;
+        // });
+
+        // GetContentManager()->Flush();
 
     }
 

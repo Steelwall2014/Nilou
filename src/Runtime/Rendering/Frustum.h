@@ -169,7 +169,7 @@ namespace nilou {
     class TStaticSerializer<FBoundingBox>
     {
     public:
-        static void Serialize(const FBoundingBox &Object, nlohmann::json &json)
+        static void Serialize(const FBoundingBox &Object, nlohmann::json &json, FArchiveBuffers &Buffers)
         {
             json["ClassName"] = "FBoundingBox";
             nlohmann::json &content = json["Content"];
@@ -180,7 +180,7 @@ namespace nilou {
             content["Max"].push_back(Object.Max.y);
             content["Max"].push_back(Object.Max.z);
         }
-        static void Deserialize(FBoundingBox &Object, nlohmann::json &json)
+        static void Deserialize(FBoundingBox &Object, nlohmann::json &json, void* Buffer)
         {
             if (!SerializeHelper::CheckIsType(json, "FBoundingBox")) return;
             nlohmann::json &content = json["Content"];
