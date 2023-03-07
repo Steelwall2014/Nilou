@@ -104,11 +104,11 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        // FTransform VHMTransform;
-        // VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
-        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture")));
-        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial"));
+        FTransform VHMTransform;
+        VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
+        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.nasset")));
+        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
@@ -124,7 +124,7 @@ namespace nilou {
         lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
 
-        // GetContentManager()->ForEachEntry([](DirectoryEntry* Entry) {
+        // GetContentManager()->ForEachEntry([](FContentEntry* Entry) {
         //     Entry->bIsDirty = true;
         // });
 

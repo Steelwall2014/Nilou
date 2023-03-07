@@ -43,10 +43,10 @@ namespace nilou {
         return res;
     }
 
-    std::unique_ptr<DirectoryEntry> 
-    DirectoryEntry::Build(const fs::path &DirectoryPath, const fs::path &ContentBasePath)
+    std::unique_ptr<FContentEntry> 
+    FContentEntry::Build(const fs::path &DirectoryPath, const fs::path &ContentBasePath)
     {
-        auto directory_entry = std::make_unique<DirectoryEntry>();
+        auto directory_entry = std::make_unique<FContentEntry>();
         directory_entry->bIsDirty = false;
         directory_entry->bIsDirectory = true;
         directory_entry->AbsolutePath = DirectoryPath;
@@ -68,7 +68,7 @@ namespace nilou {
                 // std::string class_name = ReadClassName(in);
                 // if (class_name != "")
                 // {
-                auto file_entry = std::make_unique<DirectoryEntry>();
+                auto file_entry = std::make_unique<FContentEntry>();
                 file_entry->bIsDirty = false;
                 file_entry->bIsDirectory = false;
                 file_entry->AbsolutePath = Path;
@@ -83,7 +83,7 @@ namespace nilou {
         return directory_entry;
     }
 
-    UObject *DirectoryEntry::Search(DirectoryEntry *Entry, const std::vector<std::string> &tokens, int depth)
+    UObject *FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
     {
         if (tokens[depth] == Entry->Name)
         {
@@ -105,7 +105,7 @@ namespace nilou {
         return nullptr;
     }
 
-    void DirectoryEntry::Serialize(DirectoryEntry *Entry)
+    void FContentEntry::Serialize(FContentEntry *Entry)
     {
         if (Entry->bIsDirectory)
         {
@@ -127,7 +127,7 @@ namespace nilou {
         }
     }
 
-    void DirectoryEntry::Deserialize(DirectoryEntry *Entry, std::vector<DirectoryEntry*> &OutEntries)
+    void FContentEntry::Deserialize(FContentEntry *Entry, std::vector<FContentEntry*> &OutEntries)
     {
         if (Entry->bIsDirectory)
         {
@@ -145,18 +145,18 @@ namespace nilou {
     FContentManager::FContentManager(const fs::path &InContentBasePath)
         : ContentBasePath(InContentBasePath)
     {
-        ContentEntry = DirectoryEntry::Build(ContentBasePath, ContentBasePath);
+        ContentEntry = FContentEntry::Build(ContentBasePath, ContentBasePath);
     }
 
     void FContentManager::Init()
     {
-        std::vector<DirectoryEntry*> Entries;
-        DirectoryEntry::Deserialize(ContentEntry.get(), Entries);
+        std::vector<FContentEntry*> Entries;
+        FContentEntry::Deserialize(ContentEntry.get(), Entries);
         BS::thread_pool pool;
         std::vector<std::future<FArchive>> futures;
         for (int i = 0; i < Entries.size(); i++)
         {
-            auto future = pool.submit([](DirectoryEntry *Entry) {
+            auto future = pool.submit([](FContentEntry *Entry) {
                 FArchive Ar;
                 std::filesystem::path InPath = Entry->AbsolutePath;
                 InPath.replace_extension(".nasset");
@@ -189,7 +189,7 @@ namespace nilou {
         std::string path = InPath.generic_string();
         auto tokens = GameStatics::Split(path, '/');
         tokens.insert(tokens.begin(), "Content");
-        return DirectoryEntry::Search(ContentEntry.get(), tokens, 0);
+        return FContentEntry::Search(ContentEntry.get(), tokens, 0);
     }
 
     UMaterial *FContentManager::GetMaterialByPath(const fs::path &InPath)
@@ -209,20 +209,20 @@ namespace nilou {
 
     bool FContentManager::CreateDirectory(const std::filesystem::path &InPath, bool bNeedFlush)
     {
-        DirectoryEntry *entry = CreateDirectoryInternal(InPath, bNeedFlush);
+        FContentEntry *entry = CreateDirectoryInternal(InPath, bNeedFlush);
         if (entry) 
             return true;
         else
             return false;
     }
 
-    DirectoryEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush)
+    FContentEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush)
     {
         std::string path = InPath.generic_string();
         auto tokens = GameStatics::Split(path, '/');
-        DirectoryEntry *temp_entry = ContentEntry.get();
+        FContentEntry *temp_entry = ContentEntry.get();
         int depth = 0;
-        DirectoryEntry *res;
+        FContentEntry *res;
         while (depth < tokens.size())
         {
             if (temp_entry->Children.find(tokens[depth]) != temp_entry->Children.end())
@@ -234,14 +234,14 @@ namespace nilou {
             }
             else 
             {
-                auto Entry = std::make_unique<DirectoryEntry>();
+                auto Entry = std::make_unique<FContentEntry>();
                 Entry->AbsolutePath = temp_entry->AbsolutePath / fs::path(tokens[depth]);
                 Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
                 Entry->Name = tokens[depth];
                 Entry->bIsDirectory = true;
                 Entry->bIsDirty = true;
                 Entry->bNeedFlush = bNeedFlush;
-                DirectoryEntry *raw = Entry.get();
+                FContentEntry *raw = Entry.get();
                 temp_entry->Children[Entry->Name] = std::move(Entry);
                 temp_entry = raw;
             }
@@ -255,7 +255,7 @@ namespace nilou {
 
     void FContentManager::Flush()
     {
-        DirectoryEntry::Serialize(ContentEntry.get());
+        FContentEntry::Serialize(ContentEntry.get());
     }
     
     void FContentManager::AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
@@ -304,12 +304,12 @@ namespace nilou {
         ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(UObject*)>>(Func));
     }
 
-    void FContentManager::ForEachEntry(std::function<void(DirectoryEntry*)> &&Func)
+    void FContentManager::ForEachEntry(std::function<void(FContentEntry*)> &&Func)
     {
-        ForEachEntryInternal(ContentEntry.get(), std::forward<std::function<void(DirectoryEntry*)>>(Func));
+        ForEachEntryInternal(ContentEntry.get(), std::forward<std::function<void(FContentEntry*)>>(Func));
     }
 
-    void FContentManager::ForEachContentInternal(DirectoryEntry* Entry, std::function<void(UObject*)> &&Func)
+    void FContentManager::ForEachContentInternal(FContentEntry* Entry, std::function<void(UObject*)> &&Func)
     {
         if (Entry->bIsDirectory)
         {
@@ -324,13 +324,13 @@ namespace nilou {
         }
     }
 
-    void FContentManager::ForEachEntryInternal(DirectoryEntry* Entry, std::function<void(DirectoryEntry*)> &&Func)
+    void FContentManager::ForEachEntryInternal(FContentEntry* Entry, std::function<void(FContentEntry*)> &&Func)
     {
         if (Entry->bIsDirectory)
         {
             for (auto &[Name, Child] : Entry->Children)
             {
-                ForEachEntryInternal(Child.get(), std::forward<std::function<void(DirectoryEntry*)>>(Func));
+                ForEachEntryInternal(Child.get(), std::forward<std::function<void(FContentEntry*)>>(Func));
             }
         }
         else 
