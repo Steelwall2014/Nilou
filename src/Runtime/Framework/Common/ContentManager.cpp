@@ -175,6 +175,7 @@ namespace nilou {
             {
                 Entries[i]->Object = FObjectFactory::CreateDefaultObjectByName(Ar.json["ClassName"]);
                 Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
+                Entries[i]->Object->ContentEntry = Entries[i];
             }
             Archives.push_back(std::move(Ar));
         }

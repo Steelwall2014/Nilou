@@ -1,6 +1,7 @@
 #pragma once
 #include <half/half.hpp>
 #include <string>
+#include <thread_pool/BS_thread_pool.hpp>
 
 #include "Common/CoreUObject/Object.h"
 
@@ -154,6 +155,7 @@ namespace nilou {
         uint32 MipmapLevel;
         uint32 DataOffset;
         bool bCommited = false;
+        std::mutex mutex;
     };
 
     UCLASS()
@@ -169,9 +171,13 @@ namespace nilou {
 
         void UpdateBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
 
+        void UpdateBoundSync(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
+
         void UnloadTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
 
         void UpdateTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
+
+        void UpdateTileSync(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
 
         uvec2 GetNumTiles() const { return uvec2(NumTileX, NumTileY); }
 
@@ -179,7 +185,7 @@ namespace nilou {
 
         uint32 GetBytePerTile() const { return BytePerTile; }
 
-        uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
+        uint32 MaxPhysicalMemoryByte = 1024*1024*6;   // 128 MB physical memory limit for every virtual texture
 
    private:
 
@@ -194,11 +200,16 @@ namespace nilou {
 
         uint32 BytePerTile;
 
-        std::vector<std::vector<std::vector<VirtualTextureTile>>> Tiles;
+        std::vector<std::vector<std::vector<std::unique_ptr<VirtualTextureTile>>>> Tiles;
 
+        std::mutex mutex;
         std::list<VirtualTextureTile*> LoadedTiles;
-
         std::unordered_map<VirtualTextureTile*, std::list<VirtualTextureTile*>::iterator> TileToIterMap;
+
+        std::filesystem::path StreamingPath;
+        uint32 StreamingBufferOffset;
+
+        BS::thread_pool thread_pool;
 
     };
 

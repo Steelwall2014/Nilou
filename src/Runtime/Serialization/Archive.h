@@ -28,6 +28,13 @@ namespace nilou {
     public:
         nlohmann::json json;
         FArchiveBuffers OutBuffers;
+        char magic[4];
+        uint32 version;
+        uint32 FileLength;
+        uint32 JsonLength;
+        char JsonChunkType[4];
+        uint32 BinLength;
+        char BinChunkType[4];
         std::unique_ptr<unsigned char[]> InBuffer = nullptr;
         void WriteToPath(const std::filesystem::path &Path);
         void LoadFromPath(const std::filesystem::path &Path);

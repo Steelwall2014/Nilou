@@ -399,7 +399,7 @@ namespace nilou {
             {
                 BuildMinMaxBlock->Data.Offset = uvec2(0, 0);
                 BuildMinMaxBlock->UpdateUniformBuffer();
-                HeightField->UpdateBound(vec2(0), vec2(1), 0);
+                HeightField->UpdateBoundSync(vec2(0), vec2(1), 0);
                 int group_num_y = HeightMinMaxTexture->GetSizeY() / BUILD_MINMAX_LOCAL_SIZE;
                 int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
                 FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
@@ -418,7 +418,7 @@ namespace nilou {
                         {
                             float Col_Min = float(i) * NumTiles.x/DispatchCountPerRow / NumTiles.x;
                             float Col_Max = float(i+1) * NumTiles.x/DispatchCountPerRow / NumTiles.x;
-                            HeightField->UpdateBound(vec2(Col_Min, Row_Min), vec2(Col_Max, Row_Max), 0);
+                            HeightField->UpdateBoundSync(vec2(Col_Min, Row_Min), vec2(Col_Max, Row_Max), 0);
                             int group_num_y = HeightMinMaxTexture->GetSizeY() * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
                             int group_num_x = HeightMinMaxTexture->GetSizeX() * (Col_Max - Col_Min) / BUILD_MINMAX_LOCAL_SIZE;
                             BuildMinMaxBlock->Data.Offset = uvec2(HeightMinMaxTexture->GetSizeX() * Col_Min, HeightMinMaxTexture->GetSizeY() * Row_Min);
@@ -434,7 +434,7 @@ namespace nilou {
                     {
                         float Row_Min = float(i) * NumRowsPerDispatch / NumTiles.y;
                         float Row_Max = float(i+1) * NumRowsPerDispatch / NumTiles.y;
-                        HeightField->UpdateBound(vec2(0, Row_Min), vec2(1, Row_Max), 0);
+                        HeightField->UpdateBoundSync(vec2(0, Row_Min), vec2(1, Row_Max), 0);
                         int group_num_y = HeightMinMaxTexture->GetSizeXYZ().y * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
                         int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
                         BuildMinMaxBlock->Data.Offset = uvec2(0, HeightMinMaxTexture->GetSizeXYZ().y * Row_Min);

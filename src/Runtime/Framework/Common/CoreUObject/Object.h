@@ -29,9 +29,11 @@ namespace nilou {
          * @brief The path of the file which contains this object.
          * The path is used for serialization, relative to FPath::ContentDir().
          * Note: If it's empty, then the object will not be written to disk while serializing.
-         * It will be automatically filled while deserializing.
+         * It will be automatically filled before deserializing.
          */
         std::filesystem::path SerializationPath;
+
+        class FContentEntry* ContentEntry;
     };
 
     class FObjectFactory
