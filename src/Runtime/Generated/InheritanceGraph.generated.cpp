@@ -10,6 +10,7 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AArrowActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ACameraActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ACesiumTilesetActor);
+	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AFFTOceanActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AGeoreferenceActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ALightActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ALineBatchActor);

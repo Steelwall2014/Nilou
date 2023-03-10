@@ -1,0 +1,25 @@
+#version 430
+const float PI = 3.14159f;
+const float g = 9.80665f;
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+    
+layout (rg16f, binding = 0) uniform image2D HeightSpectrumRT;
+layout (rg16f, binding = 1) uniform image2D DisplaceXSpectrumRT;
+layout (rg16f, binding = 2) uniform image2D DisplaceYSpectrumRT;
+layout (rgba16f, binding = 3) uniform image2D DisplaceRT;
+
+
+
+void GenerationDisplace(uvec3 id)
+{
+    float z = length(imageLoad(HeightSpectrumRT, ivec2(id.xy)).xy);     //∏ﬂ∂»
+    float x = length(imageLoad(DisplaceXSpectrumRT, ivec2(id.xy)).xy);  //x÷·∆´“∆
+    float y = length(imageLoad(DisplaceYSpectrumRT, ivec2(id.xy)).xy);  //y÷·∆´“∆
+
+    imageStore(DisplaceRT, ivec2(id.xy), vec4(x, y, z, 0));
+}
+
+void main()
+{
+    GenerationDisplace(gl_GlobalInvocationID);
+}

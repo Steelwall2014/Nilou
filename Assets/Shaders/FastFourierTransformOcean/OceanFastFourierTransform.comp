@@ -1,0 +1,65 @@
+#version 430
+const float PI = 3.14159f;
+const float g = 9.80665f;
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+    
+layout (rg16f, binding = 0) uniform image2D InputRT;
+layout (rg16f, binding = 1) uniform image2D OutputRT;
+
+layout (std140) uniform FOceanFFTButterflyBlock {
+    uint Ns;
+};
+#include "OceanFastFourierTransformParameters.glsl"
+
+vec2 complexMultiply(vec2 c1, vec2 c2)
+{
+    float a = c1.x * c2.x - c1.y * c2.y;
+    float b = c1.x * c2.y + c1.y * c2.x;
+    return vec2(a, b);
+}
+vec2 exp_theta(float theta) {
+    return vec2(cos(theta), sin(theta));
+}
+void FFTHorizontal(uvec3 id)
+{
+    ivec2 l_in = ivec2(id.xy);
+    ivec2 r_in = ivec2(id.xy);
+    l_in.x = int(floor(id.x / (Ns*2)) * Ns + id.x % Ns);
+    r_in.x = l_in.x + int(N) / 2;
+
+    float theta = -2.0f * PI / (Ns * 2.0f) * id.x;
+    vec2 w = exp_theta(theta);
+
+    vec2 f0 = imageLoad(InputRT, l_in).xy;
+    vec2 f1 = imageLoad(InputRT, r_in).xy;
+
+    vec2 res = f0 + complexMultiply(w, f1);
+    
+    imageStore(OutputRT, ivec2(id), vec4(res, 0, 0));
+}
+void FFTVertical(uvec3 id)
+{
+    ivec2 l_in = ivec2(id.xy);
+    ivec2 r_in = ivec2(id.xy);
+    l_in.y = int(floor(id.y / (Ns*2)) * Ns + id.y % Ns);
+    r_in.y = l_in.y + int(N) / 2;
+
+    float theta = -2.0f * PI / (Ns * 2.0f) * id.y;
+    vec2 w = exp_theta(theta);
+
+    vec2 f0 = imageLoad(InputRT, l_in).xy;
+    vec2 f1 = imageLoad(InputRT, r_in).xy;
+
+    vec2 res = f0 + complexMultiply(w, f1);
+
+    imageStore(OutputRT, ivec2(id), vec4(res, 0, 0));
+}
+
+void main()
+{
+    #if HORIZONTAL_PASS
+        FFTHorizontal(gl_GlobalInvocationID);
+    #else
+        FFTVertical(gl_GlobalInvocationID);
+    #endif
+}

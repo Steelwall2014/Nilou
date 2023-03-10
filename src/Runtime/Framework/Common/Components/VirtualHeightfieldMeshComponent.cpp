@@ -341,6 +341,8 @@ namespace nilou {
         {
             GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
             GetAppication()->GetPostRenderDelegate().Remove(PostRenderHandle);
+            
+            FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
         virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override

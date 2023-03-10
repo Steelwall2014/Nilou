@@ -2,6 +2,7 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/ArrowActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/Cesium3DTilesetActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LightActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
@@ -35,6 +36,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["AArrowActor"] = &AArrowActor::CreateDefaultObject;
     FunctionMap["ACameraActor"] = &ACameraActor::CreateDefaultObject;
     FunctionMap["ACesiumTilesetActor"] = &ACesiumTilesetActor::CreateDefaultObject;
+    FunctionMap["AFFTOceanActor"] = &AFFTOceanActor::CreateDefaultObject;
     FunctionMap["AGeoreferenceActor"] = &AGeoreferenceActor::CreateDefaultObject;
     FunctionMap["ALightActor"] = &ALightActor::CreateDefaultObject;
     FunctionMap["ALineBatchActor"] = &ALineBatchActor::CreateDefaultObject;

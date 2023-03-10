@@ -21,6 +21,7 @@
 #include "Common/Actor/Cesium3DTilesetActor.h"
 #include "Common/Actor/LineBatchActor.h"
 #include "Common/Actor/VirtualHeightfieldMeshActor.h"
+#include "Common/Actor/FFTOceanActor.h"
 
 #include "Georeference.h"
 
@@ -123,6 +124,8 @@ namespace nilou {
         std::vector<FBatchedLine> lines;
         lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
+
+        std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
         // GetContentManager()->ForEachEntry([](FContentEntry* Entry) {
         //     Entry->bIsDirty = true;

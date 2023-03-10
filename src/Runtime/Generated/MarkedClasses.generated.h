@@ -6,6 +6,7 @@ enum class EUClasses {
 	MC_AArrowActor,
 	MC_ACameraActor,
 	MC_ACesiumTilesetActor,
+	MC_AFFTOceanActor,
 	MC_AGeoreferenceActor,
 	MC_ALightActor,
 	MC_ALineBatchActor,
