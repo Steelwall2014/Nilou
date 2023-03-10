@@ -105,17 +105,47 @@ namespace nilou {
             std::shared_ptr<UMaterialInstance> Material = GLTFMaterial->CreateMaterialInstance();
             if (gltf_material.doubleSided)
                 Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
-            auto AccessTextures = 
-                [&OutTextures, Material](int index, const std::string &sampler_name) {
-                if (index != -1)
-                {
-                    Material->GetResource()->SetParameterValue(sampler_name, OutTextures[index].get());
-                }
-            };
-            AccessTextures(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "baseColorTexture");
-            AccessTextures(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "metallicRoughnessTexture");
-            AccessTextures(gltf_material.emissiveTexture.index, "emissiveTexture");
-            AccessTextures(gltf_material.normalTexture.index, "normalTexture");
+
+            if (gltf_material.pbrMetallicRoughness.baseColorTexture.index != -1)
+            {
+                int index = gltf_material.pbrMetallicRoughness.baseColorTexture.index;
+                Material->GetResource()->SetParameterValue("baseColorTexture", OutTextures[index].get());
+            }
+            else 
+            {
+                Material->GetResource()->SetParameterValue("baseColorTexture", GetContentManager()->GetTextureByPath("/Textures/NoColorTexture.nasset"));
+            }
+            
+            if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
+            {
+                int index = gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+                Material->GetResource()->SetParameterValue("metallicRoughnessTexture", OutTextures[index].get());
+            }
+            else 
+            {
+                Material->GetResource()->SetParameterValue("metallicRoughnessTexture", GetContentManager()->GetTextureByPath("/Textures/NoMetallicRoughnessTexture.nasset"));
+            }
+            
+            if (gltf_material.emissiveTexture.index != -1)
+            {
+                int index = gltf_material.emissiveTexture.index;
+                Material->GetResource()->SetParameterValue("emissiveTexture", OutTextures[index].get());
+            }
+            else 
+            {
+                Material->GetResource()->SetParameterValue("emissiveTexture", GetContentManager()->GetTextureByPath("/Textures/NoEmissiveTexture.nasset"));
+            }
+            
+            if (gltf_material.normalTexture.index != -1)
+            {
+                int index = gltf_material.normalTexture.index;
+                Material->GetResource()->SetParameterValue("normalTexture", OutTextures[index].get());
+            }
+            else 
+            {
+                Material->GetResource()->SetParameterValue("normalTexture", GetContentManager()->GetTextureByPath("/Textures/NoNormalTexture.nasset"));
+            }
+
             OutUniformBuffer = CreateUniformBuffer<FGLTFMaterialBlock>();
             OutUniformBuffer->Data.baseColorFactor.r = gltf_material.pbrMetallicRoughness.baseColorFactor[0];
             OutUniformBuffer->Data.baseColorFactor.g = gltf_material.pbrMetallicRoughness.baseColorFactor[1];
@@ -290,6 +320,11 @@ namespace nilou {
         Box = FOrientedBoundingBox(center, halfAxis);
     }
 
+    bool Cesium3DTile::HasRendableContent() const
+    {
+        return Content.B3dm.header_loaded();
+    }
+
     std::shared_ptr<Cesium3DTile> Cesium3DTile::BuildTile(
         std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform, ETileGltfUpAxis TileGltfUpAxis)
     {
@@ -362,8 +397,6 @@ namespace nilou {
     {
         TilesToRenderThisFrame.clear();
 
-        // DispatchMainThreadTask();
-
         UpdateInternal(Tileset->Root.get(), ViewStates);
 
         UnloadTiles();
@@ -376,9 +409,11 @@ namespace nilou {
         for (Cesium3DTile *Tile : LoadQueue)
         {
             pool.push_task([this, Tile]() {
-                    if (!Tile->Content.B3dm.header_loaded())
+                    if (!Tile->HasRendableContent())
                         return;
                     std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
+                    // If it doesn't own the lock, it means this tile is loading,
+                    // then we just return because we don't want to repeat the loading
                     if (!lock.owns_lock())
                         return;
                     tinygltf::Model model;
@@ -419,6 +454,7 @@ namespace nilou {
                 [this, Tile](FDynamicRHI*) 
                 {
                     std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
+                    // If it doesn't own the lock, it means this tile is being rendered.
                     if (!lock.owns_lock())
                         return;
                     Tile->LoadingState = ETileLoadingState::Unloading;
@@ -457,7 +493,7 @@ namespace nilou {
             }
             else 
             {
-                if (!Tile->Content.B3dm.header_loaded())
+                if (!Tile->HasRendableContent())
                 {
                     for (std::shared_ptr<Cesium3DTile> tile : Tile->Children)
                     {

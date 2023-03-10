@@ -89,6 +89,8 @@ namespace nilou {
         std::mutex mutex;
         // std::unique_lock<std::mutex> lock;
 
+        bool HasRendableContent() const;
+
         static std::shared_ptr<Cesium3DTile> BuildTile(
             std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform, ETileGltfUpAxis TileGltfUpAxis);
     private:
@@ -112,7 +114,7 @@ namespace nilou {
         TileLoadingResult Result;
         std::function<void(TileLoadingResult)> Func;
     };
-    
+
     }
 
     UCLASS()

@@ -104,20 +104,20 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        FTransform VHMTransform;
-        VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
-        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.nasset")));
-        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        // FTransform VHMTransform;
+        // VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
+        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.nasset")));
+        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         
-        // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
+        std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+        GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
 
-        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
         std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         std::vector<FBatchedLine> lines;

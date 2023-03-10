@@ -130,11 +130,22 @@ vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
     return (kD * params.baseColor / PI + BRDF) * radiance * NdotL * visibility + params.emissive;
 }
 
+vec3 GammaToLinear(vec3 GammaColor)
+{
+    return pow(GammaColor, vec3(2.2));
+}
+
+vec3 LinearToGamma(vec3 LinearColor)
+{
+    LinearColor = LinearColor / (LinearColor + vec3(1));
+    return pow(LinearColor, vec3(1/2.2));
+}
+
 void main()
 {
     ShadingParams params;
-    params.baseColor = texture(BaseColor, uv).rgb;
-    params.emissive = texture(Emissive, uv).rgb;
+    params.baseColor = GammaToLinear(texture(BaseColor, uv).rgb);
+    params.emissive = GammaToLinear(texture(Emissive, uv).rgb);
     params.relativePosition = texture(RelativeWorldSpacePosition, uv).rgb;
     params.worldSpaceNormal = normalize(texture(WorldSpaceNormal, uv).rgb);
     params.worldSpaceViewVector = normalize(-params.relativePosition);
@@ -142,7 +153,5 @@ void main()
     params.roughness = texture(MetallicRoughness, uv).g;
 
     vec3 color = ApplyLight(light, params);
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2));  
-    FragColor = vec4(color, 1);
+    FragColor = vec4(LinearToGamma(color), 1);
 }
