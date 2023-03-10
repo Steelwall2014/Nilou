@@ -356,11 +356,12 @@ namespace nilou {
                     Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.VertexFactory = &VertexFactory;
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer.get());
+                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
                     Mesh.Element.Bindings.SetElementShaderBinding("Patch_Buffer", PatchListBuffer.get());
-                    Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters.get());
+                    Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters->GetRHI());
                     Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightFieldSampler);
-                    Mesh.Element.Bindings.SetElementShaderBinding("FBuildNormalTangentBlock", BuildNormalTangentBlock.get());
+                    // Mesh.Element.Bindings.SetElementShaderBinding("MinMaxMap", &HeightMinMaxSampler);
+                    Mesh.Element.Bindings.SetElementShaderBinding("FBuildNormalTangentBlock", BuildNormalTangentBlock->GetRHI());
 
                     Mesh.Element.NumVertices = 0;
                     Mesh.Element.IndirectArgsBuffer = DrawIndirectArgs.get();

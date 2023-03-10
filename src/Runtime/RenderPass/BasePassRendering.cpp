@@ -128,7 +128,7 @@ namespace nilou {
                     RHIGetError();
 
                     FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                    InputBindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer());
+                    InputBindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
                     RHIGetError();
 
                     FMeshDrawCommand MeshDrawCommand;

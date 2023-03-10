@@ -124,7 +124,7 @@ namespace nilou {
             for (auto &[Name, Texture] : Textures)
                 OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
             for (auto &[Name, UniformBuffer] : UniformBuffers)
-                OutBindings.SetElementShaderBinding(Name, UniformBuffer);
+                OutBindings.SetElementShaderBinding(Name, UniformBuffer->GetRHI());
         }
 
         std::string Name;

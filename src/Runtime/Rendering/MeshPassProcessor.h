@@ -24,10 +24,10 @@ namespace nilou {
             bool bResourceFound = false;
             if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
             {          
-                if (FUniformBuffer *UniformBuffer = 
-                            InputBindings.GetElementShaderBinding<FUniformBuffer>(Binding.Name))
+                if (RHIUniformBuffer *UniformBuffer = 
+                            InputBindings.GetElementShaderBinding<RHIUniformBuffer>(Binding.Name))
                 {
-                    UniformBufferBindings[Stage].push_back({Binding.BindingPoint, UniformBuffer->GetRHI()});
+                    UniformBufferBindings[Stage].push_back({Binding.BindingPoint, UniformBuffer});
                     bResourceFound = true;
                 }
                 else if (RHIBuffer *Buffer = 

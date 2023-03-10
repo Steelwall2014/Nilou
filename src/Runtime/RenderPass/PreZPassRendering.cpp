@@ -113,7 +113,7 @@ namespace nilou {
                 std::vector<FRHIVertexInput> VertexInputs;
                 Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
                 FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo->SceneProxy->GetViewUniformBuffer());
+                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
                 BuildMeshDrawCommand(
                     RHICmdList,
                     // *Mesh.MaterialRenderProxy->GetType(),

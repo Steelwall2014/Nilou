@@ -353,11 +353,11 @@ namespace nilou {
                         Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
-                            UniformBuffer);
+                            UniformBuffer->GetRHI());
                         InputBindings.SetElementShaderBinding("FShadowMapFrustumIndex", 
-                            SplitIndexUBO.UBOs[SplitIndex].get());
+                            SplitIndexUBO.UBOs[SplitIndex]->GetRHI());
                         InputBindings.SetElementShaderBinding("FViewShaderParameters", 
-                            ViewInfo->SceneProxy->GetViewUniformBuffer());
+                            ViewInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
                         BuildMeshDrawCommand(
                             RHICmdList,
                             VertexFactoryParams,

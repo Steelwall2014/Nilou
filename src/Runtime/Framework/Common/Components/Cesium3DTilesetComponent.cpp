@@ -657,7 +657,7 @@ namespace nilou {
                                 Mesh.Element.IndexBuffer = &Section.IndexBuffer;
                                 Mesh.Element.NumVertices = Section.GetNumVertices();
                                 Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->GetResource()->CreateRenderProxy();
-                                Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI.get());
+                                Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI->GetRHI());
                                 Collector.AddMesh(ViewIndex, Mesh);
                                 if (bShowBoundingBox)
                                 {
@@ -677,7 +677,7 @@ namespace nilou {
                                     DebugBoundingBoxMesh.Element.IndexBuffer = &IndexBuffer;
                                     DebugBoundingBoxMesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
                                     DebugBoundingBoxMesh.MaterialRenderProxy = WireframeMaterial->GetResource()->CreateRenderProxy();
-                                    DebugBoundingBoxMesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TileBoundingBoxUBO[Tile].get());
+                                    DebugBoundingBoxMesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TileBoundingBoxUBO[Tile]->GetRHI());
                                     Collector.AddMesh(ViewIndex, DebugBoundingBoxMesh);
                                 }
                             }
