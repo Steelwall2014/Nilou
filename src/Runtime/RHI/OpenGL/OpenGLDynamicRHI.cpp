@@ -1699,18 +1699,14 @@ namespace nilou {
         OpenGLTextureResource GLResource = TextureResourceCast(Texture);
 		glm::ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
 		glBindTexture(GLResource.Target, GLResource.Resource);
-        uint32 offset_x = PageSize.x * TileX;
-        uint32 offset_y = PageSize.y * TileY;
-        uint32 size_x = PageSize.x;
-        uint32 size_y = PageSize.y;
         glTexPageCommitmentARB(GLResource.Target, MipmapLevel,
-					offset_x, offset_y, 0,
-					size_x, size_y, 1,
+					PageSize.x * TileX, PageSize.y * TileY, 0,
+					PageSize.x, PageSize.y, 1,
 					GL_TRUE);
         RHIGetError();
         glTexSubImage2D(GLResource.Target, MipmapLevel,
-					offset_x, offset_y,
-					size_x, size_y,
+					PageSize.x * TileX, PageSize.y * TileY,
+					PageSize.x, PageSize.y,
 					Format, Type,
 					Data);
         RHIGetError();

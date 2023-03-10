@@ -17,15 +17,21 @@ layout (std140) uniform FQuadTreeParameters {
     uint    NumPatchesPerNode;
 };
 
+layout (std140) uniform FBuildNormalTangentBlock {
+    uint HeightfieldWidth;
+    uint HeightfieldHeight;
+    vec2 PixelMeterSize;
+};
+
 layout (std140) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 };
 
 uniform sampler2D HeightfieldTexture;
 
-uniform sampler2D NormalTexture;
+//uniform sampler2D NormalTexture;
 
-uniform sampler2D TangentTexture;
+//uniform sampler2D TangentTexture;
 
 struct FVertexFactoryIntermediates
 {
@@ -83,6 +89,25 @@ bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
 	return on_edge;
 }
 
+void CalcNormalTangent(ivec2 id, out vec3 Normal, out vec4 Tangent)
+{
+    vec2 uvX1 = (vec2(id.x - 1, id.y) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
+    vec2 uvX2 = (vec2(id.x + 1, id.y) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
+    vec2 uvY1 = (vec2(id.x, id.y - 1) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
+    vec2 uvY2 = (vec2(id.x, id.y + 1) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
+
+    float x1_displace = texture(HeightfieldTexture, uvX1).r;
+    float x2_displace = texture(HeightfieldTexture, uvX2).r;
+    float y1_displace = texture(HeightfieldTexture, uvY1).r;
+    float y2_displace = texture(HeightfieldTexture, uvY2).r;
+
+    vec3 tangentX = vec3(2*PixelMeterSize.x, 0, x2_displace-x1_displace);
+    vec3 tangentY = vec3(0, 2*PixelMeterSize.y, y2_displace-y1_displace);
+
+    Normal = normalize(cross(tangentX, tangentY));
+	Tangent = vec4(normalize(tangentX), -1);
+}
+
 FVertexFactoryIntermediates VertexFactoryIntermediates()
 {
 	FVertexFactoryIntermediates VFIntermediates;
@@ -97,8 +122,10 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	vec2 HeightTexture_UV = pos.xy / HeightTextureMeterSize;
 	VFIntermediates.pos = pos;
 	VFIntermediates.Heightfield_UV = HeightTexture_UV;
-	VFIntermediates.Normal = texture(NormalTexture, HeightTexture_UV).xyz;
-	VFIntermediates.Tangent = texture(TangentTexture, HeightTexture_UV);
+	ivec2 id = ivec2(HeightTexture_UV * vec2(HeightfieldWidth, HeightfieldHeight));
+	CalcNormalTangent(id, VFIntermediates.Normal, VFIntermediates.Tangent);
+//	VFIntermediates.Normal = texture(NormalTexture, HeightTexture_UV).xyz;
+//	VFIntermediates.Tangent = texture(TangentTexture, HeightTexture_UV);
 	return VFIntermediates;
 }
 dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)

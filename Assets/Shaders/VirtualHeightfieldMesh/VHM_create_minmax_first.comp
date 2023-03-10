@@ -23,19 +23,33 @@ void main()
 {
     vec2 PatchOriginalMeterSize = vec2(NumQuadsPerPatch);
     vec2 HeightMapMeterSize = NumQuadsPerPatch * NumPatchesPerNode * NodeCount;
-    vec2 patch_upperleft_uv = vec2(gl_GlobalInvocationID.xy+Offset) * PatchOriginalMeterSize / HeightMapMeterSize;
-    vec2 patch_upperright_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(0, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
-    vec2 patch_lowerleft_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(1, 0)) * PatchOriginalMeterSize / HeightMapMeterSize;
-    vec2 patch_lowerright_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(1, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
-    vec2 patch_center_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(0.5, 0.5)) * PatchOriginalMeterSize / HeightMapMeterSize;
-
-    float ul_height = texture(HeightMap, patch_upperleft_uv).r;
-    float ur_height = texture(HeightMap, patch_upperright_uv).r;
-    float ll_height = texture(HeightMap, patch_lowerleft_uv).r;
-    float lr_height = texture(HeightMap, patch_lowerright_uv).r;
-    float center_height = texture(HeightMap, patch_center_uv).r;
-
-    float min_height = min(ul_height, min(ur_height, min(ll_height, min(center_height, lr_height))));
-    float max_height = max(ul_height, max(ur_height, max(ll_height, max(center_height, lr_height))));
+    float min_height = 1000000.f;
+    float max_height = -1000000.f;
+    int sample_x = 100;
+    int sample_y = 100;
+    for (int i = 0; i <= sample_x; i++)
+    {
+        for (int j = 0; j <= sample_y; j++)
+        {
+            vec2 patch_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(i, j)/vec2(sample_x, sample_y)) * PatchOriginalMeterSize / HeightMapMeterSize;
+            float patch_height = texture(HeightMap, patch_uv).r;
+            max_height = max(max_height, patch_height);
+            min_height = min(min_height, patch_height);
+        }
+    }
+//    vec2 patch_upperleft_uv = vec2(gl_GlobalInvocationID.xy+Offset) * PatchOriginalMeterSize / HeightMapMeterSize;
+//    vec2 patch_upperright_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(0, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
+//    vec2 patch_lowerleft_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(1, 0)) * PatchOriginalMeterSize / HeightMapMeterSize;
+//    vec2 patch_lowerright_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(1, 1)) * PatchOriginalMeterSize / HeightMapMeterSize;
+//    vec2 patch_center_uv = (vec2(gl_GlobalInvocationID.xy+Offset) + vec2(0.5, 0.5)) * PatchOriginalMeterSize / HeightMapMeterSize;
+//
+//    float ul_height = texture(HeightMap, patch_upperleft_uv).r;
+//    float ur_height = texture(HeightMap, patch_upperright_uv).r;
+//    float ll_height = texture(HeightMap, patch_lowerleft_uv).r;
+//    float lr_height = texture(HeightMap, patch_lowerright_uv).r;
+//    float center_height = texture(HeightMap, patch_center_uv).r;
+//
+//    float min_height = min(ul_height, min(ur_height, min(ll_height, min(center_height, lr_height))));
+//    float max_height = max(ul_height, max(ur_height, max(ll_height, max(center_height, lr_height))));
     imageStore(OutMinMaxMap, ivec2(gl_GlobalInvocationID.xy), vec4(min_height, max_height, 0, 0));
 }

@@ -6,6 +6,8 @@
 #include "Common/PrimitiveUtils.h"
 #include "Material.h"
 
+#include <glad/glad.h>
+
 namespace nilou {
     
     DECLARE_GLOBAL_SHADER(FVHMBuildNormalTangentTextureShader)
@@ -68,6 +70,12 @@ namespace nilou {
         SHADER_PARAMETER(uint32, LODNum)
         SHADER_PARAMETER(uint32, NumQuadsPerPatch)
         SHADER_PARAMETER(uint32, NumPatchesPerNode)
+    END_UNIFORM_BUFFER_STRUCT()
+    
+    BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
+        SHADER_PARAMETER(uint32, HeightfieldWidth)
+        SHADER_PARAMETER(uint32, HeightfieldHeight)
+        SHADER_PARAMETER(vec2, PixelMeterSize)
     END_UNIFORM_BUFFER_STRUCT()
 
     static unsigned int fromNodeLoctoNodeDescriptionIndex(glm::uvec2 nodeLoc, unsigned int lod, const WorldLodParam &param)
@@ -223,24 +231,24 @@ namespace nilou {
             ENQUEUE_RENDER_COMMAND(FVirtualHeightfieldMeshSceneProxy_Constructor)(
                 [this](FDynamicRHI *RHICmdList)
                 {
-                    NormalTexture = RHICmdList->RHICreateTexture2D(
-                        "NormalTexture", 
-                        EPixelFormat::PF_R16G16B16A16F, 
-                        1, 
-                        HeightFieldSampler->Texture->GetSizeXYZ().x, 
-                        HeightFieldSampler->Texture->GetSizeXYZ().y, 
-                        nullptr);
-                    NormalSampler.Texture = NormalTexture.get();
-                    NormalSampler.Params = HeightFieldSampler->Params;
-                    TangentTexture = RHICmdList->RHICreateTexture2D(
-                        "TangentTexture", 
-                        EPixelFormat::PF_R16G16B16A16F, 
-                        1, 
-                        HeightFieldSampler->Texture->GetSizeXYZ().x, 
-                        HeightFieldSampler->Texture->GetSizeXYZ().y, 
-                        nullptr);
-                    TangentSampler.Texture = TangentTexture.get();
-                    TangentSampler.Params = HeightFieldSampler->Params;
+                    // NormalTexture = RHICmdList->RHICreateTexture2D(
+                    //     "NormalTexture", 
+                    //     EPixelFormat::PF_R16G16B16A16F, 
+                    //     1, 
+                    //     HeightFieldSampler->Texture->GetSizeXYZ().x, 
+                    //     HeightFieldSampler->Texture->GetSizeXYZ().y, 
+                    //     nullptr);
+                    // NormalSampler.Texture = NormalTexture.get();
+                    // NormalSampler.Params = HeightFieldSampler->Params;
+                    // TangentTexture = RHICmdList->RHICreateTexture2D(
+                    //     "TangentTexture", 
+                    //     EPixelFormat::PF_R16G16B16A16F, 
+                    //     1, 
+                    //     HeightFieldSampler->Texture->GetSizeXYZ().x, 
+                    //     HeightFieldSampler->Texture->GetSizeXYZ().y, 
+                    //     nullptr);
+                    // TangentSampler.Texture = TangentTexture.get();
+                    // TangentSampler.Params = HeightFieldSampler->Params;
 
                     LodTexture = RHICmdList->RHICreateTexture2D(
                         "LodTexture", 
@@ -299,11 +307,17 @@ namespace nilou {
                     CreatePatchBlock->Data.LodTextureSize = NodeCount;
                     CreatePatchBlock->InitRHI();
 
+                    BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
+                    BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
+                    BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
+                    BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
+                    BuildNormalTangentBlock->InitRHI();
+
                     DrawIndirectArgs = RHICmdList->RHICreateDrawElementsIndirectBuffer(IndexBuffer.GetNumIndices(), 0, 0, 0, 0);
                     
                     BuildMinMaxTexture();
 
-                    BuildNormalTexture();
+                    // BuildNormalTexture();
                 });
         }
 
@@ -354,8 +368,9 @@ namespace nilou {
                     Mesh.Element.Bindings.SetElementShaderBinding("Patch_Buffer", PatchListBuffer.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightFieldSampler);
-                    Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
-                    Mesh.Element.Bindings.SetElementShaderBinding("TangentTexture", &TangentSampler);
+                    // Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
+                    // Mesh.Element.Bindings.SetElementShaderBinding("TangentTexture", &TangentSampler);
+                    Mesh.Element.Bindings.SetElementShaderBinding("FBuildNormalTangentBlock", BuildNormalTangentBlock.get());
 
                     Mesh.Element.NumVertices = 0;
                     Mesh.Element.IndirectArgsBuffer = DrawIndirectArgs.get();
@@ -432,17 +447,18 @@ namespace nilou {
                     int DispatchCount = glm::ceil(float(NumTiles.y) / float(NumRowsPerDispatch));
                     for (int i = 0; i < DispatchCount; i++)
                     {
-                        float Row_Min = float(i) * NumRowsPerDispatch / NumTiles.y;
-                        float Row_Max = float(i+1) * NumRowsPerDispatch / NumTiles.y;
+                        float Row_Min = glm::clamp(float(i) * NumRowsPerDispatch / NumTiles.y, 0.f, 1.f);
+                        float Row_Max = glm::clamp(float(i+1) * NumRowsPerDispatch / NumTiles.y, 0.f, 1.f);
                         HeightField->UpdateBoundSync(vec2(0, Row_Min), vec2(1, Row_Max), 0);
-                        int group_num_y = HeightMinMaxTexture->GetSizeXYZ().y * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
+                        int group_num_y = HeightMinMaxTexture->GetSizeY() * (Row_Max - Row_Min) / BUILD_MINMAX_LOCAL_SIZE;
                         int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
-                        BuildMinMaxBlock->Data.Offset = uvec2(0, HeightMinMaxTexture->GetSizeXYZ().y * Row_Min);
+                        BuildMinMaxBlock->Data.Offset = uvec2(0, HeightMinMaxTexture->GetSizeY() * Row_Min);
                         BuildMinMaxBlock->UpdateUniformBuffer();
                         FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
                     }
                 }
             }
+            // HeightField->UnloadBound(vec2(0, 0), vec2(1, 1), 0);
 
             FVHMCreateMinMaxShader::FPermutationDomain PermutationVector;
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(true);
@@ -483,40 +499,40 @@ namespace nilou {
 
         void BuildNormalTexture()
         {
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            FShaderPermutationParameters PermutationParameters(&FVHMBuildNormalTangentTextureShader::StaticType, 0);
-            FShaderInstance *CreateLodTextureShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(CreateLodTextureShader);
+            // FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
+            // FShaderPermutationParameters PermutationParameters(&FVHMBuildNormalTangentTextureShader::StaticType, 0);
+            // FShaderInstance *CreateLodTextureShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            // FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(CreateLodTextureShader);
 
-            RHICmdList->RHISetShaderSampler(
-                PSO, EPipelineStage::PS_Compute, 
-                "Heightfield", *HeightFieldSampler);
+            // RHICmdList->RHISetShaderSampler(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "Heightfield", *HeightFieldSampler);
 
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "NormalTexture", NormalTexture.get(), EDataAccessFlag::DA_WriteOnly);
+            // RHICmdList->RHISetShaderImage(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "NormalTexture", NormalTexture.get(), EDataAccessFlag::DA_WriteOnly);
 
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "TangentTexture", TangentTexture.get(), EDataAccessFlag::DA_WriteOnly);
+            // RHICmdList->RHISetShaderImage(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "TangentTexture", TangentTexture.get(), EDataAccessFlag::DA_WriteOnly);
 
-            BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
-                SHADER_PARAMETER(uint32, HeightfieldWidth)
-                SHADER_PARAMETER(uint32, HeightfieldHeight)
-                SHADER_PARAMETER(vec2, PixelMeterSize)
-            END_UNIFORM_BUFFER_STRUCT()
+            // BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
+            //     SHADER_PARAMETER(uint32, HeightfieldWidth)
+            //     SHADER_PARAMETER(uint32, HeightfieldHeight)
+            //     SHADER_PARAMETER(vec2, PixelMeterSize)
+            // END_UNIFORM_BUFFER_STRUCT()
 
-            auto BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
-            BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
-            BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
-            BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
-            BuildNormalTangentBlock->InitRHI();
+            // auto BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
+            // BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
+            // BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
+            // BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
+            // BuildNormalTangentBlock->InitRHI();
 
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FBuildNormalTangentBlock", BuildNormalTangentBlock->GetRHI());
+            // RHICmdList->RHISetShaderUniformBuffer(
+            //     PSO, EPipelineStage::PS_Compute, 
+            //     "FBuildNormalTangentBlock", BuildNormalTangentBlock->GetRHI());
 
-            RHICmdList->RHIDispatch(HeightFieldSampler->Texture->GetSizeXYZ().x, HeightFieldSampler->Texture->GetSizeXYZ().y, 1);
+            // RHICmdList->RHIDispatch(HeightFieldSampler->Texture->GetSizeXYZ().x, HeightFieldSampler->Texture->GetSizeXYZ().y, 1);
         }
 
         void CreateNodeListGPU(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
@@ -673,10 +689,10 @@ namespace nilou {
 	    FMaterial* Material = nullptr;
         UVirtualTexture* HeightField = nullptr;
         FRHISampler* HeightFieldSampler = nullptr;
-        RHITexture2DRef NormalTexture;
-        FRHISampler NormalSampler;
-        RHITexture2DRef TangentTexture;
-        FRHISampler TangentSampler;
+        // RHITexture2DRef NormalTexture;
+        // FRHISampler NormalSampler;
+        // RHITexture2DRef TangentTexture;
+        // FRHISampler TangentSampler;
         RHITexture2DRef HeightMinMaxTexture;
         std::vector<RHITexture2DRef> HeightMinMaxTextureViews;
 	    RHITexture2DRef LodTexture;
@@ -700,6 +716,7 @@ namespace nilou {
         TUniformBufferRef<FCreateNodeListBlock> CreateNodeListBlock;
         TUniformBufferRef<FQuadTreeParameters> QuadTreeParameters;
         TUniformBufferRef<FCreatePatchBlock> CreatePatchBlock;
+        TUniformBufferRef<FBuildNormalTangentBlock> BuildNormalTangentBlock;
 
         std::vector<WorldLodParam> LodParams;
 		uint32 NumMaxRenderingNodes;

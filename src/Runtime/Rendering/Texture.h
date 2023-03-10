@@ -4,6 +4,7 @@
 #include <thread_pool/BS_thread_pool.hpp>
 
 #include "Common/CoreUObject/Object.h"
+#include "Common/LruCache.h"
 
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
@@ -173,6 +174,8 @@ namespace nilou {
 
         void UpdateBoundSync(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
 
+        void UnloadBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
+
         void UnloadTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
 
         void UpdateTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
@@ -185,7 +188,7 @@ namespace nilou {
 
         uint32 GetBytePerTile() const { return BytePerTile; }
 
-        uint32 MaxPhysicalMemoryByte = 1024*1024*6;   // 128 MB physical memory limit for every virtual texture
+        uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
 
    private:
 
@@ -203,6 +206,9 @@ namespace nilou {
         std::vector<std::vector<std::vector<std::unique_ptr<VirtualTextureTile>>>> Tiles;
 
         std::mutex mutex;
+
+        TLruCache<VirtualTextureTile*, VirtualTextureTile*> LruCache;
+
         std::list<VirtualTextureTile*> LoadedTiles;
         std::unordered_map<VirtualTextureTile*, std::list<VirtualTextureTile*>::iterator> TileToIterMap;
 
