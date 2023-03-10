@@ -231,24 +231,6 @@ namespace nilou {
             ENQUEUE_RENDER_COMMAND(FVirtualHeightfieldMeshSceneProxy_Constructor)(
                 [this](FDynamicRHI *RHICmdList)
                 {
-                    // NormalTexture = RHICmdList->RHICreateTexture2D(
-                    //     "NormalTexture", 
-                    //     EPixelFormat::PF_R16G16B16A16F, 
-                    //     1, 
-                    //     HeightFieldSampler->Texture->GetSizeXYZ().x, 
-                    //     HeightFieldSampler->Texture->GetSizeXYZ().y, 
-                    //     nullptr);
-                    // NormalSampler.Texture = NormalTexture.get();
-                    // NormalSampler.Params = HeightFieldSampler->Params;
-                    // TangentTexture = RHICmdList->RHICreateTexture2D(
-                    //     "TangentTexture", 
-                    //     EPixelFormat::PF_R16G16B16A16F, 
-                    //     1, 
-                    //     HeightFieldSampler->Texture->GetSizeXYZ().x, 
-                    //     HeightFieldSampler->Texture->GetSizeXYZ().y, 
-                    //     nullptr);
-                    // TangentSampler.Texture = TangentTexture.get();
-                    // TangentSampler.Params = HeightFieldSampler->Params;
 
                     LodTexture = RHICmdList->RHICreateTexture2D(
                         "LodTexture", 
@@ -355,6 +337,12 @@ namespace nilou {
         {
         }
 
+        virtual void DestroyRenderThreadResources() override
+        {
+            GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
+            GetAppication()->GetPostRenderDelegate().Remove(PostRenderHandle);
+        }
+
         virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             if (Material == nullptr || HeightField == nullptr)
@@ -372,10 +360,6 @@ namespace nilou {
                     Mesh.Element.Bindings.SetElementShaderBinding("Patch_Buffer", PatchListBuffer.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightFieldSampler);
-
-                    Mesh.Element.Bindings.SetElementShaderBinding("MinMaxMap", &HeightMinMaxSampler);
-                    // Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
-                    // Mesh.Element.Bindings.SetElementShaderBinding("TangentTexture", &TangentSampler);
                     Mesh.Element.Bindings.SetElementShaderBinding("FBuildNormalTangentBlock", BuildNormalTangentBlock.get());
 
                     Mesh.Element.NumVertices = 0;
@@ -416,7 +400,7 @@ namespace nilou {
             uint32 BytePerTile = HeightField->GetBytePerTile();
             int32 TileNumLimit = MaxPhysicalMemoryByte / BytePerTile;
             uvec2 NumTiles = HeightField->GetNumTiles();
-            if (NumTiles.x * NumTiles.y < TileNumLimit)
+            if (NumTiles.x * NumTiles.y < TileNumLimit) // The physical memory can hold all of the texture.
             {
                 BuildMinMaxBlock->Data.Offset = uvec2(0, 0);
                 BuildMinMaxBlock->UpdateUniformBuffer();
@@ -425,10 +409,10 @@ namespace nilou {
                 int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
                 FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
             }
-            else 
+            else // The physical memory can not hold all of the texture.
             {
                 uint32 NumRowsPerDispatch = TileNumLimit / NumTiles.x;
-                if (NumRowsPerDispatch == 0)
+                if (NumRowsPerDispatch == 0)    // The physical memory can't even hold a row of tiles of the texture.
                 {
                     int DispatchCountPerRow = glm::ceil(float(NumTiles.x) / float(TileNumLimit));
                     for (int Row = 0; Row < NumTiles.y; Row++)
@@ -448,7 +432,7 @@ namespace nilou {
                         }
                     }
                 }
-                else 
+                else    // The physical memory can hold several rows of tiles of the texture.
                 {
                     int DispatchCount = glm::ceil(float(NumTiles.y) / float(NumRowsPerDispatch));
                     for (int i = 0; i < DispatchCount; i++)
@@ -464,7 +448,6 @@ namespace nilou {
                     }
                 }
             }
-            // HeightField->UnloadBound(vec2(0, 0), vec2(1, 1), 0);
 
             FVHMCreateMinMaxShader::FPermutationDomain PermutationVector;
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(true);
@@ -503,44 +486,6 @@ namespace nilou {
             }
         }
 
-        void BuildNormalTexture()
-        {
-            // FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            // FShaderPermutationParameters PermutationParameters(&FVHMBuildNormalTangentTextureShader::StaticType, 0);
-            // FShaderInstance *CreateLodTextureShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            // FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(CreateLodTextureShader);
-
-            // RHICmdList->RHISetShaderSampler(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "Heightfield", *HeightFieldSampler);
-
-            // RHICmdList->RHISetShaderImage(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "NormalTexture", NormalTexture.get(), EDataAccessFlag::DA_WriteOnly);
-
-            // RHICmdList->RHISetShaderImage(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "TangentTexture", TangentTexture.get(), EDataAccessFlag::DA_WriteOnly);
-
-            // BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
-            //     SHADER_PARAMETER(uint32, HeightfieldWidth)
-            //     SHADER_PARAMETER(uint32, HeightfieldHeight)
-            //     SHADER_PARAMETER(vec2, PixelMeterSize)
-            // END_UNIFORM_BUFFER_STRUCT()
-
-            // auto BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
-            // BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
-            // BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
-            // BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
-            // BuildNormalTangentBlock->InitRHI();
-
-            // RHICmdList->RHISetShaderUniformBuffer(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "FBuildNormalTangentBlock", BuildNormalTangentBlock->GetRHI());
-
-            // RHICmdList->RHIDispatch(HeightFieldSampler->Texture->GetSizeXYZ().x, HeightFieldSampler->Texture->GetSizeXYZ().y, 1);
-        }
-
         void CreateNodeListGPU(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
         {
             CreateNodeListBlock->Data.ScreenSizeDenominator = 2 * glm::tan(0.5*ViewShaderParameters->Data.CameraVerticalFieldOfView);
@@ -575,12 +520,9 @@ namespace nilou {
                 "NodeDescription_Buffer", NodeDescriptionBuffer.get());
             
             RHIGetError();
-            RHITextureParams params;
-            params.Mag_Filter = ETextureFilters::TF_Nearest;
-            params.Min_Filter = ETextureFilters::TF_Nearest;
             FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute, 
-                "MinMaxMap", FRHISampler(HeightMinMaxTexture.get(), params));
+                "MinMaxMap", HeightMinMaxSampler);
             FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FCreateNodeListBlock", CreateNodeListBlock->GetRHI());
@@ -670,21 +612,9 @@ namespace nilou {
             FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODMap", LodTexture.get(), EDataAccessFlag::DA_ReadOnly);
-            // RHITextureParams params;
-            // params.Mag_Filter = ETextureFilters::TF_Nearest;
-            // params.Min_Filter = ETextureFilters::TF_Nearest;
-            // FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "MinMaxMap", FRHISampler(HeightMinMaxTexture.get(), params));
             FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FCreatePatchBlock", CreatePatchBlock->GetRHI());
-            // FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
-            // FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
-            //     PSO, EPipelineStage::PS_Compute, 
-            //     "FViewShaderParameters", ViewShaderParameters->GetRHI());
 
             FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(FinalNodeListIndirectArgs.get());
             FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(AtomicPatchCounterBuffer, DrawIndirectArgs, 0, 4, 4);
@@ -695,10 +625,6 @@ namespace nilou {
 	    FMaterial* Material = nullptr;
         UVirtualTexture* HeightField = nullptr;
         FRHISampler* HeightFieldSampler = nullptr;
-        // RHITexture2DRef NormalTexture;
-        // FRHISampler NormalSampler;
-        // RHITexture2DRef TangentTexture;
-        // FRHISampler TangentSampler;
         RHITexture2DRef HeightMinMaxTexture;
         FRHISampler HeightMinMaxSampler;
         std::vector<RHITexture2DRef> HeightMinMaxTextureViews;
@@ -713,8 +639,6 @@ namespace nilou {
 		RHIBufferRef PatchListBuffer;
 		RHIBufferRef AtomicPatchCounterBuffer;
         RHIBufferRef DrawIndirectArgs;
-
-        uint32 AtomicPatchCounter;
 
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;
