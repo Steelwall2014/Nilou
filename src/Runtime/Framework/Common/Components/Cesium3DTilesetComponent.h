@@ -9,6 +9,7 @@
 #include "Common/Actor/GeoreferenceActor.h"
 
 #include "thread_pool/BS_thread_pool.hpp"
+#include "Common/LruCache.h"
 
 namespace nilou {
     class UCesium3DTilesetComponent;
@@ -106,38 +107,13 @@ namespace nilou {
             std::shared_ptr<tiny3dtiles::Tileset> Tileset, const glm::dmat4 &parentTransform);
     };
 
-    // class LRUCache
-    // {
-    // public:
-    //     LRUCache() { }
-
-    //     LRUCache(int Capacity);
-
-    //     void Load(Cesium3DTile *Tile);
-
-    //     int Capacity;
-
-    // private:
-
-    //     std::list<Cesium3DTile *> LoadedTiles;
-
-    // };
-
-
     struct TileMainThreadTask
     {
         TileLoadingResult Result;
         std::function<void(TileLoadingResult)> Func;
     };
-
-    // class Cesium3DTilesetSelector
-    // {
-    // public:
-    //     Cesium3DTilesetSelector(UCesium3DTilesetComponent *InComponent);
-    // };
-
-    }   // namespace Cesium3DTilesetSelection
-
+    
+    }
 
     UCLASS()
     class UCesium3DTilesetComponent : public UPrimitiveComponent
@@ -163,6 +139,14 @@ namespace nilou {
         void SetGeoreference(AGeoreferenceActor *InGeoreference);
 
         AGeoreferenceActor *GetGeoreference() const { return Georeference; }
+
+        uint32 GetMaxTilesToRender() const { return MaxTilesToRender; }
+
+        void SetMaxTilesToRender(uint32 InMaxTilesToRender) 
+        { 
+            MaxTilesToRender = InMaxTilesToRender; 
+            LruCache.SetCapacity(InMaxTilesToRender); 
+        }
         
         std::string GetURI() const { return URI; }
 
@@ -187,23 +171,19 @@ namespace nilou {
 
         std::shared_ptr<tiny3dtiles::Tileset> Tileset;
 
+        uint32 MaxTilesToRender = 128;
+
         void UpdateView(const std::vector<FViewFrustum> &Frustums);
 
     private:
         std::shared_ptr<Cesium3DTilesetSelection::Cesium3DTileset> TilesetForSelection;
 
-        // Cesium3DTilesetSelection::Cesium3DTilesetSelector TileSelector;
-
         std::vector<Cesium3DTilesetSelection::Cesium3DTile *> TilesToRenderThisFrame;
 
-
+        TLruCache<Cesium3DTilesetSelection::Cesium3DTile*, Cesium3DTilesetSelection::Cesium3DTile*> LruCache;
         
 
         void Update(Cesium3DTilesetSelection::Cesium3DTileset *Tileset, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
-
-        void LoadContent(Cesium3DTilesetSelection::Cesium3DTile *Tile);
-
-        // void DispatchMainThreadTask();
 
         void UpdateInternal(Cesium3DTilesetSelection::Cesium3DTile *Tile, const std::vector<Cesium3DTilesetSelection::ViewState> &ViewStates);
 

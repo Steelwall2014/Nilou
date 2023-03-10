@@ -358,25 +358,6 @@ namespace nilou {
         return InternalTileset;
     }
 
-    // Cesium3DTilesetSelector::Cesium3DTilesetSelector(UCesium3DTilesetComponent *InComponent)
-    //     : Component(InComponent)
-    // {
-    //     TilesToRenderThisFrame = &InComponent->TilesToRenderThisFrame;
-    // }
-
-    // void UCesium3DTilesetComponent::DispatchMainThreadTask()
-    // {
-    //     int TaskCount = MainThreadTaskQueue.size();
-    //     for (int TaskIndex = 0; TaskIndex < TaskCount; TaskIndex++)
-    //     {
-    //         std::unique_lock<std::mutex> lock(mutex);
-    //         TileMainThreadTask Task = MainThreadTaskQueue.front();
-    //         MainThreadTaskQueue.pop();
-    //         lock.unlock();
-    //         Task.Func(Task.Result);
-    //     }
-    // }
-
     void UCesium3DTilesetComponent::Update(Cesium3DTileset *Tileset, const std::vector<ViewState> &ViewStates)
     {
         TilesToRenderThisFrame.clear();
@@ -390,9 +371,11 @@ namespace nilou {
         LoadTiles();
     }
 
-    void UCesium3DTilesetComponent::LoadContent(Cesium3DTile *Tile)
+    void UCesium3DTilesetComponent::LoadTiles()
     {
-        auto LoadFunc = [this, Tile]() {
+        for (Cesium3DTile *Tile : LoadQueue)
+        {
+            pool.push_task([this, Tile]() {
                     if (!Tile->Content.B3dm.header_loaded())
                         return;
                     std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
@@ -423,15 +406,7 @@ namespace nilou {
                     }
                     Tile->Content.Gltf = Result;
                     Tile->LoadingState = ETileLoadingState::Loaded;
-                };
-        pool.push_task(LoadFunc);
-    }
-
-    void UCesium3DTilesetComponent::LoadTiles()
-    {
-        for (Cesium3DTile *Tile : LoadQueue)
-        {
-            LoadContent(Tile);
+                });
         }
         LoadQueue.clear();
     }
@@ -474,7 +449,6 @@ namespace nilou {
                 }
                 else 
                 {
-                    AddTileToUnloadQueue(Tile);
                     for (std::shared_ptr<Cesium3DTile> tile : Tile->Children)
                     {
                         UpdateInternal(tile.get(), ViewStates);
@@ -485,7 +459,6 @@ namespace nilou {
             {
                 if (!Tile->Content.B3dm.header_loaded())
                 {
-                    AddTileToUnloadQueue(Tile);
                     for (std::shared_ptr<Cesium3DTile> tile : Tile->Children)
                     {
                         UpdateInternal(tile.get(), ViewStates);
@@ -498,40 +471,8 @@ namespace nilou {
             }
 
         }
-        else 
-        {
-            AddTileToUnloadQueue(Tile);
-        }
 
     }
-
-    // void LRUCache::Load(Cesium3DTile *Tile)
-    // {
-    //     if (Tile->LoadingState == ETileLoadingState::Loaded)
-    //     {
-    //         LoadedTiles.splice(LoadedTiles.begin(), LoadedTiles, Tile->iter);
-    //         return;
-    //     }
-
-    //     if (LoadedTiles.size() >= Capacity)
-    //     {
-    //         auto iter = LoadedTiles.end();
-    //         iter--;
-
-    //         Cesium3DTile *LRUTile = *iter;
-    //         LRUTile->LoadingState = ETileLoadingState::Unloading;
-    //         LRUTile->Content.B3dm = nullptr;
-    //         LoadedTiles.erase(iter);
-    //         LRUTile->LoadingState = ETileLoadingState::Unloaded;
-    //     }
-
-    //     Tile->LoadingState = ETileLoadingState::Loading;
-    //     Tile->Content.B3dm = std::make_shared<tiny3dtiles::B3DM>();
-    //     std::ifstream stream(Tile->Content.URI, std::ios::binary);
-    //     stream >> *Tile->Content.B3dm;
-    //     Tile->LoadingState = ETileLoadingState::Loaded;
-    //     Tile->iter = LoadedTiles.insert(LoadedTiles.begin(), Tile);
-    // }
 
     void UCesium3DTilesetComponent::AddTileToUnloadQueue(Cesium3DTile *Tile)
     {
@@ -544,6 +485,12 @@ namespace nilou {
         if (Tile->LoadingState == ETileLoadingState::Unloaded)
             LoadQueue.push_back(Tile);
         TilesToRenderThisFrame.push_back(Tile);
+        auto ExpelledTile = LruCache.Put_ThreadSafe(Tile, Tile);
+        if (ExpelledTile.has_value())
+        {
+            Cesium3DTile* expelled_tile = ExpelledTile->first;
+            AddTileToUnloadQueue(expelled_tile);
+        }
     }
 
     bool UCesium3DTilesetComponent::FrustumCull(Cesium3DTile *Tile, const std::vector<ViewState> &ViewStates)
@@ -625,6 +572,7 @@ namespace nilou {
 
         void PreRenderCallBack(FDynamicRHI*, FScene*)
         {
+            // Fetch the rendering queue for this frame
             std::unique_lock<std::mutex> lock(mutex);
             if (!TilesRenderingQueue.empty())
             {
@@ -636,6 +584,8 @@ namespace nilou {
                 TilesToRenderThisFrame.clear();
             }
             lock.unlock();
+
+            // Expell those tile that haven't been loaded, and lock those tiles that are loaded until the end of frame.
             for (auto iter = TilesToRenderThisFrame.begin(); iter != TilesToRenderThisFrame.end();)
             {
                 Cesium3DTile *Tile = *iter;
@@ -768,6 +718,7 @@ namespace nilou {
         , Tileset(nullptr)
         , bShowBoundingBox(false)
         , TilesetForSelection(nullptr)
+        , LruCache(MaxTilesToRender)
     {
     }
 

@@ -253,14 +253,12 @@ namespace nilou {
             if (!lock.owns_lock())
                 return;
 
-            std::unique_lock<std::mutex> LRU_lock(mutex);
-            auto ExpelledTile = LruCache.Put(Tile.get(), Tile.get());
+            auto ExpelledTile = LruCache.Put_ThreadSafe(Tile.get(), Tile.get());
             if (ExpelledTile.has_value())
             {
                 VirtualTextureTile* Tile = ExpelledTile.value().first;
                 UnloadTile(Tile->TileX, Tile->TileY, Tile->MipmapLevel);
             }
-            LRU_lock.unlock();
             // LruUpdate(Tile.get());
 
             if (Tile->bCommited || TextureResource == nullptr)
@@ -309,14 +307,14 @@ namespace nilou {
         auto &Tile = Tiles[MipmapLevel][TileX][TileY];
         std::lock_guard<std::mutex> lock(Tile->mutex);
 
-        std::unique_lock<std::mutex> LRU_lock(mutex);
-        auto ExpelledTile = LruCache.Put(Tile.get(), Tile.get());
+        // std::unique_lock<std::mutex> LRU_lock(mutex);
+        auto ExpelledTile = LruCache.Put_ThreadSafe(Tile.get(), Tile.get());
         if (ExpelledTile.has_value())
         {
             VirtualTextureTile* Tile = ExpelledTile.value().first;
             UnloadTile(Tile->TileX, Tile->TileY, Tile->MipmapLevel);
         }
-        LRU_lock.unlock();
+        // LRU_lock.unlock();
         // LruUpdate(Tile.get());
         
 
@@ -350,40 +348,6 @@ namespace nilou {
             });
 
     }
-
-    void UVirtualTexture::LruUpdate(VirtualTextureTile *Tile)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        if (TileToIterMap.find(Tile) != TileToIterMap.end())
-        {
-            auto iter = TileToIterMap[Tile];
-            *iter = Tile;
-            // 为什么这里会崩？
-            if (iter != LoadedTiles.begin())
-                LoadedTiles.splice(LoadedTiles.begin(), LoadedTiles, iter, std::next(iter));
-        }
-        else
-        {
-            auto iter = LoadedTiles.insert(LoadedTiles.begin(), Tile);
-            TileToIterMap[Tile] = iter;
-            if (LoadedTiles.size()*BytePerTile > MaxPhysicalMemoryByte)
-            {
-                auto IterToRemove = LoadedTiles.end();
-                IterToRemove--;
-                VirtualTextureTile* TileToRemove = *IterToRemove;
-                LoadedTiles.erase(IterToRemove);
-                TileToIterMap.erase(TileToRemove);
-                UnloadTile(Tile->TileX, Tile->TileY, Tile->MipmapLevel);
-            }
-        }
-    }
-
-    void UVirtualTexture::LruMoveToFront(std::list<VirtualTextureTile*>::iterator iter)
-    {
-        if (iter != LoadedTiles.begin())
-            LoadedTiles.splice(LoadedTiles.begin(), LoadedTiles, iter, std::next(iter));
-    }
-
 
     void UVirtualTexture::Serialize(FArchive &Ar)
     {

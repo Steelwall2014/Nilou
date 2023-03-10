@@ -2,6 +2,7 @@
 #include <list>
 #include <unordered_map>
 #include <optional>
+#include <mutex>
 
 namespace nilou {
 
@@ -22,6 +23,12 @@ namespace nilou {
                 MoveToFront(iter);
                 return *iter;
             }
+        }
+
+        Value& Get_ThreadSafe(const Key& key)
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            return Get(key);
         }
 
         std::optional<std::pair<Key, Value>> Put(const Key& key, const Value& value)
@@ -49,6 +56,12 @@ namespace nilou {
             return std::nullopt;
         }
 
+        std::optional<std::pair<Key, Value>> Put_ThreadSafe(const Key& key, const Value& value)
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            return Put(key, value);
+        }
+
         int GetCapacity() const 
         { 
             return Capacity; 
@@ -56,6 +69,7 @@ namespace nilou {
 
         void SetCapacity(int InCapacity)
         {
+            std::lock_guard<std::mutex> lock(mutex);
             Capacity = InCapacity;
         }
 
@@ -64,6 +78,7 @@ namespace nilou {
         int Capacity;
         std::list<std::pair<Key, Value>> ItemList;
         std::unordered_map<Key, std::list<std::pair<Key, Value>>::iterator> ItemToIterMap;
+        std::mutex mutex;
 
         void MoveToFront(std::list<std::pair<Key, Value>>::iterator iter)
         {

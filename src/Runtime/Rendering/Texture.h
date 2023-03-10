@@ -197,20 +197,11 @@ namespace nilou {
 
         ivec3 PageSize;
 
-        void LruUpdate(VirtualTextureTile *Tile);
-
-        void LruMoveToFront(std::list<VirtualTextureTile*>::iterator iter);
-
         uint32 BytePerTile;
 
         std::vector<std::vector<std::vector<std::unique_ptr<VirtualTextureTile>>>> Tiles;
 
-        std::mutex mutex;
-
         TLruCache<VirtualTextureTile*, VirtualTextureTile*> LruCache;
-
-        std::list<VirtualTextureTile*> LoadedTiles;
-        std::unordered_map<VirtualTextureTile*, std::list<VirtualTextureTile*>::iterator> TileToIterMap;
 
         std::filesystem::path StreamingPath;
         uint32 StreamingBufferOffset;

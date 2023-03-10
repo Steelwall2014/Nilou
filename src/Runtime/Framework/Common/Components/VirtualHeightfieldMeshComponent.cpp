@@ -265,6 +265,10 @@ namespace nilou {
                             size.x, 
                             size.y, 
                             nullptr);
+                    RHITextureParams params;
+                    params.Mag_Filter = ETextureFilters::TF_Nearest;
+                    params.Min_Filter = ETextureFilters::TF_Nearest;
+                    HeightMinMaxSampler = FRHISampler(HeightMinMaxTexture.get(), params);
                     for (int i = 0; i < LodCount+3; i++)
                     {
                         HeightMinMaxTextureViews.push_back(RHICmdList->RHICreateTextureView2D(
@@ -368,6 +372,8 @@ namespace nilou {
                     Mesh.Element.Bindings.SetElementShaderBinding("Patch_Buffer", PatchListBuffer.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("FQuadTreeParameters", QuadTreeParameters.get());
                     Mesh.Element.Bindings.SetElementShaderBinding("HeightfieldTexture", HeightFieldSampler);
+
+                    Mesh.Element.Bindings.SetElementShaderBinding("MinMaxMap", &HeightMinMaxSampler);
                     // Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
                     // Mesh.Element.Bindings.SetElementShaderBinding("TangentTexture", &TangentSampler);
                     Mesh.Element.Bindings.SetElementShaderBinding("FBuildNormalTangentBlock", BuildNormalTangentBlock.get());
@@ -694,6 +700,7 @@ namespace nilou {
         // RHITexture2DRef TangentTexture;
         // FRHISampler TangentSampler;
         RHITexture2DRef HeightMinMaxTexture;
+        FRHISampler HeightMinMaxSampler;
         std::vector<RHITexture2DRef> HeightMinMaxTextureViews;
 	    RHITexture2DRef LodTexture;
 

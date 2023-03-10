@@ -29,6 +29,8 @@ layout (std140) uniform FPrimitiveShaderParameters {
 
 uniform sampler2D HeightfieldTexture;
 
+uniform sampler2D MinMaxMap;
+
 //uniform sampler2D NormalTexture;
 
 //uniform sampler2D TangentTexture;
@@ -39,6 +41,7 @@ struct FVertexFactoryIntermediates
 	vec2 Heightfield_UV;
 	vec3 Normal;
 	vec4 Tangent;
+	vec2 MinMax;
 };
 
 bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
@@ -124,6 +127,7 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	VFIntermediates.Heightfield_UV = HeightTexture_UV;
 	ivec2 id = ivec2(HeightTexture_UV * vec2(HeightfieldWidth, HeightfieldHeight));
 	CalcNormalTangent(id, VFIntermediates.Normal, VFIntermediates.Tangent);
+	VFIntermediates.MinMax = textureLod(MinMaxMap, HeightTexture_UV, current_patch.lod+3).rg;
 //	VFIntermediates.Normal = texture(NormalTexture, HeightTexture_UV).xyz;
 //	VFIntermediates.Tangent = texture(TangentTexture, HeightTexture_UV);
 	return VFIntermediates;
@@ -152,6 +156,7 @@ vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 
 vec4 VertexFactoryGetColor(FVertexFactoryIntermediates VFIntermediates)
 {
-	RenderPatch current_patch = patches[gl_InstanceID]; 
-	return vec4(current_patch.lod / 5.0);
+//	RenderPatch current_patch = patches[gl_InstanceID]; 
+//	return vec4(current_patch.lod / 5.0);
+	return vec4(VFIntermediates.MinMax/vec2(10), 0, 1);
 }

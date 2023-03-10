@@ -51,5 +51,5 @@ void main()
 //
 //    float min_height = min(ul_height, min(ur_height, min(ll_height, min(center_height, lr_height))));
 //    float max_height = max(ul_height, max(ur_height, max(ll_height, max(center_height, lr_height))));
-    imageStore(OutMinMaxMap, ivec2(gl_GlobalInvocationID.xy), vec4(min_height, max_height, 0, 0));
+    imageStore(OutMinMaxMap, ivec2(gl_GlobalInvocationID.xy+Offset), vec4(min_height, max_height, 0, 0));
 }
