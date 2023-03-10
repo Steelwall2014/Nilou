@@ -13,6 +13,7 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/ArrowComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/CameraComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/Cesium3DTilesetComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LightComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/MeshComponent.h"
@@ -45,6 +46,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["UArrowComponent"] = &UArrowComponent::CreateDefaultObject;
     FunctionMap["UCameraComponent"] = &UCameraComponent::CreateDefaultObject;
     FunctionMap["UCesium3DTilesetComponent"] = &UCesium3DTilesetComponent::CreateDefaultObject;
+    FunctionMap["UFourierTransformOceanComponent"] = &UFourierTransformOceanComponent::CreateDefaultObject;
     FunctionMap["ULightComponent"] = &ULightComponent::CreateDefaultObject;
     FunctionMap["ULineBatchComponent"] = &ULineBatchComponent::CreateDefaultObject;
     FunctionMap["UStaticMeshComponent"] = &UStaticMeshComponent::CreateDefaultObject;

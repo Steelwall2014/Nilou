@@ -5,5 +5,7 @@ vsxmake2019
 .deprecated
 .xmake
 Assets/Shaders/.vs
+.vscode/compile_commands.json
+compile_commands.json
 
 *.zip

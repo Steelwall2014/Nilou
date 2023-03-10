@@ -17,6 +17,7 @@ enum class EUClasses {
 	MC_UArrowComponent,
 	MC_UCameraComponent,
 	MC_UCesium3DTilesetComponent,
+	MC_UFourierTransformOceanComponent,
 	MC_ULightComponent,
 	MC_ULineBatchComponent,
 	MC_UStaticMeshComponent,
