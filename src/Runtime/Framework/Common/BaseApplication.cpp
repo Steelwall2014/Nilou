@@ -34,6 +34,7 @@ namespace nilou {
 
     void BaseApplication::Finalize()
     {
+        ContentManager->Flush();
         ContentManager->ReleaseRenderResources();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }

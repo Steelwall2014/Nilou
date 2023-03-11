@@ -55,6 +55,7 @@ namespace nilou {
             InitRHI();
         }
 
+        std::string Name;
 		std::shared_ptr<FImage> Image;
         int32 NumMips;
         FRHISampler SamplerRHI;

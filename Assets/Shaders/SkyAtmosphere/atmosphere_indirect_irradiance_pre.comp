@@ -8,7 +8,7 @@ layout (std140) uniform ScatteringOrderBlock {
     int scattering_order;
 };
 
-#include "atmosphere_definitions.glsl"
+#include "atmosphere_functions.glsl"
 
 
 IrradianceSpectrum ComputeIndirectIrradiance(

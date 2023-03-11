@@ -764,26 +764,21 @@ namespace nilou {
         if (World)
         {
             std::vector<ViewState> ViewStates;
-            for (AActor *Actor : World->CameraActors)
+            for (UCameraComponent *CameraComponent : World->CameraComponents)
             {
-                std::vector<UCameraComponent*> CameraComponents;
-                Actor->GetComponents(CameraComponents);
-                for (UCameraComponent *CameraComponent : CameraComponents)
-                {
-                    ViewState viewState;
-                    const dmat4 &AbsToEcef = Georeference->GetAbsToEcef();
-                    viewState.cameraPosition = AbsToEcef * dvec4(CameraComponent->GetComponentLocation(), 1.0);
-                    dvec3 forward = AbsToEcef * dvec4(CameraComponent->GetForwardVector(), 0.0);
-                    dvec3 up = AbsToEcef * dvec4(CameraComponent->GetUpVector(), 0.0);
-                    viewState.frustum = FViewFrustum(
-                        viewState.cameraPosition, forward, up, 
-                        CameraComponent->GetAspectRatio(), CameraComponent->GetFieldOfView(), 
-                        CameraComponent->GetNearClipDistance(), CameraComponent->GetFarClipDistance());
-                    viewState.resolution = CameraComponent->GetCameraResolution();
-                    viewState.verticalFOV = CameraComponent->GetFieldOfView();
-                    viewState.sseDenominator = 2.0 * glm::tan(0.5 * viewState.verticalFOV);
-                    ViewStates.push_back(viewState);
-                }
+                ViewState viewState;
+                const dmat4 &AbsToEcef = Georeference->GetAbsToEcef();
+                viewState.cameraPosition = AbsToEcef * dvec4(CameraComponent->GetComponentLocation(), 1.0);
+                dvec3 forward = AbsToEcef * dvec4(CameraComponent->GetForwardVector(), 0.0);
+                dvec3 up = AbsToEcef * dvec4(CameraComponent->GetUpVector(), 0.0);
+                viewState.frustum = FViewFrustum(
+                    viewState.cameraPosition, forward, up, 
+                    CameraComponent->GetAspectRatio(), CameraComponent->GetFieldOfView(), 
+                    CameraComponent->GetNearClipDistance(), CameraComponent->GetFarClipDistance());
+                viewState.resolution = CameraComponent->GetCameraResolution();
+                viewState.verticalFOV = CameraComponent->GetFieldOfView();
+                viewState.sseDenominator = 2.0 * glm::tan(0.5 * viewState.verticalFOV);
+                ViewStates.push_back(viewState);
             }
 
             if (TilesetForSelection)

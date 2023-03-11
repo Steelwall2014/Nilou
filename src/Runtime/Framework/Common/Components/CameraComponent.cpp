@@ -23,7 +23,7 @@ namespace nilou {
         if (World)
         {
             if (GetOwner())
-                World->CameraActors.insert(GetOwner());
+                World->CameraComponents.insert(this);
         }
     }
 
@@ -33,7 +33,7 @@ namespace nilou {
         if (World)
         {
             if (GetOwner())
-                World->CameraActors.erase(GetOwner());
+                World->CameraComponents.erase(this);
         }
     }
 
@@ -220,6 +220,7 @@ namespace nilou {
         SceneView.FarClipDistance = FarClipDistance;
         SceneView.ScreenResolution = ScreenResolution;
         SceneView.ViewType = ViewType;
+        SceneView.ViewInfo = ViewSceneInfo;
         return SceneView;
     }
 

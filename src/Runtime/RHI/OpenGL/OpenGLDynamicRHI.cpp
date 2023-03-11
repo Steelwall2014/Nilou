@@ -224,6 +224,7 @@ namespace nilou {
         switch (PixelFormat) {
             case EPixelFormat::PF_UNKNOWN:      Format = 0;         InternalFormat = 0;                 Type = 0; break;
             case EPixelFormat::PF_R8:           Format = GL_RED;    InternalFormat = GL_R8;             Type = GL_UNSIGNED_BYTE; break;
+            case EPixelFormat::PF_R8UI:         Format = GL_RED_INTEGER;InternalFormat = GL_R8UI;       Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_R8G8:         Format = GL_RG;     InternalFormat = GL_RG8;            Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_R8G8B8:       Format = GL_RGB;    InternalFormat = GL_RGB8;           Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_R8G8B8_sRGB:  Format = GL_RGB;    InternalFormat = GL_SRGB8;          Type = GL_UNSIGNED_BYTE; break;
@@ -255,42 +256,6 @@ namespace nilou {
         }
 
         return { Format, InternalFormat, Type };
-    }
-
-    static uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat)
-    {
-        switch (PixelFormat) {
-		    case EPixelFormat::PF_UNKNOWN: return 0;
-		    case EPixelFormat::PF_R8: return 1;
-		    case EPixelFormat::PF_R8G8: return 2;
-		    case EPixelFormat::PF_R8G8B8: return 3;
-		    case EPixelFormat::PF_R8G8B8_sRGB: return 3;
-		    case EPixelFormat::PF_B8G8R8: return 3;
-		    case EPixelFormat::PF_B8G8R8_sRGB: return 3;
-		    case EPixelFormat::PF_R8G8B8A8: return 4;
-		    case EPixelFormat::PF_R8G8B8A8_sRGB: return 4;
-		    case EPixelFormat::PF_B8G8R8A8: return 4;
-		    case EPixelFormat::PF_B8G8R8A8_sRGB: return 4;
-
-		    case EPixelFormat::PF_D24S8: return 4;
-		    case EPixelFormat::PF_D32F: return 4;
-		    case EPixelFormat::PF_D32FS8: return 5;
-
-		    case EPixelFormat::PF_DXT1: return 4;
-		    case EPixelFormat::PF_DXT1_sRGB: return 4;
-		    case EPixelFormat::PF_DXT5: return 4;
-		    case EPixelFormat::PF_DXT5_sRGB: return 4;
-
-		    case EPixelFormat::PF_R16F: return 2;
-		    case EPixelFormat::PF_R16G16F: return 4;
-		    case EPixelFormat::PF_R16G16B16F: return 6;
-		    case EPixelFormat::PF_R16G16B16A16F: return 8;
-		    case EPixelFormat::PF_R32F: return 4;
-		    case EPixelFormat::PF_R32G32F: return 8;
-		    case EPixelFormat::PF_R32G32B32F: return 12;
-		    case EPixelFormat::PF_R32G32B32A32F: return 16;
-            default: NILOU_LOG(Error, "Unknown PixelFormat: {}", (int)PixelFormat) return 0;
-        }
     }
 
 }
@@ -1426,6 +1391,14 @@ namespace nilou {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
+    void FOpenGLDynamicRHI::RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data)
+    {
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(Buffer);
+        glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
+        glBufferSubData(GLBuffer->Target, 0, Size, Data);
+        glBindBuffer(GLBuffer->Target, 0);
+    }
+
     void FOpenGLDynamicRHI::RHIGenerateMipmap(RHITextureRef texture)
     {
         auto GLTexture = TextureResourceCast(texture.get());
@@ -1520,7 +1493,6 @@ namespace nilou {
             Count,
             InstanceCount
         );
-        // EndDraw();
     }
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -1528,8 +1500,6 @@ namespace nilou {
         OpenGLBuffer *GLIndexBuffer = static_cast<OpenGLBuffer*>(IndexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLIndexBuffer->Resource);
         RHIGetError();
-        // if (InstanceCount > 1)
-        // {
         glDrawElementsInstanced(
             TranslatePrimitiveMode(ContextState.GraphicsPipelineState->Initializer.PrimitiveMode), 
             IndexBuffer->GetCount(), 
@@ -1537,7 +1507,6 @@ namespace nilou {
             0,
             InstanceCount
         );
-        // EndDraw();
         RHIGetError();
     }
 
@@ -1552,7 +1521,6 @@ namespace nilou {
             TranslateIndexBufferStride(IndexBuffer->GetStride()),
             reinterpret_cast<void*>(IndirectOffset)
         );
-        // EndDraw();
     }
 
     void FOpenGLDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)

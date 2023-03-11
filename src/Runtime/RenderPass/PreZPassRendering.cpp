@@ -103,7 +103,7 @@ namespace nilou {
             FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
             FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
             DrawCommands.Clear();
-            std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
+            // std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
             for (FMeshBatch &Mesh : Views[ViewIndex].MeshBatches)
             {
                 FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
@@ -130,13 +130,13 @@ namespace nilou {
                     Mesh.Element,
                     MeshDrawCommand);
                 // SkyAtmosphereMaterial needs to be rendered last
-                if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
-                    SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
-                else
+                // if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
+                //     SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
+                // else
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
             }
-            for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
-                DrawCommands.AddMeshDrawCommand(DrawCommand);
+            // for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
+            //     DrawCommands.AddMeshDrawCommand(DrawCommand);
         }
         
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)

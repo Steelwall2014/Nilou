@@ -122,7 +122,7 @@ void main()
     }
     else
     {
-        // 曾经尝试对提前对Node进行剪裁，但是似乎帧率还不如在后面对patch剪裁
+        // 这里的剪裁也许可以提前到if的前面，但是似乎帧率没有提升
         NodeDevided[index] = 0;
         
         vec2 node_size = vec2(LODParams[PassLOD].NodeMeterSize_x, LODParams[PassLOD].NodeMeterSize_y);

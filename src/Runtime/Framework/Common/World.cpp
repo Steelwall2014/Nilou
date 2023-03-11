@@ -84,10 +84,12 @@ namespace nilou {
         std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
         StaticMeshActor->SetStaticMesh(Cube);
         
+        UMaterial* SkyAtmosphereMaterial = GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset");
+        SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
         std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetCastShadow(false);
         SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
-        SphereActor->SphereComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset"));
+        SphereActor->SphereComponent->SetMaterial(SkyAtmosphereMaterial);
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
         std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
 
@@ -103,7 +105,7 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
-        DirectionalLightActor->LightComponent->SetIntensity(10.f);
+        // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
         // FTransform VHMTransform;
         // VHMTransform.SetScale3D(dvec3(0.1, 0.1, 1));
@@ -114,11 +116,11 @@ namespace nilou {
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
 
-        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
         std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         std::vector<FBatchedLine> lines;
@@ -126,12 +128,6 @@ namespace nilou {
         LineBatchActor->LineBatchComponent->DrawLines(lines);
 
         std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
-
-        // GetContentManager()->ForEachEntry([](FContentEntry* Entry) {
-        //     Entry->bIsDirty = true;
-        // });
-
-        // GetContentManager()->Flush();
 
     }
 

@@ -1,4 +1,21 @@
 #version 460
+
+#ifndef SM_Unlit
+#define SM_Unlit (0)
+#endif
+#ifndef SM_DefaultLit
+#define SM_DefaultLit (1)
+#endif
+#ifndef SM_OceanSubsurface
+#define SM_OceanSubsurface (2)
+#endif
+#ifndef SM_SkyAtmosphere
+#define SM_SkyAtmosphere (3)
+#endif
+#ifndef FrustumCount
+#define FrustumCount (1)
+#endif
+
 layout (location = 0) out vec4 FragColor;
 
 in vec2 uv;
@@ -8,33 +25,24 @@ uniform sampler2D RelativeWorldSpacePosition;
 uniform sampler2D WorldSpaceNormal;
 uniform sampler2D MetallicRoughness;
 uniform sampler2D Emissive;
+uniform usampler2D ShadingModel;
 
 #include "../include/LightShaderParameters.glsl"
-#include "../include/PBRFunctions.glsl"
-#include "../include/functions.glsl"
-
 layout (std140) uniform FLightUniformBlock {
     FLightShaderParameters light;
 };
 
-#include "../include/ViewShaderParameters.glsl"
-
-struct ShadingParams
-{
-    vec3 baseColor;
-    vec3 emissive;
-    vec3 relativePosition;      // Pixel position in world space, relative to camera
-    vec3 worldSpaceNormal;
-    vec3 worldSpaceViewVector;
-    float metallic;
-    float roughness;
-};
+#include "../ShadingModels/DefaultLit.glsl"
+#include "../ShadingModels/OceanSurface.glsl"
+#include "../ShadingModels/SkyAtmosphere.glsl"
 
 #include "../include/ShadowMapShaderParameters.glsl"
 uniform sampler2DArray ShadowMaps;
 layout (std140) uniform FShadowMappingBlock {
     FShadowMappingParameters Frustums[FrustumCount];
 };
+
+
 
 float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, float bias)
 {
@@ -83,63 +91,6 @@ float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, flo
     return 0;
 }
 
-vec3 ApplyLight(FLightShaderParameters light, ShadingParams params)
-{
-    vec3 RelativeLightPosition = vec3(light.lightPosition - CameraPosition);
-    vec3 L;
-    if (light.lightType == LT_Directional)
-        L = normalize(-light.lightDirection);
-    else 
-        L = normalize(RelativeLightPosition - params.relativePosition);
-    vec3 N = params.worldSpaceNormal;
-    vec3 V = params.worldSpaceViewVector;
-    vec3 H = normalize(V + L);
-
-    float NdotL = max(dot(N, L), 0.0); 
-    float NdotV = max(dot(N, V), 0.0); 
-    vec3 F0 = vec3(0.04); 
-    F0 = mix(F0, params.baseColor.rgb, params.metallic);
-    vec3 F = fresnel_Schlick(F0, clamp(dot(H, L), 0.0, 1.0));
-    float G = GeometrySmith(NdotL, NdotV, params.roughness);
-    float NDF = NDF_GGXTR(N, H, params.roughness);
-    vec3 nominator = NDF * G * F;
-    float denominator = 4.0 * max(NdotV, 0.0) * max(NdotL, 0.0) + 0.001; 
-    vec3 BRDF = nominator / denominator;
-
-    float bias = max(0.05 * (1.0 - NdotL), 0.005);
-    float visibility = ShadowCalculation(light, params.relativePosition, bias);
-
-    float atten = 1;
-    if (light.lightType == LT_Point || light.lightType == LT_Spot)   // Point or Spot
-    {
-        float dist = length(RelativeLightPosition);
-        atten *= apply_atten_curve(dist, light.lightDistAttenParams);
-    }
-    if (light.lightType == LT_Spot)       // Spot 
-    {
-        float angle = acos(dot(normalize(light.lightDirection), -L));
-        atten *= apply_atten_curve(angle, light.lightAngleAttenParams);
-    } 
-    vec3 radiance = atten * vec3(light.lightColor) * light.lightIntensity;
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-
-    kD *= 1.0 - params.metallic;  
-
-    return (kD * params.baseColor / PI + BRDF) * radiance * NdotL * visibility + params.emissive;
-}
-
-vec3 GammaToLinear(vec3 GammaColor)
-{
-    return pow(GammaColor, vec3(2.2));
-}
-
-vec3 LinearToGamma(vec3 LinearColor)
-{
-    LinearColor = LinearColor / (LinearColor + vec3(1));
-    return pow(LinearColor, vec3(1/2.2));
-}
 
 void main()
 {
@@ -147,11 +98,51 @@ void main()
     params.baseColor = GammaToLinear(texture(BaseColor, uv).rgb);
     params.emissive = GammaToLinear(texture(Emissive, uv).rgb);
     params.relativePosition = texture(RelativeWorldSpacePosition, uv).rgb;
-    params.worldSpaceNormal = normalize(texture(WorldSpaceNormal, uv).rgb);
-    params.worldSpaceViewVector = normalize(-params.relativePosition);
+
+    params.N = normalize(texture(WorldSpaceNormal, uv).rgb);
+
+    params.V = normalize(-params.relativePosition);
+
+    vec3 RelativeLightPosition = vec3(light.lightPosition - CameraPosition);
+    if (light.lightType == LT_Directional)
+        params.L = normalize(-light.lightDirection);
+    else 
+        params.L = normalize(RelativeLightPosition - params.relativePosition);
+
+    params.H = normalize(params.L + params.V);
+
     params.metallic = texture(MetallicRoughness, uv).r;
     params.roughness = texture(MetallicRoughness, uv).g;
+    float bias = max(0.05 * (1.0 - dot(params.N, params.L)), 0.005);
+    float visibility = ShadowCalculation(light, params.relativePosition, bias);
 
-    vec3 color = ApplyLight(light, params);
-    FragColor = vec4(LinearToGamma(color), 1);
+    Length r = params.relativePosition.z + ATMOSPHERE.bottom_radius + float(CameraPosition.z);
+	Number mu = params.L.z;
+    vec3 transmittance_to_sky = GetTransmittanceToTopAtmosphereBoundary(
+          ATMOSPHERE, TransmittanceLUT, r, mu);
+    FLightShaderParameters light_transmittanced = light;
+    light_transmittanced.lightIntensity *= transmittance_to_sky;
+
+    vec3 transmittance_to_frag;
+    vec3 in_scatter = GetSkyRadianceToPoint(ATMOSPHERE,
+        TransmittanceLUT, ScatteringRayleighLUT, ScatteringMieLUT, 
+        vec3(0, 0, CameraPosition.z/km) - earth_center, params.relativePosition/km - earth_center, 0, params.L, transmittance_to_frag);
+
+    uint MaterialShadingModel = texture(ShadingModel, uv).r;
+
+    switch (MaterialShadingModel)
+    {
+        case SM_Unlit:
+            FragColor = vec4(params.baseColor, 1);
+            break;
+        case SM_DefaultLit:
+            FragColor = vec4(ApplyDefaultLit(light_transmittanced, params, visibility)*transmittance_to_frag, 1);
+            break;
+        case SM_OceanSubsurface:
+            FragColor = vec4(ApplyOceanSubsurface(light_transmittanced, params)*transmittance_to_frag, 1);
+            break;
+        case SM_SkyAtmosphere:
+            FragColor = vec4(ApplySkyAtmosphere(light_transmittanced, params), 1);
+            break;
+    }
 }

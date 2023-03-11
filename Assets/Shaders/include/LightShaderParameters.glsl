@@ -22,10 +22,9 @@ struct FLightShaderParameters
     FLightAttenParameters lightDistAttenParams;
     FLightAttenParameters lightAngleAttenParams;
     dvec3   lightPosition;
-    vec4    lightColor;
+    vec3    lightIntensity;
     vec3    lightDirection;
     int     lightType;
-    float   lightIntensity;
     bool    lightCastShadow;
 };
 

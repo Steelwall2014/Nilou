@@ -238,6 +238,7 @@ namespace nilou {
          * @brief Calculate if the oriented bounding box is out of frustum
          */
         bool IsBoxOutSideFrustum(const FOrientedBoundingBox &OBB) const;
+        bool IsBoxOutSideFrustum(const dvec3 &Center, const dmat3& HalfAxes) const;
 
         /**
          * @brief Calculate if the axis-aligned bounding box is out of frustum, 
@@ -250,6 +251,7 @@ namespace nilou {
          * ignoring near and far clip plane to make it faster.
          */
         bool IsBoxOutSideFrustumFast(const FOrientedBoundingBox &OBB) const;
+        bool IsBoxOutSideFrustumFast(const dvec3 &Center, const dmat3& HalfAxes) const;
 
         bool operator==(const FViewFrustum &Other);
     private:

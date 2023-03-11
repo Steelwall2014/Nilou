@@ -436,6 +436,11 @@ namespace nilou {
             IsBoxOutSidePlane(Planes[4], OBB) || 
             IsBoxOutSidePlane(Planes[5], OBB);
     }
+    bool FViewFrustum::IsBoxOutSideFrustum(const dvec3 &Center, const dmat3& HalfAxes) const
+    {
+        FOrientedBoundingBox OBB{Center, HalfAxes};
+        return IsBoxOutSideFrustum(OBB);
+    }
     bool FViewFrustum::IsBoxOutSideFrustumFast(const FBoundingBox &AABB) const
     {
         return 
@@ -451,6 +456,11 @@ namespace nilou {
             IsBoxOutSidePlane(Planes[1], OBB) || 
             IsBoxOutSidePlane(Planes[2], OBB) || 
             IsBoxOutSidePlane(Planes[3], OBB);
+    }
+    bool FViewFrustum::IsBoxOutSideFrustumFast(const dvec3 &Center, const dmat3& HalfAxes) const
+    {
+        FOrientedBoundingBox OBB{Center, HalfAxes};
+        return IsBoxOutSideFrustumFast(OBB);
     }
     bool FViewFrustum::operator==(const FViewFrustum &Other)
     {

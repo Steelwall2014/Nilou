@@ -6,7 +6,7 @@ layout (rgba32f, binding=0) uniform image3D SingleScatteringRayleighLUT;
 layout (rgba32f, binding=1) uniform image3D SingleScatteringMieLUT;
 layout (rgba32f, binding=2) uniform image3D MultiScatteringLUT;
 
-#include "atmosphere_definitions.glsl"
+#include "atmosphere_functions.glsl"
 
 
 void ComputeSingleScatteringIntegrand(

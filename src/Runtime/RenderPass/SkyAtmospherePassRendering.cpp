@@ -4,7 +4,7 @@
 #include "RHIStaticStates.h"
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FSkyAtmospherePS, "/Shaders/GlobalShaders/SkyAtmospherePixelShader.frag", EShaderFrequency::SF_Pixel, Global)
+    // IMPLEMENT_SHADER_TYPE(FSkyAtmospherePS, "/Shaders/GlobalShaders/SkyAtmospherePixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
 
 
@@ -25,15 +25,15 @@ namespace nilou {
                     
                     FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
                     
-                    FShaderPermutationParameters PermutationParametersPS(&FSkyAtmospherePS::StaticType, 0);
+                    // FShaderPermutationParameters PermutationParametersPS(&FSkyAtmospherePS::StaticType, 0);
 
                     FShaderInstance *SkyAtmosphereVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                    FShaderInstance *SkyAtmospherePS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+                    // FShaderInstance *SkyAtmospherePS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
                     
                     FRHIGraphicsPipelineInitializer PSOInitializer;
 
                     PSOInitializer.VertexShader = SkyAtmosphereVS;
-                    PSOInitializer.PixelShader = SkyAtmospherePS;
+                    // PSOInitializer.PixelShader = SkyAtmospherePS;
 
                     PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
 

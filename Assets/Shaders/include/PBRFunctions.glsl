@@ -1,3 +1,5 @@
+#ifndef PBR_FUNCTIONS_H
+#define PBR_FUNCTIONS_H
 #include "Maths.glsl"
 vec3 fresnel_Schlick(vec3 R0, float cosTheta)
 {
@@ -41,3 +43,28 @@ float GeometrySmith(float NdotL, float NdotV, float roughness)
 
     return ggx1 * ggx2;
 }
+vec3 GammaToLinear(vec3 GammaColor)
+{
+    return pow(GammaColor, vec3(2.2));
+}
+
+vec3 LinearToGamma(vec3 LinearColor)
+{
+    LinearColor = LinearColor / (LinearColor + vec3(1));
+    return pow(LinearColor, vec3(1/2.2));
+}
+
+vec3 HDR(vec3 L, float hdrExposure) {
+//    float hdrExposure = 12;
+//    L = L * hdrExposure;
+//    L.r = L.r < 1.413 ? pow(L.r * 0.38317, 1.0 / 2.2) : 1.0 - exp(-L.r);
+//    L.g = L.g < 1.413 ? pow(L.g * 0.38317, 1.0 / 2.2) : 1.0 - exp(-L.g);
+//    L.b = L.b < 1.413 ? pow(L.b * 0.38317, 1.0 / 2.2) : 1.0 - exp(-L.b);
+//    return L;
+    vec3 mapped = vec3(1.0) - exp(-L * hdrExposure);
+    // GammaÐ£Õý 
+    mapped = pow(mapped, vec3(1.0 / 2.2));
+
+    return mapped;
+}
+#endif

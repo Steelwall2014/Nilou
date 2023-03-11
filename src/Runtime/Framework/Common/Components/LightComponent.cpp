@@ -17,8 +17,7 @@ namespace nilou {
     ULightComponent::ULightComponent(AActor *InOwner)
         : USceneComponent(InOwner)
         , LightType(ELightType::LT_Spot)
-        , LightColor(vec4(1.0f, 1.0f, 1.0f, 1.0f))
-        , Intensity(5.f)
+        , LightIntensity(vec3(1.474000, 1.850400, 1.911980))
         , bCastShadow(true)
         , ShadowMapResolution(ivec2(2048))
     {
@@ -62,8 +61,7 @@ namespace nilou {
     {
         SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
         SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);
-        SceneProxy->SetLightColor(LightColor);
-        SceneProxy->SetLightIntensity(Intensity);
+        SceneProxy->SetLightIntensity(LightIntensity);
         SceneProxy->SetCastShadow(bCastShadow);
         SceneProxy->SetShadowMapResolution(ShadowMapResolution);
 
@@ -78,8 +76,7 @@ namespace nilou {
         SetLightDistAttenParams(InComponent->LightDistAttenuation);
         SetLightAngleAttenParams(InComponent->LightAngleAttenuation);
         SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector(), InComponent->GetUpVector());
-        SetLightColor(InComponent->LightColor);
-        SetLightIntensity(InComponent->Intensity);
+        SetLightIntensity(InComponent->LightIntensity);
         SetCastShadow(InComponent->bCastShadow);
         SetLightType(InComponent->LightType);
         SetShadowMapResolution(InComponent->GetShadowMapResolution());
@@ -99,9 +96,9 @@ namespace nilou {
             LightSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
 
-    void FLightSceneProxy::SetLightIntensity(float Intensity)
+    void FLightSceneProxy::SetLightIntensity(const vec3& LightIntensity)
     {
-        LightUniformBufferRHI->Data.lightIntensity = Intensity;
+        LightUniformBufferRHI->Data.lightIntensity = LightIntensity;
         if (LightSceneInfo)
             LightSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
@@ -109,13 +106,6 @@ namespace nilou {
     void FLightSceneProxy::SetCastShadow(bool CastShadow)
     {
         LightUniformBufferRHI->Data.lightCastShadow = CastShadow;
-        if (LightSceneInfo)
-            LightSceneInfo->SetNeedsUniformBufferUpdate(true);
-    }
-
-    void FLightSceneProxy::SetLightColor(const glm::vec4 &LightColor)
-    {
-        LightUniformBufferRHI->Data.lightColor = LightColor;
         if (LightSceneInfo)
             LightSceneInfo->SetNeedsUniformBufferUpdate(true);
     }

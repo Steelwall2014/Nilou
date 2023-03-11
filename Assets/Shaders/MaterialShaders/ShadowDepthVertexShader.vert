@@ -22,7 +22,7 @@ void main()
     vs_out.TexCoords = VertexFactoryGetTexCoord(VFIntermediates);
 	dvec3 WorldPosition = VertexFactoryGetWorldPosition(VFIntermediates);
     WorldPosition += MaterialGetWorldSpaceOffset(vs_out);
-    vs_out.WorldPosition = vec3(WorldPosition - CameraPosition);
+    vs_out.RelativeWorldPosition = vec3(WorldPosition - CameraPosition);
     vec4 ClipPosition = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(WorldPosition, 1));
     gl_Position = ClipPosition;
 }

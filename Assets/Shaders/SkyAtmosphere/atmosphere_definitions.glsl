@@ -76,28 +76,5 @@ struct AtmosphereParameters {
 
 #include "atmosphere_constants.glsl"
 
-layout (std140) uniform AtmosphereParametersBlock {
-	AtmosphereParameters ATMOSPHERE;
-};
-
-Number ClampCosine(Number mu) {
-  return clamp(mu, Number(-1.0), Number(1.0));
-}
-
-Length ClampDistance(Length d) {
-  return max(d, 0.0 * m);
-}
-
-Length ClampRadius(AtmosphereParameters atmosphere, Length r) {
-  return clamp(r, atmosphere.bottom_radius, atmosphere.top_radius);
-}
-
-Length SafeSqrt(Area a) {
-  return sqrt(max(a, 0.0 * m2));
-}
-
-vec3 earth_center = vec3(0, 0, -ATMOSPHERE.bottom_radius);
-
-#include "atmosphere_functions.glsl"
 
 #endif

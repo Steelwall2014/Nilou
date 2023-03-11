@@ -77,7 +77,7 @@ namespace nilou {
 
     // struct FLightParameters
     // {
-    //     glm::vec4   LightColor;
+    //     glm::vec4   LightIntensity;
     //     glm::ivec2  ShadowMapResolution;
     //     FAttenCurve LightDistAttenuation;
     //     FAttenCurve LightAngleAttenuation;
@@ -94,12 +94,13 @@ namespace nilou {
         GENERATE_CLASS_INFO()
         friend class FLightSceneProxy;
 
-        DEFINE_DYNAMIC_DATA(glm::vec4,   LightColor)
+        // For directional light, the unit is lux
+        // For other types, the unit is cd
+        DEFINE_DYNAMIC_DATA(glm::vec3,   LightIntensity)
         DEFINE_DYNAMIC_DATA(glm::ivec2,  ShadowMapResolution)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
         // DEFINE_DYNAMIC_DATA(ELightType,  LightType)
-        DEFINE_DYNAMIC_DATA(float,       Intensity)
         DEFINE_DYNAMIC_DATA(bool,        bCastShadow)
         
     public:
@@ -178,10 +179,9 @@ namespace nilou {
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightDistAttenParams)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
         SHADER_PARAMETER(dvec3, lightPosition)
-        SHADER_PARAMETER(vec4, lightColor)
+        SHADER_PARAMETER(vec3, lightIntensity)
         SHADER_PARAMETER(vec3, lightDirection)
         SHADER_PARAMETER(int, lightType) 
-        SHADER_PARAMETER(float, lightIntensity)
         SHADER_PARAMETER(int, lightCastShadow)
     END_UNIFORM_BUFFER_STRUCT()
 
@@ -196,11 +196,9 @@ namespace nilou {
 
         void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
 
-        void SetLightIntensity(float Intensity);
-
         void SetCastShadow(bool CastShadow);
 
-        void SetLightColor(const glm::vec4 &LightColor);
+        void SetLightIntensity(const glm::vec3 &LightIntensity);
 
         void SetLightType(ELightType LightType);
 

@@ -35,7 +35,7 @@ float DonelanBannerDirectionalSpreading(vec2 k)
         float epsilon = -0.4f + 0.8393f * exp(-0.567f * log(ratio * ratio));
         betaS = pow(10, epsilon);
     }
-    float theta = atan(k.y, k.x) - atan(WindDirection.y, WindDirection.x);
+    float theta = atan(k.y, k.x) - atan(-WindDirection.y, -WindDirection.x);
 
     return betaS / max(1e-7f, 2.0f * tanh(betaS * PI) * pow(cosh(betaS * theta), 2));
 }
@@ -46,7 +46,7 @@ float phillips(vec2 k)
 	float L = (V * V) / g;
 	float l = L / 1000.0f;				
 
-	float kdotw = dot(k, WindDirection);
+	float kdotw = dot(k, -WindDirection);
 	float k2 = max(0.001f, dot(k, k));			
 
 	float P_h = Amplitude * exp(-1.0f / (k2 * L * L)) / (k2 * k2 * k2) * (kdotw * kdotw);

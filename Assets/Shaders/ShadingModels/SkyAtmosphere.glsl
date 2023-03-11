@@ -1,33 +1,20 @@
-#version 460
-layout (location = 0) out vec4 FragColor;
-
-in vec2 uv;
-
+//#version 460
+#ifndef SKY_ATMOSPHERE_H
+#define SKY_ATMOSPHERE_H
 #include "../include/LightShaderParameters.glsl"
-#include "../SkyAtmosphere/unit_definitions.glsl"
+#include "../SkyAtmosphere/atmosphere_functions.glsl"
 #include "../include/ViewShaderParameters.glsl"
+#include "../include/PBRFunctions.glsl"
+#include "ShadingParams.glsl"
 
-layout (std140) uniform FLightUniformBlock {
-    FLightShaderParameters light;
-};
+#include "SkyAtmosphereLUTs.glsl"
 
-uniform sampler2D TransmittanceLUT;
-uniform sampler3D SingleScatteringRayleighLUT;
-uniform sampler3D SingleScatteringMieLUT;
-
-void main()
-{        
-//    if (CameraPosition.z < 0)
-//    {
-//        FragColor = vec4(0, 0, 0, 1.f);
-//        return;
-//    }
-    vec3 SunLightDir = light.lightDirection;
-    vec3 sun_direction = -normalize(SunLightDir);
-    vec4 ndc = vec4(uv*2-1, gl_FragCoord.z*2-1, 1.0);
-    vec4 worldPos = RelClipToWorld * ndc;
-    worldPos /= worldPos.w;
-    vec3 v = normalize(worldPos.xyz);
+vec3 ApplySkyAtmosphere(FLightShaderParameters light, ShadingParams params)
+{
+    if (light.lightType != LT_Directional)
+        return vec3(0);
+    vec3 v = -params.V;
+    vec3 sun_direction = params.L;
     float CameraHeightInKM = float(CameraPosition.z / km);
     if (CameraHeightInKM < 0) CameraHeightInKM = 0;
     if (v.z < 0.f)
@@ -51,8 +38,9 @@ void main()
     float shadow_length = 0;
     float r = CameraHeightInKM - earth_center.z;
     vec3 color = GetSkyColor(
-        ATMOSPHERE, TransmittanceLUT, SingleScatteringRayleighLUT, SingleScatteringMieLUT, 
+        ATMOSPHERE, TransmittanceLUT, ScatteringRayleighLUT, ScatteringMieLUT, 
         r, v, shadow_length, sun_direction, ATMOSPHERE.sun_angular_radius);
-	color = hdr(color, 10);
-    FragColor = vec4(color, 1.f);
+	color = HDR(color, 10);
+    return color;
 }
+#endif

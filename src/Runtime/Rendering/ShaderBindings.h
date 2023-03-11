@@ -15,6 +15,8 @@ namespace nilou {
         template<class T>
         void SetElementShaderBinding(const std::string &Name, T *Resource)
         {
+            if (Resource == nullptr)
+                return;
             static_assert(
                 std::is_same<T, RHIUniformBuffer>::value || std::is_same<T, FRHISampler>::value || std::is_same<T, RHIBuffer>::value, 
                 "Resource type must be RHIUniformBuffer, FRHISampler or RHIBuffer");
@@ -37,6 +39,7 @@ namespace nilou {
                 return Samplers[Name];
             else if constexpr (std::is_same<T, RHIBuffer>::value)
                 return Buffers[Name];
+            return nullptr;
         }
     
     private:

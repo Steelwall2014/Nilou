@@ -6,7 +6,7 @@ uniform sampler3D ScatteringDensityLUT;
 layout (rgba32f, binding=0) uniform image3D DeltaScatteringLUT;
 layout (rgba32f, binding=1) uniform image3D MultiScatteringLUT;
 
-#include "atmosphere_definitions.glsl"
+#include "atmosphere_functions.glsl"
 
 RadianceSpectrum ComputeMultipleScattering(
     AtmosphereParameters atmosphere,

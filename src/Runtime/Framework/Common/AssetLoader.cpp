@@ -1,6 +1,7 @@
 #include "GameStatics.h"
 #include "Templates/ObjectMacros.h"
 #include <filesystem>
+#include <glad/glad.h>
 #define TINYGLTF_ENABLE_DRACO
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -38,8 +39,8 @@ namespace nilou {
         {
             switch (pixel_type)
             {
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8; break;
-                case TINYGLTF_COMPONENT_TYPE_FLOAT: 
+                case GL_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8; break;
+                case GL_FLOAT: 
                     if (bits == 16)
                         PixelFormat = EPixelFormat::PF_R16F;
                     else if (bits == 32)
@@ -52,13 +53,9 @@ namespace nilou {
         {
             switch (pixel_type)
             {
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8; break;
-                case TINYGLTF_COMPONENT_TYPE_FLOAT: 
-                    if (bits == 16)
-                        PixelFormat = EPixelFormat::PF_R16G16F;
-                    else if (bits == 32)
-                        PixelFormat = EPixelFormat::PF_R32G32F;
-                    break;
+                case GL_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8; break;
+                case GL_FLOAT: PixelFormat = EPixelFormat::PF_R32G32F; break;
+                case GL_HALF_FLOAT: PixelFormat = EPixelFormat::PF_R16G16F; break;
                 default: std::cout << "[ERROR] Not supported pixel type. channel: " << channel << " pixel type" << pixel_type << std::endl; break;
             }
         }
@@ -66,7 +63,7 @@ namespace nilou {
         {
             switch (pixel_type)
             {
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8B8; break;
+                case GL_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8B8; break;
                 default: std::cout << "[ERROR] Not supported pixel type. channel: " << channel << " pixel type" << pixel_type << std::endl; break;
             }
         }
@@ -74,13 +71,9 @@ namespace nilou {
         {
             switch (pixel_type)
             {
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8B8A8; break;
-                case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                    if (bits == 16)
-                        PixelFormat = EPixelFormat::PF_R16G16B16A16F;
-                    else if (bits == 32)
-                        PixelFormat = EPixelFormat::PF_R32G32B32A32F;
-                    break;
+                case GL_UNSIGNED_BYTE: PixelFormat = EPixelFormat::PF_R8G8B8A8; break;
+                case GL_FLOAT: PixelFormat = EPixelFormat::PF_R32G32B32A32F; break;
+                case GL_HALF_FLOAT: PixelFormat = EPixelFormat::PF_R16G16B16A16F; break;
                 default: std::cout << "[ERROR] Not supported pixel type. channel: " << channel << " pixel type" << pixel_type << std::endl; break;
             }
         }
@@ -220,7 +213,7 @@ namespace nilou {
 			case GDT_Float32:
 				img->data = (unsigned char *)new float[width * height * channel];
 				byte_per_pixel = 4;
-				img->PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel*8, TINYGLTF_COMPONENT_TYPE_FLOAT);
+				img->PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel*8, GL_FLOAT);
 				break;
 			default:
 				throw("function SyncOpenAndReadImage: DataType not implemented");
@@ -257,7 +250,7 @@ namespace nilou {
 			img = std::make_shared<FImage>();
 			img->data = stbi_load(AbsolutePath.c_str(), (int *)&img->Width, (int *)&img->Height, (int *)&img->Channel, 0);
 			img->data_size = img->Width * img->Height * img->Channel;
-			img->PixelFormat = TranslateToEPixelFormat(img->Channel, 8, TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE);
+			img->PixelFormat = TranslateToEPixelFormat(img->Channel, 8, GL_UNSIGNED_BYTE);
 		}
 		return img;
 	}

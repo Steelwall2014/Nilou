@@ -62,6 +62,8 @@ namespace nilou {
 
         FViewFrustum CalcViewFrustum();
 
+        FCameraSceneProxy* GetSceneProxy() const { return SceneProxy; }
+
     protected:
 
         class FCameraSceneProxy *SceneProxy;

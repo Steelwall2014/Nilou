@@ -62,11 +62,16 @@ namespace nilou {
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             ScreenResolution.x, ScreenResolution.y, nullptr);
 
+        ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+            "ShadingModel", EPixelFormat::PF_R8UI, 1, 
+            ScreenResolution.x, ScreenResolution.y, nullptr);
+
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, BaseColor);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, RelativeWorldSpacePosition);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, WorldSpaceNormal);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, MetallicRoughness);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, Emissive);
+        GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment5, ShadingModel);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
         
         FrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, SceneColor);
@@ -292,9 +297,9 @@ namespace nilou {
     {
         FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
-        InitViews(Scene);
-
         GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList, Scene);
+
+        InitViews(Scene);
 
         RenderPreZPass(RHICmdList);
 
@@ -305,7 +310,7 @@ namespace nilou {
 
         RenderLightingPass(RHICmdList);
 
-        RenderAtmospherePass(RHICmdList);
+        // RenderAtmospherePass(RHICmdList);
 
         RenderViewElementPass(RHICmdList);
 

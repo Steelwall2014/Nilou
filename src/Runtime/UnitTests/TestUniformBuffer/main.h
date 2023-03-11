@@ -346,7 +346,7 @@ using namespace nilou;
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
         SHADER_PARAMETER(int, ShadowMappingStartIndex)
         SHADER_PARAMETER(int, ShadowMappingEndIndex)
-        SHADER_PARAMETER(vec4, lightColor)
+        SHADER_PARAMETER(vec4, lightIntensity)
         SHADER_PARAMETER(vec3, lightPosition)
         SHADER_PARAMETER(vec3, lightDirection)
         SHADER_PARAMETER(int, lightType) 

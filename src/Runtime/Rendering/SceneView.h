@@ -26,6 +26,7 @@ namespace nilou {
         double FarClipDistance;
         glm::ivec2 ScreenResolution;
         EViewType ViewType;
+        class FViewSceneInfo* ViewInfo;
     };
 
     using FSceneLightView = FSceneView;

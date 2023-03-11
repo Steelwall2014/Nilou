@@ -1,6 +1,5 @@
 #include "LightingPassRendering.h"
-
-#include "RHIStaticStates.h"
+#include "Material.h"
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FLightingPassVS, "/Shaders/GlobalShaders/LightingPassVertexShader.vert", EShaderFrequency::SF_Vertex, Global);
@@ -8,9 +7,14 @@ namespace nilou {
     
     void FLightingPassPS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
+        // TODO
         FPermutationDomain Domain(Parameter.PermutationId);
         int FrustumCount = Domain.Get<FDimensionFrustumCount>();
         Environment.SetDefine("FrustumCount", FrustumCount);
+        magic_enum::enum_for_each<EShadingModel>(
+            [&Environment](EShadingModel ShadingModel){
+                Environment.SetDefine(std::string(magic_enum::enum_name(ShadingModel)), (int)ShadingModel);
+            });
     }
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
@@ -78,6 +82,34 @@ namespace nilou {
                             PSO, EPipelineStage::PS_Pixel, 
                             "Emissive", 
                             FRHISampler(SceneTextures.Emissive));
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "ShadingModel", 
+                            FRHISampler(SceneTextures.ShadingModel));
+
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "TransmittanceLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "ScatteringRayleighLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "ScatteringMieLUT", 
+                            FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
+                        RHIGetError();
+
+                        RHICmdList->RHISetShaderUniformBuffer(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "AtmosphereParametersBlock", 
+                            Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
+
                         RHIGetError();
                         RHICmdList->RHISetShaderUniformBuffer(
                             PSO, EPipelineStage::PS_Pixel, 

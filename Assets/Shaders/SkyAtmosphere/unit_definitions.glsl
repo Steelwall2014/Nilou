@@ -1,5 +1,6 @@
 #ifndef UNIT_DEFINITIONS_H
 #define UNIT_DEFINITIONS_H
+#include "../include/Maths.glsl"
 
 #define Length float
 #define Wavelength float
@@ -63,7 +64,6 @@ const SolidAngle sr = 1.0;
 const Power watt = 1.0;
 const LuminousPower lm = 1.0;
 
-const float PI = 3.14159265358979323846;
 
 const Length km = 1000.0 * m;
 const Area m2 = m * m;

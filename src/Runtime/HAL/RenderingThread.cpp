@@ -34,6 +34,8 @@ namespace nilou {
         return true;
     }
 
+    uint32 FRenderingThread::FrameCount = 0;
+
     uint32 FRenderingThread::Run()
     {
         std::unique_lock<std::mutex> lock(FFrameSynchronizer::mutex);
@@ -54,6 +56,7 @@ namespace nilou {
             GetAppication()->GetScene()->UpdateRenderInfos();
             Renderer->Render();
             GetAppication()->Tick_RenderThread();
+            FRenderingThread::FrameCount++;
         }
         return 0;
     }

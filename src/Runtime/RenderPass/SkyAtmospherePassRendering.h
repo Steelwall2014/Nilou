@@ -3,5 +3,5 @@
 #include "RenderPass.h"
 
 namespace nilou {
-    DECLARE_GLOBAL_SHADER(FSkyAtmospherePS);
+    // DECLARE_GLOBAL_SHADER(FSkyAtmospherePS);
 }

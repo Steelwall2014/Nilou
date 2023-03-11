@@ -1,3 +1,27 @@
+//#version 460
+#ifndef ATMOSPHERE_FUNCTIONS_H
+#define ATMOSPHERE_FUNCTIONS_H
+
+#include "../SkyAtmosphere/atmosphere_definitions.glsl"
+
+
+
+Number ClampCosine(Number mu) {
+  return clamp(mu, Number(-1.0), Number(1.0));
+}
+
+Length ClampDistance(Length d) {
+  return max(d, 0.0 * m);
+}
+
+Length ClampRadius(AtmosphereParameters atmosphere, Length r) {
+  return clamp(r, atmosphere.bottom_radius, atmosphere.top_radius);
+}
+
+Length SafeSqrt(Area a) {
+  return sqrt(max(a, 0.0 * m2));
+}
+
 Length DistanceToTopAtmosphereBoundary(AtmosphereParameters atmosphere,
     Length r, Number mu) {
   Area discriminant = r * r * (mu * mu - 1.0) +
@@ -521,10 +545,9 @@ RadianceSpectrum GetSkyRadianceToPoint(
   return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
       MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
 }
-
-RadianceSpectrum GetSolarRadiance() {
-    return ATMOSPHERE.solar_irradiance /
-        (PI * ATMOSPHERE.sun_angular_radius * ATMOSPHERE.sun_angular_radius);
+RadianceSpectrum GetSolarRadiance(AtmosphereParameters atmosphere) {
+    return atmosphere.solar_irradiance /
+        (PI * atmosphere.sun_angular_radius * atmosphere.sun_angular_radius);
 }
 
 vec3 hdr(vec3 L, float hdrExposure) {
@@ -558,3 +581,9 @@ vec3 GetSkyColor(
 	}
     return color;
 }
+
+layout (std140) uniform AtmosphereParametersBlock {
+	AtmosphereParameters ATMOSPHERE;
+};
+
+#endif

@@ -97,6 +97,7 @@ namespace nilou {
 			EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index
 		) = 0;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) = 0;
+		virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) = 0;
 		virtual RHITexture2DRef RHICreateTextureView2D(
 			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels
 		) = 0;

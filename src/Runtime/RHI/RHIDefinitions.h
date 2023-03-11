@@ -373,6 +373,7 @@ namespace nilou {
 	{
 		PF_UNKNOWN = 0,
 		PF_R8,
+		PF_R8UI,
 		PF_R8G8,
 		PF_R8G8B8,
 		PF_R8G8B8_sRGB,
@@ -403,6 +404,7 @@ namespace nilou {
 
 		PF_PixelFormatNum
 	};
+	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
 
 	enum class ETextureFilters : uint8
 	{

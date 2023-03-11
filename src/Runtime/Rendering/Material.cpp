@@ -44,6 +44,7 @@ namespace nilou {
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
         content["Code"] = Code;
+        content["ShadingModel"] = magic_enum::enum_name(ShadingModel);
         content["StencilRefValue"] = MaterialResource->StencilRefValue;
         TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"], Ar.OutBuffers);
         TStaticSerializer<FRasterizerStateInitializer>::Serialize(MaterialResource->RasterizerState, content["RasterizerState"], Ar.OutBuffers);
@@ -66,6 +67,10 @@ namespace nilou {
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
         Code = content["Code"];
+        if (content.contains("ShadingModel"))
+        {
+            ShadingModel = magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value();
+        }
         MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
         TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"], Ar.InBuffer.get());
@@ -79,26 +84,41 @@ namespace nilou {
             UTexture *Texture = GetContentManager()->GetTextureByPath(texture_path);
             MaterialResource->SetParameterValue(sampler_name, Texture);
         }
+        UpdateMaterialParametersRHI();
     }
 
     std::shared_ptr<UMaterialInstance> UMaterial::CreateMaterialInstance()
     {
-        std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>();
-        MaterialInstance->Name = Name;
-        MaterialInstance->Code = Code;
-        MaterialInstance->SerializationPath = SerializationPath;
-        MaterialInstance->Textures = Textures;
-        MaterialInstance->MaterialResource->Name = MaterialResource->Name;
-        MaterialInstance->MaterialResource->StencilRefValue = MaterialResource->StencilRefValue;
-        MaterialInstance->MaterialResource->BlendState = MaterialResource->BlendState;
-        MaterialInstance->MaterialResource->DepthStencilState = MaterialResource->DepthStencilState;
-        MaterialInstance->MaterialResource->RasterizerState = MaterialResource->RasterizerState;
-        MaterialInstance->MaterialResource->ShaderMap = MaterialResource->ShaderMap;
-        MaterialInstance->MaterialResource->UniformBuffers = MaterialResource->UniformBuffers;
-        MaterialInstance->MaterialResource->Textures = MaterialResource->Textures;
-        MaterialInstance->MaterialResource->bShaderCompiled = MaterialResource->bShaderCompiled;
-        // MaterialInstance->bUseWorldOffset = bUseWorldOffset;
+        std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>(this);
         return MaterialInstance;
+    }
+
+    void UMaterial::UpdateMaterialParametersRHI()
+    {
+        ENQUEUE_RENDER_COMMAND(Material_UpdateMaterialParametersRHI)(
+            [this](FDynamicRHI* RHICmdList) {
+                MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
+                MaterialParameters->UpdateUniformBuffer();
+            });
+    }
+
+    UMaterialInstance::UMaterialInstance(UMaterial* Material)
+    {
+        Name = Material->Name;
+        Code = Material->Code;
+        SerializationPath = Material->SerializationPath;
+        Textures = Material->Textures;
+        ShadingModel = Material->ShadingModel;
+        MaterialResource->Name = Material->MaterialResource->Name;
+        MaterialResource->StencilRefValue = Material->MaterialResource->StencilRefValue;
+        MaterialResource->BlendState = Material->MaterialResource->BlendState;
+        MaterialResource->DepthStencilState = Material->MaterialResource->DepthStencilState;
+        MaterialResource->RasterizerState = Material->MaterialResource->RasterizerState;
+        MaterialResource->ShaderMap = Material->MaterialResource->ShaderMap;
+        MaterialResource->UniformBuffers = Material->MaterialResource->UniformBuffers;
+        MaterialResource->Textures = Material->MaterialResource->Textures;
+        MaterialResource->bShaderCompiled = Material->MaterialResource->bShaderCompiled;
+        UpdateMaterialParametersRHI();
     }
 
     void UMaterialInstance::Serialize(FArchive &Ar)

@@ -29,7 +29,7 @@ namespace nilou {
 
         FScene *Scene = nullptr;
 
-        std::set<AActor *> CameraActors;
+        std::set<UCameraComponent*> CameraComponents;
         
         /**
         * Find all Actors in the world of the specified class. 

@@ -46,6 +46,7 @@ namespace nilou {
         RHITexture2DRef Emissive;
         RHITexture2DRef DepthStencil;
         RHITexture2DRef SceneColor;
+        RHITexture2DRef ShadingModel;
         ivec2 Viewport;
         FSceneTextures(const ivec2 &ScreenResolution);
     };
