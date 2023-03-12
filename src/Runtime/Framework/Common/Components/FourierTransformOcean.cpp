@@ -247,6 +247,7 @@ namespace nilou {
                 "DisplaceRT", DisplaceRT.get(), EDataAccessFlag::DA_WriteOnly);
 
             RHICmdList->RHIDispatch(group_num, group_num, 1);
+            RHICmdList->RHIGenerateMipmap(DisplaceRT);
 
         }
 
@@ -274,6 +275,7 @@ namespace nilou {
                 "FoamRT", FoamRT.get(), EDataAccessFlag::DA_WriteOnly);
 
             RHICmdList->RHIDispatch(group_num, group_num, 1);
+            RHICmdList->RHIGenerateMipmap(NormalRT);
         }
 
         virtual void CreateRenderThreadResources() override

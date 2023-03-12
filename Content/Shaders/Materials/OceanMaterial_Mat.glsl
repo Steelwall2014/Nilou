@@ -1,3 +1,4 @@
+
 #version 460
 #include "../include/BasePassCommon.glsl" 
 #include "../include/ViewShaderParameters.glsl" 
@@ -65,3 +66,5 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
 
 	return displacement;            
 }        
+
+        

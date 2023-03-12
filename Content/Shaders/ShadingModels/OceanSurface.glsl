@@ -10,6 +10,8 @@
 #include "../SkyAtmosphere/atmosphere_functions.glsl"
 #include "ShadingParams.glsl"
 #include "SkyAtmosphereLUTs.glsl"
+#define BLEND_START  10    // m
+#define BLEND_END    300  // m
 
 float P(vec2 zetaH, float sigmaXsq, float sigmaYsq)
 {
@@ -37,6 +39,12 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     vec3 L = params.L;
     vec3 H = params.H;
     vec3 V = params.V;
+    vec3 R = reflect(-V, N);
+	if (R.z < 0.08)
+		R = normalize(vec3(R.xy, 0.08));
+    vec3 refl = HDR(GetSkyColor(
+            ATMOSPHERE, TransmittanceLUT, ScatteringRayleighLUT, ScatteringMieLUT, 
+            -earth_center.z, R, 0, L, ATMOSPHERE.sun_angular_radius), 10);
     float zL = dot(L, N);
     float zV = dot(V, N);
     float zH = dot(H, N);
@@ -53,8 +61,9 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float phiV = atan(dot(V, Ty), dot(V, Tx));
     float phiL = atan(dot(L, Ty), dot(L, Tx));
             
-    float sigmaXsq = lerp(0.015, 0.0015, 0.5);
-    float sigmaYsq = lerp(0.015, 0.0015, 0.5);
+    float sigmaFactor = clamp((BLEND_END - length(params.relativePosition)) / (BLEND_END - BLEND_START), 0.0, 1.0);
+    float sigmaXsq = lerp(0.015, 0.0015, sigmaFactor);
+    float sigmaYsq = lerp(0.015, 0.0015, sigmaFactor);
     vec2 sigmaSq = vec2(sigmaXsq, sigmaYsq);
 
     float sigmaV = sqrt(sigmaXsq * cos(phiV) * cos(phiV) + sigmaYsq * sin(phiV) * sin(phiV));
@@ -87,9 +96,10 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float towardsSun = pow(max(0., dot(L, -V)), SubSurfaceSunFallOff);
     vec3 subsurface = (SubSurfaceBase + SubSurfaceSun * towardsSun) * SubSurfaceColour.rgb * light.lightIntensity;
     vec3 color = vec3(0);
-    color += subsurface * (1-fresnel);
-//    color += refl * fresnel;
-    color += light.lightIntensity * spec;
-    return HDR(color, 1);
+    float F = F0 + (1.0 - F0) * pow(1.0 - dot(N, V), 5.0);
+    color += subsurface * (1-F);
+    color += refl * F;
+    color += light.lightIntensity * spec * 5;
+    return HDR(color, 0.4);
 }
 #endif

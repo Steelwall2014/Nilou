@@ -10,7 +10,7 @@ namespace nilou {
 
     std::filesystem::path FPath::ShaderDir()
     {
-        static std::filesystem::path ShaderDirectory = "D:\\Nilou\\Assets\\Shaders";
+        static std::filesystem::path ShaderDirectory = "D:\\Nilou\\Content\\Shaders";
         return ShaderDirectory;
     }
 

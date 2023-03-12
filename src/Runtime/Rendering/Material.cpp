@@ -6,6 +6,7 @@
 #include "Common/Path.h"
 #include "Common/ContentManager.h"
 #include "RenderingThread.h"
+#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -43,7 +44,7 @@ namespace nilou {
         json["ClassName"] = "UMaterial";
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
-        content["Code"] = Code;
+        content["ShaderVirtualPath"] = "/Shaders/Materials/"+Name+"_Mat.glsl";
         content["ShadingModel"] = magic_enum::enum_name(ShadingModel);
         content["StencilRefValue"] = MaterialResource->StencilRefValue;
         TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"], Ar.OutBuffers);
@@ -66,7 +67,9 @@ namespace nilou {
             !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
-        Code = content["Code"];
+        std::string ShaderVirtualPath = content["ShaderVirtualPath"];
+        std::string ShaderAbsPath = GetShaderAbsolutePathFromVirtualPath(ShaderVirtualPath);
+        Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
         if (content.contains("ShadingModel"))
         {
             ShadingModel = magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value();
@@ -82,7 +85,8 @@ namespace nilou {
         {
             fs::path texture_path = texture.get<std::string>();
             UTexture *Texture = GetContentManager()->GetTextureByPath(texture_path);
-            MaterialResource->SetParameterValue(sampler_name, Texture);
+            if (Texture)
+                MaterialResource->SetParameterValue(sampler_name, Texture);
         }
         UpdateMaterialParametersRHI();
     }

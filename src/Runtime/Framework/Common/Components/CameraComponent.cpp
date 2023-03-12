@@ -74,6 +74,7 @@ namespace nilou {
         {
             SceneProxy->SetFieldOfView(VerticalFieldOfView);
             SceneProxy->SetCameraResolution(ScreenResolution);
+            SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
         }
 
         USceneComponent::SendRenderDynamicData();
@@ -182,7 +183,10 @@ namespace nilou {
         ViewUniformBufferRHI->Data.CameraResolution = InCameraResolution;
         UpdateFrustum();
         if (ViewSceneInfo)
+        {
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
+        }
     }
 
     void FCameraSceneProxy::SetCameraClipDistances(float InCameraNearClipDist, float InCameraFarClipDist)
@@ -193,7 +197,10 @@ namespace nilou {
         ViewUniformBufferRHI->Data.CameraFarClipDist = InCameraFarClipDist;
         UpdateFrustum();
         if (ViewSceneInfo)
+        {
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
+        }
     }
 
     void FCameraSceneProxy::SetFieldOfView(float InVerticalFieldOfView)
@@ -202,7 +209,10 @@ namespace nilou {
         ViewUniformBufferRHI->Data.CameraVerticalFieldOfView = InVerticalFieldOfView;
         UpdateFrustum();
         if (ViewSceneInfo)
+        {
             ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
+        }
     }
 
     FSceneView FCameraSceneProxy::GetSceneView()

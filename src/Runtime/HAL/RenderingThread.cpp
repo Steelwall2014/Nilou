@@ -27,7 +27,7 @@ namespace nilou {
         }
         FDynamicRHI::CreateDynamicRHI_RenderThread();
         FDynamicRHI::GetDynamicRHI()->Initialize();
-        AddShaderSourceDirectoryMapping("/Shaders", "D:\\Nilou\\Assets\\Shaders");
+        AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
         GetContentManager()->Init();
         Renderer = (FDefferedShadingSceneRenderer *)FSceneRenderer::CreateSceneRenderer(GetAppication()->GetScene());

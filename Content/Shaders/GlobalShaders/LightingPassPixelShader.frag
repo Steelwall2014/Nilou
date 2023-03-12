@@ -136,10 +136,10 @@ void main()
             FragColor = vec4(params.baseColor, 1);
             break;
         case SM_DefaultLit:
-            FragColor = vec4(ApplyDefaultLit(light_transmittanced, params, visibility)*transmittance_to_frag, 1);
+            FragColor = vec4(ApplyDefaultLit(light_transmittanced, params, visibility)*transmittance_to_frag + in_scatter*2.5, 1);
             break;
         case SM_OceanSubsurface:
-            FragColor = vec4(ApplyOceanSubsurface(light_transmittanced, params)*transmittance_to_frag, 1);
+            FragColor = vec4(ApplyOceanSubsurface(light_transmittanced, params)*transmittance_to_frag + in_scatter*2.5, 1);
             break;
         case SM_SkyAtmosphere:
             FragColor = vec4(ApplySkyAtmosphere(light_transmittanced, params), 1);

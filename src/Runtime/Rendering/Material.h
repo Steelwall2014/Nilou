@@ -193,6 +193,7 @@ namespace nilou {
 
         void SetParameterValue(const std::string &Name, UTexture *Texture)
         {
+            Textures[Name] = Texture->SerializationPath;
             MaterialResource->SetParameterValue(Name, Texture);
         }
 
@@ -214,6 +215,8 @@ namespace nilou {
         std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
 
         FMaterial *GetResource() { return MaterialResource.get(); }
+
+        std::string GetMateiralCode() const { return Code; }
 
         std::map<std::string, std::filesystem::path> Textures;
 
