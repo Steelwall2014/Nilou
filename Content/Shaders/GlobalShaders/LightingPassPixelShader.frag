@@ -95,8 +95,8 @@ float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, flo
 void main()
 {
     ShadingParams params;
-    params.baseColor = GammaToLinear(texture(BaseColor, uv).rgb);
-    params.emissive = GammaToLinear(texture(Emissive, uv).rgb);
+    params.baseColor = texture(BaseColor, uv).rgb;
+    params.emissive = texture(Emissive, uv).rgb;
     params.relativePosition = texture(RelativeWorldSpacePosition, uv).rgb;
 
     params.N = normalize(texture(WorldSpaceNormal, uv).rgb);

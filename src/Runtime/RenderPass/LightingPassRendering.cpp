@@ -85,7 +85,7 @@ namespace nilou {
                         RHICmdList->RHISetShaderSampler(
                             PSO, EPipelineStage::PS_Pixel, 
                             "ShadingModel", 
-                            FRHISampler(SceneTextures.ShadingModel));
+                            FRHISampler(SceneTextures.ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
 
                         RHICmdList->RHISetShaderSampler(
                             PSO, EPipelineStage::PS_Pixel, 

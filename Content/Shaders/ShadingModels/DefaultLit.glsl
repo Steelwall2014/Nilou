@@ -1,4 +1,4 @@
-#version 460
+//#version 460
 #ifndef DEFAULT_LIT_H
 #define DEFAULT_LIT_H
 
@@ -10,6 +10,8 @@
 
 vec3 ApplyDefaultLit(FLightShaderParameters light, ShadingParams params, float visibility)
 {
+    vec3 baseColor = GammaToLinear(params.baseColor.rgb);
+    vec3 emissive = GammaToLinear(params.emissive.rgb);
     vec3 N = params.N;
     vec3 L = params.L;
     vec3 H = params.H;
@@ -19,7 +21,7 @@ vec3 ApplyDefaultLit(FLightShaderParameters light, ShadingParams params, float v
     float NdotL = max(dot(N, L), 0.0); 
     float NdotV = max(dot(N, V), 0.0); 
     vec3 F0 = vec3(0.04); 
-    F0 = mix(F0, params.baseColor.rgb, params.metallic);
+    F0 = mix(F0, baseColor, params.metallic);
     vec3 F = fresnel_Schlick(F0, clamp(dot(H, L), 0.0, 1.0));
     float G = GeometrySmith(NdotL, NdotV, params.roughness);
     float NDF = NDF_GGXTR(N, H, params.roughness);
@@ -46,7 +48,7 @@ vec3 ApplyDefaultLit(FLightShaderParameters light, ShadingParams params, float v
 
     kD *= 1.0 - params.metallic;  
 
-    vec3 color = (kD * params.baseColor / PI + BRDF) * radiance * NdotL * visibility + params.emissive;
+    vec3 color = (kD * baseColor / PI + BRDF) * radiance * NdotL * visibility + emissive;
     return HDR(color, 10);
 }
 #endif

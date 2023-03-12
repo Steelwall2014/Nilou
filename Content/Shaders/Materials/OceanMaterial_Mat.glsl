@@ -1,5 +1,5 @@
-
 #version 460
+#include "../include/functions.glsl"
 #include "../include/BasePassCommon.glsl" 
 #include "../include/ViewShaderParameters.glsl" 
 #include "../FastFourierTransformOcean/OceanFastFourierTransformParameters.glsl" 
@@ -11,18 +11,24 @@ uniform sampler2D NormalTexture;
 #define BLEND_END    300  // m
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)            
-{                
-	return vec4(1, 0, 1, 1);
+{        
+    // baseColor is taken as SubSurfaceColour in ocean surface rendering  
+	vec3 SubSurfaceColour = vec3(18,65,76) / 255;
+	return vec4(SubSurfaceColour, 1);
 }            
 vec3 MaterialGetEmissive(VS_Out vs_out)            
-{                
-	return vec3(0);            
+{              
+    // emissive is taken as SubSurfaceBase, SubSurfaceSun and SubSurfaceSunFallOff in ocean surface rendering  
+    float SubSurfaceBase = 0.33;
+    float SubSurfaceSun = 1.13;
+    float SubSurfaceSunFallOff = 5;
+	return vec3(SubSurfaceBase, SubSurfaceSun, SubSurfaceSunFallOff);            
 }            
 vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)            
 {                
 	float dist = length(vs_out.RelativeWorldPosition.xy);
 	float factor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
-	factor = clamp(factor * factor, 0.0, 1.0);
+//	factor = clamp(factor * factor, 0.0, 1.0);
 	dvec3 WorldPosition = vs_out.RelativeWorldPosition + CameraPosition;
 	vec2 UV = vec2(WorldPosition.xy / dvec2(DisplacementTextureSize));
 	
@@ -36,16 +42,24 @@ vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
 	vec3 grad = texture(NormalTexture, UV).xyz;
 	grad.xy = mix(perl, grad.xy, factor);
 
-	return normalize(grad.xyz);;            
-}            
-float MaterialGetRoughness(VS_Out vs_out)            
-{                
-	return 0.5;            
-}            
+	return normalize(grad.xyz);            
+}           
 float MaterialGetMetallic(VS_Out vs_out)            
-{                
-	return 0.5;            
-}            
+{          
+    // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering
+	float dist = length(vs_out.RelativeWorldPosition.xy);
+    float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
+    float sigmaXsq = lerp(0.015, 0.0015, sigmaFactor);        
+	return sigmaXsq;            
+}          
+float MaterialGetRoughness(VS_Out vs_out)            
+{         
+    // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering     
+	float dist = length(vs_out.RelativeWorldPosition.xy);
+    float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
+    float sigmaYsq = lerp(0.015, 0.0015, sigmaFactor);  
+	return sigmaYsq;            
+}               
 vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)            
 {                
 	float dist = length(vs_out.RelativeWorldPosition.xy);

@@ -1,4 +1,9 @@
-#version 460
+/**
+* The ocean surface rendering combines https://darthasylum.blog.hu/2018/09/17/ocean_rendering,
+"Real-time Realistic Ocean Lighting using Seamless Transitions from Geometry to BRDF" and 
+Crest Ocean System
+*/
+//#version 460
 #ifndef OCEAN_SURFACE_H
 #define OCEAN_SURFACE_H
 
@@ -10,8 +15,6 @@
 #include "../SkyAtmosphere/atmosphere_functions.glsl"
 #include "ShadingParams.glsl"
 #include "SkyAtmosphereLUTs.glsl"
-#define BLEND_START  10    // m
-#define BLEND_END    300  // m
 
 float P(vec2 zetaH, float sigmaXsq, float sigmaYsq)
 {
@@ -28,13 +31,35 @@ float Lambda(float cosTheta, float sigmaSq) {
     return max(0.0, (exp(-v * v) - v * sqrt(PI) * erfc(v)) / (2.0 * v * sqrt(PI)));
 	//return (exp(-v * v)) / (2.0 * v * sqrt(M_PI)); // approximate, faster formula
 }
+
+float meanFresnel(float cosThetaV, float sigmaV) {
+	return pow(1.0 - cosThetaV, 5.0 * exp(-2.69 * sigmaV)) / (1.0 + 22.7 * pow(sigmaV, 1.5));
+}
+
+// V, N in world space
+float meanFresnel(vec3 V, vec3 N, vec2 sigmaSq) {
+    vec2 v = V.xy; // view direction in wind space
+    vec2 t = v * v / (1.0 - V.z * V.z); // cos^2 and sin^2 of view direction
+    float sigmaV2 = dot(t, sigmaSq); // slope variance in view direction
+    return meanFresnel(dot(V, N), sqrt(sigmaV2));
+}
 vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
 {
     vec3 FoamColor = vec3(1);
-    float SubSurfaceSunFallOff = 5;
-    float SubSurfaceBase = 0.33;
-    float SubSurfaceSun = 1.13;
-    vec3 SubSurfaceColour = vec3(18,65,76) / 255;
+
+    // baseColor is taken as SubSurfaceColour in ocean surface rendering
+	vec3 SubSurfaceColour = params.baseColor;
+    
+    // emissive is taken as SubSurfaceBase, SubSurfaceSun and SubSurfaceSunFallOff in ocean surface rendering
+    float SubSurfaceBase = params.emissive.x;
+    float SubSurfaceSun = params.emissive.y;
+    float SubSurfaceSunFallOff = params.emissive.z;
+    
+    // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering
+    float sigmaXsq = params.metallic;
+    float sigmaYsq = params.roughness; 
+
+    
     vec3 N = params.N;
     vec3 L = params.L;
     vec3 H = params.H;
@@ -61,9 +86,6 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float phiV = atan(dot(V, Ty), dot(V, Tx));
     float phiL = atan(dot(L, Ty), dot(L, Tx));
             
-    float sigmaFactor = clamp((BLEND_END - length(params.relativePosition)) / (BLEND_END - BLEND_START), 0.0, 1.0);
-    float sigmaXsq = lerp(0.015, 0.0015, sigmaFactor);
-    float sigmaYsq = lerp(0.015, 0.0015, sigmaFactor);
     vec2 sigmaSq = vec2(sigmaXsq, sigmaYsq);
 
     float sigmaV = sqrt(sigmaXsq * cos(phiV) * cos(phiV) + sigmaYsq * sin(phiV) * sin(phiV));
@@ -73,7 +95,7 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float p = P(vec2(zetaHx, zetaHy), sigmaXsq, sigmaYsq);
 
     float F0 = 0.02;
-    float fresnel = F0 + (1-F0) * pow(1.0 - dot(V, H), 5.0);
+    float fresnel = F0 + (1-F0) * meanFresnel(V, N, sigmaSq);//pow(1.0 - dot(V, H), 5.0);
 
     float tanV = atan(dot(V, Ty), dot(V, Tx));
     float cosV2 = 1.0 / (1.0 + tanV * tanV);
@@ -84,21 +106,15 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float sigmaL2 = sigmaSq.x * cosL2 + sigmaSq.y * (1.0 - cosL2);
 
     float denominator = (1.0 + Lambda(zL, sigmaL2) + Lambda(zV, sigmaV2)) * zV * zH2 * zH2 * 4.0;
-    float spec;
-    // hack，这个着色模型在grazing angle的时候有可能会出现除零错误
-    if (denominator < 1e-6)
-        spec = p * fresnel;
-    else
-        spec = p * fresnel / denominator;
+    denominator = max(denominator, 1e-6);
+    float spec = p * fresnel / denominator;
 
     float vz = abs(V.z);
-    float sssIntensity = 1;
     float towardsSun = pow(max(0., dot(L, -V)), SubSurfaceSunFallOff);
     vec3 subsurface = (SubSurfaceBase + SubSurfaceSun * towardsSun) * SubSurfaceColour.rgb * light.lightIntensity;
     vec3 color = vec3(0);
-    float F = F0 + (1.0 - F0) * pow(1.0 - dot(N, V), 5.0);
-    color += subsurface * (1-F);
-    color += refl * F;
+    color += subsurface * (1-fresnel);
+    color += refl * fresnel;
     color += light.lightIntensity * spec * 5;
     return HDR(color, 0.4);
 }

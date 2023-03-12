@@ -363,7 +363,7 @@ namespace nilou {
         Image->Channel = image["Channel"];
         Image->data_size = image["DataSize"];
         Image->PixelFormat = magic_enum::enum_cast<EPixelFormat>(std::string(image["PixelFormat"])).value();
-        uint32 BufferOffset = image["Data"]["BufferOffset"];
+        // uint32 BufferOffset = image["Data"]["BufferOffset"];
         StreamingBufferOffset = Ar.FileLength - Ar.BinLength;
         // Image->data = new unsigned char[Image->data_size];
         // std::memcpy(Image->data, Ar.InBuffer.get()+BufferOffset, Image->data_size);

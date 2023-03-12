@@ -37,7 +37,6 @@ layout (std140) uniform FPrimitiveShaderParameters {
 
 uniform sampler2D MinMaxMap;
 
-#include "../include/FrustumCull.glsl"
 
 //float GetNodeSize(uint lod)
 //{
@@ -89,9 +88,7 @@ bool IsBoxOutSideFrustum(const dvec4 Planes[6], const dvec3 Center, const mat3 H
         IsBoxOutSidePlane(Planes[0], Center, HalfAxes) || 
         IsBoxOutSidePlane(Planes[1], Center, HalfAxes) || 
         IsBoxOutSidePlane(Planes[2], Center, HalfAxes) || 
-        IsBoxOutSidePlane(Planes[3], Center, HalfAxes)/* || 
-        IsBoxOutSidePlane(Planes[4], Center, HalfAxes) || 
-        IsBoxOutSidePlane(Planes[5], Center, HalfAxes)*/;
+        IsBoxOutSidePlane(Planes[3], Center, HalfAxes);
 }
 
 void main()

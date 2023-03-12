@@ -116,24 +116,29 @@ namespace nilou {
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
 
-        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
         std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         std::vector<FBatchedLine> lines;
         lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
 
-        // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
+        std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
         // GetContentManager()->ForEachContent([](UObject* Obj){
-        //     if (Obj->IsA(UMaterial::StaticClass()))
+        //     if (Obj->IsA(UTexture::StaticClass()))
         //     {
-        //         UMaterial* mat = (UMaterial*)Obj;
+        //         UTexture* tex = (UTexture*)Obj;
+        //         if (tex->GetMinFilter() == ETextureFilters::TF_Linear)
+        //         {
+        //             tex->GetResource()->GetSamplerRHI()->Params.Min_Filter = ETextureFilters::TF_Linear_Mipmap_Linear;
         //         Obj->ContentEntry->bIsDirty = true;
+
+        //         }
         //     }
         // });
 
