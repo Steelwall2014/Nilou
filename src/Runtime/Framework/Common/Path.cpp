@@ -4,25 +4,25 @@ namespace nilou {
 
     std::filesystem::path FPath::ProjectDir()
     {
-        static std::filesystem::path ProjectDirectory = "D:\\Nilou";
+        static const std::filesystem::path ProjectDirectory = PROJECT_DIR;
         return ProjectDirectory;
     }
 
     std::filesystem::path FPath::ShaderDir()
     {
-        static std::filesystem::path ShaderDirectory = "D:\\Nilou\\Content\\Shaders";
+        static const std::filesystem::path ShaderDirectory = FPath::ProjectDir() / "Content\\Shaders";
         return ShaderDirectory;
     }
 
     std::filesystem::path FPath::AssetsDir()
     {
-        static std::filesystem::path AssetsDirectory = "D:\\Nilou\\Assets";
+        static std::filesystem::path AssetsDirectory = FPath::ProjectDir() / "Assets";
         return AssetsDirectory;
     }
 
     std::filesystem::path FPath::LaunchDir()
     {
-        static std::filesystem::path LaunchDirectory = "D:\\Nilou\\build\\windows\\x64\\debug";
+        static std::filesystem::path LaunchDirectory = FPath::ProjectDir() / "build\\windows\\x64\\debug";
         return LaunchDirectory;
     }
 
@@ -34,7 +34,7 @@ namespace nilou {
 
     std::filesystem::path FPath::ContentDir()
     {
-        static std::filesystem::path ContentDirectory = "D:\\Nilou\\Content";
+        static std::filesystem::path ContentDirectory = FPath::ProjectDir() / "Content";
         return ContentDirectory;
     }
 

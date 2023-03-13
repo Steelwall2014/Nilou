@@ -9,6 +9,7 @@ add_requires("vcpkg::magic-enum")
 add_requires("vcpkg::glslang")
 add_requireconfs("*", {external = false})
 
+add_defines([[PROJECT_DIR=R"($(scriptdir))"]])
 
 function Execute(map, func)
     if map ~= nil then
