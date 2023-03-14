@@ -178,9 +178,10 @@ int main(int argc, char *argv[])
                     string filepath = File.GetFilePath();
                     if (filepath[0] == '.' && filepath[1] == '/')
                         filepath.erase(0, 2);
-                    IncludedPaths += "#include \"" + rel_path + filepath + "\"\n";
+                    std::filesystem::path ProjectDir = PROJECT_DIR;
+                    IncludedPaths += "#include \"" + /*rel_path + */filepath + "\"\n";
                     string content = 
-                        "#include \"" + rel_path + filepath + "\"\n"
+                        "#include \"" + /*rel_path + */filepath + "\"\n"
                         "namespace nilou {\n"
                         "std::string " + ClassName + "::GetClassName() { return \"" + ClassName + "\"; }\n"
                         "EUClasses " + ClassName + "::GetClassEnum() { return EUClasses::MC_" + ClassName + "; }\n"

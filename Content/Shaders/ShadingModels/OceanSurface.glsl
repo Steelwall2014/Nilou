@@ -106,8 +106,12 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     float sigmaL2 = sigmaSq.x * cosL2 + sigmaSq.y * (1.0 - cosL2);
 
     float denominator = (1.0 + Lambda(zL, sigmaL2) + Lambda(zV, sigmaV2)) * zV * zH2 * zH2 * 4.0;
-    denominator = max(denominator, 1e-6);
-    float spec = p * fresnel / denominator;
+    float spec;
+    if (denominator < 1e-6)
+        spec = p * fresnel;
+    else
+        spec = p * fresnel / denominator;
+//    denominator = max(denominator, 1e-6);
 
     float vz = abs(V.z);
     float towardsSun = pow(max(0., dot(L, -V)), SubSurfaceSunFallOff);

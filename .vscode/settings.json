@@ -15,4 +15,9 @@
         "--cross-file-rename=true",
         "--function-arg-placeholders=false"
     ],
+    "xmake.debuggingTargetsArguments": {
+        "HeaderTool": [
+            "D:/Nilou/src", "D:/Nilou/src/Runtime/Generated"
+        ]
+    }
 }

@@ -9,7 +9,7 @@ add_requires("vcpkg::magic-enum")
 add_requires("vcpkg::glslang")
 add_requireconfs("*", {external = false})
 
-add_defines([[PROJECT_DIR=R"($(scriptdir))"]])
+add_defines([[PROJECT_DIR=R"($(projectdir))"]])
 
 function Execute(map, func)
     if map ~= nil then
@@ -63,6 +63,14 @@ function BuildProject(config)
     Execute(config.depends, add_deps)
     Execute(config.link, add_links)
     Execute(config.package, add_packages)
+    if config.runargs ~= nil then
+        set_runargs(unpack(config.runargs))
+    end 
+    -- if runargs ~= nil then
+    --     for i, v in ipairs(runargs) do
+    --         set_runargs(v)
+    --     end
+    -- end
 
     if config.enableException then 
         set_exceptions("cxx")
@@ -191,6 +199,7 @@ BuildProject({
     includePaths = {
         "./src/HeaderTool/"},
     enableException = true,
+    runargs = {"$(projectdir)/src", "$(projectdir)/src/Runtime/Generated"}
     -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
