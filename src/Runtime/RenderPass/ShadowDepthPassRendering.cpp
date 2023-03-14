@@ -3,7 +3,7 @@
 #include "Material.h"
 
 
-constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 3.0f;
+constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 2.0f;
 
 namespace nilou {
 
@@ -197,6 +197,18 @@ namespace nilou {
             FrustumRoundRobinIndex++;
         }
 
+        float TotalScale = 0;
+        float CurrentScale = 1;
+        std::vector<float> Scales;
+        for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
+        {
+            Scales.push_back(CurrentScale);
+            TotalScale += CurrentScale;
+            CurrentScale *= CASCADED_SHADOWMAP_SPLIT_FACTOR;
+        }
+        for (int i = 0; i < Scales.size(); i++)
+            Scales[i] /= TotalScale;
+
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             if (Lights[LightIndex].LightSceneInfo->SceneProxy->LightType != ELightType::LT_Directional)
@@ -204,18 +216,6 @@ namespace nilou {
 
             auto &Light = Lights[LightIndex];
             FLightSceneInfo *LightInfo = Lights[LightIndex].LightSceneInfo;
-
-            float TotalScale = 0;
-            float CurrentScale = 1;
-            std::vector<float> Scales;
-            for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
-            {
-                Scales.push_back(CurrentScale);
-                TotalScale += CurrentScale;
-                CurrentScale *= CASCADED_SHADOWMAP_SPLIT_FACTOR;
-            }
-            for (int i = 0; i < Scales.size(); i++)
-                Scales[i] /= TotalScale;
             
 
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -224,14 +224,16 @@ namespace nilou {
                 FSceneView SceneView = ViewInfo->SceneProxy->GetSceneView();
                 std::vector<std::array<dvec3, 8>> CascadeFrustums;
                 
+                const double ShadowFarClip = glm::clamp(SceneView.FarClipDistance, SceneView.NearClipDistance, ViewInfo->SceneProxy->MaxCascadeShadowMapDistance);
+                const double ShadowNearClip = glm::clamp(SceneView.NearClipDistance, 0.0, ShadowFarClip);
                 const double t = glm::tan(0.5 * SceneView.VerticalFieldOfView);
                 const double b = -t;
                 const double r = t * SceneView.AspectRatio;
                 const double l = -r;
                 const glm::dvec3 Right = glm::cross(SceneView.Forward, SceneView.Up);
-                const double FrustumLength = SceneView.FarClipDistance - SceneView.NearClipDistance;
+                const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
-                double SplitFar = SceneView.NearClipDistance;
+                double SplitFar = ShadowNearClip;
                 for (int SplitIndex : FrustumsToBeUpdated)
                 {
                     std::array<dvec3, 8> CascadeFrustumVerts;
@@ -282,8 +284,8 @@ namespace nilou {
                     DrawCommands.Clear();
                     LightCollector.PerViewMeshBatches.push_back(&MeshBatches);
                     double near, far;
-                    far = DBL_MAX;
-                    near = -DBL_MAX;
+                    // far = DBL_MAX;
+                    // near = -DBL_MAX;
                     for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
                     {
                         if (!PrimitiveInfo->SceneProxy->bCastShadow)
@@ -296,8 +298,8 @@ namespace nilou {
                                        ViewSpaceBox.Min.x > Radius;
                         if (!bCulled)
                         {
-                            near = glm::max(near, ViewSpaceBox.Max.z);
-                            far = glm::min(far, ViewSpaceBox.Min.z);
+                            // near = glm::max(near, ViewSpaceBox.Max.z);
+                            // far = glm::min(far, ViewSpaceBox.Min.z);
                             PrimitiveInfo->SceneProxy->GetDynamicMeshElements({SceneView}, 0x1, LightCollector);
                         }
                     }

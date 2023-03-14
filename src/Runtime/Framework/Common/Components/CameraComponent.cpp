@@ -19,6 +19,7 @@ namespace nilou {
 
     void UCameraComponent::OnRegister()
     {
+        USceneComponent::OnRegister();
         UWorld *World = GetWorld();
         if (World)
         {
@@ -35,6 +36,7 @@ namespace nilou {
             if (GetOwner())
                 World->CameraComponents.erase(this);
         }
+        USceneComponent::OnUnregister();
     }
 
     void UCameraComponent::CreateRenderState()
@@ -68,18 +70,6 @@ namespace nilou {
         USceneComponent::SendRenderTransform();
     }
 
-    void UCameraComponent::SendRenderDynamicData()
-    {
-        if (SceneProxy)
-        {
-            SceneProxy->SetFieldOfView(VerticalFieldOfView);
-            SceneProxy->SetCameraResolution(ScreenResolution);
-            SceneProxy->SetViewProjectionMatrix(CalcWorldToViewMatrix(), CalcViewToClipMatrix());
-        }
-
-        USceneComponent::SendRenderDynamicData();
-    }
-
     glm::dmat4 UCameraComponent::CalcWorldToViewMatrix()
     {
         glm::dvec3 forward = GetForwardVector();
@@ -106,7 +96,7 @@ namespace nilou {
         if (VerticalFieldOfView != InVerticalFieldOfView)
         {
             VerticalFieldOfView = InVerticalFieldOfView;
-            MarkRenderDynamicDataDirty();
+            MarkRenderStateDirty();
         }
     }
 
@@ -116,7 +106,7 @@ namespace nilou {
         {
             ScreenResolution = CameraResolution;
             AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
-            MarkRenderDynamicDataDirty();
+            MarkRenderStateDirty();
         }
     }
 
@@ -128,20 +118,34 @@ namespace nilou {
             GetUpVector(), AspectRatio, VerticalFieldOfView, NearClipDistance, FarClipDistance);
     }
 
+    void UCameraComponent::SetMaxCascadeShadowMapDistance(double MaxCSMDistance)
+    {
+        if (MaxCSMDistance != MaxCascadeShadowMapDistance)
+        {
+            MaxCascadeShadowMapDistance = MaxCSMDistance;
+            MarkRenderStateDirty();
+        }
+    }
+
 
 
     FCameraSceneProxy::FCameraSceneProxy(UCameraComponent *InComponent)
         : ViewSceneInfo(nullptr)
     {
         InComponent->SceneProxy = this;
+        MaxCascadeShadowMapDistance = InComponent->MaxCascadeShadowMapDistance;
         ViewUniformBufferRHI = CreateUniformBuffer<FViewShaderParameters>();
         SetPositionAndDirection(InComponent->GetComponentLocation(), InComponent->GetForwardVector(), InComponent->GetUpVector());
         SetViewProjectionMatrix(InComponent->CalcWorldToViewMatrix(), InComponent->CalcViewToClipMatrix());
         SetCameraResolution(InComponent->ScreenResolution);
         SetCameraClipDistances(InComponent->NearClipDistance, InComponent->FarClipDistance);
+        SetFieldOfView(InComponent->GetFieldOfView());
         BeginInitResource(ViewUniformBufferRHI.get());
         if (ViewSceneInfo)
-            ViewSceneInfo->SetNeedsUniformBufferUpdate(false);
+        {
+            ViewSceneInfo->SetNeedsFramebufferUpdate(true);
+            ViewSceneInfo->SetNeedsUniformBufferUpdate(true);
+        }
     }
 
     void FCameraSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)

@@ -49,7 +49,7 @@ float MaterialGetMetallic(VS_Out vs_out)
     // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering
 	float dist = length(vs_out.RelativeWorldPosition.xy);
     float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
-    float sigmaXsq = lerp(0.015, 0.0015, sigmaFactor);        
+    float sigmaXsq = 0.007;//lerp(0.015, 0.0015, sigmaFactor);        
 	return sigmaXsq;            
 }          
 float MaterialGetRoughness(VS_Out vs_out)            
@@ -57,7 +57,7 @@ float MaterialGetRoughness(VS_Out vs_out)
     // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering     
 	float dist = length(vs_out.RelativeWorldPosition.xy);
     float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
-    float sigmaYsq = lerp(0.015, 0.0015, sigmaFactor);  
+    float sigmaYsq = 0.007;//lerp(0.015, 0.0015, sigmaFactor);  
 	return sigmaYsq;            
 }               
 vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)            
@@ -69,14 +69,14 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
 
 	vec3 displacement = texture(DisplaceTexture, UV).rgb;
 	
-	const vec3 perlinFrequency = vec3(1.12, 0.59, 0.23);
-	const vec3 perlinAmplitude = vec3(0.35, 0.42, 0.57);
-	float p0 = texture(PerlinNoise, UV * perlinFrequency.x - WindDirection * Time * 0.06f).a;
-	float p1 = texture(PerlinNoise, UV * perlinFrequency.y - WindDirection * Time * 0.06f).a;
-	float p2 = texture(PerlinNoise, UV * perlinFrequency.z - WindDirection * Time * 0.06f).a;
-
-	float perl = dot(vec3(p0, p1, p2), perlinAmplitude);
-	displacement = mix(vec3(0.0, 0, perl), displacement, factor);
+//	const vec3 perlinFrequency = vec3(1.12, 0.59, 0.23);
+//	const vec3 perlinAmplitude = vec3(0.35, 0.42, 0.57);
+//	float p0 = texture(PerlinNoise, UV * perlinFrequency.x - WindDirection * Time * 0.06f).a;
+//	float p1 = texture(PerlinNoise, UV * perlinFrequency.y - WindDirection * Time * 0.06f).a;
+//	float p2 = texture(PerlinNoise, UV * perlinFrequency.z - WindDirection * Time * 0.06f).a;
+//
+//	float perl = dot(vec3(p0, p1, p2), perlinAmplitude);
+//	displacement = mix(vec3(0.0, 0, perl), displacement, factor);
 
 	return displacement;            
 }        

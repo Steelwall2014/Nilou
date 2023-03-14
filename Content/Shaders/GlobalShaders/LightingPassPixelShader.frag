@@ -48,6 +48,8 @@ float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, flo
 {
     vec4 ViewSpacePosition = RelWorldToView * vec4(RelativePosition, 1);
     float depth = abs(ViewSpacePosition.z);
+    if (depth > Frustums[FrustumCount-1].FrustumFar)
+        return 1;
     int FrustumIndex = -1;
     for (int i = FrustumCount-1; i >= 0; i--)
     {
@@ -113,7 +115,7 @@ void main()
 
     params.metallic = texture(MetallicRoughness, uv).r;
     params.roughness = texture(MetallicRoughness, uv).g;
-    float bias = max(0.05 * (1.0 - dot(params.N, params.L)), 0.005);
+    float bias = max(0.01 * (1.0 - dot(params.N, params.L)), 0.001);
     float visibility = ShadowCalculation(light, params.relativePosition, bias);
 
     Length r = params.relativePosition.z + ATMOSPHERE.bottom_radius + float(CameraPosition.z);

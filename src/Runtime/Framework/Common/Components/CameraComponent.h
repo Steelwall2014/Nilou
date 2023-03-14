@@ -34,8 +34,6 @@ namespace nilou {
 
         virtual void SendRenderTransform() override;
 
-        virtual void SendRenderDynamicData() override;
-
         glm::dmat4 CalcWorldToViewMatrix();
 
         glm::mat4 CalcViewToClipMatrix();
@@ -60,6 +58,10 @@ namespace nilou {
 
         void SetCameraResolution(const ivec2 &CameraResolution);
 
+        double GetMaxCascadeShadowMapDistance() const { return MaxCascadeShadowMapDistance; }
+
+        void SetMaxCascadeShadowMapDistance(double MaxCascadeShadowMapDistance);
+
         FViewFrustum CalcViewFrustum();
 
         FCameraSceneProxy* GetSceneProxy() const { return SceneProxy; }
@@ -77,6 +79,8 @@ namespace nilou {
         glm::ivec2 ScreenResolution;
 
         bool bIsMainCamera;
+
+        double MaxCascadeShadowMapDistance = 800;
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
@@ -142,6 +146,7 @@ namespace nilou {
         double FarClipDistance;
         glm::ivec2 ScreenResolution;
         EViewType ViewType;
+        double MaxCascadeShadowMapDistance;
     
     protected:
         FViewSceneInfo *ViewSceneInfo;
