@@ -42,7 +42,44 @@ layout (std140) uniform FShadowMappingBlock {
     FShadowMappingParameters Frustums[FrustumCount];
 };
 
+float CalculateVisibility(int FrustumIndex, vec3 RelativePosition, float bias)
+{
+    if (FrustumIndex == -1)
+        return 0;
+    else if (FrustumIndex >= FrustumCount)
+        return 1;
 
+    vec4 LightClipNDC = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(RelativePosition+CameraPosition, 1));
+    LightClipNDC /= LightClipNDC.w;
+    LightClipNDC = LightClipNDC * 0.5 + 0.5;
+    vec2 ShadowMapUV = LightClipNDC.xy;
+    float SceneLightSpaceDepth = LightClipNDC.z;
+    vec2 Resolution = vec2(Frustums[FrustumIndex].Resolution);
+    float result = 0;
+    int gridSize = 3;
+    for (int i = -gridSize; i <= gridSize; i++)
+    {
+        for (int j = -gridSize; j <= gridSize; j++)
+        {
+            vec2 uv_offset = vec2(i, j) / Resolution;
+            vec2 sampleUV = ShadowMapUV + uv_offset;
+
+            vec2 texelPos = sampleUV * Resolution;
+            vec2 texelPosFraction = fract(texelPos);
+
+            vec2 samplePosCenter = floor(texelPos);
+            samplePosCenter /= Resolution;
+
+            vec4 ShadowMapDepth = textureGather(ShadowMaps, vec3(samplePosCenter, FrustumIndex));
+            vec4 depth = step(vec4(SceneLightSpaceDepth), ShadowMapDepth + vec4(bias));
+            float d1 = lerp(depth.w, depth.z, texelPosFraction.x);
+            float d2 = lerp(depth.x, depth.y, texelPosFraction.x);
+            float d = lerp(d1, d2, texelPosFraction.y);
+            result += d;
+        }
+    }
+    return clamp(result / float((gridSize * 2 + 1) * (gridSize * 2 + 1)), 0, 1);
+}
 
 float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, float bias)
 {
@@ -51,46 +88,35 @@ float ShadowCalculation(FLightShaderParameters light, vec3 RelativePosition, flo
     if (depth > Frustums[FrustumCount-1].FrustumFar)
         return 1;
     int FrustumIndex = -1;
+    bool bNeedsBlend = false;
+    float BlendRatio;
     for (int i = FrustumCount-1; i >= 0; i--)
     {
+        float SplitLength;
+        if (i > 0)
+            SplitLength = Frustums[i].FrustumFar - Frustums[i-1].FrustumFar;
+        else
+            SplitLength = Frustums[0].FrustumFar;
         if (depth < Frustums[i].FrustumFar)
-            FrustumIndex = i;
-    }
-    if (FrustumIndex != -1)
-    {
-        vec4 LightClipNDC = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(RelativePosition+CameraPosition, 1));
-        LightClipNDC /= LightClipNDC.w;
-        LightClipNDC = LightClipNDC * 0.5 + 0.5;
-        vec2 ShadowMapUV = LightClipNDC.xy;
-        float SceneLightSpaceDepth = LightClipNDC.z;
-        vec2 Resolution = vec2(Frustums[FrustumIndex].Resolution);
-        float result = 0;
-        int gridSize = 3;
-        for (int i = -gridSize; i <= gridSize; i++)
         {
-            for (int j = -gridSize; j <= gridSize; j++)
+            FrustumIndex = i;
+            if (Frustums[i].FrustumFar-depth < SplitLength*0.1)
             {
-                vec2 uv_offset = vec2(i, j) / Resolution;
-                vec2 sampleUV = ShadowMapUV + uv_offset;
-
-                vec2 texelPos = sampleUV * Resolution;
-                vec2 texelPosFraction = fract(texelPos);
-
-                vec2 samplePosCenter = floor(texelPos);
-                samplePosCenter /= Resolution;
-
-                vec4 ShadowMapDepth = textureGather(ShadowMaps, vec3(samplePosCenter, FrustumIndex));
-                vec4 depth = step(vec4(SceneLightSpaceDepth), ShadowMapDepth + vec4(bias));
-                float d1 = lerp(depth.w, depth.z, texelPosFraction.x);
-                float d2 = lerp(depth.x, depth.y, texelPosFraction.x);
-                float d = lerp(d1, d2, texelPosFraction.y);
-                result += d;
+                bNeedsBlend = true;
+                BlendRatio = (Frustums[i].FrustumFar-depth) / (SplitLength*0.1);
             }
         }
-        return clamp(result / float((gridSize * 2 + 1) * (gridSize * 2 + 1)), 0, 1);
     }
-
-    return 0;
+    if (bNeedsBlend)
+    {
+        float visibility1 = CalculateVisibility(FrustumIndex, RelativePosition, bias);
+        float visibility2 = CalculateVisibility(FrustumIndex+1, RelativePosition, bias);
+        return lerp(visibility2, visibility1, BlendRatio);
+    }
+    else
+    {
+        return CalculateVisibility(FrustumIndex, RelativePosition, bias);
+    }
 }
 
 
