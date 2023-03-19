@@ -368,15 +368,14 @@ namespace nilou {
         uint32 MipmapOffset = 0;
         for (int MipmapLevel = 0; MipmapLevel < NumMips; MipmapLevel++)
         {
-            Tiles[MipmapLevel].resize(NumTileX);
-            int NumTileX = this->NumTileX >> MipmapLevel;
-            int NumTileY = this->NumTileY >> MipmapLevel;
-            for (int TileX = 0; TileX < NumTileX; TileX++)
+            int NumMipTileX = this->NumTileX >> MipmapLevel;
+            int NumMipTileY = this->NumTileY >> MipmapLevel;
+            Tiles[MipmapLevel].resize(NumMipTileX);
+            for (int TileX = 0; TileX < NumMipTileX; TileX++)
             {
-                // Tiles[MipmapLevel][TileX].resize(NumTileY);
-                for (int TileY = 0; TileY < NumTileY; TileY++)
+                for (int TileY = 0; TileY < NumMipTileY; TileY++)
                 {
-                    uint32 offset = MipmapOffset + (PageSize.y*TileY * PageSize.x*NumTileX + PageSize.x*TileX) * BytePerPixel;
+                    uint32 offset = MipmapOffset + (PageSize.y*TileY * PageSize.x*NumMipTileX + PageSize.x*TileX) * BytePerPixel;
                     std::unique_ptr<VirtualTextureTile> tile = std::make_unique<VirtualTextureTile>();
                     tile->TileX = TileX;
                     tile->TileY = TileY;
@@ -385,7 +384,7 @@ namespace nilou {
                     Tiles[MipmapLevel][TileX].push_back(std::move(tile));
                 }
             }
-            MipmapOffset += NumTileX * NumTileY * PageSize.x * PageSize.y * BytePerPixel;
+            MipmapOffset += NumMipTileX * NumMipTileY * PageSize.x * PageSize.y * BytePerPixel;
         }
 
         RHITextureParams &Params = TextureResource->SamplerRHI.Params;

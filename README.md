@@ -24,6 +24,10 @@ _海面_
   
 _阴影_
 ![](figures/shadow.png)
+  
+_GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384的虚拟纹理，像素格式为float16，大小约为700mb（含7级mipmap）_
+![](figures/virtual_heightfield.png)
+
 ## 运行
 第一次运行之前，或者添加了被UCLASS()标记的类之后，需要手动运行一次HeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
 HeaderTool的编译：

@@ -126,7 +126,7 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	vec2 HeightTexture_UV = pos.xy / HeightTextureMeterSize;
 	VFIntermediates.pos = pos;
 	VFIntermediates.Heightfield_UV = HeightTexture_UV;
-	VFIntermediates.MipmapLevel = 0;//min(NumHeightfieldTextureMipmap, LODNum - (current_patch.lod+1));
+	VFIntermediates.MipmapLevel = min(NumHeightfieldTextureMipmap, current_patch.lod);
 	ivec2 id = ivec2(HeightTexture_UV * vec2(HeightfieldWidth, HeightfieldHeight));
 	CalcNormalTangent(id, VFIntermediates.MipmapLevel, VFIntermediates.Normal, VFIntermediates.Tangent);
 	return VFIntermediates;

@@ -333,7 +333,7 @@ namespace nilou {
                 vec2 node_max = (vec2(Node)+vec2(1)) * LodParams[Lod].NodeMeterSize;
 
                 // For simplicity, we just use the LOD level of quad-tree as the mipmap level
-                int MipmapLevel = LodCount - (Lod+1);
+                int MipmapLevel = Lod;
                 HeightField->UpdateBound(node_min / HeightTextureMeterSize, node_max / HeightTextureMeterSize, MipmapLevel);
             }
         }
