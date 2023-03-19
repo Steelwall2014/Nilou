@@ -6,6 +6,7 @@ vsxmake2019
 .xmake
 Assets/Shaders/.vs
 Content/Shaders/.vs
+Content/Textures/TestVirtualHeightfield.nasset
 .vscode/compile_commands.json
 compile_commands.json
 

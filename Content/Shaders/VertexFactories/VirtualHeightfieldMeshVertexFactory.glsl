@@ -15,6 +15,7 @@ layout (std140) uniform FQuadTreeParameters {
     uint    LODNum;
     uint    NumQuadsPerPatch;
     uint    NumPatchesPerNode;
+	uint	NumHeightfieldTextureMipmap;
 };
 
 layout (std140) uniform FBuildNormalTangentBlock {
@@ -41,7 +42,7 @@ struct FVertexFactoryIntermediates
 	vec2 Heightfield_UV;
 	vec3 Normal;
 	vec4 Tangent;
-//	vec2 MinMax;
+	uint MipmapLevel;
 };
 
 bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
@@ -92,17 +93,17 @@ bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
 	return on_edge;
 }
 
-void CalcNormalTangent(ivec2 id, out vec3 Normal, out vec4 Tangent)
+void CalcNormalTangent(ivec2 id, uint MipmapLevel, out vec3 Normal, out vec4 Tangent)
 {
     vec2 uvX1 = (vec2(id.x - 1, id.y) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
     vec2 uvX2 = (vec2(id.x + 1, id.y) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
     vec2 uvY1 = (vec2(id.x, id.y - 1) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
     vec2 uvY2 = (vec2(id.x, id.y + 1) + vec2(0.5)) / vec2(HeightfieldWidth, HeightfieldHeight);
 
-    float x1_displace = texture(HeightfieldTexture, uvX1).r;
-    float x2_displace = texture(HeightfieldTexture, uvX2).r;
-    float y1_displace = texture(HeightfieldTexture, uvY1).r;
-    float y2_displace = texture(HeightfieldTexture, uvY2).r;
+    float x1_displace = textureLod(HeightfieldTexture, uvX1, MipmapLevel).r;
+    float x2_displace = textureLod(HeightfieldTexture, uvX2, MipmapLevel).r;
+    float y1_displace = textureLod(HeightfieldTexture, uvY1, MipmapLevel).r;
+    float y2_displace = textureLod(HeightfieldTexture, uvY2, MipmapLevel).r;
 
     vec3 tangentX = vec3(2*PixelMeterSize.x, 0, x2_displace-x1_displace);
     vec3 tangentY = vec3(0, 2*PixelMeterSize.y, y2_displace-y1_displace);
@@ -125,16 +126,14 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	vec2 HeightTexture_UV = pos.xy / HeightTextureMeterSize;
 	VFIntermediates.pos = pos;
 	VFIntermediates.Heightfield_UV = HeightTexture_UV;
+	VFIntermediates.MipmapLevel = 0;//min(NumHeightfieldTextureMipmap, LODNum - (current_patch.lod+1));
 	ivec2 id = ivec2(HeightTexture_UV * vec2(HeightfieldWidth, HeightfieldHeight));
-	CalcNormalTangent(id, VFIntermediates.Normal, VFIntermediates.Tangent);
-//	VFIntermediates.MinMax = textureLod(MinMaxMap, HeightTexture_UV, current_patch.lod+3).rg;
-//	VFIntermediates.Normal = texture(NormalTexture, HeightTexture_UV).xyz;
-//	VFIntermediates.Tangent = texture(TangentTexture, HeightTexture_UV);
+	CalcNormalTangent(id, VFIntermediates.MipmapLevel, VFIntermediates.Normal, VFIntermediates.Tangent);
 	return VFIntermediates;
 }
 dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 {
-	float height = texture(HeightfieldTexture, VFIntermediates.Heightfield_UV).r;
+	float height = textureLod(HeightfieldTexture, VFIntermediates.Heightfield_UV, VFIntermediates.MipmapLevel).r;
 	VFIntermediates.pos.z += height;
 
 	return dvec3(LocalToWorld * dvec4(VFIntermediates.pos, 1));

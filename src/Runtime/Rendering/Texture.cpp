@@ -27,6 +27,20 @@ namespace nilou {
         SamplerRHI.Texture = TextureRHI.get();
     }
 
+    std::shared_ptr<UVirtualTexture> UTexture::MakeVirtualTexture()
+    {
+        std::shared_ptr<UVirtualTexture> VT = std::make_shared<UVirtualTexture>();
+        VT->Name = std::move(Name);
+        VT->TextureResource->Name = std::move(this->TextureResource->Name);
+        VT->TextureResource->Image = std::move(this->TextureResource->Image);
+        VT->TextureResource->NumMips = std::move(this->TextureResource->NumMips);
+        VT->TextureResource->SamplerRHI.Params = std::move(this->TextureResource->SamplerRHI.Params);
+        VT->TextureResource->SamplerRHI.ResourceType = std::move(this->TextureResource->SamplerRHI.ResourceType);
+        if (TextureResource->TextureRHI)
+            BeginInitResource(VT->TextureResource.get());
+        this->TextureResource = nullptr;
+        return VT;
+    }
 
     void UTexture::Serialize(FArchive &Ar)
     {
@@ -121,7 +135,7 @@ namespace nilou {
     UVirtualTexture::UVirtualTexture()
         : LruCache(0)
     {
-        TextureResource = std::make_unique<FSparseTexture>();
+        TextureResource = std::make_unique<FTexture>();
     }
 
     void UVirtualTexture::UpdateBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel)
@@ -209,98 +223,66 @@ namespace nilou {
     void UVirtualTexture::UpdateTile(uint32 InTileX, uint32 InTileY, uint32 MipmapLevel)
     {
         thread_pool.push_task([this, InTileX, InTileY, MipmapLevel]() {
-
-            uint32 TileX = InTileX;
-            uint32 TileY = InTileY;
-            auto &Tile = Tiles[MipmapLevel][TileX][TileY];
-            std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
-            if (!lock.owns_lock())
-                return;
-
-            auto ExpelledTile = LruCache.Put_ThreadSafe(Tile.get(), Tile.get());
-            if (ExpelledTile.has_value())
-            {
-                VirtualTextureTile* Tile = ExpelledTile.value().first;
-                UnloadTile(Tile->TileX, Tile->TileY, Tile->MipmapLevel);
-            }
-            // LruUpdate(Tile.get());
-
-            if (Tile->bCommited || TextureResource == nullptr)
-                return;  
-            uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(TextureResource->Image->PixelFormat);
-            ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(GetTextureType(), TextureResource->Image->PixelFormat);
-
-            std::shared_ptr<char[]> data = std::make_shared<char[]>(PageSize.x*PageSize.y*BytePerPixel);
-            // X corresponds to column.
-            int img_col = TileX * PageSize.x;
-            std::ifstream in{StreamingPath.generic_string(), std::ios::binary};
-            for (int row = 0; row < PageSize.y; row++)
-            {
-                int img_row = row+TileY*PageSize.y;
-                int read_offset = StreamingBufferOffset + (img_row * TextureResource->Image->Width + img_col) * BytePerPixel;
-                in.seekg(read_offset, std::ios::beg);
-                char* write_pointer = data.get() + row*PageSize.x*BytePerPixel;
-                in.read(write_pointer, PageSize.x*BytePerPixel);
-            }
-            Tile->bCommited = true;  
-
-            // std::shared_ptr<char[]> data = std::make_shared<char[]>(PageSize.x*PageSize.y*BytePerPixel);
-            // // X corresponds to column.
-            // int col = TileX * PageSize.x;
-            // for (int row = 0; row < PageSize.y; row++)
-            // {
-            //     std::memcpy(data.get()+row*PageSize.x*BytePerPixel, TextureResource->Image->Get(row+TileY*PageSize.y, col), PageSize.x*BytePerPixel);
-            // }
-            ENQUEUE_RENDER_COMMAND(UVirtualTexture_UpdateTile)(
-                [this, TileX, TileY, MipmapLevel, data](FDynamicRHI* RHICmdList)
-                {
-                    if (TextureResource && TextureResource->TextureRHI)
-                    {
-                        RHICmdList->RHISparseTextureUpdateTile(
-                            TextureResource->TextureRHI.get(), TileX, TileY, MipmapLevel, data.get());  
-                    }   
-                });
+            UpdateTileInternal(InTileX, InTileY, MipmapLevel);
         });
-
     }
 
     void UVirtualTexture::UpdateTileSync(uint32 InTileX, uint32 InTileY, uint32 MipmapLevel)
     {
-        uint32 TileX = InTileX;
-        uint32 TileY = InTileY;
-        auto &Tile = Tiles[MipmapLevel][TileX][TileY];
-        std::lock_guard<std::mutex> lock(Tile->mutex);
+        UpdateTileInternal(InTileX, InTileY, MipmapLevel);
+    }
 
-        // std::unique_lock<std::mutex> LRU_lock(mutex);
-        auto ExpelledTile = LruCache.Put_ThreadSafe(Tile.get(), Tile.get());
+    void UVirtualTexture::UpdateTileInternal(uint32 TileX, uint32 TileY, uint32 MipmapLevel)
+    {
+        MipmapLevel = glm::clamp(MipmapLevel, 0u, uint32(TextureResource->NumMips));
+        auto Tile = Tiles[MipmapLevel][TileX][TileY].get();
+        std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
+        if (!lock.owns_lock())
+            return;
+
+        auto ExpelledTile = LruCache.Put_ThreadSafe(Tile, Tile);
         if (ExpelledTile.has_value())
         {
-            VirtualTextureTile* Tile = ExpelledTile.value().first;
+            VirtualTextureTile* Tile = ExpelledTile.value().second;
             UnloadTile(Tile->TileX, Tile->TileY, Tile->MipmapLevel);
         }
-        // LRU_lock.unlock();
-        // LruUpdate(Tile.get());
-        
 
         if (Tile->bCommited || TextureResource == nullptr)
-            return;
-        Tile->bCommited = true;    
+            return;  
         uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(TextureResource->Image->PixelFormat);
         ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(GetTextureType(), TextureResource->Image->PixelFormat);
 
         std::shared_ptr<char[]> data = std::make_shared<char[]>(PageSize.x*PageSize.y*BytePerPixel);
         // X corresponds to column.
-        int img_col = TileX * PageSize.x;
+        // int img_col = TileX * PageSize.x;
         std::ifstream in{StreamingPath.generic_string(), std::ios::binary};
+        int MipWidth = TextureResource->Image->Width >> MipmapLevel;
+        int MipHeight = TextureResource->Image->Height >> MipmapLevel;
         for (int row = 0; row < PageSize.y; row++)
         {
-            int img_row = row+TileY*PageSize.y;
-            int read_offset = StreamingBufferOffset + (img_row * TextureResource->Image->Width + img_col) * BytePerPixel;
+            // It's the byte offset from the beginning of file to the beginning of binary block
+            size_t bin_offset = StreamingBufferOffset;
+
+            // It's the byte offset from the beginning of binary block to the beginning of this tile
+            size_t tile_offset = Tile->DataOffset;
+
+            // It's the byte offset from the beginning of this tile to the beginning of this row
+            size_t inner_offset = row * MipWidth * BytePerPixel;
+
+            // It's the byte offset from the beginning of file to the beginning of this row
+            size_t read_offset = bin_offset + tile_offset + inner_offset;
+
+            // int img_row = row+TileY*PageSize.y;
+            // int img_col = TileX * PageSize.x;
+            // size_t read_offset = StreamingBufferOffset + (img_row * TextureResource->Image->Width + img_col) * BytePerPixel;
+            // if (read_offset0 != read_offset)
+            //     std::cout << 1;
+
             in.seekg(read_offset, std::ios::beg);
             char* write_pointer = data.get() + row*PageSize.x*BytePerPixel;
             in.read(write_pointer, PageSize.x*BytePerPixel);
         }
-
+        Tile->bCommited = true;  
         ENQUEUE_RENDER_COMMAND(UVirtualTexture_UpdateTile)(
             [this, TileX, TileY, MipmapLevel, data](FDynamicRHI* RHICmdList)
             {
@@ -310,7 +292,6 @@ namespace nilou {
                         TextureResource->TextureRHI.get(), TileX, TileY, MipmapLevel, data.get());   
                 }  
             });
-
     }
 
     void UVirtualTexture::Serialize(FArchive &Ar)
@@ -335,8 +316,8 @@ namespace nilou {
             image["Channel"] = TextureResource->Image->Channel;
             image["DataSize"] = TextureResource->Image->data_size;
             image["PixelFormat"] = magic_enum::enum_name(TextureResource->Image->PixelFormat);
-            //  = {"Buffer"};//SerializeHelper::Base64Encode(TextureResource->Image->data, TextureResource->Image->data_size);
-            // Ar.OutBuffers.AddBuffer(image["Data"], TextureResource->Image->data_size, TextureResource->Image->data);
+            if (TextureResource->Image->data)
+                Ar.OutBuffers.AddBuffer(image["Data"], TextureResource->Image->data_size, TextureResource->Image->data);
         }
     }
 
@@ -395,7 +376,7 @@ namespace nilou {
                 // Tiles[MipmapLevel][TileX].resize(NumTileY);
                 for (int TileY = 0; TileY < NumTileY; TileY++)
                 {
-                    uint32 offset = MipmapOffset + (PageSize.x*TileX * NumTileY + PageSize.y*TileY) * BytePerPixel;
+                    uint32 offset = MipmapOffset + (PageSize.y*TileY * PageSize.x*NumTileX + PageSize.x*TileX) * BytePerPixel;
                     std::unique_ptr<VirtualTextureTile> tile = std::make_unique<VirtualTextureTile>();
                     tile->TileX = TileX;
                     tile->TileY = TileY;
@@ -430,9 +411,15 @@ namespace nilou {
         BeginInitResource(TextureResource.get());    
     }
 
-    void* FImage::Get(int row, int col)
+    void* FImage::Get(int row, int col, int mipmap)
     {
         uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
-        return data + (row * Width + col) * BytePerPixel;
+        size_t mip0_size = Width*Height*Channel * BytePerPixel;
+        size_t mip_offset = mip0_size * (1 - glm::pow(0.25, mipmap)) / (1 - 0.25);
+        int mip_width = Width / glm::pow(2, mipmap);
+        size_t offset = (row * mip_width + col) * BytePerPixel;
+        if (mip_offset + offset < data_size)
+            return data + mip_offset + offset;
+        return nullptr;
     }
 }

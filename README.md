@@ -9,7 +9,21 @@ _她真的好美_
 提取码：y4ws  
 后来我觉得这个还有再继续做下去的价值，可以变成我试验各种图形学算法的游乐场，但是我发现这个项目当时的架构根本就没什么可扩展性，因此开始了长达4个月的重构之旅。  
 重构选用了xmake作为构建工具。在重构中我尽量尝试模仿虚幻引擎的Actor和组件机制以及渲染体系，虽然依然很丑，但是已经有了那么一点样子。
-构建系统使用xmake，编译器为clang-cl，只能运行在windows系统上。
+构建系统使用xmake，我使用的编译器为clang-cl，只能运行在windows系统上。  
+## 截图
+_3DTiles_
+![](figures/3dtiles.png)
+  
+_大气渲染_
+![](figures/atmosphere1.png)
+![](figures/atmosphere2.png)
+  
+_海面_
+![](figures/ocean1.png)
+![](figures/ocean2.png)
+  
+_阴影_
+![](figures/shadow.png)
 ## 运行
 第一次运行之前，或者添加了被UCLASS()标记的类之后，需要手动运行一次HeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
 HeaderTool的编译：

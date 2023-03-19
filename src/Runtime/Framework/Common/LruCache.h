@@ -77,10 +77,10 @@ namespace nilou {
 
         int Capacity;
         std::list<std::pair<Key, Value>> ItemList;
-        std::unordered_map<Key, std::list<std::pair<Key, Value>>::iterator> ItemToIterMap;
+        std::unordered_map<Key, decltype(ItemList)::iterator> ItemToIterMap;
         std::mutex mutex;
 
-        void MoveToFront(std::list<std::pair<Key, Value>>::iterator iter)
+        void MoveToFront(decltype(ItemList)::iterator iter)
         {
             if (iter != ItemList.begin())
                 ItemList.splice(ItemList.begin(), ItemList, iter, std::next(iter));

@@ -20,7 +20,7 @@ namespace nilou {
         unsigned char *data{ nullptr };
         size_t data_size{ 0 };
 		EPixelFormat PixelFormat;
-        void* Get(int row, int col);
+        void* Get(int row, int col, int mipmap=0);
 		~FImage() { delete[] data; }
 	};
 
@@ -101,6 +101,10 @@ namespace nilou {
         }
 
 		std::string Name;
+
+        // Create a new UVirtualTexture object from this texture
+        // Note: the content of this texture will be MOVED to the newly created virtual texture
+        std::shared_ptr<class UVirtualTexture> MakeVirtualTexture();
 
         ETextureWrapModes GetWrapS()
         {
@@ -183,7 +187,7 @@ namespace nilou {
 
         void UpdateTileSync(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
 
-        uvec2 GetNumTiles() const { return uvec2(NumTileX, NumTileY); }
+        uvec2 GetNumTiles(int MipmapLevel=0) const { return uvec2(NumTileX >> MipmapLevel, NumTileY >> MipmapLevel); }
 
         ivec3 GetPageSize() const { return PageSize; }
 
@@ -192,6 +196,8 @@ namespace nilou {
         uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
 
    private:
+
+        void UpdateTileInternal(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
 
         uint32 NumTileX;
         uint32 NumTileY;
@@ -205,6 +211,7 @@ namespace nilou {
         TLruCache<VirtualTextureTile*, VirtualTextureTile*> LruCache;
 
         std::filesystem::path StreamingPath;
+        // It's the offset from the beginning to the BIN block
         uint32 StreamingBufferOffset;
 
         BS::thread_pool thread_pool;

@@ -9,6 +9,7 @@ layout (std140) uniform FQuadTreeParameters {
     uint    LODNum;
     uint    NumQuadsPerPatch;
     uint    NumPatchesPerNode;
+	uint	NumHeightfieldTextureMipmap;
 };
 
 layout (std140) uniform FBuildMinMaxBlock {

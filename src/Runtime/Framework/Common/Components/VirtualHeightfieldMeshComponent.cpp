@@ -70,6 +70,7 @@ namespace nilou {
         SHADER_PARAMETER(uint32, LODNum)
         SHADER_PARAMETER(uint32, NumQuadsPerPatch)
         SHADER_PARAMETER(uint32, NumPatchesPerNode)
+        SHADER_PARAMETER(uint32, NumHeightfieldTextureMipmap)
     END_UNIFORM_BUFFER_STRUCT()
     
     BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
@@ -287,6 +288,7 @@ namespace nilou {
                     QuadTreeParameters->Data.NumPatchesPerNode = NumPatchesPerNode;
                     QuadTreeParameters->Data.NodeCount = NodeCount;
                     QuadTreeParameters->Data.LODNum = LodCount;
+                    QuadTreeParameters->Data.NumHeightfieldTextureMipmap = HeightField->GetResource()->NumMips;
                     QuadTreeParameters->InitRHI();
 
                     CreatePatchBlock = CreateUniformBuffer<FCreatePatchBlock>();
@@ -329,7 +331,10 @@ namespace nilou {
                 uint32 Lod = Node.z;
                 vec2 node_min = vec2(Node) * LodParams[Lod].NodeMeterSize;
                 vec2 node_max = (vec2(Node)+vec2(1)) * LodParams[Lod].NodeMeterSize;
-                HeightField->UpdateBound(node_min / HeightTextureMeterSize, node_max / HeightTextureMeterSize, 0);
+
+                // For simplicity, we just use the LOD level of quad-tree as the mipmap level
+                int MipmapLevel = LodCount - (Lod+1);
+                HeightField->UpdateBound(node_min / HeightTextureMeterSize, node_max / HeightTextureMeterSize, MipmapLevel);
             }
         }
 

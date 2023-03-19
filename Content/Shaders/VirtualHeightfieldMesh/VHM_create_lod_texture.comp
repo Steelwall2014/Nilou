@@ -18,6 +18,7 @@ layout (std140) uniform FQuadTreeParameters {
     uint    LODNum;
     uint    NumQuadsPerPatch;
     uint    NumPatchesPerNode;
+	uint	NumHeightfieldTextureMipmap;
 };
 
 uvec2 fromSectorLoctoNodeLoc(uvec2 sector_loc, uint lod)
