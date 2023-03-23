@@ -120,6 +120,6 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
     color += subsurface * (1-fresnel);
     color += refl * fresnel;
     color += light.lightIntensity * spec * 5;
-    return HDR(color, 0.4);
+    return 0.4 * color;
 }
 #endif

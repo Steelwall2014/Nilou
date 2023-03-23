@@ -8,12 +8,13 @@
 #include <glad/glad.h>
 
 #include "Common/Log.h"
-#include "Common/StaticMeshResources.h"
+#include "StaticMeshResources.h"
 #include "Material.h"
 #include "RHIDefinitions.h"
 #include "StaticMeshVertexBuffer.h"
 #include "Texture.h"
 #include "VertexFactory.h"
+#include "Common/Asset/AssetLoader.h"
 
 using namespace nilou;
 namespace fs = std::filesystem;

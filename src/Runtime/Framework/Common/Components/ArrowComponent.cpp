@@ -1,7 +1,7 @@
 #include "ArrowComponent.h"
-#include "Common/StaticMeshResources.h"
-#include "Common/DynamicMeshResources.h"
-#include "Common/PrimitiveUtils.h"
+#include "StaticMeshResources.h"
+#include "DynamicMeshResources.h"
+#include "PrimitiveUtils.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
 

@@ -1,9 +1,9 @@
 #include <half/half.hpp>
 #include "VirtualHeightfieldMeshComponent.h"
-#include "Common/BaseApplication.h"
-#include "Common/StaticMeshResources.h"
-#include "Common/DynamicMeshResources.h"
-#include "Common/PrimitiveUtils.h"
+#include "BaseApplication.h"
+#include "StaticMeshResources.h"
+#include "DynamicMeshResources.h"
+#include "PrimitiveUtils.h"
 #include "Material.h"
 
 #include <glad/glad.h>

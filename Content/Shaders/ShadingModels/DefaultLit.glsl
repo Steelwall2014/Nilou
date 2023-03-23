@@ -49,6 +49,6 @@ vec3 ApplyDefaultLit(FLightShaderParameters light, ShadingParams params, float v
     kD *= 1.0 - params.metallic;  
 
     vec3 color = (kD * baseColor / PI + BRDF) * radiance * NdotL * visibility + emissive;
-    return HDR(color, 10);
+    return 10 * color;
 }
 #endif

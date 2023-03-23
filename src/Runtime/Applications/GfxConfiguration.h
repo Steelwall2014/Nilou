@@ -4,7 +4,7 @@
 #include <cwchar>
 #include <filesystem>
 
-#include "Log.h"
+#include "Common/Log.h"
 
 namespace nilou {
 	struct GfxConfiguration {

@@ -3,7 +3,7 @@
 
 #include "GLFWApplication.h"
 
-#include "Path.h"
+#include "Common/Path.h"
 
 namespace nilou {
 

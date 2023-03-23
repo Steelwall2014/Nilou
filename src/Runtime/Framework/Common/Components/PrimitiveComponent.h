@@ -1,5 +1,5 @@
 #pragma once
-#include "Common/MeshBatch.h"
+#include "MeshBatch.h"
 #include "Frustum.h"
 #include "SceneComponent.h"
 #include "SceneView.h"

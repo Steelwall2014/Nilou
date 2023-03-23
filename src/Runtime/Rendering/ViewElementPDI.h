@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "Common/Maths.h"
-#include "Common/BatchedLine.h"
+#include "BatchedLine.h"
 
 namespace nilou {
 

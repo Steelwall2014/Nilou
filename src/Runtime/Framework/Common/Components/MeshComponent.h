@@ -2,7 +2,7 @@
 
 #include "Common/Components/PrimitiveComponent.h"
 // #include "Common/Components/PrimitiveSceneProxy.h"
-#include "Common/StaticMeshResources.h"
+#include "StaticMeshResources.h"
 #include "Material.h"
 
 // #include "MeshComponent.generated.h"

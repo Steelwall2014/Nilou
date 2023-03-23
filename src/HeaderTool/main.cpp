@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
     /********** InheritanceGraph.generated.cpp **********/
     ofstream out_stream(GeneratedCodePath + "/InheritanceGraph.generated.cpp", ios::out);
     out_stream << 
-        "#include \"Common/InheritanceGraph.h\"\n"
+        "#include \"Common/CoreUObject/InheritanceGraph.h\"\n"
         "namespace nilou {\n"
         "FInheritanceGraph *FInheritanceGraph::GetInheritanceGraph()\n"
         "{\n"

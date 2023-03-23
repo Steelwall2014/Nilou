@@ -1,5 +1,5 @@
 #include "MeshComponent.h"
-#include "Common/MeshBatch.h"
+#include "MeshBatch.h"
 
 namespace nilou {
 

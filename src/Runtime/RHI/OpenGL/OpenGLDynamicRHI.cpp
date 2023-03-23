@@ -8,14 +8,13 @@
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/MachineIndependent/localintermediate.h>
 
-#include "Common/EnumClassFlags.h"
 // #include "Common/QuadTree/QuadTree.h"
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 // #include "Common/SceneManager.h"
 // #include "Common/SceneNode/SceneGeometryNode.h"
 // #include "Common/ShaderManager.h"
 #include "Common/Log.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 // #include "Common/QuadTree/QuadTreeStructures.h"
 
 

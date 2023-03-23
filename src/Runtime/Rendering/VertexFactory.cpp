@@ -1,5 +1,5 @@
 #include "VertexFactory.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 #include "DynamicRHI.h"
 #include "Templates/ObjectMacros.h"
 

@@ -1,7 +1,7 @@
 #include <set>
 
 #include "StaticMeshResources.h"
-#include "Common/DynamicMeshResources.h"
+#include "DynamicMeshResources.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
 #include "DynamicRHI.h"
@@ -9,7 +9,7 @@
 #include "RenderResource.h"
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
-#include "Path.h"
+#include "Common/Path.h"
 
 
 namespace nilou {

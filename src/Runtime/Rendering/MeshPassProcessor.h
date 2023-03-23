@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Common/StaticMeshResources.h"
-#include "Common/MeshBatch.h"
+#include "StaticMeshResources.h"
+#include "MeshBatch.h"
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "VertexFactory.h"

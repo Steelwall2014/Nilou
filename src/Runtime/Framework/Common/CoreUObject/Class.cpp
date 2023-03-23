@@ -1,5 +1,5 @@
 #include "Class.h"
-#include "Common/InheritanceGraph.h"
+#include "InheritanceGraph.h"
 
 namespace nilou {
     

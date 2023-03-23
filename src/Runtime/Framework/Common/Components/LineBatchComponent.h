@@ -1,7 +1,7 @@
 #pragma once
 #include "PrimitiveComponent.h"
 
-#include "Common/BatchedLine.h"
+#include "BatchedLine.h"
 
 namespace nilou {
 

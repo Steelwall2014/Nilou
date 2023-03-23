@@ -4,7 +4,7 @@
 #include "DefferedShadingSceneRenderer.h"
 #include "OpenGL/OpenGLDynamicRHI.h"
 #include "RenderingThread.h"
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 #include "Common/ContentManager.h"
 #include "Common/FrameSynchronizer.h"
 #include "Material.h"

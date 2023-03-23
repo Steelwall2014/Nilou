@@ -2,14 +2,15 @@
 #include <sstream>
 #include <regex>
 
-#include "Common/BaseApplication.h"
-#include "Common/StaticMeshResources.h"
+#include "BaseApplication.h"
+#include "StaticMeshResources.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
 #include "Common/World.h"
 #include "Cesium3DTilesetComponent.h"
 
-#include "Common/PrimitiveUtils.h"
+#include "PrimitiveUtils.h"
+#include "Common/Asset/AssetLoader.h"
 
 
 namespace nilou {
@@ -724,7 +725,7 @@ namespace nilou {
         }
 
     protected:
-        vector<Cesium3DTile *> TilesToRenderThisFrame;
+        std::vector<Cesium3DTile *> TilesToRenderThisFrame;
         std::queue<std::vector<Cesium3DTile *>> TilesRenderingQueue;
 
         dmat4 EcefToAbs;

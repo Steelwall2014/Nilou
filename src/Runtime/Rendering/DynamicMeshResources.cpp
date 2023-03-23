@@ -1,5 +1,5 @@
 #include "DynamicMeshResources.h"
-#include "Common/PrimitiveUtils.h"
+#include "PrimitiveUtils.h"
 
 namespace nilou {
 

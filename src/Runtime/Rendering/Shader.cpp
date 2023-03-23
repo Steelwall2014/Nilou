@@ -4,7 +4,7 @@
 #include "ShaderType.h"
 // #include "Shadinclude.h"
 #include "Shader.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 #include "Templates/ObjectMacros.h"
 
 namespace nilou {

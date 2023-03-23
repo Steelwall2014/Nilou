@@ -1,7 +1,7 @@
 #include "SphereComponent.h"
-#include "Common/StaticMeshResources.h"
-#include "Common/DynamicMeshResources.h"
-#include "Common/PrimitiveUtils.h"
+#include "StaticMeshResources.h"
+#include "DynamicMeshResources.h"
+#include "PrimitiveUtils.h"
 #include "Material.h"
 
 

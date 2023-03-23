@@ -8,7 +8,7 @@
 
 #include "Common/Log.h"
 #include "Gamestatics.h"
-#include "Common/StaticMeshResources.h"
+#include "StaticMeshResources.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
 #include "RHIDefinitions.h"

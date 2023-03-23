@@ -5,7 +5,6 @@
 #include <string>
 #include <functional>
 
-#include "Common/AssetLoader.h"
 #include "HashedName.h"
 #include "ShaderParameter.h"
 #include "ShaderCompileEnvironment.h"

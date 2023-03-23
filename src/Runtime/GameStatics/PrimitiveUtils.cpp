@@ -1,18 +1,7 @@
 #include "PrimitiveUtils.h"
-#include "Transform.h"
+#include "Common/Transform.h"
 
 namespace nilou {
-
-
-    // vec3 unreal_vec3_xor(const vec3& this_, const vec3& V)
-    // {
-    //     return vec3
-    //         (
-    //         this_.y * V.z - this_.z * V.y,
-    //         this_.z * V.x - this_.x * V.z,
-    //         this_.x * V.y - this_.y * V.x
-    //         );
-    // }
 
     vec3 GenerateYAxis(const vec4& XAxis, const vec4& ZAxis)
     {

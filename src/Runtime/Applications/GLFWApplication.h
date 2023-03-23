@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 #include <Common/InputManager.h>
 
 class GLFWwindow;

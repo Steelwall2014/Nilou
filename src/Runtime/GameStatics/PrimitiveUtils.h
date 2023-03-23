@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Common/Transform.h"
-#include "Common/DynamicMeshResources.h"
+#include "DynamicMeshResources.h"
 #include "Platform.h"
 
 namespace nilou {

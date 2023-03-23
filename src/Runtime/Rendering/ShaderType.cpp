@@ -6,6 +6,7 @@
 #include "ShaderType.h"
 #include "ShaderCompiler.h"
 #include "Common/Log.h"
+#include "Common/Asset/AssetLoader.h"
 // #include "Shadinclude.h"
 
 namespace fs = std::filesystem;

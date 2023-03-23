@@ -24,9 +24,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/CoreUObject/Object.h"
-#include "D:/Nilou/src/Runtime/Framework/Common/StaticMeshResources.h"
 #include "D:/Nilou/src/Runtime/Rendering/Material.h"
 #include "D:/Nilou/src/Runtime/Rendering/Material.h"
+#include "D:/Nilou/src/Runtime/Rendering/StaticMeshResources.h"
 #include "D:/Nilou/src/Runtime/Rendering/Texture.h"
 #include "D:/Nilou/src/Runtime/Rendering/Texture.h"
 using namespace nilou;
@@ -58,9 +58,9 @@ FObjectFactory::FObjectFactory()
     FunctionMap["USphereComponent"] = &USphereComponent::CreateDefaultObject;
     FunctionMap["UVirtualHeightfieldMeshComponent"] = &UVirtualHeightfieldMeshComponent::CreateDefaultObject;
     FunctionMap["UObject"] = &UObject::CreateDefaultObject;
-    FunctionMap["UStaticMesh"] = &UStaticMesh::CreateDefaultObject;
     FunctionMap["UMaterial"] = &UMaterial::CreateDefaultObject;
     FunctionMap["UMaterialInstance"] = &UMaterialInstance::CreateDefaultObject;
+    FunctionMap["UStaticMesh"] = &UStaticMesh::CreateDefaultObject;
     FunctionMap["UTexture"] = &UTexture::CreateDefaultObject;
     FunctionMap["UVirtualTexture"] = &UVirtualTexture::CreateDefaultObject;
 }

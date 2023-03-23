@@ -1,4 +1,4 @@
-#include "Common/InheritanceGraph.h"
+#include "Common/CoreUObject/InheritanceGraph.h"
 namespace nilou {
 FInheritanceGraph *FInheritanceGraph::GetInheritanceGraph()
 {
@@ -32,9 +32,9 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_USphereComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UVirtualHeightfieldMeshComponent);
 	AddNode(EUClasses::MC_UObject);
-	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UStaticMesh);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UMaterial);
 	AddEdge(EUClasses::MC_UMaterial, EUClasses::MC_UMaterialInstance);
+	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UStaticMesh);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UTexture);
 	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UVirtualTexture);
 }

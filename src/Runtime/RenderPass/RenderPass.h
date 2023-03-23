@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common/MeshBatch.h"
+#include "MeshBatch.h"
 #include "MeshPassProcessor.h"
 #include "SceneView.h"
 #include <vector>

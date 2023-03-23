@@ -8,7 +8,7 @@
 #include "Common/Components/LightComponent.h"
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
-#include "Common/BatchedLine.h"
+#include "BatchedLine.h"
 #include "Common/Delegate.h"
 #include "ViewElementPDI.h"
 // #include "SceneNode.h"

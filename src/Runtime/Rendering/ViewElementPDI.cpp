@@ -1,6 +1,6 @@
 #include "ViewElementPDI.h"
 
-#include "Common/Scene.h"
+#include "Scene.h"
 
 namespace nilou {
 

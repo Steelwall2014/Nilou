@@ -3,7 +3,6 @@
 #include <glad/glad.h>
 
 #include "Common/EnumClassFlags.h"
-#include "OpenGL/OpenGLBuffer.h"
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 

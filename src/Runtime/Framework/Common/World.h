@@ -5,12 +5,11 @@
 #include <vector>
 #include <set>
 
-#include "Common/Scene.h"
+#include "Scene.h"
 #include "Common/Transform.h"
 #include "Common/Actor/Actor.h"
 
 namespace nilou {
-    using std::vector;
 
     class AActor;
     class UWorld

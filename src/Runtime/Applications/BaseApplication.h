@@ -1,12 +1,12 @@
 #pragma once
 #include <memory>
 #include "RenderingThread.h"
-#include "Common/Scene.h"
+#include "Scene.h"
 #include "Common/World.h"
-#include "Common/GfxConfiguration.h"
+#include "GfxConfiguration.h"
 #include "Common/FrameSynchronizer.h"
 #include "Common/ContentManager.h"
-#include "Delegate.h"
+#include "Common/Delegate.h"
 
 namespace nilou {
     class BaseApplication

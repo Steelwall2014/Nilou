@@ -1,6 +1,6 @@
 #include <sstream>
 #include "CameraActor.h"
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 #include "Common/InputManager.h"
 
 #include "Common/Log.h"

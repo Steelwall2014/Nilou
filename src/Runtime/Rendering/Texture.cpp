@@ -2,7 +2,7 @@
 #include <fstream>
 #include "Common/Path.h"
 #include "Texture.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 #include "DynamicRHI.h"
 #include "RenderingThread.h"
 

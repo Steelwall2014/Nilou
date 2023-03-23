@@ -1,9 +1,9 @@
 #include "FourierTransformOcean.h"
 #include "RenderingThread.h"
-#include "Common/BaseApplication.h"
-#include "Common/DynamicMeshResources.h"
-#include "Common/PrimitiveUtils.h"
-#include "Common/StaticMeshResources.h"
+#include "BaseApplication.h"
+#include "DynamicMeshResources.h"
+#include "PrimitiveUtils.h"
+#include "StaticMeshResources.h"
 
 namespace nilou {
 

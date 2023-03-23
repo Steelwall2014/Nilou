@@ -5,7 +5,7 @@
 #include "ShaderParser.h"
 #include "GameStatics.h"
 #include "DynamicRHI.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 #include "Common/Log.h"
 
 

@@ -1,14 +1,14 @@
 #include <fstream>
 
 #include "World.h"
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 #include "Common/Transform.h"
 
-#include "Common/StaticMeshResources.h"
-#include "Common/AssetLoader.h"
+#include "StaticMeshResources.h"
+#include "Common/Asset/AssetLoader.h"
 #include "Common/Components/MeshComponent.h"
 #include "Common/Components/ArrowComponent.h"
-#include "Common/PrimitiveUtils.h"
+#include "PrimitiveUtils.h"
 #include "Common/ContentManager.h"
 
 #include "Common/Actor/StaticMeshActor.h"

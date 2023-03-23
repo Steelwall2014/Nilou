@@ -1,6 +1,6 @@
 #include "Common/Path.h"
 #include "Material.h"
-#include "Common/AssetLoader.h"
+#include "Common/Asset/AssetLoader.h"
 #include "RHIDefinitions.h"
 #include "Templates/ObjectMacros.h"
 #include "Common/Path.h"

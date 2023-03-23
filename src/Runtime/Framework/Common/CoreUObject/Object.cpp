@@ -1,6 +1,6 @@
 #include "Object.h"
 #include "Common/CoreUObject/Class.h"
-#include "Common/InheritanceGraph.h"
+#include "InheritanceGraph.h"
 
 namespace nilou {
 

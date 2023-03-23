@@ -5,11 +5,14 @@ in vec2 uv;
 
 uniform sampler2D SceneColor;
 
+#include "../include/PBRFunctions.glsl"
+
 void main()
 {
 #if USING_OPENGL
-	FragColor = texture(SceneColor, vec2(1-uv.x, uv.y));
+	vec3 color = texture(SceneColor, vec2(1-uv.x, uv.y)).rgb;
 #else
-	FragColor = texture(SceneColor, uv);
+	vec3 color = texture(SceneColor, uv).rgb;
 #endif
+	FragColor = vec4(HDR(color, 1), 1);
 }

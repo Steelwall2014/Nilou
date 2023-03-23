@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 
 #include "Common/Log.h"
-#include "Common/StaticMeshResources.h"
+#include "StaticMeshResources.h"
 #include "Material.h"
 #include "RHIDefinitions.h"
 #include "StaticMeshVertexBuffer.h"

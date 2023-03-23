@@ -5,18 +5,9 @@
 #include <imgui_impl_opengl3.h>
 #include <memory>
 
-#include <OpenGL/OpenGLDynamicRHI.h>
-// #include <Common/SceneManager.h>
-#include <Common/ContentManager.h>
-#include <Common/AssetLoader.h>
-
-// #include "Common/DrawPass/ForwardRenderPass.h"
-// #include "Common/DrawPass/ShadowMappingPass.h"
-// #include "Common/DrawPass/DebugHUDPass.h"
-// #include "Common/DrawPass/SkyboxPass.h"
-// #include "Common/DrawPass/OceanSurfacePass.h"
-// #include "Common/DrawPass/SeabedSurfacePass.h"
-// #include "Common/DrawPass/DeferredRenderPass.h"
+#include "OpenGL/OpenGLDynamicRHI.h"
+#include "Common/ContentManager.h"
+#include "Common/Asset/AssetLoader.h"
 
 #include "GLFWApplication.h"
 

@@ -5,10 +5,10 @@
 #include "ContentManager.h"
 #include "Texture.h"
 #include "Material.h"
-#include "Common/StaticMeshResources.h"
+#include "StaticMeshResources.h"
 
 #include "Common/Log.h"
-#include "Common/BaseApplication.h"
+#include "BaseApplication.h"
 
 namespace nilou {
 
