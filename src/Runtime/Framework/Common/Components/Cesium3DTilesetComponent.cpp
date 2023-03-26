@@ -11,6 +11,7 @@
 
 #include "PrimitiveUtils.h"
 #include "Common/Asset/AssetLoader.h"
+#include "Common/InputManager.h"
 
 
 namespace nilou {
@@ -324,6 +325,24 @@ namespace nilou {
     bool Cesium3DTile::HasRendableContent() const
     {
         return Content.B3dm.header_loaded();
+    }
+
+    Cesium3DTile::~Cesium3DTile()
+    {
+        auto this_TransformRHI = TransformRHI;
+        auto Gltf = Content.Gltf;
+        ENQUEUE_RENDER_COMMAND(Cesium3DTile_de)([this_TransformRHI, Gltf](FDynamicRHI*){
+            if (this_TransformRHI)
+                this_TransformRHI->ReleaseRHI();
+            for (int i = 0; i < Gltf.Materials.size(); i++)
+                Gltf.Materials[i]->ReleaseRenderResources();
+            for (int i = 0; i < Gltf.Materials.size(); i++)
+                Gltf.Textures[i]->ReleaseRenderResources();
+            for (int i = 0; i < Gltf.Materials.size(); i++)
+                Gltf.StaticMeshes[i]->ReleaseRenderResources();
+            if (Gltf.UniformBuffer)
+                Gltf.UniformBuffer->ReleaseRHI();
+        });
     }
 
     std::shared_ptr<Cesium3DTile> Cesium3DTile::BuildTile(
@@ -679,7 +698,7 @@ namespace nilou {
                         );
                         Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
                         if (!Tile->TransformRHI->IsInitialized())
-                            BeginInitResource(Tile->TransformRHI.get());
+                            Tile->TransformRHI->InitRHI();
                         else
                             Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
@@ -847,18 +866,19 @@ namespace nilou {
 
     void UCesium3DTilesetComponent::SetURI(const std::string &NewURI)
     { 
-        if (NewURI != URI)
-        {
+        // if (NewURI != URI)
+        // {
             URI = NewURI; 
             tiny3dtiles::Loader Loader;
             Tileset = Loader.LoadTileset(URI);
+            auto TilesetToRelease = TilesetForSelection;
             if (Tileset)
                 TilesetForSelection = Cesium3DTileset::Build(Tileset, dmat4(1));
             else
                 TilesetForSelection = nullptr;
             UpdateBounds();
             MarkRenderStateDirty();
-        }
+        // }
     }
 
     void UCesium3DTilesetComponent::SetShowBoundingBox(bool InShowBoundingBox)

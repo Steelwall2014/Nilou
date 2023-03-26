@@ -91,6 +91,8 @@ namespace nilou {
 
         bool HasRendableContent() const;
 
+        ~Cesium3DTile();
+
         static std::shared_ptr<Cesium3DTile> BuildTile(
             std::shared_ptr<tiny3dtiles::Tile> Tile, const glm::dmat4 &parentTransform, ETileGltfUpAxis TileGltfUpAxis);
     private:
@@ -107,12 +109,6 @@ namespace nilou {
 
         static std::shared_ptr<Cesium3DTileset> Build(
             std::shared_ptr<tiny3dtiles::Tileset> Tileset, const glm::dmat4 &parentTransform);
-    };
-
-    struct TileMainThreadTask
-    {
-        TileLoadingResult Result;
-        std::function<void(TileLoadingResult)> Func;
     };
 
     }
@@ -212,8 +208,6 @@ namespace nilou {
         std::vector<Cesium3DTilesetSelection::Cesium3DTile *> UnloadQueue;
 
         BS::thread_pool pool;
-
-        std::queue<Cesium3DTilesetSelection::TileMainThreadTask> MainThreadTaskQueue;
     };
 
 
