@@ -23,6 +23,7 @@ enum class EUClasses {
 	MC_ULineBatchComponent,
 	MC_UStaticMeshComponent,
 	MC_UPrimitiveComponent,
+	MC_USceneCaptureComponent,
 	MC_USceneComponent,
 	MC_USkyAtmosphereComponent,
 	MC_USphereComponent,

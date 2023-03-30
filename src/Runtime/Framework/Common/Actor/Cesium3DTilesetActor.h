@@ -13,7 +13,7 @@ namespace nilou {
     public:
         ACesiumTilesetActor()
         {
-            TilesetComponent = std::make_shared<UCesium3DTilesetComponent>(this);
+            TilesetComponent = CreateComponent<UCesium3DTilesetComponent>(this);
             TilesetComponent->AttachToComponent(GetRootComponent());
         }
 

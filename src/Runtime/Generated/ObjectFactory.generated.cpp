@@ -19,6 +19,7 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/MeshComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/PrimitiveComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SkyAtmosphereComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
@@ -53,6 +54,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["ULineBatchComponent"] = &ULineBatchComponent::CreateDefaultObject;
     FunctionMap["UStaticMeshComponent"] = &UStaticMeshComponent::CreateDefaultObject;
     FunctionMap["UPrimitiveComponent"] = &UPrimitiveComponent::CreateDefaultObject;
+    FunctionMap["USceneCaptureComponent"] = &USceneCaptureComponent::CreateDefaultObject;
     FunctionMap["USceneComponent"] = &USceneComponent::CreateDefaultObject;
     FunctionMap["USkyAtmosphereComponent"] = &USkyAtmosphereComponent::CreateDefaultObject;
     FunctionMap["USphereComponent"] = &USphereComponent::CreateDefaultObject;

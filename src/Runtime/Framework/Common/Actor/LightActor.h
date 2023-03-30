@@ -10,7 +10,7 @@ namespace nilou {
     public:
         ALightActor() 
         { 
-            LightComponent = std::make_shared<ULightComponent>(this); 
+            LightComponent = CreateComponent<ULightComponent>(this); 
             LightComponent->AttachToComponent(GetRootComponent());
         }
 

@@ -28,7 +28,7 @@ namespace nilou {
 
     ACameraActor::ACameraActor()
     { 
-        CameraComponent = std::make_shared<UCameraComponent>(this, true); 
+        CameraComponent = CreateComponent<UCameraComponent>(this, true); 
         CameraComponent->AttachToComponent(GetRootComponent());
 
         InputAxisMapping MoveForward_mapping("MoveForward");

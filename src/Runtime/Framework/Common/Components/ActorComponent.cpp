@@ -20,7 +20,6 @@ namespace nilou {
         , bRenderTransformDirty(false)
         , bRenderInstancesDirty(false)
     {
-        SetOwner(InOwner);
     }
 
     UWorld *UActorComponent::GetWorld() const
@@ -146,7 +145,7 @@ namespace nilou {
         if (InOwner)
         {
             WorldPrivate = InOwner->GetWorld();
-            InOwner->AddOwnedComponent(this);
+            InOwner->AddOwnedComponent(shared_from_this());
         }
     }
 
@@ -161,7 +160,7 @@ namespace nilou {
     {
         if (AActor *MyOwner = GetOwner())
         {
-            MyOwner->RemoveOwnedComponent(this);
+            MyOwner->RemoveOwnedComponent(this->shared_from_this());
             if (static_cast<UActorComponent *>(MyOwner->GetRootComponent()) == this)
             {
                 MyOwner->SetRootComponent(nullptr);

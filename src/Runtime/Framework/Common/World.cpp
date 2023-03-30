@@ -113,17 +113,17 @@ namespace nilou {
         // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
         // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         
-        std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
-        // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
+        // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+        // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
+        // // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
 
-        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
         // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        // // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
         // std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         // std::vector<FBatchedLine> lines;
@@ -151,11 +151,12 @@ namespace nilou {
         for (std::shared_ptr<AActor> Actor : Actors)
         {
             Actor->Tick(DeltaTime);
-            std::vector<UActorComponent *> Components;
+            std::vector<std::weak_ptr<UActorComponent>> Components;
             Actor->GetComponents(Components);
-            for (UActorComponent *Component : Components)
+            for (auto Component : Components)
             {
-                Component->TickComponent(DeltaTime);
+                if (!Component.expired())
+                    Component.lock()->TickComponent(DeltaTime);
             }
         }
     }
@@ -164,7 +165,7 @@ namespace nilou {
     {
         for (std::shared_ptr<AActor> Actor : Actors)
         {
-            Actor->ForEachComponent<UActorComponent>([](UActorComponent *Component) {
+            Actor->ForEachComponent<UActorComponent>([](std::shared_ptr<UActorComponent> Component) {
                 Component->DoDeferredRenderUpdates();
             });
         }

@@ -10,7 +10,7 @@ namespace nilou {
     public:
         ALineBatchActor() 
         { 
-            LineBatchComponent = std::make_shared<ULineBatchComponent>(this); 
+            LineBatchComponent = CreateComponent<ULineBatchComponent>(this); 
             LineBatchComponent->AttachToComponent(GetRootComponent());
         }
 

@@ -87,28 +87,31 @@ namespace nilou {
                             "ShadingModel", 
                             FRHISampler(SceneTextures.ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
 
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "TransmittanceLUT", 
-                            FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
-                        RHIGetError();
+                        if (Scene->SkyAtmosphere)
+                        {
+                            RHICmdList->RHISetShaderSampler(
+                                PSO, EPipelineStage::PS_Pixel, 
+                                "TransmittanceLUT", 
+                                FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
+                            RHIGetError();
 
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "ScatteringRayleighLUT", 
-                            FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
-                        RHIGetError();
+                            RHICmdList->RHISetShaderSampler(
+                                PSO, EPipelineStage::PS_Pixel, 
+                                "ScatteringRayleighLUT", 
+                                FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
+                            RHIGetError();
 
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "ScatteringMieLUT", 
-                            FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
-                        RHIGetError();
+                            RHICmdList->RHISetShaderSampler(
+                                PSO, EPipelineStage::PS_Pixel, 
+                                "ScatteringMieLUT", 
+                                FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
+                            RHIGetError();
 
-                        RHICmdList->RHISetShaderUniformBuffer(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "AtmosphereParametersBlock", 
-                            Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
+                            RHICmdList->RHISetShaderUniformBuffer(
+                                PSO, EPipelineStage::PS_Pixel, 
+                                "AtmosphereParametersBlock", 
+                                Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
+                        }
 
                         RHIGetError();
                         RHICmdList->RHISetShaderUniformBuffer(

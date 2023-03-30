@@ -10,7 +10,7 @@ namespace nilou {
     public:
         AStaticMeshActor() 
         { 
-            StaticMeshComponent = std::make_shared<UStaticMeshComponent>(this); 
+            StaticMeshComponent = CreateComponent<UStaticMeshComponent>(this); 
             StaticMeshComponent->AttachToComponent(GetRootComponent());
         }
 

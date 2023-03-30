@@ -11,7 +11,7 @@ namespace nilou {
     public:
         AFFTOceanActor() 
         { 
-            OceanComponent = std::make_shared<UFourierTransformOceanComponent>(this); 
+            OceanComponent = CreateComponent<UFourierTransformOceanComponent>(this); 
             OceanComponent->AttachToComponent(GetRootComponent());
         }
 

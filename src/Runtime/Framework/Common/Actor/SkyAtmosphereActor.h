@@ -10,7 +10,7 @@ namespace nilou {
     public:
         ASkyAtmosphereActor() 
         { 
-            SkyAtmosphereComponent = std::make_shared<USkyAtmosphereComponent>(this); 
+            SkyAtmosphereComponent = CreateComponent<USkyAtmosphereComponent>(this); 
             SkyAtmosphereComponent->AttachToComponent(GetRootComponent());
         }
 

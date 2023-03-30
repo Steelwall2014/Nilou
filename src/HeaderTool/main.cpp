@@ -154,17 +154,24 @@ int main(int argc, char *argv[])
                         string &BeforeColon = tokens[0];
                         string &AfterColon = tokens[1];
                         ClassName = Split(tokens[0], ' ')[1];
-                        vector<string> ParentClassNames = Split(AfterColon, ',');
-                        for (string &ParentClassName : ParentClassNames)
+                        if (ClassName == "UObject")
                         {
-                            Trim(ParentClassName);
-                            if (StartsWith(ParentClassName, "public") || 
-                                StartsWith(ParentClassName, "protected") ||
-                                StartsWith(ParentClassName, "private"))
+                            ImplementationBody += "\tAddNode(EUClasses::MC_" + ClassName + ");\n";
+                        }
+                        else 
+                        {
+                            vector<string> ParentClassNames = Split(AfterColon, ',');
+                            for (string &ParentClassName : ParentClassNames)
                             {
-                                ParentClassName = Split(ParentClassName, ' ')[1];
+                                Trim(ParentClassName);
+                                if (StartsWith(ParentClassName, "public") || 
+                                    StartsWith(ParentClassName, "protected") ||
+                                    StartsWith(ParentClassName, "private"))
+                                {
+                                    ParentClassName = Split(ParentClassName, ' ')[1];
+                                }
+                                ImplementationBody += "\tAddEdge(EUClasses::MC_" + ParentClassName + ", EUClasses::MC_" + ClassName + ");\n";
                             }
-                            ImplementationBody += "\tAddEdge(EUClasses::MC_" + ParentClassName + ", EUClasses::MC_" + ClassName + ");\n";
                         }
                     }
                     ClassNames.push_back(ClassName);

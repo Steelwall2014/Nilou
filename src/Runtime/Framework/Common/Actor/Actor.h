@@ -100,9 +100,9 @@ namespace nilou {
 		*/
 		void AttachToComponent(USceneComponent *Parent, const FAttachmentTransformRules& AttachmentRules);
 
-		void AddOwnedComponent(UActorComponent *InComponent);
+		void AddOwnedComponent(std::shared_ptr<UActorComponent> InComponent);
 
-		void RemoveOwnedComponent(UActorComponent *InComponent);
+		void RemoveOwnedComponent(std::shared_ptr<UActorComponent> InComponent);
 
 		void SetRootComponent(std::shared_ptr<USceneComponent> InComponent);
 
@@ -113,19 +113,19 @@ namespace nilou {
 		void UninitializeComponents();
 
 		template<class T>
-		void GetComponents(std::vector<T *> &OutComponents, bool bIncludeFromChildActors = false)
+		void GetComponents(std::vector<std::weak_ptr<T>> &OutComponents, bool bIncludeFromChildActors = false)
 		{
 			OutComponents.clear();
-			ForEachComponent_Internal<T>(T::StaticClass(), bIncludeFromChildActors, [&](T* InComp)
+			ForEachComponent_Internal<T>(T::StaticClass(), bIncludeFromChildActors, [&](std::shared_ptr<T> InComp)
 			{
-				OutComponents.push_back(InComp);
+				OutComponents.push_back(std::weak_ptr<T>(InComp));
 			});
 		}
 
 		template<class ComponentType, typename Func>
-		void ForEachComponent(Func InFunc, bool bIncludeFromChildActors=false)
+		void ForEachComponent(Func&& InFunc, bool bIncludeFromChildActors=false)
 		{
-			ForEachComponent_Internal<ComponentType>(ComponentType::StaticClass(), bIncludeFromChildActors, InFunc);
+			ForEachComponent_Internal<ComponentType>(ComponentType::StaticClass(), bIncludeFromChildActors, std::forward<Func>(InFunc));
 		}
 
 		void SetOwnedWorld(UWorld *InOwnedWorld)
@@ -136,47 +136,47 @@ namespace nilou {
 	protected:
 
 		template<class ComponentType, typename Func>
-		void ForEachComponent_Internal(const UClass *ComponentClass, bool bIncludeFromChildActors, Func InFunc)
+		void ForEachComponent_Internal(const UClass *ComponentClass, bool bIncludeFromChildActors, Func&& InFunc)
 		{
 			static_assert(TIsDerivedFrom<ComponentType, UActorComponent>::Value, "'ComponentType' template parameter to ForEachComponent must be derived from UActorComponent");
 			if (*ComponentClass == *UActorComponent::StaticClass())
 			{
 				if (bIncludeFromChildActors)
 				{
-					ForEachComponent_Internal<ComponentType, true /*bClassIsActorComponent*/, true /*bIncludeFromChildActors*/>(ComponentClass, InFunc);
+					ForEachComponent_Internal<ComponentType, true /*bClassIsActorComponent*/, true /*bIncludeFromChildActors*/>(ComponentClass, std::forward<Func>(InFunc));
 				}
 				else
 				{
-					ForEachComponent_Internal<ComponentType, true /*bClassIsActorComponent*/, false /*bIncludeFromChildActors*/>(ComponentClass, InFunc);
+					ForEachComponent_Internal<ComponentType, true /*bClassIsActorComponent*/, false /*bIncludeFromChildActors*/>(ComponentClass, std::forward<Func>(InFunc));
 				}
 			}
 			else
 			{
 				if (bIncludeFromChildActors)
 				{
-					ForEachComponent_Internal<ComponentType, false /*bClassIsActorComponent*/, true /*bIncludeFromChildActors*/>(ComponentClass, InFunc);
+					ForEachComponent_Internal<ComponentType, false /*bClassIsActorComponent*/, true /*bIncludeFromChildActors*/>(ComponentClass, std::forward<Func>(InFunc));
 				}
 				else
 				{
-					ForEachComponent_Internal<ComponentType, false /*bClassIsActorComponent*/, false /*bIncludeFromChildActors*/>(ComponentClass, InFunc);
+					ForEachComponent_Internal<ComponentType, false /*bClassIsActorComponent*/, false /*bIncludeFromChildActors*/>(ComponentClass, std::forward<Func>(InFunc));
 				}
 			}
 		}
 
 		template<class ComponentType, bool bClassIsActorComponent, bool bIncludeFromChildActors, typename Func>
-		void ForEachComponent_Internal(const UClass *ComponentClass, Func InFunc)
+		void ForEachComponent_Internal(const UClass *ComponentClass, Func&& InFunc)
 		{
 			check(ComponentClass->IsChildOf(ComponentType::StaticClass()));
 			if constexpr (bIncludeFromChildActors)
 			{
 				std::vector<AActor*> ChildActors;
-				for (UActorComponent* OwnedComponent : OwnedComponents)
+				for (std::shared_ptr<UActorComponent> OwnedComponent : OwnedComponents)
 				{
 					if (OwnedComponent)
 					{
 						if (bClassIsActorComponent || OwnedComponent->IsA(ComponentClass))
 						{
-							InFunc(static_cast<ComponentType*>(OwnedComponent));
+							InFunc(std::static_pointer_cast<ComponentType>(OwnedComponent));
 						}
 					}
 				}
@@ -188,13 +188,13 @@ namespace nilou {
 			}
 			else
 			{
-				for (UActorComponent* OwnedComponent : OwnedComponents)
+				for (std::shared_ptr<UActorComponent> OwnedComponent : OwnedComponents)
 				{
 					if (OwnedComponent)
 					{
 						if (bClassIsActorComponent || OwnedComponent->IsA(ComponentClass))
 						{
-							InFunc(static_cast<ComponentType*>(OwnedComponent));
+							InFunc(std::static_pointer_cast<ComponentType>(OwnedComponent));
 						}
 					}
 				}
@@ -203,7 +203,7 @@ namespace nilou {
 
 		std::string ActorName;
 		std::shared_ptr<USceneComponent> RootComponent;
-		std::set<UActorComponent *> OwnedComponents;
+		std::set<std::shared_ptr<UActorComponent>> OwnedComponents;
 		UWorld *OwnedWorld;
 		bool bActorInitialized;
 

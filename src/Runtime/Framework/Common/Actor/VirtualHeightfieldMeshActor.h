@@ -10,7 +10,7 @@ namespace nilou {
     public:
         AVirtualHeightfieldMeshActor() 
         { 
-            VHMComponent = std::make_shared<UVirtualHeightfieldMeshComponent>(this); 
+            VHMComponent = CreateComponent<UVirtualHeightfieldMeshComponent>(this); 
             VHMComponent->AttachToComponent(GetRootComponent());
         }
 

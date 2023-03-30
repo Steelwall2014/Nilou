@@ -10,7 +10,7 @@ namespace nilou {
     public:
         ASphereActor() 
         { 
-            SphereComponent = std::make_shared<USphereComponent>(this); 
+            SphereComponent = CreateComponent<USphereComponent>(this); 
             SphereComponent->AttachToComponent(GetRootComponent());
         }
         

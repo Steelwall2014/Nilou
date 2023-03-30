@@ -27,6 +27,7 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_ULineBatchComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UStaticMeshComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_UPrimitiveComponent);
+	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_USceneCaptureComponent);
 	AddEdge(EUClasses::MC_UActorComponent, EUClasses::MC_USceneComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_USkyAtmosphereComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_USphereComponent);
