@@ -405,6 +405,7 @@ namespace nilou {
 		PF_PixelFormatNum
 	};
 	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
+	uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat);
 
 	enum class ETextureFilters : uint8
 	{

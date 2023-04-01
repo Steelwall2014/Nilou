@@ -354,7 +354,10 @@ namespace nilou {
 	class FRHISampler : public RHIResource
 	{
 	public:
-		FRHISampler() : RHIResource(ERHIResourceType::RRT_SamplerState) {}
+		FRHISampler() 
+			: RHIResource(ERHIResourceType::RRT_SamplerState) 
+			, Texture(nullptr)
+		{}
 		FRHISampler(RHITextureRef Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
 			: RHIResource(ERHIResourceType::RRT_SamplerState)
 			, Params(Params)

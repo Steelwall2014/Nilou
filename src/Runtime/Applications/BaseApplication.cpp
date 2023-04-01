@@ -1,7 +1,4 @@
-#include <gdal.h>
-#include <gdal_priv.h>
-
-#include "GLFWApplication.h"
+#include "BaseApplication.h"
 
 #include "Common/Path.h"
 
@@ -115,17 +112,6 @@ namespace nilou {
     bool BaseApplication::IsCursorEnabled()
     {
         return CursorEnabled;
-    }
-
-    BaseApplication *GetAppication()
-    {
-        static BaseApplication *g_pApp;
-        if (g_pApp == nullptr)
-        {
-            GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
-            g_pApp = new GLFWApplication(config);
-        }
-        return g_pApp;
     }
 
 }

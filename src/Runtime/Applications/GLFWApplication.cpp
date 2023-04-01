@@ -368,4 +368,15 @@ namespace nilou {
             });
     }
 
+    BaseApplication *GetAppication()
+    {
+        static BaseApplication *g_pApp;
+        if (g_pApp == nullptr)
+        {
+            GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
+            g_pApp = new GLFWApplication(config);
+        }
+        return g_pApp;
+    }
+
 }

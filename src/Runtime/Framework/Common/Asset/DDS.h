@@ -3,8 +3,12 @@
 #define _DDS_H_
 
 #include <cstdint>
+#include "RHIDefinitions.h"
 
+namespace nilou {
 namespace dds {
+
+	
 	enum DDS_Image_Type
 	{
 		DDSImageType2D = 0,
@@ -17,7 +21,7 @@ namespace dds {
 		uint32_t		Width;
 		uint32_t		Height;
 		uint32_t		Depth;
-		uint32_t		Format;
+		EPixelFormat	Format;
 		uint32_t		MipLevels;
 		uint32_t		DataSize;
 		void *Data;
@@ -38,4 +42,5 @@ namespace dds {
 	uint32_t MapFormat_GLType(uint32_t Format);
 }
 
+}
 #endif

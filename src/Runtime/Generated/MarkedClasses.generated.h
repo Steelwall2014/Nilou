@@ -24,6 +24,8 @@ enum class EUClasses {
 	MC_UStaticMeshComponent,
 	MC_UPrimitiveComponent,
 	MC_USceneCaptureComponent,
+	MC_USceneCaptureComponent2D,
+	MC_USceneCaptureComponentCube,
 	MC_USceneComponent,
 	MC_USkyAtmosphereComponent,
 	MC_USphereComponent,
@@ -34,6 +36,9 @@ enum class EUClasses {
 	MC_UStaticMesh,
 	MC_UTexture,
 	MC_UVirtualTexture,
+	MC_UTextureRenderTarget,
+	MC_UTextureRenderTarget2D,
+	MC_UTextureRenderTargetCube,
 	MC_UClassNum,
 };
 }

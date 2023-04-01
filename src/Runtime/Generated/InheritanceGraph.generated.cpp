@@ -28,6 +28,8 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UStaticMeshComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_UPrimitiveComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_USceneCaptureComponent);
+	AddEdge(EUClasses::MC_USceneCaptureComponent, EUClasses::MC_USceneCaptureComponent2D);
+	AddEdge(EUClasses::MC_USceneCaptureComponent, EUClasses::MC_USceneCaptureComponentCube);
 	AddEdge(EUClasses::MC_UActorComponent, EUClasses::MC_USceneComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_USkyAtmosphereComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_USphereComponent);
@@ -38,5 +40,8 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UStaticMesh);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UTexture);
 	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UVirtualTexture);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTextureRenderTarget);
+	AddEdge(EUClasses::MC_UTextureRenderTarget, EUClasses::MC_UTextureRenderTarget2D);
+	AddEdge(EUClasses::MC_UTextureRenderTarget, EUClasses::MC_UTextureRenderTargetCube);
 }
 }

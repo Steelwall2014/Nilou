@@ -194,38 +194,61 @@ namespace nilou {
 		std::shared_ptr<FImage> img = nullptr; 
 		if (GameStatics::EndsWith(AbsolutePath, ".tiff") || GameStatics::EndsWith(AbsolutePath, ".tif"))
 		{
-			img = std::make_shared<FImage>();
 			GDALDataset *ds = (GDALDataset *)GDALOpen(AbsolutePath.c_str(), GA_ReadOnly);
-			int width = img->Width = ds->GetRasterXSize();
-			int height = img->Height = ds->GetRasterYSize();
-			int channel = img->Channel = ds->GetRasterCount();
+			int width = ds->GetRasterXSize();
+			int height = ds->GetRasterYSize();
+			int channel = ds->GetRasterCount();
+			EPixelFormat PixelFormat;
 			GDALRasterBand *pBand = ds->GetRasterBand(1);
 			GDALDataType type = pBand->GetRasterDataType();
 			//unsigned char *data = nullptr;
-			int byte_per_pixel = 0;
+			int byte_per_pixel_per_channel = 0;
 			switch (type)
 			{
+			case GDT_Byte:
+				byte_per_pixel_per_channel = 1;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_BYTE);
+				break;
+			case GDT_UInt16:
+				byte_per_pixel_per_channel = 2;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+				break;
 			case GDT_Int16:
-				img->data = (unsigned char *)new short[width * height * channel];
-				byte_per_pixel = 2;
-				img->PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel*8, TINYGLTF_COMPONENT_TYPE_SHORT);
+				byte_per_pixel_per_channel = 2;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_SHORT);
+				break;
+			case GDT_UInt32:
+				byte_per_pixel_per_channel = 4;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT);
+				break;
+			case GDT_Int32:
+				byte_per_pixel_per_channel = 4;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_INT);
 				break;
 			case GDT_Float32:
-				img->data = (unsigned char *)new float[width * height * channel];
-				byte_per_pixel = 4;
-				img->PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel*8, GL_FLOAT);
+				byte_per_pixel_per_channel = 4;
+				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_FLOAT);
 				break;
 			default:
-				throw("function SyncOpenAndReadImage: DataType not implemented");
-				break;
+				return nullptr;
 			}
-			img->data_size = width * height * channel * byte_per_pixel;
+			auto image = std::make_shared<FImage2D>(width, height, channel, PixelFormat);
+			image->AllocateSpace();
 			for (int band = 1; band <= channel; band++)
 			{
 				pBand = ds->GetRasterBand(band);
 				type = pBand->GetRasterDataType();
-				int offset = width * height * byte_per_pixel * (band-1);
-				pBand->RasterIO(GF_Read, 0, 0, width, height, img->data + offset, width, height, type, 0, 0);
+				std::unique_ptr<uint8[]> temp_data = std::make_unique<uint8[]>(width * height * byte_per_pixel_per_channel);
+				pBand->RasterIO(GF_Read, 0, 0, width, height, temp_data.get(), width, height, type, 0, 0);
+				for (int row = 0; row < image->GetHeight(); row++)
+				{
+					for (int col = 0; col < image->GetWidth(); col++)
+					{
+						uint8* ptr = (uint8*)image->GetPointer(row, col);
+						uint8* data_ptr = temp_data.get() + (width * row + col) * byte_per_pixel_per_channel;
+						std::copy(data_ptr, data_ptr+byte_per_pixel_per_channel, ptr);
+					}
+				}
 			}
 		}
 		else if (GameStatics::EndsWith(AbsolutePath, ".dds"))
@@ -236,21 +259,22 @@ namespace nilou {
 				std::cout << "Error: Could not load texture!\n";
 				return nullptr;
 			}
-			img = std::make_shared<FImage>();
-			img->data = (unsigned char *)info.Data;
-			img->data_size = info.DataSize;
-			img->Width = info.Width;
-			img->Height = info.Height;
-			img->Channel = 4;			// 因为dds纹理目前只有perlin噪声纹理用到了，所以这边写死
-			img->PixelFormat = TranslateToEPixelFormat(4, info.DataSize/info.Width/info.Height/img->Channel * 8, dds::MapFormat_GLType(info.Format));
+			img = std::make_shared<FImage2D>(
+				info.Width, info.Height, TranslatePixelFormatToChannel(info.Format),
+				info.Format, info.MipLevels);
+			img->AllocateSpace();
+			std::copy((uint8*)info.Data, (uint8*)info.Data+info.DataSize, img->GetData());
 			
 		}
 		else
 		{
-			img = std::make_shared<FImage>();
-			img->data = stbi_load(AbsolutePath.c_str(), (int *)&img->Width, (int *)&img->Height, (int *)&img->Channel, 0);
-			img->data_size = img->Width * img->Height * img->Channel;
-			img->PixelFormat = TranslateToEPixelFormat(img->Channel, 8, GL_UNSIGNED_BYTE);
+			int width, height, channel;
+			uint8* temp_data = stbi_load(AbsolutePath.c_str(), (int *)&width, (int *)&height, (int *)&channel, 0);
+			EPixelFormat PixelFormat = TranslateToEPixelFormat(channel, 8, GL_UNSIGNED_BYTE);
+			img = std::make_shared<FImage2D>(width, height, channel, PixelFormat, 1);
+			img->AllocateSpace();
+			std::copy(temp_data, temp_data+img->GetDataSize(), img->GetData());
+			stbi_image_free(temp_data);
 		}
 		return img;
 	}

@@ -23,4 +23,35 @@ namespace nilou {
         void HideActorComponents(std::weak_ptr<AActor> InActor);
     };
 
+    UCLASS()
+    class USceneCaptureComponent2D : public USceneCaptureComponent
+    {
+        GENERATE_CLASS_INFO()
+    public:
+        USceneCaptureComponent2D(AActor *InOwner = nullptr) 
+            : USceneCaptureComponent(InOwner)
+        { }
+
+    protected:
+
+	    /** Camera field of view (in degrees). */
+        float FOVAngle;
+
+	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
+        float OrthoWidth;
+
+        // std::weak_ptr<class UTexture> TextureTarget;
+
+    };
+
+    UCLASS()
+    class USceneCaptureComponentCube : public USceneCaptureComponent
+    {
+        GENERATE_CLASS_INFO()
+    public:
+        USceneCaptureComponentCube(AActor *InOwner = nullptr) 
+            : USceneCaptureComponent(InOwner)
+        { }
+    };
+
 }

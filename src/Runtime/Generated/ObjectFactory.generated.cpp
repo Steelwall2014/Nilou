@@ -20,6 +20,8 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/MeshComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/PrimitiveComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SkyAtmosphereComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
@@ -28,6 +30,9 @@
 #include "D:/Nilou/src/Runtime/Rendering/Material.h"
 #include "D:/Nilou/src/Runtime/Rendering/Material.h"
 #include "D:/Nilou/src/Runtime/Rendering/StaticMeshResources.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
 #include "D:/Nilou/src/Runtime/Rendering/Texture.h"
 #include "D:/Nilou/src/Runtime/Rendering/Texture.h"
 using namespace nilou;
@@ -55,6 +60,8 @@ FObjectFactory::FObjectFactory()
     FunctionMap["UStaticMeshComponent"] = &UStaticMeshComponent::CreateDefaultObject;
     FunctionMap["UPrimitiveComponent"] = &UPrimitiveComponent::CreateDefaultObject;
     FunctionMap["USceneCaptureComponent"] = &USceneCaptureComponent::CreateDefaultObject;
+    FunctionMap["USceneCaptureComponent2D"] = &USceneCaptureComponent2D::CreateDefaultObject;
+    FunctionMap["USceneCaptureComponentCube"] = &USceneCaptureComponentCube::CreateDefaultObject;
     FunctionMap["USceneComponent"] = &USceneComponent::CreateDefaultObject;
     FunctionMap["USkyAtmosphereComponent"] = &USkyAtmosphereComponent::CreateDefaultObject;
     FunctionMap["USphereComponent"] = &USphereComponent::CreateDefaultObject;
@@ -65,4 +72,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["UStaticMesh"] = &UStaticMesh::CreateDefaultObject;
     FunctionMap["UTexture"] = &UTexture::CreateDefaultObject;
     FunctionMap["UVirtualTexture"] = &UVirtualTexture::CreateDefaultObject;
+    FunctionMap["UTextureRenderTarget"] = &UTextureRenderTarget::CreateDefaultObject;
+    FunctionMap["UTextureRenderTarget2D"] = &UTextureRenderTarget2D::CreateDefaultObject;
+    FunctionMap["UTextureRenderTargetCube"] = &UTextureRenderTargetCube::CreateDefaultObject;
 }

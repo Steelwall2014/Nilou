@@ -3,6 +3,8 @@
 #include "dds.h"
 //#	include "gl4ext.h"
 
+namespace nilou {
+
 namespace dds {
 	GLint map_Format_Internal[] = {
 		0,
@@ -122,14 +124,14 @@ namespace dds {
 		GLFMT_A32B32G32R32F
 	};
 
-#	define FORMAT_R8G8B8			GLFMT_R8G8B8
-#	define FORMAT_B8G8R8			GLFMT_B8G8R8
-#	define FORMAT_A8R8G8B8			GLFMT_A8R8G8B8
-#	define FORMAT_DXT1				GLFMT_DXT1
-#	define FORMAT_DXT5				GLFMT_DXT5
-#	define FORMAT_G16R16F			GLFMT_G16R16F
-#	define FORMAT_A16B16G16R16F		GLFMT_A16B16G16R16F
-#	define FORMAT_G32R32F			GLFMT_G32R32F
+#	define FORMAT_R8G8B8			EPixelFormat::PF_R8G8B8
+#	define FORMAT_B8G8R8			EPixelFormat::PF_B8G8R8
+#	define FORMAT_A8R8G8B8			EPixelFormat::PF_R8G8B8A8
+#	define FORMAT_DXT1				EPixelFormat::PF_DXT1
+#	define FORMAT_DXT5				EPixelFormat::PF_DXT5
+#	define FORMAT_G16R16F			EPixelFormat::PF_R16G16F
+#	define FORMAT_A16B16G16R16F		EPixelFormat::PF_R16G16B16A16F
+#	define FORMAT_G32R32F			EPixelFormat::PF_R32G32F
 
 
 #include <cstdio>
@@ -528,7 +530,7 @@ namespace dds {
 		return bytesize;
 	}
 
-	uint32_t GetCompressedImageSize(uint32_t width, uint32_t height, uint32_t miplevels, uint32_t format)
+	uint32_t GetCompressedImageSize(uint32_t width, uint32_t height, uint32_t miplevels, EPixelFormat format)
 	{
 		uint32_t w = width;
 		uint32_t h = height;
@@ -559,7 +561,7 @@ namespace dds {
 		return bytesize;
 	}
 
-	uint32_t GetCompressedImageSize(uint32_t width, uint32_t height, uint32_t depth, uint32_t miplevels, uint32_t format)
+	uint32_t GetCompressedImageSize(uint32_t width, uint32_t height, uint32_t depth, uint32_t miplevels, EPixelFormat format)
 	{
 		uint32_t w = width;
 		uint32_t h = height;
@@ -580,7 +582,7 @@ namespace dds {
 		return bytesize;
 	}
 
-	uint32_t GetCompressedLevelSize(uint32_t width, uint32_t height, uint32_t level, uint32_t format)
+	uint32_t GetCompressedLevelSize(uint32_t width, uint32_t height, uint32_t level, EPixelFormat format)
 	{
 		uint32_t w = width;
 		uint32_t h = height;
@@ -612,7 +614,7 @@ namespace dds {
 		return bytesize;
 	}
 
-	uint32_t GetCompressedLevelSize(uint32_t width, uint32_t height, uint32_t depth, uint32_t level, uint32_t format)
+	uint32_t GetCompressedLevelSize(uint32_t width, uint32_t height, uint32_t depth, uint32_t level, EPixelFormat format)
 	{
 		uint32_t w = width;
 		uint32_t h = height;
@@ -700,7 +702,7 @@ namespace dds {
 		outinfo->Width = header.dwWidth;
 		outinfo->Height = header.dwHeight;
 		outinfo->Depth = header.dwDepth;
-		outinfo->Format = 0;
+		outinfo->Format = EPixelFormat::PF_UNKNOWN;
 		outinfo->MipLevels = (header.dwMipMapCount == 0 ? 1 : header.dwMipMapCount);
 		outinfo->Data = 0;
 		outinfo->Type = DDSImageType2D;
@@ -866,4 +868,5 @@ namespace dds {
 		fclose(outfile);
 		return true;
 	}
+}
 }

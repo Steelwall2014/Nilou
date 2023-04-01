@@ -66,18 +66,16 @@ namespace nilou {
         {
             tinygltf::Texture &gltf_texture = model.textures[TextureIndex];
             tinygltf::Image gltf_image = model.images[gltf_texture.source];
-            std::shared_ptr<FImage> image = std::make_shared<FImage>();
-            image->Width = gltf_image.width;
-            image->Height = gltf_image.height;
-            image->Channel = gltf_image.component;
-            image->data_size = gltf_image.image.size();
-            image->data = new uint8[image->data_size];
-            image->PixelFormat = TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type);
-            memcpy(image->data, gltf_image.image.data(), image->data_size);
 
+            std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
+                gltf_image.width, gltf_image.height, gltf_image.component, 
+                TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type), 1);
+            image->AllocateSpace();
+            memcpy(image->GetData(), gltf_image.image.data(), image->GetDataSize());
+
+            std::string TextureName = std::to_string(TextureIndex) + "_" + gltf_texture.name;
             int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height));
-
-            std::unique_ptr<FTexture> Texture = std::make_unique<FTexture>(NumMips, image);
+            std::unique_ptr<FTexture2DResource> TextureResource = std::make_unique<FTexture2DResource>(TextureName, NumMips);
             
             RHITextureParams TextureParams;
             if (gltf_texture.sampler != -1)
@@ -91,11 +89,12 @@ namespace nilou {
                 TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
                 TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
-            Texture->SetSamplerParams(TextureParams);
+            TextureResource->SetSamplerParams(TextureParams);
             
-            std::shared_ptr<UTexture> texture = std::make_shared<UTexture>(
-                std::to_string(TextureIndex) + "_" + gltf_texture.name, std::move(Texture));
-            OutTextures.push_back(texture);
+            std::shared_ptr<UTexture> Texture = std::make_shared<UTexture>(
+                TextureName, std::move(TextureResource));
+            Texture->SetData(image);
+            OutTextures.push_back(Texture);
         }
 
         UMaterial *GLTFMaterial = GetContentManager()->GetMaterialByPath("/Materials/Cesium3DTilesMaterial.nasset");
