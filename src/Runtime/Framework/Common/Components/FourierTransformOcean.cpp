@@ -432,22 +432,15 @@ namespace nilou {
     void UFourierTransformOceanComponent::TickComponent(double DeltaTime)
     {
         UWorld* World = GetWorld();
-        if (World)
+        if (World && World->MainCameraComponent)
         {
-            for (UCameraComponent *CameraComponent : World->CameraComponents)
+            const FViewFrustum Frustum = World->MainCameraComponent->CalcViewFrustum();
+            const dvec3 CameraPosition = World->MainCameraComponent->GetComponentLocation();
+            std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraPosition);
+            FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
+            if (Proxy)
             {
-                if (CameraComponent->IsMainCamera())
-                {
-                    const FViewFrustum Frustum = CameraComponent->CalcViewFrustum();
-                    const dvec3 CameraPosition = CameraComponent->GetComponentLocation();
-                    std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraPosition);
-                    FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
-                    if (Proxy)
-                    {
-                        Proxy->AddRenderingNodeList(NodeListFinal);
-                    }
-                    break;
-                }
+                Proxy->AddRenderingNodeList(NodeListFinal);
             }
         }
     }

@@ -133,12 +133,12 @@ namespace nilou {
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
-        GetContentManager()->ForEachContent([](UObject* Obj){
-            if (Obj->IsA(UVirtualTexture::StaticClass()))
-            {
-                Obj->ContentEntry->bIsDirty = true;
-            }
-        });
+        // GetContentManager()->ForEachContent([](UObject* Obj){
+        //     if (Obj->IsA(UVirtualTexture::StaticClass()))
+        //     {
+        //         Obj->ContentEntry->bIsDirty = true;
+        //     }
+        // });
     }
 
     void UWorld::Tick(double DeltaTime)

@@ -309,7 +309,11 @@ namespace nilou {
 
         void PreRenderCallBack(FDynamicRHI* RHICmdList, FScene* Scene)
         {
-            FViewSceneInfo *ViewInfo = Scene->GetMainCamera();
+            if (GetAppication()->GetWorld()->MainCameraComponent == nullptr ||
+                GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy() == nullptr || 
+                GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo() == nullptr)
+                return;
+            FViewSceneInfo *ViewInfo = GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo();
             CreateNodeListGPU(ViewInfo->SceneProxy->GetViewUniformBuffer());
             CreateLodTexture();
             CreatePatch(ViewInfo->SceneProxy->GetViewUniformBuffer());

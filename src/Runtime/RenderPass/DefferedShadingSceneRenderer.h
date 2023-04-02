@@ -1,7 +1,4 @@
 #pragma once
-
-#include "SkyAtmospherePassRendering.h"
-
 #include "MeshBatch.h"
 #include "Scene.h"
 #include "Common/ContentManager.h"
@@ -208,8 +205,6 @@ namespace nilou {
         void RenderBasePass(FDynamicRHI *RHICmdList);
 
         void RenderLightingPass(FDynamicRHI *RHICmdList);
-
-        void RenderAtmospherePass(FDynamicRHI *RHICmdList);
 
         void RenderViewElementPass(FDynamicRHI *RHICmdList);
 

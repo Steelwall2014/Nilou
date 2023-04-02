@@ -283,14 +283,6 @@ namespace nilou {
             }
             PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, ViewBits, Collector);
         }
-        // std::vector<FSceneView> LightSceneViews;
-        // for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++) 
-        // {
-        //     Lights[LightIndex].MeshBatches.clear();
-        //     Lights[LightIndex].MeshDrawCommands.Clear();
-        //     LightSceneViews.push_back(Lights[LightIndex].LightSceneInfo->SceneProxy);
-        //     LightCollector.PerViewMeshBatches.push_back(&Lights[LightIndex].MeshBatches);
-        // }
     }
 
     void FDefferedShadingSceneRenderer::Render()
@@ -306,11 +298,8 @@ namespace nilou {
         RenderCSMShadowPass(RHICmdList);
 
         RenderBasePass(RHICmdList);
-        // // Dispatch Draw Commands
 
         RenderLightingPass(RHICmdList);
-
-        // RenderAtmospherePass(RHICmdList);
 
         RenderViewElementPass(RHICmdList);
 
@@ -323,59 +312,68 @@ namespace nilou {
     
     void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
+        int MainViewIndex = -1;
+        if (GetAppication()->GetWorld()->MainCameraComponent == nullptr ||
+            GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy() == nullptr || 
+            GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo() == nullptr)
+            return;
+        FViewSceneInfo* MainViewInfo = GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo();
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-
-            if (CameraInfo->Camera->IsMainCamera())
+            if (CameraInfo == MainViewInfo)
             {
-
-                FRHIRenderPassInfo PassInfo(nullptr, CameraInfo->GetResolution(), true, true, true);
-                RHICmdList->RHIBeginRenderPass(PassInfo);
-                {
-                    
-                    FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
-                    
-                    FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
-
-                    FShaderInstance *RenderToScreenVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                    FShaderInstance *RenderToScreenPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
-                    
-                    FRHIGraphicsPipelineInitializer PSOInitializer;
-
-                    PSOInitializer.VertexShader = RenderToScreenVS;
-                    PSOInitializer.PixelShader = RenderToScreenPS;
-
-                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
-
-                    FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
-                    
-                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-                    RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
-                    RHIGetError();
-                    RHICmdList->RHISetGraphicsPipelineState(PSO);
-                    RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                    RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                    RHICmdList->RHISetBlendState(BlendState.get());
-                    RHIGetError();
-
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "SceneColor", 
-                        FRHISampler(SceneTextures.SceneColor));
-
-                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHIDrawArrays(0, 4);
-                }
-                RHICmdList->RHIEndRenderPass();
-
+                MainViewIndex = ViewIndex;
                 break;
             }
         }
+
+        FViewSceneInfo *CameraInfo = Views[MainViewIndex].ViewSceneInfo;
+        FSceneTextures &SceneTextures = Views[MainViewIndex].SceneTextures;
+
+        FRHIRenderPassInfo PassInfo(nullptr, CameraInfo->GetResolution(), true, true, true);
+        RHICmdList->RHIBeginRenderPass(PassInfo);
+        {
+            
+            FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
+            
+            FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
+
+            FShaderInstance *RenderToScreenVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
+            FShaderInstance *RenderToScreenPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+            
+            FRHIGraphicsPipelineInitializer PSOInitializer;
+
+            PSOInitializer.VertexShader = RenderToScreenVS;
+            PSOInitializer.PixelShader = RenderToScreenPS;
+
+            PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
+
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
+            
+            RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
+            RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
+            RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
+            RHIGetError();
+            RHICmdList->RHISetGraphicsPipelineState(PSO);
+            RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
+            RHICmdList->RHISetRasterizerState(RasterizerState.get());
+            RHICmdList->RHISetBlendState(BlendState.get());
+            RHIGetError();
+
+            RHICmdList->RHISetShaderSampler(
+                PSO, EPipelineStage::PS_Pixel, 
+                "SceneColor", 
+                FRHISampler(SceneTextures.SceneColor));
+
+            RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
+            RHIGetError();
+            RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
+            RHIGetError();
+            RHICmdList->RHIDrawArrays(0, 4);
+        }
+        RHICmdList->RHIEndRenderPass();
+
+        
     }
 }

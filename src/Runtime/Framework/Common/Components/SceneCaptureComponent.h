@@ -40,7 +40,7 @@ namespace nilou {
 	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
         float OrthoWidth;
 
-        std::weak_ptr<class UTextureRenderTarget> TextureTarget;
+        std::weak_ptr<class UTextureRenderTarget2D> TextureTarget;
 
     };
 
@@ -52,6 +52,8 @@ namespace nilou {
         USceneCaptureComponentCube(AActor *InOwner = nullptr) 
             : USceneCaptureComponent(InOwner)
         { }
+
+        std::weak_ptr<class UTextureRenderTargetCube> TextureTarget;
     };
 
 }

@@ -5,10 +5,9 @@
 
 namespace nilou {
 
-    UCameraComponent::UCameraComponent(AActor *InOwner, bool bIsMainCamera) 
+    UCameraComponent::UCameraComponent(AActor *InOwner) 
         : USceneComponent(InOwner)
         , SceneProxy(nullptr)
-        , bIsMainCamera(bIsMainCamera)
         , VerticalFieldOfView(glm::radians(50.f))
         , NearClipDistance(0.1)
         , FarClipDistance(30000)
@@ -24,7 +23,11 @@ namespace nilou {
         if (World)
         {
             if (GetOwner())
-                World->CameraComponents.insert(this);
+            {
+                World->CameraComponents.push_back(this);
+                if (World->MainCameraComponent == nullptr)
+                    World->MainCameraComponent = this;
+            }
         }
     }
 
@@ -34,7 +37,16 @@ namespace nilou {
         if (World)
         {
             if (GetOwner())
-                World->CameraComponents.erase(this);
+            {
+                for (auto iter = World->CameraComponents.begin(); iter != World->CameraComponents.end(); iter++)
+                {
+                    if (*iter == this)
+                    {
+                        World->CameraComponents.erase(iter);
+                        break;
+                    }
+                }
+            }
         }
         USceneComponent::OnUnregister();
     }

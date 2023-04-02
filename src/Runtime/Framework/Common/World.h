@@ -28,7 +28,15 @@ namespace nilou {
 
         FScene *Scene = nullptr;
 
-        std::set<UCameraComponent*> CameraComponents;
+        std::vector<UCameraComponent*> CameraComponents;
+
+        /**
+         * The first added UCameraComponent will be the 
+         * MainCameraComponent automatically.
+         * If the first added UCameraComponent is removed, you need 
+         * to assign another MainCameraComponent mannually.
+         */
+        UCameraComponent* MainCameraComponent = nullptr;
         
         /**
         * Find all Actors in the world of the specified class. 

@@ -8,6 +8,7 @@
 #include "Common/Components/LightComponent.h"
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
+#include "Common/Components/SceneCaptureComponent.h"
 #include "BatchedLine.h"
 #include "Common/Delegate.h"
 #include "ViewElementPDI.h"
@@ -98,6 +99,18 @@ namespace nilou {
         bool bNeedsFramebufferUpdate = false;
     };
 
+    class FSceneCaptureInfo
+    {
+        friend class FScene;
+        friend class FDefferedShadingSceneRenderer;
+    public:
+
+        std::vector<FViewSceneInfo*> ViewSceneInfos;
+
+        RHITexture* RenderTarget;
+
+    };
+
     class FScene
     {
     public:
@@ -116,17 +129,10 @@ namespace nilou {
         void AddPrimitive(UPrimitiveComponent *InPrimitive);
         void RemovePrimitive(UPrimitiveComponent *InPrimitive);
 
-        void UpdateRenderInfos();
+        // void AddSceneCapture(USceneCaptureComponent* InSceneCapture);
+        // void RemoveSceneCapture(USceneCaptureComponent* InSceneCapture);
 
-        FViewSceneInfo *GetMainCamera()
-        {
-            for (auto &&ViewInfo : AddedViewSceneInfos)
-            {
-                if (ViewInfo->Camera->IsMainCamera())
-                    return ViewInfo.get();
-            }
-            return nullptr;
-        }
+        void UpdateRenderInfos();
 
         TMulticastDelegate<FViewSceneInfo *> &GetAddViewDelegate() { return SceneAddViewDelegate; }
         TMulticastDelegate<FViewSceneInfo *> &GetRemoveViewDelegate() { return SceneRemoveViewDelegate; }
@@ -138,6 +144,7 @@ namespace nilou {
         std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
         std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
         std::set<std::unique_ptr<FViewSceneInfo>> AddedViewSceneInfos;
+        std::set<std::unique_ptr<FSceneCaptureInfo>> AddedSceneCaptureInfos;
         std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
         FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;

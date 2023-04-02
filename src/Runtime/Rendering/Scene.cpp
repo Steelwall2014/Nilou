@@ -187,6 +187,38 @@ namespace nilou {
         }
     }
 
+    // void FScene::AddSceneCapture(USceneCaptureComponent *InCamera)
+    // {
+    //     FSceneCaptureInfo *SceneCaptureInfo = new FSceneCaptureInfo;
+
+    //     FScene *Scene = this;
+    //     ENQUEUE_RENDER_COMMAND(AddCamera)(
+    //         [Scene, SceneCaptureInfo] (FDynamicRHI *DynamicRHI) 
+    //         {
+    //             Scene->AddViewSceneInfo(SceneCaptureInfo);
+    //             ViewSceneInfo->SceneProxy->UpdateUniformBuffer();
+    //         });
+
+    // }
+
+    // void FScene::RemoveSceneCapture(USceneCaptureComponent *InCamera)
+    // {
+    //     FCameraSceneProxy* CameraSceneProxy = InCamera->SceneProxy;
+
+    //     if (CameraSceneProxy)
+    //     {
+    //         FViewSceneInfo* ViewSceneInfo = CameraSceneProxy->GetViewSceneInfo();
+    //         InCamera->SceneProxy = nullptr;
+            
+    //         FScene *Scene = this;
+    //         ENQUEUE_RENDER_COMMAND(RemoveCamera)(
+    //             [Scene, ViewSceneInfo] (FDynamicRHI *DynamicRHI) 
+    //             {
+    //                 Scene->RemoveViewSceneInfo(ViewSceneInfo);
+    //             });
+    //     }
+    // }
+
     void FScene::UpdateRenderInfos()
     {
         UpdateViewInfos();

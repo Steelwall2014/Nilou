@@ -27,13 +27,6 @@ namespace nilou {
         }
         if (NumMips > Image->GetNumMips())
             RHICmdList->RHIGenerateMipmap(Texture2DRHI);
-        DepthStencilRHI = RHICmdList->RHICreateTexture2D(
-            Name+"_DepthStencil", EPixelFormat::PF_D24S8, 1, 
-            Image->GetWidth(), Image->GetHeight());
-
-        Framebuffer = RHICmdList->RHICreateFramebuffer();
-        Framebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, Texture2DRHI);
-        Framebuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencilRHI);
         SamplerRHI.Texture = TextureRHI.get();
     }
 
@@ -75,13 +68,6 @@ namespace nilou {
 
             TextureViews[i] = RHICmdList->RHICreateTextureView2D(
                 TextureRHI.get(), TextureRHI->GetFormat(), 0, 1, i);
-
-            DepthStencils[i] = RHICmdList->RHICreateTexture2D(
-                Name, EPixelFormat::PF_D24S8, 1, Image->GetWidth(), Image->GetHeight());
-
-            Framebuffers[i] = RHICmdList->RHICreateFramebuffer();
-            Framebuffers[i]->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, TextureViews[i]);
-            Framebuffers[i]->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencils[i]);
         }
 
         RHIGetError();

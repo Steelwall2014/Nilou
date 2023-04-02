@@ -129,14 +129,8 @@ namespace nilou {
                     VertexInputs,
                     Mesh.Element,
                     MeshDrawCommand);
-                // SkyAtmosphereMaterial needs to be rendered last
-                // if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
-                //     SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
-                // else
-                    DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
             }
-            // for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
-            //     DrawCommands.AddMeshDrawCommand(DrawCommand);
         }
         
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)

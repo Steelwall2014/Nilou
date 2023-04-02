@@ -21,7 +21,7 @@ namespace nilou {
         GENERATE_CLASS_INFO()
     public:
 
-        UCameraComponent(AActor *InOwner=nullptr, bool bIsMainCamera=false);
+        UCameraComponent(AActor *InOwner=nullptr);
 
         virtual class FCameraSceneProxy *CreateSceneProxy(); 
 
@@ -37,8 +37,6 @@ namespace nilou {
         glm::dmat4 CalcWorldToViewMatrix();
 
         glm::mat4 CalcViewToClipMatrix();
-
-        bool IsMainCamera() { return bIsMainCamera; }
 
         float GetAspectRatio() const { return AspectRatio; }
 
@@ -77,8 +75,6 @@ namespace nilou {
         /** AspectRatio = ScreenWidth/ScreenHeight */
         float AspectRatio;
         glm::ivec2 ScreenResolution;
-
-        bool bIsMainCamera;
 
         double MaxCascadeShadowMapDistance = 800;
     };
