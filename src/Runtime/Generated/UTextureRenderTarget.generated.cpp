@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "D:/Nilou/src/Runtime/Rendering/TextureRenderTarget.h"
 namespace nilou {
 std::string UTextureRenderTarget::GetClassName() { return "UTextureRenderTarget"; }
 EUClasses UTextureRenderTarget::GetClassEnum() { return EUClasses::MC_UTextureRenderTarget; }

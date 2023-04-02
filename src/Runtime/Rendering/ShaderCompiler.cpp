@@ -332,14 +332,16 @@ namespace nilou {
                     (const FVertexFactoryPermutationParameters &VFParameters) {
                         CompileVertexMaterialShader(
                             DynamicRHI, Material, MaterialParsedResult, VFParameters, ShaderParameter, 
-                            Material->ShaderMap.VertexShaderMap);
+                            Material->ShaderMap->VertexShaderMap);
                     }, 
                     [](FVertexFactoryType *) 
                     { return true; });
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
-                    CompilePixelMaterialShader(DynamicRHI, Material, MaterialParsedResult, ShaderParameter, Material->ShaderMap.PixelShaderMap);
+                    CompilePixelMaterialShader(
+                        DynamicRHI, Material, MaterialParsedResult, ShaderParameter, 
+                        Material->ShaderMap->PixelShaderMap);
                 }
             },
             [](FShaderType *ShaderType) {

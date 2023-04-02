@@ -12,6 +12,7 @@
 #include "PrimitiveUtils.h"
 #include "Common/Asset/AssetLoader.h"
 #include "Common/InputManager.h"
+#include "Texture2D.h"
 
 
 namespace nilou {
@@ -74,10 +75,13 @@ namespace nilou {
             memcpy(image->GetData(), gltf_image.image.data(), image->GetDataSize());
 
             std::string TextureName = std::to_string(TextureIndex) + "_" + gltf_texture.name;
-            int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height));
-            std::unique_ptr<FTexture2DResource> TextureResource = std::make_unique<FTexture2DResource>(TextureName, NumMips);
+            int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height)) + 1;
             
-            RHITextureParams TextureParams;
+            std::shared_ptr<UTexture2D> Texture = std::make_shared<UTexture2D>(TextureName);
+            Texture->ImageData = image;
+            Texture->UpdateResource();
+            
+            RHITextureParams &TextureParams = Texture->GetResource()->SamplerRHI.Params;
             if (gltf_texture.sampler != -1)
             {
                 tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
@@ -89,11 +93,6 @@ namespace nilou {
                 TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
                 TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
-            TextureResource->SetSamplerParams(TextureParams);
-            
-            std::shared_ptr<UTexture> Texture = std::make_shared<UTexture>(
-                TextureName, std::move(TextureResource));
-            Texture->SetData(image);
             OutTextures.push_back(Texture);
         }
 
@@ -173,12 +172,12 @@ namespace nilou {
         for (auto &gltf_mesh : model.meshes)
         {
             std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
-            std::unique_ptr<FStaticMeshLODResources> Resource = std::make_unique<FStaticMeshLODResources>();
+            FStaticMeshLODResources* Resource = new FStaticMeshLODResources();
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
             {
                 tinygltf::Primitive &gltf_prim = gltf_mesh.primitives[prim_index];
                 FStaticVertexFactory::FDataType Data;
-                std::unique_ptr<FStaticMeshSection> Section = std::make_unique<FStaticMeshSection>();
+                FStaticMeshSection* Section = new FStaticMeshSection;
                 
                 {   // Material
                     if (gltf_prim.material != -1)
@@ -272,12 +271,12 @@ namespace nilou {
                     }
                 }
                 Section->VertexFactory.SetData(Data);
-                Resource->Sections.push_back(std::move(Section));
+                Resource->Sections.push_back(Section);
 
             }
             StaticMeshes.push_back(StaticMesh);
-            StaticMesh->RenderData = std::make_unique<FStaticMeshRenderData>();
-            StaticMesh->RenderData->LODResources.push_back(std::move(Resource));
+            StaticMesh->RenderData = new FStaticMeshRenderData;
+            StaticMesh->RenderData->LODResources.push_back(Resource);
         }
 
         if (need_init)
@@ -334,11 +333,11 @@ namespace nilou {
             if (this_TransformRHI)
                 this_TransformRHI->ReleaseRHI();
             for (int i = 0; i < Gltf.Materials.size(); i++)
-                Gltf.Materials[i]->ReleaseRenderResources();
+                Gltf.Materials[i]->ReleaseResources();
             for (int i = 0; i < Gltf.Materials.size(); i++)
-                Gltf.Textures[i]->ReleaseRenderResources();
+                Gltf.Textures[i]->ReleaseResource();
             for (int i = 0; i < Gltf.Materials.size(); i++)
-                Gltf.StaticMeshes[i]->ReleaseRenderResources();
+                Gltf.StaticMeshes[i]->ReleaseResources();
             if (Gltf.UniformBuffer)
                 Gltf.UniformBuffer->ReleaseRHI();
         });
@@ -705,7 +704,7 @@ namespace nilou {
                             const FStaticMeshLODResources& LODModel = *StaticMesh->RenderData->LODResources[0];
                             for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
                             {
-                                const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
+                                const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex];
                                 FMeshBatch Mesh;
                                 Mesh.CastShadow = Section.bCastShadow;
                                 Mesh.Element.VertexFactory = &Section.VertexFactory;

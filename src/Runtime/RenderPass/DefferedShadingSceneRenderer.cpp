@@ -36,35 +36,35 @@ namespace nilou {
 
         SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "ShadingModel", EPixelFormat::PF_R8UI, 1, 
-            ScreenResolution.x, ScreenResolution.y, nullptr);
+            ScreenResolution.x, ScreenResolution.y);
 
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, BaseColor);
         GeometryPassFrameBuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, RelativeWorldSpacePosition);
@@ -84,7 +84,7 @@ namespace nilou {
     {
         DepthArray = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2DArray(
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
-            ShadowMapResolution.x, ShadowMapResolution.y, ShadowMapArraySize, nullptr);
+            ShadowMapResolution.x, ShadowMapResolution.y, ShadowMapArraySize);
         
         for (int i = 0; i < ShadowMapArraySize; i++)
         {

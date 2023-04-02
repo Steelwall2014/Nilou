@@ -89,7 +89,7 @@ namespace nilou {
     {
     public:
 
-        std::vector<std::unique_ptr<FStaticMeshSection>> Sections;
+        std::vector<FStaticMeshSection*> Sections;
 
         void InitResources();
 
@@ -106,7 +106,7 @@ namespace nilou {
     class FStaticMeshRenderData
     {
     public:
-        std::vector<std::unique_ptr<FStaticMeshLODResources>> LODResources;
+        std::vector<FStaticMeshLODResources*> LODResources;
 
         ~FStaticMeshRenderData()
         {
@@ -142,11 +142,11 @@ namespace nilou {
     public:
         UStaticMesh(const std::string &InName="") 
             : Name(InName) 
-            , RenderData(std::make_unique<FStaticMeshRenderData>())
+            , RenderData(new FStaticMeshRenderData())
         { }
         std::string Name;
 
-        std::unique_ptr<FStaticMeshRenderData> RenderData;
+        FStaticMeshRenderData* RenderData;
 
         std::vector<class UMaterial *> MaterialSlots;
 
@@ -156,8 +156,8 @@ namespace nilou {
 
         virtual void Deserialize(FArchive &Ar) override;
 
-        ~UStaticMesh() { ReleaseRenderResources(); }
-        void ReleaseRenderResources();
+        virtual ~UStaticMesh() { ReleaseResources(); }
+        void ReleaseResources();
     };
 
     template<>
@@ -274,10 +274,10 @@ namespace nilou {
 
             for (auto &lod_resource : lod_resources)
             {
-                auto LODResouce = std::make_unique<FStaticMeshLODResources>();
+                auto LODResouce = new FStaticMeshLODResources();
                 for (auto &section : lod_resource["Sections"])
                 {
-                    auto Section = std::make_unique<FStaticMeshSection>();
+                    auto Section = new FStaticMeshSection();
 
                     if (section.contains("IndexBuffer"))
                     {
@@ -337,9 +337,9 @@ namespace nilou {
                         }
                     }
                     Section->VertexFactory.SetData(VFData);
-                    LODResouce->Sections.push_back(std::move(Section));
+                    LODResouce->Sections.push_back(Section);
                 }
-                Object.LODResources.push_back(std::move(LODResouce));
+                Object.LODResources.push_back(LODResouce);
             }
         }
     };

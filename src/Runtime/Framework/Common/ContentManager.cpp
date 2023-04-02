@@ -279,17 +279,17 @@ namespace nilou {
                         if (Obj->IsA(UStaticMesh::StaticClass()))
                         {
                             UStaticMesh* mesh = static_cast<UStaticMesh*>(Obj);
-                            mesh->ReleaseRenderResources();
+                            mesh->ReleaseResources();
                         }
                         else if (Obj->IsA(UTexture::StaticClass())) 
                         {
                             UTexture* texture = static_cast<UTexture*>(Obj);
-                            texture->ReleaseRenderResources();
+                            texture->ReleaseResource();
                         }
                         else if (Obj->IsA(UMaterial::StaticClass())) 
                         {
                             UMaterial* material = static_cast<UMaterial*>(Obj);
-                            material->ReleaseRenderResources();
+                            material->ReleaseResources();
                         }
                     });
             });

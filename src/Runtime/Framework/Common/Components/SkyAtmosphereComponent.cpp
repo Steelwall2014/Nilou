@@ -127,27 +127,27 @@ namespace nilou {
 
             TransmittanceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
                 "SkyAtmosphere TransmittanceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, nullptr);
+                TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
 
             IrradianceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
                 "SkyAtmosphere IrradianceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, nullptr);
+                IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT);
 
             DeltaScatteringRayleighLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
                 "SkyAtmosphere SingleScatteringRayleighLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
 
             SingleScatteringMieLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
                 "SkyAtmosphere SingleScatteringMieLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
 
             MultiScatteringLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
                 "SkyAtmosphere MultiScatteringLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
 
             ScatteringDensityLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
                 "SkyAtmosphere ScatteringDensityLUT", EPixelFormat::PF_R32G32B32A32F, 1,
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, nullptr);
+                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
             BeginInitResource(ScatteringOrderParameter.get());
             DispatchPrecompute();
         });

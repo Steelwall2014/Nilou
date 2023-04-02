@@ -40,7 +40,7 @@ namespace nilou {
 	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
         float OrthoWidth;
 
-        // std::weak_ptr<class UTexture> TextureTarget;
+        std::weak_ptr<class UTextureRenderTarget> TextureTarget;
 
     };
 

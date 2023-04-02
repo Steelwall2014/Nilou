@@ -10,6 +10,7 @@
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RenderResource.h"
+#include "RenderingThread.h"
 namespace nilou {
 
     enum class EImageType
@@ -32,9 +33,9 @@ namespace nilou {
 
         uint32 GetDepth() const { return Depth; }
 
-        uint32 GetLayer() const { return Depth; }
+        uint32 GetNumLayers() const { return Depth; }
 
-        uint32 GetMipmap() const { return Mipmap; }
+        uint32 GetNumMips() const { return NumMips; }
 
         uint64 GetDataSize() const { return DataSize; }
 
@@ -60,38 +61,19 @@ namespace nilou {
             ActualDataSize = DataSize;
         }
 
-	protected:
-        FImage(
-            uint32 InWidth, 
-            uint32 InHeight,
-            uint32 InChannel,
-            uint32 InDepth,
-            EPixelFormat InPixelFormat,
-            uint32 InMipmap,
-            EImageType InImageType)
-            : Width(InWidth)
-            , Height(InHeight)
-            , Channel(InChannel)
-            , Depth(InDepth)
-            , PixelFormat(InPixelFormat)
-            , Mipmap(InMipmap)
-            , ImageType(InImageType)
-        {
-            int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
-            DataSize = BytePerPixel * Width * Height * Depth;
-            DataSize = DataSize * (1.0 - pow(0.25, Mipmap)) / (1.0 - 0.25);
-        }
-
-        void* GetPointer(int row, int col, int layer, int mipmap=0)
+        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
         {
             if (Data == nullptr)
                 return nullptr;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
             uint64 MipmapOffset = BytePerPixel * Width * Height * Channel * Depth;
-            MipmapOffset = MipmapOffset * (1.0 - pow(0.25, Mipmap)) / (1.0 - 0.25);
-            uint64 LayerOffset = Width * Height * Channel * layer;
-            int mip_width = Width / glm::pow(2, mipmap);
-            uint64 offset = (row * mip_width + col) * BytePerPixel + LayerOffset + MipmapOffset;
+            MipmapOffset = MipmapOffset * (1.0 - pow(0.25, MipIndex)) / (1.0 - 0.25);
+            uint64 LayerOffset = Width * Height * Channel * Layer;
+            int mip_width = Width >> MipIndex;
+            int mip_height = Height >> MipIndex;
+            if (Row >= mip_height || Column >= mip_width || Layer >= Depth)
+                return nullptr;
+            uint64 offset = (Row * mip_width + Column) * BytePerPixel + LayerOffset + MipmapOffset;
             if (offset >= DataSize)
                 return nullptr;
             return Data.get() + offset;
@@ -100,13 +82,13 @@ namespace nilou {
         /**
          * @brief Resize the image. This function WILL NOT reallocate memory.
          * 
-         * If parameter NewMipmap is not greater than zero, then the mipmap level 
+         * If parameter NewNumMips is not greater than zero, then the mipmap level 
          * will not be resized. Ditto for NewChannel.
          */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1, int32 NewMipmap=-1)
+        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1, int32 NewNumMips=-1)
         {
-            if (NewMipmap > 0)
-                Mipmap = NewMipmap;
+            if (NewNumMips > 0)
+                NumMips = NewNumMips;
             if (NewChannel > 0)
                 Channel = NewChannel;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
@@ -114,14 +96,36 @@ namespace nilou {
             Height = NewHeight;
             Depth = NewDepth;
             DataSize = BytePerPixel * Width * Height * Channel * Depth;
-            DataSize = DataSize * (1.0 - pow(0.25, Mipmap)) / (1.0 - 0.25);
+            DataSize = DataSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
+        }
+
+	protected:
+        FImage(
+            uint32 InWidth, 
+            uint32 InHeight,
+            uint32 InDepth,
+            uint32 InChannel,
+            EPixelFormat InPixelFormat,
+            uint32 InNumMips,
+            EImageType InImageType)
+            : Width(InWidth)
+            , Height(InHeight)
+            , Depth(InDepth)
+            , Channel(InChannel)
+            , PixelFormat(InPixelFormat)
+            , NumMips(InNumMips)
+            , ImageType(InImageType)
+        {
+            int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
+            DataSize = BytePerPixel * Width * Height * Depth;
+            DataSize = DataSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
         }
 
         uint32 Width = 0;
         uint32 Height = 0;
         uint32 Channel = 0;
         uint32 Depth = 0;
-        uint32 Mipmap = 0;
+        uint32 NumMips = 0;
         std::unique_ptr<unsigned char[]> Data = nullptr;
         uint64 DataSize = 0;
         uint64 ActualDataSize = 0;
@@ -146,9 +150,9 @@ namespace nilou {
 
         }
 
-        void* GetPointer(int row, int col, int mipmap=0)
+        void* GetPointer(int Row, int Column, int MipIndex=0)
         {
-            return FImage::GetPointer(row, col, 0, mipmap);
+            return FImage::GetPointer(Row, Column, 0, MipIndex);
         }
 
         /**
@@ -171,8 +175,8 @@ namespace nilou {
         FImage3D(
             uint32 InWidth, 
             uint32 InHeight,
-            uint32 InChannel,
             uint32 InDepth,
+            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
@@ -182,9 +186,9 @@ namespace nilou {
 
         }
         
-        void* GetPointer(int row, int col, int depth, int mipmap=0)
+        void* GetPointer(int Row, int Column, int Depth, int MipIndex=0)
         {
-            return FImage::GetPointer(row, col, depth, mipmap);
+            return FImage::GetPointer(Row, Column, Depth, MipIndex);
         }
 
         /**
@@ -207,8 +211,8 @@ namespace nilou {
         FImage2DArray(
             uint32 InWidth, 
             uint32 InHeight,
-            uint32 InChannel,
             uint32 InLayer,
+            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
@@ -218,9 +222,9 @@ namespace nilou {
 
         }
         
-        void* GetPointer(int row, int col, int layer, int mipmap=0)
+        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
         {
-            return FImage::GetPointer(row, col, layer, mipmap);
+            return FImage::GetPointer(Row, Column, Layer, MipIndex);
         }
 
         /**
@@ -253,9 +257,9 @@ namespace nilou {
 
         }
         
-        void* GetPointer(int row, int col, int layer, int mipmap=0)
+        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
         {
-            return FImage::GetPointer(row, col, layer, mipmap);
+            return FImage::GetPointer(Row, Column, Layer, MipIndex);
         }
 
         /**
@@ -299,7 +303,7 @@ namespace nilou {
          * if the GetData() function of the given image returns nullptr, 
          * then the RHI still will be updated, but no data will be uploaded.
          */
-        void SetData(std::weak_ptr<FImage> InImage);
+        void SetData(FImage* InImage);
 
         FRHISampler *GetSamplerRHI()
         {
@@ -335,21 +339,24 @@ namespace nilou {
 
     protected:
 
-		FTexture(const std::string& InName, int32 InNumMips=1)
+		FTexture(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : NumMips(InNumMips)
             , Name(InName)
-        { }
+        { 
+            SamplerRHI.Params = InTextureParams;
+            SamplerRHI.Texture = nullptr;
+        }
 
-        std::weak_ptr<FImage> WeakImage;
+        FImage* Image;
 
     };
 
-    class FTextureResource : virtual public FTexture
+    class FTextureResource : public FTexture
     {
     public:
 
-        FTextureResource(const std::string& InName, int32 InNumMips=1)
-            : FTexture(InName, InNumMips)
+        FTextureResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
+            : FTexture(InName, InTextureParams, InNumMips)
         { }
 
 	    // Dynamic cast methods.
@@ -368,123 +375,6 @@ namespace nilou {
 
     };
 
-    class FTexture2DResource : public FTextureResource
-    {
-    public:
-
-        FTexture2DResource(const std::string& InName, int32 InNumMips=1)
-            : FTextureResource(InName, InNumMips)
-            , FTexture(InName, InNumMips)
-        { }
-
-        virtual void InitRHI() override;
-
-	    virtual FTexture2DResource* GetTexture2DResource() override { return this; }
-	    virtual const FTexture2DResource* GetTexture2DResource() const override { return this; }
-    };
-
-    class FTexture3DResource : public FTextureResource
-    {
-    public:
-
-        FTexture3DResource(const std::string& InName, int32 InNumMips=1)
-            : FTextureResource(InName, InNumMips)
-            , FTexture(InName, InNumMips)
-        { }
-
-        virtual void InitRHI() override;
-
-	    virtual FTexture3DResource* GetTexture3DResource() override { return this; }
-	    virtual const FTexture3DResource* GetTexture3DResource() const override { return this; }
-    };
-
-    class FTexture2DArrayResource : public FTextureResource
-    {
-    public:
-
-        FTexture2DArrayResource(const std::string& InName, int32 InNumMips=1)
-            : FTextureResource(InName, InNumMips)
-            , FTexture(InName, InNumMips)
-        { }
-
-        virtual void InitRHI() override;
-
-	    virtual FTexture2DArrayResource* GetTexture2DArrayResource() override { return this; }
-	    virtual const FTexture2DArrayResource* GetTexture2DArrayResource() const override { return this; }
-    };
-
-    class FTextureCubeResource : public FTextureResource
-    {
-    public:
-
-        FTextureCubeResource(const std::string& InName, int32 InNumMips=1)
-            : FTextureResource(InName, InNumMips)
-            , FTexture(InName, InNumMips)
-        { }
-
-        virtual void InitRHI() override;
-
-	    virtual FTextureCubeResource* GetTextureCubeResource() override { return this; }
-	    virtual const FTextureCubeResource* GetTextureCubeResource() const override { return this; }
-    };
-
-    class FVirtualTexture2DResource : public FTextureResource
-    {
-	public:
-
-        FVirtualTexture2DResource(const std::string& InName, int32 InNumMips=1)
-            : FTextureResource(InName, InNumMips)
-            , FTexture(InName, InNumMips)
-        { }
-		
-        virtual void InitRHI() override;
-
-	    virtual FVirtualTexture2DResource* GetVirtualTexture2DResource() override { return this; }
-	    virtual const FVirtualTexture2DResource* GetVirtualTexture2DResource() const override { return this; }
-    };
-
-    class FTextureRenderTargetResource : virtual public FTexture
-    {
-	public:
-        
-        virtual class FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return nullptr; }
-        virtual class FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return nullptr; }
-
-    };
-
-    class FTextureRenderTarget2DResource : public FTextureRenderTargetResource, public FTexture2DResource
-    {
-	public:
-		
-        virtual void InitRHI() override;
-        
-        virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return this; }
-
-    protected:
-
-        RHIFramebufferRef Framebuffer;
-
-        RHITexture2DRef DepthStencilRHI;
-    };
-
-    class FTextureRenderTargetCubeResource : public FTextureRenderTargetResource, public FTextureCubeResource
-    {
-	public:
-		
-        virtual void InitRHI() override;
-        
-        virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return this; }
-
-    protected:
-
-        std::array<RHIFramebufferRef, 6> Framebuffers;
-
-        std::array<RHITexture2DRef, 6> DepthStencilRHIs;
-
-        std::array<RHITexture2DRef, 6> FaceRenderTargets;
-
-    };
-
     UCLASS()
     class UTexture : public UObject
     {
@@ -493,9 +383,51 @@ namespace nilou {
 
 		std::string Name;
 
-        UTexture(const std::string &InName="", std::unique_ptr<FTextureResource> InTextureResource=nullptr)
+        /**
+         * We can update the texture by manipulating this ImageData, 
+         * or read the texture data from the GPU.
+         * For example, if we want to create a new texture or update current texture,
+         * we can write it as follows:
+         * 
+         * std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1024, 1024, 4, EPixelFormat::R8G8B8A8);
+         * Image->AllocateSpace();  // Allocates actual memory space for the image data
+         * 
+         * ****do something to the image data****
+         * 
+         * // Suppose we have a pointer called Texture
+         * Texture->ImageData = Image;
+         * Texture->UpdateResource();
+         * 
+         * If we want to read data from the texture (e.g. read a render target from GPU to CPU),
+         * we can do it like this:
+         * 
+         * Texture->ReadPixelsSync();
+         * uint8* Data = Image->GetData();
+         * 
+         * 
+         * Note: The data of the image will always be nullptr if the texture is UVirtualTexture.
+         * 
+         */
+        std::shared_ptr<FImage> ImageData;
+
+        /**
+         * Modify the values of TextureParams and then call UpdateResource() 
+         * to update sampler parameters
+         */
+        RHITextureParams TextureParams;
+
+        /**
+         * Modify the values of NumMips and then call UpdateResource() 
+         * to update the number of mipmap levels
+         */
+        uint32 NumMips;
+
+        UTexture(const std::string &InName="")
             : Name(InName)
-            , TextureResource(std::move(InTextureResource))
+            , ImageData(nullptr)
+            , TextureResource(nullptr)
+            , TextureResourceRenderThread(nullptr)
+            , NumMips(1)
         {
 
         }
@@ -506,140 +438,120 @@ namespace nilou {
          */
         std::shared_ptr<class UVirtualTexture> MakeVirtualTexture();
 
-        RHITextureParams GetTextureParams() const
-        {
-            return TextureResource->GetSamplerRHI()->Params;
-        }
-
         ETextureType GetTextureType() const
         {
             return TextureResource->TextureType;
         }
 
-        FTexture *GetResource()
+        /** Returns the width of the texture in pixels. */
+        uint32 GetSizeX() const
         {
-            return TextureResource.get();
+            if (TextureResource)
+                return TextureResource->GetSizeX();
+            return 0;
+        }
+        /** Returns the height of the texture in pixels. */
+        uint32 GetSizeY() const
+        {
+            if (TextureResource)
+                return TextureResource->GetSizeY();
+            return 0;
+        }
+        /** Returns the depth of the texture in pixels. */
+        uint32 GetSizeZ() const
+        {
+            if (TextureResource)
+                return TextureResource->GetSizeZ();
+            return 0;
+        }
+        uint32 GetImageNumMips()
+        {
+            if (ImageData)
+                return ImageData->GetNumMips();
+            return 0;
         }
 
-        void SetData(std::shared_ptr<FImage> InImage)
+        /**
+         * Implemented by subclasses to create a new resource for the texture.
+         */
+        virtual FTextureResource* CreateResource() { return nullptr; }
+
+        void SetResource(FTextureResource* InResource)
         {
-            Image = InImage;
-            if (TextureResource)
-                TextureResource->SetData(InImage);
+            TextureResource = InResource;
+            ENQUEUE_RENDER_COMMAND(UTexture_SetResource)(
+                [this, InResource](FDynamicRHI*) {
+                    TextureResourceRenderThread = InResource;
+                });
         }
+
+        FTextureResource *GetResource()
+        {
+            if (IsInRenderingThread())
+                return TextureResourceRenderThread;
+            else
+                return TextureResource;
+        }
+
+        void UpdateResource()
+        {
+            ReleaseResource();
+            FTextureResource* NewResource = CreateResource();
+            SetResource(NewResource);
+            BeginInitResource(NewResource);
+        }
+
+        void ReleaseResource()
+        {
+            if (TextureResource)
+            {
+                FTextureResource* ToDelete = TextureResource;
+                ENQUEUE_RENDER_COMMAND(UTexture_ReleaseResource)(
+                    [ToDelete](FDynamicRHI*) {
+                        ToDelete->ReleaseResource();
+                        delete ToDelete;
+                    });
+            }
+        }
+
+        /**
+         * Implemented by subclasses to read pixels from GPU.
+         * The readed pixels will be stored in ImageData
+         */
+        virtual void ReadPixelsRenderThread() { }
+
+        /**
+         * Read pixels from GPU. It will block the thread calling it.
+         * This function ensures the data of the image is readed when return.
+         */
+        virtual void ReadPixelsSync();
 
         virtual void Serialize(FArchive &Ar) override;
 
         virtual void Deserialize(FArchive &Ar) override;
-
-        virtual void ReleaseRenderResources()
-        {
-            BeginReleaseResource(TextureResource.get());
-        }
     
     protected:
 
-        void DeserializeWithoutImageData(FArchive &Ar);
+        FTextureResource* TextureResource;
 
-        std::unique_ptr<FTexture> TextureResource;
+        FTextureResource* TextureResourceRenderThread;
 
-        std::shared_ptr<FImage> Image;
-    };
+        struct ImageCreateInfo 
+        {
+            uint32 Width;
+            uint32 Height;
+            uint32 Depth;
+            uint32 Channel;
+            uint32 NumMips;
+            EImageType ImageType;
+            EPixelFormat PixelFormat;
+        };
+        /**
+         * Implemented by subclasses to create a image.
+         */
+        virtual std::shared_ptr<FImage> CreateImage(const ImageCreateInfo& ImageInfo) { return nullptr; }
 
-    struct VirtualTextureTile
-    {
-        uint32 TileX;
-        uint32 TileY;
-        uint32 MipmapLevel;
-        uint32 DataOffset;
-        bool bCommited = false;
-        std::mutex mutex;
-    };
-
-    UCLASS()
-    class UVirtualTexture : public UTexture
-    {
-        GENERATE_CLASS_INFO()
-    public:
-        UVirtualTexture();
-
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
-
-        void UpdateBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
-
-        void UpdateBoundSync(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
-
-        void UnloadBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
-
-        void UnloadTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
-
-        void UpdateTile(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
-
-        void UpdateTileSync(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
-
-        uvec2 GetNumTiles(int MipmapLevel=0) const { return uvec2(NumTileX >> MipmapLevel, NumTileY >> MipmapLevel); }
-
-        ivec3 GetPageSize() const { return PageSize; }
-
-        uint32 GetBytePerTile() const { return BytePerTile; }
-
-        uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
-
-   private:
-
-        void UpdateTileInternal(uint32 TileX, uint32 TileY, uint32 MipmapLevel);
-
-        uint32 NumTileX;
-        uint32 NumTileY;
-
-        ivec3 PageSize;
-
-        uint32 BytePerTile;
-
-        std::vector<std::vector<std::vector<std::unique_ptr<VirtualTextureTile>>>> Tiles;
-
-        TLruCache<VirtualTextureTile*, VirtualTextureTile*> LruCache;
-
-        std::filesystem::path StreamingPath;
-        // It's the offset from the beginning to the BIN block
-        uint32 StreamingBufferOffset;
-
-        BS::thread_pool thread_pool;
-
-    };
-
-    UCLASS()
-    class UTextureRenderTarget : public UTexture
-    {
-        GENERATE_CLASS_INFO()
-    public:
-
-        FTextureRenderTargetResource* GetRenderTargetResource();
-
-    };
-
-    UCLASS()
-    class UTextureRenderTarget2D : public UTextureRenderTarget
-    {
-        GENERATE_CLASS_INFO()
-    public:
-
-        FTextureRenderTargetResource* GetRenderTargetResource();
-
-        vec3 ClearColor;
-
-    };
-
-    UCLASS()
-    class UTextureRenderTargetCube : public UTextureRenderTarget
-    {
-        GENERATE_CLASS_INFO()
-    public:
-
-
-
+        void DeserializeImageData(FArchive& Ar);
     };
 
 }

@@ -39,7 +39,7 @@ namespace nilou {
     FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent *Component)
         : FPrimitiveSceneProxy(Component)
     {
-        RenderData = Component->StaticMesh->RenderData.get();
+        RenderData = Component->StaticMesh->RenderData;
         MaterialSlots = Component->MaterialSlots;
         Component->SceneProxy = this;
     }
@@ -53,7 +53,7 @@ namespace nilou {
                 const FStaticMeshLODResources& LODModel = *RenderData->LODResources[0];
                 for (int SectionIndex = 0; SectionIndex < LODModel.Sections.size(); SectionIndex++)
                 {
-                    const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex].get();
+                    const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex];
                     FMeshBatch Mesh;
                     Mesh.CastShadow = Section.bCastShadow;
                     Mesh.Element.VertexFactory = &Section.VertexFactory;

@@ -298,14 +298,14 @@ namespace nilou {
 
             N = glm::pow(2, FFTPow);
             group_num = N / 32;     // 这里的32是写死在glsl中的"local_size"
-            GaussianRandomRT = RHICmdList->RHICreateTexture2D("GaussianRandomRT", EPixelFormat::PF_R16G16F, 1, N, N, nullptr);
-            HeightSpectrumRT = RHICmdList->RHICreateTexture2D("HeightSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, nullptr);
-            DisplaceXSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceXSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, nullptr);
-            DisplaceYSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceYSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, nullptr);
-            IntermediateRT = RHICmdList->RHICreateTexture2D("IntermediateRT", EPixelFormat::PF_R16G16F, 1, N, N, nullptr);
-            DisplaceRT = RHICmdList->RHICreateTexture2D("DisplaceRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, nullptr);
-            NormalRT = RHICmdList->RHICreateTexture2D("NormalRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, nullptr);
-            FoamRT = RHICmdList->RHICreateTexture2D("FoamRT", EPixelFormat::PF_R16F, FFTPow, N, N, nullptr);
+            GaussianRandomRT = RHICmdList->RHICreateTexture2D("GaussianRandomRT", EPixelFormat::PF_R16G16F, 1, N, N);
+            HeightSpectrumRT = RHICmdList->RHICreateTexture2D("HeightSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
+            DisplaceXSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceXSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
+            DisplaceYSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceYSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
+            IntermediateRT = RHICmdList->RHICreateTexture2D("IntermediateRT", EPixelFormat::PF_R16G16F, 1, N, N);
+            DisplaceRT = RHICmdList->RHICreateTexture2D("DisplaceRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N);
+            NormalRT = RHICmdList->RHICreateTexture2D("NormalRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N);
+            FoamRT = RHICmdList->RHICreateTexture2D("FoamRT", EPixelFormat::PF_R16F, FFTPow, N, N);
 
             DisplaceSampler = FRHISampler(DisplaceRT.get());
             NormalSampler = FRHISampler(NormalRT.get());

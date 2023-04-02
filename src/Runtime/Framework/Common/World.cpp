@@ -24,6 +24,7 @@
 #include "Common/Actor/FFTOceanActor.h"
 
 #include "Georeference.h"
+#include "VirtualTexture2D.h"
 
 // #include <ogrsf_frmts.h>
 
@@ -107,23 +108,23 @@ namespace nilou {
         DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        // FTransform VHMTransform;
-        // VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
-        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
-        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        FTransform VHMTransform;
+        VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
+        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
+        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         
-        std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
-        // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
+        // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+        // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
+        // // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
 
-        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
         // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        // // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
+        // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+        // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
 
         // std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         // std::vector<FBatchedLine> lines;
@@ -132,18 +133,12 @@ namespace nilou {
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
-        // GetContentManager()->ForEachContent([](UObject* Obj){
-        //     if (Obj->IsA(UTexture::StaticClass()))
-        //     {
-        //         UTexture* tex = (UTexture*)Obj;
-        //         if (tex->GetMinFilter() == ETextureFilters::TF_Linear)
-        //         {
-        //             tex->GetResource()->GetSamplerRHI()->Params.Min_Filter = ETextureFilters::TF_Linear_Mipmap_Linear;
-        //         Obj->ContentEntry->bIsDirty = true;
-
-        //         }
-        //     }
-        // });
+        GetContentManager()->ForEachContent([](UObject* Obj){
+            if (Obj->IsA(UVirtualTexture::StaticClass()))
+            {
+                Obj->ContentEntry->bIsDirty = true;
+            }
+        });
     }
 
     void UWorld::Tick(double DeltaTime)

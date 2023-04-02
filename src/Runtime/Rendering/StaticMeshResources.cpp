@@ -113,24 +113,24 @@ namespace nilou {
     {
         for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
-            FStaticMeshSection &Section = *Sections[SectionIndex].get();
-            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                BeginInitResource(&Section.VertexBuffers.Colors);
-            if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
-                BeginInitResource(&Section.VertexBuffers.Positions);
-            if (Section.VertexBuffers.Normals.GetVertexData() != nullptr)
-                BeginInitResource(&Section.VertexBuffers.Normals);
-            if (Section.VertexBuffers.Tangents.GetVertexData() != nullptr)
-                BeginInitResource(&Section.VertexBuffers.Tangents);
-            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                BeginInitResource(&Section.VertexBuffers.Colors);
+            FStaticMeshSection* Section = Sections[SectionIndex];
+            if (Section->VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginInitResource(&Section->VertexBuffers.Colors);
+            if (Section->VertexBuffers.Positions.GetVertexData() != nullptr)
+                BeginInitResource(&Section->VertexBuffers.Positions);
+            if (Section->VertexBuffers.Normals.GetVertexData() != nullptr)
+                BeginInitResource(&Section->VertexBuffers.Normals);
+            if (Section->VertexBuffers.Tangents.GetVertexData() != nullptr)
+                BeginInitResource(&Section->VertexBuffers.Tangents);
+            if (Section->VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginInitResource(&Section->VertexBuffers.Colors);
             for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
             {
-                if (Section.VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
-                    BeginInitResource(&Section.VertexBuffers.TexCoords[i]);
+                if (Section->VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
+                    BeginInitResource(&Section->VertexBuffers.TexCoords[i]);
             }
-            if (Section.IndexBuffer.GetIndiceData() != nullptr)
-                BeginInitResource(&Section.IndexBuffer);
+            if (Section->IndexBuffer.GetIndiceData() != nullptr)
+                BeginInitResource(&Section->IndexBuffer);
         }
         bIsInitialized = true;
     }
@@ -140,7 +140,7 @@ namespace nilou {
         bIsInitialized = false;
         for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
-            FStaticMeshSection &Section = *Sections[SectionIndex].get();
+            FStaticMeshSection &Section = *Sections[SectionIndex];
             if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
                 BeginReleaseResource(&Section.VertexBuffers.Colors);
             if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
@@ -171,12 +171,18 @@ namespace nilou {
     //     return VertexBuffers.TexCoords[0].GetNumVertices();
     // }
 
-    void UStaticMesh::ReleaseRenderResources()
+    void UStaticMesh::ReleaseResources()
     {
-        for (int i = 0; i < RenderData->LODResources.size(); i++)
-        {
-            RenderData->LODResources[i]->ReleaseResources();
-        }
+        FStaticMeshRenderData* ToDelete = RenderData;
+        ENQUEUE_RENDER_COMMAND(UStaticMesh_ReleaseResources)(
+            [ToDelete](FDynamicRHI*) {
+                for (int i = 0; i < ToDelete->LODResources.size(); i++)
+                {
+                    ToDelete->LODResources[i]->ReleaseResources();
+                    delete ToDelete->LODResources[i];
+                }
+                delete ToDelete;
+            });
     }
 
     void UStaticMesh::Serialize(FArchive &Ar)

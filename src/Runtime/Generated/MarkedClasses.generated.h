@@ -35,10 +35,14 @@ enum class EUClasses {
 	MC_UMaterialInstance,
 	MC_UStaticMesh,
 	MC_UTexture,
-	MC_UVirtualTexture,
+	MC_UTexture2D,
+	MC_UTexture2DArray,
+	MC_UTexture3D,
+	MC_UTextureCube,
 	MC_UTextureRenderTarget,
 	MC_UTextureRenderTarget2D,
 	MC_UTextureRenderTargetCube,
+	MC_UVirtualTexture,
 	MC_UClassNum,
 };
 }

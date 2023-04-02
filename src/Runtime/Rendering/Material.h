@@ -40,6 +40,7 @@ namespace nilou {
     public:
 
         FMaterial()
+            : ShaderMap(new FMaterialShaderMap)
         { 
         }
 
@@ -50,6 +51,7 @@ namespace nilou {
             : RasterizerState(InRasterizerState)
             , DepthStencilState(InDepthStencilState)
             , BlendState(InBlendState)
+            , ShaderMap(new FMaterialShaderMap)
         { 
         }
 
@@ -82,11 +84,22 @@ namespace nilou {
             UniformBuffers[Name] = UniformBuffer;
         }
 
+        void ReleaseResource()
+        {
+            FMaterialShaderMap* ToDelete = ShaderMap;
+            ENQUEUE_RENDER_COMMAND(FMaterial_ReleaseResource)(
+                [ToDelete](FDynamicRHI*) 
+                {
+                    ToDelete->RemoveAllShaders();
+                    delete ToDelete;
+                });
+        }
+
     protected:
 
         // bool bUseWorldOffset = false;
 
-        FMaterialShaderMap ShaderMap;
+        FMaterialShaderMap* ShaderMap;
 
         std::map<std::string, UTexture *> Textures;
 
@@ -115,13 +128,13 @@ namespace nilou {
 
         FShaderInstance *GetShader(
             const FVertexFactoryPermutationParameters VFParameter, 
-            const FShaderPermutationParameters &ShaderParameter)
+            const FShaderPermutationParameters &ShaderParameter) const
         {
-            return ShaderMap.GetShader(VFParameter, ShaderParameter);
+            return ShaderMap->GetShader(VFParameter, ShaderParameter);
         }
-        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter)
+        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter) const
         {
-            return ShaderMap.GetShader(ShaderParameter);
+            return ShaderMap->GetShader(ShaderParameter);
         }
 
         void FillShaderBindings(FInputShaderBindings &OutBindings)
@@ -134,7 +147,7 @@ namespace nilou {
 
         std::string Name;
 
-        FMaterialShaderMap ShaderMap;
+        FMaterialShaderMap* ShaderMap;
 
         std::map<std::string, UTexture *> Textures;
 
@@ -158,7 +171,7 @@ namespace nilou {
 
         UMaterial()
             : Name("")
-            , MaterialResource(std::make_unique<FMaterial>())
+            , MaterialResource(new FMaterial())
         {
             MaterialParameters = CreateUniformBuffer<FMaterialParameters>();
             SetParameterValue("FMaterialParameters", MaterialParameters.get());
@@ -172,7 +185,7 @@ namespace nilou {
 
         UMaterial(const std::string &InName)
             : Name(InName)
-            , MaterialResource(std::make_unique<FMaterial>())
+            , MaterialResource(new FMaterial())
         {
             MaterialResource->Name = Name;
             MaterialParameters = CreateUniformBuffer<FMaterialParameters>();
@@ -214,18 +227,23 @@ namespace nilou {
 
         std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
 
-        FMaterial *GetResource() { return MaterialResource.get(); }
+        FMaterial *GetResource() { return MaterialResource; }
 
         std::string GetMateiralCode() const { return Code; }
 
         std::map<std::string, std::filesystem::path> Textures;
 
-        virtual void ReleaseRenderResources()
+        void ReleaseResources()
         {
-            ENQUEUE_RENDER_COMMAND(Material_ReleaseRenderResources)(
-                [this](FDynamicRHI*) {
-                    MaterialResource->ShaderMap.RemoveAllShaders();
-                });
+            if (MaterialResource)
+            {
+                FMaterial* ToDelete = MaterialResource;
+                ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
+                    [ToDelete](FDynamicRHI*) 
+                    {
+                        delete ToDelete;
+                    });
+            }
         }
 
     protected:
@@ -234,7 +252,7 @@ namespace nilou {
         END_UNIFORM_BUFFER_STRUCT()
         TUniformBufferRef<FMaterialParameters> MaterialParameters;
 
-        std::unique_ptr<FMaterial> MaterialResource;
+        FMaterial* MaterialResource;
 
         std::string Code;
 

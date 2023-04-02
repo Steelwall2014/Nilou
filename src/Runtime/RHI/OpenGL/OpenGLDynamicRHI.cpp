@@ -1291,21 +1291,22 @@ namespace nilou {
     }
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTexture2D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data
-    )
+        const std::string &name, EPixelFormat InFormat, 
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY)
     {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
-        glTexImage2D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, NumMips, Format, Type, data);
-        if (NumMips > 1)
-            RHIGenerateMipmap(Texture);
+        glTexStorage2D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
+        // glTexImage2D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, NumMips, Format, Type, data);
+        // if (NumMips > 1)
+        //     RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITexture2DArrayRef FOpenGLDynamicRHI::RHICreateTexture2DArray(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
     )
     {
         OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1313,13 +1314,14 @@ namespace nilou {
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
-        glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
-        if (NumMips > 1)
-            RHIGenerateMipmap(Texture);
+        glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
+        // glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
+        // if (NumMips > 1)
+        //     RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITexture3DRef FOpenGLDynamicRHI::RHICreateTexture3D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
     )
     {
         OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1327,13 +1329,14 @@ namespace nilou {
         glBindTexture(Texture->Target, Texture->Resource);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
-        glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
-        if (NumMips > 1)
-            RHIGenerateMipmap(Texture);
+        glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
+        // glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
+        // if (NumMips > 1)
+        //     RHIGenerateMipmap(Texture);
         return Texture;
     }
     RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureCube(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data[6]
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
     )
     {
         RHIGetError();
@@ -1344,12 +1347,12 @@ namespace nilou {
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage2D(GL_TEXTURE_CUBE_MAP, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
-        if (data) 
-        {
-            for (int i = 0; i < 6; i++)
-                glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, 0, 0, sizexyz.x, sizexyz.y, Format, Type, data[i]);
-        }
-        glBindTexture(Texture->Target, 0);
+        // if (data) 
+        // {
+        //     for (int i = 0; i < 6; i++)
+        //         glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, 0, 0, sizexyz.x, sizexyz.y, Format, Type, data[i]);
+        // }
+        // glBindTexture(Texture->Target, 0);
         return Texture;
     }
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateSparseTexture2D(
@@ -1403,41 +1406,97 @@ namespace nilou {
         auto GLTexture = TextureResourceCast(texture.get());
         // int unit_id = TexMngr.AllocUnit();
         // glActiveTexture(GL_TEXTURE0 + unit_id);
-        if (GLTexture.Target != GL_TEXTURE_CUBE_MAP)
-        {
-            glBindTexture(GLTexture.Target, GLTexture.Resource);
-            glGenerateMipmap(GLTexture.Target);
-        }
+        glBindTexture(GLTexture.Target, GLTexture.Resource);
+        glGenerateMipmap(GLTexture.Target);
         // TexMngr.FreeUnit(unit_id);
     }
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
-        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinLevel, uint32 NumLevels)
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LevelIndex)
     {
-        int GLResource;
-        if (OriginTexture->GetTextureType() == ETextureType::TT_Texture2D)
-        {
-            OpenGLTexture2D* GLTexture = static_cast<OpenGLTexture2D*>(OriginTexture); 
-            GLResource = GLTexture->Resource;
-        }
-        else if (OriginTexture->GetTextureType() == ETextureType::TT_Texture2DArray) 
-        {
-            OpenGLTexture2DArray* GLTexture = static_cast<OpenGLTexture2DArray*>(OriginTexture); 
-            GLResource = GLTexture->Resource;
-        }
-        else 
-        {
-            return nullptr;
-        }
-        uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinLevel));
+        auto GLTexture = TextureResourceCast(OriginTexture);
+        uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinMipLevel));
         OpenGLTexture2DRef OutTexture = std::make_shared<OpenGLTexture2D>(
             0, GL_TEXTURE_2D, 
             size.x, size.y, 1, 
-            NumLevels, InFormat, OriginTexture->GetName() + "_View");
+            NumMipLevels, InFormat, OriginTexture->GetName() + "_View");
         glGenTextures(1, &OutTexture->Resource);
-        auto [Format, InternalFormat, Type] = TranslatePixelFormat(OriginTexture->GetFormat());
-        glTextureView(OutTexture->Resource, GL_TEXTURE_2D, GLResource, InternalFormat, MinLevel, NumLevels, 0, 1);
+        glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
+            GLTexture.Resource, GLTexture.InternalFormat, 
+            MinMipLevel, NumMipLevels, 0, 1);
         return OutTexture;
     }
+
+    void FOpenGLDynamicRHI::RHIUpdateTexture2D(RHITexture2D* Texture, 
+        int32 Xoffset, int32 Yoffset, 
+        int32 Width, int32 Height, 
+        int32 MipmapLevel, void* Data)
+    {
+        if (Data == nullptr)
+            return;
+        OpenGLTexture2D* GLTexture = static_cast<OpenGLTexture2D*>(Texture);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(GLTexture->GetFormat());
+        
+        glBindTexture(GLTexture->Target, GLTexture->Resource);
+        glTexSubImage2D(GLTexture->Target, MipmapLevel,
+					Xoffset, Yoffset,
+					Width, Height,
+					Format, Type,
+					Data);
+    }
+
+    void FOpenGLDynamicRHI::RHIUpdateTexture3D(RHITexture3D* Texture, 
+        int32 Xoffset, int32 Yoffset, int32 Zoffset,
+        int32 Width, int32 Height, int32 Depth, 
+        int32 MipmapLevel, void* Data)
+    {
+        if (Data == nullptr)
+            return;
+        OpenGLTexture3D* GLTexture = static_cast<OpenGLTexture3D*>(Texture);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(GLTexture->GetFormat());
+        glBindTexture(GLTexture->Target, GLTexture->Resource);
+        glTexSubImage3D(GLTexture->Target, MipmapLevel,
+					Xoffset, Yoffset, Zoffset,
+					Width, Height, Depth,
+					Format, Type,
+					Data);
+    }
+
+    void FOpenGLDynamicRHI::RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
+        int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+        int32 Width, int32 Height,
+        int32 MipmapLevel, void* Data)
+    {
+        if (Data == nullptr)
+            return;
+        OpenGLTexture2DArray* GLTexture = static_cast<OpenGLTexture2DArray*>(Texture);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(GLTexture->GetFormat());
+
+        glBindTexture(GLTexture->Target, GLTexture->Resource);
+        glTexSubImage3D(GLTexture->Target, MipmapLevel,
+					Xoffset, Yoffset, LayerIndex,
+					Width, Height, 1,
+					Format, Type,
+					Data);
+    }
+
+    void FOpenGLDynamicRHI::RHIUpdateTextureCube(RHITextureCube* Texture, 
+        int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+        int32 Width, int32 Height,
+        int32 MipmapLevel, void* Data)
+    {
+        if (Data == nullptr)
+            return;
+        OpenGLTextureCube* GLTexture = static_cast<OpenGLTextureCube*>(Texture);
+        auto [Format, InternalFormat, Type] = TranslatePixelFormat(GLTexture->GetFormat());
+
+        glBindTexture(GLTexture->Target, GLTexture->Resource);
+        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+LayerIndex, MipmapLevel,
+					Xoffset, Yoffset,
+					Width, Height,
+					Format, Type,
+					Data);
+    }
+
 }
 
 /**

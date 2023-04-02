@@ -72,21 +72,23 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
+		
 		virtual RHITexture2DRef RHICreateTexture2D(
-			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data
-		) override;
+			const std::string &name, EPixelFormat Format, 
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
 		virtual RHITexture2DArrayRef RHICreateTexture2DArray(
-			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
-		) override;
+			const std::string &name, EPixelFormat Format, 
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
 		virtual RHITexture3DRef RHICreateTexture3D(
-			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, void *data
-		) override;
+			const std::string &name, EPixelFormat Format, 
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
 		virtual RHITextureCubeRef RHICreateTextureCube(
-			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY, void *data[6]
-		) override;
+			const std::string &name, EPixelFormat Format, 
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
-			const std::string &name, EPixelFormat Format, int32 NumMips, uint32 InSizeX, uint32 InSizeY
-		) override;
+			const std::string &name, EPixelFormat Format, 
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+
 		virtual RHIFramebufferRef RHICreateFramebuffer() override;
 		virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) override;
 		virtual RHIFramebufferRef RHICreateFramebuffer(
@@ -95,8 +97,25 @@ namespace nilou {
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
 		virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
 		virtual RHITexture2DRef RHICreateTextureView2D(
-			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels
+			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
 		) override;
+
+		virtual void RHIUpdateTexture2D(RHITexture2D* Texture, 
+			int32 Xoffset, int32 Yoffset, 
+			int32 Width, int32 Height, 
+			int32 MipmapLevel, void* Data) override;
+		virtual void RHIUpdateTexture3D(RHITexture3D* Texture, 
+			int32 Xoffset, int32 Yoffset, int32 Zoffset,
+			int32 Width, int32 Height, int32 Depth, 
+			int32 MipmapLevel, void* Data) override;
+		virtual void RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
+			int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+			int32 Width, int32 Height,
+			int32 MipmapLevel, void* Data) override;
+		virtual void RHIUpdateTextureCube(RHITextureCube* Texture, 
+			int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+			int32 Width, int32 Height,
+			int32 MipmapLevel, void* Data) override;
 
 		/**
 		* Render pass
@@ -132,8 +151,8 @@ namespace nilou {
 		void RHIUseShaderProgram(OpenGLLinkedProgram *program);
 		OpenGLLinkedProgramRef RHICreateLinkedProgram(OpenGLVertexShader *vert, OpenGLPixelShader *pixel);
 		OpenGLLinkedProgramRef RHICreateLinkedProgram(OpenGLComputeShader *comp);
-		void glTexImage2D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
-		void glTexImage3D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels);
+		void glTexImage2D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint nummips, GLenum format, GLenum type, const void *pixels);
+		void glTexImage3D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint nummips, GLenum format, GLenum type, const void *pixels);
 		void EndDraw();
 
 		class OpenGLContext

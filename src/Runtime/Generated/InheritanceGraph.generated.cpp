@@ -39,9 +39,13 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UMaterial, EUClasses::MC_UMaterialInstance);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UStaticMesh);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UTexture);
-	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UVirtualTexture);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTexture2D);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTexture2DArray);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTexture3D);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTextureCube);
 	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UTextureRenderTarget);
 	AddEdge(EUClasses::MC_UTextureRenderTarget, EUClasses::MC_UTextureRenderTarget2D);
 	AddEdge(EUClasses::MC_UTextureRenderTarget, EUClasses::MC_UTextureRenderTargetCube);
+	AddEdge(EUClasses::MC_UTexture, EUClasses::MC_UVirtualTexture);
 }
 }

@@ -31,10 +31,14 @@
 #include "D:/Nilou/src/Runtime/Rendering/Material.h"
 #include "D:/Nilou/src/Runtime/Rendering/StaticMeshResources.h"
 #include "D:/Nilou/src/Runtime/Rendering/Texture.h"
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture2D.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture2DArray.h"
+#include "D:/Nilou/src/Runtime/Rendering/Texture3D.h"
+#include "D:/Nilou/src/Runtime/Rendering/TextureCube.h"
+#include "D:/Nilou/src/Runtime/Rendering/TextureRenderTarget.h"
+#include "D:/Nilou/src/Runtime/Rendering/TextureRenderTarget.h"
+#include "D:/Nilou/src/Runtime/Rendering/TextureRenderTarget.h"
+#include "D:/Nilou/src/Runtime/Rendering/VirtualTexture2D.h"
 using namespace nilou;
 FObjectFactory::FObjectFactory()
 {
@@ -71,8 +75,12 @@ FObjectFactory::FObjectFactory()
     FunctionMap["UMaterialInstance"] = &UMaterialInstance::CreateDefaultObject;
     FunctionMap["UStaticMesh"] = &UStaticMesh::CreateDefaultObject;
     FunctionMap["UTexture"] = &UTexture::CreateDefaultObject;
-    FunctionMap["UVirtualTexture"] = &UVirtualTexture::CreateDefaultObject;
+    FunctionMap["UTexture2D"] = &UTexture2D::CreateDefaultObject;
+    FunctionMap["UTexture2DArray"] = &UTexture2DArray::CreateDefaultObject;
+    FunctionMap["UTexture3D"] = &UTexture3D::CreateDefaultObject;
+    FunctionMap["UTextureCube"] = &UTextureCube::CreateDefaultObject;
     FunctionMap["UTextureRenderTarget"] = &UTextureRenderTarget::CreateDefaultObject;
     FunctionMap["UTextureRenderTarget2D"] = &UTextureRenderTarget2D::CreateDefaultObject;
     FunctionMap["UTextureRenderTargetCube"] = &UTextureRenderTargetCube::CreateDefaultObject;
+    FunctionMap["UVirtualTexture"] = &UVirtualTexture::CreateDefaultObject;
 }

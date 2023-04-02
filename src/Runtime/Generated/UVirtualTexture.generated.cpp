@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Rendering/Texture.h"
+#include "D:/Nilou/src/Runtime/Rendering/VirtualTexture2D.h"
 namespace nilou {
 std::string UVirtualTexture::GetClassName() { return "UVirtualTexture"; }
 EUClasses UVirtualTexture::GetClassEnum() { return EUClasses::MC_UVirtualTexture; }

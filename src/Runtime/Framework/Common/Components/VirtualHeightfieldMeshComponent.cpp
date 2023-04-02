@@ -5,6 +5,7 @@
 #include "DynamicMeshResources.h"
 #include "PrimitiveUtils.h"
 #include "Material.h"
+#include "VirtualTexture2D.h"
 
 #include <glad/glad.h>
 
@@ -238,16 +239,14 @@ namespace nilou {
                         EPixelFormat::PF_R16F, 
                         1, 
                         NodeCount.x, 
-                        NodeCount.y, 
-                        nullptr);
+                        NodeCount.y);
                     uvec2 size = LodParams[0].NodeSideNum * uvec2(8);
                     HeightMinMaxTexture = RHICmdList->RHICreateTexture2D(
                             "HeightMinMaxTexture", 
                             EPixelFormat::PF_R16G16F, 
                             LodCount+3, 
                             size.x, 
-                            size.y, 
-                            nullptr);
+                            size.y);
                     RHITextureParams params;
                     params.Mag_Filter = ETextureFilters::TF_Nearest;
                     params.Min_Filter = ETextureFilters::TF_Nearest;
@@ -257,8 +256,7 @@ namespace nilou {
                         HeightMinMaxTextureViews.push_back(RHICmdList->RHICreateTextureView2D(
                             HeightMinMaxTexture.get(),
                             EPixelFormat::PF_R16G16F, 
-                            i, 
-                            1));
+                            i, 1, 0));
                     }
 
                     LodParamsBuffer = RHICmdList->RHICreateShaderStorageBuffer(
