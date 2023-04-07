@@ -6,7 +6,6 @@
 #include "RenderingThread.h"
 #include "BaseApplication.h"
 #include "Common/ContentManager.h"
-#include "Common/FrameSynchronizer.h"
 #include "Material.h"
 
 namespace nilou {
@@ -30,7 +29,6 @@ namespace nilou {
         AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
         GetContentManager()->Init();
-        // Renderer = (FDefferedShadingSceneRenderer *)FSceneRenderer::CreateSceneRenderer(GetAppication()->GetScene());
         return true;
     }
 
@@ -38,9 +36,6 @@ namespace nilou {
 
     uint32 FRenderingThread::Run()
     {
-        std::unique_lock<std::mutex> lock(FFrameSynchronizer::mutex);
-        FFrameSynchronizer::cv.wait(lock, []{return FFrameSynchronizer::ShouldRenderingThreadLoopRun;});
-        
         while (!GetAppication()->ShouldRenderingThreadExit())
         {
             int size = RenderCommands.size();
@@ -59,7 +54,6 @@ namespace nilou {
 
     void FRenderingThread::Exit()
     {
-
         // Some release works may be done in the for loop.
         for (int i = 0; i < RenderCommands.size(); i++)
         {

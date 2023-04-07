@@ -4,7 +4,6 @@
 #include "Scene.h"
 #include "Common/World.h"
 #include "GfxConfiguration.h"
-#include "Common/FrameSynchronizer.h"
 #include "Common/ContentManager.h"
 #include "Common/Delegate.h"
 #include "Common/GameViewportClient.h"

@@ -47,39 +47,19 @@ namespace nilou {
                 this->Tick_RenderThread();
             });
 
-        FFrameSynchronizer::MainThreadFrameCount++;
-        if (FFrameSynchronizer::MainThreadFrameCount == 1)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadLoopRun = true;
-            FFrameSynchronizer::cv.notify_all();
-        }
-        if (FFrameSynchronizer::MainThreadFrameCount == FFrameSynchronizer::RenderingThreadFrameCount+1 || m_bQuit)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadWait = false;
-            FFrameSynchronizer::render_cv.notify_all();
-        }
-        else if (FFrameSynchronizer::MainThreadFrameCount > FFrameSynchronizer::RenderingThreadFrameCount+1)
-        {
-            FFrameSynchronizer::ShouldMainThreadWait = true;
-            std::unique_lock<std::mutex> lock(FFrameSynchronizer::main_mutex);
-            FFrameSynchronizer::main_cv.wait(lock, []() { return FFrameSynchronizer::ShouldMainThreadWait == false; });
-        }
+        std::mutex m;
+        std::unique_lock<std::mutex> lock(m);
+        std::condition_variable fence;
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Fence)(
+            [&fence](FDynamicRHI*) 
+            {
+                fence.notify_one();
+            });
+        fence.wait(lock);
     }
 
     void BaseApplication::Tick_RenderThread()
     {
-        FFrameSynchronizer::RenderingThreadFrameCount++;
-        if (FFrameSynchronizer::RenderingThreadFrameCount == FFrameSynchronizer::MainThreadFrameCount-1 || m_bQuit)
-        {
-            FFrameSynchronizer::ShouldMainThreadWait = false;
-            FFrameSynchronizer::main_cv.notify_all();
-        }
-        else if (FFrameSynchronizer::RenderingThreadFrameCount > FFrameSynchronizer::MainThreadFrameCount-1)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadWait = true;
-            std::unique_lock<std::mutex> lock(FFrameSynchronizer::render_mutex);
-            FFrameSynchronizer::render_cv.wait(lock, []() { return FFrameSynchronizer::ShouldRenderingThreadWait == false; });
-        }
     }
 
     bool BaseApplication::IsQuit()
