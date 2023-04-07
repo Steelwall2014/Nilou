@@ -28,15 +28,9 @@ namespace nilou {
 
         FScene *Scene = nullptr;
 
-        std::vector<UCameraComponent*> CameraComponents;
+        class ACameraActor* GetFirstCameraActor() const { return CameraActors.empty() ? nullptr : CameraActors[0]; }
 
-        /**
-         * The first added UCameraComponent will be the 
-         * MainCameraComponent automatically.
-         * If the first added UCameraComponent is removed, you need 
-         * to assign another MainCameraComponent mannually.
-         */
-        UCameraComponent* MainCameraComponent = nullptr;
+        std::vector<ACameraActor*> GetCameraActors() const { return CameraActors; }
         
         /**
         * Find all Actors in the world of the specified class. 
@@ -60,6 +54,8 @@ namespace nilou {
     private:
         
         std::vector<std::shared_ptr<AActor>> Actors;
+
+        std::vector<ACameraActor*> CameraActors;
 
         bool bIsWorldInitialized;
         bool bHasBegunPlay;
@@ -95,6 +91,10 @@ namespace nilou {
         Actor->SetActorName(ActorName);
         Actor->PostSpawnInitialize(ActorTransform);
         Actors.push_back(Actor);
+        if constexpr (TIsDerivedFrom<ActorClass, ACameraActor>::Value)
+        {
+            CameraActors.push_back(Actor.get());
+        }
         return Actor;
     }
 

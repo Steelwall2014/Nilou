@@ -7,10 +7,7 @@ namespace nilou {
     
     void FLightingPassPS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
-        // TODO
         FPermutationDomain Domain(Parameter.PermutationId);
-        // int FrustumCount = Domain.Get<FDimensionFrustumCount>();
-        // Environment.SetDefine("FrustumCount", FrustumCount);
         Domain.ModifyCompilationEnvironment(Environment);
         magic_enum::enum_for_each<EShadingModel>(
             [&Environment](EShadingModel ShadingModel){
@@ -20,11 +17,12 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(FDynamicRHI *RHICmdList)
     {
+
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-            FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get(), CameraInfo->GetResolution(), true);
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            FSceneTexturesDeffered* SceneTextures = static_cast<FSceneTexturesDeffered*>(ViewInfo.SceneTextures);
+            FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution, true);
 
             RHICmdList->RHIBeginRenderPass(PassInfo);
             {
@@ -33,7 +31,8 @@ namespace nilou {
                 {
                     FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
                     
-                    int FrustumCount = Lights[LightIndex].ShadowMapTextures[ViewIndex].FrameBuffers.size();
+                    FShadowMapResource* ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
+                    int FrustumCount = ShadowMapResource->ShadowMapTexture.ShadowMapFramebuffers.size();
                     FLightingPassPS::FPermutationDomain PermutationVector;
                     PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
                     FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
@@ -64,27 +63,27 @@ namespace nilou {
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "BaseColor", 
-                        FRHISampler(SceneTextures.BaseColor));
+                        FRHISampler(SceneTextures->BaseColor));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "RelativeWorldSpacePosition", 
-                        FRHISampler(SceneTextures.RelativeWorldSpacePosition));
+                        FRHISampler(SceneTextures->RelativeWorldSpacePosition));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "WorldSpaceNormal", 
-                        FRHISampler(SceneTextures.WorldSpaceNormal));
+                        FRHISampler(SceneTextures->WorldSpaceNormal));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "MetallicRoughness", 
-                        FRHISampler(SceneTextures.MetallicRoughness));
+                        FRHISampler(SceneTextures->MetallicRoughness));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "Emissive", 
-                        FRHISampler(SceneTextures.Emissive));
+                        FRHISampler(SceneTextures->Emissive));
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadingModel", 
-                        FRHISampler(SceneTextures.ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
+                        FRHISampler(SceneTextures->ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
 
                     if (Scene->SkyAtmosphere)
                     {
@@ -116,7 +115,7 @@ namespace nilou {
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
                         "FViewShaderParameters", 
-                        CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                        ViewInfo.ViewUniformBuffer->GetRHI());
                     RHIGetError();
 
                     RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
@@ -126,20 +125,17 @@ namespace nilou {
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
                         "FLightUniformBlock", 
-                        Light.LightSceneInfo->SceneProxy->LightUniformBufferRHI->GetRHI());
+                        Light.LightUniformBuffer->GetRHI());
 
-                    auto UniformBuffer = FShadowMapUniformBuffers::Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>(Light.ShadowMapUniformBuffers[ViewIndex]);
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel,
                         "FShadowMappingBlock", 
-                        UniformBuffer->GetRHI());
-                    RHITextureParams shadowMapSamplerParams;
-                    shadowMapSamplerParams.Mag_Filter = ETextureFilters::TF_Nearest;
-                    shadowMapSamplerParams.Min_Filter = ETextureFilters::TF_Nearest;
+                        ShadowMapResource->ShadowMapUniformBuffer.UniformBuffer->GetRHI());
+                    RHITextureParams shadowMapSamplerParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest);
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadowMaps", 
-                        FRHISampler(Light.ShadowMapTextures[ViewIndex].DepthArray, shadowMapSamplerParams));
+                        FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, shadowMapSamplerParams));
 
                     RHICmdList->RHIDrawArrays(0, 4);
                 }

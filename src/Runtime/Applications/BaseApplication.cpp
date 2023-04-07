@@ -16,15 +16,11 @@ namespace nilou {
         m_bQuit = false;
 
         ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
-        this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
-        
-        World = std::make_shared<UWorld>();
-        Scene = std::make_shared<FScene>();
-        World->Scene = Scene.get();
-        Scene->World = World.get();
+        RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+        GameViewportClient = std::make_unique<UGameViewportClient>();
         while (!RenderingThread->IsRunnableInitialized()) { }
-        World->InitWorld();
-        World->BeginPlay();
+        GameViewportClient->Init();
+        GameViewportClient->BeginPlay();
         return true;
     }
 
@@ -40,14 +36,16 @@ namespace nilou {
 
     void BaseApplication::Tick(double DeltaTime)
     {
-        World->Tick(DeltaTime);
-
-        if (Scene)
-        {
-            UWorld *World = Scene->World;
-            if (World)
-                World->SendAllEndOfFrameUpdates();
-        }
+        GameViewportClient->Tick(DeltaTime);
+        static FViewport Viewport;
+        Viewport.Width = GetConfiguration().screenWidth;
+        Viewport.Height = GetConfiguration().screenHeight;
+        GameViewportClient->Draw(&Viewport);
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
+            [this](FDynamicRHI*) 
+            {
+                this->Tick_RenderThread();
+            });
 
         FFrameSynchronizer::MainThreadFrameCount++;
         if (FFrameSynchronizer::MainThreadFrameCount == 1)

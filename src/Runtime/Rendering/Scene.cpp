@@ -72,43 +72,6 @@ namespace nilou {
 
     }
 
-    void FScene::AddCamera(UCameraComponent *InCamera)
-    {
-        FCameraSceneProxy *CameraSceneProxy = InCamera->CreateSceneProxy();
-        if (CameraSceneProxy == nullptr)
-            return;
-
-        FViewSceneInfo *ViewSceneInfo = new FViewSceneInfo(CameraSceneProxy, InCamera, this);
-        CameraSceneProxy->ViewSceneInfo = ViewSceneInfo;
-
-        FScene *Scene = this;
-        ENQUEUE_RENDER_COMMAND(AddCamera)(
-            [Scene, ViewSceneInfo] (FDynamicRHI *DynamicRHI) 
-            {
-                Scene->AddViewSceneInfo(ViewSceneInfo);
-                ViewSceneInfo->SceneProxy->UpdateUniformBuffer();
-            });
-
-    }
-
-    void FScene::RemoveCamera(UCameraComponent *InCamera)
-    {
-        FCameraSceneProxy* CameraSceneProxy = InCamera->SceneProxy;
-
-        if (CameraSceneProxy)
-        {
-            FViewSceneInfo* ViewSceneInfo = CameraSceneProxy->GetViewSceneInfo();
-            InCamera->SceneProxy = nullptr;
-            
-            FScene *Scene = this;
-            ENQUEUE_RENDER_COMMAND(RemoveCamera)(
-                [Scene, ViewSceneInfo] (FDynamicRHI *DynamicRHI) 
-                {
-                    Scene->RemoveViewSceneInfo(ViewSceneInfo);
-                });
-        }
-    }
-
     void FScene::AddLight(ULightComponent *InLight)
     {
         FLightSceneProxy *LightSceneProxy = InLight->CreateSceneProxy();
@@ -120,10 +83,9 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddLight)(
-            [Scene, LightSceneInfo] (FDynamicRHI *DynamicRHI) 
+            [Scene, LightSceneInfo] (FDynamicRHI*) 
             {
-                Scene->AddLightSceneInfo(LightSceneInfo);
-                LightSceneInfo->SceneProxy->UpdateUniformBuffer();
+                Scene->AddLightSceneInfo_RenderThread(LightSceneInfo);
             });
     }
 
@@ -140,7 +102,7 @@ namespace nilou {
             ENQUEUE_RENDER_COMMAND(RemoveLight)(
                 [Scene, LightSceneInfo] (FDynamicRHI *DynamicRHI) 
                 {
-                    Scene->RemoveLightSceneInfo(LightSceneInfo);
+                    Scene->RemoveLightSceneInfo_RenderThread(LightSceneInfo);
                 });
         }
     }
@@ -164,7 +126,7 @@ namespace nilou {
             {
                 PrimitiveSceneProxy->CreateRenderThreadResources();
                 PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
-                Scene->AddPrimitiveSceneInfo(PrimitiveSceneInfo);
+                Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
             });
     }
 
@@ -182,100 +144,40 @@ namespace nilou {
                 [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo] (FDynamicRHI *DynamicRHI) 
                 {
                     PrimitiveSceneInfo->SceneProxy->DestroyRenderThreadResources();
-                    Scene->RemovePrimitiveSceneInfo(PrimitiveSceneInfo);
+                    Scene->RemovePrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
                 });
         }
     }
 
-    // void FScene::AddSceneCapture(USceneCaptureComponent *InCamera)
-    // {
-    //     FSceneCaptureInfo *SceneCaptureInfo = new FSceneCaptureInfo;
-
-    //     FScene *Scene = this;
-    //     ENQUEUE_RENDER_COMMAND(AddCamera)(
-    //         [Scene, SceneCaptureInfo] (FDynamicRHI *DynamicRHI) 
-    //         {
-    //             Scene->AddViewSceneInfo(SceneCaptureInfo);
-    //             ViewSceneInfo->SceneProxy->UpdateUniformBuffer();
-    //         });
-
-    // }
-
-    // void FScene::RemoveSceneCapture(USceneCaptureComponent *InCamera)
-    // {
-    //     FCameraSceneProxy* CameraSceneProxy = InCamera->SceneProxy;
-
-    //     if (CameraSceneProxy)
-    //     {
-    //         FViewSceneInfo* ViewSceneInfo = CameraSceneProxy->GetViewSceneInfo();
-    //         InCamera->SceneProxy = nullptr;
-            
-    //         FScene *Scene = this;
-    //         ENQUEUE_RENDER_COMMAND(RemoveCamera)(
-    //             [Scene, ViewSceneInfo] (FDynamicRHI *DynamicRHI) 
-    //             {
-    //                 Scene->RemoveViewSceneInfo(ViewSceneInfo);
-    //             });
-    //     }
-    // }
-
     void FScene::UpdateRenderInfos()
     {
-        UpdateViewInfos();
         UpdatePrimitiveInfos();
         UpdateLightInfos();
     }
 
-    void FScene::AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
+    void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
         AddedPrimitiveSceneInfos.emplace(InPrimitiveInfo);
         InPrimitiveInfo->OcclusionQuery = FDynamicRHI::GetDynamicRHI()->RHICreateRenderQuery();
     }
 
-    void FScene::RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo)
+    void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
-        safe_erase(AddedPrimitiveSceneInfos, InPrimitiveInfo);
+        AddedPrimitiveSceneInfos.erase(InPrimitiveInfo);
     }
 
-    void FScene::AddLightSceneInfo(FLightSceneInfo *InLightInfo)
+    void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo)
     {
         AddedLightSceneInfos.emplace(InLightInfo);
+        InLightInfo->LightUniformBufferRHI->InitResource();
         GetAddLightDelegate().Broadcast(InLightInfo);
     }
 
-    void FScene::RemoveLightSceneInfo(FLightSceneInfo *InLightInfo)
+    void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo)
     {
-        safe_erase(AddedLightSceneInfos, InLightInfo);
+        InLightInfo->LightUniformBufferRHI->ReleaseResource();
+        AddedLightSceneInfos.erase(InLightInfo);
         GetRemoveLightDelegate().Broadcast(InLightInfo);
-    }
-
-    void FScene::AddViewSceneInfo(FViewSceneInfo *InCameraInfo)
-    {
-        AddedViewSceneInfos.emplace(InCameraInfo);
-        GetAddViewDelegate().Broadcast(InCameraInfo);
-    }
-
-    void FScene::RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo)
-    {
-        safe_erase(AddedViewSceneInfos, InCameraInfo);
-        GetRemoveViewDelegate().Broadcast(InCameraInfo);
-    }
-
-    void FScene::UpdateViewInfos()
-    {
-        for (auto &&CameraInfo : AddedViewSceneInfos)
-        {
-            if (CameraInfo->bNeedsUniformBufferUpdate)
-            {
-                CameraInfo->SceneProxy->UpdateUniformBuffer();
-                CameraInfo->SetNeedsUniformBufferUpdate(false);
-            }
-            if (CameraInfo->bNeedsFramebufferUpdate)
-            {
-                GetResizeViewDelegate().Broadcast(CameraInfo.get());
-                CameraInfo->SetNeedsFramebufferUpdate(false);
-            }
-        }
     }
 
     void FScene::UpdatePrimitiveInfos()
@@ -286,58 +188,64 @@ namespace nilou {
                 PrimitiveInfo->SceneProxy->UpdateUniformBuffer();
         }
     }
-    
+
+    static void SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam)
+    {
+        EAttenCurveType CurveType = AttenCurveParam.type;
+        OutParameter.AttenCurveType = (int)AttenCurveParam.type;
+        OutParameter.AttenCurveScale = AttenCurveParam.scale;
+        switch (CurveType) 
+        {
+            case EAttenCurveType::ACT_Linear:
+                OutParameter.AttenCurveParams =
+                    glm::vec4(
+                        AttenCurveParam.u.linear_params.begin_atten, 
+                        AttenCurveParam.u.linear_params.end_atten, 
+                        0, 0);
+                break;
+            case EAttenCurveType::ACT_Smooth:
+                OutParameter.AttenCurveParams =
+                    glm::vec4(
+                        AttenCurveParam.u.smooth_params.begin_atten, 
+                        AttenCurveParam.u.smooth_params.end_atten, 
+                        0, 0);
+                break;
+            case EAttenCurveType::ACT_Inverse:
+                OutParameter.AttenCurveParams =
+                    glm::vec4(
+                        AttenCurveParam.u.inverse_params.offset, 
+                        AttenCurveParam.u.inverse_params.kl, 
+                        AttenCurveParam.u.inverse_params.kc, 0);
+                break;
+            case EAttenCurveType::ACT_InverseSquare:
+                OutParameter.AttenCurveParams =
+                    glm::vec4(
+                        AttenCurveParam.u.inverse_squre_params.offset,
+                        AttenCurveParam.u.inverse_squre_params.kq,
+                        AttenCurveParam.u.inverse_squre_params.kl,
+                        AttenCurveParam.u.inverse_squre_params.kc);
+                break;
+        }
+    }
+
+    static void SetLightUniformBuffer(TUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
+    {
+        LightUniformBuffer->Data.lightPosition = Proxy->Position;
+        LightUniformBuffer->Data.lightDirection = Proxy->Direction;
+        LightUniformBuffer->Data.lightIntensity = Proxy->LightIntensity;
+        LightUniformBuffer->Data.lightCastShadow = Proxy->bCastShadow;
+        LightUniformBuffer->Data.lightType = (int)Proxy->LightType;
+        SetLightAttenParams(LightUniformBuffer->Data.lightDistAttenParams, Proxy->DistAttenCurve);
+        SetLightAttenParams(LightUniformBuffer->Data.lightAngleAttenParams, Proxy->AngleAttenCurve);
+    }
+
     void FScene::UpdateLightInfos()
     {
         for (auto &&LightInfo : AddedLightSceneInfos)
         {
-            if (LightInfo->bNeedsUniformBufferUpdate)
-                LightInfo->SceneProxy->UpdateUniformBuffer();
+            FLightSceneProxy* Proxy = LightInfo->SceneProxy;
+            SetLightUniformBuffer(LightInfo->LightUniformBufferRHI.get(), Proxy);
+            LightInfo->LightUniformBufferRHI->UpdateUniformBuffer();
         }
     }
 }
-
-
-
-
-
-
-// nilou::Scene::Scene()
-//     : SceneName(""), SceneGraph(new BaseSceneNode())
-// {
-
-// }
-
-// nilou::Scene::Scene(const std::string &scene_name)
-//     : SceneName(scene_name), SceneGraph(new BaseSceneNode())
-// {
-
-// }
-
-// void nilou::Scene::AddObserver(std::shared_ptr<nilou::ObserverActor> observer)
-// {
-//     Observer = observer;
-//     SceneGraph->AppendChild(observer->GetRootSceneNode());
-// }
-
-// void nilou::Scene::AddLight(std::shared_ptr<nilou::SceneLightNode> light)
-// {
-//     SceneGraph->AppendChild(light);
-//     LightNodes.push_back(light);
-//     Lights.push_back(light->GetSceneObjectRef());
-// }
-
-// void nilou::Scene::AddSkybox(std::shared_ptr<nilou::SceneObjectSkybox> skybox)
-// {
-//     Skybox = skybox;
-// }
-
-// void nilou::Scene::AddOceanSurface(std::shared_ptr<SceneObjectOceanSurface> ocean_surface)
-// {
-//     OceanSurface = ocean_surface;
-// }
-
-// void nilou::Scene::AddSeabedSurface(std::shared_ptr<SceneObjectTerrainSurface> seabed_surface)
-// {
-//     SeabedSurface = seabed_surface;
-// }

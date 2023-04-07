@@ -29,6 +29,8 @@ namespace nilou {
         virtual void InitRHI() override;
         
         virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return this; }
+
+        RHIFramebufferRef RenderTargetFramebuffer;
     };
 
     class FTextureRenderTargetCubeResource : public FTextureRenderTargetResource
@@ -43,9 +45,9 @@ namespace nilou {
         
         virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return this; }
 
-    protected:
+        std::array<RHITexture2DRef, 6> RenderTargetTextureViews;
 
-        std::array<RHITexture2DRef, 6> TextureViews;
+        std::array<RHIFramebufferRef, 6> RenderTargetFramebuffers;
 
     };
 

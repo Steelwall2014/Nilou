@@ -123,6 +123,68 @@ namespace nilou {
         CameraRollInput = 0;
     }
 
+    FSceneView* ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
+    {
+        FSceneView* SceneView = new FSceneView;
+        SceneView->VerticalFieldOfView = CameraComponent->GetFieldOfView();
+        SceneView->NearClipDistance = CameraComponent->GetNearClipDistance();
+        SceneView->FarClipDistance = CameraComponent->GetFarClipDistance();
+        SceneView->Forward = CameraComponent->GetForwardVector();
+        SceneView->Position = CameraComponent->GetComponentLocation();
+        SceneView->Up = CameraComponent->GetUpVector();
+        SceneView->AspectRatio = CameraComponent->GetAspectRatio();
+        SceneView->ViewMatrix = glm::lookAt(
+            SceneView->Position, 
+            SceneView->Position+SceneView->Forward, 
+            SceneView->Up);
+        SceneView->ProjectionMatrix = glm::perspective(
+            SceneView->VerticalFieldOfView, 
+            SceneView->AspectRatio, 
+            SceneView->NearClipDistance, 
+            SceneView->FarClipDistance);
+        SceneView->ViewFrustum = FViewFrustum(
+            SceneView->Position, 
+            SceneView->Forward, 
+            SceneView->Up, 
+            SceneView->AspectRatio, 
+            SceneView->VerticalFieldOfView, 
+            SceneView->NearClipDistance, 
+            SceneView->FarClipDistance);
+        SceneView->ScreenResolution = ivec2(ViewFamily->Viewport->Width, ViewFamily->Viewport->Height);
+        auto ViewUniformBuffer = SceneView->ViewUniformBuffer = CameraComponent->ViewUniformBuffer;
+
+        const dmat4& WorldToView = SceneView->ViewMatrix;
+        const mat4& ViewToClip = SceneView->ProjectionMatrix;
+        mat4 RelativeWorldToView = WorldToView;
+        RelativeWorldToView[3][0] = 0;
+        RelativeWorldToView[3][1] = 0;
+        RelativeWorldToView[3][2] = 0;
+        ViewUniformBuffer->Data.RelWorldToView = RelativeWorldToView;
+        ViewUniformBuffer->Data.ViewToClip = ViewToClip;
+        ViewUniformBuffer->Data.RelWorldToClip = ViewToClip * RelativeWorldToView;
+        ViewUniformBuffer->Data.ClipToView = glm::inverse(ViewToClip);
+        ViewUniformBuffer->Data.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+        ViewUniformBuffer->Data.AbsWorldToClip = ViewToClip * mat4(WorldToView);
+
+        ViewUniformBuffer->Data.CameraPosition = SceneView->Position;
+        ViewUniformBuffer->Data.CameraDirection = SceneView->Forward;
+        ViewUniformBuffer->Data.CameraResolution = SceneView->ScreenResolution;
+        ViewUniformBuffer->Data.CameraNearClipDist = SceneView->NearClipDistance;
+        ViewUniformBuffer->Data.CameraFarClipDist = SceneView->FarClipDistance;
+        ViewUniformBuffer->Data.CameraVerticalFieldOfView = SceneView->VerticalFieldOfView;
+
+        for (int i = 0; i < 6; i++)
+            ViewUniformBuffer->Data.FrustumPlanes[i] = dvec4(SceneView->ViewFrustum.Planes[i].Normal, SceneView->ViewFrustum.Planes[i].Distance);
+
+        ENQUEUE_RENDER_COMMAND(ACameraActor_CalcSceneView)(
+            [ViewUniformBuffer](FDynamicRHI*) 
+            {
+                ViewUniformBuffer->UpdateUniformBuffer();
+            });
+
+        return SceneView;
+    }
+
     void ACameraActor::MoveForward(float AxisValue)
     {
         MovementInput.x = AxisValue;

@@ -144,7 +144,7 @@ namespace nilou {
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, 1, 
+                InWidth, InHeight, 1, InChannel,
                 InPixelFormat, InMipmap, EImageType::IT_Image2D)
         {
 
@@ -180,7 +180,7 @@ namespace nilou {
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, InDepth, 
+                InWidth, InHeight, InDepth, InChannel, 
                 InPixelFormat, InMipmap, EImageType::IT_Image3D)
         {
 
@@ -216,7 +216,7 @@ namespace nilou {
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, InLayer, 
+                InWidth, InHeight, InLayer, InChannel, 
                 InPixelFormat, InMipmap, EImageType::IT_Image2DArray)
         {
 
@@ -251,7 +251,7 @@ namespace nilou {
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, 6, 
+                InWidth, InHeight, 6, InChannel, 
                 InPixelFormat, InMipmap, EImageType::IT_ImageCube)
         {
 

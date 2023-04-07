@@ -14,12 +14,6 @@ namespace nilou {
     DECLARE_GLOBAL_SHADER(FScreenQuadVertexShader)
     DECLARE_GLOBAL_SHADER(FRenderToScreenPixelShader)
 
-    class FViewMeshBatches
-    {
-    public:
-        std::vector<FMeshBatch> MeshBatches;
-    };
-
     class FParallelMeshDrawCommands
     {
     public:
@@ -28,63 +22,6 @@ namespace nilou {
         void DispatchDraw(FDynamicRHI *RHICmdList);
     private:
         std::vector<FMeshDrawCommand> MeshCommands;
-    };
-
-    class FSceneTextures
-    {
-    public:
-        RHIFramebufferRef PreZPassFrameBuffer;
-        RHIFramebufferRef GeometryPassFrameBuffer;
-        RHIFramebufferRef FrameBuffer;
-        RHITexture2DRef BaseColor;
-        RHITexture2DRef RelativeWorldSpacePosition;
-        RHITexture2DRef WorldSpaceNormal;
-        RHITexture2DRef MetallicRoughness;
-        RHITexture2DRef Emissive;
-        RHITexture2DRef DepthStencil;
-        RHITexture2DRef SceneColor;
-        RHITexture2DRef ShadingModel;
-        ivec2 Viewport;
-        FSceneTextures(const ivec2 &ScreenResolution);
-    };
-
-    class FShadowMapTextures
-    {
-    public:
-        std::vector<RHIFramebufferRef> FrameBuffers;
-        RHITexture2DArrayRef DepthArray;
-        FShadowMapTextures(const ivec2 &ShadowMapResolution, int ShadowMapArraySize);
-    };
-
-    class FShadowMapUniformBuffers
-    {
-    public:
-    
-        template<int FrustumCount>
-        static FShadowMapUniformBuffers Create()
-        {
-            FShadowMapUniformBuffers obj;
-            auto UBO = CreateUniformBuffer<FShadowMappingBlock<FrustumCount>>();
-            UBO->SetUsage(EUniformBufferUsage::UniformBuffer_SingleFrame);
-            obj.UniformBuffer = UBO;
-            obj.FrustumCount = FrustumCount;
-            UBO->InitRHI();
-            return obj;
-        }
-
-        template<int FrustumCount>
-        static TUniformBuffer<FShadowMappingBlock<FrustumCount>> *Cast(FShadowMapUniformBuffers &ShadowMapUniformBuffer)
-        {
-            if (ShadowMapUniformBuffer.FrustumCount != FrustumCount)
-                return nullptr;
-            return static_cast<TUniformBuffer<FShadowMappingBlock<FrustumCount>>*>(ShadowMapUniformBuffer.UniformBuffer.get());
-        }
-
-        std::shared_ptr<FUniformBuffer> UniformBuffer;
-        int FrustumCount;
-
-    private:
-        FShadowMapUniformBuffers() { }
     };
 
     class FShadowMapMeshDrawCommands
@@ -109,35 +46,181 @@ namespace nilou {
         std::vector<std::vector<FMeshBatch>> MeshBatches;
     };
 
-    // class FViewCommands
-    // {
-    // public:
-    //     std::unordered_map<FMeshPassProcessor *, FParallelMeshDrawCommands> PerPassMeshCommands;
-    // };
+    struct SceneTextureCreateInfo
+    {
+        ivec2 OutputResolution=ivec2(1920, 1080);
+        bool operator<(const SceneTextureCreateInfo& Other) const
+        {
+            return std::make_pair(OutputResolution.x, OutputResolution.y) < 
+                   std::make_pair(Other.OutputResolution.x, Other.OutputResolution.y);
+        }
+    };
+
+    class FSceneTextures
+    {
+    public:
+        FSceneTextures(const SceneTextureCreateInfo &CreateInfo);
+        ivec2 Viewport;
+        RHITexture2DRef SceneColor;
+        RHITexture2DRef DepthStencil;
+        RHIFramebufferRef LightPassFramebuffer;
+    };
+
+    class FSceneTexturesDeffered : public FSceneTextures
+    {
+    public:
+        FSceneTexturesDeffered(const SceneTextureCreateInfo &CreateInfo);
+        RHIFramebufferRef PreZPassFramebuffer;
+        RHIFramebufferRef GeometryPassFramebuffer;
+        RHITexture2DRef BaseColor;
+        RHITexture2DRef RelativeWorldSpacePosition;
+        RHITexture2DRef WorldSpaceNormal;
+        RHITexture2DRef MetallicRoughness;
+        RHITexture2DRef Emissive;
+        RHITexture2DRef ShadingModel;
+    };
+
+
+    struct ShadowMapResourceCreateInfo
+    {
+        ivec2 ShadowMapResolution=ivec2(2048, 2048);
+        ELightType LightType;
+        bool operator<(const ShadowMapResourceCreateInfo& Other) const
+        {
+            return std::make_tuple(ShadowMapResolution.x, ShadowMapResolution.y, LightType) < 
+                   std::make_tuple(Other.ShadowMapResolution.x, Other.ShadowMapResolution.y, Other.LightType);
+        }
+    };
+
+    class FShadowMapTexture
+    {
+    public:
+        FShadowMapTexture(const ShadowMapResourceCreateInfo &CreateInfo);
+        std::vector<RHIFramebufferRef> ShadowMapFramebuffers;
+        RHITexture2DArrayRef DepthArray;
+    };
+
+    class FShadowMapUniformBuffer
+    {
+    public:
+
+        FShadowMapUniformBuffer(const ShadowMapResourceCreateInfo &CreateInfo);
+
+        template<int N>
+        TUniformBuffer<FShadowMappingBlock<N>> *Cast()
+        {
+            return reinterpret_cast<TUniformBuffer<FShadowMappingBlock<N>>*>(UniformBuffer.get());
+        }
+
+        std::shared_ptr<FUniformBuffer> UniformBuffer;
+
+        int FrustumCount;
+    };
+    
+    class FShadowMapResource
+    {
+    public:
+        FShadowMapResource(const ShadowMapResourceCreateInfo& CreateInfo);
+        FShadowMapTexture ShadowMapTexture;
+        FShadowMapUniformBuffer ShadowMapUniformBuffer;
+    };
+
+
+    class FViewInfo : public FSceneView
+    {
+    public:
+
+        FViewInfo()
+        { }
+
+        FViewInfo(const FSceneView* View)
+            : FSceneView(*View)
+        { }
+
+        FParallelMeshDrawCommands MeshDrawCommands;
+
+        FViewElementPDI PDI;
+
+        FSceneTextures* SceneTextures;
+
+    };
+
+    class FLightInfo
+    {
+    public:
+
+        FLightInfo()
+        { }
+
+        FLightInfo(FLightSceneProxy* InLightSceneProxy, int32 NumViews, TUniformBufferRef<FLightShaderParameters> InLightUniformBuffer)
+            : LightSceneProxy(InLightSceneProxy)
+            , LightUniformBuffer(InLightUniformBuffer)
+        { 
+            int32 LightFrustumSize;
+            switch (InLightSceneProxy->LightType) 
+            {
+            case ELightType::LT_Directional:
+                LightFrustumSize = CASCADED_SHADOWMAP_SPLIT_COUNT;
+                /** 
+                 * The number of shadow maps for directional lights is 
+                 * relevant to the number of views, so NumViews is required. 
+                 */
+                break;
+            case ELightType::LT_Point:
+                LightFrustumSize = 6;
+                NumViews = 1;
+                break;
+            case ELightType::LT_Spot:
+                LightFrustumSize = 1;
+                NumViews = 1;
+                break;
+                /** 
+                 * The number of shadow maps for spot/point lights is 
+                 * irrelevant to the number of views, so NumViews is 1. 
+                 */
+            default:
+                return;
+            }
+            ShadowMapMeshDrawCommands = std::vector<FShadowMapMeshDrawCommands>(NumViews, FShadowMapMeshDrawCommands(LightFrustumSize));
+            ShadowMapMeshBatches = std::vector<FShadowMapMeshBatches>(NumViews, FShadowMapMeshBatches(LightFrustumSize));
+            ShadowMapResources = std::vector<FShadowMapResource*>(NumViews);
+        }
+
+        std::vector<FShadowMapMeshDrawCommands> ShadowMapMeshDrawCommands;
+
+        std::vector<FShadowMapMeshBatches> ShadowMapMeshBatches;
+
+        std::vector<FShadowMapResource*> ShadowMapResources;
+
+        TUniformBufferRef<FLightShaderParameters> LightUniformBuffer;
+
+        FLightSceneProxy* LightSceneProxy;
+
+    };
 
     class FSceneRenderer
     {
     public:
-        static FSceneRenderer *CreateSceneRenderer(FScene *Scene);
-    };
 
-    class FDefferedShadingSceneRenderer : public FSceneRenderer
-    {
-    public:
+        FSceneRenderer(FSceneViewFamily* InViewFamily);
 
-        // FDefferedShadingSceneRenderer();
-        FDefferedShadingSceneRenderer(FScene *Scene);
+        /** The scene being rendered. */
+        FScene* Scene;
 
-        virtual void Render();
+        /** The view family being rendered.  This references the Views array. */
+        FSceneViewFamily ViewFamily;
 
-        void OnAddView(FViewSceneInfo *CameraInfo);
-        void OnRemoveView(FViewSceneInfo *CameraInfo);
-        void OnResizeView(FViewSceneInfo *CameraInfo);
+        /** The views being rendered. */
+        std::vector<FViewInfo> Views;
 
-        void OnAddLight(FLightSceneInfo *LightInfo);
-        void OnRemoveLight(FLightSceneInfo *LightInfo);
+        /** The lights being rendered. */
+        std::vector<FLightInfo> Lights;
 
-    private:
+        FMeshElementCollector MeshCollector;
+
+        virtual void Render() = 0;
+
+        static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily* ViewFamily);
 
         class FScreenQuadPositionVertexBuffer : public FVertexBuffer
         {
@@ -177,26 +260,86 @@ namespace nilou {
             glm::vec2 Vertices[4];
         };
 
-        struct ShadowMapSplitIndexUBOs
-        {
-            ShadowMapSplitIndexUBOs()
-            {
-                for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
-                {
-                    UBOs[i] = CreateUniformBuffer<FShadowMapFrustumIndex>();
-                    UBOs[i]->SetUsage(EUniformBufferUsage::UniformBuffer_MultiFrame);
-                    UBOs[i]->Data.FrustumIndex = i;
-                    UBOs[i]->InitRHI();
-                }
-            }
-            std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
-        };
-        ShadowMapSplitIndexUBOs SplitIndexUBO;
+        static FScreenQuadPositionVertexBuffer PositionVertexBuffer;
+        static FScreenQuadUVVertexBuffer UVVertexBuffer;
+        static FRHIVertexInput PositionVertexInput;
+        static FRHIVertexInput UVVertexInput;
 
-        // void SetupMeshPass(FSceneView &View, const std::vector<FMeshBatch> &ViewMeshBatches, std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
+    protected:
+
+        template <typename TResource, typename TCreateInfo>
+        class TResourcesPool
+        {
+        public:
+
+            /** Allocate a resource with given CreateInfo */
+            TResource* Alloc(const TCreateInfo& CreateInfo)
+            {
+                auto iter = FreeResourcesMap.find(CreateInfo);
+                TResource* Resource;
+                if (iter != FreeResourcesMap.end())
+                {
+                    Resource = iter->second;
+                    OccupiedResourcesMap[Resource] = CreateInfo;
+                    FreeResourcesMap.erase(iter);
+                }
+                else 
+                {
+                    Resource = new TResource(CreateInfo);
+                    OccupiedResourcesMap[Resource] = CreateInfo;
+                }
+                return Resource;
+            }
+
+            void FreeAll()
+            {
+                for (auto &[Resource, CreateInfo] : OccupiedResourcesMap)
+                    Free(Resource);
+            }
+
+            /** Return the given resource to the pool */
+            void Free(TResource* Resource)
+            {
+                const TCreateInfo& CreateInfo = OccupiedResourcesMap[Resource];
+                FreeResourcesMap.insert({CreateInfo, Resource});
+                OccupiedResourcesMap.erase(Resource);
+            }
+
+            /** Release all free SceneTextures */
+            void ReleaseUnusedTextures()
+            {
+                for (auto iter = FreeResourcesMap.begin(); iter != FreeResourcesMap.end(); iter++)
+                {
+                    delete iter->second;
+                }
+                FreeResourcesMap.clear();
+            }
+
+        private:
+            std::map<TResource*, TCreateInfo> OccupiedResourcesMap;
+
+            std::multimap<TCreateInfo, TResource*> FreeResourcesMap;
+        };
+
+        static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;
+
+        static TResourcesPool<FSceneTexturesDeffered, SceneTextureCreateInfo> SceneTexturesPool;
+
+    };
+
+    class FDefferedShadingSceneRenderer : public FSceneRenderer
+    {
+    public:
+
+        FDefferedShadingSceneRenderer(FSceneViewFamily* ViewFamily);
+
+        virtual void Render() override;
+
+    private:
+
         void InitViews(FScene *Scene);
 
-        void ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView> &SceneViews);
+        void ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews);
         
         void RenderPreZPass(FDynamicRHI *RHICmdList);
         
@@ -210,66 +353,6 @@ namespace nilou {
 
         void RenderToScreen(FDynamicRHI *RHICmdList);
 
-        FScene *Scene = nullptr;
-        
-        struct RenderViews
-        {
-            RenderViews(FViewSceneInfo *InViewSceneInfo, const FSceneTextures &InSceneTextures)
-                : ViewSceneInfo(InViewSceneInfo)
-                , SceneTextures(InSceneTextures)
-                , PDI(InViewSceneInfo->PDI.get())
-            { }
-            FViewSceneInfo *ViewSceneInfo;
-            FSceneTextures SceneTextures;
-            FParallelMeshDrawCommands MeshDrawCommands;
-            std::vector<FMeshBatch> MeshBatches;
-            FViewElementPDI* PDI;
-        };
-        std::vector<RenderViews> Views;
-        
-        struct RenderLights
-        {
-            RenderLights(FLightSceneInfo *InLightSceneInfo)
-                : LightSceneInfo(InLightSceneInfo) { }
-            FLightSceneInfo *LightSceneInfo;
-
-            // 如果是平行光，那么下面这些vector每一个元素对应一个view
-            // 如果是点光源或者射灯，那么下面这些vector的长度为1
-            std::vector<FShadowMapTextures> ShadowMapTextures;
-            std::vector<FShadowMapUniformBuffers> ShadowMapUniformBuffers;
-            std::vector<FShadowMapMeshDrawCommands> ShadowMapMeshDrawCommands;
-            std::vector<FShadowMapMeshBatches> ShadowMapMeshBatches;
-        };
-        std::vector<RenderLights> Lights;
-
-
-
-        // The collector used for scene rendering
-        FMeshElementCollector Collector;
-
-        // std::vector<FViewCommands> PerViewDrawCommands;
-
-        std::vector<RHIFramebufferRef> PerViewCSMRenderTarget;
-        std::vector<std::vector<RHITexture2DRef>> PerViewCSMDepthBuffer;
-
-                    
-        FScreenQuadPositionVertexBuffer PositionVertexBuffer;
-        FScreenQuadUVVertexBuffer UVVertexBuffer;
-        FRHIVertexInput PositionVertexInput;
-        FRHIVertexInput UVVertexInput;
-        // std::vector<FMeshPassProcessor *> RenderPasses;
-
-        // FBasePassMeshPassProcessor *BasePass;
-        // FSkyPassMeshPassProcessor *SkyPass;
-
-        // enum class EPass : int32
-        // {
-        //     BasePass,
-        //     SkyPass,
-        //     LightingPass,
-
-        //     PassNum
-        // };
     };
 
     extern FDefferedShadingSceneRenderer *Renderer;

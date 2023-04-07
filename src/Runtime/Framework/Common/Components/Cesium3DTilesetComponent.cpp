@@ -13,6 +13,7 @@
 #include "Common/Asset/AssetLoader.h"
 #include "Common/InputManager.h"
 #include "Texture2D.h"
+#include "Common/Actor/CameraActor.h"
 
 
 namespace nilou {
@@ -331,7 +332,7 @@ namespace nilou {
         auto Gltf = Content.Gltf;
         ENQUEUE_RENDER_COMMAND(Cesium3DTile_de)([this_TransformRHI, Gltf](FDynamicRHI*){
             if (this_TransformRHI)
-                this_TransformRHI->ReleaseRHI();
+                this_TransformRHI->ReleaseResource();
             for (int i = 0; i < Gltf.Materials.size(); i++)
                 Gltf.Materials[i]->ReleaseResources();
             for (int i = 0; i < Gltf.Materials.size(); i++)
@@ -339,7 +340,7 @@ namespace nilou {
             for (int i = 0; i < Gltf.Materials.size(); i++)
                 Gltf.StaticMeshes[i]->ReleaseResources();
             if (Gltf.UniformBuffer)
-                Gltf.UniformBuffer->ReleaseRHI();
+                Gltf.UniformBuffer->ReleaseResource();
         });
     }
 
@@ -674,7 +675,7 @@ namespace nilou {
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
@@ -696,7 +697,7 @@ namespace nilou {
                         );
                         Tile->TransformRHI->Data.LocalToWorld = GetLocalToWorld() * EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
                         if (!Tile->TransformRHI->IsInitialized())
-                            Tile->TransformRHI->InitRHI();
+                            Tile->TransformRHI->InitResource();
                         else
                             Tile->TransformRHI->UpdateUniformBuffer();
                         for (std::shared_ptr<UStaticMesh> StaticMesh : Tile->Content.Gltf.StaticMeshes)
@@ -782,8 +783,10 @@ namespace nilou {
         if (World)
         {
             std::vector<ViewState> ViewStates;
-            for (UCameraComponent *CameraComponent : World->CameraComponents)
+            std::vector<ACameraActor*> CameraActors = World->GetCameraActors();
+            for (ACameraActor *CameraActor : CameraActors)
             {
+                UCameraComponent* CameraComponent = CameraActor->GetCameraComponent();
                 ViewState viewState;
                 const dmat4 &AbsToEcef = Georeference->GetAbsToEcef();
                 viewState.cameraPosition = AbsToEcef * dvec4(CameraComponent->GetComponentLocation(), 1.0);

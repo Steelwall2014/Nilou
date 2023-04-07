@@ -12,14 +12,14 @@ namespace nilou {
     {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *ViewInfo = Views[ViewIndex].ViewSceneInfo;
-            if (ViewInfo->PDI->LineElements.empty())
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            if (ViewInfo.PDI.LineElements.empty())
                 continue;
             FStaticMeshVertexBuffer<vec3> PositionBuffer;
             FStaticMeshVertexBuffer<vec3> ColorBuffer;
             std::vector<vec3> Positions;
             std::vector<vec3> Colors;
-            for (auto &&Line : ViewInfo->PDI->LineElements)
+            for (auto &&Line : ViewInfo.PDI.LineElements)
             {
                 Positions.push_back(Line.Start);
                 Positions.push_back(Line.End);
@@ -28,8 +28,8 @@ namespace nilou {
             }
             PositionBuffer.Init(Positions);
             ColorBuffer.Init(Colors);
-            PositionBuffer.InitRHI();
-            ColorBuffer.InitRHI();
+            PositionBuffer.InitResource();
+            ColorBuffer.InitResource();
             FRHIVertexInput PositionInput;
             PositionInput.VertexBuffer = PositionBuffer.VertexBufferRHI.get();
             PositionInput.Location = 0;
@@ -44,8 +44,8 @@ namespace nilou {
             ColorInput.Offset = 0;
             ColorInput.Stride = sizeof(vec3);
             
-            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-            FRHIRenderPassInfo PassInfo(SceneTextures.FrameBuffer.get(), ViewInfo->GetResolution());
+            FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
+            FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution);
             RHICmdList->RHIBeginRenderPass(PassInfo);
             {
                 FShaderPermutationParameters PermutationParametersVS(&FViewElementVS::StaticType, 0);
@@ -76,7 +76,7 @@ namespace nilou {
                 RHICmdList->RHISetShaderUniformBuffer(
                     PSO, EPipelineStage::PS_Vertex, 
                     "FViewShaderParameters", 
-                    ViewInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                    ViewInfo.ViewUniformBuffer->GetRHI());
 
                 RHIGetError();
 
@@ -88,7 +88,7 @@ namespace nilou {
                 RHICmdList->RHIDrawArrays(0, Positions.size());
             }
             RHICmdList->RHIEndRenderPass();
-            ViewInfo->PDI->LineElements.clear();
+            ViewInfo.PDI.LineElements.clear();
         }
     }
 

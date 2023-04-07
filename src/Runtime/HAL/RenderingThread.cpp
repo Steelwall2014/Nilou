@@ -30,7 +30,7 @@ namespace nilou {
         AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
         GetContentManager()->Init();
-        Renderer = (FDefferedShadingSceneRenderer *)FSceneRenderer::CreateSceneRenderer(GetAppication()->GetScene());
+        // Renderer = (FDefferedShadingSceneRenderer *)FSceneRenderer::CreateSceneRenderer(GetAppication()->GetScene());
         return true;
     }
 
@@ -44,7 +44,6 @@ namespace nilou {
         while (!GetAppication()->ShouldRenderingThreadExit())
         {
             int size = RenderCommands.size();
-            // std::cout << size << std::endl;
             for (int i = 0; i < size; i++)
             {
                 EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
@@ -53,9 +52,6 @@ namespace nilou {
                 lock.unlock();
                 RenderCommand.DoTask();
             }
-            GetAppication()->GetScene()->UpdateRenderInfos();
-            Renderer->Render();
-            GetAppication()->Tick_RenderThread();
             FRenderingThread::FrameCount++;
         }
         return 0;
@@ -73,7 +69,12 @@ namespace nilou {
             lock.unlock();
             RenderCommand.DoTask();
         }
-        
+        std::vector<FRenderResource*>& ResourceList = FRenderResource::GetResourceList();
+        for (FRenderResource* Resource : ResourceList)
+        {
+            if (Resource)
+                Resource->ReleaseResource();
+        }
         GetAppication()->Finalize_RenderThread();
     }
 
