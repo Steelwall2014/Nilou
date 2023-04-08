@@ -55,6 +55,18 @@ namespace nilou {
         */
         double OrthoWidth = 0.0;
 
+        FSceneView();
+
+        FSceneView(
+            double InVerticalFieldOfView, 
+            double InNearClipDistance, 
+            double InFarClipDistance,
+            dvec3 InPosition,
+            dvec3 InForward,
+            dvec3 InUp,
+            ivec2 InScreenResolution,
+            TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer);
+
         // EViewType ViewType;
         
         TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
@@ -69,7 +81,7 @@ namespace nilou {
     public:
 
         FSceneViewFamily(
-            FViewport* InViewport, 
+            FViewport InViewport, 
             class FScene* InScene)
             : Viewport(InViewport)
             , Scene(InScene)
@@ -78,7 +90,7 @@ namespace nilou {
 
         }
 
-        FViewport* Viewport;
+        FViewport Viewport;
 
         FScene* Scene;
 

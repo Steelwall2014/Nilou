@@ -70,7 +70,7 @@ namespace nilou {
             tinygltf::Image gltf_image = model.images[gltf_texture.source];
 
             std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
-                gltf_image.width, gltf_image.height, gltf_image.component, 
+                gltf_image.width, gltf_image.height, 
                 TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type), 1);
             image->AllocateSpace();
             memcpy(image->GetData(), gltf_image.image.data(), image->GetDataSize());

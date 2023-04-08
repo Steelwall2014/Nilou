@@ -5,6 +5,8 @@
 
 #include "Common/Log.h"
 
+#include "Common/Components/SceneCaptureComponent.h"
+
 namespace nilou {
 
     glm::quat ROOT_ROTATION(1.f, 0.f, 0.f, 0.f);
@@ -30,6 +32,17 @@ namespace nilou {
     { 
         CameraComponent = CreateComponent<UCameraComponent>(this); 
         CameraComponent->AttachToComponent(GetRootComponent());
+
+		/** TEST SCENE CAPTURE */
+        std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1920, 1080, EPixelFormat::PF_R16G16B16A16F);
+        UTextureRenderTarget2D* RenderTarget = new UTextureRenderTarget2D("Test");
+        RenderTarget->ImageData = Image;
+        RenderTarget->UpdateResource();
+        SceneCaptureComponent = CreateComponent<USceneCaptureComponent2D>(this); 
+        SceneCaptureComponent->AttachToComponent(CameraComponent.get());
+        SceneCaptureComponent->TextureTarget = RenderTarget;
+        SceneCaptureComponent->VerticalFieldOfView = CameraComponent->GetFieldOfView();
+		/** TEST SCENE CAPTURE */
 
         InputAxisMapping MoveForward_mapping("MoveForward");
         MoveForward_mapping.AddGroup(InputKey::KEY_W, 1.0f);
@@ -125,56 +138,17 @@ namespace nilou {
 
     FSceneView* ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
     {
-        FSceneView* SceneView = new FSceneView;
-        SceneView->VerticalFieldOfView = CameraComponent->GetFieldOfView();
-        SceneView->NearClipDistance = CameraComponent->GetNearClipDistance();
-        SceneView->FarClipDistance = CameraComponent->GetFarClipDistance();
-        SceneView->Forward = CameraComponent->GetForwardVector();
-        SceneView->Position = CameraComponent->GetComponentLocation();
-        SceneView->Up = CameraComponent->GetUpVector();
-        SceneView->AspectRatio = CameraComponent->GetAspectRatio();
-        SceneView->ViewMatrix = glm::lookAt(
-            SceneView->Position, 
-            SceneView->Position+SceneView->Forward, 
-            SceneView->Up);
-        SceneView->ProjectionMatrix = glm::perspective(
-            SceneView->VerticalFieldOfView, 
-            SceneView->AspectRatio, 
-            SceneView->NearClipDistance, 
-            SceneView->FarClipDistance);
-        SceneView->ViewFrustum = FViewFrustum(
-            SceneView->Position, 
-            SceneView->Forward, 
-            SceneView->Up, 
-            SceneView->AspectRatio, 
-            SceneView->VerticalFieldOfView, 
-            SceneView->NearClipDistance, 
-            SceneView->FarClipDistance);
-        SceneView->ScreenResolution = ivec2(ViewFamily->Viewport->Width, ViewFamily->Viewport->Height);
-        auto ViewUniformBuffer = SceneView->ViewUniformBuffer = CameraComponent->ViewUniformBuffer;
-
-        const dmat4& WorldToView = SceneView->ViewMatrix;
-        const mat4& ViewToClip = SceneView->ProjectionMatrix;
-        mat4 RelativeWorldToView = WorldToView;
-        RelativeWorldToView[3][0] = 0;
-        RelativeWorldToView[3][1] = 0;
-        RelativeWorldToView[3][2] = 0;
-        ViewUniformBuffer->Data.RelWorldToView = RelativeWorldToView;
-        ViewUniformBuffer->Data.ViewToClip = ViewToClip;
-        ViewUniformBuffer->Data.RelWorldToClip = ViewToClip * RelativeWorldToView;
-        ViewUniformBuffer->Data.ClipToView = glm::inverse(ViewToClip);
-        ViewUniformBuffer->Data.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
-        ViewUniformBuffer->Data.AbsWorldToClip = ViewToClip * mat4(WorldToView);
-
-        ViewUniformBuffer->Data.CameraPosition = SceneView->Position;
-        ViewUniformBuffer->Data.CameraDirection = SceneView->Forward;
-        ViewUniformBuffer->Data.CameraResolution = SceneView->ScreenResolution;
-        ViewUniformBuffer->Data.CameraNearClipDist = SceneView->NearClipDistance;
-        ViewUniformBuffer->Data.CameraFarClipDist = SceneView->FarClipDistance;
-        ViewUniformBuffer->Data.CameraVerticalFieldOfView = SceneView->VerticalFieldOfView;
-
-        for (int i = 0; i < 6; i++)
-            ViewUniformBuffer->Data.FrustumPlanes[i] = dvec4(SceneView->ViewFrustum.Planes[i].Normal, SceneView->ViewFrustum.Planes[i].Distance);
+        FSceneView* SceneView = new FSceneView(
+            CameraComponent->GetFieldOfView(), 
+            CameraComponent->GetNearClipDistance(), 
+            CameraComponent->GetFarClipDistance(), 
+            CameraComponent->GetComponentLocation(), 
+            CameraComponent->GetForwardVector(), 
+            CameraComponent->GetUpVector(), 
+            ivec2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height),
+            CameraComponent->ViewUniformBuffer);
+            
+        auto ViewUniformBuffer = CameraComponent->ViewUniformBuffer;
 
         ENQUEUE_RENDER_COMMAND(ACameraActor_CalcSceneView)(
             [ViewUniformBuffer](FDynamicRHI*) 

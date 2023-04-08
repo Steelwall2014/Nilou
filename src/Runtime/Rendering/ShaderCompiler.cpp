@@ -5,8 +5,6 @@
 #include <regex>
 #include <sstream>
 #include <vector>
-#include <glslang/Public/ResourceLimits.h>
-#include <glslang/MachineIndependent/localintermediate.h>
 
 #include "DynamicRHI.h"
 #include "ShaderCompiler.h"
@@ -116,51 +114,25 @@ namespace nilou {
         FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
-        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<1>(
-            /*ShaderInstance->Parameters, */{&ShaderType->PreprocessedCode}, Environment, DynamicRHI);
-        const char *code_c_str = code.c_str();
-        ShaderInstance->ShaderName = ShaderType->Name;
+            {&ShaderType->PreprocessedCode}, Environment, DynamicRHI);
 
+        EPipelineStage PipelineStage;
         switch (ShaderType->ShaderFrequency) 
         {
             case EShaderFrequency::SF_Vertex:
-                ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
-                ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
-                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
-                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  glslang::EShClientNone, 0);
+                PipelineStage = EPipelineStage::PS_Vertex;
                 break;
             case EShaderFrequency::SF_Pixel:
-                ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
-                ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
-                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
-                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  glslang::EShClientNone, 0);
+                PipelineStage = EPipelineStage::PS_Pixel;
                 break;
             case EShaderFrequency::SF_Compute:
-                ShaderInstance->ShaderRHI = DynamicRHI->RHICreateComputeShader(code.c_str());
-                ShaderInstance->PipelineStage = EPipelineStage::PS_Compute;
-                ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangCompute);
-                ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  glslang::EShClientNone, 0);
+                PipelineStage = EPipelineStage::PS_Compute;
                 break;
         }
-        
-        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
-        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
-        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
-        std::string preprocess;
-        glslang::TShader::ForbidIncluder includer;
-        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 460, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
-        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 460, false, EShMsgDefault);
-        if (!res)
-        {
-            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
-            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
-            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
-                ShaderType->Name, 
-                info,
-                debuginfo);
-            ShaderInstance->ShaderGlsl == nullptr;
-        }
+        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
+            ShaderType->Name, code, PipelineStage, ShaderType->ShaderMetaType);
+        ShaderInstance->InitResource();
         GetContentManager()->AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
@@ -182,37 +154,12 @@ namespace nilou {
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
         VertexFactoryType->ModifyCompilationEnvironment(VertexFactoryParams, Environment);
 
-        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<3>(
             {&MaterialPreprocessedResult, &VertexFactoryType->PreprocessedCode, &ShaderType->PreprocessedCode}, 
             Environment, DynamicRHI);
-        const char *code_c_str = code.c_str();
-        ShaderInstance->ShaderName = ShaderType->Name;
-
-        ShaderInstance->ShaderRHI = DynamicRHI->RHICreateVertexShader(code.c_str());
-        ShaderInstance->PipelineStage = EPipelineStage::PS_Vertex;
-
-        ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
-        ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  glslang::EShClientNone, 0);
-        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
-        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
-        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
-        std::string preprocess;
-        glslang::TShader::ForbidIncluder includer;
-        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 100, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
-        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 100, false, EShMsgDefault);
-        if (!res)
-        {
-
-            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
-            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
-            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
-                ShaderType->Name, 
-                info,
-                debuginfo);
-            ShaderInstance->ShaderGlsl == nullptr;
-        }
-        
+        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
+            ShaderType->Name, code, EPipelineStage::PS_Vertex, ShaderType->ShaderMetaType);
+        ShaderInstance->InitResource();
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
@@ -228,37 +175,12 @@ namespace nilou {
         FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
-        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>();
         std::string code = ConcateShaderCodeAndParameters<2>(
             {&MaterialParsedResult, &ShaderType->PreprocessedCode}, 
             Environment, DynamicRHI);
-        const char *code_c_str = code.c_str();
-        ShaderInstance->ShaderName = ShaderType->Name;
-
-        ShaderInstance->ShaderRHI = DynamicRHI->RHICreatePixelShader(code.c_str());
-        ShaderInstance->PipelineStage = EPipelineStage::PS_Pixel;
-        
-        ShaderInstance->ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
-        ShaderInstance->ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  glslang::EShClientNone, 0);
-        ShaderInstance->ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
-        ShaderInstance->ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
-        ShaderInstance->ShaderGlsl->setStrings(&code_c_str, 1);
-        std::string preprocess;
-        glslang::TShader::ForbidIncluder includer;
-        bool res = ShaderInstance->ShaderGlsl->preprocess(GetResources(), 100, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
-        res &= ShaderInstance->ShaderGlsl->parse(GetResources(), 100, false, EShMsgDefault);
-        if (!res)
-        {
-
-            std::string info = ShaderInstance->ShaderGlsl->getInfoLog();
-            std::string debuginfo = ShaderInstance->ShaderGlsl->getInfoDebugLog();
-            NILOU_LOG(Error, "Shader parse error: {}\n{}\n{}", 
-                ShaderType->Name, 
-                info,
-                debuginfo);
-            ShaderInstance->ShaderGlsl == nullptr;
-        }
-
+        FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
+            ShaderType->Name, code, EPipelineStage::PS_Pixel, ShaderType->ShaderMetaType);
+        ShaderInstance->InitResource();
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
 

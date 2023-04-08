@@ -123,7 +123,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTexture2D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Channel, 
+            ImageInfo.Width, ImageInfo.Height, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }

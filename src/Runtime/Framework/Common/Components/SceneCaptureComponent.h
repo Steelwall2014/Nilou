@@ -10,17 +10,26 @@ namespace nilou {
     public:
         USceneCaptureComponent(AActor *InOwner = nullptr) 
             : USceneComponent(InOwner)
+            , bCaptureEveryFrame(true)
+            , bCaptureOnMovement(true)
         { }
 
-        uint8 bCaptureEveryFrame;
+        bool bCaptureEveryFrame;
 
-	    uint8 bCaptureOnMovement;
+	    bool bCaptureOnMovement;
 
         std::vector<std::weak_ptr<UPrimitiveComponent>> HiddenComponents;
         
         void HideComponent(std::weak_ptr<UPrimitiveComponent> InComponent);
 
         void HideActorComponents(std::weak_ptr<AActor> InActor);
+
+        static void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene);
+    
+    protected:
+
+	    virtual void UpdateSceneCaptureContents(FScene* Scene) {};
+
     };
 
     UCLASS()
@@ -32,15 +41,33 @@ namespace nilou {
             : USceneCaptureComponent(InOwner)
         { }
 
-    protected:
-
-	    /** Camera field of view (in degrees). */
-        float FOVAngle;
+        /** Field of view. in radians */
+        float VerticalFieldOfView;
 
 	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
         float OrthoWidth;
 
-        std::weak_ptr<class UTextureRenderTarget2D> TextureTarget;
+        class UTextureRenderTarget2D* TextureTarget;
+
+        /** Render the scene to the texture the next time the main view is rendered. */
+        void CaptureSceneDeferred();
+
+        // For backwards compatibility
+        void UpdateContent() { CaptureSceneDeferred(); }
+
+        virtual void UpdateSceneCaptureContents(FScene* Scene) override;
+
+        virtual void TickComponent(double DeltaTime) override;
+
+        virtual void SendRenderTransform() override;
+
+        virtual void OnRegister() override;
+
+        virtual void OnUnregister() override;
+
+    protected:
+
+        TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
 
     };
 

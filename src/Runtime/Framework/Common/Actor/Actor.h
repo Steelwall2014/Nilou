@@ -21,7 +21,8 @@ namespace nilou {
 	class UWorld;
 
 	UCLASS()
-	class AActor : public UObject
+	class AActor : public UObject,
+                   public std::enable_shared_from_this<AActor>
 	{
 		GENERATE_CLASS_INFO()
 	public:
@@ -132,6 +133,8 @@ namespace nilou {
 		{
 			OwnedWorld = InOwnedWorld;
 		}
+
+		bool IsValid() const { return !weak_from_this().expired(); }
 
 	protected:
 

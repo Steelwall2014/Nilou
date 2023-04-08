@@ -119,7 +119,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTextureRenderTarget2D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Channel, 
+            ImageInfo.Width, ImageInfo.Height, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }
@@ -147,7 +147,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTextureRenderTargetCube::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImageCube> image = std::make_shared<FImageCube>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Channel, 
+            ImageInfo.Width, ImageInfo.Height, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }

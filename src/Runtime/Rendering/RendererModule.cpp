@@ -19,6 +19,9 @@ namespace nilou {
         }
 
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
+
+        USceneCaptureComponent::UpdateDeferredCaptures(Scene);
+
         ENQUEUE_RENDER_COMMAND(FRendererModule_BeginRenderingViewFamily)(
             [Scene, SceneRenderer](FDynamicRHI* RHICmdList)
             {

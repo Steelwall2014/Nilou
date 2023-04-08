@@ -303,22 +303,7 @@ namespace nilou {
     
     void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
-        // int MainViewIndex = -1;
-        // if (GetAppication()->GetWorld()->MainCameraComponent == nullptr ||
-        //     GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy() == nullptr || 
-        //     GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo() == nullptr)
-        //     return;
-        // FViewSceneInfo* MainViewInfo = GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo();
-        // for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-        // {
-        //     FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-        //     if (CameraInfo == MainViewInfo)
-        //     {
-        //         MainViewIndex = ViewIndex;
-        //         break;
-        //     }
-        // }
-        FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport->RenderTarget;
+        FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport.RenderTarget;
         std::vector<RHIFramebuffer*> RenderTargetFramebuffers;
         if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_TextureCube)
         {
@@ -336,7 +321,6 @@ namespace nilou {
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            // FViewSceneInfo *ViewInfo = Views[MainViewIndex].ViewSceneInfo;
             FViewInfo& ViewInfo = Views[ViewIndex];
             FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
             RHIFramebuffer* OutputRenderTarget = nullptr;

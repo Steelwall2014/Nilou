@@ -40,7 +40,7 @@ namespace nilou {
         static FViewport Viewport;
         Viewport.Width = GetConfiguration().screenWidth;
         Viewport.Height = GetConfiguration().screenHeight;
-        GameViewportClient->Draw(&Viewport);
+        GameViewportClient->Draw(Viewport);
         ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
             [this](FDynamicRHI*) 
             {

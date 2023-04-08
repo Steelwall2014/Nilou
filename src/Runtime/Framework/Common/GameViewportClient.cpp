@@ -32,7 +32,7 @@ namespace nilou {
         World->Tick(DeltaTime);
     }
 
-    void UGameViewportClient::Draw(FViewport* InViewport)
+    void UGameViewportClient::Draw(FViewport InViewport)
     {
         FSceneViewFamily ViewFamily(InViewport, Scene.get());
         std::vector<FSceneView*> &Views = ViewFamily.Views;

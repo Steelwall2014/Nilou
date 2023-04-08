@@ -13,7 +13,7 @@ namespace nilou {
         void Init();
         void BeginPlay();
         void Tick(double DeltaTime);
-        void Draw(FViewport* InViewport);
+        void Draw(FViewport InViewport);
     };
 
 }

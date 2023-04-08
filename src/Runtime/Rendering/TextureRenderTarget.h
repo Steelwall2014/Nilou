@@ -86,8 +86,6 @@ namespace nilou {
             : UTextureRenderTarget(InName)
         { }
 
-        FTextureRenderTargetResource* GetRenderTargetResource();
-
         virtual FTextureResource* CreateResource() override;
 
         virtual void Serialize(FArchive &Ar) override;
@@ -109,8 +107,6 @@ namespace nilou {
         UTextureRenderTargetCube(const std::string& InName="")
             : UTextureRenderTarget(InName)
         { }
-
-        FTextureRenderTargetResource* GetRenderTargetResource();
 
         virtual FTextureResource* CreateResource() override;
 

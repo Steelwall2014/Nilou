@@ -34,6 +34,10 @@ namespace nilou {
 
         std::shared_ptr<UCameraComponent> CameraComponent;
 
+		/** TEST SCENE CAPTURE */
+        std::shared_ptr<class USceneCaptureComponent2D> SceneCaptureComponent;
+		/** TEST SCENE CAPTURE */
+		
 		glm::vec2 MovementInput = glm::vec2(0, 0);
 		glm::vec2 CameraInput = glm::vec2(0, 0);
 		float CameraRollInput = 0.f;
