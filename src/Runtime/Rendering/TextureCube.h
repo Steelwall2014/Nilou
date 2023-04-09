@@ -9,7 +9,9 @@ namespace nilou {
 
         FTextureCubeResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureResource(InName, InTextureParams, InNumMips)
-        { }
+        { 
+            TextureType = ETextureType::TT_TextureCube;
+        }
 
         virtual void InitRHI() override;
 

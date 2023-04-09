@@ -196,7 +196,7 @@ namespace nilou {
 
         void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
 
-        void SetCastShadow(bool CastShadow);
+        void SetCastShadow(bool bCastShadow);
 
         void SetLightIntensity(const glm::vec3 &LightIntensity);
 
@@ -208,10 +208,6 @@ namespace nilou {
 
         void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
 
-        void UpdateUniformBuffer();
-
-        FSceneLightView GetSceneLightView() const;
-
         glm::dvec3 Position;
 
         glm::vec3 Direction;
@@ -220,33 +216,21 @@ namespace nilou {
 
         ELightType LightType;
 
+        vec3 LightIntensity;
+
         glm::ivec2 ShadowMapResolution;
+
+        FAttenCurve DistAttenCurve;
+
+        FAttenCurve AngleAttenCurve;
+
+        bool bCastShadow;
 
         float ScreenAspect;
 
         float VerticalFieldOfView;
-
-    protected:
     
         FLightSceneInfo *LightSceneInfo;
-
-        void SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam);
-
-        TUniformBufferRef<FLightShaderParameters> LightUniformBufferRHI;
     };
-
-    // class FSpotLightSceneProxy : public FLightSceneProxy
-    // {
-    // public:
-    //     // virtual glm::mat4 GetLightProjectionMatrix();
-
-    // };
-
-    // class FDirectionalLightSceneProxy : public FLightSceneProxy
-    // {
-    // public:
-    //     // virtual glm::mat4 GetLightProjectionMatrix();
-
-    // };
 
 }

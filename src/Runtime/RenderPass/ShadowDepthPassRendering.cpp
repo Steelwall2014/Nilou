@@ -5,6 +5,8 @@
 
 constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 2.0f;
 
+constexpr double CASCADED_SHADOWMAP_MAX_DISTANCE = 800.0;
+
 namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
@@ -177,8 +179,24 @@ namespace nilou {
         ConvexVolumeOut = FConvexVolume(Planes);
     }
 
+    struct ShadowMapSplitIndexUBOs
+    {
+        ShadowMapSplitIndexUBOs()
+        {
+            for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
+            {
+                UBOs[i] = CreateUniformBuffer<FShadowMapFrustumIndex>();
+                UBOs[i]->SetUsage(EUniformBufferUsage::UniformBuffer_MultiFrame);
+                UBOs[i]->Data.FrustumIndex = i;
+                UBOs[i]->InitResource();
+            }
+        }
+        std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
+    };
+
     void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
     {
+        static ShadowMapSplitIndexUBOs SplitIndexUBO;
         std::vector<int> FrustumsToBeUpdated = {0, 1, 2, 3};
         // The last 4 cascade levels are not updated every frame;
         static int FrustumRoundRobinIndex = -1;
@@ -211,26 +229,25 @@ namespace nilou {
 
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
-            if (Lights[LightIndex].LightSceneInfo->SceneProxy->LightType != ELightType::LT_Directional)
+            FLightSceneProxy* LightSceneProxy = Lights[LightIndex].LightSceneProxy;
+            if (LightSceneProxy->LightType != ELightType::LT_Directional)
                 continue;
-
             auto &Light = Lights[LightIndex];
-            FLightSceneInfo *LightInfo = Lights[LightIndex].LightSceneInfo;
             
 
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FViewSceneInfo *ViewInfo = Views[ViewIndex].ViewSceneInfo;
-                FSceneView SceneView = ViewInfo->SceneProxy->GetSceneView();
+                FShadowMapResource* ShadowMapResources = Light.ShadowMapResources[ViewIndex];
+                FViewInfo& ViewInfo = Views[ViewIndex];
                 std::vector<std::array<dvec3, 8>> CascadeFrustums;
                 
-                const double ShadowFarClip = glm::clamp(SceneView.FarClipDistance, SceneView.NearClipDistance, ViewInfo->SceneProxy->MaxCascadeShadowMapDistance);
-                const double ShadowNearClip = glm::clamp(SceneView.NearClipDistance, 0.0, ShadowFarClip);
-                const double t = glm::tan(0.5 * SceneView.VerticalFieldOfView);
+                const double ShadowFarClip = glm::clamp(ViewInfo.FarClipDistance, ViewInfo.NearClipDistance, CASCADED_SHADOWMAP_MAX_DISTANCE);
+                const double ShadowNearClip = glm::clamp(ViewInfo.NearClipDistance, 0.0, ShadowFarClip);
+                const double t = glm::tan(0.5 * ViewInfo.VerticalFieldOfView);
                 const double b = -t;
-                const double r = t * SceneView.AspectRatio;
+                const double r = t * ViewInfo.AspectRatio;
                 const double l = -r;
-                const glm::dvec3 Right = glm::cross(SceneView.Forward, SceneView.Up);
+                const glm::dvec3 Right = glm::cross(ViewInfo.Forward, ViewInfo.Up);
                 const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
                 double SplitFar = ShadowNearClip;
@@ -239,10 +256,10 @@ namespace nilou {
                     std::array<dvec3, 8> CascadeFrustumVerts;
                     SplitNear = SplitFar;
                     SplitFar = Scales[SplitIndex] * FrustumLength + SplitNear;
-                    glm::dvec3 nearCenter = SceneView.Forward * SplitNear + SceneView.Position;
-                    glm::dvec3 farCenter = SceneView.Forward * SplitFar + SceneView.Position;
-                    glm::dvec3 TopNear = SceneView.Up * t * SplitNear;
-                    glm::dvec3 TopFar = SceneView.Up * t * SplitFar;
+                    glm::dvec3 nearCenter = ViewInfo.Forward * SplitNear + ViewInfo.Position;
+                    glm::dvec3 farCenter = ViewInfo.Forward * SplitFar + ViewInfo.Position;
+                    glm::dvec3 TopNear = ViewInfo.Up * t * SplitNear;
+                    glm::dvec3 TopFar = ViewInfo.Up * t * SplitFar;
                     glm::dvec3 RightNear = Right * r * SplitNear;
                     glm::dvec3 RightFar = Right * r * SplitFar;
                     CascadeFrustumVerts[0] = nearCenter + TopNear + RightNear;
@@ -259,22 +276,39 @@ namespace nilou {
                     const double SplitFrustumLength = SplitFar-SplitNear;
                     const double OptimalOffset = (DiagonalSq_Far - DiagonalSq_Near + SplitFrustumLength*SplitFrustumLength) / (2.0 * SplitFrustumLength);
                     const double CenterZ = glm::clamp(SplitNear+OptimalOffset, SplitNear, SplitFar);
-                    dvec3 Center = SceneView.Forward * CenterZ + SceneView.Position;
+                    dvec3 Center = ViewInfo.Forward * CenterZ + ViewInfo.Position;
                     double Radius = glm::max(glm::distance(Center, CascadeFrustumVerts[0]), glm::distance(Center, CascadeFrustumVerts[4]));
                     FBoundingSphere Sphere(Center, Radius);
                     FConvexVolume ConvexVolume;
                     FPlane NearPlane, FarPlane;
                     ComputeShadowCullingVolume(
                         CascadeFrustumVerts, 
-                        LightInfo->SceneProxy->Direction, 
+                        LightSceneProxy->Direction, 
                         ConvexVolume, 
                         NearPlane, 
                         FarPlane);
-                    dvec3 Direction = glm::dvec3(LightInfo->SceneProxy->Direction);
+                    dvec3 Direction = glm::dvec3(LightSceneProxy->Direction);
                     dmat4 ViewMatrix = glm::lookAt(
                         Sphere.Center, 
                         Direction+Sphere.Center, 
-                        glm::dvec3(LightInfo->SceneProxy->Up));
+                        glm::dvec3(LightSceneProxy->Up));
+                        
+                    FSceneView LightSceneView;
+                    LightSceneView.VerticalFieldOfView = LightSceneProxy->VerticalFieldOfView;
+                    LightSceneView.NearClipDistance = 0;
+                    LightSceneView.FarClipDistance = 2*Radius;
+                    LightSceneView.Forward = Direction;
+                    LightSceneView.Position = Sphere.Center;
+                    LightSceneView.Up = LightSceneProxy->Up;
+                    LightSceneView.ViewMatrix = ViewMatrix;
+                    LightSceneView.ProjectionMatrix = glm::ortho(
+                                                        -Sphere.Radius, 
+                                                        Sphere.Radius,
+                                                        -Sphere.Radius,
+                                                        Sphere.Radius,
+                                                        0.0, 2*Radius);
+                    LightSceneView.ViewFrustum = FViewFrustum(ViewMatrix, LightSceneView.ProjectionMatrix);
+                    LightSceneView.ScreenResolution = ivec2(LightSceneProxy->ShadowMapResolution.x, LightSceneProxy->ShadowMapResolution.y);
 
                     // The collector used for shadow mapping
                     FMeshElementCollector LightCollector;
@@ -300,7 +334,7 @@ namespace nilou {
                         {
                             // near = glm::max(near, ViewSpaceBox.Max.z);
                             // far = glm::min(far, ViewSpaceBox.Min.z);
-                            PrimitiveInfo->SceneProxy->GetDynamicMeshElements({SceneView}, 0x1, LightCollector);
+                            PrimitiveInfo->SceneProxy->GetDynamicMeshElements({&LightSceneView}, 0x1, LightCollector);
                         }
                     }
                     // if (near == -DBL_MAX) near = 0;
@@ -326,7 +360,7 @@ namespace nilou {
                     ViewMatrix = glm::lookAt(
                         Position, 
                         Center, 
-                        glm::dvec3(LightInfo->SceneProxy->Up));
+                        glm::dvec3(LightSceneProxy->Up));
                         
                     dmat4 ProjectionMatrix = glm::ortho(
                         -Sphere.Radius, 
@@ -335,10 +369,10 @@ namespace nilou {
                         Sphere.Radius,
                         0.0, glm::abs(far-near));
 
-                    auto UniformBuffer = FShadowMapUniformBuffers::Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>(Light.ShadowMapUniformBuffers[ViewIndex]);
+                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>();
                     UniformBuffer->Data.Frustums[SplitIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
                     UniformBuffer->Data.Frustums[SplitIndex].FrustumFar = SplitFar;
-                    UniformBuffer->Data.Frustums[SplitIndex].Resolution = Light.LightSceneInfo->SceneProxy->ShadowMapResolution;
+                    UniformBuffer->Data.Frustums[SplitIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                     UniformBuffer->UpdateUniformBuffer();
                 
                     for (FMeshBatch &Mesh : MeshBatches)
@@ -359,7 +393,7 @@ namespace nilou {
                         InputBindings.SetElementShaderBinding("FShadowMapFrustumIndex", 
                             SplitIndexUBO.UBOs[SplitIndex]->GetRHI());
                         InputBindings.SetElementShaderBinding("FViewShaderParameters", 
-                            ViewInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                            ViewInfo.ViewUniformBuffer->GetRHI());
                         BuildMeshDrawCommand(
                             RHICmdList,
                             VertexFactoryParams,
@@ -381,20 +415,21 @@ namespace nilou {
 
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
-            if (Lights[LightIndex].LightSceneInfo->SceneProxy->LightType != ELightType::LT_Directional)
+            if (Lights[LightIndex].LightSceneProxy->LightType != ELightType::LT_Directional)
                 continue;
 
             auto &Light = Lights[LightIndex];
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                auto &ShadowMapTexture = Light.ShadowMapTextures[ViewIndex];
-                auto &ShadowMapUniformBuffer = Light.ShadowMapUniformBuffers[ViewIndex];
+                FShadowMapResource* ShadowMapResource = Light.ShadowMapResources[ViewIndex];
+                auto &ShadowMapTexture = ShadowMapResource->ShadowMapTexture;
+                auto &ShadowMapUniformBuffer = ShadowMapResource->ShadowMapUniformBuffer;
                 auto &ShadowMapMeshBatch = Light.ShadowMapMeshBatches[ViewIndex];
                 auto &ShadowMapMeshDrawCommand = Light.ShadowMapMeshDrawCommands[ViewIndex];
                 for (int FrustumIndex : FrustumsToBeUpdated)
                 {
                     FRHIRenderPassInfo PassInfo(
-                        ShadowMapTexture.FrameBuffers[FrustumIndex].get(), 
+                        ShadowMapTexture.ShadowMapFramebuffers[FrustumIndex].get(), 
                         ShadowMapTexture.DepthArray->GetSizeXYZ(), true, true, true);
                     RHICmdList->RHIBeginRenderPass(PassInfo);
                     ShadowMapMeshDrawCommand.DrawCommands[FrustumIndex].DispatchDraw(RHICmdList);

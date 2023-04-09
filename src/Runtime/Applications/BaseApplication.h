@@ -4,9 +4,9 @@
 #include "Scene.h"
 #include "Common/World.h"
 #include "GfxConfiguration.h"
-#include "Common/FrameSynchronizer.h"
 #include "Common/ContentManager.h"
 #include "Common/Delegate.h"
+#include "Common/GameViewportClient.h"
 
 namespace nilou {
     class BaseApplication
@@ -29,8 +29,8 @@ namespace nilou {
 
         bool ShouldRenderingThreadExit() const { return bShouldRenderingThreadExit; }
 
-        UWorld *GetWorld() { return World.get(); }
-        FScene *GetScene() { return Scene.get(); }
+        UWorld *GetWorld() { return GameViewportClient->World.get(); }
+        FScene *GetScene() { return GameViewportClient->Scene.get(); }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPreRenderDelegate() { return PreRenderDelegate; }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPostRenderDelegate() { return PostRenderDelegate; }
         TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
@@ -42,9 +42,8 @@ namespace nilou {
         static std::atomic<bool> m_bQuit;
         GfxConfiguration m_Config;
         bool CursorEnabled = false;
-        std::shared_ptr<UWorld> World;
-        std::shared_ptr<FScene> Scene;
         std::unique_ptr<FContentManager> ContentManager;
+        std::unique_ptr<UGameViewportClient> GameViewportClient;
         TMulticastDelegate<FDynamicRHI*, FScene*> PreRenderDelegate;
         TMulticastDelegate<FDynamicRHI*, FScene*> PostRenderDelegate;
         TMulticastDelegate<int, int> ScreenResizeDelegate;

@@ -104,18 +104,17 @@ namespace nilou {
             uint32 InWidth, 
             uint32 InHeight,
             uint32 InDepth,
-            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InNumMips,
             EImageType InImageType)
             : Width(InWidth)
             , Height(InHeight)
             , Depth(InDepth)
-            , Channel(InChannel)
             , PixelFormat(InPixelFormat)
             , NumMips(InNumMips)
             , ImageType(InImageType)
         {
+            Channel = TranslatePixelFormatToChannel(PixelFormat);
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
             DataSize = BytePerPixel * Width * Height * Depth;
             DataSize = DataSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
@@ -140,11 +139,10 @@ namespace nilou {
         FImage2D(
             uint32 InWidth, 
             uint32 InHeight,
-            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, 1, 
+                InWidth, InHeight, 1, 
                 InPixelFormat, InMipmap, EImageType::IT_Image2D)
         {
 
@@ -176,11 +174,10 @@ namespace nilou {
             uint32 InWidth, 
             uint32 InHeight,
             uint32 InDepth,
-            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, InDepth, 
+                InWidth, InHeight, InDepth, 
                 InPixelFormat, InMipmap, EImageType::IT_Image3D)
         {
 
@@ -212,11 +209,10 @@ namespace nilou {
             uint32 InWidth, 
             uint32 InHeight,
             uint32 InLayer,
-            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, InLayer, 
+                InWidth, InHeight, InLayer,  
                 InPixelFormat, InMipmap, EImageType::IT_Image2DArray)
         {
 
@@ -247,11 +243,10 @@ namespace nilou {
         FImageCube(
             uint32 InWidth, 
             uint32 InHeight,
-            uint32 InChannel,
             EPixelFormat InPixelFormat,
             uint32 InMipmap = 1)
             : FImage(
-                InWidth, InHeight, InChannel, 6, 
+                InWidth, InHeight, 6, 
                 InPixelFormat, InMipmap, EImageType::IT_ImageCube)
         {
 
@@ -389,10 +384,12 @@ namespace nilou {
          * For example, if we want to create a new texture or update current texture,
          * we can write it as follows:
          * 
-         * std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1024, 1024, 4, EPixelFormat::R8G8B8A8);
-         * Image->AllocateSpace();  // Allocates actual memory space for the image data
+         * std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1024, 1024, EPixelFormat::PF_R8G8B8A8);
          * 
+         * Image->AllocateSpace();  // Allocates actual memory space for the image data
          * ****do something to the image data****
+         * 
+         * ****or just don't allocate the space and do nothing here****
          * 
          * // Suppose we have a pointer called Texture
          * Texture->ImageData = Image;

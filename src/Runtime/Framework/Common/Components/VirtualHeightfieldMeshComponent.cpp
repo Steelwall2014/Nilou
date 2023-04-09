@@ -227,8 +227,8 @@ namespace nilou {
                 VertexFactory.SetData(Data);
             }
 
-            PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PreRenderCallBack);
-            PreRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PostRenderCallBack);
+            // PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PreRenderCallBack);
+            // PreRenderHandle = GetAppication()->GetPostRenderDelegate().Add(this, &FVirtualHeightfieldMeshSceneProxy::PostRenderCallBack);
 
             ENQUEUE_RENDER_COMMAND(FVirtualHeightfieldMeshSceneProxy_Constructor)(
                 [this](FDynamicRHI *RHICmdList)
@@ -279,7 +279,7 @@ namespace nilou {
 
                     CreateNodeListBlock = CreateUniformBuffer<FCreateNodeListBlock>();
                     CreateNodeListBlock->Data.MaxLOD = LodCount-1;
-                    CreateNodeListBlock->InitRHI();
+                    CreateNodeListBlock->InitResource();
 
                     QuadTreeParameters = CreateUniformBuffer<FQuadTreeParameters>();
                     QuadTreeParameters->Data.NumQuadsPerPatch = NumQuadsPerPatch;
@@ -287,17 +287,17 @@ namespace nilou {
                     QuadTreeParameters->Data.NodeCount = NodeCount;
                     QuadTreeParameters->Data.LODNum = LodCount;
                     QuadTreeParameters->Data.NumHeightfieldTextureMipmap = HeightField->GetResource()->NumMips;
-                    QuadTreeParameters->InitRHI();
+                    QuadTreeParameters->InitResource();
 
                     CreatePatchBlock = CreateUniformBuffer<FCreatePatchBlock>();
                     CreatePatchBlock->Data.LodTextureSize = NodeCount;
-                    CreatePatchBlock->InitRHI();
+                    CreatePatchBlock->InitResource();
 
                     BuildNormalTangentBlock = CreateUniformBuffer<FBuildNormalTangentBlock>();
                     BuildNormalTangentBlock->Data.HeightfieldWidth = HeightFieldSampler->Texture->GetSizeXYZ().x;
                     BuildNormalTangentBlock->Data.HeightfieldHeight = HeightFieldSampler->Texture->GetSizeXYZ().y;
                     BuildNormalTangentBlock->Data.PixelMeterSize = vec2(NumQuadsPerPatch * NumPatchesPerNode * NodeCount) / vec2(HeightFieldSampler->Texture->GetSizeXYZ());
-                    BuildNormalTangentBlock->InitRHI();
+                    BuildNormalTangentBlock->InitResource();
 
                     DrawIndirectArgs = RHICmdList->RHICreateDrawElementsIndirectBuffer(IndexBuffer.GetNumIndices(), 0, 0, 0, 0);
                     
@@ -307,12 +307,12 @@ namespace nilou {
                 });
         }
 
-        void PreRenderCallBack(FDynamicRHI* RHICmdList, FScene* Scene)
+        void GenerateRenderPatches(FDynamicRHI* RHICmdList, TUniformBuffer<FViewShaderParameters>* ViewShaderParameters)
         {
-            FViewSceneInfo *ViewInfo = Scene->GetMainCamera();
-            CreateNodeListGPU(ViewInfo->SceneProxy->GetViewUniformBuffer());
+            // FViewSceneInfo *ViewInfo = GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo();
+            CreateNodeListGPU(ViewShaderParameters);
             CreateLodTexture();
-            CreatePatch(ViewInfo->SceneProxy->GetViewUniformBuffer());
+            CreatePatch(ViewShaderParameters);
 
             uint32* final_nodelist_size = (uint32*)RHICmdList->RHIMapComputeBuffer(FinalNodeListIndirectArgs, EDataAccessFlag::DA_ReadOnly);
             uint32 NodesFinalFeedbackSize = *final_nodelist_size;
@@ -336,19 +336,7 @@ namespace nilou {
             }
         }
 
-        void PostRenderCallBack(FDynamicRHI* RHICmdList, FScene* Scene)
-        {
-        }
-
-        virtual void DestroyRenderThreadResources() override
-        {
-            GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
-            GetAppication()->GetPostRenderDelegate().Remove(PostRenderHandle);
-            
-            FPrimitiveSceneProxy::DestroyRenderThreadResources();
-        }
-
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             if (Material == nullptr || HeightField == nullptr)
                 return;
@@ -356,6 +344,9 @@ namespace nilou {
 		    {
                 if (VisibilityMap & (1 << ViewIndex))
                 {
+                    if (Views[ViewIndex]->ViewUniformBuffer == nullptr)
+                        continue;
+                    GenerateRenderPatches(FDynamicRHI::GetDynamicRHI(), Views[ViewIndex]->ViewUniformBuffer.get());
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
@@ -384,7 +375,7 @@ namespace nilou {
                 SHADER_PARAMETER(uvec2, Offset)
             END_UNIFORM_BUFFER_STRUCT()
             auto BuildMinMaxBlock = CreateUniformBuffer<FBuildMinMaxBlock>();
-            BuildMinMaxBlock->InitRHI();
+            BuildMinMaxBlock->InitResource();
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxFirstPassShader::StaticType, 0);
             FShaderInstance *CreateMinMaxFirstPassShader = GetContentManager()->GetGlobalShader(PermutationParameters);

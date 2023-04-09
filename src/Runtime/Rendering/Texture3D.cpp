@@ -56,7 +56,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTexture3D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImage3D> image = std::make_shared<FImage3D>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Depth, ImageInfo.Channel,
+            ImageInfo.Width, ImageInfo.Height, ImageInfo.Depth, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }

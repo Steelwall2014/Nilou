@@ -104,79 +104,69 @@ namespace nilou {
     }
 
     void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
-    {
-        // std::map<FViewSceneInfo*, FParallelMeshDrawCommands> PerViewDrawCommands;
-        {        
-            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+    {    
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            FSceneTextures* SceneTextures = Views[ViewIndex].SceneTextures;
+            FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
+            DrawCommands.Clear();
+            for (FMeshBatch &Mesh : Views[ViewIndex].DynamicMeshBatches)
             {
-                FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-                FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-                FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
-                DrawCommands.Clear();
-                // std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
-                for (FMeshBatch &Mesh : Views[ViewIndex].MeshBatches)
-                {
-                    FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
-                    RHIGetError();
+                FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
+                RHIGetError();
 
-                    // FMaterialPermutationParameters MaterialParams(Mesh.MaterialRenderProxy->GetType(), Mesh.MaterialRenderProxy->GetPermutationId());
 
-                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                    RHIGetError();
-                    
-                    FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
-                    RHIGetError();
-
-                    FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                    InputBindings.SetElementShaderBinding("FViewShaderParameters", CameraInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
-                    RHIGetError();
-
-                    FMeshDrawCommand MeshDrawCommand;
-                    std::vector<FRHIVertexInput> VertexInputs;
-                    Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
-                    BuildMeshDrawCommand(
-                        RHICmdList,
-                        // *Mesh.MaterialRenderProxy->GetType(),
-                        // *Mesh.VertexFactory->GetType(),
-                        VertexFactoryParams,
-                        Mesh.MaterialRenderProxy.get(),
-                        PermutationParametersVS,
-                        PermutationParametersPS,
-                        Mesh.MaterialRenderProxy->DepthStencilState,
-                        Mesh.MaterialRenderProxy->RasterizerState,
-                        Mesh.MaterialRenderProxy->BlendState,
-                        InputBindings,
-                        VertexInputs,
-                        Mesh.Element,
-                        MeshDrawCommand);
-
-                    // SkyAtmosphereMaterial needs to be rendered last
-                    // if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
-                    //     SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
-                    // else
-                        DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
-                    RHIGetError();
-                    
-                }
-
-                // for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
-                //     DrawCommands.AddMeshDrawCommand(DrawCommand);
-            }
-        }
-
-        {        
-            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-            {
-                FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-                FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-                FRHIRenderPassInfo PassInfo(SceneTextures.GeometryPassFrameBuffer.get(), CameraInfo->GetResolution(), true);
-                RHICmdList->RHIBeginRenderPass(PassInfo);
-
-                FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;
+                FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
+                RHIGetError();
                 
-                ViewCommands.DispatchDraw(RHICmdList);
+                FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
+                RHIGetError();
+
+                FInputShaderBindings InputBindings = Mesh.Element.Bindings;
+                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
+                RHIGetError();
+
+                FMeshDrawCommand MeshDrawCommand;
+                std::vector<FRHIVertexInput> VertexInputs;
+                Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
+                BuildMeshDrawCommand(
+                    RHICmdList,
+                    // *Mesh.MaterialRenderProxy->GetType(),
+                    // *Mesh.VertexFactory->GetType(),
+                    VertexFactoryParams,
+                    Mesh.MaterialRenderProxy.get(),
+                    PermutationParametersVS,
+                    PermutationParametersPS,
+                    Mesh.MaterialRenderProxy->DepthStencilState,
+                    Mesh.MaterialRenderProxy->RasterizerState,
+                    Mesh.MaterialRenderProxy->BlendState,
+                    InputBindings,
+                    VertexInputs,
+                    Mesh.Element,
+                    MeshDrawCommand);
+
+                DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                RHIGetError();
+                
             }
+
         }
+        
+
+         
+        for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
+        {
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            FSceneTexturesDeffered* SceneTextures = static_cast<FSceneTexturesDeffered*>(ViewInfo.SceneTextures);
+            FRHIRenderPassInfo PassInfo(SceneTextures->GeometryPassFramebuffer.get(), ViewInfo.ScreenResolution, true);
+            RHICmdList->RHIBeginRenderPass(PassInfo);
+
+            FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;
+            
+            ViewCommands.DispatchDraw(RHICmdList);
+        }
+    
 
 
     }

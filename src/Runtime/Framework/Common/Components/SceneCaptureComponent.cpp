@@ -1,7 +1,11 @@
 #include "SceneCaptureComponent.h"
 #include "Common/Actor/Actor.h"
+#include "TextureRenderTarget.h"
+#include "DefferedShadingSceneRenderer.h"
 
 namespace nilou {
+
+    static std::vector<USceneCaptureComponent*> SceneCapturesToUpdate;
 
     void USceneCaptureComponent::HideComponent(std::weak_ptr<UPrimitiveComponent> InComponent)
     {
@@ -22,6 +26,211 @@ namespace nilou {
             {
                 HiddenComponents.push_back(WeakPrimComp);
             }
+        }
+    }
+
+    void USceneCaptureComponent::CaptureScene()
+    {
+        UWorld* World = GetWorld();
+        if (World && World->Scene)
+        {
+            // We must push any deferred render state recreations before causing any rendering to happen, to make sure that deleted resource references are updated
+            World->SendAllEndOfFrameUpdates();
+            UpdateSceneCaptureContents(World->Scene);
+        }	
+    }
+
+    void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene)
+    {
+        for (USceneCaptureComponent* Component : SceneCapturesToUpdate)
+        {
+            if (Component && Component->IsValid())
+                Component->UpdateSceneCaptureContents(Scene);
+        }
+        SceneCapturesToUpdate.clear();
+    }
+
+    void USceneCaptureComponent2D::CaptureSceneDeferred()
+    {
+        SceneCapturesToUpdate.push_back(this);
+    }
+
+    void USceneCaptureComponent2D::TickComponent(double DeltaTime)
+    {
+        if (bCaptureEveryFrame)
+        {
+            CaptureSceneDeferred();
+        }
+    }
+
+    void USceneCaptureComponent2D::SendRenderTransform()
+    {
+        
+        if (bCaptureOnMovement && !bCaptureEveryFrame)
+        {
+            CaptureSceneDeferred();
+        }
+
+	    USceneCaptureComponent::SendRenderTransform();
+    }
+
+    void USceneCaptureComponent2D::UpdateSceneCaptureContents(FScene* Scene)
+    {
+        if (TextureTarget->GetRenderTargetResource() == nullptr)
+            return;
+        FViewport Viewport;
+        Viewport.Width = TextureTarget->GetSizeX();
+        Viewport.Height = TextureTarget->GetSizeY();
+        Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
+        FSceneViewFamily ViewFamily(Viewport, Scene);   
+
+        FSceneView SceneView(
+            VerticalFieldOfView, 
+            0.1, 30000, 
+            GetComponentLocation(), 
+            GetForwardVector(), 
+            GetUpVector(),
+            ivec2(Viewport.Width, Viewport.Height), 
+            ViewUniformBuffer);  
+        ViewFamily.Views.push_back(&SceneView);   
+
+        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(&ViewFamily);
+
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_UpdateSceneCaptureContents)(
+            [SceneRenderer](FDynamicRHI*) 
+            {
+                for (FViewInfo& View : SceneRenderer->Views)
+                {
+                    View.ViewUniformBuffer->UpdateUniformBuffer();
+                }
+
+                SceneRenderer->Render();
+                
+                delete SceneRenderer;
+            });
+
+    }
+
+    void USceneCaptureComponent2D::OnRegister()
+    {
+        ViewUniformBuffer = CreateUniformBuffer<FViewShaderParameters>();
+        BeginInitResource(ViewUniformBuffer.get());
+    }
+
+    void USceneCaptureComponent2D::OnUnregister()
+    {
+        auto ToDelete = ViewUniformBuffer;
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnUnregister)(
+            [ToDelete](FDynamicRHI*) 
+            {
+                ToDelete->ReleaseResource();
+            });
+        ViewUniformBuffer = nullptr;
+    }
+
+    void USceneCaptureComponentCube::CaptureSceneDeferred()
+    {
+        SceneCapturesToUpdate.push_back(this);
+    }
+
+    void USceneCaptureComponentCube::TickComponent(double DeltaTime)
+    {
+        if (bCaptureEveryFrame)
+        {
+            CaptureSceneDeferred();
+        }
+    }
+
+    void USceneCaptureComponentCube::SendRenderTransform()
+    {
+        
+        if (bCaptureOnMovement && !bCaptureEveryFrame)
+        {
+            CaptureSceneDeferred();
+        }
+
+	    USceneCaptureComponent::SendRenderTransform();
+    }
+
+    void USceneCaptureComponentCube::UpdateSceneCaptureContents(FScene* Scene)
+    {
+        if (TextureTarget->GetRenderTargetResource() == nullptr)
+            return;
+        FViewport Viewport;
+        Viewport.Width = TextureTarget->GetSizeX();
+        Viewport.Height = TextureTarget->GetSizeY();
+        Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
+        FSceneViewFamily ViewFamily(Viewport, Scene);   
+
+        std::array<dvec3, 6> ForwardVectors = {
+            dvec3(1, 0, 0), 
+            dvec3(-1, 0, 0), 
+            dvec3(0, 1, 0), 
+            dvec3(0, -1, 0), 
+            dvec3(0, 0, 1), 
+            dvec3(0, 0, -1), 
+        };
+        std::array<dvec3, 6> UpVectors = {
+            dvec3(0, 0, 1), 
+            dvec3(0, 0, 1), 
+            dvec3(0, 0, 1), 
+            dvec3(0, 0, 1), 
+            dvec3(-1, 0, 0), 
+            dvec3(1, 0, 0), 
+        };
+
+        std::vector<FSceneView> SceneViews;
+        SceneViews.reserve(ViewUniformBuffers.size());
+        for (int i = 0; i < ViewUniformBuffers.size(); i++)
+        {
+            SceneViews.emplace_back(
+                glm::radians(90.0), 
+                0.1, 30000, 
+                GetComponentLocation(), 
+                ForwardVectors[i], 
+                UpVectors[i],
+                ivec2(Viewport.Width, Viewport.Height), 
+                ViewUniformBuffers[i]);  
+            ViewFamily.Views.push_back(&SceneViews[i]); 
+        }  
+
+        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(&ViewFamily);
+
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_UpdateSceneCaptureContents)(
+            [SceneRenderer](FDynamicRHI*) 
+            {
+                for (FViewInfo& View : SceneRenderer->Views)
+                {
+                    View.ViewUniformBuffer->UpdateUniformBuffer();
+                }
+
+                SceneRenderer->Render();
+                
+                delete SceneRenderer;
+            });
+
+    }
+
+    void USceneCaptureComponentCube::OnRegister()
+    {
+        for (int i = 0; i < ViewUniformBuffers.size(); i++)
+        {
+            ViewUniformBuffers[i] = CreateUniformBuffer<FViewShaderParameters>();
+            BeginInitResource(ViewUniformBuffers[i].get());
+        }
+    }
+
+    void USceneCaptureComponentCube::OnUnregister()
+    {
+        for (int i = 0; i < ViewUniformBuffers.size(); i++)
+        {
+            auto ToDelete = ViewUniformBuffers[i];
+            ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnUnregister)(
+                [ToDelete](FDynamicRHI*) 
+                {
+                    ToDelete->ReleaseResource();
+                });
+            ViewUniformBuffers[i] = nullptr;
         }
     }
 

@@ -8,12 +8,10 @@
 #include "Common/Components/LightComponent.h"
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
+#include "Common/Components/SceneCaptureComponent.h"
 #include "BatchedLine.h"
 #include "Common/Delegate.h"
 #include "ViewElementPDI.h"
-// #include "SceneNode.h"
-// #include "SceneObject.h"
-// #include "Common/Actor/ObserverActor.h"
 
 namespace nilou {
     class USceneComponent;
@@ -49,19 +47,13 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-
-        }
-
-        void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
-        {
-            bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
+            LightUniformBufferRHI = CreateUniformBuffer<FLightShaderParameters>();
         }
 
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
-        int LightUniformBufferIndex;
-        bool bNeedsUniformBufferUpdate = false;
+        TUniformBufferRef<FLightShaderParameters> LightUniformBufferRHI;
     };
 
     class FViewSceneInfo
@@ -70,8 +62,7 @@ namespace nilou {
         friend class FScene;
         friend class FDefferedShadingSceneRenderer;
         FViewSceneInfo(FCameraSceneProxy *InSceneProxy, UCameraComponent *InCamera, FScene *InScene)
-            : Camera(InCamera)
-            , Scene(InScene)
+            : Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
             PDI = std::make_shared<FViewElementPDI>();
@@ -87,15 +78,18 @@ namespace nilou {
             bNeedsFramebufferUpdate = bInNeedsFramebufferUpdate;
         }
 
-        ivec2 GetResolution() const { return SceneProxy->GetSceneView().ScreenResolution; }
-
         FScene *Scene;
-        UCameraComponent *Camera;
         FCameraSceneProxy *SceneProxy;
         std::shared_ptr<FViewElementPDI> PDI;
     private:
         bool bNeedsUniformBufferUpdate = false;
         bool bNeedsFramebufferUpdate = false;
+    };
+
+    enum class EShadingPath
+    {
+        Deferred,
+        Num,
     };
 
     class FScene
@@ -104,11 +98,18 @@ namespace nilou {
 
         FScene();
 
+        uint32 GetFrameNumber() const
+        {
+            return SceneFrameNumber;
+        }
+
+        void IncrementFrameNumber()
+        {
+            ++SceneFrameNumber;
+        }
+
         void AddSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
         void RemoveSkyAtmosphere(FSkyAtmosphereSceneProxy *InSkyAtmosphereProxy);
-
-        void AddCamera(UCameraComponent *InCamera);
-        void RemoveCamera(UCameraComponent *InCamera);
 
         void AddLight(ULightComponent *InLight);
         void RemoveLight(ULightComponent *InLight);
@@ -118,48 +119,33 @@ namespace nilou {
 
         void UpdateRenderInfos();
 
-        FViewSceneInfo *GetMainCamera()
-        {
-            for (auto &&ViewInfo : AddedViewSceneInfos)
-            {
-                if (ViewInfo->Camera->IsMainCamera())
-                    return ViewInfo.get();
-            }
-            return nullptr;
-        }
-
-        TMulticastDelegate<FViewSceneInfo *> &GetAddViewDelegate() { return SceneAddViewDelegate; }
-        TMulticastDelegate<FViewSceneInfo *> &GetRemoveViewDelegate() { return SceneRemoveViewDelegate; }
-        TMulticastDelegate<FViewSceneInfo *> &GetResizeViewDelegate() { return SceneResizeViewortDelegate; }
-
         TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
         TMulticastDelegate<FLightSceneInfo *> &GetRemoveLightDelegate() { return SceneRemoveLightDelegate; }
 
-        std::set<std::unique_ptr<FPrimitiveSceneInfo>> AddedPrimitiveSceneInfos;
-        std::set<std::unique_ptr<FLightSceneInfo>> AddedLightSceneInfos;
-        std::set<std::unique_ptr<FViewSceneInfo>> AddedViewSceneInfos;
+        static EShadingPath GetShadingPath()
+        {
+            return EShadingPath::Deferred;
+        }
+        
+
+        std::set<FPrimitiveSceneInfo*> AddedPrimitiveSceneInfos;
+        std::set<FLightSceneInfo*> AddedLightSceneInfos;
         std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
         FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;
 
     protected:
 
-        void AddPrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
-        void RemovePrimitiveSceneInfo(FPrimitiveSceneInfo *InPrimitiveInfo);
+        uint32 SceneFrameNumber = 0;
 
-        void AddLightSceneInfo(FLightSceneInfo *InLightInfo);
-        void RemoveLightSceneInfo(FLightSceneInfo *InLightInfo);
+        void AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo);
+        void RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo);
 
-        void AddViewSceneInfo(FViewSceneInfo *InCameraInfo);
-        void RemoveViewSceneInfo(FViewSceneInfo *InCameraInfo);
+        void AddLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo);
+        void RemoveLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo);
 
-        void UpdateViewInfos();
         void UpdatePrimitiveInfos();
         void UpdateLightInfos();
-
-        TMulticastDelegate<FViewSceneInfo *> SceneAddViewDelegate;
-        TMulticastDelegate<FViewSceneInfo *> SceneRemoveViewDelegate;
-        TMulticastDelegate<FViewSceneInfo *> SceneResizeViewortDelegate;
 
         TMulticastDelegate<FLightSceneInfo *> SceneAddLightDelegate;
         TMulticastDelegate<FLightSceneInfo *> SceneRemoveLightDelegate;

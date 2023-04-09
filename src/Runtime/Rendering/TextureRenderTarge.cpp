@@ -27,13 +27,8 @@ namespace nilou {
         }
         if (NumMips > Image->GetNumMips())
             RHICmdList->RHIGenerateMipmap(Texture2DRHI);
-        DepthStencilRHI = RHICmdList->RHICreateTexture2D(
-            Name+"_DepthStencil", EPixelFormat::PF_D24S8, 1, 
-            Image->GetWidth(), Image->GetHeight());
-
-        Framebuffer = RHICmdList->RHICreateFramebuffer();
-        Framebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, Texture2DRHI);
-        Framebuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencilRHI);
+        RenderTargetFramebuffer = RHICmdList->RHICreateFramebuffer();
+        RenderTargetFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, Texture2DRHI);
         SamplerRHI.Texture = TextureRHI.get();
     }
 
@@ -73,15 +68,14 @@ namespace nilou {
                     Image->GetPointer(0, 0, i, MipIndex));
             }
 
-            TextureViews[i] = RHICmdList->RHICreateTextureView2D(
-                TextureRHI.get(), TextureRHI->GetFormat(), 0, 1, i);
-
-            DepthStencils[i] = RHICmdList->RHICreateTexture2D(
-                Name, EPixelFormat::PF_D24S8, 1, Image->GetWidth(), Image->GetHeight());
-
-            Framebuffers[i] = RHICmdList->RHICreateFramebuffer();
-            Framebuffers[i]->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, TextureViews[i]);
-            Framebuffers[i]->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencils[i]);
+            RenderTargetTextureViews[i] = RHICmdList->RHICreateTextureView2D(
+                TextureRHI.get(), TextureRHI->GetFormat(), 
+                0, 1, i);
+        
+            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer();
+            RenderTargetFramebuffers[i]->AddAttachment(
+                EFramebufferAttachment::FA_Color_Attachment0, 
+                RenderTargetTextureViews[i]);
         }
 
         RHIGetError();
@@ -125,7 +119,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTextureRenderTarget2D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Channel, 
+            ImageInfo.Width, ImageInfo.Height, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }
@@ -153,7 +147,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTextureRenderTargetCube::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImageCube> image = std::make_shared<FImageCube>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Channel, 
+            ImageInfo.Width, ImageInfo.Height, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }

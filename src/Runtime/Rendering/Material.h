@@ -179,7 +179,7 @@ namespace nilou {
             ENQUEUE_RENDER_COMMAND(Material_RenderResources)(
                 [this](FDynamicRHI* RHICmdList) {
                     MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                    MaterialParameters->InitRHI();
+                    MaterialParameters->InitResource();
                 });
         }
 
@@ -194,7 +194,7 @@ namespace nilou {
             ENQUEUE_RENDER_COMMAND(Material_RenderResources)(
                 [this](FDynamicRHI* RHICmdList) {
                     MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                    MaterialParameters->InitRHI();
+                    MaterialParameters->InitResource();
                 });
         }
 

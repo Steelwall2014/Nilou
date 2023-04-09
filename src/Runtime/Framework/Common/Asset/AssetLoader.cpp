@@ -232,7 +232,7 @@ namespace nilou {
 			default:
 				return nullptr;
 			}
-			auto image = std::make_shared<FImage2D>(width, height, channel, PixelFormat);
+			auto image = std::make_shared<FImage2D>(width, height, PixelFormat);
 			image->AllocateSpace();
 			for (int band = 1; band <= channel; band++)
 			{
@@ -260,7 +260,7 @@ namespace nilou {
 				return nullptr;
 			}
 			img = std::make_shared<FImage2D>(
-				info.Width, info.Height, TranslatePixelFormatToChannel(info.Format),
+				info.Width, info.Height, 
 				info.Format, info.MipLevels);
 			img->AllocateSpace();
 			std::copy((uint8*)info.Data, (uint8*)info.Data+info.DataSize, img->GetData());
@@ -271,7 +271,7 @@ namespace nilou {
 			int width, height, channel;
 			uint8* temp_data = stbi_load(AbsolutePath.c_str(), (int *)&width, (int *)&height, (int *)&channel, 0);
 			EPixelFormat PixelFormat = TranslateToEPixelFormat(channel, 8, GL_UNSIGNED_BYTE);
-			img = std::make_shared<FImage2D>(width, height, channel, PixelFormat, 1);
+			img = std::make_shared<FImage2D>(width, height, PixelFormat, 1);
 			img->AllocateSpace();
 			std::copy(temp_data, temp_data+img->GetDataSize(), img->GetData());
 			stbi_image_free(temp_data);

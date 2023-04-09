@@ -16,15 +16,11 @@ namespace nilou {
         m_bQuit = false;
 
         ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
-        this->RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
-        
-        World = std::make_shared<UWorld>();
-        Scene = std::make_shared<FScene>();
-        World->Scene = Scene.get();
-        Scene->World = World.get();
+        RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+        GameViewportClient = std::make_unique<UGameViewportClient>();
         while (!RenderingThread->IsRunnableInitialized()) { }
-        World->InitWorld();
-        World->BeginPlay();
+        GameViewportClient->Init();
+        GameViewportClient->BeginPlay();
         return true;
     }
 
@@ -40,48 +36,30 @@ namespace nilou {
 
     void BaseApplication::Tick(double DeltaTime)
     {
-        World->Tick(DeltaTime);
+        GameViewportClient->Tick(DeltaTime);
+        static FViewport Viewport;
+        Viewport.Width = GetConfiguration().screenWidth;
+        Viewport.Height = GetConfiguration().screenHeight;
+        GameViewportClient->Draw(Viewport);
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
+            [this](FDynamicRHI*) 
+            {
+                this->Tick_RenderThread();
+            });
 
-        if (Scene)
-        {
-            UWorld *World = Scene->World;
-            if (World)
-                World->SendAllEndOfFrameUpdates();
-        }
-
-        FFrameSynchronizer::MainThreadFrameCount++;
-        if (FFrameSynchronizer::MainThreadFrameCount == 1)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadLoopRun = true;
-            FFrameSynchronizer::cv.notify_all();
-        }
-        if (FFrameSynchronizer::MainThreadFrameCount == FFrameSynchronizer::RenderingThreadFrameCount+1 || m_bQuit)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadWait = false;
-            FFrameSynchronizer::render_cv.notify_all();
-        }
-        else if (FFrameSynchronizer::MainThreadFrameCount > FFrameSynchronizer::RenderingThreadFrameCount+1)
-        {
-            FFrameSynchronizer::ShouldMainThreadWait = true;
-            std::unique_lock<std::mutex> lock(FFrameSynchronizer::main_mutex);
-            FFrameSynchronizer::main_cv.wait(lock, []() { return FFrameSynchronizer::ShouldMainThreadWait == false; });
-        }
+        std::mutex m;
+        std::unique_lock<std::mutex> lock(m);
+        std::condition_variable fence;
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Fence)(
+            [&fence](FDynamicRHI*) 
+            {
+                fence.notify_one();
+            });
+        fence.wait(lock);
     }
 
     void BaseApplication::Tick_RenderThread()
     {
-        FFrameSynchronizer::RenderingThreadFrameCount++;
-        if (FFrameSynchronizer::RenderingThreadFrameCount == FFrameSynchronizer::MainThreadFrameCount-1 || m_bQuit)
-        {
-            FFrameSynchronizer::ShouldMainThreadWait = false;
-            FFrameSynchronizer::main_cv.notify_all();
-        }
-        else if (FFrameSynchronizer::RenderingThreadFrameCount > FFrameSynchronizer::MainThreadFrameCount-1)
-        {
-            FFrameSynchronizer::ShouldRenderingThreadWait = true;
-            std::unique_lock<std::mutex> lock(FFrameSynchronizer::render_mutex);
-            FFrameSynchronizer::render_cv.wait(lock, []() { return FFrameSynchronizer::ShouldRenderingThreadWait == false; });
-        }
     }
 
     bool BaseApplication::IsQuit()

@@ -99,12 +99,12 @@ namespace nilou {
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *ViewInfo = Views[ViewIndex].ViewSceneInfo;
-            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
             FParallelMeshDrawCommands &DrawCommands = Views[ViewIndex].MeshDrawCommands;
             DrawCommands.Clear();
             // std::vector<FMeshDrawCommand> SkyAtmosphereDrawCommands;
-            for (FMeshBatch &Mesh : Views[ViewIndex].MeshBatches)
+            for (FMeshBatch &Mesh : Views[ViewIndex].DynamicMeshBatches)
             {
                 FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
                 FShaderPermutationParameters PermutationParametersVS(&FPreZPassVS::StaticType, 0);
@@ -113,7 +113,7 @@ namespace nilou {
                 std::vector<FRHIVertexInput> VertexInputs;
                 Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
                 FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo->SceneProxy->GetViewUniformBuffer()->GetRHI());
+                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
                 BuildMeshDrawCommand(
                     RHICmdList,
                     // *Mesh.MaterialRenderProxy->GetType(),
@@ -129,21 +129,15 @@ namespace nilou {
                     VertexInputs,
                     Mesh.Element,
                     MeshDrawCommand);
-                // SkyAtmosphereMaterial needs to be rendered last
-                // if (Mesh.MaterialRenderProxy->Name == "SkyAtmosphereMaterial")
-                //     SkyAtmosphereDrawCommands.push_back(MeshDrawCommand);
-                // else
-                    DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
             }
-            // for (auto &&DrawCommand : SkyAtmosphereDrawCommands)
-            //     DrawCommands.AddMeshDrawCommand(DrawCommand);
         }
         
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewSceneInfo *CameraInfo = Views[ViewIndex].ViewSceneInfo;
-            FSceneTextures &SceneTextures = Views[ViewIndex].SceneTextures;
-            FRHIRenderPassInfo PassInfo(SceneTextures.PreZPassFrameBuffer.get(), CameraInfo->GetResolution(), true, true, true);
+            FViewInfo& ViewInfo = Views[ViewIndex];
+            FSceneTexturesDeffered* SceneTextures = static_cast<FSceneTexturesDeffered*>(ViewInfo.SceneTextures);
+            FRHIRenderPassInfo PassInfo(SceneTextures->PreZPassFramebuffer.get(), ViewInfo.ScreenResolution, true, true, true);
             RHICmdList->RHIBeginRenderPass(PassInfo);
 
             FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;

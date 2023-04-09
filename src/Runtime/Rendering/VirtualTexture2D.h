@@ -9,7 +9,9 @@ namespace nilou {
 
         FVirtualTexture2DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureResource(InName, InTextureParams, InNumMips)
-        { }
+        { 
+            TextureType = ETextureType::TT_Texture2D;
+        }
 		
         virtual void InitRHI() override;
 

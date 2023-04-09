@@ -35,7 +35,6 @@ namespace nilou {
     public:
         RHIBufferRef VertexBufferRHI;
         
-        virtual void InitRHI() {}
         virtual void ReleaseRHI() { VertexBufferRHI = nullptr; }
     };
 
@@ -45,9 +44,8 @@ namespace nilou {
         RHIBufferRef IndexBufferRHI;
         uint32 Stride;
         uint32 NumIndices;
-        virtual ~FIndexBuffer() {}
-        virtual void InitRHI() {}
-        virtual void ReleaseRHI() {};
+        
+        virtual void ReleaseRHI() { IndexBufferRHI = nullptr; }
     };
 
     void BeginInitResource(FRenderResource* Resource);

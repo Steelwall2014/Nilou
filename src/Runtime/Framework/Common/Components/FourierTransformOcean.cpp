@@ -4,6 +4,7 @@
 #include "DynamicMeshResources.h"
 #include "PrimitiveUtils.h"
 #include "StaticMeshResources.h"
+#include "Common/Actor/CameraActor.h"
 
 namespace nilou {
 
@@ -79,7 +80,7 @@ namespace nilou {
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FFourierTransformOceanSceneProxy::PreRenderCallback);
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
@@ -316,10 +317,10 @@ namespace nilou {
             FFTParameters->Data.N = N;
             FFTParameters->Data.WindDirection = WindDirection;
             FFTParameters->Data.WindSpeed = WindSpeed;
-            FFTParameters->InitRHI();
+            FFTParameters->InitResource();
 
             ButterflyBlock = CreateUniformBuffer<FOceanFFTButterflyBlock>();
-            ButterflyBlock->InitRHI();
+            ButterflyBlock->InitResource();
             
             FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
             FShaderInstance *GaussionSpectrumShader = GetContentManager()->GetGlobalShader(PermutationParameters);
@@ -432,22 +433,22 @@ namespace nilou {
     void UFourierTransformOceanComponent::TickComponent(double DeltaTime)
     {
         UWorld* World = GetWorld();
-        if (World)
+        if (World && World->GetFirstCameraActor())
         {
-            for (UCameraComponent *CameraComponent : World->CameraComponents)
+            UCameraComponent* CameraComponent = World->GetFirstCameraActor()->GetCameraComponent();
+            FViewFrustum Frustum = FViewFrustum(
+                CameraComponent->GetComponentLocation(), 
+                CameraComponent->GetForwardVector(), 
+                CameraComponent->GetUpVector(), 
+                CameraComponent->GetAspectRatio(), 
+                CameraComponent->GetFieldOfView(), 
+                CameraComponent->GetNearClipDistance(), 
+                CameraComponent->GetFarClipDistance());
+            std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraComponent->GetComponentLocation());
+            FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
+            if (Proxy)
             {
-                if (CameraComponent->IsMainCamera())
-                {
-                    const FViewFrustum Frustum = CameraComponent->CalcViewFrustum();
-                    const dvec3 CameraPosition = CameraComponent->GetComponentLocation();
-                    std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraPosition);
-                    FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
-                    if (Proxy)
-                    {
-                        Proxy->AddRenderingNodeList(NodeListFinal);
-                    }
-                    break;
-                }
+                Proxy->AddRenderingNodeList(NodeListFinal);
             }
         }
     }

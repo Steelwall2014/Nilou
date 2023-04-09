@@ -81,6 +81,8 @@ namespace nilou {
 
         bool HasBeenInitialized() const { return bHasBeenInitialized; }
 
+        bool IsValid() const { return !weak_from_this().expired(); }
+
     protected:
         AActor *OwnedActor;
         UWorld *WorldPrivate;

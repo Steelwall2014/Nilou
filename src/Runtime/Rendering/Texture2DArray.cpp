@@ -59,7 +59,7 @@ namespace nilou {
     std::shared_ptr<FImage> UTexture2DArray::CreateImage(const ImageCreateInfo& ImageInfo)
     {
         std::shared_ptr<FImage2DArray> image = std::make_shared<FImage2DArray>(
-            ImageInfo.Width, ImageInfo.Height, ImageInfo.Depth, ImageInfo.Channel,
+            ImageInfo.Width, ImageInfo.Height, ImageInfo.Depth, 
             ImageInfo.PixelFormat, ImageInfo.NumMips);
         return image;
     }

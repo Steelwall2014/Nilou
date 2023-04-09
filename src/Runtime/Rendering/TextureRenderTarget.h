@@ -24,17 +24,15 @@ namespace nilou {
 
         FTextureRenderTarget2DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
-        { }
+        { 
+            TextureType = ETextureType::TT_Texture2D;
+        }
 		
         virtual void InitRHI() override;
         
         virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return this; }
 
-    protected:
-
-        RHIFramebufferRef Framebuffer;
-
-        RHITexture2DRef DepthStencilRHI;
+        RHIFramebufferRef RenderTargetFramebuffer;
     };
 
     class FTextureRenderTargetCubeResource : public FTextureRenderTargetResource
@@ -43,19 +41,17 @@ namespace nilou {
 
         FTextureRenderTargetCubeResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
-        { }
+        { 
+            TextureType = ETextureType::TT_TextureCube;
+        }
 		
         virtual void InitRHI() override;
         
         virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return this; }
 
-    protected:
+        std::array<RHITexture2DRef, 6> RenderTargetTextureViews;
 
-        std::array<RHIFramebufferRef, 6> Framebuffers;
-
-        std::array<RHITexture2DRef, 6> DepthStencils;
-
-        std::array<RHITexture2DRef, 6> TextureViews;
+        std::array<RHIFramebufferRef, 6> RenderTargetFramebuffers;
 
     };
 
@@ -94,8 +90,6 @@ namespace nilou {
             : UTextureRenderTarget(InName)
         { }
 
-        FTextureRenderTargetResource* GetRenderTargetResource();
-
         virtual FTextureResource* CreateResource() override;
 
         virtual void Serialize(FArchive &Ar) override;
@@ -117,8 +111,6 @@ namespace nilou {
         UTextureRenderTargetCube(const std::string& InName="")
             : UTextureRenderTarget(InName)
         { }
-
-        FTextureRenderTargetResource* GetRenderTargetResource();
 
         virtual FTextureResource* CreateResource() override;
 
