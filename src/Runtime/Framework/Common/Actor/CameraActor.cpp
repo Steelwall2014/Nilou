@@ -33,16 +33,30 @@ namespace nilou {
         CameraComponent = CreateComponent<UCameraComponent>(this); 
         CameraComponent->AttachToComponent(GetRootComponent());
 
-		/** TEST SCENE CAPTURE */
-        std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1920, 1080, EPixelFormat::PF_R16G16B16A16F);
-        UTextureRenderTarget2D* RenderTarget = new UTextureRenderTarget2D("Test");
-        RenderTarget->ImageData = Image;
-        RenderTarget->UpdateResource();
-        SceneCaptureComponent = CreateComponent<USceneCaptureComponent2D>(this); 
-        SceneCaptureComponent->AttachToComponent(CameraComponent.get());
-        SceneCaptureComponent->TextureTarget = RenderTarget;
-        SceneCaptureComponent->VerticalFieldOfView = CameraComponent->GetFieldOfView();
-		/** TEST SCENE CAPTURE */
+		/** TEST SCENE CAPTURE 2D*/
+        {
+            // std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1920, 1080, EPixelFormat::PF_R16G16B16A16F);
+            // UTextureRenderTarget2D* RenderTarget = new UTextureRenderTarget2D("Test");
+            // RenderTarget->ImageData = Image;
+            // RenderTarget->UpdateResource();
+            // SceneCaptureComponent = CreateComponent<USceneCaptureComponent2D>(this); 
+            // SceneCaptureComponent->AttachToComponent(CameraComponent.get());
+            // SceneCaptureComponent->TextureTarget = RenderTarget;
+            // SceneCaptureComponent->VerticalFieldOfView = CameraComponent->GetFieldOfView();
+        }
+		/** TEST SCENE CAPTURE 2D*/
+
+		/** TEST SCENE CAPTURE CUBE*/
+        {
+            std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
+            UTextureRenderTargetCube* RenderTarget = new UTextureRenderTargetCube("Test");
+            RenderTarget->ImageData = Image;
+            RenderTarget->UpdateResource();
+            SceneCaptureComponentCube = CreateComponent<USceneCaptureComponentCube>(this); 
+            SceneCaptureComponentCube->AttachToComponent(CameraComponent.get());
+            SceneCaptureComponentCube->TextureTarget = RenderTarget;
+        }
+		/** TEST SCENE CAPTURE CUBE*/
 
         InputAxisMapping MoveForward_mapping("MoveForward");
         MoveForward_mapping.AddGroup(InputKey::KEY_W, 1.0f);

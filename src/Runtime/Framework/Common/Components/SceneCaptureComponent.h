@@ -24,6 +24,8 @@ namespace nilou {
 
         void HideActorComponents(std::weak_ptr<AActor> InActor);
 
+        void CaptureScene();
+
         static void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene);
     
     protected:
@@ -80,7 +82,27 @@ namespace nilou {
             : USceneCaptureComponent(InOwner)
         { }
 
-        std::weak_ptr<class UTextureRenderTargetCube> TextureTarget;
+        class UTextureRenderTargetCube* TextureTarget;
+
+        /** Render the scene to the texture the next time the main view is rendered. */
+        void CaptureSceneDeferred();
+
+        // For backwards compatibility
+        void UpdateContent() { CaptureSceneDeferred(); }
+
+        virtual void UpdateSceneCaptureContents(FScene* Scene) override;
+
+        virtual void TickComponent(double DeltaTime) override;
+
+        virtual void SendRenderTransform() override;
+
+        virtual void OnRegister() override;
+
+        virtual void OnUnregister() override;
+
+    protected:
+
+        std::array<TUniformBufferRef<FViewShaderParameters>, 6> ViewUniformBuffers;
     };
 
 }

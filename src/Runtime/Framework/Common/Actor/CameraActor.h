@@ -37,6 +37,10 @@ namespace nilou {
 		/** TEST SCENE CAPTURE */
         std::shared_ptr<class USceneCaptureComponent2D> SceneCaptureComponent;
 		/** TEST SCENE CAPTURE */
+
+		/** TEST SCENE CAPTURE CUBE */
+        std::shared_ptr<class USceneCaptureComponentCube> SceneCaptureComponentCube;
+		/** TEST SCENE CAPTURE CUBE */
 		
 		glm::vec2 MovementInput = glm::vec2(0, 0);
 		glm::vec2 CameraInput = glm::vec2(0, 0);
