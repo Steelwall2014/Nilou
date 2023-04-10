@@ -18,11 +18,11 @@ namespace nilou {
 
 	    bool bCaptureOnMovement;
 
-        std::vector<std::weak_ptr<UPrimitiveComponent>> HiddenComponents;
+        std::set<UPrimitiveComponent*> HiddenComponents;
         
-        void HideComponent(std::weak_ptr<UPrimitiveComponent> InComponent);
+        void HideComponent(UPrimitiveComponent* InComponent);
 
-        void HideActorComponents(std::weak_ptr<AActor> InActor);
+        void HideActorComponents(AActor* InActor);
 
         void CaptureScene();
 
@@ -80,6 +80,7 @@ namespace nilou {
     public:
         USceneCaptureComponentCube(AActor *InOwner = nullptr) 
             : USceneCaptureComponent(InOwner)
+            , TextureTarget(nullptr)
         { }
 
         class UTextureRenderTargetCube* TextureTarget;

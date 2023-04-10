@@ -97,5 +97,7 @@ namespace nilou {
         std::vector<FSceneView*> Views;
 
         uint32 FrameNumber;
+
+        std::set<class UPrimitiveComponent*> HiddenComponents;
     };
 }

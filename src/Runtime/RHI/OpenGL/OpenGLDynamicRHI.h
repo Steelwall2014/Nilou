@@ -99,6 +99,9 @@ namespace nilou {
 		virtual RHITexture2DRef RHICreateTextureView2D(
 			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
 		) override;
+		virtual RHITextureCubeRef RHICreateTextureViewCube(
+			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinMipLevel, uint32 NumMipLevels
+		) override;
 
 		virtual void RHIUpdateTexture2D(RHITexture2D* Texture, 
 			int32 Xoffset, int32 Yoffset, 

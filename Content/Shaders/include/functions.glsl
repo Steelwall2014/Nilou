@@ -16,4 +16,8 @@ float lerp(float from, float to, float t)
 {
     return from + (to-from) * t;
 }
+vec4 mytextureCube(samplerCube Cube, vec3 sampleVec)
+{
+    return texture(Cube, vec3(sampleVec.x, sampleVec.z, sampleVec.y));
+}
 #endif

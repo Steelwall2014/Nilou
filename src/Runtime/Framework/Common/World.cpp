@@ -22,6 +22,7 @@
 #include "Common/Actor/LineBatchActor.h"
 #include "Common/Actor/VirtualHeightfieldMeshActor.h"
 #include "Common/Actor/FFTOceanActor.h"
+#include "Common/Actor/ReflectionProbe.h"
 
 #include "Georeference.h"
 #include "VirtualTexture2D.h"
@@ -105,7 +106,7 @@ namespace nilou {
         // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
-        DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
+        // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
         // FTransform VHMTransform;
@@ -132,6 +133,10 @@ namespace nilou {
         // LineBatchActor->LineBatchComponent->DrawLines(lines);
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
+
+        FTransform ReflectionProbeTransform;
+        ReflectionProbeTransform.SetTranslation(dvec3(1, 1, 2));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe");
 
         // GetContentManager()->ForEachContent([](UObject* Obj){
         //     if (Obj->IsA(UVirtualTexture::StaticClass()))

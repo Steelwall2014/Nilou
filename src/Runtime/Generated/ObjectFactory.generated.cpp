@@ -6,6 +6,7 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LightActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/ReflectionProbe.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SphereActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/StaticMeshActor.h"
@@ -19,6 +20,7 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/MeshComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/PrimitiveComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/ReflectionProbeComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
@@ -50,6 +52,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["AGeoreferenceActor"] = &AGeoreferenceActor::CreateDefaultObject;
     FunctionMap["ALightActor"] = &ALightActor::CreateDefaultObject;
     FunctionMap["ALineBatchActor"] = &ALineBatchActor::CreateDefaultObject;
+    FunctionMap["AReflectionProbe"] = &AReflectionProbe::CreateDefaultObject;
     FunctionMap["ASkyAtmosphereActor"] = &ASkyAtmosphereActor::CreateDefaultObject;
     FunctionMap["ASphereActor"] = &ASphereActor::CreateDefaultObject;
     FunctionMap["AStaticMeshActor"] = &AStaticMeshActor::CreateDefaultObject;
@@ -63,6 +66,7 @@ FObjectFactory::FObjectFactory()
     FunctionMap["ULineBatchComponent"] = &ULineBatchComponent::CreateDefaultObject;
     FunctionMap["UStaticMeshComponent"] = &UStaticMeshComponent::CreateDefaultObject;
     FunctionMap["UPrimitiveComponent"] = &UPrimitiveComponent::CreateDefaultObject;
+    FunctionMap["UReflectionProbeComponent"] = &UReflectionProbeComponent::CreateDefaultObject;
     FunctionMap["USceneCaptureComponent"] = &USceneCaptureComponent::CreateDefaultObject;
     FunctionMap["USceneCaptureComponent2D"] = &USceneCaptureComponent2D::CreateDefaultObject;
     FunctionMap["USceneCaptureComponentCube"] = &USceneCaptureComponentCube::CreateDefaultObject;

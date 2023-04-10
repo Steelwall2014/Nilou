@@ -53,13 +53,13 @@ namespace nilou {
     {
         Viewport = CreateInfo.OutputResolution;
         SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
             Viewport.x, Viewport.y);
 
         LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
+            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
             Viewport.x, Viewport.y);
         
         LightPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, SceneColor);
@@ -73,23 +73,23 @@ namespace nilou {
         PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
             Viewport.x, Viewport.y);
 
         RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
+            "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
+            "WorldSpaceNormal", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
+            "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
             Viewport.x, Viewport.y);
 
         Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
+            "Emissive", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
@@ -181,6 +181,7 @@ namespace nilou {
         : Scene(InViewFamily->Scene)
         , ViewFamily(InViewFamily->Viewport, InViewFamily->Scene)
     {
+        ViewFamily.HiddenComponents = InViewFamily->HiddenComponents;
         Views.reserve(InViewFamily->Views.size());
         MeshCollector.PerViewPDI.resize(InViewFamily->Views.size());
         MeshCollector.PerViewMeshBatches.resize(InViewFamily->Views.size());
@@ -192,14 +193,6 @@ namespace nilou {
             MeshCollector.PerViewMeshBatches[ViewIndex] = &ViewInfo.DynamicMeshBatches;
 
             ViewFamily.Views.push_back(&Views[ViewIndex]);
-        }
-
-        Lights.reserve(Scene->AddedLightSceneInfos.size());
-        int NumViews = Views.size();
-        for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
-        {
-            FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
-            Lights.emplace_back(Proxy, NumViews, LightSceneInfo->LightUniformBufferRHI);
         }
     }
 
@@ -229,6 +222,17 @@ namespace nilou {
             UVVertexInput.Stride = sizeof(glm::vec2);
             UVVertexInput.Type = EVertexElementType::VET_Float2;
         }
+        
+
+        Lights.reserve(Scene->AddedLightSceneInfos.size());
+        int NumViews = Views.size();
+        for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
+        {
+            FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
+            Lights.emplace_back(Proxy, NumViews, LightSceneInfo->LightUniformBufferRHI);
+        }
+
+        
         for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
 		    FViewInfo& ViewInfo = Views[ViewIndex];
@@ -262,6 +266,8 @@ namespace nilou {
     {
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
+            if (ViewFamily.HiddenComponents.contains(PrimitiveInfo->Primitive))
+                continue;
             uint32 ViewBits = 0;
             for (int ViewIndex = 0; ViewIndex < SceneViews.size(); ViewIndex++)
             {
@@ -310,7 +316,7 @@ namespace nilou {
             FTextureRenderTargetCubeResource* RenderTargetCube = RenderTarget->GetTextureRenderTargetCubeResource();
             for (int i = 0; i < 6; i++)
             {
-                RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[0].get());
+                RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[i].get());
             }
         }
         else if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_Texture2D)

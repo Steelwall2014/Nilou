@@ -1410,6 +1410,7 @@ namespace nilou {
         glGenerateMipmap(GLTexture.Target);
         // TexMngr.FreeUnit(unit_id);
     }
+
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
         RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LevelIndex)
     {
@@ -1422,7 +1423,23 @@ namespace nilou {
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
             GLTexture.Resource, GLTexture.InternalFormat, 
-            MinMipLevel, NumMipLevels, 0, 1);
+            MinMipLevel, NumMipLevels, LevelIndex, 1);
+        return OutTexture;
+    }
+
+    RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureViewCube(
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels)
+    {
+        auto GLTexture = TextureResourceCast(OriginTexture);
+        uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinMipLevel));
+        OpenGLTextureCubeRef OutTexture = std::make_shared<OpenGLTextureCube>(
+            0, GL_TEXTURE_CUBE_MAP, 
+            size.x, size.y, 1, 
+            NumMipLevels, InFormat, OriginTexture->GetName() + "_View");
+        glGenTextures(1, &OutTexture->Resource);
+        glTextureView(OutTexture->Resource, GL_TEXTURE_CUBE_MAP, 
+            GLTexture.Resource, GLTexture.InternalFormat, 
+            MinMipLevel, NumMipLevels, 0, 6);
         return OutTexture;
     }
 
@@ -1762,6 +1779,7 @@ namespace nilou {
             RHIGetError();
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
             glslang::InitializeProcess();
             *GetResources() = *GetDefaultResources();
             GetResources()->maxAtomicCounterBindings = 5;
