@@ -3,8 +3,12 @@
 #include "TextureCube.h"
 #include "TextureRenderTarget.h"
 #include "DefferedShadingSceneRenderer.h"
+#include "Texture2D.h"
+
 
 namespace nilou {
+    DECLARE_GLOBAL_SHADER(FBrdfLUTShader);
+    IMPLEMENT_SHADER_TYPE(FBrdfLUTShader, "/Shaders/GlobalShaders/BrdfLUT.comp", EShaderFrequency::SF_Compute, Global)
 
     DECLARE_GLOBAL_SHADER(FIrradianceEnvTextureShader);
     IMPLEMENT_SHADER_TYPE(FIrradianceEnvTextureShader, "/Shaders/GlobalShaders/IrradianceEnvTextureShader.comp", EShaderFrequency::SF_Compute, Global)
@@ -40,7 +44,6 @@ namespace nilou {
                 WorldPrivate->Scene->AddReflectionProbe(this);
             }
         }
-
     }
 
     void UReflectionProbeComponent::OnUnregister()
@@ -61,7 +64,6 @@ namespace nilou {
 
     void UReflectionProbeComponent::UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList)
     {
-
         {
             
             IrradianceShaderUniformBuffer->Data.TextureSize = IrradianceTexture->GetSizeX();

@@ -11,20 +11,20 @@ namespace nilou {
 
     AReflectionProbe::AReflectionProbe()
     { 
-        SceneCaptureComponent = CreateComponent<UReflectionProbeComponent>(this); 
-        SceneCaptureComponent->AttachToComponent(GetRootComponent());
+        ReflectionProbeComponent = CreateComponent<UReflectionProbeComponent>(this); 
+        ReflectionProbeComponent->AttachToComponent(GetRootComponent());
 
         // Always keep false, we will take over the capture in this class
-        SceneCaptureComponent->bCaptureEveryFrame = false;
-        SceneCaptureComponent->bCaptureOnMovement = false;
-        SceneCaptureComponent->CaptureSceneDeferred();
+        ReflectionProbeComponent->bCaptureEveryFrame = false;
+        ReflectionProbeComponent->bCaptureOnMovement = false;
+        ReflectionProbeComponent->CaptureSceneDeferred();
 
         {
             std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
             EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>("Test EnvironmentTexture");
             EnvironmentTexture->ImageData = Image;
             EnvironmentTexture->UpdateResource();
-            SceneCaptureComponent->TextureTarget = EnvironmentTexture.get();
+            ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
         }
 
         {
@@ -41,9 +41,9 @@ namespace nilou {
             PrefilteredTexture->NumMips = 5;
             PrefilteredTexture->UpdateResource();
         }
-        SceneCaptureComponent->TextureTarget = EnvironmentTexture.get();
-        SceneCaptureComponent->IrradianceTexture = IrradianceTexture.get();
-        SceneCaptureComponent->PrefilteredTexture = PrefilteredTexture.get();
+        ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
+        ReflectionProbeComponent->IrradianceTexture = IrradianceTexture.get();
+        ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture.get();
 
         DebugMat = std::make_shared<UMaterial>("Cube map");
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);

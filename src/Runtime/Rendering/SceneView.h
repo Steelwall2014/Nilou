@@ -81,29 +81,9 @@ namespace nilou {
     {
     public:
 
-        FSceneViewFamily(
-            FViewport InViewport, 
-            class FScene* InScene)
-            : Viewport(InViewport)
-            , Scene(InScene)
-            , FrameNumber(0)
-            , GammaCorrection(1.0)
-            , bEnableToneMapping(false)
-        {
+        FSceneViewFamily(FViewport InViewport, class FScene* InScene);
 
-        }
-
-        FSceneViewFamily(const FSceneViewFamily* Other)
-            : Viewport(Other->Viewport)
-            , Scene(Other->Scene)
-            , FrameNumber(Other->FrameNumber)
-            , HiddenComponents(Other->HiddenComponents)
-            , GammaCorrection(Other->GammaCorrection)
-            , Views(Other->Views)
-            , bEnableToneMapping(Other->bEnableToneMapping)
-        {
-
-        }
+        FSceneViewFamily(const FSceneViewFamily* Other);
 
         FViewport Viewport;
 
@@ -114,6 +94,8 @@ namespace nilou {
         uint32 FrameNumber;
 
         std::set<class UPrimitiveComponent*> HiddenComponents;
+
+        std::set<class UPrimitiveComponent*> ShowOnlyComponents;
 
 	    /** Gamma correction used when rendering this family. Default is 1.0 */
         float GammaCorrection;

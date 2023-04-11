@@ -49,7 +49,7 @@ vec3 CalcIndirectLighting(vec3 baseColor, float metallic, float roughness)
     float lod = getMipLevelFromRoughness(roughness);
 
     vec3 irradiance = mytextureCube(IrradianceTexture, R).rgb;
-    vec3 prefilteredColor = mytextureCubeLod(PrefilteredTexture, R, lod).rgb;
+    vec3 prefilteredColor = mytextureCubeLod(PrefilteredTexture, R, 0).rgb;
     vec2 envBRDF = texture(IBL_BRDF_LUT, vec2(NdotV, roughness)).rg;
 
     vec3 F0 = vec3(0.04); 

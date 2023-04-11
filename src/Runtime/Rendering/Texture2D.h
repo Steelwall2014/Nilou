@@ -36,6 +36,8 @@ namespace nilou {
 
         virtual void Deserialize(FArchive &Ar) override;
 
+        virtual void ReadPixelsRenderThread(FDynamicRHI* RHICmdList) override;
+
     protected:
 
         virtual std::shared_ptr<FImage> CreateImage(const ImageCreateInfo& ImageInfo) override;

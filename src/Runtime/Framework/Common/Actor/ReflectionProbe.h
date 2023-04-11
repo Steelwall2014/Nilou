@@ -11,7 +11,7 @@ namespace nilou {
     public:
         AReflectionProbe();
 
-        std::shared_ptr<class UReflectionProbeComponent> SceneCaptureComponent;
+        std::shared_ptr<class UReflectionProbeComponent> ReflectionProbeComponent;
 
         std::shared_ptr<class UTextureRenderTargetCube> EnvironmentTexture;
 

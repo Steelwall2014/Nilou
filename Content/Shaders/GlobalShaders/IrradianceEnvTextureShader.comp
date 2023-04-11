@@ -54,13 +54,12 @@ void main()
                 vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
                 // tangent space to world
                 vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N; 
-
-                irradiance += mytextureCube(EnvironmentTexture, sampleVec).rgb * cos(theta) * sin(theta);
+                vec3 color = mytextureCube(EnvironmentTexture, sampleVec).rgb;
+                irradiance += color * cos(theta) * sin(theta);
                 nrSamples++;
             }
         }
         irradiance = PI * irradiance * (1.0 / float(nrSamples));
-
         imageStore(IrradianceTexture, ivec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, i), vec4(irradiance, 0));
     }
 }

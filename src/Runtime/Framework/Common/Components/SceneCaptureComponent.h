@@ -19,10 +19,16 @@ namespace nilou {
 	    bool bCaptureOnMovement;
 
         std::set<UPrimitiveComponent*> HiddenComponents;
+
+        std::set<UPrimitiveComponent*> ShowOnlyComponents;
         
         void HideComponent(UPrimitiveComponent* InComponent);
 
         void HideActorComponents(AActor* InActor);
+        
+        void ShowOnlyComponent(UPrimitiveComponent* InComponent);
+
+        void ShowOnlyActorComponents(AActor* InActor);
 
         void CaptureScene();
 

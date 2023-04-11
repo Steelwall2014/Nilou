@@ -15,7 +15,7 @@ namespace nilou {
             , IrradianceTexture(nullptr)
             , PrefilteredTexture(nullptr)
             , SceneProxy(nullptr)
-            , Extent(dvec3(100))
+            , Extent(dvec3(1))
             , OriginOffset(dvec3(0))
         { }
 

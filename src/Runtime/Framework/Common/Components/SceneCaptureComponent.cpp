@@ -29,6 +29,28 @@ namespace nilou {
         }
     }
 
+    void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
+    {
+        if (InComponent && InComponent->IsValid())
+        {
+            ShowOnlyComponents.insert(InComponent);
+        }
+    }
+
+    void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
+    {
+        if (InActor && InActor->IsValid())
+        {
+            auto Actor = InActor;
+            std::vector<std::weak_ptr<UPrimitiveComponent>> PrimitiveComponents;
+            Actor->GetComponents(PrimitiveComponents);
+            for (auto WeakPrimComp : PrimitiveComponents)
+            {
+                ShowOnlyComponents.insert(WeakPrimComp.lock().get());
+            }
+        }
+    }
+
     void USceneCaptureComponent::CaptureScene()
     {
         UWorld* World = GetWorld();
@@ -87,6 +109,7 @@ namespace nilou {
         Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
         FSceneViewFamily ViewFamily(Viewport, Scene);  
         ViewFamily.HiddenComponents = HiddenComponents; 
+        ViewFamily.ShowOnlyComponents = ShowOnlyComponents; 
 
         FSceneView SceneView(
             VerticalFieldOfView, 
@@ -170,7 +193,8 @@ namespace nilou {
         Viewport.Height = TextureTarget->GetSizeY();
         Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
         FSceneViewFamily ViewFamily(Viewport, Scene);    
-        ViewFamily.HiddenComponents = HiddenComponents;  
+        ViewFamily.HiddenComponents = HiddenComponents; 
+        ViewFamily.ShowOnlyComponents = ShowOnlyComponents;  
 
         std::array<dvec3, 6> ForwardVectors = {
             dvec3(1, 0, 0), 

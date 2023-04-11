@@ -221,6 +221,8 @@ namespace nilou {
             UpdateMaterialParametersRHI();
         }
 
+        void SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath);
+
         virtual void Serialize(FArchive &Ar) override;
 
         virtual void Deserialize(FArchive &Ar) override;
@@ -255,6 +257,8 @@ namespace nilou {
         FMaterial* MaterialResource;
 
         std::string Code;
+
+        std::filesystem::path ShaderVirtualPath;
 
         EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
 

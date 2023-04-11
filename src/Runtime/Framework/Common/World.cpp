@@ -57,9 +57,9 @@ namespace nilou {
         {
             FTransform MeshTransform;
             MeshTransform.SetRotator(FRotator(0, 0, -90));
-            for (int i = -1; i <= 1; i++)
+            for (int i = 1; i <= 1; i++)
             {
-                for (int j = -1; j <= 1; j++)
+                for (int j = 1; j <= 1; j++)
                 {
                     MeshTransform.SetTranslation(glm::vec3(i, j, 1));
                     std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
@@ -137,8 +137,16 @@ namespace nilou {
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
         FTransform ReflectionProbeTransform;
-        ReflectionProbeTransform.SetTranslation(dvec3(1, 1, 2));
+        ReflectionProbeTransform.SetTranslation(dvec3(1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe");
+
+        std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
+        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
+        this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+
+        // TODO 镜面材质，阴影闪烁，多个probe的混合
+
 
         // GetContentManager()->ForEachContent([](UObject* Obj){
         //     if (Obj->IsA(UVirtualTexture::StaticClass()))
@@ -152,6 +160,10 @@ namespace nilou {
         // LUT->Name = "IBL_BRDF_LUT";
         // LUT->ImageData = img;
         // LUT->UpdateResource();
+
+        // UMaterial* MirrorMaterial = GetContentManager()->CreateFile<UMaterial>("/Materials/MirrorMaterial.nasset");
+        // MirrorMaterial->Name = "MirrorMaterial";
+        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
 
     }
 

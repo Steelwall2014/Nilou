@@ -15,6 +15,8 @@
 #include "BasePassRendering.h"
 #include "LightingPassRendering.h"
 
+#include "Common/Actor/ReflectionProbe.h"
+
 #ifdef NILOU_DEBUG
 #include "CoordinateAxis.h"
 #endif
@@ -266,6 +268,8 @@ namespace nilou {
         std::vector<int> Index(SceneViews.size(), 0);
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
+            if (!ViewFamily.ShowOnlyComponents.empty() && !ViewFamily.ShowOnlyComponents.contains(PrimitiveInfo->Primitive))
+                continue;
             if (ViewFamily.HiddenComponents.contains(PrimitiveInfo->Primitive))
                 continue;
 
@@ -307,7 +311,19 @@ namespace nilou {
                     }
                     else 
                     {
-                        Views[ViewIndex].DynamicMeshBatches.push_back(Mesh);
+                        AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
+                        UReflectionProbeComponent* ReflectionProbeComponent = DefaultProbe->ReflectionProbeComponent.get();
+                        FMeshBatch NewMesh = Mesh;
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "IrradianceTexture", 
+                            ReflectionProbeComponent->SceneProxy->IrradianceTexture);
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "PrefilteredTexture", 
+                            ReflectionProbeComponent->SceneProxy->PrefilteredTexture);
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "IBL_BRDF_LUT", 
+                            GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset")->GetResource()->GetSamplerRHI());
+                        Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                     }
                     
                 }
@@ -379,7 +395,7 @@ namespace nilou {
                 dvec3 Min = ReflectionProbe->SceneProxy->Location - ReflectionProbe->SceneProxy->Extent/2.0;
                 dvec3 Max = ReflectionProbe->SceneProxy->Location + ReflectionProbe->SceneProxy->Extent/2.0;
                 FBoundingBox ReflectionProbeExtent(Min, Max);
-                float volume = 1;//IntersectVolume(PrimitiveExtent, ReflectionProbeExtent);
+                float volume = IntersectVolume(PrimitiveExtent, ReflectionProbeExtent);
                 if (volume != 0.f)
                 {
                     total_volume += volume;
