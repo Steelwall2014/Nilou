@@ -15,6 +15,9 @@ namespace nilou {
 	public:
 		GLuint 			Resource;
 		GLenum 			Target;
+
+		/** The handle used for bindless texture */
+		GLuint64		Handle;
 		OpenGLTextureBase(
 			GLuint InResource,
 			GLenum InTarget
@@ -22,7 +25,11 @@ namespace nilou {
 		: Resource(InResource)
 		, Target(InTarget)
 		{ }
-		virtual ~OpenGLTextureBase() { glDeleteTextures(1, &Resource); } 
+		virtual ~OpenGLTextureBase() 
+		{ 
+			// glMakeTextureHandleNonResidentARB(Handle);
+			glDeleteTextures(1, &Resource); 
+		} 
 	protected:
 		class FOpenGLDynamicRHI *OpenGLRHI;
 

@@ -20,4 +20,8 @@ vec4 mytextureCube(samplerCube Cube, vec3 sampleVec)
 {
     return texture(Cube, vec3(sampleVec.x, sampleVec.z, sampleVec.y));
 }
+vec4 mytextureCubeLod(samplerCube Cube, vec3 sampleVec, float Lod)
+{
+    return textureLod(Cube, vec3(sampleVec.x, sampleVec.z, sampleVec.y), Lod);
+}
 #endif

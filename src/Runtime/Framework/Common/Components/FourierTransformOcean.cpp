@@ -344,7 +344,10 @@ namespace nilou {
         virtual void DestroyRenderThreadResources() override
         {
             GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
-
+            VertexBuffers.ReleaseResource();
+            IndexBuffer.ReleaseResource();
+            FFTParameters->ReleaseResource();
+            ButterflyBlock->ReleaseResource();
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 

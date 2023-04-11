@@ -41,6 +41,6 @@ vec3 ApplySkyAtmosphere(FLightShaderParameters light, ShadingParams params)
         ATMOSPHERE, TransmittanceLUT, ScatteringRayleighLUT, ScatteringMieLUT, 
         r, v, shadow_length, sun_direction, ATMOSPHERE.sun_angular_radius);
 //	color = HDR(color, 10);
-    return 10 * color;
+    return color * light.lightIntensity;
 }
 #endif

@@ -316,7 +316,7 @@ namespace nilou {
                     MeshBatches.clear();
                     FParallelMeshDrawCommands &DrawCommands = Light.ShadowMapMeshDrawCommands[ViewIndex].DrawCommands[SplitIndex];
                     DrawCommands.Clear();
-                    LightCollector.PerViewMeshBatches.push_back(&MeshBatches);
+                    LightCollector.PerViewMeshBatches.resize(1);
                     double near, far;
                     // far = DBL_MAX;
                     // near = -DBL_MAX;
@@ -337,6 +337,8 @@ namespace nilou {
                             PrimitiveInfo->SceneProxy->GetDynamicMeshElements({&LightSceneView}, 0x1, LightCollector);
                         }
                     }
+                    for (auto&& Mesh : LightCollector.PerViewMeshBatches[0])
+                        MeshBatches.push_back(Mesh);
                     // if (near == -DBL_MAX) near = 0;
                     // if (far == DBL_MAX) far = 0;
                     near = Radius;

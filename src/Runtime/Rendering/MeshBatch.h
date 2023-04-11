@@ -65,7 +65,7 @@ namespace nilou {
 
         void AddMesh(int32 ViewIndex, const FMeshBatch &MeshBatch)
         {
-            PerViewMeshBatches[ViewIndex]->push_back(MeshBatch);
+            PerViewMeshBatches[ViewIndex].push_back(MeshBatch);
         }
 
         void AddBatchedLine(int32 ViewIndex, const FBatchedLine &MeshBatch)
@@ -73,7 +73,7 @@ namespace nilou {
             PerViewPDI[ViewIndex]->DrawLine(MeshBatch);
         }
 
-        std::vector<std::vector<FMeshBatch>*> PerViewMeshBatches;
+        std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
         std::vector<FViewElementPDI*> PerViewPDI;
     };
 

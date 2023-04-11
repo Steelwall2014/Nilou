@@ -149,6 +149,44 @@ namespace nilou {
         }
     }
 
+    void FScene::AddReflectionProbe(UReflectionProbeComponent *InReflectionProbe)
+    {
+        FReflectionProbeSceneProxy *ReflectionProbeSceneProxy = InReflectionProbe->CreateSceneProxy();
+        if (ReflectionProbeSceneProxy == nullptr)
+            return;
+            
+        InReflectionProbe->SceneProxy = ReflectionProbeSceneProxy;
+        FReflectionProbeSceneInfo *ReflectionProbeSceneInfo = new FReflectionProbeSceneInfo(ReflectionProbeSceneProxy, InReflectionProbe, this);
+        ReflectionProbeSceneProxy->ReflectionProbeSceneInfo = ReflectionProbeSceneInfo;
+
+        FBoundingBox Bounds = InReflectionProbe->GetBounds();
+
+        FScene *Scene = this;
+        ENQUEUE_RENDER_COMMAND(AddReflectionProbe)(
+            [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo, Bounds] (FDynamicRHI *DynamicRHI) 
+            {
+                Scene->AddReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
+            });
+    }
+
+    void FScene::RemoveReflectionProbe(UReflectionProbeComponent *InReflectionProbe)
+    {
+        FReflectionProbeSceneProxy* ReflectionProbeSceneProxy = InReflectionProbe->SceneProxy;
+
+        if (ReflectionProbeSceneProxy)
+        {
+            FReflectionProbeSceneInfo* ReflectionProbeSceneInfo = ReflectionProbeSceneProxy->ReflectionProbeSceneInfo;
+            InReflectionProbe->SceneProxy = nullptr;
+
+            FScene *Scene = this;
+            ENQUEUE_RENDER_COMMAND(RemoveReflectionProbe)(
+                [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo] (FDynamicRHI *DynamicRHI) 
+                {
+                    Scene->RemoveReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
+                });
+        }
+    }
+
     void FScene::UpdateRenderInfos()
     {
         UpdatePrimitiveInfos();
@@ -164,6 +202,7 @@ namespace nilou {
     void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
         AddedPrimitiveSceneInfos.erase(InPrimitiveInfo);
+        delete InPrimitiveInfo;
     }
 
     void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo)
@@ -178,6 +217,18 @@ namespace nilou {
         InLightInfo->LightUniformBufferRHI->ReleaseResource();
         AddedLightSceneInfos.erase(InLightInfo);
         GetRemoveLightDelegate().Broadcast(InLightInfo);
+        delete InLightInfo;
+    }
+
+    void FScene::AddReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo)
+    {
+        ReflectionProbes.emplace(InReflectionProbeInfo);
+    }
+
+    void FScene::RemoveReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo)
+    {
+        ReflectionProbes.erase(InReflectionProbeInfo);
+        delete InReflectionProbeInfo;
     }
 
     void FScene::UpdatePrimitiveInfos()

@@ -66,6 +66,16 @@ namespace nilou {
         FStaticMeshVertexBuffer<glm::vec2> TexCoords[MAX_STATIC_TEXCOORDS];
 
         void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
+
+        void ReleaseResource()
+        {
+            Positions.ReleaseResource();
+            Normals.ReleaseResource();
+            Tangents.ReleaseResource();
+            Colors.ReleaseResource();
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+                TexCoords[i].ReleaseResource();
+        }
     };
 
     struct FStaticMeshSection

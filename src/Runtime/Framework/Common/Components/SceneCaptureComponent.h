@@ -104,6 +104,8 @@ namespace nilou {
     protected:
 
         std::array<TUniformBufferRef<FViewShaderParameters>, 6> ViewUniformBuffers;
+
+        void UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position);
     };
 
 }

@@ -41,21 +41,25 @@ namespace nilou {
         }
     }
 
-    void BeginInitResource(FRenderResource* Resource)
+    void BeginInitResource_Internal(FRenderResource* Resource, const char *file, int line)
     {
         ENQUEUE_RENDER_COMMAND(BeginInitResource)(
-           [Resource](FDynamicRHI *DynamicRHI)
+           [Resource, file, line](FDynamicRHI *DynamicRHI)
            {
+                const char *debug_file = file;
+                int debug_line = line;
                 Resource->InitResource();
            });
     }
 
-    void BeginReleaseResource(FRenderResource* Resource)
+    void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line)
     {
         if (!Resource->IsInitialized()) return;
         ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
-           [Resource](FDynamicRHI *DynamicRHI)
+           [Resource, file, line](FDynamicRHI *DynamicRHI)
            {
+                const char *debug_file = file;
+                int debug_line = line;
                 Resource->ReleaseResource();
            });
     }

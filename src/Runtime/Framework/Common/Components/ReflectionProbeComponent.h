@@ -14,11 +14,42 @@ namespace nilou {
             : USceneCaptureComponentCube(InOwner)
             , IrradianceTexture(nullptr)
             , PrefilteredTexture(nullptr)
+            , SceneProxy(nullptr)
+            , Extent(dvec3(100))
+            , OriginOffset(dvec3(0))
         { }
 
         class UTextureCube* IrradianceTexture;
 
         class UTextureCube* PrefilteredTexture;
+
+        void SetExtent(dvec3 NewExtent)
+        {
+            if (NewExtent != Extent)
+            {
+                Extent = NewExtent;
+                MarkRenderDynamicDataDirty();
+            }
+        }
+
+        void SetOriginOffset(dvec3 NewOriginOffset)
+        {
+            if (NewOriginOffset != OriginOffset)
+            {
+                OriginOffset = NewOriginOffset;
+                MarkRenderDynamicDataDirty();
+            }
+        }
+
+        dvec3 GetExtent() const
+        {
+            return Extent;
+        }
+
+        dvec3 GetOriginOffset() const
+        {
+            return OriginOffset;
+        }
 
         virtual void UpdateSceneCaptureContents(FScene* Scene) override;
 
@@ -26,7 +57,19 @@ namespace nilou {
 
         virtual void OnUnregister() override;
 
+        virtual class FReflectionProbeSceneProxy* CreateSceneProxy();
+
+        virtual void SendRenderTransform() override;
+
+        virtual void SendRenderDynamicData() override;
+
+        FReflectionProbeSceneProxy* SceneProxy;
+
     protected:
+
+        dvec3 Extent;
+
+        dvec3 OriginOffset;
 
         void UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList);
   
@@ -41,6 +84,25 @@ namespace nilou {
 
         TUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
         TUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
+
+    };
+
+    class FReflectionProbeSceneProxy
+    {
+    public:
+        FReflectionProbeSceneProxy(UReflectionProbeComponent* Component);
+
+        dvec3 Extent;
+
+        dvec3 OriginOffset;
+
+        dvec3 Location;
+
+        FRHISampler* IrradianceTexture;
+
+        FRHISampler* PrefilteredTexture;
+
+        class FReflectionProbeSceneInfo* ReflectionProbeSceneInfo;
 
     };
 

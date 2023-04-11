@@ -158,6 +158,11 @@ namespace nilou {
 
     void USceneCaptureComponentCube::UpdateSceneCaptureContents(FScene* Scene)
     {
+        UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation());
+    }
+
+    void USceneCaptureComponentCube::UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position)
+    {
         if (TextureTarget == nullptr || TextureTarget->GetRenderTargetResource() == nullptr)
             return;
         FViewport Viewport;
@@ -191,7 +196,7 @@ namespace nilou {
             SceneViews.emplace_back(
                 glm::radians(90.0), 
                 0.1, 30000, 
-                GetComponentLocation(), 
+                Position, 
                 ForwardVectors[i], 
                 UpVectors[i],
                 ivec2(Viewport.Width, Viewport.Height), 

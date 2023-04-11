@@ -672,6 +672,10 @@ namespace nilou {
             {
                 Tile->mutex.unlock();
             }
+            VertexBuffers.ReleaseResource();
+            IndexBuffer.ReleaseResource();
+            for (auto [key, UniformBuffer] : TileBoundingBoxUBO)
+                UniformBuffer->ReleaseResource();
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 

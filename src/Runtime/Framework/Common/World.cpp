@@ -24,6 +24,8 @@
 #include "Common/Actor/FFTOceanActor.h"
 #include "Common/Actor/ReflectionProbe.h"
 
+#include "Texture2D.h"
+
 #include "Georeference.h"
 #include "VirtualTexture2D.h"
 
@@ -144,6 +146,13 @@ namespace nilou {
         //         Obj->ContentEntry->bIsDirty = true;
         //     }
         // });
+
+        // std::shared_ptr<FImage> img =GetAssetLoader()->SyncOpenAndReadImage(R"(E:\Downloads\ibl_brdf_lut.png)");
+        // UTexture2D* LUT = GetContentManager()->CreateFile<UTexture2D>("/Textures/IBL_BRDF_LUT.nasset");
+        // LUT->Name = "IBL_BRDF_LUT";
+        // LUT->ImageData = img;
+        // LUT->UpdateResource();
+
     }
 
     void UWorld::Tick(double DeltaTime)

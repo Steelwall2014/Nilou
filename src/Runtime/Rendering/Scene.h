@@ -9,6 +9,7 @@
 #include "Common/Components/PrimitiveComponent.h"
 #include "Common/Components/SkyAtmosphereComponent.h"
 #include "Common/Components/SceneCaptureComponent.h"
+#include "Common/Components/ReflectionProbeComponent.h"
 #include "BatchedLine.h"
 #include "Common/Delegate.h"
 #include "ViewElementPDI.h"
@@ -27,6 +28,11 @@ namespace nilou {
         {
         }
 
+        ~FPrimitiveSceneInfo()
+        {
+            delete SceneProxy;
+        }
+
         void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
         {
             bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
@@ -36,6 +42,7 @@ namespace nilou {
         UPrimitiveComponent *Primitive;
         FPrimitiveSceneProxy *SceneProxy;
         FRHIRenderQueryRef OcclusionQuery;
+        std::map<FReflectionProbeSceneInfo*, float> ReflectionProbeFactors;
         bool bNeedsUniformBufferUpdate = false;
     };
 
@@ -50,40 +57,38 @@ namespace nilou {
             LightUniformBufferRHI = CreateUniformBuffer<FLightShaderParameters>();
         }
 
+        ~FLightSceneInfo()
+        {
+            LightUniformBufferRHI->ReleaseResource();
+            delete SceneProxy;
+        }
+
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
         TUniformBufferRef<FLightShaderParameters> LightUniformBufferRHI;
     };
 
-    class FViewSceneInfo
+    class FReflectionProbeSceneInfo
     {
     public:
-        friend class FScene;
-        friend class FDefferedShadingSceneRenderer;
-        FViewSceneInfo(FCameraSceneProxy *InSceneProxy, UCameraComponent *InCamera, FScene *InScene)
-            : Scene(InScene)
+        FReflectionProbeSceneInfo(FReflectionProbeSceneProxy *InSceneProxy, UReflectionProbeComponent *InReflectionProbe, FScene *InScene)
+            : ReflectionProbe(InReflectionProbe)
+            , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            PDI = std::make_shared<FViewElementPDI>();
+
         }
 
-        void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
+        ~FReflectionProbeSceneInfo()
         {
-            bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
-        }
-
-        void SetNeedsFramebufferUpdate(bool bInNeedsFramebufferUpdate)
-        {
-            bNeedsFramebufferUpdate = bInNeedsFramebufferUpdate;
+            delete SceneProxy;
         }
 
         FScene *Scene;
-        FCameraSceneProxy *SceneProxy;
-        std::shared_ptr<FViewElementPDI> PDI;
-    private:
-        bool bNeedsUniformBufferUpdate = false;
-        bool bNeedsFramebufferUpdate = false;
+        UReflectionProbeComponent *ReflectionProbe;
+        FReflectionProbeSceneProxy *SceneProxy;
+
     };
 
     enum class EShadingPath
@@ -117,6 +122,9 @@ namespace nilou {
         void AddPrimitive(UPrimitiveComponent *InPrimitive);
         void RemovePrimitive(UPrimitiveComponent *InPrimitive);
 
+        void AddReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
+        void RemoveReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
+
         void UpdateRenderInfos();
 
         TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
@@ -130,6 +138,7 @@ namespace nilou {
 
         std::set<FPrimitiveSceneInfo*> AddedPrimitiveSceneInfos;
         std::set<FLightSceneInfo*> AddedLightSceneInfos;
+        std::set<FReflectionProbeSceneInfo*> ReflectionProbes;
         std::vector<std::unique_ptr<FSkyAtmosphereSceneProxy>> SkyAtmosphereStack;
         FSkyAtmosphereSceneProxy *SkyAtmosphere;
         class UWorld *World;
@@ -143,6 +152,9 @@ namespace nilou {
 
         void AddLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo);
         void RemoveLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo);
+
+        void AddReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
+        void RemoveReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
 
         void UpdatePrimitiveInfos();
         void UpdateLightInfos();

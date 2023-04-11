@@ -7,6 +7,11 @@ uniform sampler2D SceneColor;
 
 #include "../include/PBRFunctions.glsl"
 
+layout (std140) uniform RenderToScreenPixelShaderBlock {
+	float GammaCorrection;
+	int bEnableToneMapping;
+};
+
 void main()
 {
 #if USING_OPENGL
@@ -14,5 +19,7 @@ void main()
 #else
 	vec3 color = texture(SceneColor, uv).rgb;
 #endif
-	FragColor = vec4(HDR(color, 1), 1);
+    if (bEnableToneMapping != 0)
+		color = vec3(1.0) - exp(-color);
+	FragColor = vec4(pow(color, vec3(1.0 / GammaCorrection)), 1);
 }

@@ -217,6 +217,6 @@ namespace nilou {
     void ACameraActor::SpeedUp(float AxisValue)
     {
         MovementSpeed += AxisValue * 5;
-        MovementSpeed = std::max(MovementSpeed, 0.f);
+        MovementSpeed = std::max(MovementSpeed, 1.f);
     }
 }

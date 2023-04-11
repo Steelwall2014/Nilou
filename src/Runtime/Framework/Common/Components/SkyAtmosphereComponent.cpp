@@ -45,7 +45,7 @@ namespace nilou {
 
     USkyAtmosphereComponent::USkyAtmosphereComponent(AActor *InOwner)
         : USceneComponent(InOwner)
-        , SolarIrradiance({ 1.474000, 1.850400, 1.911980 })
+        , SolarIrradiance(vec3( 1 ))
         , SunAngularRadius(0.004675)
         , BottomRadius(6360.0)
         , TopRadius(6420.0)

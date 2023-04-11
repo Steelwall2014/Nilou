@@ -1,6 +1,8 @@
 #include "ReflectionProbeComponent.h"
 #include "Common/ContentManager.h"
 #include "TextureCube.h"
+#include "TextureRenderTarget.h"
+#include "DefferedShadingSceneRenderer.h"
 
 namespace nilou {
 
@@ -14,14 +16,12 @@ namespace nilou {
 
     void UReflectionProbeComponent::UpdateSceneCaptureContents(FScene* Scene)
     {
-        USceneCaptureComponentCube::UpdateSceneCaptureContents(Scene);
-
+        UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation()+OriginOffset);
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_UpdateSceneCaptureContents)(
-            [this, Scene](FDynamicRHI* RHICmdList) 
+            [Scene, this](FDynamicRHI* RHICmdList) 
             {
                 UpdateSceneCaptureContents_RenderThread(Scene, RHICmdList);
             });
-
     }
 
     void UReflectionProbeComponent::OnRegister()
@@ -33,12 +33,29 @@ namespace nilou {
         BeginInitResource(IrradianceShaderUniformBuffer.get());
         BeginInitResource(PrefilterShaderUniformBuffer.get());
 
+        if (WorldPrivate) 
+        {
+            if (WorldPrivate->Scene)
+            {
+                WorldPrivate->Scene->AddReflectionProbe(this);
+            }
+        }
+
     }
 
     void UReflectionProbeComponent::OnUnregister()
     {
         BeginReleaseResource(IrradianceShaderUniformBuffer.get());
         BeginReleaseResource(PrefilterShaderUniformBuffer.get());
+
+        if (WorldPrivate) 
+        {
+            if (WorldPrivate->Scene)
+            {
+                WorldPrivate->Scene->RemoveReflectionProbe(this);
+            }
+        }
+
         USceneCaptureComponentCube::OnUnregister();
     }
 
@@ -78,15 +95,17 @@ namespace nilou {
                 PSO, EPipelineStage::PS_Compute,
                 "EnvironmentTexture", *TextureTarget->GetResource()->GetSamplerRHI());
 
-            for (int i = 0; i < 5; i++)
+            int NumMips = PrefilteredTexture->NumMips;
+            float delta_roughness = 1.0 / glm::max(NumMips-1, 1);
+            for (int MipIndex = 0; MipIndex < NumMips; MipIndex++)
             {
-                PrefilterShaderUniformBuffer->Data.TextureSize = TextureTarget->GetSizeX() >> i;
-                PrefilterShaderUniformBuffer->Data.roughness = i * 0.25;
+                PrefilterShaderUniformBuffer->Data.TextureSize = TextureTarget->GetSizeX() >> MipIndex;
+                PrefilterShaderUniformBuffer->Data.roughness = MipIndex * delta_roughness;
                 PrefilterShaderUniformBuffer->UpdateUniformBuffer();
                 RHITexture* CubeMap = PrefilteredTexture->GetResource()->TextureRHI.get();
                 RHITextureCubeRef TextureView = RHICmdList->RHICreateTextureViewCube(
                     CubeMap, CubeMap->GetFormat(), 
-                    i, 1);
+                    MipIndex, 1);
                 RHICmdList->RHISetShaderImage(
                     PSO, EPipelineStage::PS_Compute,
                     "PrefilteredTexture", 
@@ -95,11 +114,70 @@ namespace nilou {
                 RHICmdList->RHISetShaderUniformBuffer(
                     PSO, EPipelineStage::PS_Compute, 
                     "PrefilteredEnvTextureShaderBlock", PrefilterShaderUniformBuffer->GetRHI());
-                RHICmdList->RHIDispatch(32 >> i, 32 >> i, 1);
+                RHICmdList->RHIDispatch(
+                    (PrefilteredTexture->GetSizeX()/32) >> MipIndex, 
+                    (PrefilteredTexture->GetSizeY()/32) >> MipIndex, 
+                    1);
             }
             
         }
 
+    }
+
+    FReflectionProbeSceneProxy* UReflectionProbeComponent::CreateSceneProxy()
+    {
+        return new FReflectionProbeSceneProxy(this);
+    }
+
+    void UReflectionProbeComponent::SendRenderTransform()
+    {
+        if (SceneProxy)
+        {
+            dvec3 NewLocation = GetComponentLocation();
+            auto Proxy = SceneProxy;
+            ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderTransform)(
+                [NewLocation, Proxy](FDynamicRHI*) 
+                {
+                    Proxy->Location = NewLocation;
+                });
+        }
+        USceneCaptureComponentCube::SendRenderTransform();
+    }
+
+    void UReflectionProbeComponent::SendRenderDynamicData()
+    {
+        if (SceneProxy)
+        {
+            auto NewExtent = Extent;
+            auto NewOffset = OriginOffset;
+            auto Proxy = SceneProxy;
+            ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderDynamicData)(
+                [NewExtent, NewOffset, Proxy](FDynamicRHI*) 
+                {
+                    Proxy->Extent = NewExtent;
+                    Proxy->OriginOffset = NewOffset;
+                });
+        }
+        USceneCaptureComponentCube::SendRenderDynamicData();
+    }
+
+    FReflectionProbeSceneProxy::FReflectionProbeSceneProxy(UReflectionProbeComponent* Component)
+        : Extent(Component->GetExtent())
+        , OriginOffset(Component->GetOriginOffset())
+        , Location(Component->GetComponentLocation())
+        , ReflectionProbeSceneInfo(nullptr)
+    {
+        if (Component->IrradianceTexture && 
+            Component->IrradianceTexture->GetResource())
+        {
+            IrradianceTexture = Component->IrradianceTexture->GetResource()->GetSamplerRHI();
+        }
+
+        if (Component->PrefilteredTexture && 
+            Component->PrefilteredTexture->GetResource())
+        {
+            PrefilteredTexture = Component->PrefilteredTexture->GetResource()->GetSamplerRHI();
+        }
     }
 
 }

@@ -619,6 +619,17 @@ namespace nilou {
             
         }
 
+        virtual ~FVirtualHeightfieldMeshSceneProxy()
+        {
+            FPrimitiveSceneProxy::~FPrimitiveSceneProxy();
+            VertexBuffers.ReleaseResource();
+            IndexBuffer.ReleaseResource();
+            CreateNodeListBlock->ReleaseResource();
+            QuadTreeParameters->ReleaseResource();
+            CreatePatchBlock->ReleaseResource();
+            BuildNormalTangentBlock->ReleaseResource();
+        }
+
 	    FMaterial* Material = nullptr;
         UVirtualTexture* HeightField = nullptr;
         FRHISampler* HeightFieldSampler = nullptr;

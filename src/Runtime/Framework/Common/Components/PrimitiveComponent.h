@@ -66,6 +66,11 @@ namespace nilou {
 
         virtual void DestroyRenderThreadResources();
 
+        virtual ~FPrimitiveSceneProxy()
+        {
+            DestroyRenderThreadResources();
+        }
+
         FPrimitiveSceneInfo *GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 
         std::string GetName() const { return Name; }

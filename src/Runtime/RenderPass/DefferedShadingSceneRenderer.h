@@ -216,8 +216,6 @@ namespace nilou {
         /** The lights being rendered. */
         std::vector<FLightInfo> Lights;
 
-        FMeshElementCollector MeshCollector;
-
         virtual void Render() = 0;
 
         static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily* ViewFamily);
@@ -352,6 +350,8 @@ namespace nilou {
         void RenderViewElementPass(FDynamicRHI *RHICmdList);
 
         void RenderToScreen(FDynamicRHI *RHICmdList);
+
+        void UpdateReflectionProbeFactors();
 
     };
 
