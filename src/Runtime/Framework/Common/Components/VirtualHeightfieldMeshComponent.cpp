@@ -157,7 +157,7 @@ namespace nilou {
             , NumMaxRenderingNodes(Component->NumMaxRenderingNodes)
         {
             if (Component->Material)
-                Material = Component->Material->GetResource();
+                Material = Component->Material->GetRenderProxy();
             if (Component->HeightfieldTexture)
             {
                 HeightField = Component->HeightfieldTexture;
@@ -351,7 +351,7 @@ namespace nilou {
                     GenerateRenderPatches(FDynamicRHI::GetDynamicRHI(), Views[ViewIndex]->ViewUniformBuffer.get());
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
-                    Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                    Mesh.MaterialRenderProxy = Material;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
@@ -636,7 +636,7 @@ namespace nilou {
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
-	    FMaterial* Material = nullptr;
+	    FMaterialRenderProxy* Material = nullptr;
         UVirtualTexture* HeightField = nullptr;
         FRHISampler* HeightFieldSampler = nullptr;
         RHITexture2DRef HeightMinMaxTexture;

@@ -53,7 +53,7 @@ namespace nilou {
                 {
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
-                    Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
+                    Mesh.MaterialRenderProxy = Material->GetRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();

@@ -104,47 +104,45 @@ namespace nilou {
         {
             tinygltf::Material &gltf_material = model.materials[MaterialIndex];
             std::shared_ptr<UMaterialInstance> Material(GLTFMaterial->CreateMaterialInstance());
-            if (gltf_material.doubleSided)
-                Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
 
             if (gltf_material.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 int index = gltf_material.pbrMetallicRoughness.baseColorTexture.index;
-                Material->GetResource()->SetParameterValue("baseColorTexture", OutTextures[index].get());
+                Material->SetTextureParameterValue("baseColorTexture", OutTextures[index].get());
             }
             else 
             {
-                Material->GetResource()->SetParameterValue("baseColorTexture", GetContentManager()->GetTextureByPath("/Textures/NoColorTexture.nasset"));
+                Material->SetTextureParameterValue("baseColorTexture", GetContentManager()->GetTextureByPath("/Textures/NoColorTexture.nasset"));
             }
             
             if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
                 int index = gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index;
-                Material->GetResource()->SetParameterValue("metallicRoughnessTexture", OutTextures[index].get());
+                Material->SetTextureParameterValue("metallicRoughnessTexture", OutTextures[index].get());
             }
             else 
             {
-                Material->GetResource()->SetParameterValue("metallicRoughnessTexture", GetContentManager()->GetTextureByPath("/Textures/NoMetallicRoughnessTexture.nasset"));
+                Material->SetTextureParameterValue("metallicRoughnessTexture", GetContentManager()->GetTextureByPath("/Textures/NoMetallicRoughnessTexture.nasset"));
             }
             
             if (gltf_material.emissiveTexture.index != -1)
             {
                 int index = gltf_material.emissiveTexture.index;
-                Material->GetResource()->SetParameterValue("emissiveTexture", OutTextures[index].get());
+                Material->SetTextureParameterValue("emissiveTexture", OutTextures[index].get());
             }
             else 
             {
-                Material->GetResource()->SetParameterValue("emissiveTexture", GetContentManager()->GetTextureByPath("/Textures/NoEmissiveTexture.nasset"));
+                Material->SetTextureParameterValue("emissiveTexture", GetContentManager()->GetTextureByPath("/Textures/NoEmissiveTexture.nasset"));
             }
             
             if (gltf_material.normalTexture.index != -1)
             {
                 int index = gltf_material.normalTexture.index;
-                Material->GetResource()->SetParameterValue("normalTexture", OutTextures[index].get());
+                Material->SetTextureParameterValue("normalTexture", OutTextures[index].get());
             }
             else 
             {
-                Material->GetResource()->SetParameterValue("normalTexture", GetContentManager()->GetTextureByPath("/Textures/NoNormalTexture.nasset"));
+                Material->SetTextureParameterValue("normalTexture", GetContentManager()->GetTextureByPath("/Textures/NoNormalTexture.nasset"));
             }
 
             OutUniformBuffer = CreateUniformBuffer<FGLTFMaterialBlock>();
@@ -715,7 +713,7 @@ namespace nilou {
                                 Mesh.Element.VertexFactory = &Section.VertexFactory;
                                 Mesh.Element.IndexBuffer = &Section.IndexBuffer;
                                 Mesh.Element.NumVertices = Section.GetNumVertices();
-                                Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->GetResource()->CreateRenderProxy();
+                                Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->GetRenderProxy();
                                 Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", Tile->TransformRHI->GetRHI());
                                 Collector.AddMesh(ViewIndex, Mesh);
                                 if (bShowBoundingBox)
@@ -735,7 +733,7 @@ namespace nilou {
                                     DebugBoundingBoxMesh.Element.VertexFactory = &VertexFactory;
                                     DebugBoundingBoxMesh.Element.IndexBuffer = &IndexBuffer;
                                     DebugBoundingBoxMesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-                                    DebugBoundingBoxMesh.MaterialRenderProxy = WireframeMaterial->GetResource()->CreateRenderProxy();
+                                    DebugBoundingBoxMesh.MaterialRenderProxy = WireframeMaterial->GetRenderProxy();
                                     DebugBoundingBoxMesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", TileBoundingBoxUBO[Tile]->GetRHI());
                                     Collector.AddMesh(ViewIndex, DebugBoundingBoxMesh);
                                 }

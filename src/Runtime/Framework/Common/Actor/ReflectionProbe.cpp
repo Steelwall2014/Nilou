@@ -47,7 +47,9 @@ namespace nilou {
 
         DebugMat = std::make_shared<UMaterial>("Cube map");
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
-        DebugMat->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
+        FRasterizerStateInitializer RasterizerState;
+        RasterizerState.CullMode = ERasterizerCullMode::CM_None;
+        DebugMat->SetRasterizerState(RasterizerState);
         DebugMat->UpdateCode(R"(
 #include "../include/BasePassCommon.glsl"
 #include "../include/functions.glsl"
@@ -78,7 +80,7 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
     return vec3(0);
 }
         )");
-        DebugMat->SetParameterValue("Cube", IrradianceTexture.get());
+        DebugMat->SetTextureParameterValue("Cube", IrradianceTexture.get());
 
         // DebugSphere = CreateComponent<USphereComponent>(this); 
         // DebugSphere->SetMaterial(DebugMat.get());

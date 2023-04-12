@@ -398,7 +398,7 @@ namespace nilou {
                         BuildMeshDrawCommand(
                             RHICmdList,
                             VertexFactoryParams,
-                            Mesh.MaterialRenderProxy.get(),
+                            Mesh.MaterialRenderProxy,
                             PermutationParametersVS,
                             PermutationParametersPS,
                             Mesh.MaterialRenderProxy->DepthStencilState,

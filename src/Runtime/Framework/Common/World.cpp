@@ -81,11 +81,11 @@ namespace nilou {
                 for (int j = 0; j <= 4; j++)
                 {
                     UMaterial* mat = PBRExhibitionMaterial->CreateMaterialInstance();
-                    mat->SetParameterValue("Red", 1.f);
-                    mat->SetParameterValue("Green", 1.f);
-                    mat->SetParameterValue("Blue", 1.f);
-                    mat->SetParameterValue("Metallic", (i-1)*0.25f);
-                    mat->SetParameterValue("Roughness", (j)*0.25f);
+                    mat->SetScalarParameterValue("Red", 1.f);
+                    mat->SetScalarParameterValue("Green", 1.f);
+                    mat->SetScalarParameterValue("Blue", 1.f);
+                    mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
+                    mat->SetScalarParameterValue("Roughness", (j)*0.25f);
                     SphereTransform.SetTranslation(glm::vec3(-2, j*0.3, i*0.3));
                     SphereTransform.SetScale3D(dvec3(0.1));
                     std::shared_ptr<ASphereActor> Sphere = SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));

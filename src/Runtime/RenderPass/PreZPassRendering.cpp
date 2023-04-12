@@ -118,7 +118,7 @@ namespace nilou {
                     // *Mesh.MaterialRenderProxy->GetType(),
                     // *Mesh.VertexFactory->GetType(),
                     VertexFactoryParams,
-                    Mesh.MaterialRenderProxy.get(),
+                    Mesh.MaterialRenderProxy,
                     PermutationParametersVS,
                     PermutationParametersPS,
                     Mesh.MaterialRenderProxy->DepthStencilState,

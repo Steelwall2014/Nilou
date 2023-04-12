@@ -33,9 +33,9 @@ namespace nilou {
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
                     if (Material)
-                        Mesh.MaterialRenderProxy = Material->GetResource()->CreateRenderProxy();
+                        Mesh.MaterialRenderProxy = Material->GetRenderProxy();
                     else
-                        Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial()->GetResource()->CreateRenderProxy();
+                        Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial()->GetRenderProxy();
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();

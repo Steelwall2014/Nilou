@@ -197,19 +197,19 @@ namespace nilou {
 	class TStaticSerializer<FRasterizerStateInitializer>
 	{
 	public:
-		static void Serialize(const FRasterizerStateInitializer &BlendState, nlohmann::json &json, FArchiveBuffers &Buffers)
+		static void Serialize(const FRasterizerStateInitializer &RasterizerState, nlohmann::json &json, FArchiveBuffers &Buffers)
 		{
 			json["ClassName"] = "FRasterizerStateInitializer";
 			nlohmann::json &content = json["Content"];
-			content["FillMode"] = magic_enum::enum_name(BlendState.FillMode);
-			content["CullMode"] = magic_enum::enum_name(BlendState.CullMode);
+			content["FillMode"] = magic_enum::enum_name(RasterizerState.FillMode);
+			content["CullMode"] = magic_enum::enum_name(RasterizerState.CullMode);
 		}
-		static void Deserialize(FRasterizerStateInitializer &BlendState, nlohmann::json &json, void* Buffer)
+		static void Deserialize(FRasterizerStateInitializer &RasterizerState, nlohmann::json &json, void* Buffer)
 		{
             if (!SerializeHelper::CheckIsType(json, "FRasterizerStateInitializer")) return;
 			nlohmann::json &content = json["Content"];
-			BlendState.CullMode = magic_enum::enum_cast<ERasterizerCullMode>(content["CullMode"].get<std::string>()).value();
-			BlendState.FillMode = magic_enum::enum_cast<ERasterizerFillMode>(content["FillMode"].get<std::string>()).value();
+			RasterizerState.CullMode = magic_enum::enum_cast<ERasterizerCullMode>(content["CullMode"].get<std::string>()).value();
+			RasterizerState.FillMode = magic_enum::enum_cast<ERasterizerFillMode>(content["FillMode"].get<std::string>()).value();
 		}
 	};
 

@@ -73,9 +73,9 @@ namespace nilou {
             , LODParams(Component->LODParams)
         {
             if (Component->Material)
-                Material = Component->Material->GetResource();
+                Material = Component->Material.get();
             else
-                Material = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset")->GetResource();
+                Material = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
             PerlinNoiseSampler = &GetContentManager()->GetTextureByPath("/Textures/PerlinNoiseTexture.nasset")->GetResource()->SamplerRHI;
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FFourierTransformOceanSceneProxy::PreRenderCallback);
         }
@@ -88,7 +88,7 @@ namespace nilou {
                 {
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
-                    Mesh.MaterialRenderProxy = Material->CreateRenderProxy();
+                    Mesh.MaterialRenderProxy = Material->GetRenderProxy();
                     Mesh.Element.IndexBuffer = &IndexBuffer;
                     Mesh.Element.VertexFactory = &VertexFactory;
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
@@ -351,7 +351,7 @@ namespace nilou {
             FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
-	    FMaterial* Material = nullptr;
+	    UMaterial* Material = nullptr;
 
         uint32 NumQuadsPerNode;
 

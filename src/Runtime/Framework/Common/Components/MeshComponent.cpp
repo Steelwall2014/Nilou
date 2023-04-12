@@ -59,7 +59,7 @@ namespace nilou {
                     Mesh.Element.VertexFactory = &Section.VertexFactory;
                     Mesh.Element.IndexBuffer = &Section.IndexBuffer;
                     Mesh.Element.NumVertices = Section.GetNumVertices();
-                    Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex]->GetResource()->CreateRenderProxy();
+                    Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex]->GetRenderProxy();
                     Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
                     Collector.AddMesh(ViewIndex, Mesh);
                 }

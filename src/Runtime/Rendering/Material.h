@@ -41,75 +41,103 @@ namespace nilou {
 
         FMaterial()
             : ShaderMap(new FMaterialShaderMap)
-            , ShadingModel(EShadingModel::SM_DefaultLit)
         { 
         }
 
-        FMaterial(
-            const FRasterizerStateInitializer &InRasterizerState, 
-            const FDepthStencilStateInitializer &InDepthStencilState,
-            const FBlendStateInitializer &InBlendState,
-            EShadingModel InShadingModel) 
-            : RasterizerState(InRasterizerState)
-            , DepthStencilState(InDepthStencilState)
-            , BlendState(InBlendState)
-            , ShaderMap(new FMaterialShaderMap)
-            , ShadingModel(InShadingModel)
+        FMaterial(const FMaterial& Other)
+            : Name(Other.Name)
+            , ShaderMap(Other.ShaderMap)
+            , bShaderCompiled(Other.bShaderCompiled)
         { 
         }
 
         std::string Name;
 
-        uint8 StencilRefValue = 0;
+        void UpdateMaterialCode_RenderThread(const std::string &InCode, FDynamicRHI* RHICmdList);
 
-        FRasterizerStateInitializer RasterizerState;
+    protected:
 
-        FDepthStencilStateInitializer DepthStencilState;
+        std::shared_ptr<FMaterialShaderMap> ShaderMap;
 
-        FBlendStateInitializer BlendState;
+        bool bShaderCompiled = false;
 
-        EShadingModel ShadingModel;
+    };
 
-        std::shared_ptr<FMaterialRenderProxy> CreateRenderProxy()
+    UCLASS()
+    class UMaterial : public UObject
+    {
+        friend class UMaterialInstance;
+        friend class FMaterialRenderProxy;
+        GENERATE_CLASS_INFO()
+    public:
+
+        UMaterial(const std::string &InName="");
+
+        static UMaterial *GetDefaultMaterial();
+
+        std::string Name;
+
+        void UpdateCode(const std::string &InCode, bool bRecompile=true);
+
+        void SetTextureParameterValue(const std::string &Name, UTexture *Texture);
+
+        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer);
+
+        void SetScalarParameterValue(const std::string &Name, FUniformValue Uniform);
+
+        void SetShadingModel(EShadingModel InShadingModel);
+
+        void SetBlendState(FBlendStateInitializer InBlendState);
+
+        void SetDepthStencilState(FDepthStencilStateInitializer InDepthStencilState);
+
+        void SetRasterizerState(FRasterizerStateInitializer InRasterizerState);
+
+        void SetStencilRefValue(uint8 InStencilRefValue);
+        
+        FMaterialRenderProxy* UMaterial::GetRenderProxy() const
         {
-            return std::make_shared<FMaterialRenderProxy>(this);
+            return DefaultMaterialInstance;
         }
 
-        void UpdateMaterialCode(const std::string &InCode, bool bRecompile=true);
+        void UpdateDataToMaterialProxy();
 
-        // bool UseWorldOffset() { return bUseWorldOffset; }
+        void SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath);
 
-        void SetParameterValue(const std::string &Name, UTexture *Texture)
+        virtual void Serialize(FArchive &Ar) override;
+
+        virtual void Deserialize(FArchive &Ar) override;
+
+        UMaterialInstance* CreateMaterialInstance();
+
+        FMaterial *GetResource() { return MaterialResource; }
+
+        std::string GetMateiralCode() const { return Code; }
+
+        void ReleaseResources()
         {
-            Textures[Name] = Texture;
-        }
-
-        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)
-        {
-            UniformBuffers[Name] = UniformBuffer;
-        }
-
-        void SetParameterValue(const std::string &Name, FUniformValue UniformValue)
-        {
-            Uniforms.insert({Name, UniformValue});
-        }
-
-        void ReleaseResource()
-        {
-            FMaterialShaderMap* ToDelete = ShaderMap;
-            ENQUEUE_RENDER_COMMAND(FMaterial_ReleaseResource)(
-                [ToDelete](FDynamicRHI*) 
-                {
-                    ToDelete->RemoveAllShaders();
-                    delete ToDelete;
-                });
+            if (MaterialResource)
+            {
+                FMaterial* ToDelete = MaterialResource;
+                ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
+                    [ToDelete](FDynamicRHI*) 
+                    {
+                        delete ToDelete;
+                    });
+            }
         }
 
     protected:
 
-        // bool bUseWorldOffset = false;
+        UMaterial(const UMaterial& Material);
 
-        FMaterialShaderMap* ShaderMap;
+        FMaterial* MaterialResource;
+
+        std::string Code;
+
+        std::filesystem::path ShaderVirtualPath;
+
+        FMaterialRenderProxy* DefaultMaterialInstance;
 
         std::map<std::string, UTexture *> Textures;
 
@@ -117,28 +145,41 @@ namespace nilou {
 
         std::map<std::string, FUniformValue> Uniforms;
 
-        bool bShaderCompiled = false;
+        FRasterizerStateInitializer RasterizerState;
+
+        FDepthStencilStateInitializer DepthStencilState;
+
+        FBlendStateInitializer BlendState;
+
+        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
+
+        uint8 StencilRefValue = 0;
+        
+    };
+
+    UCLASS()
+    class UMaterialInstance : public UMaterial
+    {
+        GENERATE_CLASS_INFO()
+    public:
+        UMaterialInstance() { }
+
+        UMaterialInstance(UMaterial* Material)
+            : UMaterial(*Material)
+        {
+
+        }
+
+        virtual void Serialize(FArchive &Ar) override;
 
     };
 
     class FMaterialRenderProxy
     {
+        friend class UMaterial;
         friend class UMaterialInstance;
     public:
-        FMaterialRenderProxy(FMaterial *InMaterial)
-            : Name(InMaterial->Name)
-            , ShaderMap(InMaterial->ShaderMap)
-            , Textures(InMaterial->Textures)
-            , UniformBuffers(InMaterial->UniformBuffers)
-            , Uniforms(InMaterial->Uniforms)
-            , StencilRefValue(InMaterial->StencilRefValue)
-            , RasterizerState(InMaterial->RasterizerState)
-            , DepthStencilState(InMaterial->DepthStencilState)
-            , BlendState(InMaterial->BlendState)
-            , ShadingModel(InMaterial->ShadingModel)
-        {
-
-        }
+        FMaterialRenderProxy() { }
 
         FShaderInstance *GetShader(
             const FVertexFactoryPermutationParameters VFParameter, 
@@ -163,7 +204,7 @@ namespace nilou {
 
         std::string Name;
 
-        FMaterialShaderMap* ShaderMap;
+        std::shared_ptr<FMaterialShaderMap> ShaderMap;
 
         std::map<std::string, UTexture *> Textures;
 
@@ -180,104 +221,10 @@ namespace nilou {
         FBlendStateInitializer BlendState;
 
         EShadingModel ShadingModel;
-    };
 
-    UCLASS()
-    class UMaterial : public UObject
-    {
-        friend class UMaterialInstance;
-        GENERATE_CLASS_INFO()
-    public:
+    private:
 
-        UMaterial()
-            : Name("")
-            , MaterialResource(new FMaterial())
-        {
-        }
-
-        UMaterial(const std::string &InName)
-            : Name(InName)
-            , MaterialResource(new FMaterial())
-        {
-            MaterialResource->Name = Name;
-        }
-
-        static UMaterial *GetDefaultMaterial();
-
-        std::string Name;
-
-        void UpdateCode(const std::string &InCode, bool bRecompile=true);
-
-        void SetParameterValue(const std::string &Name, UTexture *Texture)
-        {
-            Textures[Name] = Texture->SerializationPath;
-            MaterialResource->SetParameterValue(Name, Texture);
-        }
-
-        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer)
-        {
-            MaterialResource->SetParameterValue(Name, UniformBuffer);
-        }
-
-        void SetParameterValue(const std::string &Name, FUniformValue Uniform)
-        {
-            MaterialResource->SetParameterValue(Name, Uniform);
-        }
-
-        void SetShadingModel(EShadingModel InShadingModel)
-        {
-            ShadingModel = InShadingModel;
-            MaterialResource->ShadingModel = ShadingModel;
-        }
-
-        void SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath);
-
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
-
-        UMaterialInstance* CreateMaterialInstance();
-
-        FMaterial *GetResource() { return MaterialResource; }
-
-        std::string GetMateiralCode() const { return Code; }
-
-        std::map<std::string, std::filesystem::path> Textures;
-
-        void ReleaseResources()
-        {
-            if (MaterialResource)
-            {
-                FMaterial* ToDelete = MaterialResource;
-                ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
-                    [ToDelete](FDynamicRHI*) 
-                    {
-                        delete ToDelete;
-                    });
-            }
-        }
-
-    protected:
-
-        FMaterial* MaterialResource;
-
-        std::string Code;
-
-        std::filesystem::path ShaderVirtualPath;
-
-        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
-        
-    };
-
-    UCLASS()
-    class UMaterialInstance : public UMaterial
-    {
-        GENERATE_CLASS_INFO()
-    public:
-        UMaterialInstance() { }
-        UMaterialInstance(UMaterial* Material);
-
-        virtual void Serialize(FArchive &Ar) override;
+        FMaterialRenderProxy(const FMaterialRenderProxy& Other);
 
     };
 

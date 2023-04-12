@@ -13,6 +13,9 @@ namespace nilou {
     class FUniformValue
     {
     public:
+        FUniformValue()
+        {
+        }
         FUniformValue(const FUniformValue& Other)
         {
             Value = Other.Value;
