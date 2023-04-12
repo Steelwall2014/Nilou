@@ -140,11 +140,18 @@ namespace nilou {
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
-        FTransform ReflectionProbeTransform;
-        ReflectionProbeTransform.SetTranslation(dvec3(-1, 1, 1));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe1");
+        FTransform ReflectionProbeTransform1;
+        ReflectionProbeTransform1.SetTranslation(dvec3(-1, 1, 1));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
+
+        /** To test Blend */
         ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe2");
+
+        FTransform ReflectionProbeTransform2;
+        ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
+
+        /** To test Blend */
         ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
 
         std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
@@ -157,8 +164,6 @@ namespace nilou {
         MirrorTransform.SetScale3D(dvec3(0.2));
         std::shared_ptr<ASphereActor> MirrorActor = SpawnActor<ASphereActor>(MirrorTransform, "test MirrorActor");
         MirrorActor->SphereComponent->SetMaterial(MirrorMaterial);
-
-        // TODO 阴影闪烁，多个probe的混合
 
 
         // GetContentManager()->ForEachContent([](UObject* Obj){

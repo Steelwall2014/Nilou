@@ -87,7 +87,7 @@ namespace nilou {
         : Viewport(InViewport)
         , Scene(InScene)
         , FrameNumber(0)
-        , GammaCorrection(2.2)
+        , GammaCorrection(1.0)
         , bEnableToneMapping(false)
     {
 

@@ -10,8 +10,8 @@
 
 vec3 ApplyDefaultLit(FLightShaderParameters light, ShadingParams params, float visibility)
 {
-    vec3 baseColor = GammaToLinear(params.baseColor.rgb);
-    vec3 emissive = GammaToLinear(params.emissive.rgb);
+    vec3 baseColor = params.baseColor.rgb;
+    vec3 emissive = params.emissive.rgb;
     vec3 N = params.N;
     vec3 L = params.L;
     vec3 H = params.H;

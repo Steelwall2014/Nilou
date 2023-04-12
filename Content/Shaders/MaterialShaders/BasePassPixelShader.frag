@@ -13,7 +13,7 @@ uniform uint PrefilterEnvTextureNumMips;
 uniform float ReflectionProbeFactor;
 //#include "../include/Maths.glsl"
 //#include "../include/Light.glsl"
-//#include "../include/PBRFunctions.glsl"
+#include "../include/PBRFunctions.glsl"
 
 // To be filled
 //#include "../Materials/ColoredMaterial_Mat.glsl"
@@ -73,11 +73,12 @@ void main()
 //    vec3 TangentSpaceNormal = MaterialGetTangentSpaceNormal(vs_out).rgb;
 //    TangentSpaceNormal = normalize(TangentSpaceNormal * 2.0f - 1.0f);   
 //    WorldSpaceNormal = normalize(vs_out.TBN * TangentSpaceNormal);
-    BaseColor = MaterialGetBaseColor(vs_out);
+    vec4 GammaBaseColor = MaterialGetBaseColor(vs_out);
+    BaseColor = vec4(GammaToLinear(GammaBaseColor.rgb), GammaBaseColor.a);
     RelativeWorldSpacePosition = vs_out.RelativeWorldPosition;
     MetallicRoughness.x = MaterialGetMetallic(vs_out);
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
-    Emissive = MaterialGetEmissive(vs_out);
+    Emissive = GammaToLinear(MaterialGetEmissive(vs_out));
     ShadingModel = MaterialShadingModel;
     Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
 //    vec3 projCoords = frag_lightspace_pos[0].xyz / frag_lightspace_pos[0].w;
