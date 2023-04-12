@@ -241,6 +241,7 @@ namespace nilou {
             ViewInfo.SceneTextures = SceneTexturesPool.Alloc(CreateInfo);
         }
 
+        static std::vector<FShadowMapResource*> Resources;
         for (int32 LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightInfo& Light = Lights[LightIndex];
@@ -313,17 +314,20 @@ namespace nilou {
                     else 
                     {
                         AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
-                        UReflectionProbeComponent* ReflectionProbeComponent = DefaultProbe->ReflectionProbeComponent.get();
                         FMeshBatch NewMesh = Mesh;
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "IrradianceTexture", 
-                            ReflectionProbeComponent->SceneProxy->IrradianceTexture);
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "PrefilteredTexture", 
-                            ReflectionProbeComponent->SceneProxy->PrefilteredTexture);
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "IBL_BRDF_LUT", 
-                            IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
+                        if (DefaultProbe)
+                        {
+                            UReflectionProbeComponent* ReflectionProbeComponent = DefaultProbe->ReflectionProbeComponent.get();
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "IrradianceTexture", 
+                                ReflectionProbeComponent->SceneProxy->IrradianceTexture);
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "PrefilteredTexture", 
+                                ReflectionProbeComponent->SceneProxy->PrefilteredTexture);
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "IBL_BRDF_LUT", 
+                                IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
+                        }
                         Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                     }
                     
