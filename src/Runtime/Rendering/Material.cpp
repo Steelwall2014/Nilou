@@ -77,7 +77,7 @@ namespace nilou {
         Name = content["Name"];
         if (content.contains("ShadingModel"))
         {
-            ShadingModel = magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value();
+            SetShadingModel(magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value());
         }
         MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
@@ -96,22 +96,12 @@ namespace nilou {
             if (Texture)
                 MaterialResource->SetParameterValue(sampler_name, Texture);
         }
-        UpdateMaterialParametersRHI();
     }
 
     std::shared_ptr<UMaterialInstance> UMaterial::CreateMaterialInstance()
     {
         std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>(this);
         return MaterialInstance;
-    }
-
-    void UMaterial::UpdateMaterialParametersRHI()
-    {
-        ENQUEUE_RENDER_COMMAND(Material_UpdateMaterialParametersRHI)(
-            [this](FDynamicRHI* RHICmdList) {
-                MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                MaterialParameters->UpdateUniformBuffer();
-            });
     }
 
     UMaterialInstance::UMaterialInstance(UMaterial* Material)
@@ -130,7 +120,6 @@ namespace nilou {
         MaterialResource->UniformBuffers = Material->MaterialResource->UniformBuffers;
         MaterialResource->Textures = Material->MaterialResource->Textures;
         MaterialResource->bShaderCompiled = Material->MaterialResource->bShaderCompiled;
-        UpdateMaterialParametersRHI();
     }
 
     void UMaterialInstance::Serialize(FArchive &Ar)

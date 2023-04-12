@@ -457,6 +457,61 @@ namespace nilou {
         RHIGetError();
         return true;
     }
+    
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1i(BaseIndex, Value);
+        return true;
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1f(BaseIndex, Value);
+        return true;
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1ui(BaseIndex, Value);
+        return true;
+    }
+
 
 	void FOpenGLDynamicRHI::RHISetVertexBuffer(FRHIGraphicsPipelineState *BoundPipelineState, FRHIVertexInput *VertexInput)
     {
@@ -950,6 +1005,16 @@ namespace nilou {
             break;
         case glslang::TBasicType::EbtAtomicUint:
             type = EShaderParameterType::SPT_AtomicUint;
+            break;
+        case glslang::TBasicType::EbtUint:
+            type = EShaderParameterType::SPT_Uint;
+            break;
+        case glslang::TBasicType::EbtFloat:
+            type = EShaderParameterType::SPT_Float;
+            break;
+        case glslang::TBasicType::EbtInt:
+            type = EShaderParameterType::SPT_Int;
+            break;
         }  
         if (Type->isImage())
             type = EShaderParameterType::SPT_Image;
@@ -1001,6 +1066,16 @@ namespace nilou {
                 if (binding.BindingPoint == -1)
                 {
                     NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
+                    continue;
+                }
+            }
+            else if (binding.ParameterType == EShaderParameterType::SPT_Float || 
+                     binding.ParameterType == EShaderParameterType::SPT_Int || 
+                     binding.ParameterType == EShaderParameterType::SPT_Uint)
+            {
+                binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
+                if (binding.BindingPoint == -1)
+                {
                     continue;
                 }
             }

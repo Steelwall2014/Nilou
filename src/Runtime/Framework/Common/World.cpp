@@ -143,7 +143,9 @@ namespace nilou {
         FTransform ReflectionProbeTransform;
         ReflectionProbeTransform.SetTranslation(dvec3(-1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe1");
+        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
         std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe2");
+        ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
 
         std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
         SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));

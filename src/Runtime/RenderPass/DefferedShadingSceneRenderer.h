@@ -355,6 +355,8 @@ namespace nilou {
 
         void RenderBasePass(FDynamicRHI *RHICmdList);
 
+        void RenderIndirectLightingPass(FDynamicRHI *RHICmdList);
+
         void RenderLightingPass(FDynamicRHI *RHICmdList);
 
         void RenderViewElementPass(FDynamicRHI *RHICmdList);

@@ -1,14 +1,12 @@
+#include "IndirectLightingPassRendering.h"
 #include "BasePassRendering.h"
 #include "Common/Log.h"
 #include "Material.h"
 #include "DefferedShadingSceneRenderer.h"
 
-
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/MaterialShaders/BasePassVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/MaterialShaders/BasePassPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
-
+    IMPLEMENT_SHADER_TYPE(FIndirectLightingPassPS, "/Shaders/MaterialShaders/IndirectLightingPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
     static void BuildMeshDrawCommand(
         FDynamicRHI *RHICmdList,
@@ -56,6 +54,9 @@ namespace nilou {
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
+                auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PipelineStage]; // alias
+                auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PipelineStage]; // alias
+                auto &StageBufferBindings = OutMeshDrawCommand.ShaderBindings.BufferBindings[PipelineStage]; // alias
                 FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
                 
                 for (auto [Name,Binding] : DescriptorSets.Bindings)
@@ -100,7 +101,7 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::RenderBasePass(FDynamicRHI *RHICmdList)
+    void FDefferedShadingSceneRenderer::RenderIndirectLightingPass(FDynamicRHI *RHICmdList)
     {    
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
@@ -111,20 +112,14 @@ namespace nilou {
             for (FMeshBatch &Mesh : Views[ViewIndex].DynamicMeshBatches)
             {
                 FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
-                RHIGetError();
-
 
                 FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                RHIGetError();
                 
                 FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
-                RHIGetError();
 
                 FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                 InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
-                InputBindings.SetUniformShaderBinding("MaterialShadingModel", (uint32)Mesh.MaterialRenderProxy->ShadingModel);
-                RHIGetError();
-
+ 
                 FMeshDrawCommand MeshDrawCommand;
                 std::vector<FRHIVertexInput> VertexInputs;
                 Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
@@ -137,11 +132,9 @@ namespace nilou {
                 BlendState.RenderTargets[4].ColorBlendOp = EBlendOperation::BO_Add;
                 BlendState.RenderTargets[4].ColorDestBlend = EBlendFactor::BF_One;
                 BlendState.RenderTargets[4].ColorSrcBlend = EBlendFactor::BF_One;
-
+                
                 BuildMeshDrawCommand(
                     RHICmdList,
-                    // *Mesh.MaterialRenderProxy->GetType(),
-                    // *Mesh.VertexFactory->GetType(),
                     VertexFactoryParams,
                     Mesh.MaterialRenderProxy.get(),
                     PermutationParametersVS,
