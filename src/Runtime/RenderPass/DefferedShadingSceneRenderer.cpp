@@ -295,52 +295,95 @@ namespace nilou {
                 FViewInfo& ViewInfo = Views[ViewIndex];
                 for (FMeshBatch& Mesh : MeshCollector.PerViewMeshBatches[ViewIndex])
                 {
+                    AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
+                    FReflectionProbeSceneProxy* SkyBoxProbeProxy = nullptr;
+                    if (DefaultProbe && DefaultProbe->ReflectionProbeComponent)
+                        SkyBoxProbeProxy = DefaultProbe->ReflectionProbeComponent->SceneProxy;
 
                     Mesh.Element.Bindings.SetUniformShaderBinding(
                         "MaterialShadingModel", 
                         (uint32)Mesh.MaterialRenderProxy->ShadingModel);
 
                     std::vector<std::pair<FReflectionProbeSceneProxy*, float>> ReflectionProbes;
-                    if (!PrimitiveInfo->ReflectionProbeFactors.empty())
+                    switch (PrimitiveInfo->SceneProxy->ReflectionProbeBlendMode)
                     {
+                    case RPBM_Off:
+                    {
+                        if (SkyBoxProbeProxy)
+                            ReflectionProbes.push_back({SkyBoxProbeProxy, 1.0});
+                        break;
+                    }
+                    case RPBM_BlendProbes:
+                    {   
                         for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
                         {
                             ReflectionProbes.push_back({ReflectionProbe->SceneProxy, factor});
                         }
+                        break;
+                    }
+                    case RPBM_BlendProbesAndSkybox:
+                    {
+                        if (!PrimitiveInfo->ReflectionProbeFactors.empty())
+                        {
+                            for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
+                            {
+                                ReflectionProbes.push_back({ReflectionProbe->SceneProxy, factor});
+                            }
+                        }
+                        if (SkyBoxProbeProxy)
+                        {
+                            ReflectionProbes.push_back({SkyBoxProbeProxy, 1.0});
+                        }
+                        break;
+                    }
+                    case RPBM_Simple:
+                    {
+                        // use skybox as fallback
+                        FReflectionProbeSceneProxy* MaxFactorProxy = SkyBoxProbeProxy;
+                        float MaxFactor = -1;
+                        for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
+                        {
+                            if (factor > MaxFactor)
+                            {
+                                MaxFactor = factor;
+                                MaxFactorProxy = ReflectionProbe->SceneProxy;
+                            }
+                        }
+                        ReflectionProbes.push_back({MaxFactorProxy, 1.0});
+                        break;
+                    }
+                    }
+                    if (!ReflectionProbes.empty())
+                    {
+                        for (auto [ReflectionProbe, factor] : ReflectionProbes)
+                        {
+                            FMeshBatch NewMesh = Mesh;
+
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "IrradianceTexture", 
+                                ReflectionProbe->IrradianceTexture);
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "PrefilteredTexture", 
+                                ReflectionProbe->PrefilteredTexture);
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "IBL_BRDF_LUT", 
+                                IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "FViewShaderParameters", 
+                                ViewInfo.ViewUniformBuffer->GetRHI());
+                            NewMesh.Element.Bindings.SetUniformShaderBinding(
+                                "PrefilterEnvTextureNumMips", 
+                                static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips()));
+                            NewMesh.Element.Bindings.SetUniformShaderBinding(
+                                "ReflectionProbeFactor", 
+                                factor);
+                            
+                            Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
+                        }
                     }
                     else 
                     {
-                        AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
-                        if (DefaultProbe)
-                        {
-                            UReflectionProbeComponent* ReflectionProbeComponent = DefaultProbe->ReflectionProbeComponent.get();
-                            ReflectionProbes.push_back({ReflectionProbeComponent->SceneProxy, 1.0});
-                        }
-                    }
-                    for (auto [ReflectionProbe, factor] : ReflectionProbes)
-                    {
-                        FMeshBatch NewMesh = Mesh;
-
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "IrradianceTexture", 
-                            ReflectionProbe->IrradianceTexture);
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "PrefilteredTexture", 
-                            ReflectionProbe->PrefilteredTexture);
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "IBL_BRDF_LUT", 
-                            IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
-                        NewMesh.Element.Bindings.SetElementShaderBinding(
-                            "FViewShaderParameters", 
-                            ViewInfo.ViewUniformBuffer->GetRHI());
-                        NewMesh.Element.Bindings.SetUniformShaderBinding(
-                            "PrefilterEnvTextureNumMips", 
-                            static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips()));
-                        NewMesh.Element.Bindings.SetUniformShaderBinding(
-                            "ReflectionProbeFactor", 
-                            factor);
-                        
-                        Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
+                        Views[ViewIndex].DynamicMeshBatches.push_back(Mesh);
                     }
                 }
             }

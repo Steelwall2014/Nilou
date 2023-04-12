@@ -51,9 +51,12 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
 	vec3 SubSurfaceColour = params.baseColor;
     
     // emissive is taken as SubSurfaceBase, SubSurfaceSun and SubSurfaceSunFallOff in ocean surface rendering
-    float SubSurfaceBase = params.emissive.x;
-    float SubSurfaceSun = params.emissive.y;
-    float SubSurfaceSunFallOff = params.emissive.z;
+//    float SubSurfaceBase = params.emissive.x;
+//    float SubSurfaceSun = params.emissive.y;
+//    float SubSurfaceSunFallOff = params.emissive.z;
+    float SubSurfaceBase = 0.33;
+    float SubSurfaceSun = 1.13;
+    float SubSurfaceSunFallOff = 5;
     
     // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering
     float sigmaXsq = params.metallic;
@@ -115,11 +118,11 @@ vec3 ApplyOceanSubsurface(FLightShaderParameters light, ShadingParams params)
 
     float vz = abs(V.z);
     float towardsSun = pow(max(0., dot(L, -V)), SubSurfaceSunFallOff);
-    vec3 subsurface = (SubSurfaceBase + SubSurfaceSun * towardsSun) * SubSurfaceColour.rgb * light.lightIntensity;
+    vec3 subsurface = (SubSurfaceBase + SubSurfaceSun * towardsSun) * SubSurfaceColour.rgb * light.lightIntensity / 10;
     vec3 color = vec3(0);
     color += subsurface * (1-fresnel);
     color += refl * fresnel;
-    color += light.lightIntensity * spec * 5;
+    color += light.lightIntensity * spec * 5 / 10;
     return 0.4 * color;
 }
 #endif

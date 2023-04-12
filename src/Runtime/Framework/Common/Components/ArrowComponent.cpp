@@ -65,9 +65,9 @@ namespace nilou {
 
         virtual void DestroyRenderThreadResources() override
         {
-            FPrimitiveSceneProxy::~FPrimitiveSceneProxy();
             VertexBuffers.ReleaseResource();
             IndexBuffer.ReleaseResource();
+            FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
     private:

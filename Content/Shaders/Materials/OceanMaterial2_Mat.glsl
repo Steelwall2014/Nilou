@@ -13,17 +13,11 @@ uniform sampler2D NormalTexture;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)            
 {        
-    // baseColor is taken as SubSurfaceColour in ocean surface rendering  
-	vec3 SubSurfaceColour = vec3(18,65,76) / 255;
-	return vec4(LinearToGamma(SubSurfaceColour), 1);
+	return vec4(LinearToGamma(vec3(18,65,76) / 255), 1);
 }            
 vec3 MaterialGetEmissive(VS_Out vs_out)            
 {              
-    // emissive is taken as SubSurfaceBase, SubSurfaceSun and SubSurfaceSunFallOff in ocean surface rendering  
-    float SubSurfaceBase = 0.33;
-    float SubSurfaceSun = 1.13;
-    float SubSurfaceSunFallOff = 5;
-	return LinearToGamma(vec3(SubSurfaceBase, SubSurfaceSun, SubSurfaceSunFallOff));            
+	return vec3(0);            
 }            
 vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)            
 {                
@@ -46,20 +40,12 @@ vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
 	return normalize(grad.xyz);            
 }           
 float MaterialGetMetallic(VS_Out vs_out)            
-{          
-    // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering
-	float dist = length(vs_out.RelativeWorldPosition.xy);
-    float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
-    float sigmaXsq = 0.007;//lerp(0.015, 0.0015, sigmaFactor);        
-	return sigmaXsq;            
+{               
+	return 0.0;            
 }          
 float MaterialGetRoughness(VS_Out vs_out)            
-{         
-    // metallic and roughness are taken as sigmaXsq and sigmaYsq in ocean surface rendering     
-	float dist = length(vs_out.RelativeWorldPosition.xy);
-    float sigmaFactor = clamp((BLEND_END - dist) / (BLEND_END - BLEND_START), 0.0, 1.0);
-    float sigmaYsq = 0.007;//lerp(0.015, 0.0015, sigmaFactor);  
-	return sigmaYsq;            
+{          
+	return 0.4;            
 }               
 vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)            
 {                

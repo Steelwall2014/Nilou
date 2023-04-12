@@ -91,6 +91,7 @@ namespace nilou {
         UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
         std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
         StaticMeshActor->SetStaticMesh(Cube);
+        StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Off);
         
         UMaterial* SkyAtmosphereMaterial = GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset");
         SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
@@ -115,11 +116,12 @@ namespace nilou {
         // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        // FTransform VHMTransform;
-        // VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
-        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
-        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        FTransform VHMTransform;
+        VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
+        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
+        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
@@ -132,6 +134,7 @@ namespace nilou {
         // // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
         // // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
         // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
+        // TilesetActor->GetTilesetComponent()->SetReflectionProbeBlendMode(RPBM_Off);
 
         // std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         // std::vector<FBatchedLine> lines;
@@ -182,6 +185,10 @@ namespace nilou {
         // UMaterial* MirrorMaterial = GetContentManager()->CreateFile<UMaterial>("/Materials/MirrorMaterial.nasset");
         // MirrorMaterial->Name = "MirrorMaterial";
         // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
+
+        // UMaterial* OceanMaterial2 = GetContentManager()->CreateFile<UMaterial>("/Materials/OceanMaterial2.nasset");
+        // OceanMaterial2->Name = "OceanMaterial2";
+        // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Materials/OceanMaterial2_Mat.glsl");
 
     }
 

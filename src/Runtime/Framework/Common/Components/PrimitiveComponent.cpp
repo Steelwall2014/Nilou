@@ -29,11 +29,13 @@ namespace nilou {
 
     void UPrimitiveComponent::SendRenderTransform()
     {
-        SceneProxy->SetTransform(GetRenderMatrix(), GetBounds());
-        // if(World && World->Scene)
-        // {
-        //     World->Scene->UpdatePrimitiveTransform(this);
-        // }
+        auto LocalToWorld = GetRenderMatrix();
+        auto Bound = GetBounds();
+        ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
+            [this, LocalToWorld, Bound](FDynamicRHI*) 
+            {
+                SceneProxy->SetTransform(LocalToWorld, Bound);
+            });
 
         USceneComponent::SendRenderTransform();
     }
@@ -41,6 +43,7 @@ namespace nilou {
     FPrimitiveSceneProxy::FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName)
         : Scene(nullptr)
         , PrimitiveSceneInfo(nullptr)
+        , ReflectionProbeBlendMode(Primitive->GetReflectionProbeBlendMode())
     {
         Name = InName;
         bCastShadow = Primitive->GetCastShadow();

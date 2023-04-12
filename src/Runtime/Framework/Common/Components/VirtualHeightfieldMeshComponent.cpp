@@ -621,15 +621,19 @@ namespace nilou {
             
         }
 
-        virtual ~FVirtualHeightfieldMeshSceneProxy()
+        virtual void DestroyRenderThreadResources() override
         {
-            FPrimitiveSceneProxy::~FPrimitiveSceneProxy();
             VertexBuffers.ReleaseResource();
             IndexBuffer.ReleaseResource();
-            CreateNodeListBlock->ReleaseResource();
-            QuadTreeParameters->ReleaseResource();
-            CreatePatchBlock->ReleaseResource();
-            BuildNormalTangentBlock->ReleaseResource();
+            if (CreateNodeListBlock)
+                CreateNodeListBlock->ReleaseResource();
+            if (QuadTreeParameters)
+                QuadTreeParameters->ReleaseResource();
+            if (CreatePatchBlock)
+                CreatePatchBlock->ReleaseResource();
+            if (BuildNormalTangentBlock)
+                BuildNormalTangentBlock->ReleaseResource();
+            FPrimitiveSceneProxy::DestroyRenderThreadResources();
         }
 
 	    FMaterial* Material = nullptr;

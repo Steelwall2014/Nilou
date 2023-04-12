@@ -110,7 +110,7 @@ namespace nilou {
         Code = Material->Code;
         SerializationPath = Material->SerializationPath;
         Textures = Material->Textures;
-        ShadingModel = Material->ShadingModel;
+        SetShadingModel(Material->ShadingModel);
         MaterialResource->Name = Material->MaterialResource->Name;
         MaterialResource->StencilRefValue = Material->MaterialResource->StencilRefValue;
         MaterialResource->BlendState = Material->MaterialResource->BlendState;

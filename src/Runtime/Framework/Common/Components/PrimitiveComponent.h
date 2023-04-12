@@ -12,6 +12,14 @@ namespace nilou {
     class FPrimitiveSceneProxy;
     class FPrimitiveSceneInfo;
 
+    enum EReflectionProbeBlendMode 
+    {
+        RPBM_Off,    // Reflection probe blending is disabled. Only the skybox will be used for reflection
+        RPBM_BlendProbes,    // Blends only adjacent probes and ignores the skybox. 
+        RPBM_BlendProbesAndSkybox,   // Works like Blend Probes but also allows the skybox to be used in the blending.
+        RPBM_Simple, // Disables blending between probes when there are two overlapping reflection probe volumes.
+    };
+
     UCLASS()
     class UPrimitiveComponent : public USceneComponent
     {
@@ -40,9 +48,16 @@ namespace nilou {
 
         bool GetCastShadow() const { return bCastShadow; }
 
+        void SetReflectionProbeBlendMode(EReflectionProbeBlendMode NewBlendMode) { ReflectionProbeBlendMode = NewBlendMode; MarkRenderStateDirty(); }
+
+        EReflectionProbeBlendMode GetReflectionProbeBlendMode() const { return ReflectionProbeBlendMode; }
+
     protected:
 
         bool bCastShadow;
+
+        EReflectionProbeBlendMode ReflectionProbeBlendMode = RPBM_BlendProbes;
+        
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveShaderParameters)
@@ -93,6 +108,8 @@ namespace nilou {
         FScene *Scene;
 
         TUniformBufferRef<FPrimitiveShaderParameters> PrimitiveUniformBuffer;
+
+        EReflectionProbeBlendMode ReflectionProbeBlendMode;
 
     private:
     
