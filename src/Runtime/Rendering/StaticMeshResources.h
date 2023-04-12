@@ -41,7 +41,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const override;
+        virtual std::vector<FRHIVertexInput> GetVertexInputList() const override;
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -66,6 +66,16 @@ namespace nilou {
         FStaticMeshVertexBuffer<glm::vec2> TexCoords[MAX_STATIC_TEXCOORDS];
 
         void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
+
+        void ReleaseResource()
+        {
+            Positions.ReleaseResource();
+            Normals.ReleaseResource();
+            Tangents.ReleaseResource();
+            Colors.ReleaseResource();
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+                TexCoords[i].ReleaseResource();
+        }
     };
 
     struct FStaticMeshSection

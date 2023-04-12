@@ -40,6 +40,14 @@ namespace nilou {
         return Resource;
     }
 
+    void UTexture2D::ReadPixelsRenderThread(FDynamicRHI* RHICmdList)
+    {
+        uint8* data = RHICmdList->RHIReadImagePixel(std::static_pointer_cast<RHITexture2D>(GetResource()->TextureRHI));
+        ImageData->AllocateSpace();
+        std::copy(data, data+ImageData->GetDataSize(), ImageData->GetData());
+        delete[] data;
+    }
+
     void UTexture2D::Serialize(FArchive& Ar)
     {
         UTexture::Serialize(Ar);

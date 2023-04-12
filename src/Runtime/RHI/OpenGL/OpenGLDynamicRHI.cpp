@@ -457,6 +457,61 @@ namespace nilou {
         RHIGetError();
         return true;
     }
+    
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1i(BaseIndex, Value);
+        return true;
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1f(BaseIndex, Value);
+        return true;
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
+    {
+        return RHISetShaderUniformValue(
+            BoundPipelineState, PipelineStage, 
+            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    }
+
+    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
+    {
+        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        {
+            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+            return false;
+        }
+        glUniform1ui(BaseIndex, Value);
+        return true;
+    }
+
 
 	void FOpenGLDynamicRHI::RHISetVertexBuffer(FRHIGraphicsPipelineState *BoundPipelineState, FRHIVertexInput *VertexInput)
     {
@@ -950,6 +1005,16 @@ namespace nilou {
             break;
         case glslang::TBasicType::EbtAtomicUint:
             type = EShaderParameterType::SPT_AtomicUint;
+            break;
+        case glslang::TBasicType::EbtUint:
+            type = EShaderParameterType::SPT_Uint;
+            break;
+        case glslang::TBasicType::EbtFloat:
+            type = EShaderParameterType::SPT_Float;
+            break;
+        case glslang::TBasicType::EbtInt:
+            type = EShaderParameterType::SPT_Int;
+            break;
         }  
         if (Type->isImage())
             type = EShaderParameterType::SPT_Image;
@@ -1001,6 +1066,16 @@ namespace nilou {
                 if (binding.BindingPoint == -1)
                 {
                     NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
+                    continue;
+                }
+            }
+            else if (binding.ParameterType == EShaderParameterType::SPT_Float || 
+                     binding.ParameterType == EShaderParameterType::SPT_Int || 
+                     binding.ParameterType == EShaderParameterType::SPT_Uint)
+            {
+                binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
+                if (binding.BindingPoint == -1)
+                {
                     continue;
                 }
             }
@@ -1297,6 +1372,8 @@ namespace nilou {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
+        // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
+        // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage2D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
@@ -1312,6 +1389,8 @@ namespace nilou {
         OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
+        // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
+        // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
@@ -1327,6 +1406,8 @@ namespace nilou {
         OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
+        // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
+        // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
@@ -1343,6 +1424,8 @@ namespace nilou {
         OpenGLTextureCubeRef Texture = std::make_shared<OpenGLTextureCube>(0, GL_TEXTURE_CUBE_MAP, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
+        // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
+        // glMakeTextureHandleResidentARB(Texture->Handle);
         RHIGetError();
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
@@ -1363,6 +1446,8 @@ namespace nilou {
         glGenTextures(1, &Texture->Resource);
         // glActiveTexture(GL_TEXTURE0);
         glBindTexture(Texture->Target, Texture->Resource);
+        // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
+        // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         glm::uvec3 sizexyz = Texture->GetSizeXYZ();
 		glTexParameteri(Texture->Target, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
@@ -1410,6 +1495,7 @@ namespace nilou {
         glGenerateMipmap(GLTexture.Target);
         // TexMngr.FreeUnit(unit_id);
     }
+
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
         RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LevelIndex)
     {
@@ -1422,7 +1508,23 @@ namespace nilou {
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
             GLTexture.Resource, GLTexture.InternalFormat, 
-            MinMipLevel, NumMipLevels, 0, 1);
+            MinMipLevel, NumMipLevels, LevelIndex, 1);
+        return OutTexture;
+    }
+
+    RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureViewCube(
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels)
+    {
+        auto GLTexture = TextureResourceCast(OriginTexture);
+        uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinMipLevel));
+        OpenGLTextureCubeRef OutTexture = std::make_shared<OpenGLTextureCube>(
+            0, GL_TEXTURE_CUBE_MAP, 
+            size.x, size.y, 1, 
+            NumMipLevels, InFormat, OriginTexture->GetName() + "_View");
+        glGenTextures(1, &OutTexture->Resource);
+        glTextureView(OutTexture->Resource, GL_TEXTURE_CUBE_MAP, 
+            GLTexture.Resource, GLTexture.InternalFormat, 
+            MinMipLevel, NumMipLevels, 0, 6);
         return OutTexture;
     }
 
@@ -1762,6 +1864,7 @@ namespace nilou {
             RHIGetError();
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
             glslang::InitializeProcess();
             *GetResources() = *GetDefaultResources();
             GetResources()->maxAtomicCounterBindings = 5;

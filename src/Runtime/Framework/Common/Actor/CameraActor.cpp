@@ -48,13 +48,13 @@ namespace nilou {
 
 		/** TEST SCENE CAPTURE CUBE*/
         {
-            std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
-            UTextureRenderTargetCube* RenderTarget = new UTextureRenderTargetCube("Test");
-            RenderTarget->ImageData = Image;
-            RenderTarget->UpdateResource();
-            SceneCaptureComponentCube = CreateComponent<USceneCaptureComponentCube>(this); 
-            SceneCaptureComponentCube->AttachToComponent(CameraComponent.get());
-            SceneCaptureComponentCube->TextureTarget = RenderTarget;
+            // std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
+            // UTextureRenderTargetCube* RenderTarget = new UTextureRenderTargetCube("Test");
+            // RenderTarget->ImageData = Image;
+            // RenderTarget->UpdateResource();
+            // SceneCaptureComponentCube = CreateComponent<USceneCaptureComponentCube>(this); 
+            // SceneCaptureComponentCube->AttachToComponent(CameraComponent.get());
+            // SceneCaptureComponentCube->TextureTarget = RenderTarget;
         }
 		/** TEST SCENE CAPTURE CUBE*/
 
@@ -217,6 +217,6 @@ namespace nilou {
     void ACameraActor::SpeedUp(float AxisValue)
     {
         MovementSpeed += AxisValue * 5;
-        MovementSpeed = std::max(MovementSpeed, 0.f);
+        MovementSpeed = std::max(MovementSpeed, 1.f);
     }
 }

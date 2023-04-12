@@ -7,24 +7,46 @@ namespace nilou {
 
     static std::vector<USceneCaptureComponent*> SceneCapturesToUpdate;
 
-    void USceneCaptureComponent::HideComponent(std::weak_ptr<UPrimitiveComponent> InComponent)
+    void USceneCaptureComponent::HideComponent(UPrimitiveComponent* InComponent)
     {
-        if (!InComponent.expired())
+        if (InComponent && InComponent->IsValid())
         {
-            HiddenComponents.push_back(InComponent);
+            HiddenComponents.insert(InComponent);
         }
     }
 
-    void USceneCaptureComponent::HideActorComponents(std::weak_ptr<AActor> InActor)
+    void USceneCaptureComponent::HideActorComponents(AActor* InActor)
     {
-        if (!InActor.expired())
+        if (InActor && InActor->IsValid())
         {
-            auto Actor = InActor.lock();
+            auto Actor = InActor;
             std::vector<std::weak_ptr<UPrimitiveComponent>> PrimitiveComponents;
             Actor->GetComponents(PrimitiveComponents);
             for (auto WeakPrimComp : PrimitiveComponents)
             {
-                HiddenComponents.push_back(WeakPrimComp);
+                HiddenComponents.insert(WeakPrimComp.lock().get());
+            }
+        }
+    }
+
+    void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
+    {
+        if (InComponent && InComponent->IsValid())
+        {
+            ShowOnlyComponents.insert(InComponent);
+        }
+    }
+
+    void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
+    {
+        if (InActor && InActor->IsValid())
+        {
+            auto Actor = InActor;
+            std::vector<std::weak_ptr<UPrimitiveComponent>> PrimitiveComponents;
+            Actor->GetComponents(PrimitiveComponents);
+            for (auto WeakPrimComp : PrimitiveComponents)
+            {
+                ShowOnlyComponents.insert(WeakPrimComp.lock().get());
             }
         }
     }
@@ -42,6 +64,9 @@ namespace nilou {
 
     void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene)
     {
+        // Some trick, the first frame actually doesn't render anything.
+        if (Scene->GetFrameNumber() <= 1)
+            return;
         for (USceneCaptureComponent* Component : SceneCapturesToUpdate)
         {
             if (Component && Component->IsValid())
@@ -82,7 +107,9 @@ namespace nilou {
         Viewport.Width = TextureTarget->GetSizeX();
         Viewport.Height = TextureTarget->GetSizeY();
         Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
-        FSceneViewFamily ViewFamily(Viewport, Scene);   
+        FSceneViewFamily ViewFamily(Viewport, Scene);  
+        ViewFamily.HiddenComponents = HiddenComponents; 
+        ViewFamily.ShowOnlyComponents = ShowOnlyComponents; 
 
         FSceneView SceneView(
             VerticalFieldOfView, 
@@ -154,29 +181,36 @@ namespace nilou {
 
     void USceneCaptureComponentCube::UpdateSceneCaptureContents(FScene* Scene)
     {
-        if (TextureTarget->GetRenderTargetResource() == nullptr)
+        UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation());
+    }
+
+    void USceneCaptureComponentCube::UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position)
+    {
+        if (TextureTarget == nullptr || TextureTarget->GetRenderTargetResource() == nullptr)
             return;
         FViewport Viewport;
         Viewport.Width = TextureTarget->GetSizeX();
         Viewport.Height = TextureTarget->GetSizeY();
         Viewport.RenderTarget = TextureTarget->GetRenderTargetResource();
-        FSceneViewFamily ViewFamily(Viewport, Scene);   
+        FSceneViewFamily ViewFamily(Viewport, Scene);    
+        ViewFamily.HiddenComponents = HiddenComponents; 
+        ViewFamily.ShowOnlyComponents = ShowOnlyComponents;  
 
         std::array<dvec3, 6> ForwardVectors = {
             dvec3(1, 0, 0), 
             dvec3(-1, 0, 0), 
-            dvec3(0, 1, 0), 
-            dvec3(0, -1, 0), 
             dvec3(0, 0, 1), 
             dvec3(0, 0, -1), 
+            dvec3(0, 1, 0), 
+            dvec3(0, -1, 0), 
         };
         std::array<dvec3, 6> UpVectors = {
-            dvec3(0, 0, 1), 
-            dvec3(0, 0, 1), 
-            dvec3(0, 0, 1), 
-            dvec3(0, 0, 1), 
-            dvec3(-1, 0, 0), 
-            dvec3(1, 0, 0), 
+            dvec3(0, 0, -1), 
+            dvec3(0, 0, -1), 
+            dvec3(0, 1, 0), 
+            dvec3(0, -1, 0), 
+            dvec3(0, 0, -1), 
+            dvec3(0, 0, -1), 
         };
 
         std::vector<FSceneView> SceneViews;
@@ -186,7 +220,7 @@ namespace nilou {
             SceneViews.emplace_back(
                 glm::radians(90.0), 
                 0.1, 30000, 
-                GetComponentLocation(), 
+                Position, 
                 ForwardVectors[i], 
                 UpVectors[i],
                 ivec2(Viewport.Width, Viewport.Height), 

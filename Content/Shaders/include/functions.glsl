@@ -16,4 +16,20 @@ float lerp(float from, float to, float t)
 {
     return from + (to-from) * t;
 }
+vec4 mytextureCube(samplerCube Cube, vec3 sampleVec)
+{
+    vec4 color = texture(Cube, sampleVec.xzy);
+    // Sometimes it just returns NaN....
+    // Weird....
+    if (isnan(color.r) || isnan(color.g) || isnan(color.b) || isnan(color.a))
+        return vec4(0);
+    return color;
+}
+vec4 mytextureCubeLod(samplerCube Cube, vec3 sampleVec, float Lod)
+{
+    vec4 color = textureLod(Cube, sampleVec.xzy, Lod);
+    if (isnan(color.r) || isnan(color.g) || isnan(color.b) || isnan(color.a))
+        return vec4(0);
+    return color;
+}
 #endif

@@ -22,6 +22,9 @@
 #include "Common/Actor/LineBatchActor.h"
 #include "Common/Actor/VirtualHeightfieldMeshActor.h"
 #include "Common/Actor/FFTOceanActor.h"
+#include "Common/Actor/ReflectionProbe.h"
+
+#include "Texture2D.h"
 
 #include "Georeference.h"
 #include "VirtualTexture2D.h"
@@ -49,14 +52,18 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
+        UMaterial* MirrorMaterial = GetContentManager()->GetMaterialByPath("/Materials/MirrorMaterial.nasset");
+        UMaterial* ColoredMaterial = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
+        // MirrorMaterial->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
+
         UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
         if (Mesh)
         {
             FTransform MeshTransform;
             MeshTransform.SetRotator(FRotator(0, 0, -90));
-            for (int i = -1; i <= 1; i++)
+            for (int i = 1; i <= 1; i++)
             {
-                for (int j = -1; j <= 1; j++)
+                for (int j = 1; j <= 1; j++)
                 {
                     MeshTransform.SetTranslation(glm::vec3(i, j, 1));
                     std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
@@ -105,7 +112,7 @@ namespace nilou {
         // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
-        DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
+        // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
         // FTransform VHMTransform;
@@ -133,12 +140,49 @@ namespace nilou {
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
+        FTransform ReflectionProbeTransform1;
+        ReflectionProbeTransform1.SetTranslation(dvec3(-1, 1, 1));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
+
+        /** To test Blend */
+        // ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
+
+        FTransform ReflectionProbeTransform2;
+        ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
+
+        /** To test Blend */
+        // ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
+
+        std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
+        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
+        this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+
+        FTransform MirrorTransform;
+        MirrorTransform.SetTranslation(dvec3(-1, 1, 1));
+        MirrorTransform.SetScale3D(dvec3(0.2));
+        std::shared_ptr<ASphereActor> MirrorActor = SpawnActor<ASphereActor>(MirrorTransform, "test MirrorActor");
+        MirrorActor->SphereComponent->SetMaterial(MirrorMaterial);
+
+
         // GetContentManager()->ForEachContent([](UObject* Obj){
         //     if (Obj->IsA(UVirtualTexture::StaticClass()))
         //     {
         //         Obj->ContentEntry->bIsDirty = true;
         //     }
         // });
+
+        // std::shared_ptr<FImage> img =GetAssetLoader()->SyncOpenAndReadImage(R"(E:\Downloads\ibl_brdf_lut.png)");
+        // UTexture2D* LUT = GetContentManager()->CreateFile<UTexture2D>("/Textures/IBL_BRDF_LUT.nasset");
+        // LUT->Name = "IBL_BRDF_LUT";
+        // LUT->ImageData = img;
+        // LUT->UpdateResource();
+
+        // UMaterial* MirrorMaterial = GetContentManager()->CreateFile<UMaterial>("/Materials/MirrorMaterial.nasset");
+        // MirrorMaterial->Name = "MirrorMaterial";
+        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
+
     }
 
     void UWorld::Tick(double DeltaTime)

@@ -67,4 +67,5 @@ vec3 HDR(vec3 L, float hdrExposure) {
 
     return mapped;
 }
+
 #endif

@@ -47,9 +47,9 @@ namespace nilou {
         std::condition_variable cv;
         bool pixels_readed = false;
         ENQUEUE_RENDER_COMMAND(UTexture_ReadPixelsSync)(
-            [this, &cv, &pixels_readed](FDynamicRHI*)
+            [this, &cv, &pixels_readed](FDynamicRHI* RHICmdList)
             {
-                ReadPixelsRenderThread();
+                ReadPixelsRenderThread(RHICmdList);
                 cv.notify_one();
                 pixels_readed = true;
             });

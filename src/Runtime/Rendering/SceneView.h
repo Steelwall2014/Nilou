@@ -75,20 +75,15 @@ namespace nilou {
 
     /**
      * 一个对UE5 FSceneViewFamily的模仿，虽然我并不知道UE5的这个玩意有啥用
+     * A set of views into a scene which only have different view transforms and owner actors.
      */
     class FSceneViewFamily
     {
     public:
 
-        FSceneViewFamily(
-            FViewport InViewport, 
-            class FScene* InScene)
-            : Viewport(InViewport)
-            , Scene(InScene)
-            , FrameNumber(0)
-        {
+        FSceneViewFamily(FViewport InViewport, class FScene* InScene);
 
-        }
+        FSceneViewFamily(const FSceneViewFamily* Other);
 
         FViewport Viewport;
 
@@ -97,5 +92,15 @@ namespace nilou {
         std::vector<FSceneView*> Views;
 
         uint32 FrameNumber;
+
+        std::set<class UPrimitiveComponent*> HiddenComponents;
+
+        std::set<class UPrimitiveComponent*> ShowOnlyComponents;
+
+	    /** Gamma correction used when rendering this family. Default is 1.0 */
+        float GammaCorrection;
+
+        bool bEnableToneMapping;
+
     };
 }

@@ -135,44 +135,13 @@ void main()
         dvec3 BoxCenter = dvec3(LocalToWorld * dvec4(node_offset+node_size/2, (MinMax.r+MinMax.g)/2, 1));
         bool bFrustumCulled = IsBoxOutSideFrustum(FrustumPlanes, BoxCenter, HalfAxes);
 
-//        vec2 upper_left = node_offset;
-//        vec2 upper_right = upper_left + vec2(0, node_size.y);
-//        vec2 lower_left = upper_left + vec2(node_size.x, 0);
-//        vec2 lower_right = upper_left + node_size;
-//        float min_x = min(upper_left.x, min(upper_right.x, min(lower_left.x, lower_right.x))) - 20;
-//        float max_x = max(upper_left.x, max(upper_right.x, max(lower_left.x, lower_right.x))) + 20;
-//        float min_y = min(upper_left.y, min(upper_right.y, min(lower_left.y, lower_right.y))) - 20;
-//        float max_y = max(upper_left.y, max(upper_right.y, max(lower_left.y, lower_right.y))) + 20;
-//        vec3 box[8];
-//        box[0] = vec3(LocalToWorld * dvec4(min_x, min_y, MinMax.r, 1));
-//        box[1] = vec3(LocalToWorld * dvec4(min_x, max_y, MinMax.r, 1));
-//        box[2] = vec3(LocalToWorld * dvec4(max_x, min_y, MinMax.r, 1));
-//        box[3] = vec3(LocalToWorld * dvec4(max_x, max_y, MinMax.r, 1));
-//        box[4] = vec3(LocalToWorld * dvec4(min_x, min_y, MinMax.g, 1));
-//        box[5] = vec3(LocalToWorld * dvec4(min_x, max_y, MinMax.g, 1));
-//        box[6] = vec3(LocalToWorld * dvec4(max_x, min_y, MinMax.g, 1));
-//        box[7] = vec3(LocalToWorld * dvec4(max_x, max_y, MinMax.g, 1));
-//        bool bFrustumCulled = FrustumCull(box);
-
         if (bFrustumCulled)
             return;
-//        if (FrustumCull(box))
-//            return;
-//        vec2 uv = (vec2(nodeLoc) + vec2(0.5)) / float(LODParams[PassLOD].NodeSideNum);
-//        vec2 MinMax = texture2D(MinMaxMap[PassLOD+3], uv).rg;
-//        vec2 upper_left = vec2(nodeLoc) * LODParams[PassLOD].NodeMeterSize;
-//        vec2 lower_right = upper_left + vec2(LODParams[PassLOD].NodeMeterSize);
-//        vec3 box[8];
-//        CreateBox(upper_left, lower_right, MinMax, box);
-//        if (FrustumCull(box))
-//            return;
         
         uint i = atomicCounterIncrement(index_Final);
         NodeIDs_Final[i].x = nodeLoc.x;
         NodeIDs_Final[i].y = nodeLoc.y;
         NodeIDs_Final[i].z = PassLOD;
         
-//        NodeIDs_Final[i] = uvec3(nodeLoc, PassLOD);
     }
-//    NodeIDs_Final[gl_GlobalInvocationID.x] = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.x, gl_GlobalInvocationID.x);
 }

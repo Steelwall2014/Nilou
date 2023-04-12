@@ -149,7 +149,7 @@ void main()
     vec3 transmittance_to_sky = GetTransmittanceToTopAtmosphereBoundary(
           ATMOSPHERE, TransmittanceLUT, r, mu);
     FLightShaderParameters light_transmittanced = light;
-    light_transmittanced.lightIntensity *= transmittance_to_sky;
+    light_transmittanced.lightIntensity;// *= transmittance_to_sky;
 
     vec3 transmittance_to_frag;
     vec3 in_scatter = GetSkyRadianceToPoint(ATMOSPHERE,

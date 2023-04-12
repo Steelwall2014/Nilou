@@ -81,4 +81,29 @@ namespace nilou {
         }
     }
 
+    FSceneViewFamily::FSceneViewFamily(
+        FViewport InViewport, 
+        FScene* InScene)
+        : Viewport(InViewport)
+        , Scene(InScene)
+        , FrameNumber(0)
+        , GammaCorrection(1.0)
+        , bEnableToneMapping(false)
+    {
+
+    }
+
+    FSceneViewFamily::FSceneViewFamily(const FSceneViewFamily* Other)
+        : Viewport(Other->Viewport)
+        , Scene(Other->Scene)
+        , FrameNumber(Other->FrameNumber)
+        , HiddenComponents(Other->HiddenComponents)
+        , ShowOnlyComponents(Other->ShowOnlyComponents)
+        , GammaCorrection(Other->GammaCorrection)
+        , Views(Other->Views)
+        , bEnableToneMapping(Other->bEnableToneMapping)
+    {
+
+    }
+
 }

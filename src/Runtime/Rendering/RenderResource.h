@@ -48,8 +48,12 @@ namespace nilou {
         virtual void ReleaseRHI() { IndexBufferRHI = nullptr; }
     };
 
-    void BeginInitResource(FRenderResource* Resource);
-    void BeginReleaseResource(FRenderResource* Resource);
+    #define BeginInitResource(Resource) BeginInitResource_Internal(Resource, __FILE__, __LINE__)
+
+    #define BeginReleaseResource(Resource) BeginReleaseResource_Internal(Resource, __FILE__, __LINE__)
+
+    void BeginInitResource_Internal(FRenderResource* Resource, const char *file, int line);
+    void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line);
 
     std::vector<int32>& GetFreeIndicesList();
 }

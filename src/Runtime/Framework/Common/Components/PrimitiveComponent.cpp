@@ -60,14 +60,16 @@ namespace nilou {
 
     void FPrimitiveSceneProxy::CreateRenderThreadResources()
     {
-        BeginInitResource(PrimitiveUniformBuffer.get());
+        assert(IsInRenderingThread());
+        PrimitiveUniformBuffer->InitResource();
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
 
     void FPrimitiveSceneProxy::DestroyRenderThreadResources()
     {
-        BeginReleaseResource(PrimitiveUniformBuffer.get());
+        assert(IsInRenderingThread());
+        PrimitiveUniformBuffer->ReleaseResource();
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer()

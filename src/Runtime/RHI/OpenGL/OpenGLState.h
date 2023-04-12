@@ -103,18 +103,18 @@ namespace nilou {
 
         struct FRenderTarget
         {
-            bool bAlphaBlendEnable;
-            GLenum ColorBlendOperation;
-            GLenum ColorSourceBlendFactor;
-            GLenum ColorDestBlendFactor;
-            bool bSeparateAlphaBlendEnable;
-            GLenum AlphaBlendOperation;
-            GLenum AlphaSourceBlendFactor;
-            GLenum AlphaDestBlendFactor;
-            uint32 ColorWriteMaskR : 1;
-            uint32 ColorWriteMaskG : 1;
-            uint32 ColorWriteMaskB : 1;
-            uint32 ColorWriteMaskA : 1;
+            bool bAlphaBlendEnable = false;
+            GLenum ColorBlendOperation = GL_ADD;
+            GLenum ColorSourceBlendFactor = GL_ONE;
+            GLenum ColorDestBlendFactor = GL_ZERO;
+            bool bSeparateAlphaBlendEnable = false;
+            GLenum AlphaBlendOperation = GL_ADD;
+            GLenum AlphaSourceBlendFactor = GL_ONE;
+            GLenum AlphaDestBlendFactor = GL_ZERO;
+            uint32 ColorWriteMaskR : 1 = 1;
+            uint32 ColorWriteMaskG : 1 = 1;
+            uint32 ColorWriteMaskB : 1 = 1;
+            uint32 ColorWriteMaskA : 1 = 1;
         };
         
         std::array<FRenderTarget, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargets;

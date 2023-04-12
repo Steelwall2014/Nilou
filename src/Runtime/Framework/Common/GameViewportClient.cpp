@@ -35,6 +35,8 @@ namespace nilou {
     void UGameViewportClient::Draw(FViewport InViewport)
     {
         FSceneViewFamily ViewFamily(InViewport, Scene.get());
+        ViewFamily.GammaCorrection = 2.2;
+        ViewFamily.bEnableToneMapping = true;
         std::vector<FSceneView*> &Views = ViewFamily.Views;
         std::vector<ACameraActor*> CameraActors;
         World->GetAllActorsOfClass(CameraActors);

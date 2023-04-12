@@ -38,13 +38,21 @@ namespace nilou {
             MaterialResource->UpdateMaterialCode(Code, bRecompile);
     }
 
+    void UMaterial::SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath)
+    {
+        ShaderVirtualPath = VirtualPath;
+        std::string ShaderAbsPath = GetShaderAbsolutePathFromVirtualPath(ShaderVirtualPath.generic_string());
+        Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
+        UpdateCode(Code);
+    }
+
     void UMaterial::Serialize(FArchive &Ar)
     {
         nlohmann::json &json = Ar.json;
         json["ClassName"] = "UMaterial";
         nlohmann::json &content = json["Content"];
         content["Name"] = Name;
-        content["ShaderVirtualPath"] = "/Shaders/Materials/"+Name+"_Mat.glsl";
+        content["ShaderVirtualPath"] = ShaderVirtualPath.generic_string();
         content["ShadingModel"] = magic_enum::enum_name(ShadingModel);
         content["StencilRefValue"] = MaterialResource->StencilRefValue;
         TStaticSerializer<FBlendStateInitializer>::Serialize(MaterialResource->BlendState, content["BlendState"], Ar.OutBuffers);
@@ -67,19 +75,19 @@ namespace nilou {
             !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
         nlohmann::json &content = json["Content"];
         Name = content["Name"];
-        std::string ShaderVirtualPath = content["ShaderVirtualPath"];
-        std::string ShaderAbsPath = GetShaderAbsolutePathFromVirtualPath(ShaderVirtualPath);
-        Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
         if (content.contains("ShadingModel"))
         {
-            ShadingModel = magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value();
+            SetShadingModel(magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value());
         }
         MaterialResource->Name = Name;
         MaterialResource->StencilRefValue = content["StencilRefValue"];
         TStaticSerializer<FBlendStateInitializer>::Deserialize(MaterialResource->BlendState, content["BlendState"], Ar.InBuffer.get());
         TStaticSerializer<FRasterizerStateInitializer>::Deserialize(MaterialResource->RasterizerState, content["RasterizerState"], Ar.InBuffer.get());
         TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(MaterialResource->DepthStencilState, content["DepthStencilState"], Ar.InBuffer.get());
-        MaterialResource->UpdateMaterialCode(Code);
+        
+        std::string ShaderVirtualPath = content["ShaderVirtualPath"];
+        SetShaderFileVirtualPath(ShaderVirtualPath);
+        
         nlohmann::json &textures = content["Textures"];
         for (auto &[sampler_name, texture] : textures.items())
         {
@@ -88,22 +96,12 @@ namespace nilou {
             if (Texture)
                 MaterialResource->SetParameterValue(sampler_name, Texture);
         }
-        UpdateMaterialParametersRHI();
     }
 
     std::shared_ptr<UMaterialInstance> UMaterial::CreateMaterialInstance()
     {
         std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>(this);
         return MaterialInstance;
-    }
-
-    void UMaterial::UpdateMaterialParametersRHI()
-    {
-        ENQUEUE_RENDER_COMMAND(Material_UpdateMaterialParametersRHI)(
-            [this](FDynamicRHI* RHICmdList) {
-                MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                MaterialParameters->UpdateUniformBuffer();
-            });
     }
 
     UMaterialInstance::UMaterialInstance(UMaterial* Material)
@@ -122,7 +120,6 @@ namespace nilou {
         MaterialResource->UniformBuffers = Material->MaterialResource->UniformBuffers;
         MaterialResource->Textures = Material->MaterialResource->Textures;
         MaterialResource->bShaderCompiled = Material->MaterialResource->bShaderCompiled;
-        UpdateMaterialParametersRHI();
     }
 
     void UMaterialInstance::Serialize(FArchive &Ar)

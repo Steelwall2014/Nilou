@@ -15,6 +15,10 @@ namespace nilou {
         // SPT_ShaderStructureBuffer,
         SPT_Image,
         SPT_AtomicUint,
+        SPT_Uint,
+        SPT_Int,
+        SPT_Float
+
     };
 
     class FShaderParameterInfo

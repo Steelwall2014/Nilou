@@ -22,7 +22,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const override;
+        virtual std::vector<FRHIVertexInput> GetVertexInputList() const override;
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 

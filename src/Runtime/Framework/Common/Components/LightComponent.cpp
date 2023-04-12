@@ -16,8 +16,8 @@ namespace nilou {
 
     ULightComponent::ULightComponent(AActor *InOwner)
         : USceneComponent(InOwner)
-        , LightType(ELightType::LT_Spot)
-        , LightIntensity(vec3(1.474000, 1.850400, 1.911980))
+        , LightType(ELightType::LT_Directional)
+        , LightIntensity(vec3(1.474000, 1.850400, 1.911980)*10.f)
         , bCastShadow(true)
         , ShadowMapResolution(ivec2(2048))
     {
@@ -52,18 +52,26 @@ namespace nilou {
 
     void ULightComponent::SendRenderTransform()
     {
-        SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
+        ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderTransform)(
+            [this](FDynamicRHI*) 
+            {
+                SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
+            });
 
         USceneComponent::SendRenderTransform();
     }
 
     void ULightComponent::SendRenderDynamicData()
     {
-        SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
-        SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);
-        SceneProxy->SetLightIntensity(LightIntensity);
-        SceneProxy->SetCastShadow(bCastShadow);
-        SceneProxy->SetShadowMapResolution(ShadowMapResolution);
+        ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderDynamicData)(
+            [this](FDynamicRHI*) 
+            {
+                SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
+                SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);
+                SceneProxy->SetLightIntensity(LightIntensity);
+                SceneProxy->SetCastShadow(bCastShadow);
+                SceneProxy->SetShadowMapResolution(ShadowMapResolution);
+            });
 
         USceneComponent::SendRenderDynamicData();
     }

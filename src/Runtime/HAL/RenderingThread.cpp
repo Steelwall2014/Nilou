@@ -64,8 +64,9 @@ namespace nilou {
             RenderCommand.DoTask();
         }
         std::vector<FRenderResource*>& ResourceList = FRenderResource::GetResourceList();
-        for (FRenderResource* Resource : ResourceList)
+        for (int i = 0; i < ResourceList.size(); i++)
         {
+            FRenderResource* Resource = ResourceList[i];
             if (Resource)
                 Resource->ReleaseResource();
         }

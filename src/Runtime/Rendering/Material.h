@@ -41,17 +41,20 @@ namespace nilou {
 
         FMaterial()
             : ShaderMap(new FMaterialShaderMap)
+            , ShadingModel(EShadingModel::SM_DefaultLit)
         { 
         }
 
         FMaterial(
             const FRasterizerStateInitializer &InRasterizerState, 
             const FDepthStencilStateInitializer &InDepthStencilState,
-            const FBlendStateInitializer &InBlendState) 
+            const FBlendStateInitializer &InBlendState,
+            EShadingModel InShadingModel) 
             : RasterizerState(InRasterizerState)
             , DepthStencilState(InDepthStencilState)
             , BlendState(InBlendState)
             , ShaderMap(new FMaterialShaderMap)
+            , ShadingModel(InShadingModel)
         { 
         }
 
@@ -64,6 +67,8 @@ namespace nilou {
         FDepthStencilStateInitializer DepthStencilState;
 
         FBlendStateInitializer BlendState;
+
+        EShadingModel ShadingModel;
 
         std::shared_ptr<FMaterialRenderProxy> CreateRenderProxy()
         {
@@ -122,6 +127,7 @@ namespace nilou {
             , RasterizerState(InMaterial->RasterizerState)
             , DepthStencilState(InMaterial->DepthStencilState)
             , BlendState(InMaterial->BlendState)
+            , ShadingModel(InMaterial->ShadingModel)
         {
 
         }
@@ -160,6 +166,8 @@ namespace nilou {
         FDepthStencilStateInitializer DepthStencilState;
 
         FBlendStateInitializer BlendState;
+
+        EShadingModel ShadingModel;
     };
 
     UCLASS()
@@ -173,14 +181,6 @@ namespace nilou {
             : Name("")
             , MaterialResource(new FMaterial())
         {
-            MaterialParameters = CreateUniformBuffer<FMaterialParameters>();
-            SetParameterValue("FMaterialParameters", MaterialParameters.get());
-
-            ENQUEUE_RENDER_COMMAND(Material_RenderResources)(
-                [this](FDynamicRHI* RHICmdList) {
-                    MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                    MaterialParameters->InitResource();
-                });
         }
 
         UMaterial(const std::string &InName)
@@ -188,14 +188,6 @@ namespace nilou {
             , MaterialResource(new FMaterial())
         {
             MaterialResource->Name = Name;
-            MaterialParameters = CreateUniformBuffer<FMaterialParameters>();
-            SetParameterValue("FMaterialParameters", MaterialParameters.get());
-
-            ENQUEUE_RENDER_COMMAND(Material_RenderResources)(
-                [this](FDynamicRHI* RHICmdList) {
-                    MaterialParameters->Data.MaterialShadingModel = (uint32)ShadingModel;
-                    MaterialParameters->InitResource();
-                });
         }
 
         static UMaterial *GetDefaultMaterial();
@@ -218,8 +210,10 @@ namespace nilou {
         void SetShadingModel(EShadingModel InShadingModel)
         {
             ShadingModel = InShadingModel;
-            UpdateMaterialParametersRHI();
+            MaterialResource->ShadingModel = ShadingModel;
         }
+
+        void SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath);
 
         virtual void Serialize(FArchive &Ar) override;
 
@@ -247,18 +241,14 @@ namespace nilou {
         }
 
     protected:
-        BEGIN_UNIFORM_BUFFER_STRUCT(FMaterialParameters)
-            uint32 MaterialShadingModel;
-        END_UNIFORM_BUFFER_STRUCT()
-        TUniformBufferRef<FMaterialParameters> MaterialParameters;
 
         FMaterial* MaterialResource;
 
         std::string Code;
 
-        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
+        std::filesystem::path ShaderVirtualPath;
 
-        void UpdateMaterialParametersRHI();
+        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
         
     };
 

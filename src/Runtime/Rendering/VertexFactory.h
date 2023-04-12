@@ -95,7 +95,7 @@ namespace nilou {
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
         /** Override this to implement child VertexFactory */
-        virtual void GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const { }
+        virtual std::vector<FRHIVertexInput> GetVertexInputList() const { }
 
         const std::string &GetName() const { return Name; }
 

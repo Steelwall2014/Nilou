@@ -28,6 +28,9 @@ namespace nilou {
 
         FScene *Scene = nullptr;
 
+        // Default reflection probe as a fallback
+        class AReflectionProbe* SkyboxReflectionProbe = nullptr;
+
         class ACameraActor* GetFirstCameraActor() const { return CameraActors.empty() ? nullptr : CameraActors[0]; }
 
         std::vector<ACameraActor*> GetCameraActors() const { return CameraActors; }

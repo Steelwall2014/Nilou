@@ -110,8 +110,7 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersVS(&FPreZPassVS::StaticType, 0);
                 FShaderPermutationParameters PermutationParametersPS(&FPreZPassPS::StaticType, 0);
                 FMeshDrawCommand MeshDrawCommand;
-                std::vector<FRHIVertexInput> VertexInputs;
-                Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
+                std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                 FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                 InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
                 BuildMeshDrawCommand(

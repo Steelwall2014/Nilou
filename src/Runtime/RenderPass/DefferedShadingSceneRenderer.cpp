@@ -15,6 +15,8 @@
 #include "BasePassRendering.h"
 #include "LightingPassRendering.h"
 
+#include "Common/Actor/ReflectionProbe.h"
+
 #ifdef NILOU_DEBUG
 #include "CoordinateAxis.h"
 #endif
@@ -53,13 +55,13 @@ namespace nilou {
     {
         Viewport = CreateInfo.OutputResolution;
         SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "SceneColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
             Viewport.x, Viewport.y);
 
         LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
+            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
             Viewport.x, Viewport.y);
         
         LightPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, SceneColor);
@@ -73,23 +75,23 @@ namespace nilou {
         PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "BaseColor", EPixelFormat::PF_R32G32B32A32F, 1, 
+            "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
             Viewport.x, Viewport.y);
 
         RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "RelativeWorldSpacePosition", EPixelFormat::PF_R32G32B32F, 1, 
+            "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "WorldSpaceNormal", EPixelFormat::PF_R32G32B32F, 1, 
+            "WorldSpaceNormal", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "MetallicRoughness", EPixelFormat::PF_R32G32F, 1, 
+            "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
             Viewport.x, Viewport.y);
 
         Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "Emissive", EPixelFormat::PF_R32G32B32F, 1, 
+            "Emissive", EPixelFormat::PF_R16G16B16F, 1, 
             Viewport.x, Viewport.y);
 
         ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
@@ -179,27 +181,19 @@ namespace nilou {
 
     FSceneRenderer::FSceneRenderer(FSceneViewFamily* InViewFamily)
         : Scene(InViewFamily->Scene)
-        , ViewFamily(InViewFamily->Viewport, InViewFamily->Scene)
+        , ViewFamily(InViewFamily)
     {
         Views.reserve(InViewFamily->Views.size());
-        MeshCollector.PerViewPDI.resize(InViewFamily->Views.size());
-        MeshCollector.PerViewMeshBatches.resize(InViewFamily->Views.size());
+        // MeshCollector.PerViewPDI.resize(InViewFamily->Views.size());
+        // MeshCollector.PerViewMeshBatches.resize(InViewFamily->Views.size());
         for(int32 ViewIndex = 0; ViewIndex < InViewFamily->Views.size(); ViewIndex++)
         {
 		    FViewInfo& ViewInfo = Views.emplace_back(InViewFamily->Views[ViewIndex]);
 
-            MeshCollector.PerViewPDI[ViewIndex] = &ViewInfo.PDI;
-            MeshCollector.PerViewMeshBatches[ViewIndex] = &ViewInfo.DynamicMeshBatches;
+            // MeshCollector.PerViewPDI[ViewIndex] = &ViewInfo.PDI;
+            // MeshCollector.PerViewMeshBatches[ViewIndex] = &ViewInfo.DynamicMeshBatches;
 
-            ViewFamily.Views.push_back(&Views[ViewIndex]);
-        }
-
-        Lights.reserve(Scene->AddedLightSceneInfos.size());
-        int NumViews = Views.size();
-        for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
-        {
-            FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
-            Lights.emplace_back(Proxy, NumViews, LightSceneInfo->LightUniformBufferRHI);
+            ViewFamily.Views[ViewIndex] = &Views[ViewIndex];
         }
     }
 
@@ -229,6 +223,17 @@ namespace nilou {
             UVVertexInput.Stride = sizeof(glm::vec2);
             UVVertexInput.Type = EVertexElementType::VET_Float2;
         }
+        
+
+        Lights.reserve(Scene->AddedLightSceneInfos.size());
+        int NumViews = Views.size();
+        for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
+        {
+            FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
+            Lights.emplace_back(Proxy, NumViews, LightSceneInfo->LightUniformBufferRHI);
+        }
+
+        
         for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
 		    FViewInfo& ViewInfo = Views[ViewIndex];
@@ -236,6 +241,7 @@ namespace nilou {
             ViewInfo.SceneTextures = SceneTexturesPool.Alloc(CreateInfo);
         }
 
+        static std::vector<FShadowMapResource*> Resources;
         for (int32 LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightInfo& Light = Lights[LightIndex];
@@ -260,16 +266,84 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews)
     {
+        static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
+        std::vector<int> Index(SceneViews.size(), 0);
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
+            if (!ViewFamily.ShowOnlyComponents.empty() && !ViewFamily.ShowOnlyComponents.contains(PrimitiveInfo->Primitive))
+                continue;
+            if (ViewFamily.HiddenComponents.contains(PrimitiveInfo->Primitive))
+                continue;
+
             uint32 ViewBits = 0;
-            for (int ViewIndex = 0; ViewIndex < SceneViews.size(); ViewIndex++)
+            FMeshElementCollector MeshCollector;
+            MeshCollector.PerViewPDI.resize(Views.size());
+            MeshCollector.PerViewMeshBatches.resize(Views.size());
+            for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
+                FViewInfo& ViewInfo = Views[ViewIndex];
+                MeshCollector.PerViewPDI[ViewIndex] = &ViewInfo.PDI;
                 bool bFrustumCulled = SceneViews[ViewIndex]->ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds());
                 if (!bFrustumCulled)
                     ViewBits |= (1 << ViewIndex);
             }
+
             PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, ViewBits, MeshCollector);
+            
+            for (int ViewIndex = 0; ViewIndex < SceneViews.size(); ViewIndex++)
+            {
+                FViewInfo& ViewInfo = Views[ViewIndex];
+                for (FMeshBatch& Mesh : MeshCollector.PerViewMeshBatches[ViewIndex])
+                {
+
+                    Mesh.Element.Bindings.SetUniformShaderBinding(
+                        "MaterialShadingModel", 
+                        (uint32)Mesh.MaterialRenderProxy->ShadingModel);
+
+                    std::vector<std::pair<FReflectionProbeSceneProxy*, float>> ReflectionProbes;
+                    if (!PrimitiveInfo->ReflectionProbeFactors.empty())
+                    {
+                        for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
+                        {
+                            ReflectionProbes.push_back({ReflectionProbe->SceneProxy, factor});
+                        }
+                    }
+                    else 
+                    {
+                        AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
+                        if (DefaultProbe)
+                        {
+                            UReflectionProbeComponent* ReflectionProbeComponent = DefaultProbe->ReflectionProbeComponent.get();
+                            ReflectionProbes.push_back({ReflectionProbeComponent->SceneProxy, 1.0});
+                        }
+                    }
+                    for (auto [ReflectionProbe, factor] : ReflectionProbes)
+                    {
+                        FMeshBatch NewMesh = Mesh;
+
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "IrradianceTexture", 
+                            ReflectionProbe->IrradianceTexture);
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "PrefilteredTexture", 
+                            ReflectionProbe->PrefilteredTexture);
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "IBL_BRDF_LUT", 
+                            IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
+                        NewMesh.Element.Bindings.SetElementShaderBinding(
+                            "FViewShaderParameters", 
+                            ViewInfo.ViewUniformBuffer->GetRHI());
+                        NewMesh.Element.Bindings.SetUniformShaderBinding(
+                            "PrefilterEnvTextureNumMips", 
+                            static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips()));
+                        NewMesh.Element.Bindings.SetUniformShaderBinding(
+                            "ReflectionProbeFactor", 
+                            factor);
+                        
+                        Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
+                    }
+                }
+            }
         }
     }
 
@@ -278,6 +352,8 @@ namespace nilou {
         FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
         GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList, Scene);
+
+        UpdateReflectionProbeFactors();
 
         InitViews(Scene);
 
@@ -299,7 +375,53 @@ namespace nilou {
         SceneTexturesPool.FreeAll();
     }
 
+    float IntersectVolume(const FBoundingBox& box1, const FBoundingBox& box2)
+    {
+        double xIntersection = std::max(0.0, std::min(box1.Max.x, box2.Max.x) - std::max(box1.Min.x, box2.Min.x));
 
+        if (xIntersection <= 0.0)
+            return 0.0;
+        
+
+        double yIntersection = std::max(0.0, std::min(box1.Max.y, box2.Max.y) - std::max(box1.Min.y, box2.Min.y));
+
+        if (yIntersection <= 0.0)
+            return 0.0;
+        
+
+        double zIntersection = std::max(0.0, std::min(box1.Max.z, box2.Max.z) - std::max(box1.Min.z, box2.Min.z));
+
+        if (zIntersection <= 0.0)
+            return 0.0;
+        
+
+        return xIntersection * yIntersection * zIntersection;
+    }
+
+    void FDefferedShadingSceneRenderer::UpdateReflectionProbeFactors()
+    {
+        for (auto Primitive : Scene->AddedPrimitiveSceneInfos)
+        {
+            auto& ProbeFactors = Primitive->ReflectionProbeFactors;
+            ProbeFactors.clear();
+            FBoundingBox PrimitiveExtent = Primitive->SceneProxy->Bounds;
+            float total_volume = 0;
+            for (auto ReflectionProbe : Scene->ReflectionProbes)
+            {
+                dvec3 Min = ReflectionProbe->SceneProxy->Location - ReflectionProbe->SceneProxy->Extent/2.0;
+                dvec3 Max = ReflectionProbe->SceneProxy->Location + ReflectionProbe->SceneProxy->Extent/2.0;
+                FBoundingBox ReflectionProbeExtent(Min, Max);
+                float volume = IntersectVolume(PrimitiveExtent, ReflectionProbeExtent);
+                if (volume != 0.f)
+                {
+                    total_volume += volume;
+                    ProbeFactors[ReflectionProbe] = volume;
+                }
+            }
+            for (auto& [key, factor] : ProbeFactors)
+                factor /= total_volume;
+        }
+    }
     
     void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
@@ -310,7 +432,7 @@ namespace nilou {
             FTextureRenderTargetCubeResource* RenderTargetCube = RenderTarget->GetTextureRenderTargetCubeResource();
             for (int i = 0; i < 6; i++)
             {
-                RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[0].get());
+                RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[i].get());
             }
         }
         else if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_Texture2D)
@@ -318,6 +440,17 @@ namespace nilou {
             FTextureRenderTarget2DResource* RenderTarget2D = RenderTarget->GetTextureRenderTarget2DResource();
             RenderTargetFramebuffers.push_back(RenderTarget2D->RenderTargetFramebuffer.get());
         }
+        BEGIN_UNIFORM_BUFFER_STRUCT(RenderToScreenPixelShaderBlock)
+            SHADER_PARAMETER(float, GammaCorrection)
+            SHADER_PARAMETER(int, bEnableToneMapping)
+        END_UNIFORM_BUFFER_STRUCT()
+        static auto RenderToScreenUniformBuffer = CreateUniformBuffer<RenderToScreenPixelShaderBlock>();
+        RenderToScreenUniformBuffer->Data.GammaCorrection = ViewFamily.GammaCorrection;
+        RenderToScreenUniformBuffer->Data.bEnableToneMapping = ViewFamily.bEnableToneMapping;
+        if (RenderToScreenUniformBuffer->IsInitialized())
+            RenderToScreenUniformBuffer->UpdateUniformBuffer();
+        else
+            RenderToScreenUniformBuffer->InitResource();
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
@@ -361,6 +494,11 @@ namespace nilou {
                     PSO, EPipelineStage::PS_Pixel, 
                     "SceneColor", 
                     FRHISampler(SceneTextures->SceneColor));
+
+                RHICmdList->RHISetShaderUniformBuffer(
+                    PSO, EPipelineStage::PS_Pixel, 
+                    "RenderToScreenPixelShaderBlock", 
+                    RenderToScreenUniformBuffer->GetRHI());
 
                 RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
                 RHIGetError();

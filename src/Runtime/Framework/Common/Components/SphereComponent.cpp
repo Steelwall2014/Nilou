@@ -45,6 +45,13 @@ namespace nilou {
             }
         }
 
+        virtual void DestroyRenderThreadResources() override
+        {
+            FPrimitiveSceneProxy::~FPrimitiveSceneProxy();
+            VertexBuffers.ReleaseResource();
+            IndexBuffer.ReleaseResource();
+        }
+
     private:
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;

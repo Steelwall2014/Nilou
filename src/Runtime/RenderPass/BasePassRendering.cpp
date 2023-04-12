@@ -56,9 +56,6 @@ namespace nilou {
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
-                auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PipelineStage]; // alias
-                auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PipelineStage]; // alias
-                auto &StageBufferBindings = OutMeshDrawCommand.ShaderBindings.BufferBindings[PipelineStage]; // alias
                 FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
                 
                 for (auto [Name,Binding] : DescriptorSets.Bindings)
@@ -123,13 +120,19 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
                 RHIGetError();
 
-                FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
-                RHIGetError();
 
                 FMeshDrawCommand MeshDrawCommand;
-                std::vector<FRHIVertexInput> VertexInputs;
-                Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
+                std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
+                auto BlendState = Mesh.MaterialRenderProxy->BlendState;
+
+                // Emissive channel is also used as indirect light channel
+                // So we need to set its blend state.
+                BlendState.bUseIndependentRenderTargetBlendStates = true;
+                BlendState.RenderTargets[4].ColorWriteMask = CW_RGB;
+                BlendState.RenderTargets[4].ColorBlendOp = EBlendOperation::BO_Add;
+                BlendState.RenderTargets[4].ColorDestBlend = EBlendFactor::BF_One;
+                BlendState.RenderTargets[4].ColorSrcBlend = EBlendFactor::BF_One;
+
                 BuildMeshDrawCommand(
                     RHICmdList,
                     // *Mesh.MaterialRenderProxy->GetType(),
@@ -140,8 +143,8 @@ namespace nilou {
                     PermutationParametersPS,
                     Mesh.MaterialRenderProxy->DepthStencilState,
                     Mesh.MaterialRenderProxy->RasterizerState,
-                    Mesh.MaterialRenderProxy->BlendState,
-                    InputBindings,
+                    BlendState,
+                    Mesh.Element.Bindings,
                     VertexInputs,
                     Mesh.Element,
                     MeshDrawCommand);

@@ -18,11 +18,17 @@ namespace nilou {
 
 	    bool bCaptureOnMovement;
 
-        std::vector<std::weak_ptr<UPrimitiveComponent>> HiddenComponents;
-        
-        void HideComponent(std::weak_ptr<UPrimitiveComponent> InComponent);
+        std::set<UPrimitiveComponent*> HiddenComponents;
 
-        void HideActorComponents(std::weak_ptr<AActor> InActor);
+        std::set<UPrimitiveComponent*> ShowOnlyComponents;
+        
+        void HideComponent(UPrimitiveComponent* InComponent);
+
+        void HideActorComponents(AActor* InActor);
+        
+        void ShowOnlyComponent(UPrimitiveComponent* InComponent);
+
+        void ShowOnlyActorComponents(AActor* InActor);
 
         void CaptureScene();
 
@@ -80,6 +86,7 @@ namespace nilou {
     public:
         USceneCaptureComponentCube(AActor *InOwner = nullptr) 
             : USceneCaptureComponent(InOwner)
+            , TextureTarget(nullptr)
         { }
 
         class UTextureRenderTargetCube* TextureTarget;
@@ -103,6 +110,8 @@ namespace nilou {
     protected:
 
         std::array<TUniformBufferRef<FViewShaderParameters>, 6> ViewUniformBuffers;
+
+        void UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position);
     };
 
 }

@@ -7,6 +7,7 @@
 #include "SceneView.h"
 #include <unordered_map>
 #include <vector>
+#include <stack>
 
 
 namespace nilou {
@@ -216,8 +217,6 @@ namespace nilou {
         /** The lights being rendered. */
         std::vector<FLightInfo> Lights;
 
-        FMeshElementCollector MeshCollector;
-
         virtual void Render() = 0;
 
         static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily* ViewFamily);
@@ -277,11 +276,12 @@ namespace nilou {
             {
                 auto iter = FreeResourcesMap.find(CreateInfo);
                 TResource* Resource;
-                if (iter != FreeResourcesMap.end())
+                if (iter != FreeResourcesMap.end() && !iter->second.empty())
                 {
-                    Resource = iter->second;
+                    auto& stk = iter->second;
+                    Resource = stk.top(); stk.pop();
                     OccupiedResourcesMap[Resource] = CreateInfo;
-                    FreeResourcesMap.erase(iter);
+                    // FreeResourcesMap.erase(iter);
                 }
                 else 
                 {
@@ -301,7 +301,8 @@ namespace nilou {
             void Free(TResource* Resource)
             {
                 const TCreateInfo& CreateInfo = OccupiedResourcesMap[Resource];
-                FreeResourcesMap.insert({CreateInfo, Resource});
+                FreeResourcesMap[CreateInfo].push(Resource);
+                // FreeResourcesMap.insert({CreateInfo, Resource});
                 OccupiedResourcesMap.erase(Resource);
             }
 
@@ -310,7 +311,14 @@ namespace nilou {
             {
                 for (auto iter = FreeResourcesMap.begin(); iter != FreeResourcesMap.end(); iter++)
                 {
-                    delete iter->second;
+                    // delete iter->second;
+                    auto& stk = iter->second;
+                    for (int i = 0; i < stk.size(); i++)
+                    {
+                        TResource* res = stk.top();
+                        delete res;
+                        stk.pop();
+                    }
                 }
                 FreeResourcesMap.clear();
             }
@@ -318,7 +326,7 @@ namespace nilou {
         private:
             std::map<TResource*, TCreateInfo> OccupiedResourcesMap;
 
-            std::multimap<TCreateInfo, TResource*> FreeResourcesMap;
+            std::map<TCreateInfo, std::stack<TResource*>> FreeResourcesMap;
         };
 
         static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;
@@ -347,11 +355,15 @@ namespace nilou {
 
         void RenderBasePass(FDynamicRHI *RHICmdList);
 
+        void RenderIndirectLightingPass(FDynamicRHI *RHICmdList);
+
         void RenderLightingPass(FDynamicRHI *RHICmdList);
 
         void RenderViewElementPass(FDynamicRHI *RHICmdList);
 
         void RenderToScreen(FDynamicRHI *RHICmdList);
+
+        void UpdateReflectionProbeFactors();
 
     };
 

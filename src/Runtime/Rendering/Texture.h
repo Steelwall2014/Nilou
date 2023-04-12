@@ -515,7 +515,7 @@ namespace nilou {
          * Implemented by subclasses to read pixels from GPU.
          * The readed pixels will be stored in ImageData
          */
-        virtual void ReadPixelsRenderThread() { }
+        virtual void ReadPixelsRenderThread(FDynamicRHI* RHICmdList) { }
 
         /**
          * Read pixels from GPU. It will block the thread calling it.
