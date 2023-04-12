@@ -92,12 +92,12 @@ namespace nilou {
 
                 for (int32 r = 0; r<NumRings; r++)
                 {
+                    OutIndices.push_back(a0start + r + 1);
+                    OutIndices.push_back(a1start + r + 0);
                     OutIndices.push_back(a0start + r + 0);
-                    OutIndices.push_back(a1start + r + 0);
                     OutIndices.push_back(a0start + r + 1);
-                    OutIndices.push_back(a1start + r + 0);
                     OutIndices.push_back(a1start + r + 1);
-                    OutIndices.push_back(a0start + r + 1);
+                    OutIndices.push_back(a1start + r + 0);
                 }
             }
 

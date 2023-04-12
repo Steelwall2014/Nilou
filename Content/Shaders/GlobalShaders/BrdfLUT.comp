@@ -100,6 +100,6 @@ layout (rg16f, binding=0) uniform image2D LUT;
 
 void main()
 {
-    vec2 res = IntegrateBRDF(gl_GlobalInvocationID.x/512.0, gl_GlobalInvocationID.y/512.0);
+    vec2 res = IntegrateBRDF((float(gl_GlobalInvocationID.x)+0.5)/512.0, (float(gl_GlobalInvocationID.y)+0.5)/512.0);
     imageStore(LUT, ivec2(gl_GlobalInvocationID.xy), vec4(res, 0, 0));
 }

@@ -265,6 +265,7 @@ namespace nilou {
 
     void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews)
     {
+        static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
         std::vector<int> Index(SceneViews.size(), 0);
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
@@ -305,7 +306,7 @@ namespace nilou {
                                 ReflectionProbe->SceneProxy->PrefilteredTexture);
                             NewMesh.Element.Bindings.SetElementShaderBinding(
                                 "IBL_BRDF_LUT", 
-                                GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset")->GetResource()->GetSamplerRHI());
+                                IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
                             Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                         }
                     }
@@ -322,7 +323,7 @@ namespace nilou {
                             ReflectionProbeComponent->SceneProxy->PrefilteredTexture);
                         NewMesh.Element.Bindings.SetElementShaderBinding(
                             "IBL_BRDF_LUT", 
-                            GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset")->GetResource()->GetSamplerRHI());
+                            IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
                         Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                     }
                     

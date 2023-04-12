@@ -44,6 +44,17 @@ namespace nilou {
                 WorldPrivate->Scene->AddReflectionProbe(this);
             }
         }
+
+        
+        // UTexture2D* lut = GetContentManager()->CreateFile<UTexture2D>("/Textures/my_lut.nasset");
+        // lut->Name = "IBL_BRDF_LUT";
+        // lut->ImageData = std::make_shared<FImage2D>(512, 512, EPixelFormat::PF_R16G16F);
+        // lut->TextureParams.Wrap_R = ETextureWrapModes::TW_Clamp;
+        // lut->TextureParams.Wrap_S = ETextureWrapModes::TW_Clamp;
+        // lut->TextureParams.Wrap_T = ETextureWrapModes::TW_Clamp;
+        // lut->TextureParams.Min_Filter = ETextureFilters::TF_Linear;
+        // lut->TextureParams.Mag_Filter = ETextureFilters::TF_Linear;
+        // lut->UpdateResource();
     }
 
     void UReflectionProbeComponent::OnUnregister()
@@ -64,6 +75,18 @@ namespace nilou {
 
     void UReflectionProbeComponent::UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList)
     {
+        // UTexture2D* lut = (UTexture2D*)GetContentManager()->GetTextureByPath("/Textures/my_lut.nasset");
+        // FShaderPermutationParameters PermutationParameters(&FBrdfLUTShader::StaticType, 0);
+        // FShaderInstance *BrdfLUTShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+        // FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(BrdfLUTShader);
+
+        // RHICmdList->RHISetShaderImage(
+        //     PSO, EPipelineStage::PS_Compute,
+        //     "LUT", lut->GetResource()->TextureRHI.get(), EDataAccessFlag::DA_WriteOnly);
+        
+        // RHICmdList->RHIDispatch(16, 16, 1);
+        // lut->ReadPixelsRenderThread(RHICmdList);
+
         {
             
             IrradianceShaderUniformBuffer->Data.TextureSize = IrradianceTexture->GetSizeX();

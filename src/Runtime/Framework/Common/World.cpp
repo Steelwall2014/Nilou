@@ -52,6 +52,10 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
+        UMaterial* MirrorMaterial = GetContentManager()->GetMaterialByPath("/Materials/MirrorMaterial.nasset");
+        UMaterial* ColoredMaterial = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
+        // MirrorMaterial->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
+
         UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
         if (Mesh)
         {
@@ -138,12 +142,18 @@ namespace nilou {
 
         FTransform ReflectionProbeTransform;
         ReflectionProbeTransform.SetTranslation(dvec3(1, 1, 1));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe");
+        // std::shared_ptr<AReflectionProbe> ReflectionProbe = SpawnActor<AReflectionProbe>(ReflectionProbeTransform, "test ReflectionProbe");
 
         std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
         SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
         SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
         this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+
+        FTransform MirrorTransform;
+        MirrorTransform.SetTranslation(dvec3(-1, 1, 1));
+        MirrorTransform.SetScale3D(dvec3(0.1));
+        std::shared_ptr<ASphereActor> MirrorActor = SpawnActor<ASphereActor>(MirrorTransform, "test MirrorActor");
+        MirrorActor->SphereComponent->SetMaterial(MirrorMaterial);
 
         // TODO 镜面材质，阴影闪烁，多个probe的混合
 
