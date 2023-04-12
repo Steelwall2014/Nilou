@@ -1,14 +1,9 @@
 #version 460 core
 layout (location = 4) out vec3 Emissive;
 
-layout (std140) uniform FMaterialParameters {
-    uint MaterialShadingModel;
-};
+uniform uint MaterialShadingModel;
 
-//#include "../include/Maths.glsl"
-//#include "../include/Light.glsl"
-//#include "../include/PBRFunctions.glsl"
-
+uniform uint PrefilterEnvTextureNumMips;
 // To be filled
 //#include "../Materials/ColoredMaterial_Mat.glsl"
 
@@ -20,17 +15,13 @@ uniform samplerCube PrefilteredTexture;
 
 uniform sampler2D IBL_BRDF_LUT;
 
-//layout (std140) uniform FPrefilteredTextureBlock {
-//    uint NumMips;
-//};
-
 in VS_Out vs_out;
 
 #include "../include/functions.glsl"
 
 float getMipLevelFromRoughness(float roughness)
 {
-    return roughness * (5-1);
+    return roughness * (PrefilterEnvTextureNumMips-1);
 }
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {

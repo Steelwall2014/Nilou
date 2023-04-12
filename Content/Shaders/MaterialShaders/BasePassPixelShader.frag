@@ -6,10 +6,11 @@ layout (location = 3) out vec2 MetallicRoughness;
 layout (location = 4) out vec3 Emissive;
 layout (location = 5) out uint ShadingModel;
 
-//layout (std140) uniform FMaterialParameters {
-//    uint MaterialShadingModel;
-//};
 uniform uint MaterialShadingModel;
+
+uniform uint PrefilterEnvTextureNumMips;
+
+uniform float ReflectionProbeFactor;
 //#include "../include/Maths.glsl"
 //#include "../include/Light.glsl"
 //#include "../include/PBRFunctions.glsl"
@@ -33,7 +34,7 @@ in VS_Out vs_out;
 
 float getMipLevelFromRoughness(float roughness)
 {
-    return roughness * (5-1);
+    return roughness * (PrefilterEnvTextureNumMips-1);
 }
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
@@ -78,7 +79,7 @@ void main()
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
     Emissive = MaterialGetEmissive(vs_out);
     ShadingModel = MaterialShadingModel;
-    Emissive += CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
+    Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
 //    vec3 projCoords = frag_lightspace_pos[0].xyz / frag_lightspace_pos[0].w;
 //    projCoords = projCoords * 0.5 + 0.5;
 //    float closestDepth = texture(shadowMap, vec3(projCoords.xy, 0)).r; 

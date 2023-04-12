@@ -116,8 +116,9 @@ namespace nilou {
         Data = InData;
     }
 
-    void FVHMVertexFactory::GetVertexInputList(std::vector<FRHIVertexInput> &OutVertexInputs) const
+    std::vector<FRHIVertexInput> FVHMVertexFactory::GetVertexInputList() const
     {
+        std::vector<FRHIVertexInput> OutVertexInputs;
         if (Data.PositionComponent.VertexBuffer != nullptr)
         {
             OutVertexInputs.push_back(AccessStreamComponent(Data.PositionComponent, 0));
@@ -133,6 +134,7 @@ namespace nilou {
                 OutVertexInputs.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i));
             }
         }
+        return OutVertexInputs;
     }
 
     bool FVHMVertexFactory::ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters)

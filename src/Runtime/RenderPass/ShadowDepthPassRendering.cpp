@@ -387,8 +387,7 @@ namespace nilou {
                         FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
                         FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
                         FMeshDrawCommand MeshDrawCommand;
-                        std::vector<FRHIVertexInput> VertexInputs;
-                        Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
+                        std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
                             UniformBuffer->GetRHI());

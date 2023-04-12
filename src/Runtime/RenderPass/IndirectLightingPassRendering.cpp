@@ -117,12 +117,9 @@ namespace nilou {
                 
                 FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
 
-                FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
  
                 FMeshDrawCommand MeshDrawCommand;
-                std::vector<FRHIVertexInput> VertexInputs;
-                Mesh.Element.VertexFactory->GetVertexInputList(VertexInputs);
+                std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                 auto BlendState = Mesh.MaterialRenderProxy->BlendState;
 
                 // Emissive channel is also used as indirect light channel
@@ -142,7 +139,7 @@ namespace nilou {
                     Mesh.MaterialRenderProxy->DepthStencilState,
                     Mesh.MaterialRenderProxy->RasterizerState,
                     BlendState,
-                    InputBindings,
+                    Mesh.Element.Bindings,
                     VertexInputs,
                     Mesh.Element,
                     MeshDrawCommand);
