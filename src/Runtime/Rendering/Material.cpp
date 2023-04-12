@@ -98,9 +98,9 @@ namespace nilou {
         }
     }
 
-    std::shared_ptr<UMaterialInstance> UMaterial::CreateMaterialInstance()
+    UMaterialInstance* UMaterial::CreateMaterialInstance()
     {
-        std::shared_ptr<UMaterialInstance> MaterialInstance = std::make_shared<UMaterialInstance>(this);
+        UMaterialInstance* MaterialInstance = new UMaterialInstance(this);
         return MaterialInstance;
     }
 
@@ -118,6 +118,7 @@ namespace nilou {
         MaterialResource->RasterizerState = Material->MaterialResource->RasterizerState;
         MaterialResource->ShaderMap = Material->MaterialResource->ShaderMap;
         MaterialResource->UniformBuffers = Material->MaterialResource->UniformBuffers;
+        MaterialResource->Uniforms = Material->MaterialResource->Uniforms;
         MaterialResource->Textures = Material->MaterialResource->Textures;
         MaterialResource->bShaderCompiled = Material->MaterialResource->bShaderCompiled;
     }

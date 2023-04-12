@@ -89,6 +89,11 @@ namespace nilou {
             UniformBuffers[Name] = UniformBuffer;
         }
 
+        void SetParameterValue(const std::string &Name, FUniformValue UniformValue)
+        {
+            Uniforms.insert({Name, UniformValue});
+        }
+
         void ReleaseResource()
         {
             FMaterialShaderMap* ToDelete = ShaderMap;
@@ -110,6 +115,8 @@ namespace nilou {
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
+        std::map<std::string, FUniformValue> Uniforms;
+
         bool bShaderCompiled = false;
 
     };
@@ -123,6 +130,7 @@ namespace nilou {
             , ShaderMap(InMaterial->ShaderMap)
             , Textures(InMaterial->Textures)
             , UniformBuffers(InMaterial->UniformBuffers)
+            , Uniforms(InMaterial->Uniforms)
             , StencilRefValue(InMaterial->StencilRefValue)
             , RasterizerState(InMaterial->RasterizerState)
             , DepthStencilState(InMaterial->DepthStencilState)
@@ -149,6 +157,8 @@ namespace nilou {
                 OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
             for (auto &[Name, UniformBuffer] : UniformBuffers)
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer->GetRHI());
+            for (auto &[Name, Uniform] : Uniforms)
+                OutBindings.SetUniformShaderBinding(Name, Uniform);
         }
 
         std::string Name;
@@ -158,6 +168,8 @@ namespace nilou {
         std::map<std::string, UTexture *> Textures;
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
+
+        std::map<std::string, FUniformValue> Uniforms;
 
         uint8 StencilRefValue = 0;
 
@@ -207,6 +219,11 @@ namespace nilou {
             MaterialResource->SetParameterValue(Name, UniformBuffer);
         }
 
+        void SetParameterValue(const std::string &Name, FUniformValue Uniform)
+        {
+            MaterialResource->SetParameterValue(Name, Uniform);
+        }
+
         void SetShadingModel(EShadingModel InShadingModel)
         {
             ShadingModel = InShadingModel;
@@ -219,7 +236,7 @@ namespace nilou {
 
         virtual void Deserialize(FArchive &Ar) override;
 
-        std::shared_ptr<UMaterialInstance> CreateMaterialInstance();
+        UMaterialInstance* CreateMaterialInstance();
 
         FMaterial *GetResource() { return MaterialResource; }
 

@@ -22,7 +22,10 @@ _海面_
 ![](figures/ocean1.png)
 ![](figures/ocean2.png)
   
-_反射探针、IBL和阴影_
+_pbr小球_
+![](figures/pbr.png)
+  
+_反射探针_
 ![](figures/ibl_and_shadow.png)
   
 _GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384的虚拟纹理，像素格式为float16，大小约为700mb（含7级mipmap）_

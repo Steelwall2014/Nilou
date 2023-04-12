@@ -54,6 +54,7 @@ namespace nilou {
 
         UMaterial* MirrorMaterial = GetContentManager()->GetMaterialByPath("/Materials/MirrorMaterial.nasset");
         UMaterial* ColoredMaterial = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
+        UMaterial* PBRExhibitionMaterial = GetContentManager()->GetMaterialByPath("/Materials/PBRExhibition.nasset");
         // MirrorMaterial->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
 
         UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
@@ -68,6 +69,28 @@ namespace nilou {
                     MeshTransform.SetTranslation(glm::vec3(i, j, 1));
                     std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
                     StaticMeshActor->SetStaticMesh(Mesh);
+                }
+            }
+        }
+
+        std::vector<std::shared_ptr<ASphereActor>> PBRSpheres;
+        {
+            FTransform SphereTransform;
+            for (int i = 1; i <= 5; i++)
+            {
+                for (int j = 0; j <= 4; j++)
+                {
+                    UMaterial* mat = PBRExhibitionMaterial->CreateMaterialInstance();
+                    mat->SetParameterValue("Red", 1.f);
+                    mat->SetParameterValue("Green", 1.f);
+                    mat->SetParameterValue("Blue", 1.f);
+                    mat->SetParameterValue("Metallic", (i-1)*0.25f);
+                    mat->SetParameterValue("Roughness", (j)*0.25f);
+                    SphereTransform.SetTranslation(glm::vec3(-2, j*0.3, i*0.3));
+                    SphereTransform.SetScale3D(dvec3(0.1));
+                    std::shared_ptr<ASphereActor> Sphere = SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
+                    Sphere->SphereComponent->SetMaterial(mat);
+                    PBRSpheres.push_back(Sphere);
                 }
             }
         }
@@ -116,12 +139,12 @@ namespace nilou {
         // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        FTransform VHMTransform;
-        VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
-        std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
-        VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
-        VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
+        // FTransform VHMTransform;
+        // VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
+        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
+        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        // VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
         
         // std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         // GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
@@ -144,11 +167,12 @@ namespace nilou {
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
 
         FTransform ReflectionProbeTransform1;
-        ReflectionProbeTransform1.SetTranslation(dvec3(-1, 1, 1));
+        ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
         std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
-
+        for (auto Sphere : PBRSpheres)
+            ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
         /** To test Blend */
-        // ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
+        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
 
         FTransform ReflectionProbeTransform2;
         ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
@@ -162,11 +186,11 @@ namespace nilou {
         SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
         this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
 
-        FTransform MirrorTransform;
-        MirrorTransform.SetTranslation(dvec3(-1, 1, 1));
-        MirrorTransform.SetScale3D(dvec3(0.2));
-        std::shared_ptr<ASphereActor> MirrorActor = SpawnActor<ASphereActor>(MirrorTransform, "test MirrorActor");
-        MirrorActor->SphereComponent->SetMaterial(MirrorMaterial);
+        // FTransform MirrorTransform;
+        // MirrorTransform.SetTranslation(dvec3(-1, 1, 1));
+        // MirrorTransform.SetScale3D(dvec3(0.2));
+        // std::shared_ptr<ASphereActor> MirrorActor = SpawnActor<ASphereActor>(MirrorTransform, "test MirrorActor");
+        // MirrorActor->SphereComponent->SetMaterial(MirrorMaterial);
 
 
         // GetContentManager()->ForEachContent([](UObject* Obj){
@@ -189,6 +213,10 @@ namespace nilou {
         // UMaterial* OceanMaterial2 = GetContentManager()->CreateFile<UMaterial>("/Materials/OceanMaterial2.nasset");
         // OceanMaterial2->Name = "OceanMaterial2";
         // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Materials/OceanMaterial2_Mat.glsl");
+
+        // UMaterial* PBRExhibition = GetContentManager()->CreateFile<UMaterial>("/Materials/PBRExhibition.nasset");
+        // PBRExhibition->Name = "PBRExhibition";
+        // PBRExhibition->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.glsl");
 
     }
 

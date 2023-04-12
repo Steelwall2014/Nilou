@@ -103,7 +103,7 @@ namespace nilou {
         for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
         {
             tinygltf::Material &gltf_material = model.materials[MaterialIndex];
-            std::shared_ptr<UMaterialInstance> Material = GLTFMaterial->CreateMaterialInstance();
+            std::shared_ptr<UMaterialInstance> Material(GLTFMaterial->CreateMaterialInstance());
             if (gltf_material.doubleSided)
                 Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
 
