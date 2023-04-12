@@ -145,14 +145,14 @@ namespace nilou {
         std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
 
         /** To test Blend */
-        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
+        // ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(10));
 
         FTransform ReflectionProbeTransform2;
         ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
 
         /** To test Blend */
-        ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
+        // ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
 
         std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
         SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
