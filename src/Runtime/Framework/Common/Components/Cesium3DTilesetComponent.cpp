@@ -607,10 +607,9 @@ namespace nilou {
             WireframeMaterial = GetContentManager()->GetMaterialByPath("/Materials/WireframeMaterial.nasset");
         }
 
-        void AddRenderingTiles(std::vector<Cesium3DTile *> Tiles)
+        void SetTilesToRenderThisFrame(std::vector<Cesium3DTile *> Tiles)
         {
-            std::unique_lock<std::mutex> lock(mutex);
-            TilesRenderingQueue.push(Tiles);
+            TilesToRenderThisFrame = Tiles;
         }
 
         void SetEcefToAbs(const dmat4 &InEcefToAbs)
@@ -625,19 +624,6 @@ namespace nilou {
 
         void PreRenderCallBack(FDynamicRHI*, FScene*)
         {
-            // Fetch the rendering queue for this frame
-            std::unique_lock<std::mutex> lock(mutex);
-            if (!TilesRenderingQueue.empty())
-            {
-                TilesToRenderThisFrame = TilesRenderingQueue.front(); 
-                TilesRenderingQueue.pop();
-            }
-            else 
-            {
-                TilesToRenderThisFrame.clear();
-            }
-            lock.unlock();
-
             // Expell those tile that haven't been loaded, and lock those tiles that are loaded until the end of frame.
             for (auto iter = TilesToRenderThisFrame.begin(); iter != TilesToRenderThisFrame.end();)
             {
@@ -746,7 +732,6 @@ namespace nilou {
 
     protected:
         std::vector<Cesium3DTile *> TilesToRenderThisFrame;
-        std::queue<std::vector<Cesium3DTile *>> TilesRenderingQueue;
 
         dmat4 EcefToAbs;
 
@@ -758,7 +743,6 @@ namespace nilou {
 
     private:
 
-        std::mutex mutex;
         FDelegateHandle PreRenderHandle;
         FDelegateHandle PostRenderHandle;
 
@@ -820,11 +804,19 @@ namespace nilou {
     void UCesium3DTilesetComponent::SendRenderDynamicData()
     {
         FCesium3DTilesetSceneProxy *proxy = static_cast<FCesium3DTilesetSceneProxy *>(SceneProxy);
-        proxy->SetBoundingBoxVisibility(bShowBoundingBox);
+        bool bShowBoundingBox = this->bShowBoundingBox;
+        glm::dmat4 EcefToAbs;
         if (Georeference)
-            proxy->SetEcefToAbs(Georeference->GetEcefToAbs());
-        if (TilesetForSelection)
-            proxy->AddRenderingTiles(TilesToRenderThisFrame);
+            EcefToAbs = Georeference->GetEcefToAbs();
+        auto TilesToRenderThisFrame = this->TilesToRenderThisFrame;
+        ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_SendRenderDynamicData)(
+            [proxy, bShowBoundingBox, EcefToAbs, TilesToRenderThisFrame](FDynamicRHI*)
+            {
+                proxy->SetBoundingBoxVisibility(bShowBoundingBox);
+                proxy->SetEcefToAbs(EcefToAbs);
+                proxy->SetTilesToRenderThisFrame(TilesToRenderThisFrame);
+            }
+        );
         UPrimitiveComponent::SendRenderDynamicData();
     }
 
@@ -869,8 +861,8 @@ namespace nilou {
 
     void UCesium3DTilesetComponent::SetURI(const std::string &NewURI)
     { 
-        // if (NewURI != URI)
-        // {
+        if (NewURI != URI)
+        {
             URI = NewURI; 
             tiny3dtiles::Loader Loader;
             Tileset = Loader.LoadTileset(URI);
@@ -881,7 +873,7 @@ namespace nilou {
                 TilesetForSelection = nullptr;
             UpdateBounds();
             MarkRenderStateDirty();
-        // }
+        }
     }
 
     void UCesium3DTilesetComponent::SetShowBoundingBox(bool InShowBoundingBox)
