@@ -1,5 +1,6 @@
 #pragma once
 #include "PrimitiveComponent.h"
+#include "Common/EngineTypes.h"
 
 namespace nilou {
 
@@ -17,6 +18,8 @@ namespace nilou {
         bool bCaptureEveryFrame;
 
 	    bool bCaptureOnMovement;
+
+        ESceneCaptureSource CaptureSource = SCS_LinearColor;
 
         std::set<UPrimitiveComponent*> HiddenComponents;
 

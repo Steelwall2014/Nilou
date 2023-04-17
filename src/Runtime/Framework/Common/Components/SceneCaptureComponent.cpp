@@ -110,6 +110,13 @@ namespace nilou {
         FSceneViewFamily ViewFamily(Viewport, Scene);  
         ViewFamily.HiddenComponents = HiddenComponents; 
         ViewFamily.ShowOnlyComponents = ShowOnlyComponents; 
+        ViewFamily.bIsSceneCapture = true;
+        ViewFamily.CaptureSource = CaptureSource;
+        if (CaptureSource == SCS_GammaColor)
+        {
+            ViewFamily.GammaCorrection = 2.2;
+            ViewFamily.bEnableToneMapping = true;
+        }
 
         FSceneView SceneView(
             ProjectionMode,
@@ -196,6 +203,13 @@ namespace nilou {
         FSceneViewFamily ViewFamily(Viewport, Scene);    
         ViewFamily.HiddenComponents = HiddenComponents; 
         ViewFamily.ShowOnlyComponents = ShowOnlyComponents;  
+        ViewFamily.bIsSceneCapture = true;
+        ViewFamily.CaptureSource = CaptureSource;
+        if (CaptureSource == SCS_GammaColor)
+        {
+            ViewFamily.GammaCorrection = 2.2;
+            ViewFamily.bEnableToneMapping = true;
+        }
 
         std::array<dvec3, 6> ForwardVectors = {
             dvec3(1, 0, 0), 

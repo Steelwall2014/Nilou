@@ -483,17 +483,6 @@ namespace nilou {
             FTextureRenderTarget2DResource* RenderTarget2D = RenderTarget->GetTextureRenderTarget2DResource();
             RenderTargetFramebuffers.push_back(RenderTarget2D->RenderTargetFramebuffer.get());
         }
-        BEGIN_UNIFORM_BUFFER_STRUCT(RenderToScreenPixelShaderBlock)
-            SHADER_PARAMETER(float, GammaCorrection)
-            SHADER_PARAMETER(int, bEnableToneMapping)
-        END_UNIFORM_BUFFER_STRUCT()
-        static auto RenderToScreenUniformBuffer = CreateUniformBuffer<RenderToScreenPixelShaderBlock>();
-        RenderToScreenUniformBuffer->Data.GammaCorrection = ViewFamily.GammaCorrection;
-        RenderToScreenUniformBuffer->Data.bEnableToneMapping = ViewFamily.bEnableToneMapping;
-        if (RenderToScreenUniformBuffer->IsInitialized())
-            RenderToScreenUniformBuffer->UpdateUniformBuffer();
-        else
-            RenderToScreenUniformBuffer->InitResource();
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
@@ -533,15 +522,73 @@ namespace nilou {
                 RHICmdList->RHISetBlendState(BlendState.get());
                 RHIGetError();
 
-                RHICmdList->RHISetShaderSampler(
-                    PSO, EPipelineStage::PS_Pixel, 
-                    "SceneColor", 
-                    FRHISampler(SceneTextures->SceneColor));
-
-                RHICmdList->RHISetShaderUniformBuffer(
-                    PSO, EPipelineStage::PS_Pixel, 
-                    "RenderToScreenPixelShaderBlock", 
-                    RenderToScreenUniformBuffer->GetRHI());
+                if (ViewFamily.bIsSceneCapture)
+                {
+                    if (ViewFamily.CaptureSource == SCS_SceneDepth)
+                    {
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "SceneColor", 
+                            FRHISampler(SceneTextures->DepthStencil));
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "GammaCorrection", 
+                            1.f);
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "bEnableToneMapping", 
+                            0);
+                    }
+                    else if (ViewFamily.CaptureSource == SCS_LinearColor)
+                    {
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "SceneColor", 
+                            FRHISampler(SceneTextures->SceneColor));
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "GammaCorrection", 
+                            1.f);
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "bEnableToneMapping", 
+                            0);
+                    }
+                    else if (ViewFamily.CaptureSource == SCS_GammaColor)
+                    {
+                        RHICmdList->RHISetShaderSampler(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "SceneColor", 
+                            FRHISampler(SceneTextures->SceneColor));
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "GammaCorrection", 
+                            ViewFamily.GammaCorrection);
+                        RHICmdList->RHISetShaderUniformValue(
+                            PSO, EPipelineStage::PS_Pixel, 
+                            "bEnableToneMapping", 
+                            1);
+                    }
+                    else 
+                    {
+                        NILOU_LOG(Error, "Unknown scene capture source");
+                    }
+                }
+                else 
+                {
+                    RHICmdList->RHISetShaderSampler(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "SceneColor", 
+                        FRHISampler(SceneTextures->SceneColor));
+                    RHICmdList->RHISetShaderUniformValue(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "GammaCorrection", 
+                        ViewFamily.GammaCorrection);
+                    RHICmdList->RHISetShaderUniformValue(
+                        PSO, EPipelineStage::PS_Pixel, 
+                        "bEnableToneMapping", 
+                        ViewFamily.bEnableToneMapping);
+                }
 
                 RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
                 RHIGetError();

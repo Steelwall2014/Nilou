@@ -7,10 +7,8 @@ uniform sampler2D SceneColor;
 
 #include "../include/PBRFunctions.glsl"
 
-layout (std140) uniform RenderToScreenPixelShaderBlock {
-	float GammaCorrection;
-	int bEnableToneMapping;
-};
+uniform float GammaCorrection;
+uniform int bEnableToneMapping;
 
 void main()
 {

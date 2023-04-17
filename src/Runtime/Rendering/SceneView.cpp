@@ -112,6 +112,7 @@ namespace nilou {
         , FrameNumber(0)
         , GammaCorrection(1.0)
         , bEnableToneMapping(false)
+        , bIsSceneCapture(false)
     {
 
     }
@@ -125,6 +126,8 @@ namespace nilou {
         , GammaCorrection(Other->GammaCorrection)
         , Views(Other->Views)
         , bEnableToneMapping(Other->bEnableToneMapping)
+        , bIsSceneCapture(Other->bIsSceneCapture)
+        , CaptureSource(Other->CaptureSource)
     {
 
     }

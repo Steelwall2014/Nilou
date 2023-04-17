@@ -6,15 +6,9 @@
 #include "MeshBatch.h"
 #include "TextureRenderTarget.h"
 #include "Common/Viewport.h"
-// #include "Scene.h"
+#include "Common/EngineTypes.h"
 
 namespace nilou {
-
-    enum class ECameraProjectionMode
-    {
-        Perspective,
-        Orthographic
-    };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
         SHADER_PARAMETER_STRUCT_ARRAY(dvec4, 6, FrustumPlanes)
@@ -100,6 +94,10 @@ namespace nilou {
         float GammaCorrection;
 
         bool bEnableToneMapping;
+
+        bool bIsSceneCapture;
+
+        ESceneCaptureSource CaptureSource;  // ignored if bIsSceneCapture is false
 
     };
 }
