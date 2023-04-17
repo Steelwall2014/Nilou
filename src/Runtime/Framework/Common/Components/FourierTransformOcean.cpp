@@ -444,9 +444,9 @@ namespace nilou {
                 CameraComponent->GetForwardVector(), 
                 CameraComponent->GetUpVector(), 
                 CameraComponent->GetAspectRatio(), 
-                CameraComponent->GetFieldOfView(), 
-                CameraComponent->GetNearClipDistance(), 
-                CameraComponent->GetFarClipDistance());
+                CameraComponent->VerticalFieldOfView, 
+                CameraComponent->NearClipDistance, 
+                CameraComponent->FarClipDistance);
             std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraComponent->GetComponentLocation());
             FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
             if (Proxy)

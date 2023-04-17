@@ -42,7 +42,7 @@ namespace nilou {
             // SceneCaptureComponent = CreateComponent<USceneCaptureComponent2D>(this); 
             // SceneCaptureComponent->AttachToComponent(CameraComponent.get());
             // SceneCaptureComponent->TextureTarget = RenderTarget;
-            // SceneCaptureComponent->VerticalFieldOfView = CameraComponent->GetFieldOfView();
+            // SceneCaptureComponent->VerticalFieldOfView = CameraComponent->VerticalFieldOfView;
         }
 		/** TEST SCENE CAPTURE 2D*/
 
@@ -111,11 +111,11 @@ namespace nilou {
         // NILOU_LOG(Info, stream.str())
         if (bZoomingIn)
         {
-            CameraComponent->SetFieldOfView(glm::radians(2.0));
+            CameraComponent->VerticalFieldOfView = glm::radians(2.0);
         }
         else
         {
-            CameraComponent->SetFieldOfView(glm::radians(50.0));
+            CameraComponent->VerticalFieldOfView = glm::radians(50.0);
         }
         // CameraInput.x = 10;
         // CameraInput.y = 10;
@@ -153,9 +153,11 @@ namespace nilou {
     FSceneView* ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
     {
         FSceneView* SceneView = new FSceneView(
-            CameraComponent->GetFieldOfView(), 
-            CameraComponent->GetNearClipDistance(), 
-            CameraComponent->GetFarClipDistance(), 
+            CameraComponent->ProjectionMode,
+            CameraComponent->VerticalFieldOfView, 
+            CameraComponent->OrthoWidth,
+            CameraComponent->NearClipDistance, 
+            CameraComponent->FarClipDistance, 
             CameraComponent->GetComponentLocation(), 
             CameraComponent->GetForwardVector(), 
             CameraComponent->GetUpVector(), 

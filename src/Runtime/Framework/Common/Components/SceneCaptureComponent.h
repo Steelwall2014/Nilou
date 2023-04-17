@@ -50,10 +50,12 @@ namespace nilou {
         { }
 
         /** Field of view. in radians */
-        float VerticalFieldOfView;
+        float VerticalFieldOfView = glm::radians(50.f);
 
 	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
-        float OrthoWidth;
+        float OrthoWidth = 25.6;
+
+        ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
 
         class UTextureRenderTarget2D* TextureTarget;
 

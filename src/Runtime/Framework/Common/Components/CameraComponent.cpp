@@ -10,7 +10,6 @@ namespace nilou {
         , VerticalFieldOfView(glm::radians(50.f))
         , NearClipDistance(0.1)
         , FarClipDistance(30000)
-        , AspectRatio(1.f)
         , ScreenResolution(glm::ivec2(1024, 1024))
     { 
     }
@@ -31,23 +30,6 @@ namespace nilou {
     {
         ViewUniformBuffer = nullptr;
         USceneComponent::OnUnregister();
-    }
-
-    void UCameraComponent::SetFieldOfView(float InVerticalFieldOfView)
-    {
-        if (VerticalFieldOfView != InVerticalFieldOfView)
-        {
-            VerticalFieldOfView = InVerticalFieldOfView;
-        }
-    }
-
-    void UCameraComponent::SetCameraResolution(const ivec2 &CameraResolution)
-    {
-        if (ScreenResolution != CameraResolution)
-        {
-            ScreenResolution = CameraResolution;
-            AspectRatio = (float)CameraResolution.x / (float)CameraResolution.y;
-        }
     }
 
 }

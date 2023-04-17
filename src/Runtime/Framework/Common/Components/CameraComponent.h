@@ -6,13 +6,6 @@
 
 namespace nilou {
 
-    // struct FCameraParameters
-    // {
-    //     // EViewType CameraType;
-
-    //     FCameraParameters();
-    // };
-
     UCLASS()
     class UCameraComponent : public USceneComponent
     {
@@ -26,35 +19,23 @@ namespace nilou {
         virtual void OnRegister() override;
         virtual void OnUnregister() override;
 
-        float GetAspectRatio() const { return AspectRatio; }
-
-        float GetNearClipDistance() const { return NearClipDistance; }
-
-        float GetFarClipDistance() const { return FarClipDistance; }
-
-        float GetFieldOfView() const { return VerticalFieldOfView; }
-        /**
-         * Set the vertical field of view. 
-         * 
-         * @param InVerticalFieldOfView The angle of vertical FOV, in radians
-         */
-        void SetFieldOfView(float InVerticalFieldOfView);
-
-        ivec2 GetCameraResolution() const { return ScreenResolution; }
-
-        void SetCameraResolution(const ivec2 &CameraResolution);
+        float GetAspectRatio() const { return (float)ScreenResolution.x / (float)ScreenResolution.y; }
 
 		TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
 
-    protected:
+        /** Field of view. in radians. It will be omitted if the projection mode is Orthographic */
+        float VerticalFieldOfView = glm::radians(50.f);
 
-        /** Field of view. in radians */
-        float VerticalFieldOfView;
+	    /** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
+        float OrthoWidth = 25.6;
+
         float NearClipDistance;
+
         float FarClipDistance;
 
-        /** AspectRatio = ScreenWidth / ScreenHeight */
-        float AspectRatio;
+        ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
+        
         glm::ivec2 ScreenResolution;
+
     };
 }

@@ -12,8 +12,6 @@ namespace nilou {
 
         virtual void Tick(double DeltaTime);
 		
-		void SetCameraResolution(const ivec2 &CameraResolution) { CameraComponent->SetCameraResolution(CameraResolution); }
-
 		void SetMoveSpeed(double Speed) { MovementSpeed = Speed; }
 
 		FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily);

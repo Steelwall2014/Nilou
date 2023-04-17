@@ -10,11 +10,11 @@
 
 namespace nilou {
 
-    // enum class EViewType
-    // {
-    //     CT_Perspective,
-    //     CT_Ortho,
-    // };
+    enum class ECameraProjectionMode
+    {
+        Perspective,
+        Orthographic
+    };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
         SHADER_PARAMETER_STRUCT_ARRAY(dvec4, 6, FrustumPlanes)
@@ -44,21 +44,20 @@ namespace nilou {
         dvec3 Forward;
         dvec3 Up;
         double AspectRatio;
-        double VerticalFieldOfView;
         double NearClipDistance;
         double FarClipDistance;
         glm::ivec2 ScreenResolution;
 
-        /** 
-         * The width of orthodox views. If it equals zero, it means the view is not orthodox. 
-         * Orthodox height will be calculated with AspectRatio.
-        */
-        double OrthoWidth = 0.0;
+        ECameraProjectionMode ProjectionMode;
+        double OrthoWidth;
+        double VerticalFieldOfView;
 
         FSceneView();
 
         FSceneView(
-            double InVerticalFieldOfView, 
+            ECameraProjectionMode InProjectionMode,
+            double InVerticalFieldOfView,   // omitted if projection mode is Orthographic
+            double InOrthoWidth,    // omitted if projection mode is Perspective
             double InNearClipDistance, 
             double InFarClipDistance,
             dvec3 InPosition,

@@ -780,10 +780,10 @@ namespace nilou {
                 dvec3 up = AbsToEcef * dvec4(CameraComponent->GetUpVector(), 0.0);
                 viewState.frustum = FViewFrustum(
                     viewState.cameraPosition, forward, up, 
-                    CameraComponent->GetAspectRatio(), CameraComponent->GetFieldOfView(), 
-                    CameraComponent->GetNearClipDistance(), CameraComponent->GetFarClipDistance());
-                viewState.resolution = CameraComponent->GetCameraResolution();
-                viewState.verticalFOV = CameraComponent->GetFieldOfView();
+                    CameraComponent->GetAspectRatio(), CameraComponent->VerticalFieldOfView, 
+                    CameraComponent->NearClipDistance, CameraComponent->FarClipDistance);
+                viewState.resolution = CameraComponent->ScreenResolution;
+                viewState.verticalFOV = CameraComponent->VerticalFieldOfView;
                 viewState.sseDenominator = 2.0 * glm::tan(0.5 * viewState.verticalFOV);
                 ViewStates.push_back(viewState);
             }

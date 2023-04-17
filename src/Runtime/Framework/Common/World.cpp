@@ -129,8 +129,9 @@ namespace nilou {
         CameraActorTransform.SetTranslation(glm::vec3(0, -2, 0));
         CameraActorTransform.SetRotator(FRotator(0, 90, 0));
         std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
-        CameraActor->SetCameraResolution(ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight));
-        CameraActor->SetMoveSpeed(100);
+        CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
+        CameraActor->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
+        // CameraActor->SetMoveSpeed(100);
 
         FTransform LightActorTransform;
         // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));

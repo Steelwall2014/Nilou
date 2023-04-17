@@ -4,7 +4,9 @@ namespace nilou {
 
     FSceneView::FSceneView()
         : FSceneView(
+            ECameraProjectionMode::Perspective,
             glm::radians(90.0), 
+            0,
             0.1, 
             10000, 
             dvec3(0), 
@@ -17,7 +19,9 @@ namespace nilou {
     }
 
     FSceneView::FSceneView(
+        ECameraProjectionMode InProjectionMode,
         double InVerticalFieldOfView, 
+        double InOrthoWidth,
         double InNearClipDistance, 
         double InFarClipDistance,
         dvec3 InPosition,
@@ -26,6 +30,8 @@ namespace nilou {
         ivec2 InScreenResolution,
         TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer)
         : VerticalFieldOfView(InVerticalFieldOfView)
+        , OrthoWidth(InOrthoWidth)
+        , ProjectionMode(InProjectionMode)
         , NearClipDistance(InNearClipDistance)
         , FarClipDistance(InFarClipDistance)
         , Position(InPosition)
@@ -39,19 +45,36 @@ namespace nilou {
             Position, 
             Position+Forward, 
             Up);
-        ProjectionMatrix = glm::perspective(
-            VerticalFieldOfView, 
-            AspectRatio, 
-            NearClipDistance, 
-            FarClipDistance);
-        ViewFrustum = FViewFrustum(
-            Position, 
-            Forward, 
-            Up, 
-            AspectRatio, 
-            VerticalFieldOfView, 
-            NearClipDistance, 
-            FarClipDistance);
+        if (ProjectionMode == ECameraProjectionMode::Perspective)
+        {
+            ProjectionMatrix = glm::perspective(
+                VerticalFieldOfView, 
+                AspectRatio, 
+                NearClipDistance, 
+                FarClipDistance);
+        }
+        else if (ProjectionMode == ECameraProjectionMode::Orthographic)
+        {
+            double OrthoHeight = OrthoWidth / AspectRatio;
+            ProjectionMatrix = glm::ortho(
+                -OrthoWidth*0.5, 
+                OrthoWidth*0.5, 
+                -OrthoHeight*0.5, 
+                OrthoHeight*0.5,
+                NearClipDistance, 
+                FarClipDistance);
+        }
+        
+        // ViewFrustum = FViewFrustum(
+        //     Position, 
+        //     Forward, 
+        //     Up, 
+        //     AspectRatio, 
+        //     VerticalFieldOfView, 
+        //     NearClipDistance, 
+        //     FarClipDistance);
+        
+        ViewFrustum = FViewFrustum(ViewMatrix, ProjectionMatrix);
             
         if (ViewUniformBuffer)
         {

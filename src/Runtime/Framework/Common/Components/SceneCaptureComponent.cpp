@@ -112,7 +112,8 @@ namespace nilou {
         ViewFamily.ShowOnlyComponents = ShowOnlyComponents; 
 
         FSceneView SceneView(
-            VerticalFieldOfView, 
+            ProjectionMode,
+            VerticalFieldOfView, OrthoWidth, 
             0.1, 30000, 
             GetComponentLocation(), 
             GetForwardVector(), 
@@ -218,7 +219,8 @@ namespace nilou {
         for (int i = 0; i < ViewUniformBuffers.size(); i++)
         {
             SceneViews.emplace_back(
-                glm::radians(90.0), 
+                ECameraProjectionMode::Perspective,
+                glm::radians(90.0), 0,
                 0.1, 30000, 
                 Position, 
                 ForwardVectors[i], 
