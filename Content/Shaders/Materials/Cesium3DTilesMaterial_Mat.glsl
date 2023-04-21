@@ -30,11 +30,11 @@ vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
 }
 float MaterialGetRoughness(VS_Out vs_out)
 {
-    return texture(metallicRoughnessTexture, vs_out.TexCoords).g;
+    return 1;
 }
 float MaterialGetMetallic(VS_Out vs_out)
 {
-    return texture(metallicRoughnessTexture, vs_out.TexCoords).b;
+    return 0;
 }
 vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
 {

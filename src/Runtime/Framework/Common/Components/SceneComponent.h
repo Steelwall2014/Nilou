@@ -55,6 +55,56 @@ namespace nilou {
         EAttachmentRule ScaleRule;
     };
 
+    enum class EDetachmentRule : uint8
+    {
+        /** Keeps current relative transform. */
+        KeepRelative,
+
+        /** Automatically calculates the relative transform such that the detached component maintains the same world transform. */
+        KeepWorld,
+    };
+
+    /** Rules for detaching components */
+    struct FDetachmentTransformRules
+    {
+        /** Various preset detachment rules */
+        static FDetachmentTransformRules KeepRelativeTransform;
+        static FDetachmentTransformRules KeepWorldTransform;
+
+        FDetachmentTransformRules(EDetachmentRule InRule, bool bInCallModify)
+            : LocationRule(InRule)
+            , RotationRule(InRule)
+            , ScaleRule(InRule)
+            , bCallModify(bInCallModify)
+        {}
+
+        FDetachmentTransformRules(EDetachmentRule InLocationRule, EDetachmentRule InRotationRule, EDetachmentRule InScaleRule, bool bInCallModify)
+            : LocationRule(InLocationRule)
+            , RotationRule(InRotationRule)
+            , ScaleRule(InScaleRule)
+            , bCallModify(bInCallModify)
+        {}
+
+        FDetachmentTransformRules(const FAttachmentTransformRules& AttachmentRules, bool bInCallModify)
+            : LocationRule(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+            , RotationRule(AttachmentRules.RotationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+            , ScaleRule(AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+            , bCallModify(bInCallModify)
+        {}
+
+        /** The rule to apply to location when detaching */
+        EDetachmentRule LocationRule;
+
+        /** The rule to apply to rotation when detaching */
+        EDetachmentRule RotationRule;
+
+        /** The rule to apply to scale when detaching */
+        EDetachmentRule ScaleRule;
+
+        /** Whether to call Modify() on the components concerned when detaching */
+        bool bCallModify;
+    };
+
     UCLASS()
     class USceneComponent : public UActorComponent
     {
@@ -83,6 +133,8 @@ namespace nilou {
         {
             Bounds = CalcBounds(GetComponentTransform());
         }
+
+        virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
 	    FBoundingBox GetBounds() const
         {
@@ -150,14 +202,8 @@ namespace nilou {
             return ComponentToWorld;
         }
 
-        // // 获取局部变换
-        // FTransform GetRelativeTransform() const;
+        const std::vector<std::shared_ptr<USceneComponent>>& GetAttachChildren() const { return AttachChildren; }
 
-
-        // // 获取相对于世界参考系的位置，通过调用GetWorldTransform实现
-        // dvec3 GetComponentLocation() const;
-
-        // void MoveComponentTo(const dvec3 &Position);
         // 在世界参考系中移动node，将node在世界参考系中的旋转设置为NewRotation
         void MoveComponent(const dvec3 &Delta, const FRotator &NewRotation);
         void MoveComponent(const dvec3 &Delta, const dquat &NewRotation);
@@ -173,8 +219,11 @@ namespace nilou {
 
         void AttachToComponent(USceneComponent *Parent, const FAttachmentTransformRules &AttachmentRules=FAttachmentTransformRules::KeepRelativeTransform);
         // void AttachToActor(AActor *Parent, const FAttachmentTransformRules &AttachmentRules);
+        void DetachFromComponent(const FDetachmentTransformRules& DetachmentRules);
 
         USceneComponent *GetAttachParent() { return AttachParent; }
+
+        void SetAttachParent(USceneComponent* NewAttachParent) { AttachParent = NewAttachParent; }
 
         bool IsUsingAbsoluteLocation() const
         {
@@ -195,7 +244,7 @@ namespace nilou {
         FTransform ComponentToWorld;
 
         USceneComponent *AttachParent = nullptr;
-        std::vector<USceneComponent *> AttachChildren;
+        std::vector<std::shared_ptr<USceneComponent>> AttachChildren;
 
         FBoundingBox Bounds;
 

@@ -2,10 +2,11 @@
 namespace nilou {
 enum class EUClasses {
 	MC_None = -1,
+	MC_UCesium3DTileComponent,
+	MC_ACesium3DTileset,
 	MC_AActor,
 	MC_AArrowActor,
 	MC_ACameraActor,
-	MC_ACesiumTilesetActor,
 	MC_AFFTOceanActor,
 	MC_AGeoreferenceActor,
 	MC_ALightActor,
@@ -18,7 +19,6 @@ enum class EUClasses {
 	MC_UActorComponent,
 	MC_UArrowComponent,
 	MC_UCameraComponent,
-	MC_UCesium3DTilesetComponent,
 	MC_UFourierTransformOceanComponent,
 	MC_ULightComponent,
 	MC_ULineBatchComponent,

@@ -21,10 +21,6 @@ layout(std140, binding = 5) uniform FCreatePatchBlock {
     uvec2 LodTextureSize;
 };
 
-layout (std140) uniform FPrimitiveShaderParameters {
-    dmat4 LocalToWorld;
-};
-
 #include "../include/ViewShaderParameters.glsl"
 
 uniform sampler2D MinMaxMap;

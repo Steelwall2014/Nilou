@@ -114,12 +114,12 @@ namespace nilou {
 		void UninitializeComponents();
 
 		template<class T>
-		void GetComponents(std::vector<std::weak_ptr<T>> &OutComponents, bool bIncludeFromChildActors = false)
+		void GetComponents(std::vector<T*> &OutComponents, bool bIncludeFromChildActors = false)
 		{
 			OutComponents.clear();
 			ForEachComponent_Internal<T>(T::StaticClass(), bIncludeFromChildActors, [&](std::shared_ptr<T> InComp)
 			{
-				OutComponents.push_back(std::weak_ptr<T>(InComp));
+				OutComponents.push_back(InComp.get());
 			});
 		}
 

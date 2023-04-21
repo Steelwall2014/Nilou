@@ -21,11 +21,13 @@ layout(std430, binding=4) readonly buffer LODParamsBuffer{
 
 layout (std140) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
+	dmat4 ModelToLocal;
 };
 
 struct FVertexFactoryIntermediates
 {
 	vec3 pos;
+	dmat4 ModelToWorld;
 };
 
 FVertexFactoryIntermediates VertexFactoryIntermediates()
@@ -39,21 +41,22 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	pos *= scale;
 	pos += vec3(offset, 0);
 	VFIntermediates.pos = pos;
+	VFIntermediates.ModelToWorld = LocalToWorld * ModelToLocal;
 	return VFIntermediates;
 }
 dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 {
-	return dvec3(LocalToWorld * dvec4(VFIntermediates.pos, 1));
+	return dvec3(VFIntermediates.ModelToWorld * dvec4(VFIntermediates.pos, 1));
 }
 
 vec3 VertexFactoryGetWorldNormal(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat3(transpose(inverse(mat3(LocalToWorld)))) * NORMAL;
+	return mat3(transpose(inverse(mat3(VFIntermediates.ModelToWorld)))) * NORMAL;
 }
 
 vec4 VertexFactoryGetWorldTangent(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat4(LocalToWorld) * TANGENT;
+	return mat4(VFIntermediates.ModelToWorld) * TANGENT;
 }
 vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 {

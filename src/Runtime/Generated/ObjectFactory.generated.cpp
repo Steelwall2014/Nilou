@@ -1,7 +1,8 @@
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/Actor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/ArrowActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/Cesium3DTilesetActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LightActor.h"
@@ -14,7 +15,6 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/ActorComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/ArrowComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/CameraComponent.h"
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/Cesium3DTilesetComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LightComponent.h"
 #include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
@@ -44,10 +44,11 @@
 using namespace nilou;
 FObjectFactory::FObjectFactory()
 {
+    FunctionMap["UCesium3DTileComponent"] = &UCesium3DTileComponent::CreateDefaultObject;
+    FunctionMap["ACesium3DTileset"] = &ACesium3DTileset::CreateDefaultObject;
     FunctionMap["AActor"] = &AActor::CreateDefaultObject;
     FunctionMap["AArrowActor"] = &AArrowActor::CreateDefaultObject;
     FunctionMap["ACameraActor"] = &ACameraActor::CreateDefaultObject;
-    FunctionMap["ACesiumTilesetActor"] = &ACesiumTilesetActor::CreateDefaultObject;
     FunctionMap["AFFTOceanActor"] = &AFFTOceanActor::CreateDefaultObject;
     FunctionMap["AGeoreferenceActor"] = &AGeoreferenceActor::CreateDefaultObject;
     FunctionMap["ALightActor"] = &ALightActor::CreateDefaultObject;
@@ -60,7 +61,6 @@ FObjectFactory::FObjectFactory()
     FunctionMap["UActorComponent"] = &UActorComponent::CreateDefaultObject;
     FunctionMap["UArrowComponent"] = &UArrowComponent::CreateDefaultObject;
     FunctionMap["UCameraComponent"] = &UCameraComponent::CreateDefaultObject;
-    FunctionMap["UCesium3DTilesetComponent"] = &UCesium3DTilesetComponent::CreateDefaultObject;
     FunctionMap["UFourierTransformOceanComponent"] = &UFourierTransformOceanComponent::CreateDefaultObject;
     FunctionMap["ULightComponent"] = &ULightComponent::CreateDefaultObject;
     FunctionMap["ULineBatchComponent"] = &ULineBatchComponent::CreateDefaultObject;

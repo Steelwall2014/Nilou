@@ -26,6 +26,7 @@ layout (std140) uniform FBuildNormalTangentBlock {
 
 layout (std140) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
+	dmat4 ModelToLocal;
 };
 
 uniform sampler2D HeightfieldTexture;
@@ -43,6 +44,7 @@ struct FVertexFactoryIntermediates
 	vec3 Normal;
 	vec4 Tangent;
 	uint MipmapLevel;
+	dmat4 ModelToWorld;
 };
 
 bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
@@ -129,6 +131,7 @@ FVertexFactoryIntermediates VertexFactoryIntermediates()
 	VFIntermediates.MipmapLevel = min(NumHeightfieldTextureMipmap, current_patch.lod);
 	ivec2 id = ivec2(HeightTexture_UV * vec2(HeightfieldWidth, HeightfieldHeight));
 	CalcNormalTangent(id, VFIntermediates.MipmapLevel, VFIntermediates.Normal, VFIntermediates.Tangent);
+	VFIntermediates.ModelToWorld = LocalToWorld * ModelToLocal;
 	return VFIntermediates;
 }
 dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
@@ -136,17 +139,17 @@ dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 	float height = textureLod(HeightfieldTexture, VFIntermediates.Heightfield_UV, VFIntermediates.MipmapLevel).r;
 	VFIntermediates.pos.z += height;
 
-	return dvec3(LocalToWorld * dvec4(VFIntermediates.pos, 1));
+	return dvec3(VFIntermediates.ModelToWorld * dvec4(VFIntermediates.pos, 1));
 }
 
 vec3 VertexFactoryGetWorldNormal(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat3(transpose(inverse(mat3(LocalToWorld)))) * VFIntermediates.Normal;
+	return mat3(transpose(inverse(mat3(VFIntermediates.ModelToWorld)))) * VFIntermediates.Normal;
 }
 
 vec4 VertexFactoryGetWorldTangent(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat4(LocalToWorld) * VFIntermediates.Tangent;
+	return mat4(VFIntermediates.ModelToWorld) * VFIntermediates.Tangent;
 }
 vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 {

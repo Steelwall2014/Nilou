@@ -31,11 +31,14 @@ namespace nilou {
     {
         auto LocalToWorld = GetRenderMatrix();
         auto Bound = GetBounds();
-        ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
-            [this, LocalToWorld, Bound](FDynamicRHI*) 
-            {
-                SceneProxy->SetTransform(LocalToWorld, Bound);
-            });
+        if (SceneProxy)
+        {
+            ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
+                [this, LocalToWorld, Bound](FDynamicRHI*) 
+                {
+                    SceneProxy->SetTransform(LocalToWorld, Bound);
+                });
+        }
 
         USceneComponent::SendRenderTransform();
     }

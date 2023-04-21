@@ -1,5 +1,6 @@
 #include "SceneComponent.h"
 #include "Common/Transform.h"
+#include "Common/Actor/Actor.h"
 
 #include <memory>
 
@@ -10,12 +11,135 @@ namespace nilou {
     FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetNotIncludingScale(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld);
     FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale(EAttachmentRule::SnapToTarget);
 
+    FDetachmentTransformRules FDetachmentTransformRules::KeepRelativeTransform(EDetachmentRule::KeepRelative, true);
+    FDetachmentTransformRules FDetachmentTransformRules::KeepWorldTransform(EDetachmentRule::KeepWorld, true);
     // FBoundingBox USceneComponent::CalcBounds(const FTransform& LocalToWorld) const
     // {
     //     FBoundingBox Bounds;
     //     Bounds.Min = Bounds.Max = LocalToWorld.GetTranslation();
     //     return Bounds;
     // }
+
+    void USceneComponent::DestroyComponent(bool bPromoteChildren)
+    {
+        if (bPromoteChildren)
+        {
+            AActor* Owner = GetOwner();
+            if (Owner != nullptr)
+            {
+                std::shared_ptr<USceneComponent> ChildToPromote = nullptr;
+
+                const std::vector<std::shared_ptr<USceneComponent>>& AttachedChildren = GetAttachChildren();
+                // Handle removal of the root node
+                if (this == Owner->GetRootComponent())
+                {
+                    auto FindResult = std::find_if(AttachedChildren.begin(), AttachedChildren.end(), 
+                        [Owner](std::shared_ptr<USceneComponent> Child) 
+                        {
+                            return Child != nullptr && Child->GetOwner() == Owner;
+                        });
+
+                    if (FindResult != AttachedChildren.end())
+                    {
+                        ChildToPromote = *FindResult;
+                    }
+                    else
+                    {
+                        // Didn't find a suitable component to promote so create a new default component
+
+                        // Construct a new default root component
+                        std::shared_ptr<USceneComponent> NewRootComponent = CreateComponent<USceneComponent>(Owner);
+                        NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
+                        Owner->AddOwnedComponent(NewRootComponent);
+                        NewRootComponent->RegisterComponent();
+
+                        // Designate the new default root as the child we're promoting
+                        ChildToPromote = NewRootComponent;
+                    }
+
+                    // Set the selected child node as the new root
+                    check(ChildToPromote != nullptr);
+                    Owner->SetRootComponent(ChildToPromote);
+                }
+                else    // ...not the root node, so we'll promote the selected child node to this position in its AttachParent's child array.
+                {
+                    // Cache our AttachParent
+                    USceneComponent* CachedAttachParent = GetAttachParent();
+                    if (CachedAttachParent != nullptr)
+                    {
+                        // Find the our position in its AttachParent's child array
+                        const std::vector<std::shared_ptr<USceneComponent>>& AttachSiblings = CachedAttachParent->GetAttachChildren();
+                        int32 Index = -1;
+                        for (int i = 0; i < AttachSiblings.size(); i++)
+                        {
+                            if (AttachSiblings[i].get() == this)
+                            {
+                                Index = i;
+                                break;
+                            }
+                        }
+                        check(Index != -1);
+
+                        // Detach from parent
+                        DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+
+                        // Find an appropriate child node to promote to this node's position in the hierarchy
+                        if (AttachedChildren.size() > 0)
+                        {
+                            // Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
+                            auto FindResult = std::find_if(AttachedChildren.begin(), AttachedChildren.end(), 
+                                [Owner](std::shared_ptr<USceneComponent> Child) 
+                                {
+                                    return Child != nullptr;
+                                });
+                            if (FindResult != AttachedChildren.end())
+                            {
+                                ChildToPromote = *FindResult;
+                            }
+                            else
+                            {
+                                // Default to first child node
+                                if (AttachedChildren[0] != nullptr)
+                                {
+                                    ChildToPromote = AttachedChildren[0];
+                                }
+                            }
+                        }
+
+                        if (ChildToPromote != nullptr)
+                        {
+                            // Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
+                            ChildToPromote->AttachToComponent(CachedAttachParent, FAttachmentTransformRules::KeepWorldTransform);
+                            CachedAttachParent->AttachChildren.erase(
+                                std::find(
+                                    CachedAttachParent->AttachChildren.begin(), 
+                                    CachedAttachParent->AttachChildren.end(), ChildToPromote));
+
+                            Index = glm::clamp<int32>(Index, 0, AttachSiblings.size());
+                            CachedAttachParent->AttachChildren.insert(
+                                CachedAttachParent->AttachChildren.begin()+Index, ChildToPromote);
+                        }
+                    }
+                }
+
+                // Detach child nodes from the node that's being removed and re-attach them to the child that's being promoted
+                std::vector<std::shared_ptr<USceneComponent>> AttachChildrenLocalCopy(AttachedChildren);
+                for (std::shared_ptr<USceneComponent> Child : AttachChildrenLocalCopy)
+                {
+                    if (Child)
+                    {
+                        // Note: This will internally call Modify(), so we don't need to call it here
+                        Child->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+                        if (Child != ChildToPromote)
+                        {
+                            Child->AttachToComponent(ChildToPromote.get(), FAttachmentTransformRules::KeepWorldTransform);
+                        }
+                    }
+                }
+            }
+        }
+        UActorComponent::DestroyComponent(bPromoteChildren);
+    }
 
     FTransform USceneComponent::CalcNewComponentToWorld(const FTransform &NewRelativeTransform)
     {
@@ -211,60 +335,12 @@ namespace nilou {
         }
         return NewRelRotation;
     }
-    // void USceneComponent::SetTranslation(const dvec3 &InTranslation)
-    // {
-    //     Transform.SetTranslation(InTranslation);
-    // }
 
-    // void USceneComponent::SetRelativeTransform(const FTransform &transform)
-    // {
-    //     RelativeTransform = transform;
-    //     UpdateComponentToWorld();
-
-    // }
-
-    // void USceneComponent::SetWorldTransform(const FTransform &transform)
-    // {
-    //     WorldTransform = transform;
-    //     UpdateComponentToParent();
-    // }
-
-    // FTransform USceneComponent::GetRelativeTransform() const
-    // {
-    //     return RelativeTransform;
-    // }
-    // FTransform USceneComponent::GetWorldTransform() const
-    // {
-    //     if (AttachParent)
-    //     {
-    //         FTransform ParentTransform = AttachParent->GetWorldTransform();
-    //         if (bAbsoluteTranslation)
-    //             ParentTransform.SetTranslation(dvec3(0));
-            
-    //         if (bAbsoluteRotation)
-    //             ParentTransform.SetRotation(dquat());
-
-    //         if (bAbsoluteScale)
-    //             ParentTransform.SetScale3D(dvec3(1));
-    //         return ParentTransform * Transform;
-    //     }
-    //     else 
-    //     {
-    //         return Transform;
-    //     }
-    // }
-    // dvec3 USceneComponent::GetComponentLocation() const
-    // {
-    //     return WorldTransform.GetTranslation();
-    // }
-    // void USceneComponent::MoveComponentTo(const dvec3 &Position)
-    // {
-    //     MoveComponent(Position - WorldTransform.GetTranslation(), WorldTransform.GetRotation());
-    // }
     void USceneComponent::MoveComponent(const dvec3 &Delta, const FRotator &NewRotation)
     {
         MoveComponent(Delta, NewRotation.ToQuat());
     }
+
     void USceneComponent::MoveComponent(const dvec3 &Delta, const dquat &NewRotation)
     {
 	    dquat NewRotationQuat(NewRotation);
@@ -328,6 +404,7 @@ namespace nilou {
 
         }
     }
+
     vec3 USceneComponent::GetForwardVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_FORWARD);
@@ -340,6 +417,7 @@ namespace nilou {
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_RIGHT);
     }
+    
     void USceneComponent::UpdateComponentToWorld()
     {
         if (AttachParent && !AttachParent->bComponentToWorldUpdated)
@@ -360,7 +438,7 @@ namespace nilou {
 
     void USceneComponent::UpdateChildTransforms()
     {
-        for (USceneComponent *ChildComp : AttachChildren)
+        for (std::shared_ptr<USceneComponent> ChildComp : AttachChildren)
         {
             if (ChildComp)
             {
@@ -381,19 +459,6 @@ namespace nilou {
             }
         }
     }
-    // void USceneComponent::UpdateComponentToParent()
-    // {
-    //     if (AttachParent)
-    //         RelativeTransform = WorldTransform.CalcRelativeTransform(AttachParent->WorldTransform);
-    //     else
-    //         RelativeTransform = WorldTransform;
-
-    //     for (USceneComponent *AttachChild : AttachChildren)
-    //     {
-    //         if (AttachChild)
-    //             AttachChild->UpdateComponentToWorld();
-    //     }
-    // }
 
     void USceneComponent::AttachToComponent(USceneComponent *Parent, const FAttachmentTransformRules& AttachmentRules)
     {
@@ -404,7 +469,20 @@ namespace nilou {
         //     RegisterComponent();
 
         AttachParent = Parent;
-        Parent->AttachChildren.push_back(this);
+
+        int32 Index = -1;
+        for (int i = 0; i < Parent->AttachChildren.size(); i++)
+        {
+            if (Parent->AttachChildren[i].get() == this)
+            {
+                Index = i;
+                break;
+            }
+        }
+        if (Index == -1)
+        {
+            Parent->AttachChildren.push_back(std::static_pointer_cast<USceneComponent>(this->shared_from_this()));
+        }
         
 		FTransform SocketTransform = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
 		FTransform RelativeTM = GetComponentTransform().GetRelativeTransform(SocketTransform);
@@ -470,6 +548,55 @@ namespace nilou {
 		}
 
         UpdateComponentToWorld();
+    }
+
+    void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& DetachmentRules)
+    {
+        if (GetAttachParent() != nullptr)
+        {
+            AActor* Owner = GetOwner();
+
+            for (int i = 0; i < GetAttachParent()->AttachChildren.size(); i++)
+            {
+                if (GetAttachParent()->AttachChildren[i].get() == this)
+                {
+                    GetAttachParent()->AttachChildren.erase(GetAttachParent()->AttachChildren.begin()+i);
+                    break;
+                }
+            }
+            SetAttachParent(nullptr);
+
+            // If desired, update RelativeLocation and RelativeRotation to maintain current world position after detachment
+            switch (DetachmentRules.LocationRule)
+            {
+            case EDetachmentRule::KeepRelative:
+                break;
+            case EDetachmentRule::KeepWorld:
+                RelativeLocation = GetComponentTransform().GetTranslation(); // or GetComponentLocation, but worried about custom location...
+                break;
+            }
+
+            switch (DetachmentRules.RotationRule)
+            {
+            case EDetachmentRule::KeepRelative:
+                break;
+            case EDetachmentRule::KeepWorld:
+                RelativeRotation = GetComponentRotation();
+                break;
+            }
+
+            switch (DetachmentRules.ScaleRule)
+            {
+            case EDetachmentRule::KeepRelative:
+                break;
+            case EDetachmentRule::KeepWorld:
+                RelativeScale3D = GetComponentScale();
+                break;
+            }
+
+            // calculate transform with new attachment condition
+            UpdateComponentToWorld();
+        }
     }
 
     // void USceneComponent::AttachToActor(AActor *Parent, const FAttachmentTransformRules& AttachmentRules)

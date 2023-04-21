@@ -172,6 +172,7 @@ include_paths = {
         "./src/Runtime/Serialization",
         "./src/Runtime/RenderPass",
         "./src/Runtime/Geospatial",
+        "./src/Runtime/Cesium3DTiles",
         "./Assets/Shaders"}
  
 BuildProject({

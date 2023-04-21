@@ -6,10 +6,11 @@ FInheritanceGraph *FInheritanceGraph::GetInheritanceGraph()
     return InheritanceGraph;
 } 
 FInheritanceGraph::FInheritanceGraph() {
+	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UCesium3DTileComponent);
+	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ACesium3DTileset);
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_AActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AArrowActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ACameraActor);
-	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ACesiumTilesetActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AFFTOceanActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_AGeoreferenceActor);
 	AddEdge(EUClasses::MC_AActor, EUClasses::MC_ALightActor);
@@ -22,7 +23,6 @@ FInheritanceGraph::FInheritanceGraph() {
 	AddEdge(EUClasses::MC_UObject, EUClasses::MC_UActorComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UArrowComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_UCameraComponent);
-	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UCesium3DTilesetComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_UFourierTransformOceanComponent);
 	AddEdge(EUClasses::MC_USceneComponent, EUClasses::MC_ULightComponent);
 	AddEdge(EUClasses::MC_UPrimitiveComponent, EUClasses::MC_ULineBatchComponent);

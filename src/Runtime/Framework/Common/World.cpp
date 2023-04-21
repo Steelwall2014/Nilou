@@ -18,7 +18,8 @@
 #include "Common/Actor/SphereActor.h"
 #include "Common/Actor/SkyAtmosphereActor.h"
 #include "Common/Actor/GeoreferenceActor.h"
-#include "Common/Actor/Cesium3DTilesetActor.h"
+// #include "Common/Actor/Cesium3DTilesetActor.h"
+#include "Cesium3DTileset.h"
 #include "Common/Actor/LineBatchActor.h"
 #include "Common/Actor/VirtualHeightfieldMeshActor.h"
 #include "Common/Actor/FFTOceanActor.h"
@@ -57,42 +58,106 @@ namespace nilou {
         UMaterial* PBRExhibitionMaterial = GetContentManager()->GetMaterialByPath("/Materials/PBRExhibition.nasset");
         // MirrorMaterial->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_CCW;
 
-        UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
-        if (Mesh)
         {
-            FTransform MeshTransform;
-            MeshTransform.SetRotator(FRotator(0, 0, -90));
-            for (int i = 1; i <= 1; i++)
-            {
-                for (int j = 1; j <= 1; j++)
-                {
-                    MeshTransform.SetTranslation(glm::vec3(i, j, 1));
-                    std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
-                    StaticMeshActor->SetStaticMesh(Mesh);
-                }
-            }
+            // UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
+            // if (Mesh)
+            // {
+            //     FTransform MeshTransform;
+            //     MeshTransform.SetRotator(FRotator(0, 0, -90));
+            //     for (int i = 1; i <= 1; i++)
+            //     {
+            //         for (int j = 1; j <= 1; j++)
+            //         {
+            //             MeshTransform.SetTranslation(glm::vec3(i, j, 1));
+            //             std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
+            //             StaticMeshActor->SetStaticMesh(Mesh);
+            //         }
+            //     }
+            // }
+            
+
+            // std::vector<std::shared_ptr<ASphereActor>> PBRSpheres;
+            // {
+            //     FTransform SphereTransform;
+            //     for (int i = 1; i <= 5; i++)
+            //     {
+            //         for (int j = 0; j <= 4; j++)
+            //         {
+            //             UMaterial* mat = PBRExhibitionMaterial->CreateMaterialInstance();
+            //             mat->SetScalarParameterValue("Red", 1.f);
+            //             mat->SetScalarParameterValue("Green", 1.f);
+            //             mat->SetScalarParameterValue("Blue", 1.f);
+            //             mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
+            //             mat->SetScalarParameterValue("Roughness", (j)*0.25f);
+            //             SphereTransform.SetTranslation(glm::vec3(-2, j*0.3, i*0.3));
+            //             SphereTransform.SetScale3D(dvec3(0.1));
+            //             std::shared_ptr<ASphereActor> Sphere = SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
+            //             Sphere->SphereComponent->SetMaterial(mat);
+            //             PBRSpheres.push_back(Sphere);
+            //         }
+            //     }
+            // }
+
+            // FTransform CubeTransform;
+            // CubeTransform.SetScale3D(vec3(15, 15, 0.05));
+            // UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
+            // std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
+            // StaticMeshActor->SetStaticMesh(Cube);
+            // StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Off);
+
+            // std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
+            
+            // FTransform ReflectionProbeTransform1;
+            // ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
+            // std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
+            // for (auto Sphere : PBRSpheres)
+            //     ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
+            // ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
+
+            // FTransform ReflectionProbeTransform2;
+            // ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
+            // std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
         }
 
-        std::vector<std::shared_ptr<ASphereActor>> PBRSpheres;
         {
-            FTransform SphereTransform;
-            for (int i = 1; i <= 5; i++)
-            {
-                for (int j = 0; j <= 4; j++)
-                {
-                    UMaterial* mat = PBRExhibitionMaterial->CreateMaterialInstance();
-                    mat->SetScalarParameterValue("Red", 1.f);
-                    mat->SetScalarParameterValue("Green", 1.f);
-                    mat->SetScalarParameterValue("Blue", 1.f);
-                    mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
-                    mat->SetScalarParameterValue("Roughness", (j)*0.25f);
-                    SphereTransform.SetTranslation(glm::vec3(-2, j*0.3, i*0.3));
-                    SphereTransform.SetScale3D(dvec3(0.1));
-                    std::shared_ptr<ASphereActor> Sphere = SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
-                    Sphere->SphereComponent->SetMaterial(mat);
-                    PBRSpheres.push_back(Sphere);
-                }
-            }
+            UMaterial* SkyAtmosphereMaterial = GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset");
+            SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
+            std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
+            SphereActor->SphereComponent->SetCastShadow(false);
+            SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
+            SphereActor->SphereComponent->SetMaterial(SkyAtmosphereMaterial);
+            SphereActor->SphereComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
+            std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
+
+            std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+            SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
+            SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
+            this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+        }
+
+        {
+            // FTransform VHMTransform;
+            // VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
+            // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
+            // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
+            // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+            // VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
+        }
+
+        {
+            std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
+            GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
+            // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
+
+            // std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
+            std::shared_ptr<ACesium3DTileset> TilesetActor = SpawnActor<ACesium3DTileset>(FTransform::Identity, "test tileset");
+            // TilesetActor->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtile_debug\tileset.json)");
+            TilesetActor->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
+            // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
+            // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
+            // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
+            TilesetActor->bShowBoundingBox = true;
+            // TilesetActor->GetTilesetComponent()->SetReflectionProbeBlendMode(RPBM_Off);
         }
 
         // std::vector<FDynamicMeshVertex> OutVerts;
@@ -108,22 +173,7 @@ namespace nilou {
         // resources->Sections.push_back(std::move(section));
         // cube->RenderData->LODResources.push_back(std::move(resources));
         // cube->Name = "Cube";
-
-        FTransform CubeTransform;
-        CubeTransform.SetScale3D(vec3(15, 15, 0.05));
-        UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
-        std::shared_ptr<AStaticMeshActor> StaticMeshActor = SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
-        StaticMeshActor->SetStaticMesh(Cube);
-        StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Off);
         
-        UMaterial* SkyAtmosphereMaterial = GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset");
-        SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
-        std::shared_ptr<ASphereActor> SphereActor = SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
-        SphereActor->SphereComponent->SetCastShadow(false);
-        SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
-        SphereActor->SphereComponent->SetMaterial(SkyAtmosphereMaterial);
-        std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
-        std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(glm::vec3(0, -2, 0));
@@ -140,52 +190,12 @@ namespace nilou {
         // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
-        // FTransform VHMTransform;
-        // VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
-        // std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        // VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
-        // VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
-        // VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
-        
-        std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
-        GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
-        // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
-
-        std::shared_ptr<ACesiumTilesetActor> TilesetActor = SpawnActor<ACesiumTilesetActor>(FTransform::Identity, "test tileset");
-        TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\TuZiGou(20210608)\TuZiGou_3dtiles_cesiumlab\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetURI(R"(E:\cesium-unreal\extern\cesium-native\Cesium3DTilesSelection\test\data\Tileset\tileset.json)");
-        // TilesetActor->GetTilesetComponent()->SetMaxScreenSpaceError(0);
-        // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
-        // TilesetActor->GetTilesetComponent()->SetShowBoundingBox(true);
-        TilesetActor->GetTilesetComponent()->SetReflectionProbeBlendMode(RPBM_Off);
-
         // std::shared_ptr<ALineBatchActor> LineBatchActor = SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         // std::vector<FBatchedLine> lines;
         // lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
         // LineBatchActor->LineBatchComponent->DrawLines(lines);
 
         // std::shared_ptr<AFFTOceanActor> FFTOceanActor = SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
-
-        FTransform ReflectionProbeTransform1;
-        ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
-        for (auto Sphere : PBRSpheres)
-            ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
-        /** To test Blend */
-        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
-
-        FTransform ReflectionProbeTransform2;
-        ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe2 = SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
-
-        /** To test Blend */
-        // ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(10));
-
-        std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
-        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
-        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
-        this->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
 
         // FTransform MirrorTransform;
         // MirrorTransform.SetTranslation(dvec3(-1, 1, 1));
@@ -226,12 +236,12 @@ namespace nilou {
         for (std::shared_ptr<AActor> Actor : Actors)
         {
             Actor->Tick(DeltaTime);
-            std::vector<std::weak_ptr<UActorComponent>> Components;
+            std::vector<UActorComponent*> Components;
             Actor->GetComponents(Components);
             for (auto Component : Components)
             {
-                if (!Component.expired())
-                    Component.lock()->TickComponent(DeltaTime);
+                if (Component)
+                    Component->TickComponent(DeltaTime);
             }
         }
     }

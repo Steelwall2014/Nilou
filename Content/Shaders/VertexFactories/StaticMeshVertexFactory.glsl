@@ -8,32 +8,34 @@ layout(location = 4) in vec2 TEXCOORD_0;
 
 layout (std140) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
+	dmat4 ModelToLocal;
 };
 
 struct FVertexFactoryIntermediates
 {
-	mat4 FloatLocalToWorld;
+	dmat4 ModelToWorld;
 };
 
 FVertexFactoryIntermediates VertexFactoryIntermediates()
 {
 	FVertexFactoryIntermediates VFIntermediates;
+	VFIntermediates.ModelToWorld = LocalToWorld * ModelToLocal;
 	return VFIntermediates;
 }
 
 dvec3 VertexFactoryGetWorldPosition(FVertexFactoryIntermediates VFIntermediates)
 {
-	return dvec3(LocalToWorld * dvec4(POSITION, 1));
+	return dvec3(VFIntermediates.ModelToWorld * dvec4(POSITION, 1));
 }
 
 vec3 VertexFactoryGetWorldNormal(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat3(transpose(inverse(mat3(LocalToWorld)))) * NORMAL;
+	return mat3(transpose(inverse(mat3(VFIntermediates.ModelToWorld)))) * NORMAL;
 }
 
 vec4 VertexFactoryGetWorldTangent(FVertexFactoryIntermediates VFIntermediates)
 {
-	return mat4(LocalToWorld) * TANGENT;
+	return mat4(VFIntermediates.ModelToWorld) * TANGENT;
 }
 vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 {

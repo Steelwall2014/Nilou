@@ -122,6 +122,10 @@ namespace nilou {
 
 
                 FMeshDrawCommand MeshDrawCommand;
+                #ifdef NILOU_DEBUG
+                MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
+                MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
+                #endif
                 std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                 auto BlendState = Mesh.MaterialRenderProxy->BlendState;
 

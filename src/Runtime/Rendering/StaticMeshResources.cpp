@@ -175,16 +175,20 @@ namespace nilou {
 
     void UStaticMesh::ReleaseResources()
     {
-        FStaticMeshRenderData* ToDelete = RenderData;
-        ENQUEUE_RENDER_COMMAND(UStaticMesh_ReleaseResources)(
-            [ToDelete](FDynamicRHI*) {
-                for (int i = 0; i < ToDelete->LODResources.size(); i++)
-                {
-                    ToDelete->LODResources[i]->ReleaseResources();
-                    delete ToDelete->LODResources[i];
-                }
-                delete ToDelete;
-            });
+        if (RenderData)
+        {
+            FStaticMeshRenderData* ToDelete = RenderData;
+            ENQUEUE_RENDER_COMMAND(UStaticMesh_ReleaseResources)(
+                [ToDelete](FDynamicRHI*) {
+                    for (int i = 0; i < ToDelete->LODResources.size(); i++)
+                    {
+                        ToDelete->LODResources[i]->ReleaseResources();
+                        delete ToDelete->LODResources[i];
+                    }
+                    delete ToDelete;
+                });
+            RenderData = nullptr;
+        }
     }
 
     void UStaticMesh::Serialize(FArchive &Ar)

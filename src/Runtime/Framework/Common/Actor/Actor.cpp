@@ -13,14 +13,13 @@ namespace nilou {
 
     static void DispatchOnComponentsCreated(AActor* NewActor)
     {
-        std::vector<std::weak_ptr<UActorComponent>> Components;
+        std::vector<UActorComponent*> Components;
         NewActor->GetComponents(Components);
 
-        for (auto WeakActorComp : Components)
+        for (auto ActorComp : Components)
         {
-            if (!WeakActorComp.expired())
+            if (ActorComp)
             {
-                auto ActorComp = WeakActorComp.lock();
                 if (ActorComp->HasBeenCreated())
                     ActorComp->OnComponentCreated();
             }
@@ -78,13 +77,10 @@ namespace nilou {
     {
 		ActorHasBegunPlay = EActorBeginPlayState::BeginningPlay;
 
-        std::vector<std::weak_ptr<UActorComponent>> Components;
+        std::vector<UActorComponent*> Components;
         GetComponents(Components);
-	    for (auto WeakComponent : Components)
+	    for (auto Component : Components)
         {
-            if (WeakComponent.expired())
-                continue;
-            auto Component = WeakComponent.lock();
             if (Component->IsRegistered() && !Component->HasBegunPlay())
             {
                 Component->BeginPlay();
@@ -204,15 +200,12 @@ namespace nilou {
             RootComponent->RegisterComponentWithWorld(World);
         }
 
-        std::vector<std::weak_ptr<UActorComponent>> Components;
+        std::vector<UActorComponent*> Components;
         GetComponents(Components);
 
         for (int i = 0; i < Components.size(); i++)
         {
-            auto WeakComponent = Components[i];
-            if (WeakComponent.expired())
-                continue;
-            auto Component = WeakComponent.lock().get();
+            auto Component = Components[i];
             if (!Component->IsRegistered())
             {
                 USceneComponent *UnregisteredParentComponent = GetUnregisteredParent(Component);
@@ -228,14 +221,11 @@ namespace nilou {
 
     void AActor::InitializeComponents()
     {
-        std::vector<std::weak_ptr<UActorComponent>> Components;
+        std::vector<UActorComponent*> Components;
         GetComponents(Components);
 
-        for (auto WeakActorComp : Components)
+        for (auto ActorComp : Components)
         {
-            if (WeakActorComp.expired())
-                continue;
-            auto ActorComp = WeakActorComp.lock();
             if (ActorComp->IsRegistered())
             {
                 if (ActorComp->bWantsInitializeComponent && !ActorComp->HasBeenInitialized())
@@ -249,14 +239,11 @@ namespace nilou {
 
     void AActor::UninitializeComponents()
     {
-        std::vector<std::weak_ptr<UActorComponent>> Components;
+        std::vector<UActorComponent*> Components;
         GetComponents(Components);
 
-        for (auto WeakActorComp : Components)
+        for (auto ActorComp : Components)
         {
-            if (WeakActorComp.expired())
-                continue;
-            auto ActorComp = WeakActorComp.lock();
             if (ActorComp->HasBeenInitialized())
             {
                 ActorComp->UninitializeComponent();

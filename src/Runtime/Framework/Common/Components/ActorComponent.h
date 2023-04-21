@@ -48,7 +48,7 @@ namespace nilou {
         void RegisterComponentWithWorld(UWorld *World);
         void UnregisterComponent();
 
-        virtual void DestroyComponent();
+        virtual void DestroyComponent(bool bPromoteChildren = false);
 
         /** 重新计算transform，这里是空实现 */
         virtual void UpdateComponentToWorld() {}

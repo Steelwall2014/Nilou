@@ -156,8 +156,18 @@ namespace nilou {
         bHasBegunPlay = true;
     }
 
-    void UActorComponent::DestroyComponent()
+    void UActorComponent::DestroyComponent(bool bPromoteChildren)
     {
+        if (bHasBeenInitialized)
+        {
+            UninitializeComponent();
+        }
+
+        if(IsRegistered())
+        {
+            UnregisterComponent();
+        }
+
         if (AActor *MyOwner = GetOwner())
         {
             MyOwner->RemoveOwnedComponent(this->shared_from_this());

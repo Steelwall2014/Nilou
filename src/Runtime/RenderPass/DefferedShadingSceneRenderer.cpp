@@ -268,6 +268,7 @@ namespace nilou {
     {
         static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
         std::vector<int> Index(SceneViews.size(), 0);
+        NILOU_LOG(Info, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
             if (!ViewFamily.ShowOnlyComponents.empty() && !ViewFamily.ShowOnlyComponents.contains(PrimitiveInfo->Primitive))

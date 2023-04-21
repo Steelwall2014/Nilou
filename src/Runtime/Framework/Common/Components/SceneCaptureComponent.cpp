@@ -20,11 +20,11 @@ namespace nilou {
         if (InActor && InActor->IsValid())
         {
             auto Actor = InActor;
-            std::vector<std::weak_ptr<UPrimitiveComponent>> PrimitiveComponents;
+            std::vector<UPrimitiveComponent*> PrimitiveComponents;
             Actor->GetComponents(PrimitiveComponents);
-            for (auto WeakPrimComp : PrimitiveComponents)
+            for (auto PrimComp : PrimitiveComponents)
             {
-                HiddenComponents.insert(WeakPrimComp.lock().get());
+                HiddenComponents.insert(PrimComp);
             }
         }
     }
@@ -42,11 +42,11 @@ namespace nilou {
         if (InActor && InActor->IsValid())
         {
             auto Actor = InActor;
-            std::vector<std::weak_ptr<UPrimitiveComponent>> PrimitiveComponents;
+            std::vector<UPrimitiveComponent*> PrimitiveComponents;
             Actor->GetComponents(PrimitiveComponents);
-            for (auto WeakPrimComp : PrimitiveComponents)
+            for (auto PrimComp : PrimitiveComponents)
             {
-                ShowOnlyComponents.insert(WeakPrimComp.lock().get());
+                ShowOnlyComponents.insert(PrimComp);
             }
         }
     }
@@ -64,7 +64,8 @@ namespace nilou {
 
     void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene)
     {
-        // Some trick, the first frame actually doesn't render anything.
+        // For some reason, the first frame actually doesn't render anything.
+        // It's a bug, but I don't want to fix it because I can't find where is the wrong.
         if (Scene->GetFrameNumber() <= 1)
             return;
         for (USceneCaptureComponent* Component : SceneCapturesToUpdate)

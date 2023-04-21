@@ -68,6 +68,11 @@ namespace nilou {
     public:
     
         FMeshDrawCommand();
+
+        #ifdef NILOU_DEBUG 
+        const FVertexFactory* DebugVertexFactory;
+        const FMaterialRenderProxy* DebugMaterial;
+        #endif
         
         /**
         * Resource bindings
