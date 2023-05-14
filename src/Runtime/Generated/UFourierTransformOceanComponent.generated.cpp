@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
-namespace nilou {
-std::string UFourierTransformOceanComponent::GetClassName() { return "UFourierTransformOceanComponent"; }
-EUClasses UFourierTransformOceanComponent::GetClassEnum() { return EUClasses::MC_UFourierTransformOceanComponent; }
-const UClass *UFourierTransformOceanComponent::GetClass() { return UFourierTransformOceanComponent::StaticClass(); }
-const UClass *UFourierTransformOceanComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UFourierTransformOceanComponent::StaticClass_ = nullptr;
+const NClass *UFourierTransformOceanComponent::GetClass() const 
+{ 
+    return UFourierTransformOceanComponent::StaticClass(); 
+}
+const NClass *UFourierTransformOceanComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UFourierTransformOceanComponent", EUClasses::MC_UFourierTransformOceanComponent);
-	return StaticClass;
+    return UFourierTransformOceanComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UFourierTransformOceanComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UFourierTransformOceanComponent>
 {
-    return std::make_unique<UFourierTransformOceanComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UFourierTransformOceanComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UFourierTransformOceanComponent>("UFourierTransformOceanComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UPrimitiveComponent")
+;
+        UFourierTransformOceanComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UFourierTransformOceanComponent> Dummy;
+};
+TClassRegistry<UFourierTransformOceanComponent> Dummy = TClassRegistry<UFourierTransformOceanComponent>("UFourierTransformOceanComponent");
+
+

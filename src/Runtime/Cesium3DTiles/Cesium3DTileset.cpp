@@ -71,7 +71,8 @@ namespace nilou {
             std::string TextureName = std::to_string(TextureIndex) + "_" + gltf_texture.name;
             int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height)) + 1;
             
-            std::shared_ptr<UTexture2D> Texture = std::make_shared<UTexture2D>(TextureName);
+            std::shared_ptr<UTexture2D> Texture = std::make_shared<UTexture2D>();
+            Texture->Name = TextureName;
             Texture->ImageData = image;
             Texture->UpdateResource();
             
@@ -163,7 +164,8 @@ namespace nilou {
         ParseToMaterials(model, Materials, Textures, UniformBuffer);
         for (auto &gltf_mesh : model.meshes)
         {
-            std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
+            std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>();
+            StaticMesh->Name = gltf_mesh.name;
             FStaticMeshLODResources* Resource = new FStaticMeshLODResources();
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
             {
@@ -441,11 +443,12 @@ namespace nilou {
                     ExpelledItem->first->Content.Gltf = nullptr;
                     ExpelledItem->first->LoadingState = ETileLoadingState::Unloaded;
                 }
-                auto TileComponent = CreateComponent<UCesium3DTileComponent>(this, Tile);
-                TileComponent->AttachToComponent(GetRootComponent());
+                auto TileComponent = CreateComponent<UCesium3DTileComponent>(this);
+                TileComponent->Tile = Tile;
                 TileComponent->Gltf = Tile->Content.Gltf;
-                TileComponent->RegisterComponent();
                 TileComponent->SetReflectionProbeBlendMode(RPBM_Off);
+                TileComponent->RegisterComponent();
+                TileComponent->AttachToComponent(GetRootComponent());
                 RenderComponentsThisFrame.push_back(TileComponent);
                 if (bShowBoundingBox) 
                 {

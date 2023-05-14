@@ -33,14 +33,12 @@ namespace nilou {
 
     };
 
-    // TODO: Finish this component
-    UCLASS()
-    class UVirtualHeightfieldMeshComponent : public UPrimitiveComponent
+    class NCLASS UVirtualHeightfieldMeshComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UVirtualHeightfieldMeshComponent(AActor *InOwner = nullptr);
+        UVirtualHeightfieldMeshComponent();
 
         // 单个地形分段中四边形的数量（边长），一个分段即为地形渲染LOD过渡的单位
         // 默认缩放下一个四边形的大小为1*1

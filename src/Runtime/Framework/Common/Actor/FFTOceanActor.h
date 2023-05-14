@@ -4,10 +4,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class AFFTOceanActor : public AActor
+    class NCLASS AFFTOceanActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AFFTOceanActor() 
         { 

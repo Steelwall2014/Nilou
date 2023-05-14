@@ -1,5 +1,5 @@
 {
-    "xmake.additionalConfigArguments": ["--cc=clang-cl", "--cxx=clang-cl"],
+    "xmake.additionalConfigArguments": [],
     "C_Cpp.codeAnalysis.runAutomatically": false,
     "C_Cpp.intelliSenseEngine": "disabled",
     "C_Cpp.formatting": "disabled",
@@ -17,7 +17,20 @@
     ],
     "xmake.debuggingTargetsArguments": {
         "HeaderTool": [
-            "D:/Nilou/src", "D:/Nilou/src/Runtime/Generated"
-        ]
+            "D:/Nilou/src", "D:/Nilou/src/Runtime/Generated",
+            "D:/Nilou/External/include", 
+            "D:/Nilou/src/Runtime/Framework", 
+            "D:/Nilou/src/Runtime/Applications", 
+            "D:/Nilou/src/Runtime/RHI", 
+            "D:/Nilou/src/Runtime/HAL", 
+            "D:/Nilou/src/Runtime/Rendering", 
+            "D:/Nilou/src/Runtime/GameStatics",
+            "D:/Nilou/src/Runtime/Generated",
+            "D:/Nilou/src/Runtime/Serialization",
+            "D:/Nilou/src/Runtime/RenderPass",
+            "D:/Nilou/src/Runtime/Geospatial",
+            "D:/Nilou/src/Runtime/Cesium3DTiles",
+            "D:/Nilou/Assets/Shaders"
+        ],
     }
 }

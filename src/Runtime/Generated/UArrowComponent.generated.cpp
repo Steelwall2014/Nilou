@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/ArrowComponent.h"
-namespace nilou {
-std::string UArrowComponent::GetClassName() { return "UArrowComponent"; }
-EUClasses UArrowComponent::GetClassEnum() { return EUClasses::MC_UArrowComponent; }
-const UClass *UArrowComponent::GetClass() { return UArrowComponent::StaticClass(); }
-const UClass *UArrowComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/ArrowActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UArrowComponent::StaticClass_ = nullptr;
+const NClass *UArrowComponent::GetClass() const 
+{ 
+    return UArrowComponent::StaticClass(); 
+}
+const NClass *UArrowComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UArrowComponent", EUClasses::MC_UArrowComponent);
-	return StaticClass;
+    return UArrowComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UArrowComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UArrowComponent>
 {
-    return std::make_unique<UArrowComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UArrowComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UArrowComponent>("UArrowComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UPrimitiveComponent")
+;
+        UArrowComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UArrowComponent> Dummy;
+};
+TClassRegistry<UArrowComponent> Dummy = TClassRegistry<UArrowComponent>("UArrowComponent");
+
+

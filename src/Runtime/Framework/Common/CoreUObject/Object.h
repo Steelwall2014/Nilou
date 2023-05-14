@@ -1,25 +1,25 @@
 #pragma once
 #include <json/json.hpp>
-#include "Class.h"
-#include "MarkedClasses.generated.h"
+#include <reflection/Class.h>
 #include "Templates/ObjectMacros.h"
 #include "SerializeHelper.h"
 #include "Archive.h"
 // #include "Object.generated.h"
 namespace nilou {
-    class UClass;
+    using NClass = reflection::NClass;
     
-    UCLASS()
-    class UObject 
+    class NCLASS UObject 
     {
     public: 
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
         
 
         /**
          * @brief Returns whether the class of the current object is derived from given Class parameter
          */
-        bool IsA(const UClass *Class);
+        bool IsA(const NClass *Class);
+
+        const std::string& GetClassName() const;
 
         virtual void Serialize(FArchive &Ar) { }
 
@@ -36,12 +36,6 @@ namespace nilou {
         class FContentEntry* ContentEntry;
     };
 
-    class FObjectFactory
-    {
-    public:
-        static std::unique_ptr<UObject> CreateDefaultObjectByName(const std::string &ClassName);
-    private:
-        FObjectFactory();
-        std::unordered_map<std::string, std::function<std::unique_ptr<UObject>(void)>> FunctionMap;
-    };
+    void* CreateDefaultObjectByName(const std::string &ClassName);
+    
 }

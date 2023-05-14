@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/VirtualHeightfieldMeshActor.h"
-namespace nilou {
-std::string AVirtualHeightfieldMeshActor::GetClassName() { return "AVirtualHeightfieldMeshActor"; }
-EUClasses AVirtualHeightfieldMeshActor::GetClassEnum() { return EUClasses::MC_AVirtualHeightfieldMeshActor; }
-const UClass *AVirtualHeightfieldMeshActor::GetClass() { return AVirtualHeightfieldMeshActor::StaticClass(); }
-const UClass *AVirtualHeightfieldMeshActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> AVirtualHeightfieldMeshActor::StaticClass_ = nullptr;
+const NClass *AVirtualHeightfieldMeshActor::GetClass() const 
+{ 
+    return AVirtualHeightfieldMeshActor::StaticClass(); 
+}
+const NClass *AVirtualHeightfieldMeshActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("AVirtualHeightfieldMeshActor", EUClasses::MC_AVirtualHeightfieldMeshActor);
-	return StaticClass;
+    return AVirtualHeightfieldMeshActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> AVirtualHeightfieldMeshActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<AVirtualHeightfieldMeshActor>
 {
-    return std::make_unique<AVirtualHeightfieldMeshActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        AVirtualHeightfieldMeshActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<AVirtualHeightfieldMeshActor>("AVirtualHeightfieldMeshActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        AVirtualHeightfieldMeshActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<AVirtualHeightfieldMeshActor> Dummy;
+};
+TClassRegistry<AVirtualHeightfieldMeshActor> Dummy = TClassRegistry<AVirtualHeightfieldMeshActor>("AVirtualHeightfieldMeshActor");
+
+

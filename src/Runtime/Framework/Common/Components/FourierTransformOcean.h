@@ -4,14 +4,13 @@
 
 namespace nilou {
 
-    UCLASS()
-    class UFourierTransformOceanComponent : public UPrimitiveComponent
+    class NCLASS UFourierTransformOceanComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
         friend class FFourierTransformOceanSceneProxy;
     public:
 
-        UFourierTransformOceanComponent(AActor* Owner=nullptr);
+        UFourierTransformOceanComponent();
 
         virtual void TickComponent(double DeltaTime) override;
 

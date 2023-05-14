@@ -1,15 +1,40 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/CoreUObject/Object.h"
-namespace nilou {
-std::string UObject::GetClassName() { return "UObject"; }
-EUClasses UObject::GetClassEnum() { return EUClasses::MC_UObject; }
-const UClass *UObject::GetClass() { return UObject::StaticClass(); }
-const UClass *UObject::StaticClass()
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UObject::StaticClass_ = nullptr;
+const NClass *UObject::GetClass() const 
+{ 
+    return UObject::StaticClass(); 
+}
+const NClass *UObject::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UObject", EUClasses::MC_UObject);
-	return StaticClass;
+    return UObject::StaticClass_.get();
 }
-std::unique_ptr<UObject> UObject::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UObject>
 {
-    return std::make_unique<UObject>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UObject::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UObject>("UObject")
+				   .AddDefaultConstructor()
+				   .AddDerivedClass("A")
+				   .AddDerivedClass("AActor")
+				   .AddDerivedClass("UActorComponent")
+				   .AddDerivedClass("UMaterial")
+				   .AddDerivedClass("UStaticMesh")
+				   .AddDerivedClass("UTexture")
+;
+        UObject::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UObject> Dummy;
+};
+TClassRegistry<UObject> Dummy = TClassRegistry<UObject>("UObject");
+
+

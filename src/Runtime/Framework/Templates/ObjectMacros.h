@@ -1,7 +1,6 @@
 #pragma once
 #include "TypeTraits.h"
-
-#define UCLASS()
+#include <reflection/Macros.h>
 
 #define DEFINE_DYNAMIC_DATA(Type, Name) \
 	public: \
@@ -20,14 +19,6 @@
 // 		inline Type Get##Name() const { return Name; } \
 // 	private: \
 // 		Type Name;
-
-#define GENERATE_CLASS_INFO() \
-    public: \
-        virtual std::string GetClassName(); \
-        virtual EUClasses GetClassEnum(); \
-        virtual const UClass *GetClass(); \
-        static const UClass *StaticClass(); \
-		static std::unique_ptr<UObject> CreateDefaultObject();
 
 #define DECLARE_VERTEX_FACTORY_TYPE(FactoryClass) \
     public: \

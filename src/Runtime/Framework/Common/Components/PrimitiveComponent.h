@@ -20,15 +20,13 @@ namespace nilou {
         RPBM_Simple, // Disables blending between probes when there are two overlapping reflection probe volumes.
     };
 
-    UCLASS()
-    class UPrimitiveComponent : public USceneComponent
+    class NCLASS UPrimitiveComponent : public USceneComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UPrimitiveComponent(AActor *InOwner = nullptr)
-            : USceneComponent(InOwner)
-            , SceneProxy(nullptr)
+        UPrimitiveComponent()
+            : SceneProxy(nullptr)
             , bCastShadow(true)
         { }
 

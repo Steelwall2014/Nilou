@@ -26,9 +26,8 @@ namespace nilou {
         return GetContentManager()->GetMaterialByPath("/Materials/DefaultMaterial.nasset");
     }
 
-    UMaterial::UMaterial(const std::string &InName)
-        : Name(InName)
-        , DefaultMaterialInstance(nullptr)
+    UMaterial::UMaterial()
+        : DefaultMaterialInstance(nullptr)
     {
         MaterialResource = new FMaterial;
         DefaultMaterialInstance = new FMaterialRenderProxy;

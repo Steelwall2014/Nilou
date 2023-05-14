@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
-namespace nilou {
-std::string ACameraActor::GetClassName() { return "ACameraActor"; }
-EUClasses ACameraActor::GetClassEnum() { return EUClasses::MC_ACameraActor; }
-const UClass *ACameraActor::GetClass() { return ACameraActor::StaticClass(); }
-const UClass *ACameraActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ACameraActor::StaticClass_ = nullptr;
+const NClass *ACameraActor::GetClass() const 
+{ 
+    return ACameraActor::StaticClass(); 
+}
+const NClass *ACameraActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ACameraActor", EUClasses::MC_ACameraActor);
-	return StaticClass;
+    return ACameraActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> ACameraActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ACameraActor>
 {
-    return std::make_unique<ACameraActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ACameraActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ACameraActor>("ACameraActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ACameraActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ACameraActor> Dummy;
+};
+TClassRegistry<ACameraActor> Dummy = TClassRegistry<ACameraActor>("ACameraActor");
+
+

@@ -53,12 +53,11 @@ public: \
         return MemberName; \
     }
 
-    UCLASS()
-    class USkyAtmosphereComponent : public USceneComponent
+    class NCLASS USkyAtmosphereComponent : public USceneComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        USkyAtmosphereComponent(AActor *InOwner=nullptr);
+        USkyAtmosphereComponent();
 
 		// The solar irradiance at the top of the atmosphere.
 		SKY_DECLARE_FUNCTION(vec3, SolarIrradiance)

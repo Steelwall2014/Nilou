@@ -4,13 +4,12 @@
 
 namespace nilou {
 
-    UCLASS()
-    class USphereComponent : public UPrimitiveComponent
+    class NCLASS USphereComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        USphereComponent(AActor *InOwner = nullptr);
+        USphereComponent();
 
         /**
         * Change the sphere radius. This is the unscaled radius, before component scale is applied.

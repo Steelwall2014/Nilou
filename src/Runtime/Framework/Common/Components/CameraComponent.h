@@ -6,15 +6,14 @@
 
 namespace nilou {
 
-    UCLASS()
-    class UCameraComponent : public USceneComponent
+    class NCLASS UCameraComponent : public USceneComponent
     {
         friend class FScene;
         friend class FCameraSceneProxy;
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UCameraComponent(AActor *InOwner=nullptr);
+        UCameraComponent();
 
         virtual void OnRegister() override;
         virtual void OnUnregister() override;

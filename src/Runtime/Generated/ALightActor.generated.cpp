@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LightActor.h"
-namespace nilou {
-std::string ALightActor::GetClassName() { return "ALightActor"; }
-EUClasses ALightActor::GetClassEnum() { return EUClasses::MC_ALightActor; }
-const UClass *ALightActor::GetClass() { return ALightActor::StaticClass(); }
-const UClass *ALightActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ALightActor::StaticClass_ = nullptr;
+const NClass *ALightActor::GetClass() const 
+{ 
+    return ALightActor::StaticClass(); 
+}
+const NClass *ALightActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ALightActor", EUClasses::MC_ALightActor);
-	return StaticClass;
+    return ALightActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> ALightActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ALightActor>
 {
-    return std::make_unique<ALightActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ALightActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ALightActor>("ALightActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ALightActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ALightActor> Dummy;
+};
+TClassRegistry<ALightActor> Dummy = TClassRegistry<ALightActor>("ALightActor");
+
+

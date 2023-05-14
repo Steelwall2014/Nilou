@@ -5,9 +5,8 @@
 
 namespace nilou {
 
-    UCameraComponent::UCameraComponent(AActor *InOwner) 
-        : USceneComponent(InOwner)
-        , VerticalFieldOfView(glm::radians(50.f))
+    UCameraComponent::UCameraComponent() 
+        : VerticalFieldOfView(glm::radians(50.f))
         , NearClipDistance(0.1)
         , FarClipDistance(30000)
         , ScreenResolution(glm::ivec2(1024, 1024))

@@ -19,13 +19,11 @@ namespace nilou {
 	    virtual const FTexture3DResource* GetTexture3DResource() const override { return this; }
     };
 
-    UCLASS()
-    class UTexture3D : public UTexture
+    class NCLASS UTexture3D : public UTexture
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        UTexture3D(const std::string &InName="")
-            : UTexture(InName)
+        UTexture3D()
         {
 
         }

@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class ACameraActor : public AActor
+    class NCLASS ACameraActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         ACameraActor();
 

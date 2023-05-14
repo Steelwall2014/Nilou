@@ -162,7 +162,8 @@ static void ParseToMaterials(tinygltf::Model &model,
     for (int MaterialIndex = 0; MaterialIndex < model.materials.size(); MaterialIndex++)
     {
         tinygltf::Material &gltf_material = model.materials[MaterialIndex];
-        auto Material = std::make_shared<UMaterial>(std::to_string(MaterialIndex) + "_" + gltf_material.name);
+        auto Material = std::make_shared<UMaterial>();
+        Material->Name = std::to_string(MaterialIndex) + "_" + gltf_material.name;
         Material->SerializationPath = out_dir / fs::path(Material->Name + ".nasset");
         if (gltf_material.doubleSided)
             Material->GetResource()->RasterizerState.CullMode = ERasterizerCullMode::CM_None;
@@ -257,7 +258,8 @@ ParseResult ParseToStaticMeshes(tinygltf::Model &model)
     ParseToMaterials(model, Materials, Textures);
     for (auto &gltf_mesh : model.meshes)
     {
-        std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>(gltf_mesh.name);
+        std::shared_ptr<UStaticMesh> StaticMesh = std::make_shared<UStaticMesh>();
+        StaticMesh->Name = gltf_mesh.name;
         std::unique_ptr<FStaticMeshLODResources> Resource = std::make_unique<FStaticMeshLODResources>();
         for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
         {

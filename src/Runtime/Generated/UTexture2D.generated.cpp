@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Rendering/Texture2D.h"
-namespace nilou {
-std::string UTexture2D::GetClassName() { return "UTexture2D"; }
-EUClasses UTexture2D::GetClassEnum() { return EUClasses::MC_UTexture2D; }
-const UClass *UTexture2D::GetClass() { return UTexture2D::StaticClass(); }
-const UClass *UTexture2D::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UTexture2D::StaticClass_ = nullptr;
+const NClass *UTexture2D::GetClass() const 
+{ 
+    return UTexture2D::StaticClass(); 
+}
+const NClass *UTexture2D::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UTexture2D", EUClasses::MC_UTexture2D);
-	return StaticClass;
+    return UTexture2D::StaticClass_.get();
 }
-std::unique_ptr<UObject> UTexture2D::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UTexture2D>
 {
-    return std::make_unique<UTexture2D>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UTexture2D::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UTexture2D>("UTexture2D")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UTexture")
+;
+        UTexture2D::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UTexture2D> Dummy;
+};
+TClassRegistry<UTexture2D> Dummy = TClassRegistry<UTexture2D>("UTexture2D");
+
+

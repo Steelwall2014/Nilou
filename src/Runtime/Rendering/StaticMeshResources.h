@@ -145,14 +145,12 @@ namespace nilou {
         }
     };
 
-    UCLASS()
-    class UStaticMesh : public UObject
+    class NCLASS UStaticMesh : public UObject
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        UStaticMesh(const std::string &InName="") 
-            : Name(InName) 
-            , RenderData(new FStaticMeshRenderData())
+        UStaticMesh() 
+            : RenderData(new FStaticMeshRenderData())
         { }
         std::string Name;
 

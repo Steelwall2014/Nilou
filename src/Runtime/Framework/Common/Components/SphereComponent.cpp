@@ -64,9 +64,8 @@ namespace nilou {
 
 
 
-    USphereComponent::USphereComponent(AActor *InOwner)
-        : UPrimitiveComponent(InOwner)
-        , SphereRadius(1.f)
+    USphereComponent::USphereComponent()
+        : SphereRadius(1.f)
     {
         Material = UMaterial::GetDefaultMaterial();
     }

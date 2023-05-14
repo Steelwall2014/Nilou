@@ -681,8 +681,7 @@ namespace nilou {
 
 
 
-    UVirtualHeightfieldMeshComponent::UVirtualHeightfieldMeshComponent(AActor *InOwner)
-        : UPrimitiveComponent(InOwner)
+    UVirtualHeightfieldMeshComponent::UVirtualHeightfieldMeshComponent()
     {
         // bCastShadow = false;
     }

@@ -74,8 +74,6 @@ namespace nilou {
                 file_entry->AbsolutePath = Path;
                 file_entry->Name = Path.filename().generic_string();
                 file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
-                // file_entry->Object = FObjectFactory::CreateDefaultObjectByName(class_name);
-                // file_entry->Object->SerializationPath = file_entry->RelativePath;
                 directory_entry->Children[file_entry->Name] = std::move(file_entry);
                 // }
             }
@@ -173,7 +171,7 @@ namespace nilou {
             FArchive Ar = future.get();
             if (Ar.json.contains("ClassName"))
             {
-                Entries[i]->Object = FObjectFactory::CreateDefaultObjectByName(Ar.json["ClassName"]);
+                Entries[i]->Object = std::unique_ptr<UObject>(reinterpret_cast<UObject*>(CreateDefaultObjectByName(Ar.json["ClassName"])));
                 Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
                 Entries[i]->Object->ContentEntry = Entries[i];
             }

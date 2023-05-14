@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class AStaticMeshActor : public AActor
+    class NCLASS AStaticMeshActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AStaticMeshActor() 
         { 

@@ -1,15 +1,36 @@
-#include "D:/Nilou/src/Runtime/Rendering/Material.h"
-namespace nilou {
-std::string UMaterial::GetClassName() { return "UMaterial"; }
-EUClasses UMaterial::GetClassEnum() { return EUClasses::MC_UMaterial; }
-const UClass *UMaterial::GetClass() { return UMaterial::StaticClass(); }
-const UClass *UMaterial::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UMaterial::StaticClass_ = nullptr;
+const NClass *UMaterial::GetClass() const 
+{ 
+    return UMaterial::StaticClass(); 
+}
+const NClass *UMaterial::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UMaterial", EUClasses::MC_UMaterial);
-	return StaticClass;
+    return UMaterial::StaticClass_.get();
 }
-std::unique_ptr<UObject> UMaterial::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UMaterial>
 {
-    return std::make_unique<UMaterial>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UMaterial::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UMaterial>("UMaterial")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UObject")
+				   .AddDerivedClass("UMaterialInstance")
+;
+        UMaterial::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UMaterial> Dummy;
+};
+TClassRegistry<UMaterial> Dummy = TClassRegistry<UMaterial>("UMaterial");
+
+

@@ -1,15 +1,37 @@
-#include "D:/Nilou/src/Runtime/Rendering/TextureRenderTarget.h"
-namespace nilou {
-std::string UTextureRenderTarget::GetClassName() { return "UTextureRenderTarget"; }
-EUClasses UTextureRenderTarget::GetClassEnum() { return EUClasses::MC_UTextureRenderTarget; }
-const UClass *UTextureRenderTarget::GetClass() { return UTextureRenderTarget::StaticClass(); }
-const UClass *UTextureRenderTarget::StaticClass()
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UTextureRenderTarget::StaticClass_ = nullptr;
+const NClass *UTextureRenderTarget::GetClass() const 
+{ 
+    return UTextureRenderTarget::StaticClass(); 
+}
+const NClass *UTextureRenderTarget::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UTextureRenderTarget", EUClasses::MC_UTextureRenderTarget);
-	return StaticClass;
+    return UTextureRenderTarget::StaticClass_.get();
 }
-std::unique_ptr<UObject> UTextureRenderTarget::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UTextureRenderTarget>
 {
-    return std::make_unique<UTextureRenderTarget>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UTextureRenderTarget::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UTextureRenderTarget>("UTextureRenderTarget")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UTexture")
+				   .AddDerivedClass("UTextureRenderTarget2D")
+				   .AddDerivedClass("UTextureRenderTargetCube")
+;
+        UTextureRenderTarget::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UTextureRenderTarget> Dummy;
+};
+TClassRegistry<UTextureRenderTarget> Dummy = TClassRegistry<UTextureRenderTarget>("UTextureRenderTarget");
+
+

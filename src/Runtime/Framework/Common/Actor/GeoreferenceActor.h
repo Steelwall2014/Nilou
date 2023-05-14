@@ -4,10 +4,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class AGeoreferenceActor : public AActor
+    class NCLASS AGeoreferenceActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AGeoreferenceActor()
             : GeoreferencedToEcef(1)

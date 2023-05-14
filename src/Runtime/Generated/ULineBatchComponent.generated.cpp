@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
-namespace nilou {
-std::string ULineBatchComponent::GetClassName() { return "ULineBatchComponent"; }
-EUClasses ULineBatchComponent::GetClassEnum() { return EUClasses::MC_ULineBatchComponent; }
-const UClass *ULineBatchComponent::GetClass() { return ULineBatchComponent::StaticClass(); }
-const UClass *ULineBatchComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ULineBatchComponent::StaticClass_ = nullptr;
+const NClass *ULineBatchComponent::GetClass() const 
+{ 
+    return ULineBatchComponent::StaticClass(); 
+}
+const NClass *ULineBatchComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ULineBatchComponent", EUClasses::MC_ULineBatchComponent);
-	return StaticClass;
+    return ULineBatchComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> ULineBatchComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ULineBatchComponent>
 {
-    return std::make_unique<ULineBatchComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ULineBatchComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ULineBatchComponent>("ULineBatchComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UPrimitiveComponent")
+;
+        ULineBatchComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ULineBatchComponent> Dummy;
+};
+TClassRegistry<ULineBatchComponent> Dummy = TClassRegistry<ULineBatchComponent>("ULineBatchComponent");
+
+

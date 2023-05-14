@@ -63,15 +63,16 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class UMaterial : public UObject
+    class NCLASS UMaterial : public UObject
     {
         friend class UMaterialInstance;
         friend class FMaterialRenderProxy;
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UMaterial(const std::string &InName="");
+        UMaterial();
+
+        UMaterial(const UMaterial& Material);
 
         static UMaterial *GetDefaultMaterial();
 
@@ -129,8 +130,6 @@ namespace nilou {
 
     protected:
 
-        UMaterial(const UMaterial& Material);
-
         FMaterial* MaterialResource;
 
         std::string Code;
@@ -157,10 +156,9 @@ namespace nilou {
         
     };
 
-    UCLASS()
-    class UMaterialInstance : public UMaterial
+    class NCLASS UMaterialInstance : public UMaterial
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
         UMaterialInstance() { }
 

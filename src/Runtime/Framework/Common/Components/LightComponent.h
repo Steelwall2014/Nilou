@@ -88,10 +88,9 @@ namespace nilou {
     //     bool        bCastShadow;
     // };
 
-    UCLASS()
-    class ULightComponent : public USceneComponent
+    class NCLASS ULightComponent : public USceneComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
         friend class FLightSceneProxy;
 
         // For directional light, the unit is lux
@@ -104,7 +103,7 @@ namespace nilou {
         DEFINE_DYNAMIC_DATA(bool,        bCastShadow)
         
     public:
-        ULightComponent(AActor *InOwner = nullptr);
+        ULightComponent();
 
 		inline void SetLightType(const ELightType &InLightType) { LightType = InLightType; MarkRenderStateDirty(); } 
 		inline ELightType GetLightType() const { return LightType; } 
@@ -125,30 +124,6 @@ namespace nilou {
 
         ELightType LightType;
     };
-
-    // UCLASS()
-    // class USpotLightComponnet : public ULightComponent
-    // {
-    //     GENERATE_CLASS_INFO()
-    // public:
-    //     USpotLightComponnet(AActor *InOwner) : ULightComponent(InOwner) { LightParameters.LightType = ELightType::LT_Spot; }
-    //     virtual class FLightSceneProxy *CreateSceneProxy();
-
-    // };
-
-    // UCLASS()
-    // class UDirectionalLightComponent : public ULightComponent
-    // {
-    //     GENERATE_CLASS_INFO()
-    // public:
-    //     UDirectionalLightComponent(AActor *InOwner) : ULightComponent(InOwner) { LightParameters.LightType = ELightType::LT_Directional; }
-    //     virtual class FLightSceneProxy *CreateSceneProxy();
-
-    //     // virtual glm::mat4 GetLightProjectionMatrix();
-
-    // };
-    // class FScene;
-    // class ULightComponent;
 
     constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
 

@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
-namespace nilou {
-std::string USphereComponent::GetClassName() { return "USphereComponent"; }
-EUClasses USphereComponent::GetClassEnum() { return EUClasses::MC_USphereComponent; }
-const UClass *USphereComponent::GetClass() { return USphereComponent::StaticClass(); }
-const UClass *USphereComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SphereActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> USphereComponent::StaticClass_ = nullptr;
+const NClass *USphereComponent::GetClass() const 
+{ 
+    return USphereComponent::StaticClass(); 
+}
+const NClass *USphereComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("USphereComponent", EUClasses::MC_USphereComponent);
-	return StaticClass;
+    return USphereComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> USphereComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<USphereComponent>
 {
-    return std::make_unique<USphereComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        USphereComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<USphereComponent>("USphereComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UPrimitiveComponent")
+;
+        USphereComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<USphereComponent> Dummy;
+};
+TClassRegistry<USphereComponent> Dummy = TClassRegistry<USphereComponent>("USphereComponent");
+
+

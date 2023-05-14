@@ -4,14 +4,12 @@
 
 namespace nilou {
 
-    UCLASS()
-    class USceneCaptureComponent : public USceneComponent
+    class NCLASS USceneCaptureComponent : public USceneComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        USceneCaptureComponent(AActor *InOwner = nullptr) 
-            : USceneComponent(InOwner)
-            , bCaptureEveryFrame(true)
+        USceneCaptureComponent() 
+            : bCaptureEveryFrame(true)
             , bCaptureOnMovement(true)
         { }
 
@@ -43,13 +41,11 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class USceneCaptureComponent2D : public USceneCaptureComponent
+    class NCLASS USceneCaptureComponent2D : public USceneCaptureComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        USceneCaptureComponent2D(AActor *InOwner = nullptr) 
-            : USceneCaptureComponent(InOwner)
+        USceneCaptureComponent2D() 
         { }
 
         /** Field of view. in radians */
@@ -84,14 +80,12 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class USceneCaptureComponentCube : public USceneCaptureComponent
+    class NCLASS USceneCaptureComponentCube : public USceneCaptureComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        USceneCaptureComponentCube(AActor *InOwner = nullptr) 
-            : USceneCaptureComponent(InOwner)
-            , TextureTarget(nullptr)
+        USceneCaptureComponentCube() 
+            : TextureTarget(nullptr)
         { }
 
         class UTextureRenderTargetCube* TextureTarget;

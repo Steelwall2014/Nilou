@@ -1,15 +1,36 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/ActorComponent.h"
-namespace nilou {
-std::string UActorComponent::GetClassName() { return "UActorComponent"; }
-EUClasses UActorComponent::GetClassEnum() { return EUClasses::MC_UActorComponent; }
-const UClass *UActorComponent::GetClass() { return UActorComponent::StaticClass(); }
-const UClass *UActorComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UActorComponent::StaticClass_ = nullptr;
+const NClass *UActorComponent::GetClass() const 
+{ 
+    return UActorComponent::StaticClass(); 
+}
+const NClass *UActorComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UActorComponent", EUClasses::MC_UActorComponent);
-	return StaticClass;
+    return UActorComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UActorComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UActorComponent>
 {
-    return std::make_unique<UActorComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UActorComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UActorComponent>("UActorComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UObject")
+				   .AddDerivedClass("USceneComponent")
+;
+        UActorComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UActorComponent> Dummy;
+};
+TClassRegistry<UActorComponent> Dummy = TClassRegistry<UActorComponent>("UActorComponent");
+
+

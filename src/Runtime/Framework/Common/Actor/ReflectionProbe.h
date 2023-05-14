@@ -4,10 +4,9 @@
 
 namespace nilou {
 
-    UCLASS()
-    class AReflectionProbe : public AActor
+    class NCLASS AReflectionProbe : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AReflectionProbe();
 

@@ -29,10 +29,9 @@ namespace nilou {
         std::mutex mutex;
     };
 
-    UCLASS()
-    class UVirtualTexture : public UTexture
+    class NCLASS UVirtualTexture : public UTexture
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
         UVirtualTexture();
 

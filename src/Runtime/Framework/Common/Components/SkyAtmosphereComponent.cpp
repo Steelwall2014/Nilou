@@ -43,9 +43,8 @@ namespace nilou {
     IMPLEMENT_SHADER_TYPE(FAtmosphereMultiScatteringShader, "/Shaders/SkyAtmosphere/atmosphere_multiscattering_pre.comp", EShaderFrequency::SF_Compute, Global)
     
 
-    USkyAtmosphereComponent::USkyAtmosphereComponent(AActor *InOwner)
-        : USceneComponent(InOwner)
-        , SolarIrradiance(vec3( 1 ))
+    USkyAtmosphereComponent::USkyAtmosphereComponent()
+        : SolarIrradiance(vec3( 1 ))
         , SunAngularRadius(0.004675)
         , BottomRadius(6360.0)
         , TopRadius(6420.0)

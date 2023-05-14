@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
-namespace nilou {
-std::string ALineBatchActor::GetClassName() { return "ALineBatchActor"; }
-EUClasses ALineBatchActor::GetClassEnum() { return EUClasses::MC_ALineBatchActor; }
-const UClass *ALineBatchActor::GetClass() { return ALineBatchActor::StaticClass(); }
-const UClass *ALineBatchActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ALineBatchActor::StaticClass_ = nullptr;
+const NClass *ALineBatchActor::GetClass() const 
+{ 
+    return ALineBatchActor::StaticClass(); 
+}
+const NClass *ALineBatchActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ALineBatchActor", EUClasses::MC_ALineBatchActor);
-	return StaticClass;
+    return ALineBatchActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> ALineBatchActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ALineBatchActor>
 {
-    return std::make_unique<ALineBatchActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ALineBatchActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ALineBatchActor>("ALineBatchActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ALineBatchActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ALineBatchActor> Dummy;
+};
+TClassRegistry<ALineBatchActor> Dummy = TClassRegistry<ALineBatchActor>("ALineBatchActor");
+
+

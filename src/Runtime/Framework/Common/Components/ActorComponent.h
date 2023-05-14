@@ -11,14 +11,13 @@ namespace nilou {
     class AActor;
     class UWorld;
 
-    UCLASS()
-    class UActorComponent : public UObject, 
+    class NCLASS UActorComponent : public UObject, 
                             public std::enable_shared_from_this<UActorComponent>
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
         friend class AActor;
-        UActorComponent(AActor *InOwner = nullptr);
+        UActorComponent();
 
         UWorld *GetWorld() const;
 
@@ -107,7 +106,7 @@ namespace nilou {
     std::shared_ptr<T> CreateComponent(AActor* InOwner, ParamTypes&&... Args)
     {
         static_assert(TIsDerivedFrom<T, UActorComponent>::Value, "T must be derived from UActorComponent!");
-        std::shared_ptr<T> Comp = std::make_shared<T>(InOwner, std::forward<ParamTypes>(Args)...);
+        std::shared_ptr<T> Comp = std::make_shared<T>(std::forward<ParamTypes>(Args)...);
         Comp->SetOwner(InOwner);
         return Comp;
     }

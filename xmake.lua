@@ -7,6 +7,7 @@ add_requires("vcpkg::imgui[glfw-binding,opengl3-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
 add_requires("vcpkg::glslang")
+add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
 
 add_defines([[PROJECT_DIR=R"($(projectdir))"]])
@@ -175,6 +176,9 @@ include_paths = {
         "./src/Runtime/Cesium3DTiles",
         "./Assets/Shaders"}
  
+function InstallHeaderTool() 
+    os.cp("./NilouHeaderTool/src/include/*", "./External/include")
+end
 BuildProject({
     projectName = "Nilou",
     projectType = "binary",
@@ -186,22 +190,9 @@ BuildProject({
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
-    -- beforeBuildFunc = ExecuteHeaderTool,
+    beforeBuildFunc = InstallHeaderTool,
     -- afterBuildFunc = copyFunc,
     enableException = true,
-    --unityBuildBatch = 8
-})
-
-BuildProject({
-    projectName = "HeaderTool",
-    projectType = "binary",
-    files = {
-        "src/HeaderTool/**.cpp"},
-    includePaths = {
-        "./src/HeaderTool/"},
-    enableException = true,
-    runargs = {"$(projectdir)/src", "$(projectdir)/src/Runtime/Generated"}
-    -- beforeBuildFunc = ExecuteHeaderTool,
     --unityBuildBatch = 8
 })
 

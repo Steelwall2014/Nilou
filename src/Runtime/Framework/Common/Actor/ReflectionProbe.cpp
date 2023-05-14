@@ -21,7 +21,8 @@ namespace nilou {
 
         {
             std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
-            EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>("Test EnvironmentTexture");
+            EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>();
+            EnvironmentTexture->Name = "Test EnvironmentTexture";
             EnvironmentTexture->ImageData = Image;
             EnvironmentTexture->UpdateResource();
             ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
@@ -29,14 +30,16 @@ namespace nilou {
 
         {
             std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(16, 16, EPixelFormat::PF_R16G16B16A16F);
-            IrradianceTexture = std::make_shared<UTextureCube>("Test IrradianceTexture");
+            IrradianceTexture = std::make_shared<UTextureCube>();
+            IrradianceTexture->Name = "Test IrradianceTexture";
             IrradianceTexture->ImageData = Image;
             IrradianceTexture->UpdateResource();
         }
 
         {
             std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
-            PrefilteredTexture = std::make_shared<UTextureCube>("Test PrefilteredTexture");
+            PrefilteredTexture = std::make_shared<UTextureCube>();
+            PrefilteredTexture->Name = "Test PrefilteredTexture";
             PrefilteredTexture->ImageData = Image;
             PrefilteredTexture->NumMips = 5;
             PrefilteredTexture->UpdateResource();
@@ -45,7 +48,8 @@ namespace nilou {
         ReflectionProbeComponent->IrradianceTexture = IrradianceTexture.get();
         ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture.get();
 
-        DebugMat = std::make_shared<UMaterial>("Cube map");
+        DebugMat = std::make_shared<UMaterial>();
+        DebugMat->Name = "Cube map";
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
         FRasterizerStateInitializer RasterizerState;
         RasterizerState.CullMode = ERasterizerCullMode::CM_None;

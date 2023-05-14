@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Rendering/StaticMeshResources.h"
-namespace nilou {
-std::string UStaticMesh::GetClassName() { return "UStaticMesh"; }
-EUClasses UStaticMesh::GetClassEnum() { return EUClasses::MC_UStaticMesh; }
-const UClass *UStaticMesh::GetClass() { return UStaticMesh::StaticClass(); }
-const UClass *UStaticMesh::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UStaticMesh::StaticClass_ = nullptr;
+const NClass *UStaticMesh::GetClass() const 
+{ 
+    return UStaticMesh::StaticClass(); 
+}
+const NClass *UStaticMesh::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UStaticMesh", EUClasses::MC_UStaticMesh);
-	return StaticClass;
+    return UStaticMesh::StaticClass_.get();
 }
-std::unique_ptr<UObject> UStaticMesh::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UStaticMesh>
 {
-    return std::make_unique<UStaticMesh>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UStaticMesh::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UStaticMesh>("UStaticMesh")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UObject")
+;
+        UStaticMesh::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UStaticMesh> Dummy;
+};
+TClassRegistry<UStaticMesh> Dummy = TClassRegistry<UStaticMesh>("UStaticMesh");
+
+

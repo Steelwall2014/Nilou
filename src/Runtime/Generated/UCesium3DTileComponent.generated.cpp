@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
-namespace nilou {
-std::string UCesium3DTileComponent::GetClassName() { return "UCesium3DTileComponent"; }
-EUClasses UCesium3DTileComponent::GetClassEnum() { return EUClasses::MC_UCesium3DTileComponent; }
-const UClass *UCesium3DTileComponent::GetClass() { return UCesium3DTileComponent::StaticClass(); }
-const UClass *UCesium3DTileComponent::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UCesium3DTileComponent::StaticClass_ = nullptr;
+const NClass *UCesium3DTileComponent::GetClass() const 
+{ 
+    return UCesium3DTileComponent::StaticClass(); 
+}
+const NClass *UCesium3DTileComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UCesium3DTileComponent", EUClasses::MC_UCesium3DTileComponent);
-	return StaticClass;
+    return UCesium3DTileComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UCesium3DTileComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UCesium3DTileComponent>
 {
-    return std::make_unique<UCesium3DTileComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UCesium3DTileComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UCesium3DTileComponent>("UCesium3DTileComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UPrimitiveComponent")
+;
+        UCesium3DTileComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UCesium3DTileComponent> Dummy;
+};
+TClassRegistry<UCesium3DTileComponent> Dummy = TClassRegistry<UCesium3DTileComponent>("UCesium3DTileComponent");
+
+

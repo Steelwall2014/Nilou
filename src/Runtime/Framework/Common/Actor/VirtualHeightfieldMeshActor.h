@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class AVirtualHeightfieldMeshActor : public AActor
+    class NCLASS AVirtualHeightfieldMeshActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AVirtualHeightfieldMeshActor() 
         { 

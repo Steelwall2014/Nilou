@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class ASphereActor : public AActor
+    class NCLASS ASphereActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         ASphereActor() 
         { 

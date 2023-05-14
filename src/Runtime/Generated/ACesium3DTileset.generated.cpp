@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
-namespace nilou {
-std::string ACesium3DTileset::GetClassName() { return "ACesium3DTileset"; }
-EUClasses ACesium3DTileset::GetClassEnum() { return EUClasses::MC_ACesium3DTileset; }
-const UClass *ACesium3DTileset::GetClass() { return ACesium3DTileset::StaticClass(); }
-const UClass *ACesium3DTileset::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ACesium3DTileset::StaticClass_ = nullptr;
+const NClass *ACesium3DTileset::GetClass() const 
+{ 
+    return ACesium3DTileset::StaticClass(); 
+}
+const NClass *ACesium3DTileset::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ACesium3DTileset", EUClasses::MC_ACesium3DTileset);
-	return StaticClass;
+    return ACesium3DTileset::StaticClass_.get();
 }
-std::unique_ptr<UObject> ACesium3DTileset::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ACesium3DTileset>
 {
-    return std::make_unique<ACesium3DTileset>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ACesium3DTileset::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ACesium3DTileset>("ACesium3DTileset")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ACesium3DTileset::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ACesium3DTileset> Dummy;
+};
+TClassRegistry<ACesium3DTileset> Dummy = TClassRegistry<ACesium3DTileset>("ACesium3DTileset");
+
+

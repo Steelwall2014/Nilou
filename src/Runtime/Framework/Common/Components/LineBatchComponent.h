@@ -5,13 +5,11 @@
 
 namespace nilou {
 
-    UCLASS()
-    class ULineBatchComponent : public UPrimitiveComponent
+    class NCLASS ULineBatchComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        ULineBatchComponent(AActor *InOwner=nullptr)
-            : UPrimitiveComponent(InOwner)
+        ULineBatchComponent()
         { 
             SetCastShadow(false);
         }

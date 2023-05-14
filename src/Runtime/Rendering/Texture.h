@@ -370,10 +370,9 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class UTexture : public UObject
+    class NCLASS UTexture : public UObject
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
 		std::string Name;
@@ -419,9 +418,8 @@ namespace nilou {
          */
         uint32 NumMips;
 
-        UTexture(const std::string &InName="")
-            : Name(InName)
-            , ImageData(nullptr)
+        UTexture()
+            : ImageData(nullptr)
             , TextureResource(nullptr)
             , TextureResourceRenderThread(nullptr)
             , NumMips(1)

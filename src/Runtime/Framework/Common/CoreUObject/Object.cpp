@@ -1,20 +1,21 @@
 #include "Object.h"
-#include "Common/CoreUObject/Class.h"
-#include "InheritanceGraph.h"
 
 namespace nilou {
 
-    bool UObject::IsA(const UClass *Class)
+    bool UObject::IsA(const NClass *Class)
     {
-        return FInheritanceGraph::GetInheritanceGraph()->IsDerived(GetClassEnum(), Class->ClassEnum);
+        return GetClass()->IsChildOf(Class);
     }
 
-
-    std::unique_ptr<UObject> FObjectFactory::CreateDefaultObjectByName(const std::string &ClassName)
+    const std::string& UObject::GetClassName() const 
     {
-        static FObjectFactory DummyObject;
-        if (DummyObject.FunctionMap.find(ClassName) == DummyObject.FunctionMap.end())
-            return nullptr;
-        return DummyObject.FunctionMap[ClassName]();
+        return GetClass()->GetTypeDescriptor()->GetTypeName();
+    }
+
+    void* CreateDefaultObjectByName(const std::string &ClassName)
+    {
+        auto Type = reflection::Registry::GetTypeByName(ClassName);
+        void* object = Type->GetDefaultConstructor().Invoke();
+        return object;
     }
 }

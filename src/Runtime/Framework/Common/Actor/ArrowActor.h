@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class AArrowActor : public AActor
+    class NCLASS AArrowActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         AArrowActor();
 		

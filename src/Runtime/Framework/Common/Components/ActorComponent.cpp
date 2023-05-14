@@ -6,9 +6,8 @@
 
 namespace nilou {
 
-    UActorComponent::UActorComponent(AActor *InOwner) 
-        : OwnedActor(InOwner)
-        , WorldPrivate(nullptr)
+    UActorComponent::UActorComponent() 
+        : WorldPrivate(nullptr)
         , bWantsInitializeComponent(true)
         , bHasBeenInitialized(false)
         , bHasBeenCreated(false)

@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/ReflectionProbeComponent.h"
-namespace nilou {
-std::string UReflectionProbeComponent::GetClassName() { return "UReflectionProbeComponent"; }
-EUClasses UReflectionProbeComponent::GetClassEnum() { return EUClasses::MC_UReflectionProbeComponent; }
-const UClass *UReflectionProbeComponent::GetClass() { return UReflectionProbeComponent::StaticClass(); }
-const UClass *UReflectionProbeComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UReflectionProbeComponent::StaticClass_ = nullptr;
+const NClass *UReflectionProbeComponent::GetClass() const 
+{ 
+    return UReflectionProbeComponent::StaticClass(); 
+}
+const NClass *UReflectionProbeComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UReflectionProbeComponent", EUClasses::MC_UReflectionProbeComponent);
-	return StaticClass;
+    return UReflectionProbeComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UReflectionProbeComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UReflectionProbeComponent>
 {
-    return std::make_unique<UReflectionProbeComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UReflectionProbeComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UReflectionProbeComponent>("UReflectionProbeComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("USceneCaptureComponentCube")
+;
+        UReflectionProbeComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UReflectionProbeComponent> Dummy;
+};
+TClassRegistry<UReflectionProbeComponent> Dummy = TClassRegistry<UReflectionProbeComponent>("UReflectionProbeComponent");
+
+

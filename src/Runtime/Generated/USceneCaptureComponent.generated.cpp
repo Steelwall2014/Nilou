@@ -1,15 +1,37 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
-namespace nilou {
-std::string USceneCaptureComponent::GetClassName() { return "USceneCaptureComponent"; }
-EUClasses USceneCaptureComponent::GetClassEnum() { return EUClasses::MC_USceneCaptureComponent; }
-const UClass *USceneCaptureComponent::GetClass() { return USceneCaptureComponent::StaticClass(); }
-const UClass *USceneCaptureComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> USceneCaptureComponent::StaticClass_ = nullptr;
+const NClass *USceneCaptureComponent::GetClass() const 
+{ 
+    return USceneCaptureComponent::StaticClass(); 
+}
+const NClass *USceneCaptureComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("USceneCaptureComponent", EUClasses::MC_USceneCaptureComponent);
-	return StaticClass;
+    return USceneCaptureComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> USceneCaptureComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<USceneCaptureComponent>
 {
-    return std::make_unique<USceneCaptureComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        USceneCaptureComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<USceneCaptureComponent>("USceneCaptureComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("USceneComponent")
+				   .AddDerivedClass("USceneCaptureComponent2D")
+				   .AddDerivedClass("USceneCaptureComponentCube")
+;
+        USceneCaptureComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<USceneCaptureComponent> Dummy;
+};
+TClassRegistry<USceneCaptureComponent> Dummy = TClassRegistry<USceneCaptureComponent>("USceneCaptureComponent");
+
+

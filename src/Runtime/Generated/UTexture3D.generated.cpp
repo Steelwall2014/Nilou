@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Rendering/Texture3D.h"
-namespace nilou {
-std::string UTexture3D::GetClassName() { return "UTexture3D"; }
-EUClasses UTexture3D::GetClassEnum() { return EUClasses::MC_UTexture3D; }
-const UClass *UTexture3D::GetClass() { return UTexture3D::StaticClass(); }
-const UClass *UTexture3D::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UTexture3D::StaticClass_ = nullptr;
+const NClass *UTexture3D::GetClass() const 
+{ 
+    return UTexture3D::StaticClass(); 
+}
+const NClass *UTexture3D::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UTexture3D", EUClasses::MC_UTexture3D);
-	return StaticClass;
+    return UTexture3D::StaticClass_.get();
 }
-std::unique_ptr<UObject> UTexture3D::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UTexture3D>
 {
-    return std::make_unique<UTexture3D>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UTexture3D::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UTexture3D>("UTexture3D")
+				   .AddDefaultConstructor()
+				   .AddParentClass("UTexture")
+;
+        UTexture3D::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UTexture3D> Dummy;
+};
+TClassRegistry<UTexture3D> Dummy = TClassRegistry<UTexture3D>("UTexture3D");
+
+

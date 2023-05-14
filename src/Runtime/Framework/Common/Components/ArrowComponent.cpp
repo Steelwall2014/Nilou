@@ -84,8 +84,7 @@ namespace nilou {
         // float ScreenSize;
     };
 
-    UArrowComponent::UArrowComponent(AActor *InOwner)
-        : UPrimitiveComponent(InOwner)
+    UArrowComponent::UArrowComponent()
     {
         ArrowColor = vec4(1, 0, 0, 1);
         ArrowSize = 1.0f;

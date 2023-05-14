@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/GeoreferenceActor.h"
-namespace nilou {
-std::string AGeoreferenceActor::GetClassName() { return "AGeoreferenceActor"; }
-EUClasses AGeoreferenceActor::GetClassEnum() { return EUClasses::MC_AGeoreferenceActor; }
-const UClass *AGeoreferenceActor::GetClass() { return AGeoreferenceActor::StaticClass(); }
-const UClass *AGeoreferenceActor::StaticClass()
+#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> AGeoreferenceActor::StaticClass_ = nullptr;
+const NClass *AGeoreferenceActor::GetClass() const 
+{ 
+    return AGeoreferenceActor::StaticClass(); 
+}
+const NClass *AGeoreferenceActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("AGeoreferenceActor", EUClasses::MC_AGeoreferenceActor);
-	return StaticClass;
+    return AGeoreferenceActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> AGeoreferenceActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<AGeoreferenceActor>
 {
-    return std::make_unique<AGeoreferenceActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        AGeoreferenceActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<AGeoreferenceActor>("AGeoreferenceActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        AGeoreferenceActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<AGeoreferenceActor> Dummy;
+};
+TClassRegistry<AGeoreferenceActor> Dummy = TClassRegistry<AGeoreferenceActor>("AGeoreferenceActor");
+
+

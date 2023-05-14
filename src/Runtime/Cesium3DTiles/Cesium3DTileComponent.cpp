@@ -60,11 +60,14 @@ namespace nilou {
         std::shared_ptr<GLTFParseResult> Gltf;
     };
 
-    UCesium3DTileComponent::UCesium3DTileComponent(AActor *InOwner, Cesium3DTile* InTile)
-        : UPrimitiveComponent(InOwner)
-        , Tile(InTile)
-        , Gltf(nullptr)
+    UCesium3DTileComponent::UCesium3DTileComponent()
+        : Gltf(nullptr)
     {
+    }
+
+    void UCesium3DTileComponent::OnRegister()
+    {
+        
         dmat4 RtcCenterMatrix = dmat4(
             dvec4(1, 0, 0, 0), 
             dvec4(0, 1, 0, 0),
@@ -77,7 +80,7 @@ namespace nilou {
         else if (Tile->TileGltfUpAxis == ETileGltfUpAxis::X)
             AxisTransform = X_UP_TO_Z_UP;
         dmat4 EcefToAbs = dmat4(1);
-        if (ACesium3DTileset* Tileset = static_cast<ACesium3DTileset*>(InOwner))
+        if (ACesium3DTileset* Tileset = static_cast<ACesium3DTileset*>(GetOwner()))
         {
             if (Tileset->Georeference)
             {
@@ -85,6 +88,8 @@ namespace nilou {
             }
         }
         ModelToLocal = EcefToAbs * Tile->Transform * RtcCenterMatrix * AxisTransform;
+        
+        UPrimitiveComponent::OnRegister();
     }
 
     FBoundingBox UCesium3DTileComponent::CalcBounds(const FTransform& LocalToWorld) const

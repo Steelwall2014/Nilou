@@ -105,14 +105,12 @@ namespace nilou {
         bool bCallModify;
     };
 
-    UCLASS()
-    class USceneComponent : public UActorComponent
+    class NCLASS USceneComponent : public UActorComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        USceneComponent(AActor *InOwner = nullptr) 
-            : UActorComponent(InOwner)
-            , AttachParent(nullptr)
+        USceneComponent() 
+            : AttachParent(nullptr)
         { }
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */

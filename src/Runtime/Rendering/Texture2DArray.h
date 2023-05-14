@@ -19,13 +19,11 @@ namespace nilou {
 	    virtual const FTexture2DArrayResource* GetTexture2DArrayResource() const override { return this; }
     };
 
-    UCLASS()
-    class UTexture2DArray : public UTexture
+    class NCLASS UTexture2DArray : public UTexture
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
-        UTexture2DArray(const std::string &InName="")
-            : UTexture(InName)
+        UTexture2DArray()
         {
 
         }

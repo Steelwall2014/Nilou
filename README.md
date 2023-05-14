@@ -35,14 +35,16 @@ _GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384�
 下载后将它放到Content/Textures目录下即可  
   
 ## 运行
-第一次运行之前，或者添加了被UCLASS()标记的类之后，需要手动运行一次HeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
-HeaderTool的编译：
+第一次运行之前，或者添加了被NCLASS标记的类之后，需要手动运行一次NilouHeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
+NilouHeaderTool的编译：
 ```sh
-xmake build -v HeaderTool
+cd NilouHeaderTool
+xmake f -p windows -a x64 -m debug
+xmake -P .
 ```
-HeaderTool的运行：
+NilouHeaderTool的运行：
 ```sh
-xmake run HeaderTool
+lua .\execute_header_tool.lua
 ```
 系统的编译和运行：
 ```sh
@@ -51,7 +53,7 @@ xmake run Nilou
 ```
 ## Features
 - 一个比较完备的场景管理架构。参照虚幻引擎搭建了Actor和Component的架构，使得整个项目更有扩展性。
-- 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象。通过一个HeaderTool解析头文件，为打上UCLASS()标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。
+- 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象，可以根据名称获取成员变量和成员函数。通过NilouHeaderTool解析头文件，为打上NCLASS标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。
 - 系统中实现了一个简单的虚拟文件系统，用来管理纹理、材质、网格模型等资源。纹理、材质、网格模型具有序列化方法，参考glb格式定义了一种文件格式（nasset）来保存这些资源。
 - 对顶点着色器、片元着色器复用的支持。顶点着色器和片元着色器都是MaterialShader，其本身是不完整的。顶点着色器还需要顶点工厂和材质，片元着色器还需要材质，才能构成一个完整的着色器，而顶点工厂和材质则需要实现一系列接口。此外也可以定义GlobalShader，一般用在计算着色器上。
 - Shader permutation的支持，MaterialShader和GlobalShader都可以定义一个FPermutationDomain，多个FShaderPermutation*（如FShaderPermutationBool），也就是Domain中的不同维度。系统会自动编译shader所有的permutation，用户可以为每个维度指定值，然后选取对应的permutation。总体来说和UE中对应的功能类似。

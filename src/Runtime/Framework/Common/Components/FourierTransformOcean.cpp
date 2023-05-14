@@ -411,9 +411,8 @@ namespace nilou {
 
     };
 
-    UFourierTransformOceanComponent::UFourierTransformOceanComponent(AActor* Owner)
-        : UPrimitiveComponent(Owner)
-        , Material(GetContentManager()->GetMaterialByPath("/Materials/OceanMaterial.nasset")->CreateMaterialInstance())
+    UFourierTransformOceanComponent::UFourierTransformOceanComponent()
+        : Material(GetContentManager()->GetMaterialByPath("/Materials/OceanMaterial.nasset")->CreateMaterialInstance())
     {
         uint32 temp_NodeCount = NodeCount;
         while (temp_NodeCount % 2 == 0)

@@ -13,21 +13,23 @@
 #include "Common/Transform.h"
 #include "Templates/TypeTraits.h"
 #include "GameStatics.h"
-// #include "Actor.generated.h"
 
 namespace nilou {
 	class UActorComponent;
 	class USceneComponent;
 	class UWorld;
 
-	UCLASS()
-	class AActor : public UObject,
+	
+	class NCLASS AActor : public UObject,
                    public std::enable_shared_from_this<AActor>
 	{
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
 	public:
 
 		AActor();
+
+		NPROPERTY()
+		std::string ActorName;
 
 		virtual void Tick(double DeltaTime) {};
 
@@ -139,7 +141,7 @@ namespace nilou {
 	protected:
 
 		template<class ComponentType, typename Func>
-		void ForEachComponent_Internal(const UClass *ComponentClass, bool bIncludeFromChildActors, Func&& InFunc)
+		void ForEachComponent_Internal(const NClass *ComponentClass, bool bIncludeFromChildActors, Func&& InFunc)
 		{
 			static_assert(TIsDerivedFrom<ComponentType, UActorComponent>::Value, "'ComponentType' template parameter to ForEachComponent must be derived from UActorComponent");
 			if (*ComponentClass == *UActorComponent::StaticClass())
@@ -167,7 +169,7 @@ namespace nilou {
 		}
 
 		template<class ComponentType, bool bClassIsActorComponent, bool bIncludeFromChildActors, typename Func>
-		void ForEachComponent_Internal(const UClass *ComponentClass, Func&& InFunc)
+		void ForEachComponent_Internal(const NClass *ComponentClass, Func&& InFunc)
 		{
 			check(ComponentClass->IsChildOf(ComponentType::StaticClass()));
 			if constexpr (bIncludeFromChildActors)
@@ -204,7 +206,6 @@ namespace nilou {
 			}
 		}
 
-		std::string ActorName;
 		std::shared_ptr<USceneComponent> RootComponent;
 		std::set<std::shared_ptr<UActorComponent>> OwnedComponents;
 		UWorld *OwnedWorld;

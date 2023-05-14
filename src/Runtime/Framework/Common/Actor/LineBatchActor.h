@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class ALineBatchActor : public AActor
+    class NCLASS ALineBatchActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         ALineBatchActor() 
         { 

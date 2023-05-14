@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SphereActor.h"
-namespace nilou {
-std::string ASphereActor::GetClassName() { return "ASphereActor"; }
-EUClasses ASphereActor::GetClassEnum() { return EUClasses::MC_ASphereActor; }
-const UClass *ASphereActor::GetClass() { return ASphereActor::StaticClass(); }
-const UClass *ASphereActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ASphereActor::StaticClass_ = nullptr;
+const NClass *ASphereActor::GetClass() const 
+{ 
+    return ASphereActor::StaticClass(); 
+}
+const NClass *ASphereActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ASphereActor", EUClasses::MC_ASphereActor);
-	return StaticClass;
+    return ASphereActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> ASphereActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ASphereActor>
 {
-    return std::make_unique<ASphereActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ASphereActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ASphereActor>("ASphereActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ASphereActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ASphereActor> Dummy;
+};
+TClassRegistry<ASphereActor> Dummy = TClassRegistry<ASphereActor>("ASphereActor");
+
+

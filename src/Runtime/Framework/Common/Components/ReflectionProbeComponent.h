@@ -4,15 +4,13 @@
 
 namespace nilou {
 
-    UCLASS()
-    class UReflectionProbeComponent : public USceneCaptureComponentCube
+    class NCLASS UReflectionProbeComponent : public USceneCaptureComponentCube
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UReflectionProbeComponent(AActor *InOwner = nullptr) 
-            : USceneCaptureComponentCube(InOwner)
-            , IrradianceTexture(nullptr)
+        UReflectionProbeComponent() 
+            : IrradianceTexture(nullptr)
             , PrefilteredTexture(nullptr)
             , SceneProxy(nullptr)
             , Extent(dvec3(1))

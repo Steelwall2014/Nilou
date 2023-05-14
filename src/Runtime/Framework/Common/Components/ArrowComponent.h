@@ -3,13 +3,12 @@
 
 namespace nilou {
 
-    UCLASS()
-    class UArrowComponent : public UPrimitiveComponent
+    class NCLASS UArrowComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UArrowComponent(AActor *InOwner = nullptr);
+        UArrowComponent();
 
         /** The size on screen to limit this arrow to (in screen space) */
         // float ScreenSize;

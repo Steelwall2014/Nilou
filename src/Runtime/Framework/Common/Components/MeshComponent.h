@@ -9,15 +9,13 @@
 
 namespace nilou {
 
-    UCLASS()
-    class UStaticMeshComponent : public UPrimitiveComponent
+    class NCLASS UStaticMeshComponent : public UPrimitiveComponent
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UStaticMeshComponent(AActor *InOwner=nullptr)
-            : UPrimitiveComponent(InOwner)
-            , StaticMesh(nullptr)
+        UStaticMeshComponent()
+            : StaticMesh(nullptr)
         { 
             // Material = std::make_shared<FDefaultMaterial>();
         }

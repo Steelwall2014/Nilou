@@ -6,14 +6,15 @@
 namespace nilou {
     
 
-    UCLASS()
-    class UCesium3DTileComponent : public UPrimitiveComponent
+    class NCLASS UCesium3DTileComponent : public UPrimitiveComponent
     {
 
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UCesium3DTileComponent(AActor *InOwner = nullptr, Cesium3DTilesetSelection::Cesium3DTile* InTile=nullptr);
+        UCesium3DTileComponent();
+
+        virtual void OnRegister() override;
 
         virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 

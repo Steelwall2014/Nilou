@@ -1,15 +1,35 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
-namespace nilou {
-std::string ASkyAtmosphereActor::GetClassName() { return "ASkyAtmosphereActor"; }
-EUClasses ASkyAtmosphereActor::GetClassEnum() { return EUClasses::MC_ASkyAtmosphereActor; }
-const UClass *ASkyAtmosphereActor::GetClass() { return ASkyAtmosphereActor::StaticClass(); }
-const UClass *ASkyAtmosphereActor::StaticClass()
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> ASkyAtmosphereActor::StaticClass_ = nullptr;
+const NClass *ASkyAtmosphereActor::GetClass() const 
+{ 
+    return ASkyAtmosphereActor::StaticClass(); 
+}
+const NClass *ASkyAtmosphereActor::StaticClass()
 {
-	static UClass *StaticClass = new UClass("ASkyAtmosphereActor", EUClasses::MC_ASkyAtmosphereActor);
-	return StaticClass;
+    return ASkyAtmosphereActor::StaticClass_.get();
 }
-std::unique_ptr<UObject> ASkyAtmosphereActor::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<ASkyAtmosphereActor>
 {
-    return std::make_unique<ASkyAtmosphereActor>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        ASkyAtmosphereActor::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<ASkyAtmosphereActor>("ASkyAtmosphereActor")
+				   .AddDefaultConstructor()
+				   .AddParentClass("AActor")
+;
+        ASkyAtmosphereActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<ASkyAtmosphereActor> Dummy;
+};
+TClassRegistry<ASkyAtmosphereActor> Dummy = TClassRegistry<ASkyAtmosphereActor>("ASkyAtmosphereActor");
+
+

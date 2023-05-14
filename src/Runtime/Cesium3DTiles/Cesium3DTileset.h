@@ -15,10 +15,9 @@
 
 namespace nilou {
 
-    UCLASS()
-    class ACesium3DTileset : public AActor
+    class NCLASS ACesium3DTileset : public AActor
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
 
     public:
 

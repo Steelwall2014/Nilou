@@ -55,15 +55,13 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class UTextureRenderTarget : public UTexture
+    class NCLASS UTextureRenderTarget : public UTexture
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UTextureRenderTarget(const std::string& InName="")
-            : UTexture(InName)
-            , ClearColor(vec3(0))
+        UTextureRenderTarget()
+            : ClearColor(vec3(0))
         { }
 
         /**
@@ -80,14 +78,12 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class UTextureRenderTarget2D : public UTextureRenderTarget
+    class NCLASS UTextureRenderTarget2D : public UTextureRenderTarget
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UTextureRenderTarget2D(const std::string& InName="")
-            : UTextureRenderTarget(InName)
+        UTextureRenderTarget2D()
         { }
 
         virtual FTextureResource* CreateResource() override;
@@ -102,14 +98,12 @@ namespace nilou {
 
     };
 
-    UCLASS()
-    class UTextureRenderTargetCube : public UTextureRenderTarget
+    class NCLASS UTextureRenderTargetCube : public UTextureRenderTarget
     {
-        GENERATE_CLASS_INFO()
+        GENERATE_BODY()
     public:
 
-        UTextureRenderTargetCube(const std::string& InName="")
-            : UTextureRenderTarget(InName)
+        UTextureRenderTargetCube()
         { }
 
         virtual FTextureResource* CreateResource() override;

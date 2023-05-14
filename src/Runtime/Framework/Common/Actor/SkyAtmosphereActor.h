@@ -3,10 +3,9 @@
 
 namespace nilou {
 
-	UCLASS()
-    class ASkyAtmosphereActor : public AActor
+    class NCLASS ASkyAtmosphereActor : public AActor
     {
-		GENERATE_CLASS_INFO()
+		GENERATE_BODY()
     public:
         ASkyAtmosphereActor() 
         { 

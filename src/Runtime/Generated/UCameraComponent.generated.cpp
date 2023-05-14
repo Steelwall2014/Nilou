@@ -1,15 +1,35 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/CameraComponent.h"
-namespace nilou {
-std::string UCameraComponent::GetClassName() { return "UCameraComponent"; }
-EUClasses UCameraComponent::GetClassEnum() { return EUClasses::MC_UCameraComponent; }
-const UClass *UCameraComponent::GetClass() { return UCameraComponent::StaticClass(); }
-const UClass *UCameraComponent::StaticClass()
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
+#include "reflection/TypeDescriptorBuilder.h"
+#include "reflection/Class.h"
+
+using namespace nilou;
+using namespace reflection;
+
+std::unique_ptr<NClass> UCameraComponent::StaticClass_ = nullptr;
+const NClass *UCameraComponent::GetClass() const 
+{ 
+    return UCameraComponent::StaticClass(); 
+}
+const NClass *UCameraComponent::StaticClass()
 {
-	static UClass *StaticClass = new UClass("UCameraComponent", EUClasses::MC_UCameraComponent);
-	return StaticClass;
+    return UCameraComponent::StaticClass_.get();
 }
-std::unique_ptr<UObject> UCameraComponent::CreateDefaultObject()
+
+template<>
+struct TClassRegistry<UCameraComponent>
 {
-    return std::make_unique<UCameraComponent>();
-}
-}
+    TClassRegistry(const std::string& InName)
+    {
+        UCameraComponent::StaticClass_ = std::make_unique<NClass>();
+        reflection::AddClass<UCameraComponent>("UCameraComponent")
+				   .AddDefaultConstructor()
+				   .AddParentClass("USceneComponent")
+;
+        UCameraComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+    }
+
+    static TClassRegistry<UCameraComponent> Dummy;
+};
+TClassRegistry<UCameraComponent> Dummy = TClassRegistry<UCameraComponent>("UCameraComponent");
+
+
