@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS USceneCaptureComponent : public USceneComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         USceneCaptureComponent() 
             : bCaptureEveryFrame(true)
@@ -43,7 +43,7 @@ namespace nilou {
 
     class NCLASS USceneCaptureComponent2D : public USceneCaptureComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         USceneCaptureComponent2D() 
         { }
@@ -82,7 +82,7 @@ namespace nilou {
 
     class NCLASS USceneCaptureComponentCube : public USceneCaptureComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         USceneCaptureComponentCube() 
             : TextureTarget(nullptr)

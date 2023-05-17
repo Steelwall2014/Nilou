@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ASkyAtmosphereActor::StaticClass_ = nullptr;
 const NClass *ASkyAtmosphereActor::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ASkyAtmosphereActor>
     TClassRegistry(const std::string& InName)
     {
         ASkyAtmosphereActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ASkyAtmosphereActor>("ASkyAtmosphereActor")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<ASkyAtmosphereActor>();
+		Mngr.AddConstructor<ASkyAtmosphereActor>();
+		Mngr.AddBases<ASkyAtmosphereActor, AActor>();
 ;
-        ASkyAtmosphereActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ASkyAtmosphereActor::StaticClass_->Type = Type_of<ASkyAtmosphereActor>;
+        ASkyAtmosphereActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ASkyAtmosphereActor>);
     }
 
     static TClassRegistry<ASkyAtmosphereActor> Dummy;

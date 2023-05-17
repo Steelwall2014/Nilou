@@ -67,7 +67,7 @@ namespace nilou {
     {
         friend class UMaterialInstance;
         friend class FMaterialRenderProxy;
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UMaterial();
@@ -158,7 +158,7 @@ namespace nilou {
 
     class NCLASS UMaterialInstance : public UMaterial
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         UMaterialInstance() { }
 

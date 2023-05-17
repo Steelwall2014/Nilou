@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Rendering/VirtualTexture2D.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UVirtualTexture::StaticClass_ = nullptr;
 const NClass *UVirtualTexture::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<UVirtualTexture>
     TClassRegistry(const std::string& InName)
     {
         UVirtualTexture::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UVirtualTexture>("UVirtualTexture")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UTexture")
+        Mngr.RegisterType<UVirtualTexture>();
+		Mngr.AddConstructor<UVirtualTexture>();
+		Mngr.AddBases<UVirtualTexture, UTexture>();
 ;
-        UVirtualTexture::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UVirtualTexture::StaticClass_->Type = Type_of<UVirtualTexture>;
+        UVirtualTexture::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UVirtualTexture>);
     }
 
     static TClassRegistry<UVirtualTexture> Dummy;

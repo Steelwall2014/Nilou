@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/ReflectionProbe.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> AReflectionProbe::StaticClass_ = nullptr;
 const NClass *AReflectionProbe::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<AReflectionProbe>
     TClassRegistry(const std::string& InName)
     {
         AReflectionProbe::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<AReflectionProbe>("AReflectionProbe")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<AReflectionProbe>();
+		Mngr.AddConstructor<AReflectionProbe>();
+		Mngr.AddBases<AReflectionProbe, AActor>();
 ;
-        AReflectionProbe::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        AReflectionProbe::StaticClass_->Type = Type_of<AReflectionProbe>;
+        AReflectionProbe::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AReflectionProbe>);
     }
 
     static TClassRegistry<AReflectionProbe> Dummy;

@@ -10,7 +10,7 @@ namespace nilou {
     {
         friend class FScene;
         friend class FCameraSceneProxy;
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UCameraComponent();

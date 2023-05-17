@@ -18,11 +18,11 @@
 #define NFUNCTION()
 #endif
 
-#define GENERATE_BODY() \
+#define GENERATED_BODY() \
     private: \
         template<typename T>  \
-        friend class reflection::TClassRegistry; \
-        static std::unique_ptr<reflection::NClass> StaticClass_; \
+        friend class ::TClassRegistry; \
+        static std::unique_ptr<::NClass> StaticClass_; \
     public: \
-        virtual const reflection::NClass *GetClass() const; \
-        static const reflection::NClass *StaticClass();
+        virtual const ::NClass *GetClass() const; \
+        static const ::NClass *StaticClass();

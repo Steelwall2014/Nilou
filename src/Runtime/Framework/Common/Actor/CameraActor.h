@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS ACameraActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         ACameraActor();
 

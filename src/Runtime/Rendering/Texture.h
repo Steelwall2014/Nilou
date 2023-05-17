@@ -372,7 +372,7 @@ namespace nilou {
 
     class NCLASS UTexture : public UObject
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
 		std::string Name;

@@ -11,7 +11,7 @@ namespace nilou {
 
     class NCLASS UStaticMeshComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UStaticMeshComponent()

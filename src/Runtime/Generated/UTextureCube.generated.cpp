@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Rendering/TextureCube.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UTextureCube::StaticClass_ = nullptr;
 const NClass *UTextureCube::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<UTextureCube>
     TClassRegistry(const std::string& InName)
     {
         UTextureCube::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UTextureCube>("UTextureCube")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UTexture")
+        Mngr.RegisterType<UTextureCube>();
+		Mngr.AddConstructor<UTextureCube>();
+		Mngr.AddBases<UTextureCube, UTexture>();
 ;
-        UTextureCube::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UTextureCube::StaticClass_->Type = Type_of<UTextureCube>;
+        UTextureCube::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UTextureCube>);
     }
 
     static TClassRegistry<UTextureCube> Dummy;

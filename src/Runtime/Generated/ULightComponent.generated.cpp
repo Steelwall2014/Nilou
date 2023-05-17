@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ULightComponent::StaticClass_ = nullptr;
 const NClass *ULightComponent::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ULightComponent>
     TClassRegistry(const std::string& InName)
     {
         ULightComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ULightComponent>("ULightComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("USceneComponent")
+        Mngr.RegisterType<ULightComponent>();
+		Mngr.AddConstructor<ULightComponent>();
+		Mngr.AddBases<ULightComponent, USceneComponent>();
 ;
-        ULightComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ULightComponent::StaticClass_->Type = Type_of<ULightComponent>;
+        ULightComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ULightComponent>);
     }
 
     static TClassRegistry<ULightComponent> Dummy;

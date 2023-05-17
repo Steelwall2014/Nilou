@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/VirtualHeightfieldMeshActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UVirtualHeightfieldMeshComponent::StaticClass_ = nullptr;
 const NClass *UVirtualHeightfieldMeshComponent::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<UVirtualHeightfieldMeshComponent>
     TClassRegistry(const std::string& InName)
     {
         UVirtualHeightfieldMeshComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UVirtualHeightfieldMeshComponent>("UVirtualHeightfieldMeshComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UPrimitiveComponent")
+        Mngr.RegisterType<UVirtualHeightfieldMeshComponent>();
+		Mngr.AddConstructor<UVirtualHeightfieldMeshComponent>();
+		Mngr.AddBases<UVirtualHeightfieldMeshComponent, UPrimitiveComponent>();
 ;
-        UVirtualHeightfieldMeshComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UVirtualHeightfieldMeshComponent::StaticClass_->Type = Type_of<UVirtualHeightfieldMeshComponent>;
+        UVirtualHeightfieldMeshComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UVirtualHeightfieldMeshComponent>);
     }
 
     static TClassRegistry<UVirtualHeightfieldMeshComponent> Dummy;

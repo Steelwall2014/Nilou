@@ -57,7 +57,7 @@ namespace nilou {
 
     class NCLASS UTextureRenderTarget : public UTexture
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UTextureRenderTarget()
@@ -80,7 +80,7 @@ namespace nilou {
 
     class NCLASS UTextureRenderTarget2D : public UTextureRenderTarget
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UTextureRenderTarget2D()
@@ -100,7 +100,7 @@ namespace nilou {
 
     class NCLASS UTextureRenderTargetCube : public UTextureRenderTarget
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UTextureRenderTargetCube()

@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ULineBatchComponent::StaticClass_ = nullptr;
 const NClass *ULineBatchComponent::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ULineBatchComponent>
     TClassRegistry(const std::string& InName)
     {
         ULineBatchComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ULineBatchComponent>("ULineBatchComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UPrimitiveComponent")
+        Mngr.RegisterType<ULineBatchComponent>();
+		Mngr.AddConstructor<ULineBatchComponent>();
+		Mngr.AddBases<ULineBatchComponent, UPrimitiveComponent>();
 ;
-        ULineBatchComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ULineBatchComponent::StaticClass_->Type = Type_of<ULineBatchComponent>;
+        ULineBatchComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ULineBatchComponent>);
     }
 
     static TClassRegistry<ULineBatchComponent> Dummy;

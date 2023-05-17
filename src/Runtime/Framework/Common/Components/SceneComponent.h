@@ -107,7 +107,7 @@ namespace nilou {
 
     class NCLASS USceneComponent : public UActorComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         USceneComponent() 
             : AttachParent(nullptr)

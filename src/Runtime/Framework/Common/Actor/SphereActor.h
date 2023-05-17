@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS ASphereActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         ASphereActor() 
         { 

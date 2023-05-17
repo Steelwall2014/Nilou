@@ -1,57 +1,65 @@
 #pragma once
-#include "TypeDescriptor.h"
-#include "Registry.h"
+#include <queue>
+#include <string>
+#include <UDRefl/UDRefl.hpp>
 
-namespace reflection {
 
-    class NClass
+template<typename T>
+struct TClassRegistry { };
+
+class NClass
+{
+public:
+
+    template<typename T>
+    friend class TClassRegistry;
+
+    NClass() = default;
+
+    bool IsChildOf(const NClass *BaseClass) const
     {
-    public:
-
-        template<typename T>
-        friend class TClassRegistry;
-
-        NClass() = default;
-
-        bool IsChildOf(const NClass *BaseClass) const
+        if (Type == BaseClass->Type)
+            return true;
+        std::queue<Ubpa::Type> q;
+        q.push(Type);
+        while (!q.empty())
         {
-            if (Type->GetTypeName() == BaseClass->Type->GetTypeName())
-                return true;
-            std::queue<std::string> q;
-            q.push(Type->GetTypeName());
-            while (!q.empty())
+            Ubpa::Type temp_class = q.front(); q.pop();
+            auto temp_info = Ubpa::UDRefl::Mngr.GetTypeInfo(temp_class);
+            for (auto& [parent_class, base_info] : temp_info->baseinfos)
             {
-                std::string temp_class = q.front(); q.pop();
-                auto temp_desc = Registry::GetTypeByName(temp_class);
-                for (std::string parent_class : temp_desc->GetParentClasses())
-                {
-                    if (parent_class == BaseClass->Type->GetTypeName())
-                        return true;
-                    q.push(parent_class);
-                }
+                if (parent_class == BaseClass->Type)
+                    return true;
+                q.push(parent_class);
             }
-            return false;
         }
+        return false;
+    }
 
-        inline bool operator==(const NClass &Other) const
-        {
-            return Type == Other.Type;
-        }
+    inline bool operator==(const NClass &Other) const
+    {
+        return Type == Other.Type;
+    }
 
-        inline bool operator<(const NClass &Other) const
-        {
-            return Type < Other.Type;
-        }
+    inline bool operator<(const NClass &Other) const
+    {
+        return Type < Other.Type;
+    }
 
-        const reflection::TypeDescriptor *GetTypeDescriptor() const
-        {
-            return Type;
-        }
+    Ubpa::Type GetType() const
+    {
+        return Type;
+    }
 
-    private:
+    const Ubpa::UDRefl::TypeInfo* GetTypeInfo() const
+    {
+        return TypeInfo;
+    }
 
-        const reflection::TypeDescriptor *Type;
+private:
 
-    };
+    const Ubpa::UDRefl::TypeInfo *TypeInfo;
 
-}
+    Ubpa::Type Type;
+
+};

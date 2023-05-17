@@ -188,7 +188,7 @@ BuildProject({
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*"},
     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     beforeBuildFunc = InstallHeaderTool,
     -- afterBuildFunc = copyFunc,

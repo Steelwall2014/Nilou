@@ -31,7 +31,7 @@ namespace nilou {
 
     class NCLASS UVirtualTexture : public UTexture
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         UVirtualTexture();
 

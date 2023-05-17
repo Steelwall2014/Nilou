@@ -35,7 +35,7 @@ namespace nilou {
 
     class NCLASS UVirtualHeightfieldMeshComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UVirtualHeightfieldMeshComponent();

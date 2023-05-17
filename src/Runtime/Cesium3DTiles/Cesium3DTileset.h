@@ -17,7 +17,7 @@ namespace nilou {
 
     class NCLASS ACesium3DTileset : public AActor
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
 
     public:
 

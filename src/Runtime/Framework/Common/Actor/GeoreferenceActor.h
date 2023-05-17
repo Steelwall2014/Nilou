@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS AGeoreferenceActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         AGeoreferenceActor()
             : GeoreferencedToEcef(1)

@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SphereActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> USphereComponent::StaticClass_ = nullptr;
 const NClass *USphereComponent::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<USphereComponent>
     TClassRegistry(const std::string& InName)
     {
         USphereComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<USphereComponent>("USphereComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UPrimitiveComponent")
+        Mngr.RegisterType<USphereComponent>();
+		Mngr.AddConstructor<USphereComponent>();
+		Mngr.AddBases<USphereComponent, UPrimitiveComponent>();
 ;
-        USphereComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        USphereComponent::StaticClass_->Type = Type_of<USphereComponent>;
+        USphereComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<USphereComponent>);
     }
 
     static TClassRegistry<USphereComponent> Dummy;

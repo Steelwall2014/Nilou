@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UTextureRenderTarget::StaticClass_ = nullptr;
 const NClass *UTextureRenderTarget::GetClass() const 
@@ -21,13 +21,12 @@ struct TClassRegistry<UTextureRenderTarget>
     TClassRegistry(const std::string& InName)
     {
         UTextureRenderTarget::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UTextureRenderTarget>("UTextureRenderTarget")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UTexture")
-				   .AddDerivedClass("UTextureRenderTarget2D")
-				   .AddDerivedClass("UTextureRenderTargetCube")
+        Mngr.RegisterType<UTextureRenderTarget>();
+		Mngr.AddConstructor<UTextureRenderTarget>();
+		Mngr.AddBases<UTextureRenderTarget, UTexture>();
 ;
-        UTextureRenderTarget::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UTextureRenderTarget::StaticClass_->Type = Type_of<UTextureRenderTarget>;
+        UTextureRenderTarget::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UTextureRenderTarget>);
     }
 
     static TClassRegistry<UTextureRenderTarget> Dummy;

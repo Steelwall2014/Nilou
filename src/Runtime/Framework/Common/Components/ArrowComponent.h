@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS UArrowComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UArrowComponent();

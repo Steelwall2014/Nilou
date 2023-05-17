@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS AFFTOceanActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         AFFTOceanActor() 
         { 

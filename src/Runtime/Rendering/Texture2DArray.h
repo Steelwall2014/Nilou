@@ -21,7 +21,7 @@ namespace nilou {
 
     class NCLASS UTexture2DArray : public UTexture
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         UTexture2DArray()
         {

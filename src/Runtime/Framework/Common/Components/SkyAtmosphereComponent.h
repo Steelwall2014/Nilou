@@ -55,7 +55,7 @@ public: \
 
     class NCLASS USkyAtmosphereComponent : public USceneComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         USkyAtmosphereComponent();
 

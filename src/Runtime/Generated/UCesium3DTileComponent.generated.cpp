@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UCesium3DTileComponent::StaticClass_ = nullptr;
 const NClass *UCesium3DTileComponent::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<UCesium3DTileComponent>
     TClassRegistry(const std::string& InName)
     {
         UCesium3DTileComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UCesium3DTileComponent>("UCesium3DTileComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UPrimitiveComponent")
+        Mngr.RegisterType<UCesium3DTileComponent>();
+		Mngr.AddConstructor<UCesium3DTileComponent>();
+		Mngr.AddBases<UCesium3DTileComponent, UPrimitiveComponent>();
 ;
-        UCesium3DTileComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UCesium3DTileComponent::StaticClass_->Type = Type_of<UCesium3DTileComponent>;
+        UCesium3DTileComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UCesium3DTileComponent>);
     }
 
     static TClassRegistry<UCesium3DTileComponent> Dummy;

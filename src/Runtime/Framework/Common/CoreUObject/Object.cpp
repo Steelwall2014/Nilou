@@ -7,15 +7,19 @@ namespace nilou {
         return GetClass()->IsChildOf(Class);
     }
 
-    const std::string& UObject::GetClassName() const 
+    std::string_view UObject::GetClassName() const 
     {
-        return GetClass()->GetTypeDescriptor()->GetTypeName();
+        return GetClass()->GetType().GetName();
     }
 
-    void* CreateDefaultObjectByName(const std::string &ClassName)
+    UObject* CreateDefaultObjectByName(const std::string &ClassName)
     {
-        auto Type = reflection::Registry::GetTypeByName(ClassName);
-        void* object = Type->GetDefaultConstructor().Invoke();
-        return object;
+        auto Object = Ubpa::UDRefl::Mngr.New(Ubpa::Type(ClassName));
+        auto BaseObject = Object.StaticCast(Ubpa::Type_of<UObject>);
+        UObject* pObject = BaseObject.AsPtr<UObject>();
+        if (pObject) 
+            return pObject;
+        Ubpa::UDRefl::Mngr.Delete(Object);
+        return nullptr;
     }
 }

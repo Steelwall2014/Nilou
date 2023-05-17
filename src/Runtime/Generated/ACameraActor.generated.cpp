@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ACameraActor::StaticClass_ = nullptr;
 const NClass *ACameraActor::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ACameraActor>
     TClassRegistry(const std::string& InName)
     {
         ACameraActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ACameraActor>("ACameraActor")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<ACameraActor>();
+		Mngr.AddConstructor<ACameraActor>();
+		Mngr.AddBases<ACameraActor, AActor>();
 ;
-        ACameraActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ACameraActor::StaticClass_->Type = Type_of<ACameraActor>;
+        ACameraActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ACameraActor>);
     }
 
     static TClassRegistry<ACameraActor> Dummy;

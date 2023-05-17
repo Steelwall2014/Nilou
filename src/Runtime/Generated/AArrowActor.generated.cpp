@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/ArrowActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> AArrowActor::StaticClass_ = nullptr;
 const NClass *AArrowActor::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<AArrowActor>
     TClassRegistry(const std::string& InName)
     {
         AArrowActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<AArrowActor>("AArrowActor")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<AArrowActor>();
+		Mngr.AddConstructor<AArrowActor>();
+		Mngr.AddBases<AArrowActor, AActor>();
 ;
-        AArrowActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        AArrowActor::StaticClass_->Type = Type_of<AArrowActor>;
+        AArrowActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AArrowActor>);
     }
 
     static TClassRegistry<AArrowActor> Dummy;

@@ -81,7 +81,7 @@ namespace nilou {
         return directory_entry;
     }
 
-    UObject *FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
+    UObject* FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
     {
         if (tokens[depth] == Entry->Name)
         {
@@ -171,7 +171,8 @@ namespace nilou {
             FArchive Ar = future.get();
             if (Ar.json.contains("ClassName"))
             {
-                Entries[i]->Object = std::unique_ptr<UObject>(reinterpret_cast<UObject*>(CreateDefaultObjectByName(Ar.json["ClassName"])));
+                auto class_name = "nilou::"+std::string(Ar.json["ClassName"]);
+                Entries[i]->Object = std::unique_ptr<UObject>(CreateDefaultObjectByName(class_name));
                 Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
                 Entries[i]->Object->ContentEntry = Entries[i];
             }

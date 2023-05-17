@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/LightActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ALightActor::StaticClass_ = nullptr;
 const NClass *ALightActor::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ALightActor>
     TClassRegistry(const std::string& InName)
     {
         ALightActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ALightActor>("ALightActor")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<ALightActor>();
+		Mngr.AddConstructor<ALightActor>();
+		Mngr.AddBases<ALightActor, AActor>();
 ;
-        ALightActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ALightActor::StaticClass_->Type = Type_of<ALightActor>;
+        ALightActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ALightActor>);
     }
 
     static TClassRegistry<ALightActor> Dummy;

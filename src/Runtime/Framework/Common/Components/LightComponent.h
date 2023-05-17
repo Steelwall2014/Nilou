@@ -90,7 +90,7 @@ namespace nilou {
 
     class NCLASS ULightComponent : public USceneComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
         friend class FLightSceneProxy;
 
         // For directional light, the unit is lux

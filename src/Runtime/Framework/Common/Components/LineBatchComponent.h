@@ -7,7 +7,7 @@ namespace nilou {
 
     class NCLASS ULineBatchComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         ULineBatchComponent()
         { 

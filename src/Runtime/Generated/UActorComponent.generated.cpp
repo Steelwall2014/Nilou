@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UActorComponent::StaticClass_ = nullptr;
 const NClass *UActorComponent::GetClass() const 
@@ -21,12 +21,12 @@ struct TClassRegistry<UActorComponent>
     TClassRegistry(const std::string& InName)
     {
         UActorComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UActorComponent>("UActorComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UObject")
-				   .AddDerivedClass("USceneComponent")
+        Mngr.RegisterType<UActorComponent>();
+		Mngr.AddConstructor<UActorComponent>();
+		Mngr.AddBases<UActorComponent, UObject>();
 ;
-        UActorComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UActorComponent::StaticClass_->Type = Type_of<UActorComponent>;
+        UActorComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UActorComponent>);
     }
 
     static TClassRegistry<UActorComponent> Dummy;

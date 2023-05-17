@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> AActor::StaticClass_ = nullptr;
 const NClass *AActor::GetClass() const 
@@ -21,24 +21,13 @@ struct TClassRegistry<AActor>
     TClassRegistry(const std::string& InName)
     {
         AActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<AActor>("AActor")
-				   .AddDefaultConstructor()
-				   .AddMemberVariable("ActorName", &AActor::ActorName)
-				   .AddParentClass("UObject")
-				   .AddDerivedClass("AArrowActor")
-				   .AddDerivedClass("ACameraActor")
-				   .AddDerivedClass("ACesium3DTileset")
-				   .AddDerivedClass("AFFTOceanActor")
-				   .AddDerivedClass("AGeoreferenceActor")
-				   .AddDerivedClass("ALightActor")
-				   .AddDerivedClass("ALineBatchActor")
-				   .AddDerivedClass("AReflectionProbe")
-				   .AddDerivedClass("ASkyAtmosphereActor")
-				   .AddDerivedClass("ASphereActor")
-				   .AddDerivedClass("AStaticMeshActor")
-				   .AddDerivedClass("AVirtualHeightfieldMeshActor")
+        Mngr.RegisterType<AActor>();
+		Mngr.AddConstructor<AActor>();
+		Mngr.AddField<&AActor::ActorName>("ActorName");
+		Mngr.AddBases<AActor, UObject>();
 ;
-        AActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        AActor::StaticClass_->Type = Type_of<AActor>;
+        AActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AActor>);
     }
 
     static TClassRegistry<AActor> Dummy;

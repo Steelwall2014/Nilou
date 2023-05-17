@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Rendering/Texture2DArray.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> UTexture2DArray::StaticClass_ = nullptr;
 const NClass *UTexture2DArray::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<UTexture2DArray>
     TClassRegistry(const std::string& InName)
     {
         UTexture2DArray::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<UTexture2DArray>("UTexture2DArray")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UTexture")
+        Mngr.RegisterType<UTexture2DArray>();
+		Mngr.AddConstructor<UTexture2DArray>();
+		Mngr.AddBases<UTexture2DArray, UTexture>();
 ;
-        UTexture2DArray::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        UTexture2DArray::StaticClass_->Type = Type_of<UTexture2DArray>;
+        UTexture2DArray::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UTexture2DArray>);
     }
 
     static TClassRegistry<UTexture2DArray> Dummy;

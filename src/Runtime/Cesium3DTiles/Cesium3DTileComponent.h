@@ -9,7 +9,7 @@ namespace nilou {
     class NCLASS UCesium3DTileComponent : public UPrimitiveComponent
     {
 
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UCesium3DTileComponent();

@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS UFourierTransformOceanComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
         friend class FFourierTransformOceanSceneProxy;
     public:
 

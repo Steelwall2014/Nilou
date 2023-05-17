@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS ALightActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         ALightActor() 
         { 

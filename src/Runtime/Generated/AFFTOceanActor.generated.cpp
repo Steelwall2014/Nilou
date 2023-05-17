@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> AFFTOceanActor::StaticClass_ = nullptr;
 const NClass *AFFTOceanActor::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<AFFTOceanActor>
     TClassRegistry(const std::string& InName)
     {
         AFFTOceanActor::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<AFFTOceanActor>("AFFTOceanActor")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<AFFTOceanActor>();
+		Mngr.AddConstructor<AFFTOceanActor>();
+		Mngr.AddBases<AFFTOceanActor, AActor>();
 ;
-        AFFTOceanActor::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        AFFTOceanActor::StaticClass_->Type = Type_of<AFFTOceanActor>;
+        AFFTOceanActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AFFTOceanActor>);
     }
 
     static TClassRegistry<AFFTOceanActor> Dummy;

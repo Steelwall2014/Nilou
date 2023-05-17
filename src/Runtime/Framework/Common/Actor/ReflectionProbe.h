@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS AReflectionProbe : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         AReflectionProbe();
 

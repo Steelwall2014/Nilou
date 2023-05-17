@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS UReflectionProbeComponent : public USceneCaptureComponentCube
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UReflectionProbeComponent() 

@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> ACesium3DTileset::StaticClass_ = nullptr;
 const NClass *ACesium3DTileset::GetClass() const 
@@ -21,11 +21,12 @@ struct TClassRegistry<ACesium3DTileset>
     TClassRegistry(const std::string& InName)
     {
         ACesium3DTileset::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<ACesium3DTileset>("ACesium3DTileset")
-				   .AddDefaultConstructor()
-				   .AddParentClass("AActor")
+        Mngr.RegisterType<ACesium3DTileset>();
+		Mngr.AddConstructor<ACesium3DTileset>();
+		Mngr.AddBases<ACesium3DTileset, AActor>();
 ;
-        ACesium3DTileset::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        ACesium3DTileset::StaticClass_->Type = Type_of<ACesium3DTileset>;
+        ACesium3DTileset::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ACesium3DTileset>);
     }
 
     static TClassRegistry<ACesium3DTileset> Dummy;

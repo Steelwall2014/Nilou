@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> USceneCaptureComponentCube::StaticClass_ = nullptr;
 const NClass *USceneCaptureComponentCube::GetClass() const 
@@ -21,12 +21,12 @@ struct TClassRegistry<USceneCaptureComponentCube>
     TClassRegistry(const std::string& InName)
     {
         USceneCaptureComponentCube::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<USceneCaptureComponentCube>("USceneCaptureComponentCube")
-				   .AddDefaultConstructor()
-				   .AddParentClass("USceneCaptureComponent")
-				   .AddDerivedClass("UReflectionProbeComponent")
+        Mngr.RegisterType<USceneCaptureComponentCube>();
+		Mngr.AddConstructor<USceneCaptureComponentCube>();
+		Mngr.AddBases<USceneCaptureComponentCube, USceneCaptureComponent>();
 ;
-        USceneCaptureComponentCube::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        USceneCaptureComponentCube::StaticClass_->Type = Type_of<USceneCaptureComponentCube>;
+        USceneCaptureComponentCube::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<USceneCaptureComponentCube>);
     }
 
     static TClassRegistry<USceneCaptureComponentCube> Dummy;

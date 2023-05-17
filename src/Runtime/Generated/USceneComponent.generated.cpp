@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> USceneComponent::StaticClass_ = nullptr;
 const NClass *USceneComponent::GetClass() const 
@@ -21,16 +21,12 @@ struct TClassRegistry<USceneComponent>
     TClassRegistry(const std::string& InName)
     {
         USceneComponent::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<USceneComponent>("USceneComponent")
-				   .AddDefaultConstructor()
-				   .AddParentClass("UActorComponent")
-				   .AddDerivedClass("UCameraComponent")
-				   .AddDerivedClass("ULightComponent")
-				   .AddDerivedClass("UPrimitiveComponent")
-				   .AddDerivedClass("USceneCaptureComponent")
-				   .AddDerivedClass("USkyAtmosphereComponent")
+        Mngr.RegisterType<USceneComponent>();
+		Mngr.AddConstructor<USceneComponent>();
+		Mngr.AddBases<USceneComponent, UActorComponent>();
 ;
-        USceneComponent::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        USceneComponent::StaticClass_->Type = Type_of<USceneComponent>;
+        USceneComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<USceneComponent>);
     }
 
     static TClassRegistry<USceneComponent> Dummy;

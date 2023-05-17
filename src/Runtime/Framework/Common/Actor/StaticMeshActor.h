@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS AStaticMeshActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         AStaticMeshActor() 
         { 

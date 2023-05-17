@@ -5,7 +5,7 @@ namespace nilou {
 
     class NCLASS ALineBatchActor : public AActor
     {
-		GENERATE_BODY()
+		GENERATED_BODY()
     public:
         ALineBatchActor() 
         { 

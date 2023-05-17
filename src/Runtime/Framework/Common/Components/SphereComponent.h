@@ -6,7 +6,7 @@ namespace nilou {
 
     class NCLASS USphereComponent : public UPrimitiveComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         USphereComponent();

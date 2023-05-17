@@ -23,7 +23,7 @@ namespace nilou {
 	class NCLASS AActor : public UObject,
                    public std::enable_shared_from_this<AActor>
 	{
-		GENERATE_BODY()
+		GENERATED_BODY()
 	public:
 
 		AActor();

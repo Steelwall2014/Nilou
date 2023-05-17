@@ -147,7 +147,7 @@ namespace nilou {
 
     class NCLASS UStaticMesh : public UObject
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         UStaticMesh() 
             : RenderData(new FStaticMeshRenderData())

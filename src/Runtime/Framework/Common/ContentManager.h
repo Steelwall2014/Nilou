@@ -105,9 +105,10 @@ namespace nilou {
                     Entry->bIsDirectory = false;
                     Entry->bIsDirty = true;
                     Entry->bNeedFlush = bNeedFlush;
-                    Entry->Object = std::make_unique<T>();
-                    Entry->Object->SerializationPath = InPath;
-                    T *raw_p = dynamic_cast<T*>(Entry->Object.get());
+                    auto Object = std::make_unique<T>();
+                    Object->SerializationPath = InPath;
+                    T *raw_p = dynamic_cast<T*>(Object.get());
+                    Entry->Object = std::move(Object);
                     entry->Children[filename] = std::move(Entry);
                     return raw_p;
                 }

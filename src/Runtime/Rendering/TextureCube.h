@@ -21,7 +21,7 @@ namespace nilou {
 
     class NCLASS UTextureCube : public UTexture
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         UTextureCube()
         {

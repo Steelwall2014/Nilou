@@ -1,9 +1,9 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/Test.h"
-#include "reflection/TypeDescriptorBuilder.h"
-#include "reflection/Class.h"
+#include <UDRefl/UDRefl.hpp>
 
 using namespace nilou;
-using namespace reflection;
+using namespace Ubpa;
+using namespace Ubpa::UDRefl;
 
 std::unique_ptr<NClass> B::StaticClass_ = nullptr;
 const NClass *B::GetClass() const 
@@ -21,12 +21,12 @@ struct TClassRegistry<B>
     TClassRegistry(const std::string& InName)
     {
         B::StaticClass_ = std::make_unique<NClass>();
-        reflection::AddClass<B>("B")
-				   .AddDefaultConstructor()
-				   .AddMemberVariable("b", &B::b)
-				   .AddParentClass("A")
+        Mngr.RegisterType<B>();
+		Mngr.AddField<&B::b>("b");
+		Mngr.AddBases<B, A>();
 ;
-        B::StaticClass_->Type = reflection::Registry::GetTypeByName(InName);
+        B::StaticClass_->Type = Type_of<B>;
+        B::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<B>);
     }
 
     static TClassRegistry<B> Dummy;

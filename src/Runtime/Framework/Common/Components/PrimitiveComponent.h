@@ -22,7 +22,7 @@ namespace nilou {
 
     class NCLASS UPrimitiveComponent : public USceneComponent
     {
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
 
         UPrimitiveComponent()

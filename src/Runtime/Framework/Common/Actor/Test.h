@@ -7,7 +7,7 @@ namespace nilou {
 
     class NCLASS A : public UObject
     { 
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         NPROPERTY()
         int a;
@@ -15,7 +15,7 @@ namespace nilou {
 
     class NCLASS B : public A 
     { 
-        GENERATE_BODY()
+        GENERATED_BODY()
     public:
         NPROPERTY()
         int b;
