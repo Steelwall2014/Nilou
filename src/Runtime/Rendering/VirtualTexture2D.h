@@ -35,10 +35,6 @@ namespace nilou {
     public:
         UVirtualTexture();
 
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
-
         virtual FTextureResource* CreateResource() override;
 
         void UpdateBound(vec2 UV_Min, vec2 UV_Max, uint32 MipmapLevel);
@@ -63,7 +59,7 @@ namespace nilou {
 
     protected:
 
-        virtual std::shared_ptr<FImage> CreateImage(const ImageCreateInfo& ImageInfo) override;
+        virtual FImage CreateImage(const ImageCreateInfo& ImageInfo) override;
 
    private:
 

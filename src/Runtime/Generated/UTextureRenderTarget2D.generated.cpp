@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "D:/Nilou/src/Runtime/Rendering/SceneView.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UTextureRenderTarget2D::StaticClass_ = nullptr;
-const NClass *UTextureRenderTarget2D::GetClass() const 
+std::unique_ptr<NClass> nilou::UTextureRenderTarget2D::StaticClass_ = nullptr;
+const NClass *nilou::UTextureRenderTarget2D::GetClass() const 
 { 
-    return UTextureRenderTarget2D::StaticClass(); 
+    return nilou::UTextureRenderTarget2D::StaticClass(); 
 }
-const NClass *UTextureRenderTarget2D::StaticClass()
+const NClass *nilou::UTextureRenderTarget2D::StaticClass()
 {
-    return UTextureRenderTarget2D::StaticClass_.get();
+    return nilou::UTextureRenderTarget2D::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UTextureRenderTarget2D>
+struct TClassRegistry<nilou::UTextureRenderTarget2D>
 {
     TClassRegistry(const std::string& InName)
     {
-        UTextureRenderTarget2D::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UTextureRenderTarget2D>();
-		Mngr.AddConstructor<UTextureRenderTarget2D>();
-		Mngr.AddBases<UTextureRenderTarget2D, UTextureRenderTarget>();
+        nilou::UTextureRenderTarget2D::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UTextureRenderTarget2D>();
+		Mngr.AddBases<nilou::UTextureRenderTarget2D, nilou::UTextureRenderTarget>();
 ;
-        UTextureRenderTarget2D::StaticClass_->Type = Type_of<UTextureRenderTarget2D>;
-        UTextureRenderTarget2D::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UTextureRenderTarget2D>);
+        nilou::UTextureRenderTarget2D::StaticClass_->Type = Type_of<nilou::UTextureRenderTarget2D>;
+        nilou::UTextureRenderTarget2D::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UTextureRenderTarget2D>);
     }
 
-    static TClassRegistry<UTextureRenderTarget2D> Dummy;
+    static TClassRegistry<nilou::UTextureRenderTarget2D> Dummy;
 };
-TClassRegistry<UTextureRenderTarget2D> Dummy = TClassRegistry<UTextureRenderTarget2D>("UTextureRenderTarget2D");
+TClassRegistry<nilou::UTextureRenderTarget2D> Dummy = TClassRegistry<nilou::UTextureRenderTarget2D>("nilou::UTextureRenderTarget2D");
 
 
+
+void nilou::UTextureRenderTarget2D::Serialize(FArchive& Ar)
+{
+    nilou::UTextureRenderTarget::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UTextureRenderTarget2D";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::UTextureRenderTarget2D::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::UTextureRenderTarget::Deserialize(Ar);
+}

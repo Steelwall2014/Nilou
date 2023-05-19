@@ -21,9 +21,56 @@ namespace nilou {
         IT_ImageCube
     };
 
-	class FImage 
+	class NSTRUCT FImage 
 	{
+        GENERATED_STRUCT_BODY()
+
     public:
+
+        FImage() { }
+
+        FImage(
+            uint32 InWidth, 
+            uint32 InHeight,
+            EPixelFormat InPixelFormat,
+            EImageType InImageType,
+            uint32 InMipmap = 1)
+            : FImage(
+                InWidth, InHeight, 1, 
+                InPixelFormat, InMipmap, InImageType)
+        { }
+
+        FImage(
+            uint32 InWidth, 
+            uint32 InHeight,
+            uint32 InDepth,
+            EPixelFormat InPixelFormat,
+            EImageType InImageType,
+            uint32 InMipmap = 1)
+            : FImage(
+                InWidth, InHeight, InDepth, 
+                InPixelFormat, InMipmap, InImageType)
+        { }
+
+        FImage(
+            uint32 InWidth, 
+            uint32 InHeight,
+            uint32 InDepth,
+            EPixelFormat InPixelFormat,
+            uint32 InNumMips,
+            EImageType InImageType)
+            : Width(InWidth)
+            , Height(InHeight)
+            , Depth(InDepth)
+            , PixelFormat(InPixelFormat)
+            , NumMips(InNumMips)
+            , ImageType(InImageType)
+        {
+            Channel = TranslatePixelFormatToChannel(PixelFormat);
+            int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
+            Data.BufferSize = BytePerPixel * Width * Height * Depth;
+            Data.BufferSize = Data.BufferSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
+        }
 
         uint32 GetWidth() const { return Width; }
 
@@ -37,11 +84,11 @@ namespace nilou {
 
         uint32 GetNumMips() const { return NumMips; }
 
-        uint64 GetDataSize() const { return DataSize; }
+        uint64 GetDataSize() const { return Data.BufferSize; }
 
         uint64 GetActualDataSize() const { return ActualDataSize; }
 
-        uint8* GetData() { return Data.get(); }
+        uint8* GetData() { return Data.Buffer.get(); }
 
         EPixelFormat GetPixelFormat() const { return PixelFormat; }
 
@@ -49,21 +96,21 @@ namespace nilou {
 
         void AllocateSpace()
         {
-            Data = std::make_unique<unsigned char[]>(DataSize);
-            ActualDataSize = DataSize;
+            Data.Buffer = std::make_shared<unsigned char[]>(Data.BufferSize);
+            ActualDataSize = Data.BufferSize;
         }
 
         void ConservativeAllocateSpace()
         {
-            auto NewData = std::make_unique<unsigned char[]>(DataSize);
-            std::copy(Data.get(), Data.get()+glm::min(DataSize, ActualDataSize), NewData.get());
-            Data = std::move(NewData);
-            ActualDataSize = DataSize;
+            auto NewData = std::make_shared<unsigned char[]>(Data.BufferSize);
+            std::copy(Data.Buffer.get(), Data.Buffer.get()+glm::min((uint64)Data.BufferSize, ActualDataSize), NewData.get());
+            Data.Buffer = NewData;
+            ActualDataSize = Data.BufferSize;
         }
 
         void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
         {
-            if (Data == nullptr)
+            if (Data.Buffer == nullptr)
                 return nullptr;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
             uint64 MipmapOffset = BytePerPixel * Width * Height * Channel * Depth;
@@ -74,9 +121,9 @@ namespace nilou {
             if (Row >= mip_height || Column >= mip_width || Layer >= Depth)
                 return nullptr;
             uint64 offset = (Row * mip_width + Column) * BytePerPixel + LayerOffset + MipmapOffset;
-            if (offset >= DataSize)
+            if (offset >= Data.BufferSize)
                 return nullptr;
-            return Data.get() + offset;
+            return Data.Buffer.get() + offset;
         }
 
         /**
@@ -95,180 +142,174 @@ namespace nilou {
             Width = NewWidth;
             Height = NewHeight;
             Depth = NewDepth;
-            DataSize = BytePerPixel * Width * Height * Channel * Depth;
-            DataSize = DataSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
+            Data.BufferSize = BytePerPixel * Width * Height * Channel * Depth;
+            Data.BufferSize = Data.BufferSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
         }
 
-	protected:
-        FImage(
-            uint32 InWidth, 
-            uint32 InHeight,
-            uint32 InDepth,
-            EPixelFormat InPixelFormat,
-            uint32 InNumMips,
-            EImageType InImageType)
-            : Width(InWidth)
-            , Height(InHeight)
-            , Depth(InDepth)
-            , PixelFormat(InPixelFormat)
-            , NumMips(InNumMips)
-            , ImageType(InImageType)
-        {
-            Channel = TranslatePixelFormatToChannel(PixelFormat);
-            int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
-            DataSize = BytePerPixel * Width * Height * Depth;
-            DataSize = DataSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
-        }
-
+        NPROPERTY()
         uint32 Width = 0;
+
+        NPROPERTY()
         uint32 Height = 0;
+
+        NPROPERTY()
         uint32 Channel = 0;
+
+        NPROPERTY()
         uint32 Depth = 0;
+
+        NPROPERTY()
         uint32 NumMips = 0;
-        std::unique_ptr<unsigned char[]> Data = nullptr;
-        uint64 DataSize = 0;
-        uint64 ActualDataSize = 0;
+
+        NPROPERTY()
+        FBinaryBuffer Data;
+
+        NPROPERTY()
 		EPixelFormat PixelFormat;
+
+        NPROPERTY()
         EImageType ImageType;
+
+        uint64 ActualDataSize = 0;
 	};
 
-    class FImage2D : public FImage
-    {
-    public:
+    // class FImage2D : public FImage
+    // {
+    // public:
 
-        FImage2D(
-            uint32 InWidth, 
-            uint32 InHeight,
-            EPixelFormat InPixelFormat,
-            uint32 InMipmap = 1)
-            : FImage(
-                InWidth, InHeight, 1, 
-                InPixelFormat, InMipmap, EImageType::IT_Image2D)
-        {
+    //     FImage2D(
+    //         uint32 InWidth, 
+    //         uint32 InHeight,
+    //         EPixelFormat InPixelFormat,
+    //         uint32 InMipmap = 1)
+    //         : FImage(
+    //             InWidth, InHeight, 1, 
+    //             InPixelFormat, InMipmap, EImageType::IT_Image2D)
+    //     {
 
-        }
+    //     }
 
-        void* GetPointer(int Row, int Column, int MipIndex=0)
-        {
-            return FImage::GetPointer(Row, Column, 0, MipIndex);
-        }
+    //     void* GetPointer(int Row, int Column, int MipIndex=0)
+    //     {
+    //         return FImage::GetPointer(Row, Column, 0, MipIndex);
+    //     }
 
-        /**
-         * @brief Resize the image. This function WILL NOT reallocate memory.
-         * 
-         * If parameter NewMipmap is not greater than zero, then the mipmap level 
-         * will not be resized. Ditto for NewChannel.
-         */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewChannel=-1, int32 NewMipmap=-1)
-        {
-            FImage::Resize(NewWidth, NewHeight, 1, NewChannel, NewMipmap);
-        }
+    //     /**
+    //      * @brief Resize the image. This function WILL NOT reallocate memory.
+    //      * 
+    //      * If parameter NewMipmap is not greater than zero, then the mipmap level 
+    //      * will not be resized. Ditto for NewChannel.
+    //      */
+    //     void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewChannel=-1, int32 NewMipmap=-1)
+    //     {
+    //         FImage::Resize(NewWidth, NewHeight, 1, NewChannel, NewMipmap);
+    //     }
 
-    };
+    // };
 
-    class FImage3D : public FImage
-    {
-    public:
+    // class FImage3D : public FImage
+    // {
+    // public:
 
-        FImage3D(
-            uint32 InWidth, 
-            uint32 InHeight,
-            uint32 InDepth,
-            EPixelFormat InPixelFormat,
-            uint32 InMipmap = 1)
-            : FImage(
-                InWidth, InHeight, InDepth, 
-                InPixelFormat, InMipmap, EImageType::IT_Image3D)
-        {
+    //     FImage3D(
+    //         uint32 InWidth, 
+    //         uint32 InHeight,
+    //         uint32 InDepth,
+    //         EPixelFormat InPixelFormat,
+    //         uint32 InMipmap = 1)
+    //         : FImage(
+    //             InWidth, InHeight, InDepth, 
+    //             InPixelFormat, InMipmap, EImageType::IT_Image3D)
+    //     {
 
-        }
+    //     }
         
-        void* GetPointer(int Row, int Column, int Depth, int MipIndex=0)
-        {
-            return FImage::GetPointer(Row, Column, Depth, MipIndex);
-        }
+    //     void* GetPointer(int Row, int Column, int Depth, int MipIndex=0)
+    //     {
+    //         return FImage::GetPointer(Row, Column, Depth, MipIndex);
+    //     }
 
-        /**
-         * @brief Resize the image. This function WILL NOT reallocate memory.
-         * 
-         * If parameter NewMipmap is not greater than zero, then the mipmap level 
-         * will not be resized. Ditto for NewChannel.
-         */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1, int32 NewMipmap=-1)
-        {
-            FImage::Resize(NewWidth, NewHeight, NewDepth, NewChannel, NewMipmap);
-        }
+    //     /**
+    //      * @brief Resize the image. This function WILL NOT reallocate memory.
+    //      * 
+    //      * If parameter NewMipmap is not greater than zero, then the mipmap level 
+    //      * will not be resized. Ditto for NewChannel.
+    //      */
+    //     void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1, int32 NewMipmap=-1)
+    //     {
+    //         FImage::Resize(NewWidth, NewHeight, NewDepth, NewChannel, NewMipmap);
+    //     }
 
-    };
+    // };
 
-    class FImage2DArray : public FImage
-    {
-    public:
+    // class FImage2DArray : public FImage
+    // {
+    // public:
 
-        FImage2DArray(
-            uint32 InWidth, 
-            uint32 InHeight,
-            uint32 InLayer,
-            EPixelFormat InPixelFormat,
-            uint32 InMipmap = 1)
-            : FImage(
-                InWidth, InHeight, InLayer,  
-                InPixelFormat, InMipmap, EImageType::IT_Image2DArray)
-        {
+    //     FImage2DArray(
+    //         uint32 InWidth, 
+    //         uint32 InHeight,
+    //         uint32 InLayer,
+    //         EPixelFormat InPixelFormat,
+    //         uint32 InMipmap = 1)
+    //         : FImage(
+    //             InWidth, InHeight, InLayer,  
+    //             InPixelFormat, InMipmap, EImageType::IT_Image2DArray)
+    //     {
 
-        }
+    //     }
         
-        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
-        {
-            return FImage::GetPointer(Row, Column, Layer, MipIndex);
-        }
+    //     void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
+    //     {
+    //         return FImage::GetPointer(Row, Column, Layer, MipIndex);
+    //     }
 
-        /**
-         * @brief Resize the image. This function WILL NOT reallocate memory.
-         * 
-         * If parameter NewMipmap is not greater than zero, then the mipmap level 
-         * will not be resized. Ditto for NewChannel.
-         */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewLayer, uint32 NewChannel=-1, int32 NewMipmap=-1)
-        {
-            FImage::Resize(NewWidth, NewHeight, NewLayer, NewChannel, NewMipmap);
-        }
+    //     /**
+    //      * @brief Resize the image. This function WILL NOT reallocate memory.
+    //      * 
+    //      * If parameter NewMipmap is not greater than zero, then the mipmap level 
+    //      * will not be resized. Ditto for NewChannel.
+    //      */
+    //     void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewLayer, uint32 NewChannel=-1, int32 NewMipmap=-1)
+    //     {
+    //         FImage::Resize(NewWidth, NewHeight, NewLayer, NewChannel, NewMipmap);
+    //     }
 
-    };
+    // };
 
-    class FImageCube : public FImage
-    {
-    public:
+    // class FImageCube : public FImage
+    // {
+    // public:
 
-        FImageCube(
-            uint32 InWidth, 
-            uint32 InHeight,
-            EPixelFormat InPixelFormat,
-            uint32 InMipmap = 1)
-            : FImage(
-                InWidth, InHeight, 6, 
-                InPixelFormat, InMipmap, EImageType::IT_ImageCube)
-        {
+    //     FImageCube(
+    //         uint32 InWidth, 
+    //         uint32 InHeight,
+    //         EPixelFormat InPixelFormat,
+    //         uint32 InMipmap = 1)
+    //         : FImage(
+    //             InWidth, InHeight, 6, 
+    //             InPixelFormat, InMipmap, EImageType::IT_ImageCube)
+    //     {
 
-        }
+    //     }
         
-        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
-        {
-            return FImage::GetPointer(Row, Column, Layer, MipIndex);
-        }
+    //     void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
+    //     {
+    //         return FImage::GetPointer(Row, Column, Layer, MipIndex);
+    //     }
 
-        /**
-         * @brief Resize the image. This function WILL NOT reallocate memory.
-         * 
-         * If parameter NewMipmap is not greater than zero, then the mipmap level 
-         * will not be resized. Ditto for NewChannel.
-         */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewChannel=-1, int32 NewMipmap=-1)
-        {
-            FImage::Resize(NewWidth, NewHeight, 1, NewChannel, NewMipmap);
-        }
+    //     /**
+    //      * @brief Resize the image. This function WILL NOT reallocate memory.
+    //      * 
+    //      * If parameter NewMipmap is not greater than zero, then the mipmap level 
+    //      * will not be resized. Ditto for NewChannel.
+    //      */
+    //     void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewChannel=-1, int32 NewMipmap=-1)
+    //     {
+    //         FImage::Resize(NewWidth, NewHeight, 1, NewChannel, NewMipmap);
+    //     }
 
-    };
+    // };
 
     class FTexture : public FRenderResource
     {
@@ -370,11 +411,12 @@ namespace nilou {
 
     };
 
-    class NCLASS UTexture : public UObject
+    class NCLASS UTexture : public NAsset
     {
         GENERATED_BODY()
     public:
 
+        NPROPERTY()
 		std::string Name;
 
         /**
@@ -404,23 +446,25 @@ namespace nilou {
          * Note: The data of the image will always be nullptr if the texture is UVirtualTexture.
          * 
          */
-        std::shared_ptr<FImage> ImageData;
+        NPROPERTY()
+        FImage ImageData;
 
         /**
          * Modify the values of TextureParams and then call UpdateResource() 
          * to update sampler parameters
          */
+        NPROPERTY()
         RHITextureParams TextureParams;
 
         /**
          * Modify the values of NumMips and then call UpdateResource() 
          * to update the number of mipmap levels
          */
+        NPROPERTY()
         uint32 NumMips;
 
         UTexture()
-            : ImageData(nullptr)
-            , TextureResource(nullptr)
+            : TextureResource(nullptr)
             , TextureResourceRenderThread(nullptr)
             , NumMips(1)
         {
@@ -461,9 +505,7 @@ namespace nilou {
         }
         uint32 GetImageNumMips()
         {
-            if (ImageData)
-                return ImageData->GetNumMips();
-            return 0;
+            return ImageData.GetNumMips();
         }
 
         /**
@@ -520,10 +562,6 @@ namespace nilou {
          * This function ensures the data of the image is readed when return.
          */
         virtual void ReadPixelsSync();
-
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
     
     protected:
 
@@ -544,7 +582,7 @@ namespace nilou {
         /**
          * Implemented by subclasses to create a image.
          */
-        virtual std::shared_ptr<FImage> CreateImage(const ImageCreateInfo& ImageInfo) { return nullptr; }
+        virtual FImage CreateImage(const ImageCreateInfo& ImageInfo) { return FImage(); }
 
         void DeserializeImageData(FArchive& Ar);
     };

@@ -1,36 +1,95 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UStaticMesh::StaticClass_ = nullptr;
-const NClass *UStaticMesh::GetClass() const 
+std::unique_ptr<NClass> nilou::UStaticMesh::StaticClass_ = nullptr;
+const NClass *nilou::UStaticMesh::GetClass() const 
 { 
-    return UStaticMesh::StaticClass(); 
+    return nilou::UStaticMesh::StaticClass(); 
 }
-const NClass *UStaticMesh::StaticClass()
+const NClass *nilou::UStaticMesh::StaticClass()
 {
-    return UStaticMesh::StaticClass_.get();
+    return nilou::UStaticMesh::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UStaticMesh>
+struct TClassRegistry<nilou::UStaticMesh>
 {
     TClassRegistry(const std::string& InName)
     {
-        UStaticMesh::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UStaticMesh>();
-		Mngr.AddConstructor<UStaticMesh>();
-		Mngr.AddBases<UStaticMesh, UObject>();
+        nilou::UStaticMesh::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UStaticMesh>();
+		Mngr.AddField<&nilou::UStaticMesh::LODResources>("LODResources");
+		Mngr.AddField<&nilou::UStaticMesh::LocalBoundingBox>("LocalBoundingBox");
+		Mngr.AddField<&nilou::UStaticMesh::MaterialSlots>("MaterialSlots");
+		Mngr.AddField<&nilou::UStaticMesh::Name>("Name");
+		Mngr.AddBases<nilou::UStaticMesh, nilou::NAsset>();
 ;
-        UStaticMesh::StaticClass_->Type = Type_of<UStaticMesh>;
-        UStaticMesh::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UStaticMesh>);
+        nilou::UStaticMesh::StaticClass_->Type = Type_of<nilou::UStaticMesh>;
+        nilou::UStaticMesh::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UStaticMesh>);
     }
 
-    static TClassRegistry<UStaticMesh> Dummy;
+    static TClassRegistry<nilou::UStaticMesh> Dummy;
 };
-TClassRegistry<UStaticMesh> Dummy = TClassRegistry<UStaticMesh>("UStaticMesh");
+TClassRegistry<nilou::UStaticMesh> Dummy = TClassRegistry<nilou::UStaticMesh>("nilou::UStaticMesh");
 
 
+
+void nilou::UStaticMesh::Serialize(FArchive& Ar)
+{
+    nilou::NAsset::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UStaticMesh";
+    nlohmann::json &content = Node["Content"];
+
+    {
+        FArchive local_Ar(content["LODResources"], Ar);
+        TStaticSerializer<decltype(this->LODResources)>::Serialize(this->LODResources, local_Ar);
+    }
+    {
+        FArchive local_Ar(content["LocalBoundingBox"], Ar);
+        this->LocalBoundingBox.Serialize(local_Ar);
+    }
+    {
+        FArchive local_Ar(content["MaterialSlots"], Ar);
+        TStaticSerializer<decltype(this->MaterialSlots)>::Serialize(this->MaterialSlots, local_Ar);
+    }
+    {
+        FArchive local_Ar(content["Name"], Ar);
+        TStaticSerializer<decltype(this->Name)>::Serialize(this->Name, local_Ar);
+    }
+    this->bIsSerializing = false;
+}
+
+void nilou::UStaticMesh::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    if (content.contains("LODResources"))
+    {
+        FArchive local_Ar(content["LODResources"], Ar);
+        TStaticSerializer<decltype(this->LODResources)>::Deserialize(this->LODResources, local_Ar);
+    }
+    if (content.contains("LocalBoundingBox"))
+    {
+        FArchive local_Ar(content["LocalBoundingBox"], Ar);
+        this->LocalBoundingBox.Deserialize(local_Ar);
+    }
+    if (content.contains("MaterialSlots"))
+    {
+        FArchive local_Ar(content["MaterialSlots"], Ar);
+        TStaticSerializer<decltype(this->MaterialSlots)>::Deserialize(this->MaterialSlots, local_Ar);
+    }
+    if (content.contains("Name"))
+    {
+        FArchive local_Ar(content["Name"], Ar);
+        TStaticSerializer<decltype(this->Name)>::Deserialize(this->Name, local_Ar);
+    }
+    nilou::NAsset::Deserialize(Ar);
+}

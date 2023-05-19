@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <reflection/Class.h>
 
 // #include <glm/glm.hpp>
 #include "Common/Maths.h"
@@ -14,12 +15,19 @@
 
 namespace nilou {
 
-	struct RHITextureParams
+	struct NSTRUCT RHITextureParams
 	{
+		GENERATED_STRUCT_BODY()
+		
+		NPROPERTY()
 		ETextureFilters Mag_Filter;
+		NPROPERTY()
 		ETextureFilters Min_Filter;
+		NPROPERTY()
 		ETextureWrapModes Wrap_S; 
+		NPROPERTY()
 		ETextureWrapModes Wrap_T; 
+		NPROPERTY()
 		ETextureWrapModes Wrap_R;
 		RHITextureParams(
 			ETextureFilters InMagFilter=ETextureFilters::TF_Linear,

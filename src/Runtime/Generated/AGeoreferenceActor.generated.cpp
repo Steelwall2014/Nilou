@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> AGeoreferenceActor::StaticClass_ = nullptr;
-const NClass *AGeoreferenceActor::GetClass() const 
+std::unique_ptr<NClass> nilou::AGeoreferenceActor::StaticClass_ = nullptr;
+const NClass *nilou::AGeoreferenceActor::GetClass() const 
 { 
-    return AGeoreferenceActor::StaticClass(); 
+    return nilou::AGeoreferenceActor::StaticClass(); 
 }
-const NClass *AGeoreferenceActor::StaticClass()
+const NClass *nilou::AGeoreferenceActor::StaticClass()
 {
-    return AGeoreferenceActor::StaticClass_.get();
+    return nilou::AGeoreferenceActor::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<AGeoreferenceActor>
+struct TClassRegistry<nilou::AGeoreferenceActor>
 {
     TClassRegistry(const std::string& InName)
     {
-        AGeoreferenceActor::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<AGeoreferenceActor>();
-		Mngr.AddConstructor<AGeoreferenceActor>();
-		Mngr.AddBases<AGeoreferenceActor, AActor>();
+        nilou::AGeoreferenceActor::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::AGeoreferenceActor>();
+		Mngr.AddBases<nilou::AGeoreferenceActor, nilou::AActor>();
 ;
-        AGeoreferenceActor::StaticClass_->Type = Type_of<AGeoreferenceActor>;
-        AGeoreferenceActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AGeoreferenceActor>);
+        nilou::AGeoreferenceActor::StaticClass_->Type = Type_of<nilou::AGeoreferenceActor>;
+        nilou::AGeoreferenceActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::AGeoreferenceActor>);
     }
 
-    static TClassRegistry<AGeoreferenceActor> Dummy;
+    static TClassRegistry<nilou::AGeoreferenceActor> Dummy;
 };
-TClassRegistry<AGeoreferenceActor> Dummy = TClassRegistry<AGeoreferenceActor>("AGeoreferenceActor");
+TClassRegistry<nilou::AGeoreferenceActor> Dummy = TClassRegistry<nilou::AGeoreferenceActor>("nilou::AGeoreferenceActor");
 
 
+
+void nilou::AGeoreferenceActor::Serialize(FArchive& Ar)
+{
+    nilou::AActor::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::AGeoreferenceActor";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::AGeoreferenceActor::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::AActor::Deserialize(Ar);
+}

@@ -191,38 +191,48 @@ namespace nilou {
         }
     }
 
-    void UStaticMesh::Serialize(FArchive &Ar)
+    void UStaticMesh::PostSerialize()
     {
-        nlohmann::json &json = Ar.json;
-        json["ClassName"] = "UStaticMesh";
-        nlohmann::json &content = json["Content"];
-        content["Name"] = Name;
-        TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.OutBuffers);
-        TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"], Ar.OutBuffers);
-        for (int i = 0; i < MaterialSlots.size(); i++)
-        {
-            if (!MaterialSlots[i]->SerializationPath.empty())
-            {
-                content["MaterialSlots"][i] = MaterialSlots[i]->SerializationPath.generic_string();
-            }
-        }
+        
     }
 
-    void UStaticMesh::Deserialize(FArchive &Ar)
+    void UStaticMesh::PreDeserialize()
     {
-        nlohmann::json &json = Ar.json;
-        if (!SerializeHelper::CheckIsType(json, "UStaticMesh")) return;
-        nlohmann::json &content = json["Content"];
-        Name = content["Name"];
-        TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.InBuffer.get());
-        TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"], Ar.InBuffer.get());
-        RenderData->InitResources();
-        for (int i = 0; i < content["MaterialSlots"].size(); i++)
-        {
-            fs::path material_path = content["MaterialSlots"][i].get<std::string>();
-            UMaterial *Material = GetContentManager()->GetMaterialByPath(material_path);
-            MaterialSlots.push_back(Material);
-        }
+        
     }
+
+    // void UStaticMesh::Serialize(FArchive &Ar)
+    // {
+    //     nlohmann::json &json = Ar.json;
+    //     json["ClassName"] = "UStaticMesh";
+    //     nlohmann::json &content = json["Content"];
+    //     content["Name"] = Name;
+    //     TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.OutBuffers);
+    //     TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"], Ar.OutBuffers);
+    //     for (int i = 0; i < MaterialSlots.size(); i++)
+    //     {
+    //         if (!MaterialSlots[i]->SerializationPath.empty())
+    //         {
+    //             content["MaterialSlots"][i] = MaterialSlots[i]->SerializationPath.generic_string();
+    //         }
+    //     }
+    // }
+
+    // void UStaticMesh::Deserialize(FArchive &Ar)
+    // {
+    //     nlohmann::json &json = Ar.json;
+    //     if (!SerializeHelper::CheckIsType(json, "UStaticMesh")) return;
+    //     nlohmann::json &content = json["Content"];
+    //     Name = content["Name"];
+    //     TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.InBuffer.get());
+    //     TStaticSerializer<FStaticMeshRenderData>::Deserialize(*RenderData, content["RenderData"], Ar.InBuffer.get());
+    //     RenderData->InitResources();
+    //     for (int i = 0; i < content["MaterialSlots"].size(); i++)
+    //     {
+    //         fs::path material_path = content["MaterialSlots"][i].get<std::string>();
+    //         UMaterial *Material = GetContentManager()->GetMaterialByPath(material_path);
+    //         MaterialSlots.push_back(Material);
+    //     }
+    // }
     
 }

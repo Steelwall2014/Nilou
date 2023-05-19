@@ -63,7 +63,7 @@ namespace nilou {
 
     };
 
-    class NCLASS UMaterial : public UObject
+    class NCLASS UMaterial : public NAsset
     {
         friend class UMaterialInstance;
         friend class FMaterialRenderProxy;
@@ -76,7 +76,29 @@ namespace nilou {
 
         static UMaterial *GetDefaultMaterial();
 
+        NPROPERTY()
         std::string Name;
+
+        NPROPERTY()
+        std::string ShaderVirtualPath;
+
+        NPROPERTY()
+        std::map<std::string, UTexture *> Textures;
+
+        NPROPERTY()
+        FRasterizerStateInitializer RasterizerState;
+
+        NPROPERTY()
+        FDepthStencilStateInitializer DepthStencilState;
+
+        NPROPERTY()
+        FBlendStateInitializer BlendState;
+
+        NPROPERTY()
+        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
+
+        NPROPERTY()
+        uint8 StencilRefValue = 0;
 
         void UpdateCode(const std::string &InCode, bool bRecompile=true);
 
@@ -103,11 +125,7 @@ namespace nilou {
 
         void UpdateDataToMaterialProxy();
 
-        void SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath);
-
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
+        void SetShaderFileVirtualPath(const std::string& VirtualPath);
 
         UMaterialInstance* CreateMaterialInstance();
 
@@ -134,25 +152,11 @@ namespace nilou {
 
         std::string Code;
 
-        std::filesystem::path ShaderVirtualPath;
-
         FMaterialRenderProxy* DefaultMaterialInstance;
-
-        std::map<std::string, UTexture *> Textures;
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
         std::map<std::string, FUniformValue> Uniforms;
-
-        FRasterizerStateInitializer RasterizerState;
-
-        FDepthStencilStateInitializer DepthStencilState;
-
-        FBlendStateInitializer BlendState;
-
-        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
-
-        uint8 StencilRefValue = 0;
         
     };
 
@@ -167,8 +171,6 @@ namespace nilou {
         {
 
         }
-
-        virtual void Serialize(FArchive &Ar) override;
 
     };
 

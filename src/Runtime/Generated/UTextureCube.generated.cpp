@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Rendering/TextureCube.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UTextureCube::StaticClass_ = nullptr;
-const NClass *UTextureCube::GetClass() const 
+std::unique_ptr<NClass> nilou::UTextureCube::StaticClass_ = nullptr;
+const NClass *nilou::UTextureCube::GetClass() const 
 { 
-    return UTextureCube::StaticClass(); 
+    return nilou::UTextureCube::StaticClass(); 
 }
-const NClass *UTextureCube::StaticClass()
+const NClass *nilou::UTextureCube::StaticClass()
 {
-    return UTextureCube::StaticClass_.get();
+    return nilou::UTextureCube::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UTextureCube>
+struct TClassRegistry<nilou::UTextureCube>
 {
     TClassRegistry(const std::string& InName)
     {
-        UTextureCube::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UTextureCube>();
-		Mngr.AddConstructor<UTextureCube>();
-		Mngr.AddBases<UTextureCube, UTexture>();
+        nilou::UTextureCube::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UTextureCube>();
+		Mngr.AddBases<nilou::UTextureCube, nilou::UTexture>();
 ;
-        UTextureCube::StaticClass_->Type = Type_of<UTextureCube>;
-        UTextureCube::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UTextureCube>);
+        nilou::UTextureCube::StaticClass_->Type = Type_of<nilou::UTextureCube>;
+        nilou::UTextureCube::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UTextureCube>);
     }
 
-    static TClassRegistry<UTextureCube> Dummy;
+    static TClassRegistry<nilou::UTextureCube> Dummy;
 };
-TClassRegistry<UTextureCube> Dummy = TClassRegistry<UTextureCube>("UTextureCube");
+TClassRegistry<nilou::UTextureCube> Dummy = TClassRegistry<nilou::UTextureCube>("nilou::UTextureCube");
 
 
+
+void nilou::UTextureCube::Serialize(FArchive& Ar)
+{
+    nilou::UTexture::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UTextureCube";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::UTextureCube::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::UTexture::Deserialize(Ar);
+}

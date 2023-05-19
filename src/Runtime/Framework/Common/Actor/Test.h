@@ -5,7 +5,7 @@
 
 namespace nilou {
 
-    class NCLASS A : public UObject
+    class NCLASS A : public NObject
     { 
         GENERATED_BODY()
     public:

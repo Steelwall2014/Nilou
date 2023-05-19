@@ -16,7 +16,7 @@
         "--function-arg-placeholders=false"
     ],
     "xmake.debuggingTargetsArguments": {
-        "HeaderTool": [
+        "NilouHeaderTool": [
             "D:/Nilou/src", "D:/Nilou/src/Runtime/Generated",
             "D:/Nilou/External/include", 
             "D:/Nilou/src/Runtime/Framework", 

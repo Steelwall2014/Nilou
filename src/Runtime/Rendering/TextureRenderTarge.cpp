@@ -47,9 +47,8 @@ namespace nilou {
 
         FTextureRenderTargetResource::InitRHI();
         void* data_pointers[6];
-        auto CubeImage = static_cast<FImageCube*>(Image);
         for (int i = 0; i < 6; i++)
-            data_pointers[i] = CubeImage->GetPointer(0, 0, i);
+            data_pointers[i] = Image->GetPointer(0, 0, i);
 
         FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
         auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
@@ -91,77 +90,77 @@ namespace nilou {
         return nullptr;
     }
 
-    void UTextureRenderTarget::Serialize(FArchive& Ar)
-    {
-        UTexture::Serialize(Ar);
-        Ar.json["Content"]["ClearColor"].push_back(ClearColor.x);
-        Ar.json["Content"]["ClearColor"].push_back(ClearColor.y);
-        Ar.json["Content"]["ClearColor"].push_back(ClearColor.z);
-    }
+    // void UTextureRenderTarget::Serialize(FArchive& Ar)
+    // {
+    //     UTexture::Serialize(Ar);
+    //     Ar.json["Content"]["ClearColor"].push_back(ClearColor.x);
+    //     Ar.json["Content"]["ClearColor"].push_back(ClearColor.y);
+    //     Ar.json["Content"]["ClearColor"].push_back(ClearColor.z);
+    // }
 
-    void UTextureRenderTarget::Deserialize(FArchive& Ar)
-    {
-        UTexture::Deserialize(Ar);
-        UTexture::DeserializeImageData(Ar);
-        ClearColor.x = Ar.json["Content"]["ClearColor"][0].get<double>();
-        ClearColor.y = Ar.json["Content"]["ClearColor"][1].get<double>();
-        ClearColor.z = Ar.json["Content"]["ClearColor"][2].get<double>();
-    }
+    // void UTextureRenderTarget::Deserialize(FArchive& Ar)
+    // {
+    //     UTexture::Deserialize(Ar);
+    //     UTexture::DeserializeImageData(Ar);
+    //     ClearColor.x = Ar.json["Content"]["ClearColor"][0].get<double>();
+    //     ClearColor.y = Ar.json["Content"]["ClearColor"][1].get<double>();
+    //     ClearColor.z = Ar.json["Content"]["ClearColor"][2].get<double>();
+    // }
 
     FTextureResource* UTextureRenderTarget2D::CreateResource()
     {
         FTextureRenderTarget2DResource* Resource = new FTextureRenderTarget2DResource(Name, TextureParams, NumMips);
-        Resource->SetData(ImageData.get());
+        Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;
     }
 
-    std::shared_ptr<FImage> UTextureRenderTarget2D::CreateImage(const ImageCreateInfo& ImageInfo)
+    FImage UTextureRenderTarget2D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
-        std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
+        FImage image = FImage(
             ImageInfo.Width, ImageInfo.Height, 
-            ImageInfo.PixelFormat, ImageInfo.NumMips);
+            ImageInfo.PixelFormat, EImageType::IT_Image2D, ImageInfo.NumMips);
         return image;
     }
 
-    void UTextureRenderTarget2D::Serialize(FArchive& Ar)
-    {
-        UTextureRenderTarget::Serialize(Ar);
-        Ar.json["ClassName"] = "UTextureRenderTarget2D";
-    }
+    // void UTextureRenderTarget2D::Serialize(FArchive& Ar)
+    // {
+    //     UTextureRenderTarget::Serialize(Ar);
+    //     Ar.json["ClassName"] = "UTextureRenderTarget2D";
+    // }
 
-    void UTextureRenderTarget2D::Deserialize(FArchive& Ar)
-    {
-        UTextureRenderTarget::Deserialize(Ar);
-        UpdateResource();
-    }
+    // void UTextureRenderTarget2D::Deserialize(FArchive& Ar)
+    // {
+    //     UTextureRenderTarget::Deserialize(Ar);
+    //     UpdateResource();
+    // }
 
     FTextureResource* UTextureRenderTargetCube::CreateResource()
     {
         FTextureRenderTargetCubeResource* Resource = new FTextureRenderTargetCubeResource(Name, TextureParams, NumMips);
-        Resource->SetData(ImageData.get());
+        Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;
     }
 
-    std::shared_ptr<FImage> UTextureRenderTargetCube::CreateImage(const ImageCreateInfo& ImageInfo)
+    FImage UTextureRenderTargetCube::CreateImage(const ImageCreateInfo& ImageInfo)
     {
-        std::shared_ptr<FImageCube> image = std::make_shared<FImageCube>(
+        FImage image = FImage(
             ImageInfo.Width, ImageInfo.Height, 
-            ImageInfo.PixelFormat, ImageInfo.NumMips);
+            ImageInfo.PixelFormat, EImageType::IT_ImageCube, ImageInfo.NumMips);
         return image;
     }
 
-    void UTextureRenderTargetCube::Serialize(FArchive& Ar)
-    {
-        UTextureRenderTarget::Serialize(Ar);
-        Ar.json["ClassName"] = "UTextureRenderTargetCube";
-    }
+    // void UTextureRenderTargetCube::Serialize(FArchive& Ar)
+    // {
+    //     UTextureRenderTarget::Serialize(Ar);
+    //     Ar.json["ClassName"] = "UTextureRenderTargetCube";
+    // }
 
-    void UTextureRenderTargetCube::Deserialize(FArchive& Ar)
-    {
-        UTextureRenderTarget::Deserialize(Ar);
-        UpdateResource();
-    }
+    // void UTextureRenderTargetCube::Deserialize(FArchive& Ar)
+    // {
+    //     UTextureRenderTarget::Deserialize(Ar);
+    //     UpdateResource();
+    // }
 
 }

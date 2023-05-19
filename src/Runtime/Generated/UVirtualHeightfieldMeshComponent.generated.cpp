@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/VirtualHeightfieldMeshActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UVirtualHeightfieldMeshComponent::StaticClass_ = nullptr;
-const NClass *UVirtualHeightfieldMeshComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::UVirtualHeightfieldMeshComponent::StaticClass_ = nullptr;
+const NClass *nilou::UVirtualHeightfieldMeshComponent::GetClass() const 
 { 
-    return UVirtualHeightfieldMeshComponent::StaticClass(); 
+    return nilou::UVirtualHeightfieldMeshComponent::StaticClass(); 
 }
-const NClass *UVirtualHeightfieldMeshComponent::StaticClass()
+const NClass *nilou::UVirtualHeightfieldMeshComponent::StaticClass()
 {
-    return UVirtualHeightfieldMeshComponent::StaticClass_.get();
+    return nilou::UVirtualHeightfieldMeshComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UVirtualHeightfieldMeshComponent>
+struct TClassRegistry<nilou::UVirtualHeightfieldMeshComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        UVirtualHeightfieldMeshComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UVirtualHeightfieldMeshComponent>();
-		Mngr.AddConstructor<UVirtualHeightfieldMeshComponent>();
-		Mngr.AddBases<UVirtualHeightfieldMeshComponent, UPrimitiveComponent>();
+        nilou::UVirtualHeightfieldMeshComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UVirtualHeightfieldMeshComponent>();
+		Mngr.AddBases<nilou::UVirtualHeightfieldMeshComponent, nilou::UPrimitiveComponent>();
 ;
-        UVirtualHeightfieldMeshComponent::StaticClass_->Type = Type_of<UVirtualHeightfieldMeshComponent>;
-        UVirtualHeightfieldMeshComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UVirtualHeightfieldMeshComponent>);
+        nilou::UVirtualHeightfieldMeshComponent::StaticClass_->Type = Type_of<nilou::UVirtualHeightfieldMeshComponent>;
+        nilou::UVirtualHeightfieldMeshComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UVirtualHeightfieldMeshComponent>);
     }
 
-    static TClassRegistry<UVirtualHeightfieldMeshComponent> Dummy;
+    static TClassRegistry<nilou::UVirtualHeightfieldMeshComponent> Dummy;
 };
-TClassRegistry<UVirtualHeightfieldMeshComponent> Dummy = TClassRegistry<UVirtualHeightfieldMeshComponent>("UVirtualHeightfieldMeshComponent");
+TClassRegistry<nilou::UVirtualHeightfieldMeshComponent> Dummy = TClassRegistry<nilou::UVirtualHeightfieldMeshComponent>("nilou::UVirtualHeightfieldMeshComponent");
 
 
+
+void nilou::UVirtualHeightfieldMeshComponent::Serialize(FArchive& Ar)
+{
+    nilou::UPrimitiveComponent::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UVirtualHeightfieldMeshComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::UVirtualHeightfieldMeshComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::UPrimitiveComponent::Deserialize(Ar);
+}

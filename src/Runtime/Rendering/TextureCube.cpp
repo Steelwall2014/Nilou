@@ -15,9 +15,8 @@ namespace nilou {
 
         RHIGetError();
         void* data_pointers[6];
-        auto CubeImage = static_cast<FImageCube*>(Image);
         for (int i = 0; i < 6; i++)
-            data_pointers[i] = CubeImage->GetPointer(0, 0, i);
+            data_pointers[i] = Image->GetPointer(0, 0, i);
         FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
 
         FTextureResource::InitRHI();
@@ -44,28 +43,28 @@ namespace nilou {
     FTextureResource* UTextureCube::CreateResource()
     {
         FTextureCubeResource* Resource = new FTextureCubeResource(Name, TextureParams, NumMips);
-        Resource->SetData(ImageData.get());
+        Resource->SetData(&ImageData);
         return Resource;
     }
 
-    void UTextureCube::Serialize(FArchive& Ar)
-    {
-        UTexture::Serialize(Ar);
-        Ar.json["ClassName"] = "UTextureCube";
-    }
+    // void UTextureCube::Serialize(FArchive& Ar)
+    // {
+    //     UTexture::Serialize(Ar);
+    //     Ar.json["ClassName"] = "UTextureCube";
+    // }
 
-    void UTextureCube::Deserialize(FArchive& Ar)
-    {
-        UTexture::Deserialize(Ar);
-        UTexture::DeserializeImageData(Ar);
-        UpdateResource();
-    }
+    // void UTextureCube::Deserialize(FArchive& Ar)
+    // {
+    //     UTexture::Deserialize(Ar);
+    //     UTexture::DeserializeImageData(Ar);
+    //     UpdateResource();
+    // }
 
-    std::shared_ptr<FImage> UTextureCube::CreateImage(const ImageCreateInfo& ImageInfo)
+    FImage UTextureCube::CreateImage(const ImageCreateInfo& ImageInfo)
     {
-        std::shared_ptr<FImageCube> image = std::make_shared<FImageCube>(
+        FImage image = FImage(
             ImageInfo.Width, ImageInfo.Height, 
-            ImageInfo.PixelFormat, ImageInfo.NumMips);
+            ImageInfo.PixelFormat, EImageType::IT_ImageCube, ImageInfo.NumMips);
         return image;
     }
 

@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UCesium3DTileComponent::StaticClass_ = nullptr;
-const NClass *UCesium3DTileComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::UCesium3DTileComponent::StaticClass_ = nullptr;
+const NClass *nilou::UCesium3DTileComponent::GetClass() const 
 { 
-    return UCesium3DTileComponent::StaticClass(); 
+    return nilou::UCesium3DTileComponent::StaticClass(); 
 }
-const NClass *UCesium3DTileComponent::StaticClass()
+const NClass *nilou::UCesium3DTileComponent::StaticClass()
 {
-    return UCesium3DTileComponent::StaticClass_.get();
+    return nilou::UCesium3DTileComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UCesium3DTileComponent>
+struct TClassRegistry<nilou::UCesium3DTileComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        UCesium3DTileComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UCesium3DTileComponent>();
-		Mngr.AddConstructor<UCesium3DTileComponent>();
-		Mngr.AddBases<UCesium3DTileComponent, UPrimitiveComponent>();
+        nilou::UCesium3DTileComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UCesium3DTileComponent>();
+		Mngr.AddBases<nilou::UCesium3DTileComponent, nilou::UPrimitiveComponent>();
 ;
-        UCesium3DTileComponent::StaticClass_->Type = Type_of<UCesium3DTileComponent>;
-        UCesium3DTileComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UCesium3DTileComponent>);
+        nilou::UCesium3DTileComponent::StaticClass_->Type = Type_of<nilou::UCesium3DTileComponent>;
+        nilou::UCesium3DTileComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UCesium3DTileComponent>);
     }
 
-    static TClassRegistry<UCesium3DTileComponent> Dummy;
+    static TClassRegistry<nilou::UCesium3DTileComponent> Dummy;
 };
-TClassRegistry<UCesium3DTileComponent> Dummy = TClassRegistry<UCesium3DTileComponent>("UCesium3DTileComponent");
+TClassRegistry<nilou::UCesium3DTileComponent> Dummy = TClassRegistry<nilou::UCesium3DTileComponent>("nilou::UCesium3DTileComponent");
 
 
+
+void nilou::UCesium3DTileComponent::Serialize(FArchive& Ar)
+{
+    nilou::UPrimitiveComponent::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UCesium3DTileComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::UCesium3DTileComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::UPrimitiveComponent::Deserialize(Ar);
+}

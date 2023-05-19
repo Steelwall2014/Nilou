@@ -36,28 +36,28 @@ namespace nilou {
     FTextureResource* UTexture3D::CreateResource()
     {
         FTexture3DResource* Resource = new FTexture3DResource(Name, TextureParams, NumMips);
-        Resource->SetData(ImageData.get());
+        Resource->SetData(&ImageData);
         return Resource;
     }
 
-    void UTexture3D::Serialize(FArchive& Ar)
-    {
-        UTexture::Serialize(Ar);
-        Ar.json["ClassName"] = "UTexture3D";
-    }
+    // void UTexture3D::Serialize(FArchive& Ar)
+    // {
+    //     UTexture::Serialize(Ar);
+    //     Ar.json["ClassName"] = "UTexture3D";
+    // }
 
-    void UTexture3D::Deserialize(FArchive& Ar)
-    {
-        UTexture::Deserialize(Ar);
-        UTexture::DeserializeImageData(Ar);
-        UpdateResource();
-    }
+    // void UTexture3D::Deserialize(FArchive& Ar)
+    // {
+    //     UTexture::Deserialize(Ar);
+    //     UTexture::DeserializeImageData(Ar);
+    //     UpdateResource();
+    // }
 
-    std::shared_ptr<FImage> UTexture3D::CreateImage(const ImageCreateInfo& ImageInfo)
+    FImage UTexture3D::CreateImage(const ImageCreateInfo& ImageInfo)
     {
-        std::shared_ptr<FImage3D> image = std::make_shared<FImage3D>(
+        FImage image = FImage(
             ImageInfo.Width, ImageInfo.Height, ImageInfo.Depth, 
-            ImageInfo.PixelFormat, ImageInfo.NumMips);
+            ImageInfo.PixelFormat, EImageType::IT_Image3D, ImageInfo.NumMips);
         return image;
     }
 

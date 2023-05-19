@@ -65,10 +65,10 @@ namespace nilou {
         }
     }
 
-    void UMaterial::SetShaderFileVirtualPath(const std::filesystem::path& VirtualPath)
+    void UMaterial::SetShaderFileVirtualPath(const std::string& VirtualPath)
     {
         ShaderVirtualPath = VirtualPath;
-        std::string ShaderAbsPath = GetShaderAbsolutePathFromVirtualPath(ShaderVirtualPath.generic_string());
+        std::string ShaderAbsPath = GetShaderAbsolutePathFromVirtualPath(ShaderVirtualPath);
         Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
         UpdateCode(Code);
     }
@@ -153,63 +153,63 @@ namespace nilou {
             });
     }
 
-    void UMaterial::Serialize(FArchive &Ar)
-    {
-        nlohmann::json &json = Ar.json;
-        json["ClassName"] = "UMaterial";
-        nlohmann::json &content = json["Content"];
-        content["Name"] = Name;
-        content["ShaderVirtualPath"] = ShaderVirtualPath.generic_string();
-        content["ShadingModel"] = magic_enum::enum_name(ShadingModel);
-        content["StencilRefValue"] = StencilRefValue;
-        TStaticSerializer<FBlendStateInitializer>::Serialize(BlendState, content["BlendState"], Ar.OutBuffers);
-        TStaticSerializer<FRasterizerStateInitializer>::Serialize(RasterizerState, content["RasterizerState"], Ar.OutBuffers);
-        TStaticSerializer<FDepthStencilStateInitializer>::Serialize(DepthStencilState, content["DepthStencilState"], Ar.OutBuffers);
-        nlohmann::json &textures = content["Textures"];
-        for (auto &[Name, Texture] : Textures)
-        {
-            if (Texture)
-            {
-                textures[Name] = Texture->SerializationPath;
-            }
-        }
-    }
+    // void UMaterial::Serialize(FArchive &Ar)
+    // {
+    //     nlohmann::json &json = Ar.json;
+    //     json["ClassName"] = "UMaterial";
+    //     nlohmann::json &content = json["Content"];
+    //     content["Name"] = Name;
+    //     content["ShaderVirtualPath"] = ShaderVirtualPath.generic_string();
+    //     content["ShadingModel"] = magic_enum::enum_name(ShadingModel);
+    //     content["StencilRefValue"] = StencilRefValue;
+    //     TStaticSerializer<FBlendStateInitializer>::Serialize(BlendState, content["BlendState"], Ar.OutBuffers);
+    //     TStaticSerializer<FRasterizerStateInitializer>::Serialize(RasterizerState, content["RasterizerState"], Ar.OutBuffers);
+    //     TStaticSerializer<FDepthStencilStateInitializer>::Serialize(DepthStencilState, content["DepthStencilState"], Ar.OutBuffers);
+    //     nlohmann::json &textures = content["Textures"];
+    //     for (auto &[Name, Texture] : Textures)
+    //     {
+    //         if (Texture)
+    //         {
+    //             textures[Name] = Texture->SerializationPath;
+    //         }
+    //     }
+    // }
 
-    void UMaterial::Deserialize(FArchive &Ar)
-    {
-        nlohmann::json &json = Ar.json;
-        if (!SerializeHelper::CheckIsType(json, "UMaterial") && 
-            !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
-        nlohmann::json &content = json["Content"];
-        Name = content["Name"];
-        MaterialResource->Name = Name;
-        DefaultMaterialInstance->Name = Name;
-        if (content.contains("ShadingModel"))
-        {
-            SetShadingModel(magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value());
-        }
-        SetStencilRefValue(content["StencilRefValue"]);
-        FBlendStateInitializer BlendState;
-        FRasterizerStateInitializer RasterizerState;
-        FDepthStencilStateInitializer DepthStencilState;
-        TStaticSerializer<FBlendStateInitializer>::Deserialize(BlendState, content["BlendState"], Ar.InBuffer.get());
-        TStaticSerializer<FRasterizerStateInitializer>::Deserialize(RasterizerState, content["RasterizerState"], Ar.InBuffer.get());
-        TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(DepthStencilState, content["DepthStencilState"], Ar.InBuffer.get());
-        SetBlendState(BlendState);
-        SetRasterizerState(RasterizerState);
-        SetDepthStencilState(DepthStencilState);
+    // void UMaterial::Deserialize(FArchive &Ar)
+    // {
+    //     nlohmann::json &json = Ar.json;
+    //     if (!SerializeHelper::CheckIsType(json, "UMaterial") && 
+    //         !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
+    //     nlohmann::json &content = json["Content"];
+    //     Name = content["Name"];
+    //     MaterialResource->Name = Name;
+    //     DefaultMaterialInstance->Name = Name;
+    //     if (content.contains("ShadingModel"))
+    //     {
+    //         SetShadingModel(magic_enum::enum_cast<EShadingModel>(content["ShadingModel"].get<std::string>()).value());
+    //     }
+    //     SetStencilRefValue(content["StencilRefValue"]);
+    //     FBlendStateInitializer BlendState;
+    //     FRasterizerStateInitializer RasterizerState;
+    //     FDepthStencilStateInitializer DepthStencilState;
+    //     TStaticSerializer<FBlendStateInitializer>::Deserialize(BlendState, content["BlendState"], Ar.InBuffer.get());
+    //     TStaticSerializer<FRasterizerStateInitializer>::Deserialize(RasterizerState, content["RasterizerState"], Ar.InBuffer.get());
+    //     TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(DepthStencilState, content["DepthStencilState"], Ar.InBuffer.get());
+    //     SetBlendState(BlendState);
+    //     SetRasterizerState(RasterizerState);
+    //     SetDepthStencilState(DepthStencilState);
         
-        std::string ShaderVirtualPath = content["ShaderVirtualPath"];
-        SetShaderFileVirtualPath(ShaderVirtualPath);
+    //     std::string ShaderVirtualPath = content["ShaderVirtualPath"];
+    //     SetShaderFileVirtualPath(ShaderVirtualPath);
         
-        nlohmann::json &textures = content["Textures"];
-        for (auto &[sampler_name, texture] : textures.items())
-        {
-            fs::path texture_path = texture.get<std::string>();
-            UTexture *Texture = GetContentManager()->GetTextureByPath(texture_path);
-            SetTextureParameterValue(sampler_name, Texture);
-        }
-    }
+    //     nlohmann::json &textures = content["Textures"];
+    //     for (auto &[sampler_name, texture] : textures.items())
+    //     {
+    //         fs::path texture_path = texture.get<std::string>();
+    //         UTexture *Texture = GetContentManager()->GetTextureByPath(texture_path);
+    //         SetTextureParameterValue(sampler_name, Texture);
+    //     }
+    // }
 
     UMaterialInstance* UMaterial::CreateMaterialInstance()
     {
@@ -217,12 +217,12 @@ namespace nilou {
         return MaterialInstance;
     }
 
-    void UMaterialInstance::Serialize(FArchive &Ar)
-    {
-        nlohmann::json &json = Ar.json;
-        UMaterial::Serialize(Ar);
-        json["ClassName"] = "UMaterialInstance";
-    }
+    // void UMaterialInstance::Serialize(FArchive &Ar)
+    // {
+    //     nlohmann::json &json = Ar.json;
+    //     UMaterial::Serialize(Ar);
+    //     json["ClassName"] = "UMaterialInstance";
+    // }
 
     FMaterialRenderProxy::FMaterialRenderProxy(const FMaterialRenderProxy& Other)
         : Name(Other.Name)

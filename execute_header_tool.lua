@@ -14,7 +14,7 @@ Include_paths = {
     "D:/Nilou/Assets/Shaders"}
 
 function ExecuteHeaderTool()
-    local exec_cmd = "D:/Nilou/NilouHeaderTool/build/windows/x64/debug/NilouHeaderTool.exe D:/Nilou/src D:/Nilou/src/Runtime/Generated "
+    local exec_cmd = "D:/Nilou/NilouHeaderTool/build/windows/x64/release/NilouHeaderTool.exe D:/Nilou/src D:/Nilou/src/Runtime/Generated "
     for i, include in ipairs(Include_paths) do
         exec_cmd = exec_cmd .. include .. " "
     end

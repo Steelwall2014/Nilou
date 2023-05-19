@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> ULightComponent::StaticClass_ = nullptr;
-const NClass *ULightComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::ULightComponent::StaticClass_ = nullptr;
+const NClass *nilou::ULightComponent::GetClass() const 
 { 
-    return ULightComponent::StaticClass(); 
+    return nilou::ULightComponent::StaticClass(); 
 }
-const NClass *ULightComponent::StaticClass()
+const NClass *nilou::ULightComponent::StaticClass()
 {
-    return ULightComponent::StaticClass_.get();
+    return nilou::ULightComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<ULightComponent>
+struct TClassRegistry<nilou::ULightComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        ULightComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<ULightComponent>();
-		Mngr.AddConstructor<ULightComponent>();
-		Mngr.AddBases<ULightComponent, USceneComponent>();
+        nilou::ULightComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::ULightComponent>();
+		Mngr.AddBases<nilou::ULightComponent, nilou::USceneComponent>();
 ;
-        ULightComponent::StaticClass_->Type = Type_of<ULightComponent>;
-        ULightComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ULightComponent>);
+        nilou::ULightComponent::StaticClass_->Type = Type_of<nilou::ULightComponent>;
+        nilou::ULightComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::ULightComponent>);
     }
 
-    static TClassRegistry<ULightComponent> Dummy;
+    static TClassRegistry<nilou::ULightComponent> Dummy;
 };
-TClassRegistry<ULightComponent> Dummy = TClassRegistry<ULightComponent>("ULightComponent");
+TClassRegistry<nilou::ULightComponent> Dummy = TClassRegistry<nilou::ULightComponent>("nilou::ULightComponent");
 
 
+
+void nilou::ULightComponent::Serialize(FArchive& Ar)
+{
+    nilou::USceneComponent::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::ULightComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::ULightComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::USceneComponent::Deserialize(Ar);
+}

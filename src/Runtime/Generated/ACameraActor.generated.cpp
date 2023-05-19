@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/CameraActor.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> ACameraActor::StaticClass_ = nullptr;
-const NClass *ACameraActor::GetClass() const 
+std::unique_ptr<NClass> nilou::ACameraActor::StaticClass_ = nullptr;
+const NClass *nilou::ACameraActor::GetClass() const 
 { 
-    return ACameraActor::StaticClass(); 
+    return nilou::ACameraActor::StaticClass(); 
 }
-const NClass *ACameraActor::StaticClass()
+const NClass *nilou::ACameraActor::StaticClass()
 {
-    return ACameraActor::StaticClass_.get();
+    return nilou::ACameraActor::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<ACameraActor>
+struct TClassRegistry<nilou::ACameraActor>
 {
     TClassRegistry(const std::string& InName)
     {
-        ACameraActor::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<ACameraActor>();
-		Mngr.AddConstructor<ACameraActor>();
-		Mngr.AddBases<ACameraActor, AActor>();
+        nilou::ACameraActor::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::ACameraActor>();
+		Mngr.AddBases<nilou::ACameraActor, nilou::AActor>();
 ;
-        ACameraActor::StaticClass_->Type = Type_of<ACameraActor>;
-        ACameraActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ACameraActor>);
+        nilou::ACameraActor::StaticClass_->Type = Type_of<nilou::ACameraActor>;
+        nilou::ACameraActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::ACameraActor>);
     }
 
-    static TClassRegistry<ACameraActor> Dummy;
+    static TClassRegistry<nilou::ACameraActor> Dummy;
 };
-TClassRegistry<ACameraActor> Dummy = TClassRegistry<ACameraActor>("ACameraActor");
+TClassRegistry<nilou::ACameraActor> Dummy = TClassRegistry<nilou::ACameraActor>("nilou::ACameraActor");
 
 
+
+void nilou::ACameraActor::Serialize(FArchive& Ar)
+{
+    nilou::AActor::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::ACameraActor";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::ACameraActor::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::AActor::Deserialize(Ar);
+}

@@ -3,6 +3,7 @@
 // #include <glm/glm.hpp>
 #include "Common/Transform.h"
 #include "SerializeHelper.h"
+#include <reflection/Class.h>
 
 namespace nilou {
 
@@ -143,11 +144,15 @@ namespace nilou {
         FBoundingSphere TransformBy(const dmat4 &Transform) const;
     };
 
+
     // Axis Aligned
-    class FBoundingBox
+    struct NSTRUCT FBoundingBox
     {
-    public:
+        GENERATED_STRUCT_BODY()
+
+        NPROPERTY()
         dvec3 Min;
+        NPROPERTY()
         dvec3 Max;
         FBoundingBox() { Min = Max = dvec3(0); }
 
@@ -165,33 +170,33 @@ namespace nilou {
         ECullingResult IntersectPlane(const FPlane& plane) const noexcept;
     };
 
-    template<>
-    class TStaticSerializer<FBoundingBox>
-    {
-    public:
-        static void Serialize(const FBoundingBox &Object, nlohmann::json &json, FArchiveBuffers &Buffers)
-        {
-            json["ClassName"] = "FBoundingBox";
-            nlohmann::json &content = json["Content"];
-            content["Min"].push_back(Object.Min.x);
-            content["Min"].push_back(Object.Min.y);
-            content["Min"].push_back(Object.Min.z);
-            content["Max"].push_back(Object.Max.x);
-            content["Max"].push_back(Object.Max.y);
-            content["Max"].push_back(Object.Max.z);
-        }
-        static void Deserialize(FBoundingBox &Object, nlohmann::json &json, void* Buffer)
-        {
-            if (!SerializeHelper::CheckIsType(json, "FBoundingBox")) return;
-            nlohmann::json &content = json["Content"];
-            Object.Min.x = content["Min"][0].get<double>();
-            Object.Min.y = content["Min"][1].get<double>();
-            Object.Min.z = content["Min"][2].get<double>();
-            Object.Max.x = content["Max"][0].get<double>();
-            Object.Max.y = content["Max"][1].get<double>();
-            Object.Max.z = content["Max"][2].get<double>();
-        }
-    };
+    // template<>
+    // class TStaticSerializer<FBoundingBox>
+    // {
+    // public:
+    //     static void Serialize(const FBoundingBox &Object, nlohmann::json &json, FArchiveBuffers &Buffers)
+    //     {
+    //         json["ClassName"] = "FBoundingBox";
+    //         nlohmann::json &content = json["Content"];
+    //         content["Min"].push_back(Object.Min.x);
+    //         content["Min"].push_back(Object.Min.y);
+    //         content["Min"].push_back(Object.Min.z);
+    //         content["Max"].push_back(Object.Max.x);
+    //         content["Max"].push_back(Object.Max.y);
+    //         content["Max"].push_back(Object.Max.z);
+    //     }
+    //     static void Deserialize(FBoundingBox &Object, nlohmann::json &json, void* Buffer)
+    //     {
+    //         if (!SerializeHelper::CheckIsType(json, "FBoundingBox")) return;
+    //         nlohmann::json &content = json["Content"];
+    //         Object.Min.x = content["Min"][0].get<double>();
+    //         Object.Min.y = content["Min"][1].get<double>();
+    //         Object.Min.z = content["Min"][2].get<double>();
+    //         Object.Max.x = content["Max"][0].get<double>();
+    //         Object.Max.y = content["Max"][1].get<double>();
+    //         Object.Max.z = content["Max"][2].get<double>();
+    //     }
+    // };
 
     class FViewFrustum
     {

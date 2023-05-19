@@ -1,37 +1,65 @@
-#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileset.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> AActor::StaticClass_ = nullptr;
-const NClass *AActor::GetClass() const 
+std::unique_ptr<NClass> nilou::AActor::StaticClass_ = nullptr;
+const NClass *nilou::AActor::GetClass() const 
 { 
-    return AActor::StaticClass(); 
+    return nilou::AActor::StaticClass(); 
 }
-const NClass *AActor::StaticClass()
+const NClass *nilou::AActor::StaticClass()
 {
-    return AActor::StaticClass_.get();
+    return nilou::AActor::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<AActor>
+struct TClassRegistry<nilou::AActor>
 {
     TClassRegistry(const std::string& InName)
     {
-        AActor::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<AActor>();
-		Mngr.AddConstructor<AActor>();
-		Mngr.AddField<&AActor::ActorName>("ActorName");
-		Mngr.AddBases<AActor, UObject>();
+        nilou::AActor::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::AActor>();
+		Mngr.AddField<&nilou::AActor::ActorName>("ActorName");
+		Mngr.AddBases<nilou::AActor, NObject>();
 ;
-        AActor::StaticClass_->Type = Type_of<AActor>;
-        AActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AActor>);
+        nilou::AActor::StaticClass_->Type = Type_of<nilou::AActor>;
+        nilou::AActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::AActor>);
     }
 
-    static TClassRegistry<AActor> Dummy;
+    static TClassRegistry<nilou::AActor> Dummy;
 };
-TClassRegistry<AActor> Dummy = TClassRegistry<AActor>("AActor");
+TClassRegistry<nilou::AActor> Dummy = TClassRegistry<nilou::AActor>("nilou::AActor");
 
 
+
+void nilou::AActor::Serialize(FArchive& Ar)
+{
+    NObject::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::AActor";
+    nlohmann::json &content = Node["Content"];
+
+    {
+        FArchive local_Ar(content["ActorName"], Ar);
+        TStaticSerializer<decltype(this->ActorName)>::Serialize(this->ActorName, local_Ar);
+    }
+    this->bIsSerializing = false;
+}
+
+void nilou::AActor::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    if (content.contains("ActorName"))
+    {
+        FArchive local_Ar(content["ActorName"], Ar);
+        TStaticSerializer<decltype(this->ActorName)>::Deserialize(this->ActorName, local_Ar);
+    }
+    NObject::Deserialize(Ar);
+}

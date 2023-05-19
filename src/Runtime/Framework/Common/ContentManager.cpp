@@ -12,6 +12,16 @@
 
 namespace nilou {
 
+    struct FArchiveHelper
+    {
+        nlohmann::json root;
+        std::vector<FArchiveBuffer> buffers;
+        FArchive Ar;
+        FArchiveHelper()
+            : Ar(root, buffers)
+        { }
+    };
+
     namespace fs = std::filesystem;
 
     static std::string ReadClassName(std::ifstream &in)
@@ -81,7 +91,7 @@ namespace nilou {
         return directory_entry;
     }
 
-    UObject* FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
+    NAsset* FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
     {
         if (tokens[depth] == Entry->Name)
         {
@@ -89,7 +99,7 @@ namespace nilou {
             {
                 for (auto &[Name, Child] : Entry->Children)
                 {
-                    UObject *object = Search(Child.get(), tokens, depth+1);
+                    NAsset *object = Search(Child.get(), tokens, depth+1);
                     if (object != nullptr)
                         return object;
                 }
@@ -118,9 +128,10 @@ namespace nilou {
         {         
             if (Entry->bIsDirty && Entry->bNeedFlush && !Entry->Object->SerializationPath.empty())
             {
-                FArchive Ar;
-                Entry->Object->Serialize(Ar);
-                Ar.WriteToPath(Entry->AbsolutePath);
+                FArchiveHelper ArHelper;
+                Entry->Object->Serialize(ArHelper.Ar);
+                std::ofstream out(Entry->AbsolutePath, std::ios::binary);
+                out << ArHelper.Ar;
             }
         }
     }
@@ -151,40 +162,41 @@ namespace nilou {
         std::vector<FContentEntry*> Entries;
         FContentEntry::Deserialize(ContentEntry.get(), Entries);
         BS::thread_pool pool;
-        std::vector<std::future<FArchive>> futures;
+        std::vector<std::future<FArchiveHelper>> futures;
         for (int i = 0; i < Entries.size(); i++)
         {
             auto future = pool.submit([](FContentEntry *Entry) {
-                FArchive Ar;
+                FArchiveHelper ArHelper;
                 std::filesystem::path InPath = Entry->AbsolutePath;
                 InPath.replace_extension(".nasset");
-                Ar.LoadFromPath(InPath);
-                return Ar;
+                std::ifstream in(InPath, std::ios::binary);
+                in >> ArHelper.Ar;
+                return ArHelper;
             }, Entries[i]);
             futures.push_back(std::move(future));
         }
         pool.wait_for_tasks();
-        std::vector<FArchive> Archives;
+        std::vector<FArchiveHelper> Archives;
         for (int i = 0; i < futures.size(); i++)
         {
             auto &future = futures[i];
-            FArchive Ar = future.get();
-            if (Ar.json.contains("ClassName"))
+            FArchiveHelper ArHelper = future.get();
+            if (ArHelper.Ar.Node.contains("ClassName"))
             {
-                auto class_name = "nilou::"+std::string(Ar.json["ClassName"]);
-                Entries[i]->Object = std::unique_ptr<UObject>(CreateDefaultObjectByName(class_name));
+                auto class_name = "nilou::"+std::string(ArHelper.Ar.Node["ClassName"]);
+                Entries[i]->Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(class_name)));
                 Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
                 Entries[i]->Object->ContentEntry = Entries[i];
             }
-            Archives.push_back(std::move(Ar));
+            Archives.push_back(std::move(ArHelper));
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->Deserialize(Archives[i]);
+            Entries[i]->Object->Deserialize(Archives[i].Ar);
         }
     }
 
-    UObject *FContentManager::GetContentByPath(const fs::path &InPath)
+    NAsset *FContentManager::GetContentByPath(const fs::path &InPath)
     {
         std::string path = InPath.generic_string();
         auto tokens = GameStatics::Split(path, '/');
@@ -274,7 +286,7 @@ namespace nilou {
             [this](FDynamicRHI*) {
                 GlobalShaders.RemoveAllShaders();
                 ForEachContent(
-                    [](UObject* Obj) {
+                    [](NAsset* Obj) {
                         if (Obj->IsA(UStaticMesh::StaticClass()))
                         {
                             UStaticMesh* mesh = static_cast<UStaticMesh*>(Obj);
@@ -299,9 +311,9 @@ namespace nilou {
         return GetAppication()->GetContentManager();
     }
 
-    void FContentManager::ForEachContent(std::function<void(UObject*)> &&Func)
+    void FContentManager::ForEachContent(std::function<void(NAsset*)> &&Func)
     {
-        ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(UObject*)>>(Func));
+        ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(NAsset*)>>(Func));
     }
 
     void FContentManager::ForEachEntry(std::function<void(FContentEntry*)> &&Func)
@@ -309,13 +321,13 @@ namespace nilou {
         ForEachEntryInternal(ContentEntry.get(), std::forward<std::function<void(FContentEntry*)>>(Func));
     }
 
-    void FContentManager::ForEachContentInternal(FContentEntry* Entry, std::function<void(UObject*)> &&Func)
+    void FContentManager::ForEachContentInternal(FContentEntry* Entry, std::function<void(NAsset*)> &&Func)
     {
         if (Entry->bIsDirectory)
         {
             for (auto &[Name, Child] : Entry->Children)
             {
-                ForEachContentInternal(Child.get(), std::forward<std::function<void(UObject*)>>(Func));
+                ForEachContentInternal(Child.get(), std::forward<std::function<void(NAsset*)>>(Func));
             }
         }
         else 

@@ -25,11 +25,11 @@ namespace nilou {
          */
         std::filesystem::path RelativePath;
         std::unordered_map<std::string, std::unique_ptr<FContentEntry>> Children;
-        std::unique_ptr<UObject> Object;
+        std::unique_ptr<NAsset> Object;
 
         static std::unique_ptr<FContentEntry> Build(const std::filesystem::path &DirectoryPath, const std::filesystem::path &ContentBasePath);
 
-        static UObject *Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth);
+        static NAsset *Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth);
 
         static void Serialize(FContentEntry *Entry);
         static void Deserialize(FContentEntry *Entry, std::vector<FContentEntry*> &OutEntries);
@@ -49,7 +49,7 @@ namespace nilou {
          * 
          * @return The object pointer. User need to cast it manually.
          */
-        UObject *GetContentByPath(const std::filesystem::path &InPath);
+        NAsset *GetContentByPath(const std::filesystem::path &InPath);
 
         /**
          * Get the material by path
@@ -89,7 +89,7 @@ namespace nilou {
         template<typename T>
         T *CreateFile(const std::filesystem::path &Path, bool bNeedFlush=true)
         {
-            static_assert(TIsDerivedFrom<T, UObject>::Value, "");
+            static_assert(TIsDerivedFrom<T, NAsset>::Value, "");
             std::filesystem::path InPath = Path;
             InPath.replace_extension(".nasset");
             FContentEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
@@ -130,7 +130,7 @@ namespace nilou {
 
         void ReleaseRenderResources();
 
-        void ForEachContent(std::function<void(UObject*)> &&Func);
+        void ForEachContent(std::function<void(NAsset*)> &&Func);
 
         void ForEachEntry(std::function<void(FContentEntry*)> &&Func);
 
@@ -144,7 +144,7 @@ namespace nilou {
 
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
 
-        void ForEachContentInternal(FContentEntry* Entry, std::function<void(UObject*)> &&Func);
+        void ForEachContentInternal(FContentEntry* Entry, std::function<void(NAsset*)> &&Func);
 
         void ForEachEntryInternal(FContentEntry* Entry, std::function<void(FContentEntry*)> &&Func);
     };

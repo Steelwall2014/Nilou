@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Cesium3DTiles/Cesium3DTileComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> USceneComponent::StaticClass_ = nullptr;
-const NClass *USceneComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::USceneComponent::StaticClass_ = nullptr;
+const NClass *nilou::USceneComponent::GetClass() const 
 { 
-    return USceneComponent::StaticClass(); 
+    return nilou::USceneComponent::StaticClass(); 
 }
-const NClass *USceneComponent::StaticClass()
+const NClass *nilou::USceneComponent::StaticClass()
 {
-    return USceneComponent::StaticClass_.get();
+    return nilou::USceneComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<USceneComponent>
+struct TClassRegistry<nilou::USceneComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        USceneComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<USceneComponent>();
-		Mngr.AddConstructor<USceneComponent>();
-		Mngr.AddBases<USceneComponent, UActorComponent>();
+        nilou::USceneComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::USceneComponent>();
+		Mngr.AddBases<nilou::USceneComponent, nilou::UActorComponent>();
 ;
-        USceneComponent::StaticClass_->Type = Type_of<USceneComponent>;
-        USceneComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<USceneComponent>);
+        nilou::USceneComponent::StaticClass_->Type = Type_of<nilou::USceneComponent>;
+        nilou::USceneComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::USceneComponent>);
     }
 
-    static TClassRegistry<USceneComponent> Dummy;
+    static TClassRegistry<nilou::USceneComponent> Dummy;
 };
-TClassRegistry<USceneComponent> Dummy = TClassRegistry<USceneComponent>("USceneComponent");
+TClassRegistry<nilou::USceneComponent> Dummy = TClassRegistry<nilou::USceneComponent>("nilou::USceneComponent");
 
 
+
+void nilou::USceneComponent::Serialize(FArchive& Ar)
+{
+    nilou::UActorComponent::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::USceneComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::USceneComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::UActorComponent::Deserialize(Ar);
+}

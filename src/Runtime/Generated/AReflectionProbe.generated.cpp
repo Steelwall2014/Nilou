@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/ReflectionProbe.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> AReflectionProbe::StaticClass_ = nullptr;
-const NClass *AReflectionProbe::GetClass() const 
+std::unique_ptr<NClass> nilou::AReflectionProbe::StaticClass_ = nullptr;
+const NClass *nilou::AReflectionProbe::GetClass() const 
 { 
-    return AReflectionProbe::StaticClass(); 
+    return nilou::AReflectionProbe::StaticClass(); 
 }
-const NClass *AReflectionProbe::StaticClass()
+const NClass *nilou::AReflectionProbe::StaticClass()
 {
-    return AReflectionProbe::StaticClass_.get();
+    return nilou::AReflectionProbe::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<AReflectionProbe>
+struct TClassRegistry<nilou::AReflectionProbe>
 {
     TClassRegistry(const std::string& InName)
     {
-        AReflectionProbe::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<AReflectionProbe>();
-		Mngr.AddConstructor<AReflectionProbe>();
-		Mngr.AddBases<AReflectionProbe, AActor>();
+        nilou::AReflectionProbe::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::AReflectionProbe>();
+		Mngr.AddBases<nilou::AReflectionProbe, nilou::AActor>();
 ;
-        AReflectionProbe::StaticClass_->Type = Type_of<AReflectionProbe>;
-        AReflectionProbe::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AReflectionProbe>);
+        nilou::AReflectionProbe::StaticClass_->Type = Type_of<nilou::AReflectionProbe>;
+        nilou::AReflectionProbe::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::AReflectionProbe>);
     }
 
-    static TClassRegistry<AReflectionProbe> Dummy;
+    static TClassRegistry<nilou::AReflectionProbe> Dummy;
 };
-TClassRegistry<AReflectionProbe> Dummy = TClassRegistry<AReflectionProbe>("AReflectionProbe");
+TClassRegistry<nilou::AReflectionProbe> Dummy = TClassRegistry<nilou::AReflectionProbe>("nilou::AReflectionProbe");
 
 
+
+void nilou::AReflectionProbe::Serialize(FArchive& Ar)
+{
+    nilou::AActor::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::AReflectionProbe";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::AReflectionProbe::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::AActor::Deserialize(Ar);
+}

@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/ReflectionProbeComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> USceneCaptureComponent::StaticClass_ = nullptr;
-const NClass *USceneCaptureComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::USceneCaptureComponent::StaticClass_ = nullptr;
+const NClass *nilou::USceneCaptureComponent::GetClass() const 
 { 
-    return USceneCaptureComponent::StaticClass(); 
+    return nilou::USceneCaptureComponent::StaticClass(); 
 }
-const NClass *USceneCaptureComponent::StaticClass()
+const NClass *nilou::USceneCaptureComponent::StaticClass()
 {
-    return USceneCaptureComponent::StaticClass_.get();
+    return nilou::USceneCaptureComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<USceneCaptureComponent>
+struct TClassRegistry<nilou::USceneCaptureComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        USceneCaptureComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<USceneCaptureComponent>();
-		Mngr.AddConstructor<USceneCaptureComponent>();
-		Mngr.AddBases<USceneCaptureComponent, USceneComponent>();
+        nilou::USceneCaptureComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::USceneCaptureComponent>();
+		Mngr.AddBases<nilou::USceneCaptureComponent, nilou::USceneComponent>();
 ;
-        USceneCaptureComponent::StaticClass_->Type = Type_of<USceneCaptureComponent>;
-        USceneCaptureComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<USceneCaptureComponent>);
+        nilou::USceneCaptureComponent::StaticClass_->Type = Type_of<nilou::USceneCaptureComponent>;
+        nilou::USceneCaptureComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::USceneCaptureComponent>);
     }
 
-    static TClassRegistry<USceneCaptureComponent> Dummy;
+    static TClassRegistry<nilou::USceneCaptureComponent> Dummy;
 };
-TClassRegistry<USceneCaptureComponent> Dummy = TClassRegistry<USceneCaptureComponent>("USceneCaptureComponent");
+TClassRegistry<nilou::USceneCaptureComponent> Dummy = TClassRegistry<nilou::USceneCaptureComponent>("nilou::USceneCaptureComponent");
 
 
+
+void nilou::USceneCaptureComponent::Serialize(FArchive& Ar)
+{
+    nilou::USceneComponent::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::USceneCaptureComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::USceneCaptureComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::USceneComponent::Deserialize(Ar);
+}

@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/VirtualHeightfieldMeshActor.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> AVirtualHeightfieldMeshActor::StaticClass_ = nullptr;
-const NClass *AVirtualHeightfieldMeshActor::GetClass() const 
+std::unique_ptr<NClass> nilou::AVirtualHeightfieldMeshActor::StaticClass_ = nullptr;
+const NClass *nilou::AVirtualHeightfieldMeshActor::GetClass() const 
 { 
-    return AVirtualHeightfieldMeshActor::StaticClass(); 
+    return nilou::AVirtualHeightfieldMeshActor::StaticClass(); 
 }
-const NClass *AVirtualHeightfieldMeshActor::StaticClass()
+const NClass *nilou::AVirtualHeightfieldMeshActor::StaticClass()
 {
-    return AVirtualHeightfieldMeshActor::StaticClass_.get();
+    return nilou::AVirtualHeightfieldMeshActor::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<AVirtualHeightfieldMeshActor>
+struct TClassRegistry<nilou::AVirtualHeightfieldMeshActor>
 {
     TClassRegistry(const std::string& InName)
     {
-        AVirtualHeightfieldMeshActor::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<AVirtualHeightfieldMeshActor>();
-		Mngr.AddConstructor<AVirtualHeightfieldMeshActor>();
-		Mngr.AddBases<AVirtualHeightfieldMeshActor, AActor>();
+        nilou::AVirtualHeightfieldMeshActor::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::AVirtualHeightfieldMeshActor>();
+		Mngr.AddBases<nilou::AVirtualHeightfieldMeshActor, nilou::AActor>();
 ;
-        AVirtualHeightfieldMeshActor::StaticClass_->Type = Type_of<AVirtualHeightfieldMeshActor>;
-        AVirtualHeightfieldMeshActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<AVirtualHeightfieldMeshActor>);
+        nilou::AVirtualHeightfieldMeshActor::StaticClass_->Type = Type_of<nilou::AVirtualHeightfieldMeshActor>;
+        nilou::AVirtualHeightfieldMeshActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::AVirtualHeightfieldMeshActor>);
     }
 
-    static TClassRegistry<AVirtualHeightfieldMeshActor> Dummy;
+    static TClassRegistry<nilou::AVirtualHeightfieldMeshActor> Dummy;
 };
-TClassRegistry<AVirtualHeightfieldMeshActor> Dummy = TClassRegistry<AVirtualHeightfieldMeshActor>("AVirtualHeightfieldMeshActor");
+TClassRegistry<nilou::AVirtualHeightfieldMeshActor> Dummy = TClassRegistry<nilou::AVirtualHeightfieldMeshActor>("nilou::AVirtualHeightfieldMeshActor");
 
 
+
+void nilou::AVirtualHeightfieldMeshActor::Serialize(FArchive& Ar)
+{
+    nilou::AActor::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::AVirtualHeightfieldMeshActor";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::AVirtualHeightfieldMeshActor::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::AActor::Deserialize(Ar);
+}

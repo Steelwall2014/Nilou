@@ -30,15 +30,11 @@ namespace nilou {
 
         virtual FTextureResource* CreateResource() override;
 
-        virtual void Serialize(FArchive &Ar) override;
-
-        virtual void Deserialize(FArchive &Ar) override;
-
         virtual void ReadPixelsRenderThread(FDynamicRHI* RHICmdList) override;
 
     protected:
 
-        virtual std::shared_ptr<FImage> CreateImage(const ImageCreateInfo& ImageInfo) override;
+        virtual FImage CreateImage(const ImageCreateInfo& ImageInfo) override;
 
     };
     

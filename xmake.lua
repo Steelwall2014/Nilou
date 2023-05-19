@@ -329,6 +329,18 @@ BuildProject({
     link = {"./External/lib/async++"},
     --unityBuildBatch = 8
 })
+
+target("NilouHeaderTool")
+    set_kind("binary")
+    add_files("NilouHeaderTool/src/NilouHeaderTool/*.cpp")
+    set_languages("clatest")
+    set_languages("cxx20")
+    add_includedirs("./NilouHeaderTool/External/include")
+    add_links("./NilouHeaderTool/External/lib/*")
+    after_build(copyFunc)
+    if is_mode("debug") then 
+        add_defines("NILOU_DEBUG")
+    end
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
 --

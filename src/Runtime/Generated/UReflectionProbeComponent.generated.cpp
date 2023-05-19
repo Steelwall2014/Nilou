@@ -1,36 +1,55 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/FFTOceanActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/ReflectionProbeComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> UReflectionProbeComponent::StaticClass_ = nullptr;
-const NClass *UReflectionProbeComponent::GetClass() const 
+std::unique_ptr<NClass> nilou::UReflectionProbeComponent::StaticClass_ = nullptr;
+const NClass *nilou::UReflectionProbeComponent::GetClass() const 
 { 
-    return UReflectionProbeComponent::StaticClass(); 
+    return nilou::UReflectionProbeComponent::StaticClass(); 
 }
-const NClass *UReflectionProbeComponent::StaticClass()
+const NClass *nilou::UReflectionProbeComponent::StaticClass()
 {
-    return UReflectionProbeComponent::StaticClass_.get();
+    return nilou::UReflectionProbeComponent::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<UReflectionProbeComponent>
+struct TClassRegistry<nilou::UReflectionProbeComponent>
 {
     TClassRegistry(const std::string& InName)
     {
-        UReflectionProbeComponent::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<UReflectionProbeComponent>();
-		Mngr.AddConstructor<UReflectionProbeComponent>();
-		Mngr.AddBases<UReflectionProbeComponent, USceneCaptureComponentCube>();
+        nilou::UReflectionProbeComponent::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::UReflectionProbeComponent>();
+		Mngr.AddBases<nilou::UReflectionProbeComponent, nilou::USceneCaptureComponentCube>();
 ;
-        UReflectionProbeComponent::StaticClass_->Type = Type_of<UReflectionProbeComponent>;
-        UReflectionProbeComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<UReflectionProbeComponent>);
+        nilou::UReflectionProbeComponent::StaticClass_->Type = Type_of<nilou::UReflectionProbeComponent>;
+        nilou::UReflectionProbeComponent::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::UReflectionProbeComponent>);
     }
 
-    static TClassRegistry<UReflectionProbeComponent> Dummy;
+    static TClassRegistry<nilou::UReflectionProbeComponent> Dummy;
 };
-TClassRegistry<UReflectionProbeComponent> Dummy = TClassRegistry<UReflectionProbeComponent>("UReflectionProbeComponent");
+TClassRegistry<nilou::UReflectionProbeComponent> Dummy = TClassRegistry<nilou::UReflectionProbeComponent>("nilou::UReflectionProbeComponent");
 
 
+
+void nilou::UReflectionProbeComponent::Serialize(FArchive& Ar)
+{
+    nilou::USceneCaptureComponentCube::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::UReflectionProbeComponent";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::UReflectionProbeComponent::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::USceneCaptureComponentCube::Deserialize(Ar);
+}

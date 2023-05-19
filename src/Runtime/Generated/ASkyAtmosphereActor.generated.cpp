@@ -1,36 +1,55 @@
 #include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
 #include <UDRefl/UDRefl.hpp>
 
-using namespace nilou;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
-std::unique_ptr<NClass> ASkyAtmosphereActor::StaticClass_ = nullptr;
-const NClass *ASkyAtmosphereActor::GetClass() const 
+std::unique_ptr<NClass> nilou::ASkyAtmosphereActor::StaticClass_ = nullptr;
+const NClass *nilou::ASkyAtmosphereActor::GetClass() const 
 { 
-    return ASkyAtmosphereActor::StaticClass(); 
+    return nilou::ASkyAtmosphereActor::StaticClass(); 
 }
-const NClass *ASkyAtmosphereActor::StaticClass()
+const NClass *nilou::ASkyAtmosphereActor::StaticClass()
 {
-    return ASkyAtmosphereActor::StaticClass_.get();
+    return nilou::ASkyAtmosphereActor::StaticClass_.get();
 }
 
 template<>
-struct TClassRegistry<ASkyAtmosphereActor>
+struct TClassRegistry<nilou::ASkyAtmosphereActor>
 {
     TClassRegistry(const std::string& InName)
     {
-        ASkyAtmosphereActor::StaticClass_ = std::make_unique<NClass>();
-        Mngr.RegisterType<ASkyAtmosphereActor>();
-		Mngr.AddConstructor<ASkyAtmosphereActor>();
-		Mngr.AddBases<ASkyAtmosphereActor, AActor>();
+        nilou::ASkyAtmosphereActor::StaticClass_ = std::make_unique<NClass>();
+        Mngr.RegisterType<nilou::ASkyAtmosphereActor>();
+		Mngr.AddBases<nilou::ASkyAtmosphereActor, nilou::AActor>();
 ;
-        ASkyAtmosphereActor::StaticClass_->Type = Type_of<ASkyAtmosphereActor>;
-        ASkyAtmosphereActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<ASkyAtmosphereActor>);
+        nilou::ASkyAtmosphereActor::StaticClass_->Type = Type_of<nilou::ASkyAtmosphereActor>;
+        nilou::ASkyAtmosphereActor::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::ASkyAtmosphereActor>);
     }
 
-    static TClassRegistry<ASkyAtmosphereActor> Dummy;
+    static TClassRegistry<nilou::ASkyAtmosphereActor> Dummy;
 };
-TClassRegistry<ASkyAtmosphereActor> Dummy = TClassRegistry<ASkyAtmosphereActor>("ASkyAtmosphereActor");
+TClassRegistry<nilou::ASkyAtmosphereActor> Dummy = TClassRegistry<nilou::ASkyAtmosphereActor>("nilou::ASkyAtmosphereActor");
 
 
+
+void nilou::ASkyAtmosphereActor::Serialize(FArchive& Ar)
+{
+    nilou::AActor::Serialize(Ar);
+    if (this->bIsSerializing)
+        return;
+    this->bIsSerializing = true;
+    nlohmann::json& Node = Ar.Node;
+    Node["ClassName"] = "nilou::ASkyAtmosphereActor";
+    nlohmann::json &content = Node["Content"];
+
+    this->bIsSerializing = false;
+}
+
+void nilou::ASkyAtmosphereActor::Deserialize(FArchive& Ar)
+{
+    nlohmann::json& Node = Ar.Node;
+    nlohmann::json &content = Node["Content"];
+
+    nilou::AActor::Deserialize(Ar);
+}
