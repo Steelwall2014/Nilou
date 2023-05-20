@@ -33,10 +33,10 @@ struct A
 int main()
 {
     glm::mat4 proj, view, vp;
-    view = glm::lookAt(glm::vec3(10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+    view = glm::lookAt(vec3(10, 0, 0), vec3(0, 0, 0), vec3(0, 0, 1));
     proj = glm::perspective(glm::radians(60.f), glm::radians(60.f), 1.f, 100.f);
     vp = proj * view;
-    glm::vec4 a = vp * glm::vec4(0, 0, 0, 1);
+    vec4 a = vp * vec4(0, 0, 0, 1);
     glm::mat4 ivp = glm::inverse(vp);
 
 //     std::map<int, A> m;

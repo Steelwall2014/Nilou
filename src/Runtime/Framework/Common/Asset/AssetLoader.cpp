@@ -185,13 +185,13 @@ namespace nilou {
 		}
 	}
 
-	std::shared_ptr<FImage> AssetLoader::SyncOpenAndReadImage(const char *filePath)
+	FImage AssetLoader::SyncOpenAndReadImage(const char *filePath)
 	{
 		std::filesystem::path absolute_path = std::filesystem::path(filePath);
 
 		std::string AbsolutePath = absolute_path.generic_string();
 
-		std::shared_ptr<FImage> img = nullptr; 
+		FImage img; 
 		if (GameStatics::EndsWith(AbsolutePath, ".tiff") || GameStatics::EndsWith(AbsolutePath, ".tif"))
 		{
 			GDALDataset *ds = (GDALDataset *)GDALOpen(AbsolutePath.c_str(), GA_ReadOnly);
@@ -230,21 +230,21 @@ namespace nilou {
 				PixelFormat = TranslateToEPixelFormat(channel, byte_per_pixel_per_channel*8, TINYGLTF_COMPONENT_TYPE_FLOAT);
 				break;
 			default:
-				return nullptr;
+				return img;
 			}
-			auto image = std::make_shared<FImage2D>(width, height, PixelFormat);
-			image->AllocateSpace();
+			img = FImage(width, height, PixelFormat, EImageType::IT_Image2D);
+			img.AllocateSpace();
 			for (int band = 1; band <= channel; band++)
 			{
 				pBand = ds->GetRasterBand(band);
 				type = pBand->GetRasterDataType();
 				std::unique_ptr<uint8[]> temp_data = std::make_unique<uint8[]>(width * height * byte_per_pixel_per_channel);
 				pBand->RasterIO(GF_Read, 0, 0, width, height, temp_data.get(), width, height, type, 0, 0);
-				for (int row = 0; row < image->GetHeight(); row++)
+				for (int row = 0; row < img.GetHeight(); row++)
 				{
-					for (int col = 0; col < image->GetWidth(); col++)
+					for (int col = 0; col < img.GetWidth(); col++)
 					{
-						uint8* ptr = (uint8*)image->GetPointer(row, col);
+						uint8* ptr = (uint8*)img.GetPointer(row, col, 0);
 						uint8* data_ptr = temp_data.get() + (width * row + col) * byte_per_pixel_per_channel;
 						std::copy(data_ptr, data_ptr+byte_per_pixel_per_channel, ptr);
 					}
@@ -257,13 +257,13 @@ namespace nilou {
 
 			if (!LoadFromDDS(AbsolutePath.c_str(), &info)) {
 				std::cout << "Error: Could not load texture!\n";
-				return nullptr;
+				return img;
 			}
-			img = std::make_shared<FImage2D>(
+			img = FImage(
 				info.Width, info.Height, 
-				info.Format, info.MipLevels);
-			img->AllocateSpace();
-			std::copy((uint8*)info.Data, (uint8*)info.Data+info.DataSize, img->GetData());
+				info.Format, EImageType::IT_Image2D, info.MipLevels);
+			img.AllocateSpace();
+			std::copy((uint8*)info.Data, (uint8*)info.Data+info.DataSize, img.GetData());
 			
 		}
 		else
@@ -271,9 +271,9 @@ namespace nilou {
 			int width, height, channel;
 			uint8* temp_data = stbi_load(AbsolutePath.c_str(), (int *)&width, (int *)&height, (int *)&channel, 0);
 			EPixelFormat PixelFormat = TranslateToEPixelFormat(channel, 8, GL_UNSIGNED_BYTE);
-			img = std::make_shared<FImage2D>(width, height, PixelFormat, 1);
-			img->AllocateSpace();
-			std::copy(temp_data, temp_data+img->GetDataSize(), img->GetData());
+			img = FImage(width, height, PixelFormat, EImageType::IT_Image2D, 1);
+			img.AllocateSpace();
+			std::copy(temp_data, temp_data+img.GetDataSize(), img.GetData());
 			stbi_image_free(temp_data);
 		}
 		return img;

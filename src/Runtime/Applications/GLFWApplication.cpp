@@ -5,7 +5,7 @@
 #include <imgui_impl_opengl3.h>
 #include <memory>
 
-#include "OpenGL/OpenGLDynamicRHI.h"
+// #include "DynamicRHI.h"
 #include "Common/ContentManager.h"
 #include "Common/Asset/AssetLoader.h"
 
@@ -358,7 +358,7 @@ namespace nilou {
     void GLFWApplication::EnableCursor()
     {
         ENQUEUE_RENDER_COMMAND(GLFWApplication_EnableCursor)(
-            [this](FDynamicRHI*) 
+            [this](class FDynamicRHI*) 
             {
                 CursorEnabled = !CursorEnabled;
                 if (CursorEnabled)

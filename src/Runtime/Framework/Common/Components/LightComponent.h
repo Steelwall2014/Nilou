@@ -77,8 +77,8 @@ namespace nilou {
 
     // struct FLightParameters
     // {
-    //     glm::vec4   LightIntensity;
-    //     glm::ivec2  ShadowMapResolution;
+    //     vec4   LightIntensity;
+    //     ivec2  ShadowMapResolution;
     //     FAttenCurve LightDistAttenuation;
     //     FAttenCurve LightAngleAttenuation;
     //     ELightType  LightType;
@@ -95,8 +95,8 @@ namespace nilou {
 
         // For directional light, the unit is lux
         // For other types, the unit is cd
-        DEFINE_DYNAMIC_DATA(glm::vec3,   LightIntensity)
-        DEFINE_DYNAMIC_DATA(glm::ivec2,  ShadowMapResolution)
+        DEFINE_DYNAMIC_DATA(vec3,   LightIntensity)
+        DEFINE_DYNAMIC_DATA(ivec2,  ShadowMapResolution)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
         // DEFINE_DYNAMIC_DATA(ELightType,  LightType)
@@ -169,15 +169,15 @@ namespace nilou {
 
         FLightSceneInfo *GetLightSceneInfo() { return LightSceneInfo; }
 
-        void SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp);
+        void SetPositionAndDirection(const glm::dvec3 &InPosition, const vec3 &InDirection, const vec3 &InUp);
 
         void SetCastShadow(bool bCastShadow);
 
-        void SetLightIntensity(const glm::vec3 &LightIntensity);
+        void SetLightIntensity(const vec3 &LightIntensity);
 
         void SetLightType(ELightType LightType);
 
-        void SetShadowMapResolution(glm::ivec2 ShadowMapResolution);
+        void SetShadowMapResolution(ivec2 ShadowMapResolution);
 
         void SetLightDistAttenParams(const FAttenCurve &AttenCurveParam);
 
@@ -185,15 +185,15 @@ namespace nilou {
 
         glm::dvec3 Position;
 
-        glm::vec3 Direction;
+        vec3 Direction;
 
-        glm::vec3 Up;
+        vec3 Up;
 
         ELightType LightType;
 
         vec3 LightIntensity;
 
-        glm::ivec2 ShadowMapResolution;
+        ivec2 ShadowMapResolution;
 
         FAttenCurve DistAttenCurve;
 

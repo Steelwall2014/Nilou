@@ -39,8 +39,8 @@ namespace nilou {
         std::shared_ptr<class USceneCaptureComponentCube> SceneCaptureComponentCube;
 		/** TEST SCENE CAPTURE CUBE */
 		
-		glm::vec2 MovementInput = glm::vec2(0, 0);
-		glm::vec2 CameraInput = glm::vec2(0, 0);
+		vec2 MovementInput = vec2(0, 0);
+		vec2 CameraInput = vec2(0, 0);
 		float CameraRollInput = 0.f;
 		float ZoomFactor;
 		bool bZoomingIn = false;

@@ -31,7 +31,7 @@ namespace nilou {
 
         // Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.
         // @return the scale used by this shape.
-        inline float USphereComponent::GetShapeScale() const
+        inline float GetShapeScale() const
         {
             return GetComponentTransform().GetMinimumAxisScale();
         }

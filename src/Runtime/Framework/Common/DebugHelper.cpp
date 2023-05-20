@@ -5,12 +5,12 @@ void UNDDEBUG_PrintGLM(glm::quat q)
 	std::cout << "quat w: " << q.w << " x: " << q.x << " y: " << q.y << " z: " << q.z << std::endl;
 }
 
-void UNDDEBUG_PrintGLM(glm::vec3 v)
+void UNDDEBUG_PrintGLM(vec3 v)
 {
 	std::cout << "vec3 x: " << v.x << " y: " << v.y << " z: " << v.z << std::endl;
 }
 
-void UNDDEBUG_PrintGLM(glm::vec4 v)
+void UNDDEBUG_PrintGLM(vec4 v)
 {
 	std::cout << "vec4 x: " << v.x << " y: " << v.y << " z: " << v.z << " w: " << v.w << std::endl;
 }

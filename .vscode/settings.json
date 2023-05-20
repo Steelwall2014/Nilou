@@ -17,7 +17,7 @@
     ],
     "xmake.debuggingTargetsArguments": {
         "NilouHeaderTool": [
-            "D:/Nilou/src", "D:/Nilou/src/Runtime/Generated",
+            "D:/Nilou/src/Runtime/Framework/Common", "D:/Nilou/src/Runtime/Generated",
             "D:/Nilou/External/include", 
             "D:/Nilou/src/Runtime/Framework", 
             "D:/Nilou/src/Runtime/Applications", 
@@ -32,5 +32,6 @@
             "D:/Nilou/src/Runtime/Cesium3DTiles",
             "D:/Nilou/Assets/Shaders"
         ],
-    }
+    },
+    "cmake.configureOnOpen": false
 }

@@ -33,7 +33,7 @@ namespace nilou {
 
         void CaptureScene();
 
-        static void USceneCaptureComponent::UpdateDeferredCaptures(FScene* Scene);
+        static void UpdateDeferredCaptures(FScene* Scene);
     
     protected:
 

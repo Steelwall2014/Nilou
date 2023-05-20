@@ -1375,7 +1375,7 @@ namespace nilou {
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
         // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
-        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+        uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage2D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
         // glTexImage2D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, NumMips, Format, Type, data);
         // if (NumMips > 1)
@@ -1392,7 +1392,7 @@ namespace nilou {
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
         // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
-        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+        uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
         // glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
         // if (NumMips > 1)
@@ -1409,7 +1409,7 @@ namespace nilou {
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
         // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
-        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+        uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage3D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z);
         // glTexImage3D_usingTexStorage(Texture->Target, 0, InternalFormat, sizexyz.x, sizexyz.y, sizexyz.z, NumMips, Format, Type, data);
         // if (NumMips > 1)
@@ -1428,7 +1428,7 @@ namespace nilou {
         // glMakeTextureHandleResidentARB(Texture->Handle);
         RHIGetError();
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
-        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+        uvec3 sizexyz = Texture->GetSizeXYZ();
         glTexStorage2D(GL_TEXTURE_CUBE_MAP, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
         // if (data) 
         // {
@@ -1449,7 +1449,7 @@ namespace nilou {
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
         // glMakeTextureHandleResidentARB(Texture->Handle);
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
-        glm::uvec3 sizexyz = Texture->GetSizeXYZ();
+        uvec3 sizexyz = Texture->GetSizeXYZ();
 		glTexParameteri(Texture->Target, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
         glTexStorage2D(Texture->Target, NumMips, InternalFormat, sizexyz.x, sizexyz.y);
         
@@ -1811,7 +1811,7 @@ namespace nilou {
     {
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         OpenGLTextureResource GLResource = TextureResourceCast(Texture);
-		glm::ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
+		ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
   
 		glBindTexture(GLResource.Target, GLResource.Resource);
         glTexPageCommitmentARB(GLResource.Target, MipmapLevel,
@@ -1825,7 +1825,7 @@ namespace nilou {
         RHIGetError();
         auto [Format, InternalFormat, Type] = TranslatePixelFormat(Texture->GetFormat());
         OpenGLTextureResource GLResource = TextureResourceCast(Texture);
-		glm::ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
+		ivec3 PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(Texture->GetTextureType(), Texture->GetFormat());
 		glBindTexture(GLResource.Target, GLResource.Resource);
         glTexPageCommitmentARB(GLResource.Target, MipmapLevel,
 					PageSize.x * TileX, PageSize.y * TileY, 0,

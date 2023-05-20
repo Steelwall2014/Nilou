@@ -57,6 +57,11 @@ namespace nilou {
             cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
     }
 
+    void UTexture::PostDeserialize()
+    {
+        UpdateResource();
+    }
+
     // void UTexture::Serialize(FArchive &Ar)
     // {
     //     nlohmann::json &json = Ar.json;

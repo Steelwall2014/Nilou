@@ -164,7 +164,7 @@ namespace nilou {
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual glm::uvec3 GetSizeXYZ() { return glm::uvec3(0, 0, 0); }
+		virtual uvec3 GetSizeXYZ() { return uvec3(0, 0, 0); }
 		inline uint32 GetNumMips()
 		{
 			return NumMips;
@@ -200,7 +200,7 @@ namespace nilou {
 		, SizeY(InSizeY)
 		{ TextureType = ETextureType::TT_Texture2D; }
 
-		inline virtual glm::uvec3 GetSizeXYZ() { return glm::uvec3(SizeX, SizeY, 1); }
+		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, 1); }
 		inline uint32 GetSizeX() { return SizeX; }
 		inline uint32 GetSizeY() { return SizeY; }
 
@@ -218,7 +218,7 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture2DArray; }
 
-		inline virtual glm::uvec3 GetSizeXYZ() { return glm::uvec3(SizeX, SizeY, SizeZ); }
+		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
 		inline uint32 GetSizeZ() { return SizeZ; }
 
 	private:
@@ -236,7 +236,7 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture3D; }
 
-		inline virtual glm::uvec3 GetSizeXYZ() { return glm::uvec3(SizeX, SizeY, SizeZ); }
+		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
 		inline uint32 GetSizeX() { return SizeX; }
 		inline uint32 GetSizeY() { return SizeY; }
 		inline uint32 GetSizeZ() { return SizeZ; }
@@ -257,7 +257,7 @@ namespace nilou {
 		, Size(InSize)
 		{ TextureType = ETextureType::TT_TextureCube; }
 
-		inline virtual glm::uvec3 GetSizeXYZ() { return glm::uvec3(Size, Size, 1); }
+		inline virtual uvec3 GetSizeXYZ() { return uvec3(Size, Size, 1); }
 
 	protected:
 		uint32 Size;
@@ -404,7 +404,7 @@ namespace nilou {
 		RHIFramebuffer *Framebuffer;
 		ivec2 Viewport;
 		bool bClearColorBuffer;
-		glm::vec4 ClearColor;
+		vec4 ClearColor;
 		bool bClearDepthBuffer;
 		float ClearDepth;
 		bool bClearStencilBuffer;
@@ -415,7 +415,7 @@ namespace nilou {
 			bool bInClearColorBuffer=false, 
 			bool bInClearDepthBuffer=false, 
 			bool bInClearStencilBuffer=false, 
-			glm::vec4 InClearColor=glm::vec4(0.f, 0.f, 0.f, 1.0f), 
+			vec4 InClearColor=vec4(0.f, 0.f, 0.f, 1.0f), 
 			float InClearDepth=1.0f,
 			int InClearStencil=0)
 			: Framebuffer(InFramebuffer)

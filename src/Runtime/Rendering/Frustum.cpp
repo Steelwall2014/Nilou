@@ -403,14 +403,14 @@ namespace nilou {
     bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FBoundingBox &AABB) const
     {
         return 
-            IsOutSidePlane(plane, glm::vec3(AABB.Min.x, AABB.Min.y, AABB.Min.z)) && 
-            IsOutSidePlane(plane, glm::vec3(AABB.Min.x, AABB.Min.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Min.x, AABB.Max.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Min.x, AABB.Max.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Max.x, AABB.Min.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Max.x, AABB.Min.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Max.x, AABB.Max.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, glm::vec3(AABB.Max.x, AABB.Max.y, AABB.Max.z));
+            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Min.z)) && 
+            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Max.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Max.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Min.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Min.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Max.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Max.y, AABB.Max.z));
     }
     bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FOrientedBoundingBox &OBB) const
     {

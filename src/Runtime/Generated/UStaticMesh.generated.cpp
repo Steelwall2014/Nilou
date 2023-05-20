@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;
@@ -21,7 +21,7 @@ struct TClassRegistry<nilou::UStaticMesh>
     {
         nilou::UStaticMesh::StaticClass_ = std::make_unique<NClass>();
         Mngr.RegisterType<nilou::UStaticMesh>();
-		Mngr.AddField<&nilou::UStaticMesh::LODResources>("LODResources");
+		Mngr.AddField<&nilou::UStaticMesh::LODResourcesData>("LODResourcesData");
 		Mngr.AddField<&nilou::UStaticMesh::LocalBoundingBox>("LocalBoundingBox");
 		Mngr.AddField<&nilou::UStaticMesh::MaterialSlots>("MaterialSlots");
 		Mngr.AddField<&nilou::UStaticMesh::Name>("Name");
@@ -48,8 +48,8 @@ void nilou::UStaticMesh::Serialize(FArchive& Ar)
     nlohmann::json &content = Node["Content"];
 
     {
-        FArchive local_Ar(content["LODResources"], Ar);
-        TStaticSerializer<decltype(this->LODResources)>::Serialize(this->LODResources, local_Ar);
+        FArchive local_Ar(content["LODResourcesData"], Ar);
+        TStaticSerializer<decltype(this->LODResourcesData)>::Serialize(this->LODResourcesData, local_Ar);
     }
     {
         FArchive local_Ar(content["LocalBoundingBox"], Ar);
@@ -71,10 +71,10 @@ void nilou::UStaticMesh::Deserialize(FArchive& Ar)
     nlohmann::json& Node = Ar.Node;
     nlohmann::json &content = Node["Content"];
 
-    if (content.contains("LODResources"))
+    if (content.contains("LODResourcesData"))
     {
-        FArchive local_Ar(content["LODResources"], Ar);
-        TStaticSerializer<decltype(this->LODResources)>::Deserialize(this->LODResources, local_Ar);
+        FArchive local_Ar(content["LODResourcesData"], Ar);
+        TStaticSerializer<decltype(this->LODResourcesData)>::Deserialize(this->LODResourcesData, local_Ar);
     }
     if (content.contains("LocalBoundingBox"))
     {

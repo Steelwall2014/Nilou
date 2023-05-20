@@ -34,7 +34,7 @@ namespace nilou {
 
         ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
         
-        glm::ivec2 ScreenResolution;
+        ivec2 ScreenResolution;
 
     };
 }

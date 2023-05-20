@@ -249,28 +249,28 @@ namespace nilou {
         {
             case EAttenCurveType::ACT_Linear:
                 OutParameter.AttenCurveParams =
-                    glm::vec4(
+                    vec4(
                         AttenCurveParam.u.linear_params.begin_atten, 
                         AttenCurveParam.u.linear_params.end_atten, 
                         0, 0);
                 break;
             case EAttenCurveType::ACT_Smooth:
                 OutParameter.AttenCurveParams =
-                    glm::vec4(
+                    vec4(
                         AttenCurveParam.u.smooth_params.begin_atten, 
                         AttenCurveParam.u.smooth_params.end_atten, 
                         0, 0);
                 break;
             case EAttenCurveType::ACT_Inverse:
                 OutParameter.AttenCurveParams =
-                    glm::vec4(
+                    vec4(
                         AttenCurveParam.u.inverse_params.offset, 
                         AttenCurveParam.u.inverse_params.kl, 
                         AttenCurveParam.u.inverse_params.kc, 0);
                 break;
             case EAttenCurveType::ACT_InverseSquare:
                 OutParameter.AttenCurveParams =
-                    glm::vec4(
+                    vec4(
                         AttenCurveParam.u.inverse_squre_params.offset,
                         AttenCurveParam.u.inverse_squre_params.kq,
                         AttenCurveParam.u.inverse_squre_params.kl,

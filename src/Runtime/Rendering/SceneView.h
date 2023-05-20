@@ -40,7 +40,7 @@ namespace nilou {
         double AspectRatio;
         double NearClipDistance;
         double FarClipDistance;
-        glm::ivec2 ScreenResolution;
+        ivec2 ScreenResolution;
 
         ECameraProjectionMode ProjectionMode;
         double OrthoWidth;

@@ -10,9 +10,9 @@
 namespace nilou {
 
     glm::quat ROOT_ROTATION(1.f, 0.f, 0.f, 0.f);
-    //glm::vec3 ROOT_TRANSLATION(10120, 10120, -20);
-    glm::vec3 ROOT_TRANSLATION(10, 10, 0);
-    //glm::vec3 ROOT_TRANSLATION(10000, 10000, 20);
+    //vec3 ROOT_TRANSLATION(10120, 10120, -20);
+    vec3 ROOT_TRANSLATION(10, 10, 0);
+    //vec3 ROOT_TRANSLATION(10000, 10000, 20);
 
     float MOVEMENTSPEED = 100;
     // float SPRING_ARM_LENGTH = 0.f;
@@ -23,8 +23,8 @@ namespace nilou {
     // float CAMERA_YAW = 0.f;
     // //float CAMERA_YAW = -60.f;
     // glm::quat CAMERA_RELATIVE_ROTATION(1.f, 0.f, 0.f, 0.f);
-    // glm::vec3 CAMERA_RELATIVE_TRANSLATION(0.f, 0.f, 0.f);
-    // glm::vec3 SpringArm = SPRING_ARM_LENGTH * -WORLD_FORWARD;
+    // vec3 CAMERA_RELATIVE_TRANSLATION(0.f, 0.f, 0.f);
+    // vec3 SpringArm = SPRING_ARM_LENGTH * -WORLD_FORWARD;
 
     // double accumulate_pitch = CAMERA_PITCH;
 
@@ -146,7 +146,7 @@ namespace nilou {
             SetActorLocation(NewLocation);
         }
 
-        MovementInput = CameraInput = glm::vec2(0.f, 0.f);
+        MovementInput = CameraInput = vec2(0.f, 0.f);
         CameraRollInput = 0;
     }
 
@@ -213,7 +213,7 @@ namespace nilou {
     {
         if (GetAppication()->IsCursorEnabled())
             return;
-        CameraComponent->SetWorldLocation(glm::vec3(10, 10, 0));
+        CameraComponent->SetWorldLocation(vec3(10, 10, 0));
     }
 
     void ACameraActor::SpeedUp(float AxisValue)

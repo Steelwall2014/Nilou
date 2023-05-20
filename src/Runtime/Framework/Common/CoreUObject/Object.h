@@ -35,4 +35,83 @@ namespace nilou {
         return nullptr;
     }
     
+    class FContentManager *GetContentManager();
 }
+
+template<typename  T>
+class TStaticSerializer<std::shared_ptr<T>>
+{
+    using RawT = std::remove_cv_t<std::remove_reference_t<T>>;
+public:
+    static void Serialize(std::shared_ptr<T>& Object, FArchive& Ar) 
+    { 
+        if (Object)
+        {
+            if (T::StaticClass()->IsChildOf(nilou::NAsset::StaticClass()))
+            {
+                auto asset = std::static_pointer_cast<nilou::NAsset>(Object);
+                Ar.Node = asset->SerializationPath.generic_string();
+            }
+            else 
+            {
+                Object->Serialize(Ar);
+            }
+        }
+    }
+    static void Deserialize(std::shared_ptr<T>& Object, FArchive& Ar) 
+    { 
+        if (T::StaticClass()->IsChildOf(nilou::NAsset::StaticClass()) && Ar.Node.is_string())
+        {
+            std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+            Object = std::static_pointer_cast<T>(nilou::GetContentManager()->GetContentByPath(path));
+        }
+        else if (Ar.Node.contains("ClassName"))
+        {
+            std::string class_name = Ar.Node["ClassName"];
+            if (Object == nullptr)
+                Object = std::shared_ptr<T>(static_cast<T*>(CreateDefaultObject(class_name)));
+
+            if (Object)
+                Object->Deserialize(Ar);
+        }
+    }
+};
+
+template<typename T>
+class TStaticSerializer<T*>
+{
+    using RawT = std::remove_cv_t<std::remove_reference_t<T>>;
+public:
+    static void Serialize(T*& Object, FArchive& Ar) 
+    { 
+        if (Object)
+        {
+            if (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
+            {
+                auto asset = static_cast<nilou::NAsset*>(Object);
+                Ar.Node = asset->SerializationPath.generic_string();
+            }
+            else 
+            {
+                Object->Serialize(Ar);
+            }
+        }
+    }
+    static void Deserialize(T*& Object, FArchive& Ar) 
+    { 
+        if (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value && Ar.Node.is_string())
+        {
+            std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+            Object = static_cast<T*>(nilou::GetContentManager()->GetContentByPath(path));
+        }
+        else if (Ar.Node.contains("ClassName"))
+        {
+            std::string class_name = Ar.Node["ClassName"];
+            if (Object == nullptr)
+                Object = static_cast<T*>(CreateDefaultObject(class_name));
+
+            if (Object)
+                Object->Deserialize(Ar);
+        }
+    }
+};

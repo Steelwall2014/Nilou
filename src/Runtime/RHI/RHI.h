@@ -115,41 +115,41 @@ namespace nilou {
 		, StencilWriteMask(InStencilWriteMask)
 		{}
 
-		std::string ToString() const
-		{
-			char buffer[256];
-			std::string res;
-			std::sprintf("<%u %u "
-				, buffer
-				, uint32(!!bEnableDepthWrite)
-				, uint32(DepthTest)
-			);
-			res += buffer;
-			std::sprintf("%u %u %u %u %u "
-				, buffer
-				, uint32(!!bEnableFrontFaceStencil)
-				, uint32(FrontFaceStencilTest)
-				, uint32(FrontFaceStencilFailStencilOp)
-				, uint32(FrontFaceDepthFailStencilOp)
-				, uint32(FrontFacePassStencilOp)
-			);
-			res += buffer;
-			std::sprintf("%u %u %u %u %u "
-				, buffer
-				, uint32(!!bEnableBackFaceStencil)
-				, uint32(BackFaceStencilTest)
-				, uint32(BackFaceStencilFailStencilOp)
-				, uint32(BackFaceDepthFailStencilOp)
-				, uint32(BackFacePassStencilOp)
-			);
-			res += buffer;
-			std::sprintf("%u %u>"
-				, buffer
-				, uint32(StencilReadMask)
-				, uint32(StencilWriteMask)
-			);
-			return res;
-		}
+		// std::string ToString() const
+		// {
+		// 	char buffer[256];
+		// 	std::string res;
+		// 	std::sprintf("<%u %u "
+		// 		, buffer
+		// 		, uint32(!!bEnableDepthWrite)
+		// 		, uint32(DepthTest)
+		// 	);
+		// 	res += buffer;
+		// 	std::sprintf("%u %u %u %u %u "
+		// 		, buffer
+		// 		, uint32(!!bEnableFrontFaceStencil)
+		// 		, uint32(FrontFaceStencilTest)
+		// 		, uint32(FrontFaceStencilFailStencilOp)
+		// 		, uint32(FrontFaceDepthFailStencilOp)
+		// 		, uint32(FrontFacePassStencilOp)
+		// 	);
+		// 	res += buffer;
+		// 	std::sprintf("%u %u %u %u %u "
+		// 		, buffer
+		// 		, uint32(!!bEnableBackFaceStencil)
+		// 		, uint32(BackFaceStencilTest)
+		// 		, uint32(BackFaceStencilFailStencilOp)
+		// 		, uint32(BackFaceDepthFailStencilOp)
+		// 		, uint32(BackFacePassStencilOp)
+		// 	);
+		// 	res += buffer;
+		// 	std::sprintf("%u %u>"
+		// 		, buffer
+		// 		, uint32(StencilReadMask)
+		// 		, uint32(StencilWriteMask)
+		// 	);
+		// 	return res;
+		// }
 	};
 
 	// template<>

@@ -101,7 +101,7 @@ function BuildProject(config)
             -- set_runtimes("MDd")
             add_cxflags(
                 --"/NODEFAULTLIB:libc.lib", "/NODEFAULTLIB:libcmt.lib", "/NODEFAULTLIB:libcd.lib", "/NODEFAULTLIB:libcmtd.lib", "/NODEFAULTLIB:msvcrt.lib", 
-                "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", {
+                "/Zi", "/W0", "/MP", "/Ob0", "/Oy-", "/GF", "/GS", "/arch:AVX2", "/fp:precise", "/Gr", "/TP", "/bigobj", {
                 force = true
             })
             -- SetException(config)

@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/ReflectionProbeComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

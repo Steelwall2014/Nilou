@@ -562,6 +562,8 @@ namespace nilou {
          * This function ensures the data of the image is readed when return.
          */
         virtual void ReadPixelsSync();
+
+        virtual void PostDeserialize() override;
     
     protected:
 

@@ -488,126 +488,126 @@ namespace detail
 	// -- Unary bit operators --
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator%=(U scalar)
 	{
 		return (*this = detail::compute_vec4_mod<T, P, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator%=(tvec1<U, P> const& v)
 	{
 		return (*this = detail::compute_vec4_mod<T, P, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator%=(tvec4<U, P> const& v)
 	{
 		return (*this = detail::compute_vec4_mod<T, P, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator&=(U scalar)
 	{
 		return (*this = detail::compute_vec4_and<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator&=(tvec1<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_and<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator&=(tvec4<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_and<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator|=(U scalar)
 	{
 		return (*this = detail::compute_vec4_or<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator|=(tvec1<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_or<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator|=(tvec4<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_or<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator^=(U scalar)
 	{
 		return (*this = detail::compute_vec4_xor<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator^=(tvec1<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_xor<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator^=(tvec4<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_xor<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator<<=(U scalar)
 	{
 		return (*this = detail::compute_vec4_shift_left<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator<<=(tvec1<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_shift_left<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator<<=(tvec4<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_shift_left<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator>>=(U scalar)
 	{
 		return (*this = detail::compute_vec4_shift_right<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(scalar)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator>>=(tvec1<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_shift_right<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
 	}
 
 	template <typename T, precision P>
-	template <typename U> 
+	template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> & tvec4<T, P>::operator>>=(tvec4<U, P> const & v)
 	{
 		return (*this = detail::compute_vec4_shift_right<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(*this, tvec4<T, P>(v)));
@@ -751,187 +751,187 @@ namespace detail
 
 	// -- Binary bit operators --
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator%(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) %= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator%(tvec4<T, P> const & v1, tvec1<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) %= v2.x;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator%(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) %= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator%(tvec1<T, P> const & scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar.x) %= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator%(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) %= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator&(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) &= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator&(tvec4<T, P> const & v, tvec1<T, P> const & scalar)
 	{
 		return tvec4<T, P>(v) &= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator&(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) &= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator&(tvec1<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1.x) &= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator&(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) &= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator|(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) |= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator|(tvec4<T, P> const & v1, tvec1<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) |= v2.x;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator|(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) |= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator|(tvec1<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1.x) |= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator|(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) |= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator^(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) ^= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator^(tvec4<T, P> const & v1, tvec1<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) ^= v2.x;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator^(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) ^= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator^(tvec1<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1.x) ^= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator^(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) ^= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator<<(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) <<= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator<<(tvec4<T, P> const & v1, tvec1<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) <<= v2.x;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator<<(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) <<= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator<<(tvec1<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1.x) <<= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator<<(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) <<= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator>>(tvec4<T, P> const & v, T scalar)
 	{
 		return tvec4<T, P>(v) >>= scalar;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator>>(tvec4<T, P> const & v1, tvec1<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) >>= v2.x;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator>>(T scalar, tvec4<T, P> const & v)
 	{
 		return tvec4<T, P>(scalar) >>= v;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator>>(tvec1<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1.x) >>= v2;
 	}
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>>
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator>>(tvec4<T, P> const & v1, tvec4<T, P> const & v2)
 	{
 		return tvec4<T, P>(v1) >>= v2;
 	}
 
-	template <typename T, precision P> 
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int>> 
 	GLM_FUNC_QUALIFIER tvec4<T, P> operator~(tvec4<T, P> const & v)
 	{
 		return detail::compute_vec4_bitwise_not<T, P, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<P>::value>::call(v);

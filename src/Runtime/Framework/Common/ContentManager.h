@@ -25,7 +25,7 @@ namespace nilou {
          */
         std::filesystem::path RelativePath;
         std::unordered_map<std::string, std::unique_ptr<FContentEntry>> Children;
-        std::unique_ptr<NAsset> Object;
+        std::unique_ptr<class NAsset> Object;
 
         static std::unique_ptr<FContentEntry> Build(const std::filesystem::path &DirectoryPath, const std::filesystem::path &ContentBasePath);
 
@@ -140,7 +140,7 @@ namespace nilou {
         std::filesystem::path ContentBasePath;
         std::unique_ptr<FContentEntry> ContentEntry;
 
-        FContentEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
+        FContentEntry *CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
 
         TShaderMap<FShaderPermutationParameters> GlobalShaders;
 

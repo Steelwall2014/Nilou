@@ -33,7 +33,7 @@ namespace nilou {
         * @param y The radius in y-direction.
         * @param z The radius in z-direction.
         */
-        constexpr Ellipsoid(double x, double y, double z) noexcept
+        Ellipsoid(double x, double y, double z) noexcept
             : Ellipsoid(glm::dvec3(x, y, z)) {}
 
         /**
@@ -41,7 +41,7 @@ namespace nilou {
         *
         * @param radii The radii in x-, y-, and z-direction.
         */
-        constexpr Ellipsoid(const glm::dvec3& radii) noexcept
+        Ellipsoid(const glm::dvec3& radii) noexcept
             : _radii(radii),
                 _radiiSquared(radii.x * radii.x, radii.y * radii.y, radii.z * radii.z),
                 _oneOverRadii(1.0 / radii.x, 1.0 / radii.y, 1.0 / radii.z),
@@ -54,7 +54,7 @@ namespace nilou {
         /**
         * @brief Returns the radii in x-, y-, and z-direction.
         */
-        constexpr const glm::dvec3& getRadii() const noexcept { return this->_radii; }
+        const glm::dvec3& getRadii() const noexcept { return this->_radii; }
 
         /**
         * @brief Computes the normal of the plane tangent to the surface of the
@@ -116,7 +116,7 @@ namespace nilou {
         *
         * @return The maximum radius.
         */
-        constexpr double getMaximumRadius() const noexcept {
+        double getMaximumRadius() const noexcept {
             return glm::max(this->_radii.x, glm::max(this->_radii.y, this->_radii.z));
         }
 
@@ -125,21 +125,21 @@ namespace nilou {
         *
         * @return The minimum radius.
         */
-        constexpr double getMinimumRadius() const noexcept {
+        double getMinimumRadius() const noexcept {
             return glm::min(this->_radii.x, glm::min(this->_radii.y, this->_radii.z));
         }
 
         /**
         * @brief Returns `true` if two elliposids are equal.
         */
-        constexpr bool operator==(const Ellipsoid& rhs) const noexcept {
+        bool operator==(const Ellipsoid& rhs) const noexcept {
             return this->_radii == rhs._radii;
         };
 
         /**
         * @brief Returns `true` if two elliposids are *not* equal.
         */
-        constexpr bool operator!=(const Ellipsoid& rhs) const noexcept {
+        bool operator!=(const Ellipsoid& rhs) const noexcept {
             return !(*this == rhs);
         };
 

@@ -67,13 +67,13 @@ namespace nilou {
         std::string PreprocessedCode;
         int32 PermutationCount;
         
-        FShaderTypeBase::FShaderTypeBase() { }
+        FShaderTypeBase() { }
 
         /** 
         Some preprocess operations will be done in the constructor, 
         like change the relative include path to absolute path and discard the #version line
         */
-        FShaderTypeBase::FShaderTypeBase(const std::string &InClassName, const std::string &InFileName, int32 InPermutationCount);
+        FShaderTypeBase(const std::string &InClassName, const std::string &InFileName, int32 InPermutationCount);
 
         void ReadSourceCode();
 
@@ -104,7 +104,7 @@ namespace nilou {
 
         FShaderType() {}
         
-        FShaderType::FShaderType(
+        FShaderType(
             const std::string &InShaderClassName, 
             const std::string &InShaderFileName, 
             EShaderFrequency InShaderFrequency, 
@@ -147,7 +147,7 @@ namespace nilou {
 
         FVertexFactoryType() {}
 
-        FVertexFactoryType::FVertexFactoryType(
+        FVertexFactoryType(
             const std::string &InFactoryName, 
             const std::string &InShaderFileName,
             std::function<bool(const FVertexFactoryPermutationParameters&)> InShouldCompilePermutation,

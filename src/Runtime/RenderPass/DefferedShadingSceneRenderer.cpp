@@ -214,13 +214,13 @@ namespace nilou {
             PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
             PositionVertexInput.Location = 0;
             PositionVertexInput.Offset = 0;
-            PositionVertexInput.Stride = sizeof(glm::vec4);
+            PositionVertexInput.Stride = sizeof(vec4);
             PositionVertexInput.Type = EVertexElementType::VET_Float4;
 
             UVVertexInput.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
             UVVertexInput.Location = 1;
             UVVertexInput.Offset = 0;
-            UVVertexInput.Stride = sizeof(glm::vec2);
+            UVVertexInput.Stride = sizeof(vec2);
             UVVertexInput.Type = EVertexElementType::VET_Float2;
         }
         

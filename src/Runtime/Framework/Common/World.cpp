@@ -61,7 +61,7 @@ namespace nilou {
             {
                 for (int j = 1; j <= 1; j++)
                 {
-                    MeshTransform.SetTranslation(glm::vec3(i, j, 1));
+                    MeshTransform.SetTranslation(vec3(i, j, 1));
                     std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
                     StaticMeshActor->SetStaticMesh(Mesh);
                 }
@@ -82,7 +82,7 @@ namespace nilou {
                     mat->SetScalarParameterValue("Blue", 1.f);
                     mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
                     mat->SetScalarParameterValue("Roughness", (j)*0.25f);
-                    SphereTransform.SetTranslation(glm::vec3(-2, j*0.3, i*0.3));
+                    SphereTransform.SetTranslation(vec3(-2, j*0.3, i*0.3));
                     SphereTransform.SetScale3D(dvec3(0.1));
                     std::shared_ptr<ASphereActor> Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
                     Sphere->SphereComponent->SetMaterial(mat);
@@ -174,47 +174,49 @@ namespace nilou {
         bHasBegunPlay = true;
 
 
-        LoadPBRExibition(this);
+        // LoadPBRExibition(this);
 
-        LoadSkyAtmosphere(this);
+        // LoadSkyAtmosphere(this);
 
-        // std::vector<FDynamicMeshVertex> OutVerts;
-        // std::vector<uint32> OutIndices;
-        // BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
-        // UStaticMesh *cube = GetContentManager()->CreateFile<UStaticMesh>("StaticMeshes/Cube.nasset");
-        // cube->LocalBoundingBox = FBoundingBox(dvec3(-0.5), dvec3(0.5));
-        // cube->MaterialSlots.push_back(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
-        // std::unique_ptr<FStaticMeshLODResources> resources = std::make_unique<FStaticMeshLODResources>();
-        // std::unique_ptr<FStaticMeshSection> section = std::make_unique<FStaticMeshSection>();
-        // section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
-        // section->IndexBuffer.Init(OutIndices);
-        // resources->Sections.push_back(std::move(section));
-        // cube->RenderData->LODResources.push_back(std::move(resources));
-        // cube->Name = "Cube";
+        // // std::vector<FDynamicMeshVertex> OutVerts;
+        // // std::vector<uint32> OutIndices;
+        // // BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
+        // // UStaticMesh *cube = GetContentManager()->CreateFile<UStaticMesh>("StaticMeshes/Cube.nasset");
+        // // cube->LocalBoundingBox = FBoundingBox(dvec3(-0.5), dvec3(0.5));
+        // // cube->MaterialSlots.push_back(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
+        // // std::unique_ptr<FStaticMeshLODResources> resources = std::make_unique<FStaticMeshLODResources>();
+        // // std::unique_ptr<FStaticMeshSection> section = std::make_unique<FStaticMeshSection>();
+        // // section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
+        // // section->IndexBuffer.Init(OutIndices);
+        // // resources->Sections.push_back(std::move(section));
+        // // cube->RenderData->LODResources.push_back(std::move(resources));
+        // // cube->Name = "Cube";
         
 
-        FTransform CameraActorTransform;
-        CameraActorTransform.SetTranslation(glm::vec3(0, -2, 0));
-        CameraActorTransform.SetRotator(FRotator(0, 90, 0));
-        std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
-        CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
-        // CameraActor->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-        // CameraActor->SetMoveSpeed(100);
+        // FTransform CameraActorTransform;
+        // CameraActorTransform.SetTranslation(vec3(0, -2, 0));
+        // CameraActorTransform.SetRotator(FRotator(0, 90, 0));
+        // std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
+        // CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
+        // // CameraActor->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
+        // // CameraActor->SetMoveSpeed(100);
 
-        FTransform LightActorTransform;
-        // LightActorTransform.SetTranslation(glm::vec3(10, 10, 10));
-        LightActorTransform.SetRotator(FRotator(-45, -45, 0));
-        std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
+        // FTransform LightActorTransform;
+        // // LightActorTransform.SetTranslation(vec3(10, 10, 10));
+        // LightActorTransform.SetRotator(FRotator(-45, -45, 0));
+        // std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
         // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
         // DirectionalLightActor->LightComponent->SetIntensity(10.f);
 
 
-        // GetContentManager()->ForEachContent([](UObject* Obj){
-        //     if (Obj->IsA(UVirtualTexture::StaticClass()))
+        // GetContentManager()->ForEachContent([](NAsset* Obj){
+        //     if (Obj->IsA(UStaticMesh::StaticClass()))
         //     {
         //         Obj->ContentEntry->bIsDirty = true;
+        //         Obj->ContentEntry->bNeedFlush = true;
         //     }
         // });
+        // GetContentManager()->Flush();
 
         // std::shared_ptr<FImage> img =GetAssetLoader()->SyncOpenAndReadImage(R"(E:\Downloads\ibl_brdf_lut.png)");
         // UTexture2D* LUT = GetContentManager()->CreateFile<UTexture2D>("/Textures/IBL_BRDF_LUT.nasset");

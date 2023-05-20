@@ -21,7 +21,7 @@ namespace nilou {
 
 		std::string SyncOpenAndReadText(const char *filePath);
 
-		std::shared_ptr<nilou::FImage> SyncOpenAndReadImage(const char *filePath);
+		nilou::FImage SyncOpenAndReadImage(const char *filePath);
 		static std::set<std::filesystem::path> GetAllSearchDirectories();
 		static std::filesystem::path FileExistsInDir(const std::filesystem::path &Directory, const std::filesystem::path &FileName);
     private:

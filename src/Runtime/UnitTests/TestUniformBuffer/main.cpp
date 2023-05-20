@@ -56,7 +56,7 @@ int main()
     // ref->Set("Lights[5].lightVP", mat4(10.f));
     // mat4 lightVP;
     // ref->Get("Lights[5].lightVP", &lightVP);
-    // buffer.Set("vector", glm::vec3(1.f, 2.f, 3.f));
+    // buffer.Set("vector", vec3(1.f, 2.f, 3.f));
     // buffer.Set("matrix", glm::mat4(10.f));
     // buffer.Set("values", 0, 0.f);
     // buffer.Set("values", 1, 1.f);
@@ -66,7 +66,7 @@ int main()
 
     // float value;
     // buffer.Get("value", &value);
-    // glm::vec3 vector;
+    // vec3 vector;
     // buffer.Get("vector", &vector);
     // glm::mat4 matrix;
     // buffer.Get("matrix", &matrix);

@@ -14,7 +14,7 @@ namespace nilou {
     public:
         BaseApplication(GfxConfiguration &cfg);
         virtual bool Initialize();
-        virtual bool Initialize_RenderThread() { }
+        virtual bool Initialize_RenderThread() { return true; }
         virtual void Finalize();
         virtual void Finalize_RenderThread() { }
         virtual void Tick(double);

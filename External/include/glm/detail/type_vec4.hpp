@@ -233,41 +233,41 @@ namespace glm
 
 		// -- Unary bit operators --
 
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator%=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator%=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator%=(tvec4<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator&=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator&=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator&=(tvec4<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator|=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator|=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator|=(tvec4<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator^=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator^=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator^=(tvec4<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator<<=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator<<=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator<<=(tvec4<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator>>=(U scalar);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator>>=(tvec1<U, P> const & v);
-		template <typename U>
+		template <typename U, std::enable_if_t<detail::bit_operator<T, U>::value, int> = 0>
 		GLM_FUNC_DECL tvec4<T, P> & operator>>=(tvec4<U, P> const & v);
 	};
 
@@ -341,97 +341,97 @@ namespace glm
 	template <typename T, precision P>
 	GLM_FUNC_DECL tvec4<T, P> operator/(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator%(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator%(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator%(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator%(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator%(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator&(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator&(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator&(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator&(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator&(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator|(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator|(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator|(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator|(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator|(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator^(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator^(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator^(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator^(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator^(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator<<(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator<<(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator<<(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator<<(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator<<(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator>>(tvec4<T, P> const & v, T scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator>>(tvec4<T, P> const & v, tvec1<T, P> const & scalar);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator>>(T scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator>>(tvec1<T, P> const & scalar, tvec4<T, P> const & v);
 
-	template <typename T, precision P>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec4<T, P> operator>>(tvec4<T, P> const & v1, tvec4<T, P> const & v2);
 
-	template <typename T, precision P> 
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0> 
 	GLM_FUNC_DECL tvec4<T, P> operator~(tvec4<T, P> const & v);
 
 	// -- Boolean operators --

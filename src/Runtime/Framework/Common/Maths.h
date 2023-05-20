@@ -5,6 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/epsilon.hpp>
 
+#include <reflection/Class.h>
+
 #define SMALL_NUMBER		(1.e-8f)
 #define KINDA_SMALL_NUMBER	(1.e-4f)
 #define BIG_NUMBER			(3.4e+38f)
@@ -33,6 +35,82 @@ using dmat4 = glm::dmat4;
 
 using quat = glm::quat;
 using dquat = glm::dquat;
+
+#define SERIALIZE_HELPER_VEC(Vec) \
+    template<> \
+    class TStaticSerializer<Vec> \
+    { \
+    public: \
+        static void Serialize(Vec& Object, FArchive& Ar) \
+        { \
+            for (int i = 0; i < Object.length(); i++) \
+                Ar.Node.push_back(Object[i]); \
+        } \
+        static void Deserialize(Vec& Object, FArchive& Ar) \
+        { \
+            if (Ar.Node.is_array()) \
+            { \
+                for (int i = 0; i < Ar.Node.size(); i++) \
+                    Object[i] = Ar.Node[i].get<Vec::value_type>(); \
+            } \
+        } \
+    };
+
+#define SERIALIZE_HELPER_MAT(Mat) \
+    template<> \
+    class TStaticSerializer<Mat> \
+    { \
+    public: \
+        static void Serialize(Mat& Object, FArchive& Ar) \
+        { \
+            int i = 0; \
+            int len = Mat::length(); \
+            for (; i < len*len; i++) \
+            { \
+                Ar.Node.push_back(Object[i/len][i%len]); \
+            } \
+        } \
+        static void Deserialize(Mat& Object, FArchive& Ar) \
+        { \
+            if (Ar.Node.is_array()) \
+            { \
+                int i = 0; \
+                int len = Mat::length(); \
+                for (auto &element : Ar.Node) \
+                { \
+                    if (element.is_number()) \
+                        Object[i/len][i%len] = element.get<Mat::value_type>(); \
+                    i++; \
+                } \
+            } \
+        } \
+    }; \
+
+SERIALIZE_HELPER_VEC(uvec2)
+SERIALIZE_HELPER_VEC(uvec3)
+SERIALIZE_HELPER_VEC(uvec4)
+SERIALIZE_HELPER_VEC(bvec2)
+SERIALIZE_HELPER_VEC(bvec3)
+SERIALIZE_HELPER_VEC(bvec4)
+SERIALIZE_HELPER_VEC(ivec2)
+SERIALIZE_HELPER_VEC(ivec3)
+SERIALIZE_HELPER_VEC(ivec4)
+SERIALIZE_HELPER_VEC(vec2)
+SERIALIZE_HELPER_VEC(vec3)
+SERIALIZE_HELPER_VEC(vec4)
+SERIALIZE_HELPER_VEC(dvec2)
+SERIALIZE_HELPER_VEC(dvec3)
+SERIALIZE_HELPER_VEC(dvec4)
+SERIALIZE_HELPER_MAT(mat2)
+SERIALIZE_HELPER_MAT(mat3)
+SERIALIZE_HELPER_MAT(mat4)
+SERIALIZE_HELPER_MAT(dmat2)
+SERIALIZE_HELPER_MAT(dmat3)
+SERIALIZE_HELPER_MAT(dmat4)
+
+SERIALIZE_HELPER_VEC(quat)
+SERIALIZE_HELPER_VEC(dquat)
+
 namespace nilou {
 
     const double PI = glm::pi<double>();
@@ -56,7 +134,7 @@ namespace nilou {
         * @return The absolute epsilon.
         */
 	    template <typename T, glm::precision P, template <typename, glm::precision> class vecType>
-        static constexpr vecType<T, P> relativeEpsilonToAbsolute(
+        static vecType<T, P> relativeEpsilonToAbsolute(
             const vecType<T, P>& a,
             const vecType<T, P>& b,
             double relativeEpsilon) noexcept 
@@ -73,7 +151,7 @@ namespace nilou {
         * @param relativeEpsilon The relative epsilon.
         * @return The absolute epsilon.
         */
-        static constexpr double relativeEpsilonToAbsolute(
+        static double relativeEpsilonToAbsolute(
             double a,
             double b,
             double relativeEpsilon) noexcept 
@@ -92,7 +170,7 @@ namespace nilou {
         * @return Whether the values are epsilon-equal
         */
 	    template <typename T, glm::precision P, template <typename, glm::precision> class vecType>
-        static bool constexpr equalsEpsilon(
+        static bool equalsEpsilon(
             const vecType<T, P>& left,
             const vecType<T, P>& right,
             double relativeEpsilon) noexcept 
@@ -108,7 +186,7 @@ namespace nilou {
         * @param relativeEpsilon The relative epsilon.
         * @return Whether the values are epsilon-equal
         */
-        static constexpr bool
+        static bool
         equalsEpsilon(double left, double right, double relativeEpsilon) noexcept 
         {
             return equalsEpsilon(left, right, relativeEpsilon, relativeEpsilon);
@@ -135,7 +213,7 @@ namespace nilou {
         *
         * @snippet TestMath.cpp equalsEpsilon
         */
-        static constexpr bool equalsEpsilon(
+        static bool equalsEpsilon(
             double left,
             double right,
             double relativeEpsilon,
@@ -169,7 +247,7 @@ namespace nilou {
         * `false`.
         */
 	    template <typename T, glm::precision P, template <typename, glm::precision> class vecType>
-        static constexpr bool equalsEpsilon(
+        static bool equalsEpsilon(
             const vecType<T, P>& left,
             const vecType<T, P>& right,
             double relativeEpsilon,

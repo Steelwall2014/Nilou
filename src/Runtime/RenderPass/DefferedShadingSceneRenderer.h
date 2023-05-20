@@ -226,18 +226,18 @@ namespace nilou {
         public:
             FScreenQuadPositionVertexBuffer()
             {
-                Vertices[0] = glm::vec4(-1, 1, 0, 1);
-                Vertices[1] = glm::vec4(-1, -1, 0, 1);
-                Vertices[2] = glm::vec4(1, 1, 0, 1);
-                Vertices[3] = glm::vec4(1, -1, 0, 1);
+                Vertices[0] = vec4(-1, 1, 0, 1);
+                Vertices[1] = vec4(-1, -1, 0, 1);
+                Vertices[2] = vec4(1, 1, 0, 1);
+                Vertices[3] = vec4(1, -1, 0, 1);
             }
             virtual void InitRHI() override
             {
                 FVertexBuffer::InitRHI();
-                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
-            glm::vec4 Vertices[4];
+            vec4 Vertices[4];
         };
 
         class FScreenQuadUVVertexBuffer : public FVertexBuffer
@@ -245,18 +245,18 @@ namespace nilou {
         public:
             FScreenQuadUVVertexBuffer()
             {
-                Vertices[0] = glm::vec2(0, 1);
-                Vertices[1] = glm::vec2(0, 0);
-                Vertices[2] = glm::vec2(1, 1);
-                Vertices[3] = glm::vec2(1, 0);
+                Vertices[0] = vec2(0, 1);
+                Vertices[1] = vec2(0, 0);
+                Vertices[2] = vec2(1, 1);
+                Vertices[3] = vec2(1, 0);
             }
             virtual void InitRHI() override
             {
                 FVertexBuffer::InitRHI();
-                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(glm::vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
+                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
             }
         private:
-            glm::vec2 Vertices[4];
+            vec2 Vertices[4];
         };
 
         static FScreenQuadPositionVertexBuffer PositionVertexBuffer;

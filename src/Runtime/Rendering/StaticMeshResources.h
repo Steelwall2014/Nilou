@@ -57,15 +57,15 @@ namespace nilou {
     struct FStaticMeshVertexBuffers
     {
     public:
-        FStaticMeshVertexBuffer<glm::vec3> Positions;
+        FStaticMeshVertexBuffer<vec3> Positions;
         
-        FStaticMeshVertexBuffer<glm::vec3> Normals;
+        FStaticMeshVertexBuffer<vec3> Normals;
         
-        FStaticMeshVertexBuffer<glm::vec4> Tangents;
+        FStaticMeshVertexBuffer<vec4> Tangents;
         
-        FStaticMeshVertexBuffer<glm::vec4> Colors;
+        FStaticMeshVertexBuffer<vec4> Colors;
         
-        FStaticMeshVertexBuffer<glm::vec2> TexCoords[MAX_STATIC_TEXCOORDS];
+        FStaticMeshVertexBuffer<vec2> TexCoords[MAX_STATIC_TEXCOORDS];
 
         void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
 
@@ -147,6 +147,16 @@ namespace nilou {
         }
     };
     
+    struct NSTRUCT FVertexIndexBufferData
+    {
+        GENERATED_STRUCT_BODY()
+
+        NPROPERTY()
+        FBinaryBuffer Data;
+
+        NPROPERTY()
+        uint32 Stride;
+    };
 
     struct NSTRUCT FStaticMeshSectionData
     {
@@ -157,22 +167,22 @@ namespace nilou {
         int32 MaterialIndex;
 
         NPROPERTY()
-        FBinaryBuffer Positions;
+        FVertexIndexBufferData Positions;
         
         NPROPERTY()
-        FBinaryBuffer Normals;
+        FVertexIndexBufferData Normals;
         
         NPROPERTY()
-        FBinaryBuffer Tangents;
+        FVertexIndexBufferData Tangents;
         
         NPROPERTY()
-        FBinaryBuffer Colors;
+        FVertexIndexBufferData Colors;
         
         NPROPERTY()
-        std::vector<FBinaryBuffer> TexCoords;
+        std::vector<FVertexIndexBufferData> TexCoords;
 
         NPROPERTY()
-        FBinaryBuffer IndexBuffer;
+        FVertexIndexBufferData IndexBuffer;
 
         NPROPERTY()
         bool bCastShadow;
@@ -205,12 +215,11 @@ namespace nilou {
         FBoundingBox LocalBoundingBox;
 
         NPROPERTY()
-        std::vector<FStaticMeshLODResourcesData> LODResources;
+        std::vector<FStaticMeshLODResourcesData> LODResourcesData;
 
         FStaticMeshRenderData* RenderData;
 
-        void PostSerialize();
-        void PreDeserialize();
+        virtual void PostDeserialize() override;
 
         virtual ~UStaticMesh() { ReleaseResources(); }
         void ReleaseResources();

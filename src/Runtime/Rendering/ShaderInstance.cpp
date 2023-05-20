@@ -3,6 +3,7 @@
 
 #include "ShaderInstance.h"
 #include "DynamicRHI.h"
+#include "Common/Log.h"
 
 namespace nilou {
 

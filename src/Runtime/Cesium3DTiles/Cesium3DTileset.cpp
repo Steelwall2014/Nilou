@@ -62,11 +62,12 @@ namespace nilou {
             tinygltf::Texture &gltf_texture = model.textures[TextureIndex];
             tinygltf::Image gltf_image = model.images[gltf_texture.source];
 
-            std::shared_ptr<FImage2D> image = std::make_shared<FImage2D>(
+            FImage image = FImage(
                 gltf_image.width, gltf_image.height, 
-                TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type), 1);
-            image->AllocateSpace();
-            memcpy(image->GetData(), gltf_image.image.data(), image->GetDataSize());
+                TranslateToEPixelFormat(gltf_image.component, gltf_image.bits, gltf_image.pixel_type),
+                EImageType::IT_Image2D, 1);
+            image.AllocateSpace();
+            memcpy(image.GetData(), gltf_image.image.data(), image.GetDataSize());
 
             std::string TextureName = std::to_string(TextureIndex) + "_" + gltf_texture.name;
             int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height)) + 1;
@@ -218,7 +219,7 @@ namespace nilou {
                             if (attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
                             {
                                 uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                                Section->VertexBuffers.Positions.Init(BufferToVector<glm::vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Positions.Init(BufferToVector<vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
                                 Section->VertexBuffers.Positions.BindToVertexFactoryData(Data.PositionComponent);
                                 StaticMesh->LocalBoundingBox.Min = vec3(attr_accessor.minValues[0], attr_accessor.minValues[1], attr_accessor.minValues[2]);
                                 StaticMesh->LocalBoundingBox.Max = vec3(attr_accessor.maxValues[0], attr_accessor.maxValues[1], attr_accessor.maxValues[2]);
@@ -229,7 +230,7 @@ namespace nilou {
                             if (attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
                             {
                                 uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                                Section->VertexBuffers.Normals.Init(BufferToVector<glm::vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Normals.Init(BufferToVector<vec3>(pos, attr_accessor.count, attr_bufferview.byteStride));
                                 Section->VertexBuffers.Normals.BindToVertexFactoryData(Data.NormalComponent);
                             }
                         }
@@ -238,7 +239,7 @@ namespace nilou {
                             if (attr_accessor.type == TINYGLTF_TYPE_VEC4 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
                             {
                                 uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                                Section->VertexBuffers.Tangents.Init(BufferToVector<glm::vec4>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.Tangents.Init(BufferToVector<vec4>(pos, attr_accessor.count, attr_bufferview.byteStride));
                                 Section->VertexBuffers.Tangents.BindToVertexFactoryData(Data.TangentComponent);
                             }
                         }
@@ -254,7 +255,7 @@ namespace nilou {
                             {
                                 HaveTexCoords = true;
                                 uint8 *pos = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                                Section->VertexBuffers.TexCoords[texcoord_index].Init(BufferToVector<glm::vec2>(pos, attr_accessor.count, attr_bufferview.byteStride));
+                                Section->VertexBuffers.TexCoords[texcoord_index].Init(BufferToVector<vec2>(pos, attr_accessor.count, attr_bufferview.byteStride));
                                 Section->VertexBuffers.TexCoords[texcoord_index].BindToVertexFactoryData(Data.TexCoordComponent[texcoord_index]);
                             }
                         }

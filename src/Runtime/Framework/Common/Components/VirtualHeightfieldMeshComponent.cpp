@@ -80,18 +80,18 @@ namespace nilou {
         SHADER_PARAMETER(vec2, PixelMeterSize)
     END_UNIFORM_BUFFER_STRUCT()
 
-    static unsigned int fromNodeLoctoNodeDescriptionIndex(glm::uvec2 nodeLoc, unsigned int lod, const WorldLodParam &param)
+    static unsigned int fromNodeLoctoNodeDescriptionIndex(uvec2 nodeLoc, unsigned int lod, const WorldLodParam &param)
     {
         return param.NodeDescriptionIndexOffset + nodeLoc.x * param.NodeSideNum.y + nodeLoc.y;
     }
-    static glm::vec3 GetNodePositionWS(glm::uvec2 nodeLoc, const WorldLodParam &Param)
+    static vec3 GetNodePositionWS(uvec2 nodeLoc, const WorldLodParam &Param)
     {
         // 这里没有实现从显存读取高度图，所以z是0
-        glm::vec2 xy_center_coord = (glm::vec2(nodeLoc) + glm::vec2(0.5)) * Param.NodeMeterSize;
-        return glm::vec3(xy_center_coord, 0);
+        vec2 xy_center_coord = (vec2(nodeLoc) + vec2(0.5)) * Param.NodeMeterSize;
+        return vec3(xy_center_coord, 0);
     }
-    static bool MeetScreenSize(const WorldLodParam &Param, glm::vec3 cameraPos, glm::uvec2 nodeLoc) {
-        glm::vec3 positionWS = GetNodePositionWS(nodeLoc, Param);
+    static bool MeetScreenSize(const WorldLodParam &Param, vec3 cameraPos, uvec2 nodeLoc) {
+        vec3 positionWS = GetNodePositionWS(nodeLoc, Param);
         float dis = glm::distance(cameraPos, positionWS);
         float nodeSize = std::max(Param.NodeMeterSize.x, Param.NodeMeterSize.y);
         float f = dis / (nodeSize * 1.5);

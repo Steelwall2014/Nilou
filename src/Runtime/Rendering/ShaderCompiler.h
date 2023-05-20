@@ -26,7 +26,7 @@ namespace nilou {
             const std::string &MaterialParsedResult, FDynamicRHI *DynamicRHI);
 
     private:
-        static void FShaderCompiler::CompileVertexMaterialShader(
+        static void CompileVertexMaterialShader(
             FDynamicRHI *DynamicRHI,
             FMaterial *Material, 
             const std::string &MaterialParsedResult,
@@ -49,7 +49,7 @@ namespace nilou {
             const FShaderPermutationParameters &ShaderParams);
 
         /** Helper function for compiling vertex material shaders */
-        static void FShaderCompiler::IterateOnVertexFactories(
+        static void IterateOnVertexFactories(
             FDynamicRHI *DynamicRHI, 
             FMaterial *Material,
             const FShaderPermutationParameters &ShaderParams);

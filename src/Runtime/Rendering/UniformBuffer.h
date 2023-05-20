@@ -4,7 +4,7 @@
 #include <map>
 #include <string_view>
 #include <type_traits>
-#include <vcruntime.h>
+// #include <vcruntime.h>
 #include <vector>
 
 #include "Common/CoreUObject/Object.h"
@@ -473,24 +473,7 @@ namespace nilou {
     };
 
     template<class UniformBufferStruct>
-    class TUniformBufferRef : public std::shared_ptr<TUniformBuffer<UniformBufferStruct>>
-    {
-    private: 
-        using Super = std::shared_ptr<TUniformBuffer<UniformBufferStruct>>;
-    public:
-        TUniformBufferRef()
-            : Super(nullptr)
-        { }
-        TUniformBufferRef(TUniformBuffer<UniformBufferStruct> *Ptr)
-            : Super(Ptr)
-        { }
-        TUniformBufferRef(const Super &Ptr)
-            : Super(Ptr)
-        { }
-        TUniformBufferRef(Super &&Ptr)
-            : Super(std::move(Ptr))
-        { }
-    };
+    using TUniformBufferRef = std::shared_ptr<TUniformBuffer<UniformBufferStruct>>;
 
     template<class UniformBufferStruct>
     inline TUniformBufferRef<UniformBufferStruct> CreateUniformBuffer()

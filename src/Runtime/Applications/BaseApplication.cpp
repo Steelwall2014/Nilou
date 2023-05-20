@@ -1,5 +1,5 @@
 #include "BaseApplication.h"
-
+#include "DynamicRHI.h"
 #include "Common/Path.h"
 
 namespace nilou {

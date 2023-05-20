@@ -88,7 +88,7 @@ namespace nilou {
         SetShadowMapResolution(InComponent->GetShadowMapResolution());
     }
 
-    void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const glm::vec3 &InDirection, const glm::vec3 &InUp)
+    void FLightSceneProxy::SetPositionAndDirection(const glm::dvec3 &InPosition, const vec3 &InDirection, const vec3 &InUp)
     {
         Position = InPosition;
         Direction = InDirection;
@@ -110,7 +110,7 @@ namespace nilou {
         LightType = InLightType;
     }
 
-    void FLightSceneProxy::SetShadowMapResolution(glm::ivec2 InShadowMapResolution)
+    void FLightSceneProxy::SetShadowMapResolution(ivec2 InShadowMapResolution)
     {
         ShadowMapResolution = InShadowMapResolution;
         ScreenAspect = (float)ShadowMapResolution.x / (float)ShadowMapResolution.y;

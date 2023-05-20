@@ -118,7 +118,7 @@ namespace nilou {
 
         void SetStencilRefValue(uint8 InStencilRefValue);
         
-        FMaterialRenderProxy* UMaterial::GetRenderProxy() const
+        FMaterialRenderProxy* GetRenderProxy() const
         {
             return DefaultMaterialInstance;
         }
@@ -132,6 +132,8 @@ namespace nilou {
         FMaterial *GetResource() { return MaterialResource; }
 
         std::string GetMateiralCode() const { return Code; }
+
+        virtual void PostDeserialize() override;
 
         void ReleaseResources()
         {

@@ -5,9 +5,9 @@
 
 namespace nilou {
     
-	const glm::vec3 WORLD_UP(0.0, 0.0, 1.0);
-	const glm::vec3 WORLD_FORWARD(1.0, 0.0, 0.0);
-	const glm::vec3 WORLD_RIGHT(0.0, 1.0, 0.0);
+	const vec3 WORLD_UP(0.0, 0.0, 1.0);
+	const vec3 WORLD_FORWARD(1.0, 0.0, 0.0);
+	const vec3 WORLD_RIGHT(0.0, 1.0, 0.0);
 
     template <typename T>
     inline bool Equals(const glm::tvec3<T> &A, const glm::tvec3<T> &B, T Tolerance=KINDA_SMALL_NUMBER)
@@ -566,19 +566,19 @@ namespace nilou {
     template <typename T>
     inline std::ostream &operator<<(std::ostream &out, const glm::tvec2<T> &obj)
     {
-        out << "glm::vec2: " << obj.x << " " << obj.y << " ";
+        out << "vec2: " << obj.x << " " << obj.y << " ";
         return out;
     }
     template <typename T>
     inline std::ostream &operator<<(std::ostream &out, const glm::tvec3<T> &obj)
     {
-        out << "glm::vec3: " << obj.x << " " << obj.y << " " << obj.z << " ";
+        out << "vec3: " << obj.x << " " << obj.y << " " << obj.z << " ";
         return out;
     }
     template <typename T>
     inline std::ostream &operator<<(std::ostream &out, const glm::tvec4<T> &obj)
     {
-        out << "glm::vec4: " << obj.x << " " << obj.y << " " << obj.z << " " << obj.z << " ";
+        out << "vec4: " << obj.x << " " << obj.y << " " << obj.z << " " << obj.z << " ";
         return out;
     }
     template <typename T>

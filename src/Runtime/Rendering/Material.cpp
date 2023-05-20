@@ -175,11 +175,9 @@ namespace nilou {
     //     }
     // }
 
-    // void UMaterial::Deserialize(FArchive &Ar)
+    // void UMaterial::MDeserialize(FArchive &Ar)
     // {
-    //     nlohmann::json &json = Ar.json;
-    //     if (!SerializeHelper::CheckIsType(json, "UMaterial") && 
-    //         !SerializeHelper::CheckIsType(json, "UMaterialInstance")) return;
+    //     nlohmann::json &json = Ar.Node;
     //     nlohmann::json &content = json["Content"];
     //     Name = content["Name"];
     //     MaterialResource->Name = Name;
@@ -192,9 +190,18 @@ namespace nilou {
     //     FBlendStateInitializer BlendState;
     //     FRasterizerStateInitializer RasterizerState;
     //     FDepthStencilStateInitializer DepthStencilState;
-    //     TStaticSerializer<FBlendStateInitializer>::Deserialize(BlendState, content["BlendState"], Ar.InBuffer.get());
-    //     TStaticSerializer<FRasterizerStateInitializer>::Deserialize(RasterizerState, content["RasterizerState"], Ar.InBuffer.get());
-    //     TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(DepthStencilState, content["DepthStencilState"], Ar.InBuffer.get());
+    //     {
+    //         FArchive local_Ar(content["BlendState"]["Content"], Ar);
+    //         TStaticSerializer<FBlendStateInitializer>::Deserialize(BlendState, local_Ar);
+    //     }
+    //     {
+    //         FArchive local_Ar(content["RasterizerState"]["Content"], Ar);
+    //         TStaticSerializer<FRasterizerStateInitializer>::Deserialize(RasterizerState, local_Ar);
+    //     }
+    //     {
+    //         FArchive local_Ar(content["DepthStencilState"]["Content"], Ar);
+    //         TStaticSerializer<FDepthStencilStateInitializer>::Deserialize(DepthStencilState, local_Ar);
+    //     }
     //     SetBlendState(BlendState);
     //     SetRasterizerState(RasterizerState);
     //     SetDepthStencilState(DepthStencilState);
@@ -215,6 +222,25 @@ namespace nilou {
     {
         UMaterialInstance* MaterialInstance = new UMaterialInstance(this);
         return MaterialInstance;
+    }
+
+    void UMaterial::PostDeserialize()
+    {
+        SetShaderFileVirtualPath(ShaderVirtualPath);
+        auto BlendState = this->BlendState;
+        auto RasterizerState = this->RasterizerState;
+        auto DepthStencilState = this->DepthStencilState;
+        auto ShaderVirtualPath = this->ShaderVirtualPath;
+        auto Textures = this->Textures;
+        ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
+            [=](FDynamicRHI*) 
+            {
+                GetRenderProxy()->BlendState = BlendState;
+                GetRenderProxy()->RasterizerState = RasterizerState;
+                GetRenderProxy()->DepthStencilState = DepthStencilState;
+                for (auto &[Name, Texture] : Textures)
+                    GetRenderProxy()->Textures[Name] = Texture;
+            });
     }
 
     // void UMaterialInstance::Serialize(FArchive &Ar)

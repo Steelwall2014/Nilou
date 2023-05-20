@@ -9,7 +9,6 @@
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RHI.h"
-#include "VertexFactory.h"
 
 
 namespace nilou {

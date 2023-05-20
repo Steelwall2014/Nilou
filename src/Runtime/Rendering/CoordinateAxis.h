@@ -5,15 +5,15 @@
 class CoordinateAxis
 {
 private:
-	glm::vec3 x_axis[6];
-	glm::vec3 y_axis[6];
-	glm::vec3 z_axis[6];
-	glm::vec3 x_axis2[6];
-	glm::vec3 y_axis2[6];
-	glm::vec3 z_axis2[6];
-	glm::vec4 x_color;
-	glm::vec4 y_color;
-	glm::vec4 z_color;
+	vec3 x_axis[6];
+	vec3 y_axis[6];
+	vec3 z_axis[6];
+	vec3 x_axis2[6];
+	vec3 y_axis2[6];
+	vec3 z_axis2[6];
+	vec4 x_color;
+	vec4 y_color;
+	vec4 z_color;
 	unsigned int x_vao, y_vao, z_vao;
 	unsigned int x_vao2, y_vao2, z_vao2;
 	unsigned int x_axis_buffer, y_axis_buffer, z_axis_buffer;

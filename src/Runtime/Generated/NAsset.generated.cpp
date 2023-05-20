@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/ActorComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

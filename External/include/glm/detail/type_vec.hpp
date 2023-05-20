@@ -17,6 +17,24 @@ namespace detail
 		} type;
 	};
 
+	template<typename ...T>
+	struct bit_operator
+	{
+		static constexpr bool f()
+		{
+			return true;
+		}
+	};
+	template<typename T, typename ...U>
+	struct bit_operator<T, U...>
+	{
+		static constexpr bool f()
+		{
+			return std::is_integral_v<T> && bit_operator<U...>::f();
+		}
+		static constexpr bool value = f();
+	};
+
 	#define GLM_ALIGNED_STORAGE_TYPE_STRUCT(x) \
 		template <typename T> \
 		struct storage<T, x, true> { \

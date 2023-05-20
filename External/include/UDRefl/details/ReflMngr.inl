@@ -1017,16 +1017,16 @@ namespace Ubpa::UDRefl {
 			if constexpr (NeedRegisterFieldType)
 				RegisterType<Value>();
 			if constexpr (has_virtual_base_v<Obj>) {
-				return FieldPtr(
+				return {
 					Type_of<Value>,
-					field_offsetor<field_data>()
-				);
+					Offsetor(field_offsetor<field_data>())
+				};
 			}
 			else {
-				return FieldPtr(
+				return {
 					Type_of<Value>,
 					field_forward_offset_value(field_data)
-				);
+				};
 			}
 		}
 		else if constexpr (std::is_enum_v<FieldData>) {

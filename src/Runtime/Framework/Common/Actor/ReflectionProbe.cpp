@@ -20,7 +20,7 @@ namespace nilou {
         ReflectionProbeComponent->CaptureSceneDeferred();
 
         {
-            std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
+            FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>();
             EnvironmentTexture->Name = "Test EnvironmentTexture";
             EnvironmentTexture->ImageData = Image;
@@ -29,7 +29,7 @@ namespace nilou {
         }
 
         {
-            std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(16, 16, EPixelFormat::PF_R16G16B16A16F);
+            FImage Image = FImage(16, 16, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             IrradianceTexture = std::make_shared<UTextureCube>();
             IrradianceTexture->Name = "Test IrradianceTexture";
             IrradianceTexture->ImageData = Image;
@@ -37,7 +37,7 @@ namespace nilou {
         }
 
         {
-            std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
+            FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             PrefilteredTexture = std::make_shared<UTextureCube>();
             PrefilteredTexture->Name = "Test PrefilteredTexture";
             PrefilteredTexture->ImageData = Image;

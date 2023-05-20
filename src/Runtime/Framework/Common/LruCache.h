@@ -9,6 +9,7 @@ namespace nilou {
     template<typename Key, typename Value>
     class TLruCache
     {
+        using TIter = typename std::list<std::pair<Key, Value>>::iterator;
     public:
 
         TLruCache(int InCapacity)
@@ -19,7 +20,7 @@ namespace nilou {
         {
             if (ItemToIterMap.find(key) != ItemToIterMap.end())
             {
-                std::list<std::pair<Key, Value>>::iterator iter = ItemToIterMap[key];
+                TIter iter = ItemToIterMap[key];
                 MoveToFront(iter);
                 return *iter;
             }
@@ -35,17 +36,17 @@ namespace nilou {
         {
             if (ItemToIterMap.find(key) != ItemToIterMap.end())
             {
-                std::list<std::pair<Key, Value>>::iterator iter = ItemToIterMap[key];
+                TIter iter = ItemToIterMap[key];
                 *iter = std::make_pair(key, value);
                 MoveToFront(iter);
             }
             else 
             {
-                std::list<std::pair<Key, Value>>::iterator iter = ItemList.insert(ItemList.begin(), std::make_pair(key, value));
+                TIter iter = ItemList.insert(ItemList.begin(), std::make_pair(key, value));
                 ItemToIterMap[key] = iter;
                 if (ItemList.size() > Capacity)
                 {
-                    std::list<std::pair<Key, Value>>::iterator IterToRemove = ItemList.end();
+                    TIter IterToRemove = ItemList.end();
                     IterToRemove--;
                     auto &[key, value] = *IterToRemove;
                     ItemToIterMap.erase(key);
@@ -77,10 +78,10 @@ namespace nilou {
 
         int Capacity;
         std::list<std::pair<Key, Value>> ItemList;
-        std::unordered_map<Key, decltype(ItemList)::iterator> ItemToIterMap;
+        std::unordered_map<Key, TIter> ItemToIterMap;
         std::mutex mutex;
 
-        void MoveToFront(decltype(ItemList)::iterator iter)
+        void MoveToFront(TIter iter)
         {
             if (iter != ItemList.begin())
                 ItemList.splice(ItemList.begin(), ItemList, iter, std::next(iter));

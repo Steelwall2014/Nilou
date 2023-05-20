@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/VirtualHeightfieldMeshComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;
@@ -47,11 +47,11 @@ void nilou::FStaticMeshSectionData::Serialize(FArchive& Ar)
 
     {
         FArchive local_Ar(content["Colors"], Ar);
-        TStaticSerializer<decltype(this->Colors)>::Serialize(this->Colors, local_Ar);
+        this->Colors.Serialize(local_Ar);
     }
     {
         FArchive local_Ar(content["IndexBuffer"], Ar);
-        TStaticSerializer<decltype(this->IndexBuffer)>::Serialize(this->IndexBuffer, local_Ar);
+        this->IndexBuffer.Serialize(local_Ar);
     }
     {
         FArchive local_Ar(content["MaterialIndex"], Ar);
@@ -59,15 +59,15 @@ void nilou::FStaticMeshSectionData::Serialize(FArchive& Ar)
     }
     {
         FArchive local_Ar(content["Normals"], Ar);
-        TStaticSerializer<decltype(this->Normals)>::Serialize(this->Normals, local_Ar);
+        this->Normals.Serialize(local_Ar);
     }
     {
         FArchive local_Ar(content["Positions"], Ar);
-        TStaticSerializer<decltype(this->Positions)>::Serialize(this->Positions, local_Ar);
+        this->Positions.Serialize(local_Ar);
     }
     {
         FArchive local_Ar(content["Tangents"], Ar);
-        TStaticSerializer<decltype(this->Tangents)>::Serialize(this->Tangents, local_Ar);
+        this->Tangents.Serialize(local_Ar);
     }
     {
         FArchive local_Ar(content["TexCoords"], Ar);
@@ -86,12 +86,12 @@ void nilou::FStaticMeshSectionData::Deserialize(FArchive& Ar)
     if (content.contains("Colors"))
     {
         FArchive local_Ar(content["Colors"], Ar);
-        TStaticSerializer<decltype(this->Colors)>::Deserialize(this->Colors, local_Ar);
+        this->Colors.Deserialize(local_Ar);
     }
     if (content.contains("IndexBuffer"))
     {
         FArchive local_Ar(content["IndexBuffer"], Ar);
-        TStaticSerializer<decltype(this->IndexBuffer)>::Deserialize(this->IndexBuffer, local_Ar);
+        this->IndexBuffer.Deserialize(local_Ar);
     }
     if (content.contains("MaterialIndex"))
     {
@@ -101,17 +101,17 @@ void nilou::FStaticMeshSectionData::Deserialize(FArchive& Ar)
     if (content.contains("Normals"))
     {
         FArchive local_Ar(content["Normals"], Ar);
-        TStaticSerializer<decltype(this->Normals)>::Deserialize(this->Normals, local_Ar);
+        this->Normals.Deserialize(local_Ar);
     }
     if (content.contains("Positions"))
     {
         FArchive local_Ar(content["Positions"], Ar);
-        TStaticSerializer<decltype(this->Positions)>::Deserialize(this->Positions, local_Ar);
+        this->Positions.Deserialize(local_Ar);
     }
     if (content.contains("Tangents"))
     {
         FArchive local_Ar(content["Tangents"], Ar);
-        TStaticSerializer<decltype(this->Tangents)>::Deserialize(this->Tangents, local_Ar);
+        this->Tangents.Deserialize(local_Ar);
     }
     if (content.contains("TexCoords"))
     {

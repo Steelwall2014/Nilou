@@ -55,6 +55,8 @@ namespace nilou {
 
         uint32 GetBytePerTile() const { return BytePerTile; }
 
+        virtual void PostDeserialize() override;
+
         uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
 
     protected:
@@ -76,9 +78,9 @@ namespace nilou {
 
         TLruCache<VirtualTextureTile*, VirtualTextureTile*> LruCache;
 
-        std::filesystem::path StreamingPath;
-        // It's the offset from the beginning to the BIN block
-        uint32 StreamingBufferOffset;
+        // std::filesystem::path StreamingPath;
+        // // It's the offset from the beginning to the BIN block
+        // uint32 StreamingBufferOffset;
 
         BS::thread_pool thread_pool;
 

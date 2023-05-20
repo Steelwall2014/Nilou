@@ -162,37 +162,39 @@ namespace nilou {
         std::vector<FContentEntry*> Entries;
         FContentEntry::Deserialize(ContentEntry.get(), Entries);
         BS::thread_pool pool;
-        std::vector<std::future<FArchiveHelper>> futures;
+        std::vector<std::future<std::unique_ptr<FArchiveHelper>>> futures;
         for (int i = 0; i < Entries.size(); i++)
         {
             auto future = pool.submit([](FContentEntry *Entry) {
-                FArchiveHelper ArHelper;
+                std::unique_ptr<FArchiveHelper> ArHelper = std::make_unique<FArchiveHelper>();
                 std::filesystem::path InPath = Entry->AbsolutePath;
                 InPath.replace_extension(".nasset");
                 std::ifstream in(InPath, std::ios::binary);
-                in >> ArHelper.Ar;
+                in >> ArHelper->Ar;
                 return ArHelper;
             }, Entries[i]);
             futures.push_back(std::move(future));
         }
         pool.wait_for_tasks();
-        std::vector<FArchiveHelper> Archives;
+        std::vector<std::unique_ptr<FArchiveHelper>> Archives;
         for (int i = 0; i < futures.size(); i++)
         {
             auto &future = futures[i];
-            FArchiveHelper ArHelper = future.get();
-            if (ArHelper.Ar.Node.contains("ClassName"))
+            std::unique_ptr<FArchiveHelper> ArHelper = future.get();
+            if (ArHelper->Ar.Node.contains("ClassName"))
             {
-                auto class_name = "nilou::"+std::string(ArHelper.Ar.Node["ClassName"]);
+                auto class_name = std::string(ArHelper->Ar.Node["ClassName"]);
+                if (!GameStatics::StartsWith(class_name, "nilou::"))
+                    class_name = "nilou::" + class_name;
                 Entries[i]->Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(class_name)));
                 Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
                 Entries[i]->Object->ContentEntry = Entries[i];
+                Archives.push_back(std::move(ArHelper));
             }
-            Archives.push_back(std::move(ArHelper));
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->Deserialize(Archives[i].Ar);
+            Entries[i]->Object->Deserialize(Archives[i]->Ar);
         }
     }
 
