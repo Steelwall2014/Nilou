@@ -318,8 +318,8 @@ namespace nilou {
                     DrawCommands.Clear();
                     LightCollector.PerViewMeshBatches.resize(1);
                     double near, far;
-                    // far = DBL_MAX;
-                    // near = -DBL_MAX;
+                    far = DBL_MAX;
+                    near = -DBL_MAX;
                     for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
                     {
                         if (!PrimitiveInfo->SceneProxy->bCastShadow)
@@ -332,17 +332,17 @@ namespace nilou {
                                        ViewSpaceBox.Min.x > Radius;
                         if (!bCulled)
                         {
-                            // near = glm::max(near, ViewSpaceBox.Max.z);
-                            // far = glm::min(far, ViewSpaceBox.Min.z);
+                            near = glm::max(near, ViewSpaceBox.Max.z);
+                            far = glm::min(far, ViewSpaceBox.Min.z);
                             PrimitiveInfo->SceneProxy->GetDynamicMeshElements({&LightSceneView}, 0x1, LightCollector);
                         }
                     }
                     for (auto&& Mesh : LightCollector.PerViewMeshBatches[0])
                         MeshBatches.push_back(Mesh);
-                    // if (near == -DBL_MAX) near = 0;
-                    // if (far == DBL_MAX) far = 0;
-                    near = Radius;
-                    far = -Radius;
+                    if (near == -DBL_MAX) near = Radius;
+                    if (far == DBL_MAX) far = -Radius;
+                    // near = Radius;
+                    // far = -Radius;
 
                     // {   // To remove jittering
                     //     float cascadeAABBSize = Sphere.Radius * 2.0f;

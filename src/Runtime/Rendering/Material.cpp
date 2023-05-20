@@ -231,6 +231,7 @@ namespace nilou {
         auto RasterizerState = this->RasterizerState;
         auto DepthStencilState = this->DepthStencilState;
         auto ShaderVirtualPath = this->ShaderVirtualPath;
+        auto ShadingModel = this->ShadingModel;
         auto Textures = this->Textures;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
             [=](FDynamicRHI*) 
@@ -238,6 +239,7 @@ namespace nilou {
                 GetRenderProxy()->BlendState = BlendState;
                 GetRenderProxy()->RasterizerState = RasterizerState;
                 GetRenderProxy()->DepthStencilState = DepthStencilState;
+                GetRenderProxy()->ShadingModel = ShadingModel;
                 for (auto &[Name, Texture] : Textures)
                     GetRenderProxy()->Textures[Name] = Texture;
             });

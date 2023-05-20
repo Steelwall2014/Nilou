@@ -195,6 +195,7 @@ namespace nilou {
         for (int i = 0; i < Archives.size(); i++)
         {
             Entries[i]->Object->Deserialize(Archives[i]->Ar);
+            Entries[i]->Object->PostDeserialize();
         }
     }
 

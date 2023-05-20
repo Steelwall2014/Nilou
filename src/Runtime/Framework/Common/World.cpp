@@ -173,10 +173,23 @@ namespace nilou {
     {
         bHasBegunPlay = true;
 
+        FTransform CameraActorTransform;
+        CameraActorTransform.SetTranslation(vec3(0, -2, 0));
+        CameraActorTransform.SetRotator(FRotator(0, 90, 0));
+        std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
+        CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
 
-        // LoadPBRExibition(this);
+        FTransform LightActorTransform;
+        LightActorTransform.SetRotator(FRotator(-45, -45, 0));
+        std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
-        // LoadSkyAtmosphere(this);
+        LoadPBRExibition(this);
+
+        LoadSkyAtmosphere(this);
+
+        // LoadFFTOcean(this);
+
+        // Load3DTileset(this);
 
         // // std::vector<FDynamicMeshVertex> OutVerts;
         // // std::vector<uint32> OutIndices;
@@ -191,23 +204,6 @@ namespace nilou {
         // // resources->Sections.push_back(std::move(section));
         // // cube->RenderData->LODResources.push_back(std::move(resources));
         // // cube->Name = "Cube";
-        
-
-        // FTransform CameraActorTransform;
-        // CameraActorTransform.SetTranslation(vec3(0, -2, 0));
-        // CameraActorTransform.SetRotator(FRotator(0, 90, 0));
-        // std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
-        // CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
-        // // CameraActor->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-        // // CameraActor->SetMoveSpeed(100);
-
-        // FTransform LightActorTransform;
-        // // LightActorTransform.SetTranslation(vec3(10, 10, 10));
-        // LightActorTransform.SetRotator(FRotator(-45, -45, 0));
-        // std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
-        // DirectionalLightActor->LightComponent->SetLightType(ELightType::LT_Directional);
-        // DirectionalLightActor->LightComponent->SetIntensity(10.f);
-
 
         // GetContentManager()->ForEachContent([](NAsset* Obj){
         //     if (Obj->IsA(UStaticMesh::StaticClass()))

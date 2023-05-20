@@ -210,10 +210,13 @@ namespace nilou {
                 auto load_data = 
                     [](FVertexIndexBufferData& BufferData, FVertexStreamComponent& Component, auto& Buffer) 
                     {
-                        int Stride = BufferData.Stride;
-                        int NumVertices = BufferData.Data.BufferSize / Stride;
-                        Buffer.Init(BufferData.Data.Buffer.get(), Stride, NumVertices);
-                        Buffer.BindToVertexFactoryData(Component);
+                        if (BufferData.Data.Buffer)
+                        {
+                            int Stride = BufferData.Stride;
+                            int NumVertices = BufferData.Data.BufferSize / Stride;
+                            Buffer.Init(BufferData.Data.Buffer.get(), Stride, NumVertices);
+                            Buffer.BindToVertexFactoryData(Component);
+                        }
                     };
                 load_data(section.Positions, VFData.PositionComponent, Section->VertexBuffers.Positions);
                 load_data(section.Normals, VFData.NormalComponent, Section->VertexBuffers.Normals);
