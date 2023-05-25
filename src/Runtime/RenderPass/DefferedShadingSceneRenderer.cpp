@@ -504,23 +504,27 @@ namespace nilou {
                 FShaderInstance *RenderToScreenVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
                 FShaderInstance *RenderToScreenPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
                 
-                FRHIGraphicsPipelineInitializer PSOInitializer;
+                FGraphicsPipelineStateInitializer PSOInitializer;
 
-                PSOInitializer.VertexShader = RenderToScreenVS;
-                PSOInitializer.PixelShader = RenderToScreenPS;
+                PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
+                PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
 
                 PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
 
+                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
+                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
+
+                static FRHIVertexInputList VertexInputList = {
+                    PositionVertexInput,
+                    UVVertexInput
+                };
+                PSOInitializer.VertexInputList = &VertexInputList;
+
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                 
-                RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-                RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
                 RHIGetError();
                 RHICmdList->RHISetGraphicsPipelineState(PSO);
-                RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                RHICmdList->RHISetBlendState(BlendState.get());
                 RHIGetError();
 
                 if (ViewFamily.bIsSceneCapture)
@@ -591,10 +595,6 @@ namespace nilou {
                         ViewFamily.bEnableToneMapping);
                 }
 
-                RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                RHIGetError();
-                RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                RHIGetError();
                 RHICmdList->RHIDrawArrays(0, 4);
             }
             RHICmdList->RHIEndRenderPass();

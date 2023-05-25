@@ -18,13 +18,8 @@ namespace nilou {
     {
         RenderingThread = this;
         GRenderThreadId = std::this_thread::get_id();
+        FDynamicRHI::CreateDynamicRHI_RenderThread(GetAppication()->GetConfiguration());
         GetAppication()->Initialize_RenderThread();
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        {
-            std::cout << "Failed to initialize GLAD" << std::endl;
-            return false;
-        }
-        FDynamicRHI::CreateDynamicRHI_RenderThread();
         FDynamicRHI::GetDynamicRHI()->Initialize();
         AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
@@ -70,6 +65,7 @@ namespace nilou {
             if (Resource)
                 Resource->ReleaseResource();
         }
+        FDynamicRHI::GetDynamicRHI()->Finalize();
         GetAppication()->Finalize_RenderThread();
     }
 

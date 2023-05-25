@@ -33,6 +33,7 @@
 #include "RHIResources.h"
 #include "Templates/ObjectMacros.h"
 #include "ShaderInstance.h"
+#include "PipelineStateCache.h"
 
 
 #ifdef NILOU_DEBUG
@@ -48,10 +49,10 @@ using namespace std::literals;  // For the use of operator""s
 */
 namespace nilou {
 
-	void FDynamicRHI::CreateDynamicRHI_RenderThread()
-	{
-		FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
-	}
+	// void FDynamicRHI::CreateDynamicRHI_RenderThread()
+	// {
+	// 	FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
+	// }
 
     static GLenum TranslateCompareFunction(ECompareFunction CompareFunction)
     {
@@ -513,7 +514,7 @@ namespace nilou {
     }
 
 
-	void FOpenGLDynamicRHI::RHISetVertexBuffer(FRHIGraphicsPipelineState *BoundPipelineState, FRHIVertexInput *VertexInput)
+	void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)
     {
         OpenGLBuffer *GLBuffer = static_cast<OpenGLBuffer*>(VertexInput->VertexBuffer);
 
@@ -527,6 +528,8 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHISetRasterizerState(RHIRasterizerState *newState)
     {
+        if (!newState)
+            return;
         OpenGLRasterizerState* RasterizerState = static_cast<OpenGLRasterizerState*>(newState);
         if (ContextState.RasterizerState.FillMode != RasterizerState->FillMode)
         {
@@ -560,6 +563,8 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef)
     {
+        if (!newState)
+            return;
         OpenGLDepthStencilState* DepthStencilState = static_cast<OpenGLDepthStencilState*>(newState);
         if (ContextState.DepthStencilState.bZEnable != DepthStencilState->bZEnable)
         {
@@ -690,6 +695,8 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHISetBlendState(RHIBlendState *newState)
     {
+        if (!newState)
+            return;
         OpenGLBlendState* BlendState = static_cast<OpenGLBlendState*>(newState);
 	    bool bABlendWasSet = false;
         for (uint32 RenderTargetIndex = 0;RenderTargetIndex < MAX_SIMULTANEOUS_RENDERTARGETS; ++RenderTargetIndex)
@@ -910,21 +917,24 @@ namespace nilou {
     void FOpenGLDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState)
     {
         OpenGLGraphicsPipelineState *GLState = static_cast<OpenGLGraphicsPipelineState *>(NewState);
-        // FRHIGraphicsPipelineInitializer &Initializer = GLState->Initializer;
+        // FGraphicsPipelineStateInitializer &Initializer = GLState->Initializer;
         RHIUseShaderProgram(GLState->Program.get());
-        // RHISetDepthStencilState(StateData.DepthStentilState.get());
-        // RHISetRasterizerState(StateData.RasterizerState.get());
-        // RHISetBlendState(StateData.BlendState.get());
         ContextState.GraphicsPipelineState = GLState;
+        RHISetDepthStencilState(NewState->Initializer.DepthStencilState);
+        RHISetRasterizerState(NewState->Initializer.RasterizerState);
+        RHISetBlendState(NewState->Initializer.BlendState);
+        if (NewState->Initializer.VertexInputList)
+            for (auto& VertexInput : *NewState->Initializer.VertexInputList)
+                RHISetVertexBuffer(&VertexInput);
     }
 
-	FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHISetComputeShader(FShaderInstance *ComputeShader)
+	FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHISetComputeShader(RHIComputeShader *ComputeShader)
     {
         RHIGetError();
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
         Initializer.ComputeShader = ComputeShader;
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHIGetOrCreatePipelineStateObject(Initializer);
-        FDynamicRHI::GetDynamicRHI()->RHISetGraphicsPipelineState(PSO);
+        FRHIGraphicsPipelineState *PSO = RHIGetOrCreatePipelineStateObject(Initializer);
+        RHISetGraphicsPipelineState(PSO);
         RHIGetError();
         return PSO;
     }
@@ -1142,20 +1152,19 @@ namespace nilou {
         
     }
 
-    FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHIGetOrCreatePipelineStateObject(const FRHIGraphicsPipelineInitializer &Initializer)
+    FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer)
     {
         RHIGetError();
-        if (CachedPipelineStateObjects.find(Initializer) != CachedPipelineStateObjects.end())
-        {
-            return CachedPipelineStateObjects[Initializer].get();
-        }
+        FRHIGraphicsPipelineState* OutPSO = FPipelineStateCache::FindCachedGraphicsPSO(Initializer);
+        if (OutPSO)
+            return OutPSO;
 
         OpenGLGraphicsPipelineStateRef PSO = std::make_shared<OpenGLGraphicsPipelineState>();
         PSO->Initializer = Initializer;
         if (Initializer.ComputeShader != nullptr)
         {
             glslang::TProgram program;
-            program.addShader(Initializer.ComputeShader->ShaderGlsl.get());
+            program.addShader(Initializer.ComputeShader->ShaderGlsl);
             bool res = program.link(EShMsgDefault);
             if (!res)
             {
@@ -1165,7 +1174,7 @@ namespace nilou {
             }
             program.buildReflection();
 
-            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->ShaderRHI.get());
+            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader);
             PSO->Program = RHICreateLinkedProgram(comp);
             FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;
             // const std::set<FShaderParameterInfo> &ComputeShaderParams = Initializer.ComputeShader->Parameters;
@@ -1177,8 +1186,8 @@ namespace nilou {
         {
             RHIGetError();
             glslang::TProgram program;
-            program.addShader(Initializer.VertexShader->ShaderGlsl.get());
-            program.addShader(Initializer.PixelShader->ShaderGlsl.get());
+            program.addShader(Initializer.VertexShader->ShaderGlsl);
+            program.addShader(Initializer.PixelShader->ShaderGlsl);
             bool res = program.link(EShMsgDefault);
             if (!res)
             {
@@ -1188,8 +1197,8 @@ namespace nilou {
             }
             program.buildReflection();
 
-            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->ShaderRHI.get());
-            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->ShaderRHI.get());
+            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader);
+            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader);
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
 
@@ -1200,15 +1209,15 @@ namespace nilou {
 
         }
 
-        CachedPipelineStateObjects[Initializer] = PSO;
+        FPipelineStateCache::CacheGraphicsPSO(Initializer, PSO);
 
         RHIGetError();
         return PSO.get();
     }
 
-    RHIVertexShaderRef FOpenGLDynamicRHI::RHICreateVertexShader(const char *code)
+    RHIVertexShaderRef FOpenGLDynamicRHI::RHICreateVertexShader(const std::string& code)
     {
-        nilou::OpenGLVertexShaderRef vert = std::make_shared<nilou::OpenGLVertexShader>(code);
+        nilou::OpenGLVertexShaderRef vert = std::make_shared<nilou::OpenGLVertexShader>(code.c_str());
 
         if (!vert->Success())
         {
@@ -1219,9 +1228,9 @@ namespace nilou {
         return vert;
     }
 
-    RHIPixelShaderRef FOpenGLDynamicRHI::RHICreatePixelShader(const char *code)
+    RHIPixelShaderRef FOpenGLDynamicRHI::RHICreatePixelShader(const std::string& code)
     {
-        nilou::OpenGLPixelShaderRef pixel = std::make_shared<nilou::OpenGLPixelShader>(code);
+        nilou::OpenGLPixelShaderRef pixel = std::make_shared<nilou::OpenGLPixelShader>(code.c_str());
 
         if (!pixel->Success())
         {
@@ -1232,9 +1241,9 @@ namespace nilou {
         return pixel;
     }
 
-    RHIComputeShaderRef FOpenGLDynamicRHI::RHICreateComputeShader(const char *code)
+    RHIComputeShaderRef FOpenGLDynamicRHI::RHICreateComputeShader(const std::string& code)
     {
-        nilou::OpenGLComputeShaderRef comp = std::make_shared<nilou::OpenGLComputeShader>(code);
+        nilou::OpenGLComputeShaderRef comp = std::make_shared<nilou::OpenGLComputeShader>(code.c_str());
 
         if (!comp->Success())
         {
@@ -1847,6 +1856,11 @@ namespace nilou {
         //bool ret = Initialize();
         //if (!ret)
         //    return ret;
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return false;
+        }
 
         bool ret = gladLoadGL();
         if (!ret)
@@ -1907,11 +1921,12 @@ namespace nilou {
         return ret;
     }
 
-    void nilou::FOpenGLDynamicRHI::Finalize()
+    void FOpenGLDynamicRHI::Finalize()
     {
+        FDynamicRHI::Finalize();
     }
 
-    nilou::FOpenGLDynamicRHI::OpenGLTextureResource nilou::FOpenGLDynamicRHI::TextureResourceCast(nilou::RHITexture *texture)
+    FOpenGLDynamicRHI::OpenGLTextureResource FOpenGLDynamicRHI::TextureResourceCast(RHITexture *texture)
     {
         OpenGLTextureResource resource;
         if (texture->GetTextureType() == ETextureType::TT_Texture2D)

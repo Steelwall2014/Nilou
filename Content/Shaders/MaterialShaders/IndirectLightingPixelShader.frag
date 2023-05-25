@@ -15,7 +15,7 @@ uniform samplerCube PrefilteredTexture;
 
 uniform sampler2D IBL_BRDF_LUT;
 
-in VS_Out vs_out;
+layout (location = 0) in VS_Out vs_out;
 
 #include "../include/functions.glsl"
 

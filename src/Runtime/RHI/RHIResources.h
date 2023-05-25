@@ -12,6 +12,9 @@
 #include "RHIDefinitions.h"
 #include "ShaderParameter.h"
 
+namespace glslang {
+class TShader;
+}
 
 namespace nilou {
 
@@ -56,6 +59,7 @@ namespace nilou {
 	{
 	public:
 		RHIShader(ERHIResourceType InResourceType) : RHIResource(InResourceType) {}
+		glslang::TShader* ShaderGlsl = nullptr;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -277,51 +281,60 @@ namespace nilou {
 	};
 	using RHIFramebufferRef = std::shared_ptr<RHIFramebuffer>;
 
-    class FRHIVertexDeclaration : public RHIResource
+	class FRHIVertexInput
     {
     public:
-        FRHIVertexDeclaration() : RHIResource(ERHIResourceType::RRT_VertexDeclaration) {}
-    };
-	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
+        RHIBuffer *VertexBuffer;
+		uint8 Location;
+        uint8 Offset;
+        uint8 Stride;
+        EVertexElementType Type;
 
-	class FRHIGraphicsPipelineInitializer
+        FRHIVertexInput() 
+            : VertexBuffer(nullptr)
+            , Offset(0)
+            , Stride(0)
+            , Type(EVertexElementType::VET_None)
+        { }
+    };
+	using FRHIVertexInputList = std::vector<FRHIVertexInput>;
+
+	class FGraphicsPipelineStateInitializer
 	{
 	public: 
-		FRHIGraphicsPipelineInitializer()
+		FGraphicsPipelineStateInitializer()
 			: VertexShader(nullptr)
 			, PixelShader(nullptr)
 			, ComputeShader(nullptr)
+			, DepthStencilState(nullptr)
+			, RasterizerState(nullptr)
+			, BlendState(nullptr)
+			, VertexInputList(nullptr)
 			, PrimitiveMode(EPrimitiveMode::PM_Triangles)
 		{ }
 
-		class FShaderInstance *VertexShader;
-		class FShaderInstance *PixelShader;
-		class FShaderInstance *ComputeShader;
+		RHIVertexShader *VertexShader;
+		RHIPixelShader *PixelShader;
+		RHIComputeShader *ComputeShader;
 
 		EPrimitiveMode PrimitiveMode;
 
-		bool operator==(const FRHIGraphicsPipelineInitializer &Other) const
+        RHIDepthStencilState* DepthStencilState;
+        RHIRasterizerState* RasterizerState;
+        RHIBlendState* BlendState;
+
+		const FRHIVertexInputList* VertexInputList;
+
+		bool operator==(const FGraphicsPipelineStateInitializer &Other) const
 		{
 			return 	VertexShader == Other.VertexShader &&
 					PixelShader == Other.PixelShader &&
-					PrimitiveMode == Other.PrimitiveMode;
-		}
-		
-
-		bool operator<(const FRHIGraphicsPipelineInitializer &Other) const
-		{
-			return this->tuplize() < Other.tuplize();
-			
-		}
-
-	private:
-		std::tuple<
-			FShaderInstance *const &, 
-			FShaderInstance *const &, 
-			FShaderInstance *const &, 
-			const EPrimitiveMode&> tuplize() const
-		{
-			return std::tie(VertexShader, PixelShader, ComputeShader, PrimitiveMode);
+					ComputeShader == Other.ComputeShader && 
+					PrimitiveMode == Other.PrimitiveMode && 
+					DepthStencilState == Other.DepthStencilState && 
+					RasterizerState == Other.RasterizerState && 
+					BlendState == Other.BlendState && 
+					VertexInputList == Other.VertexInputList;
 		}
 	};
 
@@ -351,7 +364,7 @@ namespace nilou {
 	public: 
 		FRHIGraphicsPipelineState() : RHIResource(RRT_GraphicsPipelineState) {}
 
-		FRHIGraphicsPipelineInitializer Initializer;
+		FGraphicsPipelineStateInitializer Initializer;
 
 		FRHIPipelineLayout PipelineLayout;
 
@@ -380,23 +393,6 @@ namespace nilou {
 		RHITexture* Texture;
 	};
 	using FRHISamplerRef = std::shared_ptr<FRHISampler>;
-
-	class FRHIVertexInput
-    {
-    public:
-        RHIBuffer *VertexBuffer;
-		uint8 Location;
-        uint8 Offset;
-        uint8 Stride;
-        EVertexElementType Type;
-
-        FRHIVertexInput() 
-            : VertexBuffer(nullptr)
-            , Offset(0)
-            , Stride(0)
-            , Type(EVertexElementType::VET_None)
-        { }
-    };
 
 	class FRHIRenderPassInfo
 	{
@@ -458,4 +454,23 @@ namespace nilou {
         uint32 	num_groups_y;
         uint32 	num_groups_z;
     };
+}
+
+namespace std {
+
+template<>
+struct hash<nilou::FGraphicsPipelineStateInitializer>
+{
+	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept {
+		return hash<nilou::RHIVertexShader*>()(_Keyval.VertexShader) ^ 
+				hash<nilou::RHIPixelShader*>()(_Keyval.PixelShader) ^ 
+				hash<nilou::RHIComputeShader*>()(_Keyval.ComputeShader) ^ 
+				hash<nilou::EPrimitiveMode>()(_Keyval.PrimitiveMode) ^  
+				hash<nilou::RHIDepthStencilState*>()(_Keyval.DepthStencilState) ^  
+				hash<nilou::RHIRasterizerState*>()(_Keyval.RasterizerState) ^  
+				hash<nilou::RHIBlendState*>()(_Keyval.BlendState) ^
+				hash<const nilou::FRHIVertexInputList*>()(_Keyval.VertexInputList);
+	}
+};
+
 }

@@ -34,8 +34,7 @@ namespace nilou {
 		* Set state
 		*/
 		virtual void RHISetViewport(int32 Width, int32 Height) override;
-		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) override;
-		virtual void RHISetBlendState(RHIBlendState *newState) override;
+		virtual FRHIGraphicsPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override;
 		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
 		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
@@ -49,9 +48,6 @@ namespace nilou {
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value) override;
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value) override;
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value) override;
-		virtual void RHISetVertexBuffer(FRHIGraphicsPipelineState *, FRHIVertexInput *) override;
-		virtual void RHISetRasterizerState(RHIRasterizerState *newState) override;
-		virtual void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0) override;
 		
 		/**
 		* Binding buffers
@@ -64,13 +60,14 @@ namespace nilou {
 		/**
 		* Create/Update data
 		*/
-		virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FRHIGraphicsPipelineInitializer &StateData);
+		virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer);
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
 		virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
-		virtual RHIVertexShaderRef RHICreateVertexShader(const char *code) override;
-		virtual RHIPixelShaderRef RHICreatePixelShader(const char *code) override;
-		virtual RHIComputeShaderRef RHICreateComputeShader(const char *code) override;
+		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) override;
+		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) override;
+		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) override;
+		virtual void RHIDestroyShader(RHIShader* Shader) override { }
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override;
 		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) override;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
@@ -156,7 +153,10 @@ namespace nilou {
 		virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override;
 
 	private:
-		OpenGLLinkedProgramRef m_CurrentShader;
+		void RHISetVertexBuffer(const FRHIVertexInput *);
+		void RHISetRasterizerState(RHIRasterizerState *newState);
+		void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0);
+		void RHISetBlendState(RHIBlendState *newState);
 		void RHIUseShaderProgram(OpenGLLinkedProgram *program);
 		OpenGLLinkedProgramRef RHICreateLinkedProgram(OpenGLVertexShader *vert, OpenGLPixelShader *pixel);
 		OpenGLLinkedProgramRef RHICreateLinkedProgram(OpenGLComputeShader *comp);

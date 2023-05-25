@@ -3,12 +3,16 @@ add_rules("plugin.vsxmake.autoupdate")
 set_runtimes("MD")
 add_requires("vcpkg::gdal", {configs = {shared = true}})
 add_requires("vcpkg::glfw3")
-add_requires("vcpkg::imgui[glfw-binding,opengl3-binding]", { alias = "imgui" })
+add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
 add_requires("vcpkg::glslang")
 add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
+
+VULKAN_INCLUDE = "E:/VulkanSDK/1.3.246.1/Include"
+VULKAN_LIBRARY = {"E:/VulkanSDK/1.3.246.1/Lib/vulkan-1", 
+                  "E:/VulkanSDK/1.3.246.1/Lib/shaderc*"}
 
 add_defines([[PROJECT_DIR=R"($(projectdir))"]])
 
@@ -174,7 +178,8 @@ include_paths = {
         "./src/Runtime/RenderPass",
         "./src/Runtime/Geospatial",
         "./src/Runtime/Cesium3DTiles",
-        "./Assets/Shaders"}
+        "./Assets/Shaders",
+        VULKAN_INCLUDE}
  
 function InstallHeaderTool() 
     os.cp("./NilouHeaderTool/src/include/*", "./External/include")
@@ -188,7 +193,7 @@ BuildProject({
     includePaths = include_paths,
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", VULKAN_LIBRARY},
     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     beforeBuildFunc = InstallHeaderTool,
     -- afterBuildFunc = copyFunc,

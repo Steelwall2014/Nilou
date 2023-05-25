@@ -18,33 +18,33 @@ namespace nilou {
         FMaterialRenderProxy *Material,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
-        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
-        const FRasterizerStateInitializer &RasterizerStateInitializer,
-        const FBlendStateInitializer &BlendStateInitializer,
+        RHIDepthStencilState* DepthStencilState,
+        RHIRasterizerState* RasterizerState,
+        RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings, 
-        std::vector<FRHIVertexInput> &VertexInputs,
+        const FRHIVertexInputList* VertexInputs,
         const FMeshBatchElement &Element,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
 
         FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader;
+        Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
         FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
-        Initializer.PixelShader = PixelShader;
+        Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
-        auto BasePassDepthStencilState = DepthStencilStateInitializer;
-        BasePassDepthStencilState.DepthTest = ECompareFunction::CF_Equal;
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(BasePassDepthStencilState);
+        Initializer.DepthStencilState = DepthStencilState;
         RHIGetError();
 
-        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
+        Initializer.RasterizerState = RasterizerState;
         RHIGetError();
 
-        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
+        Initializer.BlendState = BlendState;
+
+        Initializer.VertexInputList = VertexInputs;
         RHIGetError();
 
         {
@@ -83,7 +83,6 @@ namespace nilou {
                 }
             }
 
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
             if (Element.NumVertices == 0)
             {
                 OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
@@ -126,16 +125,7 @@ namespace nilou {
                 MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
                 MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
                 #endif
-                std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
-                auto BlendState = Mesh.MaterialRenderProxy->BlendState;
-
-                // Emissive channel is also used as indirect light channel
-                // So we need to set its blend state.
-                BlendState.bUseIndependentRenderTargetBlendStates = true;
-                BlendState.RenderTargets[4].ColorWriteMask = CW_RGB;
-                BlendState.RenderTargets[4].ColorBlendOp = EBlendOperation::BO_Add;
-                BlendState.RenderTargets[4].ColorDestBlend = EBlendFactor::BF_One;
-                BlendState.RenderTargets[4].ColorSrcBlend = EBlendFactor::BF_One;
+                const FRHIVertexInputList* VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
 
                 BuildMeshDrawCommand(
                     RHICmdList,
@@ -145,9 +135,9 @@ namespace nilou {
                     Mesh.MaterialRenderProxy,
                     PermutationParametersVS,
                     PermutationParametersPS,
-                    Mesh.MaterialRenderProxy->DepthStencilState,
-                    Mesh.MaterialRenderProxy->RasterizerState,
-                    BlendState,
+                    TStaticDepthStencilState<true, CF_Equal>::CreateRHI().get(),
+                    Mesh.MaterialRenderProxy->RasterizerState.get(),
+                    Mesh.MaterialRenderProxy->BlendState.get(),
                     Mesh.Element.Bindings,
                     VertexInputs,
                     Mesh.Element,

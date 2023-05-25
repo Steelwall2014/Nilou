@@ -54,23 +54,26 @@ namespace nilou {
                 FShaderInstance *ViewElementVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
                 FShaderInstance *ViewElementPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
                 
-                FRHIGraphicsPipelineInitializer PSOInitializer;
+                FGraphicsPipelineStateInitializer PSOInitializer;
 
-                PSOInitializer.VertexShader = ViewElementVS;
-                PSOInitializer.PixelShader = ViewElementPS;
+                PSOInitializer.VertexShader = ViewElementVS->GetVertexShaderRHI();
+                PSOInitializer.PixelShader = ViewElementPS->GetPixelShaderRHI();
 
                 PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Lines;
 
+                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false>::CreateRHI().get();
+                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
+
+                static FRHIVertexInputList VertexInputList = {
+                    PositionVertexInput,
+                    ColorInput
+                };
+                PSOInitializer.VertexInputList = &VertexInputList;
+
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
-                
-                RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false>::CreateRHI();
-                RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
                 RHIGetError();
                 RHICmdList->RHISetGraphicsPipelineState(PSO);
-                RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                RHICmdList->RHISetBlendState(BlendState.get());
                 RHIGetError();
 
                 RHICmdList->RHISetShaderUniformBuffer(
@@ -78,11 +81,6 @@ namespace nilou {
                     "FViewShaderParameters", 
                     ViewInfo.ViewUniformBuffer->GetRHI());
 
-                RHIGetError();
-
-                RHICmdList->RHISetVertexBuffer(PSO, &PositionInput);
-                RHIGetError();
-                RHICmdList->RHISetVertexBuffer(PSO, &ColorInput);
                 RHIGetError();
 
                 RHICmdList->RHIDrawArrays(0, Positions.size());

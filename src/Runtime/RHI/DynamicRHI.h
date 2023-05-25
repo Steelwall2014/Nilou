@@ -4,7 +4,7 @@
 #include <memory>
 
 // #include "Common/CoordinateAxis.h"
-//#include "Common/GfxStructures.h"
+#include "GfxConfiguration.h"
 
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
@@ -24,12 +24,12 @@ namespace nilou {
 	{
 	public:
 		static FDynamicRHI *GetDynamicRHI();
-		static void CreateDynamicRHI_RenderThread();
+		static void CreateDynamicRHI_RenderThread(const GfxConfiguration& configs);
 
 		FDynamicRHI() {}
 		virtual ~FDynamicRHI() {}
 		virtual int Initialize() = 0;
-		virtual void Finalize() = 0;
+		virtual void Finalize();
 		virtual void GetError(const char *file, int line) = 0;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
 
@@ -37,8 +37,7 @@ namespace nilou {
 		* Set state
 		*/
 		virtual void RHISetViewport(int32 Width, int32 Height) = 0;
-		virtual FRHIGraphicsPipelineState *RHISetComputeShader(FShaderInstance *ComputeShader) = 0;
-		virtual void RHISetBlendState(RHIBlendState *newState) = 0;
+		virtual FRHIGraphicsPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) = 0;
 		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) = 0;
 		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) = 0;
 		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) = 0;
@@ -52,9 +51,6 @@ namespace nilou {
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float) = 0;
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32) = 0;
 		virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32) = 0;
-		virtual void RHISetVertexBuffer(FRHIGraphicsPipelineState *, FRHIVertexInput *) = 0;
-		virtual void RHISetRasterizerState(RHIRasterizerState *newState) = 0;
-		virtual void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0) = 0;
 		
 		/**
 		* Binding buffers
@@ -67,13 +63,14 @@ namespace nilou {
 		/**
 		* Create/Update data
 		*/
-		virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FRHIGraphicsPipelineInitializer &StateData) = 0;
+		virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer) = 0;
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) = 0;
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) = 0;
 		virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) = 0;
-		virtual RHIVertexShaderRef RHICreateVertexShader(const char *code) = 0;
-		virtual RHIPixelShaderRef RHICreatePixelShader(const char *code) = 0;
-		virtual RHIComputeShaderRef RHICreateComputeShader(const char *code) = 0;
+		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) = 0;
+		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) = 0;
+		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) = 0;
+		virtual void RHIDestroyShader(RHIShader* Shader) = 0;
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) = 0;
 		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
@@ -166,7 +163,6 @@ namespace nilou {
 	protected:
 		static FDynamicRHI *DynamicRHI;
 		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
-		std::map<FRHIGraphicsPipelineInitializer, FRHIGraphicsPipelineStateRef> CachedPipelineStateObjects;
 	};
 
 	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)

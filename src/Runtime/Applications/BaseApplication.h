@@ -9,6 +9,9 @@
 #include "Common/GameViewportClient.h"
 
 namespace nilou {
+
+    using WindowContext = void;
+
     class BaseApplication
     {
     public:
@@ -26,6 +29,8 @@ namespace nilou {
         virtual void SetWindowWidth(int width);
         virtual void SetWindowHeight(int height);
         virtual bool IsCursorEnabled();
+
+        virtual WindowContext* GetWindowContext() { return nullptr; }
 
         bool ShouldRenderingThreadExit() const { return bShouldRenderingThreadExit; }
 

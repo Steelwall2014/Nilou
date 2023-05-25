@@ -1,3 +1,4 @@
+#define GLFW_INCLUDE_VULKAN
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -164,9 +165,15 @@ namespace nilou {
     {
         int result;
         glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        auto RHI_API = FDynamicRHI::GetDynamicRHI()->GetCurrentGraphicsAPI();
+        if (RHI_API == EGraphicsAPI::Vulkan) {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        }
+        else if (RHI_API == EGraphicsAPI::OpenGL) {
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        }
         glfwWindowHint(GLFW_RED_BITS, m_Config.redBits);
         glfwWindowHint(GLFW_GREEN_BITS, m_Config.greenBits);
         glfwWindowHint(GLFW_BLUE_BITS, m_Config.blueBits);
@@ -191,13 +198,13 @@ namespace nilou {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
         // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO(); (void)io;
-        ImGui::StyleColorsDark();
+        // IMGUI_CHECKVERSION();
+        // ImGui::CreateContext();
+        // ImGuiIO &io = ImGui::GetIO(); (void)io;
+        // ImGui::StyleColorsDark();
 
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 460");
+        // ImGui_ImplGlfw_InitForOpenGL(window, true);
+        // ImGui_ImplOpenGL3_Init("#version 460");
 
         InputActionMapping EnableCursor_mapping("EnableCursor");
         EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
@@ -289,17 +296,17 @@ namespace nilou {
         glfwPollEvents();
         ProcessInput_RenderThread();
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGui::Begin("Nilou");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        // ImGui_ImplOpenGL3_NewFrame();
+        // ImGui_ImplGlfw_NewFrame();
+        // ImGui::NewFrame();
+        // ImGui::Begin("Nilou");
+        // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 
-        ImGui::End();
-        ImGui::Render();
+        // ImGui::End();
+        // ImGui::Render();
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
         m_bQuit = glfwWindowShouldClose(window);
 
@@ -366,17 +373,6 @@ namespace nilou {
                 else
                     glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             });
-    }
-
-    BaseApplication *GetAppication()
-    {
-        static BaseApplication *g_pApp;
-        if (g_pApp == nullptr)
-        {
-            GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
-            g_pApp = new GLFWApplication(config);
-        }
-        return g_pApp;
     }
 
 }

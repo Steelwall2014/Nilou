@@ -25,28 +25,29 @@ namespace nilou {
         FMaterialRenderProxy *Material,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
-        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
-        const FRasterizerStateInitializer &RasterizerStateInitializer,
-        const FBlendStateInitializer &BlendStateInitializer,
+        RHIDepthStencilState* DepthStencilState,
+        RHIRasterizerState* RasterizerState,
+        RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings,
-        std::vector<FRHIVertexInput> &VertexInputs,
+        const FRHIVertexInputList* VertexInputs,
         const FMeshBatchElement &Element,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
         
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
 
         FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader;
+        Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
         FShaderInstance *PixelShader = GetContentManager()->GetGlobalShader(PermutationParametersPS);
-        Initializer.PixelShader = PixelShader;
+        Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
-        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
-        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
+        Initializer.DepthStencilState = DepthStencilState;
+        Initializer.RasterizerState = RasterizerState;
+        Initializer.BlendState = BlendState;
+        Initializer.VertexInputList = VertexInputs;
 
         {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
@@ -82,7 +83,6 @@ namespace nilou {
 
             }
 
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
             if (Element.NumVertices == 0)
             {
                 OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
@@ -391,7 +391,7 @@ namespace nilou {
                         MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
                         MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
                         #endif
-                        std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
+                        const FRHIVertexInputList* VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
                             UniformBuffer->GetRHI());
@@ -405,9 +405,9 @@ namespace nilou {
                             Mesh.MaterialRenderProxy,
                             PermutationParametersVS,
                             PermutationParametersPS,
-                            Mesh.MaterialRenderProxy->DepthStencilState,
-                            Mesh.MaterialRenderProxy->RasterizerState,
-                            Mesh.MaterialRenderProxy->BlendState,
+                            Mesh.MaterialRenderProxy->DepthStencilState.get(),
+                            Mesh.MaterialRenderProxy->RasterizerState.get(),
+                            Mesh.MaterialRenderProxy->BlendState.get(),
                             InputBindings,
                             VertexInputs,
                             Mesh.Element,

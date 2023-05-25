@@ -28,7 +28,7 @@ uniform sampler2D IBL_BRDF_LUT;
 //    uint NumMips;
 //};
 
-in VS_Out vs_out;
+layout (location = 0) in VS_Out vs_out;
 
 #include "../include/functions.glsl"
 

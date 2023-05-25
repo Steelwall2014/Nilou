@@ -94,7 +94,7 @@ namespace nilou {
 
             FShaderPermutationParameters PermutationParameters(&FIrradianceEnvTextureShader::StaticType, 0);
             FShaderInstance *IrradianceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(IrradianceShader);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(IrradianceShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute,
@@ -114,7 +114,7 @@ namespace nilou {
         {
             FShaderPermutationParameters PermutationParameters(&FPrefilteredEnvTextureShader::StaticType, 0);
             FShaderInstance *PrefilterShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute,

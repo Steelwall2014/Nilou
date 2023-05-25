@@ -13,9 +13,6 @@ namespace nilou {
         : IndexBuffer(nullptr)
         , PipelineState(nullptr)
         , StencilRef(0)
-        , DepthStencilState(nullptr)
-        , RasterizerState(nullptr)
-        , BlendState(nullptr)
         , UseIndirect(false)
     {
 
@@ -25,9 +22,6 @@ namespace nilou {
     {
         RHIGetError();
         RHICmdList->RHISetGraphicsPipelineState(PipelineState);
-        RHICmdList->RHISetDepthStencilState(DepthStencilState.get(), StencilRef);
-        RHICmdList->RHISetRasterizerState(RasterizerState.get());
-        RHICmdList->RHISetBlendState(BlendState.get());
         RHIGetError();
         FRHIGraphicsPipelineState *PSO = PipelineState;
         RHIGetError();
@@ -70,11 +64,6 @@ namespace nilou {
             }
         }
 
-        for (FRHIVertexInput &VertexInput : ShaderBindings.VertexAttributeBindings)
-        {
-            RHICmdList->RHISetVertexBuffer(PSO, &VertexInput);
-            RHIGetError();
-        }
         if (UseIndirect)
         {
             RHICmdList->RHIDrawIndexedIndirect(IndexBuffer, IndirectArgs.Buffer, IndirectArgs.Offset);

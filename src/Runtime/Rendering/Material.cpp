@@ -117,9 +117,9 @@ namespace nilou {
     {
         BlendState = InBlendState;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [InBlendState, this](FDynamicRHI*) 
+            [InBlendState, this](FDynamicRHI* RHICmdList) 
             {
-                GetRenderProxy()->BlendState = InBlendState;
+                GetRenderProxy()->BlendState = RHICmdList->RHICreateBlendState(InBlendState);
             });
     }
 
@@ -127,9 +127,9 @@ namespace nilou {
     {
         DepthStencilState = InDepthStencilState;
         ENQUEUE_RENDER_COMMAND(Material_SetDepthStencilState)(
-            [InDepthStencilState, this](FDynamicRHI*) 
+            [InDepthStencilState, this](FDynamicRHI* RHICmdList) 
             {
-                GetRenderProxy()->DepthStencilState = InDepthStencilState;
+                GetRenderProxy()->DepthStencilState = RHICmdList->RHICreateDepthStencilState(InDepthStencilState);
             });
     }
 
@@ -137,9 +137,9 @@ namespace nilou {
     {
         RasterizerState = InRasterizerState;
         ENQUEUE_RENDER_COMMAND(Material_SetRasterizerState)(
-            [InRasterizerState, this](FDynamicRHI*) 
+            [InRasterizerState, this](FDynamicRHI* RHICmdList) 
             {
-                GetRenderProxy()->RasterizerState = InRasterizerState;
+                GetRenderProxy()->RasterizerState = RHICmdList->RHICreateRasterizerState(InRasterizerState);
             });
     }
 
@@ -234,11 +234,11 @@ namespace nilou {
         auto ShadingModel = this->ShadingModel;
         auto Textures = this->Textures;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [=](FDynamicRHI*) 
+            [=](FDynamicRHI* RHICmdList) 
             {
-                GetRenderProxy()->BlendState = BlendState;
-                GetRenderProxy()->RasterizerState = RasterizerState;
-                GetRenderProxy()->DepthStencilState = DepthStencilState;
+                GetRenderProxy()->BlendState = RHICmdList->RHICreateBlendState(BlendState);
+                GetRenderProxy()->RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerState);
+                GetRenderProxy()->DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilState);
                 GetRenderProxy()->ShadingModel = ShadingModel;
                 for (auto &[Name, Texture] : Textures)
                     GetRenderProxy()->Textures[Name] = Texture;

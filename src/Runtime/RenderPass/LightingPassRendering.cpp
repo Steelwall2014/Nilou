@@ -39,23 +39,27 @@ namespace nilou {
                     FShaderInstance *LightPassVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
                     FShaderInstance *LightPassPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
                     
-                    FRHIGraphicsPipelineInitializer PSOInitializer;
+                    FGraphicsPipelineStateInitializer PSOInitializer;
 
-                    PSOInitializer.VertexShader = LightPassVS;
-                    PSOInitializer.PixelShader = LightPassPS;
+                    PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
+                    PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
 
                     PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
 
+                    PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
+                    PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                    PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI().get();
+
+                    static FRHIVertexInputList VertexInputList = {
+                        PositionVertexInput,
+                        UVVertexInput
+                    };
+                    PSOInitializer.VertexInputList = &VertexInputList;
+
                     FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                     
-                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-                    RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
-                    RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                    RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                    RHICmdList->RHISetBlendState(BlendState.get());
                     RHIGetError();
 
                     auto &Light = Lights[LightIndex];
@@ -117,10 +121,6 @@ namespace nilou {
                         ViewInfo.ViewUniformBuffer->GetRHI());
                     RHIGetError();
 
-                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHIGetError();
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
                         "FLightUniformBlock", 

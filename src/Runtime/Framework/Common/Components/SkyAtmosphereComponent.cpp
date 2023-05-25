@@ -173,7 +173,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
         FShaderInstance *TransmittanceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(TransmittanceShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(TransmittanceShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", TransmittanceLUT.get(), EDataAccessFlag::DA_WriteOnly);
         FDynamicRHI::GetDynamicRHI()->RHIDispatch(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
@@ -183,7 +183,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
         FShaderInstance *DirectIrradianceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(DirectIrradianceShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(DirectIrradianceShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
         FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
@@ -194,7 +194,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
         FShaderInstance *ScatteringShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
@@ -207,7 +207,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
         FShaderInstance *ScatteringDensityShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringDensityShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringDensityShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", ScatteringDensityLUT.get(), EDataAccessFlag::DA_WriteOnly);
@@ -222,7 +222,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
         FShaderInstance *IndirectIrradianceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(IndirectIrradianceShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(IndirectIrradianceShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
@@ -235,7 +235,7 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
         FShaderInstance *MultiScatteringShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(MultiScatteringShader);
+        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(MultiScatteringShader->GetComputeShaderRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "DeltaScatteringLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
         FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_ReadWrite);

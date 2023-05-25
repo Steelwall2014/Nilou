@@ -216,11 +216,11 @@ namespace nilou {
 
         uint8 StencilRefValue = 0;
 
-        FRasterizerStateInitializer RasterizerState;
+        RHIRasterizerStateRef RasterizerState = nullptr;
 
-        FDepthStencilStateInitializer DepthStencilState;
+        RHIDepthStencilStateRef DepthStencilState = nullptr;
 
-        FBlendStateInitializer BlendState;
+        RHIBlendStateRef BlendState = nullptr;
 
         EShadingModel ShadingModel;
 

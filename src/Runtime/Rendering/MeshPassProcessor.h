@@ -18,7 +18,6 @@ namespace nilou {
         std::vector<std::pair<int, FRHISampler *>> SamplerBindings[EPipelineStage::PipelineStageNum];
         std::vector<std::pair<int, RHIBuffer *>> BufferBindings[EPipelineStage::PipelineStageNum];
         std::vector<std::pair<int, FUniformValue>> UniformBindings[EPipelineStage::PipelineStageNum];
-        std::vector<FRHIVertexInput> VertexAttributeBindings;
 
         bool SetShaderBinding(EPipelineStage Stage, const FRHIDescriptorSetLayoutBinding& Binding, FInputShaderBindings& InputBindings)
         {
@@ -89,9 +88,6 @@ namespace nilou {
         FRHIGraphicsPipelineState *PipelineState;
 
         uint32 StencilRef;
-        RHIDepthStencilStateRef DepthStencilState;
-        RHIRasterizerStateRef RasterizerState;
-        RHIBlendStateRef BlendState;
 
         /**
         * Draw command parameters

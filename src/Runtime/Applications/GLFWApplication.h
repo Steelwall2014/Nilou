@@ -16,6 +16,7 @@ namespace nilou {
         virtual void Finalize_RenderThread() override;
         virtual void Tick(double DeltaTime) override;
         virtual void Tick_RenderThread() override;
+        virtual WindowContext* GetWindowContext() override { return window; }
     private:
         GLFWwindow *window;
         void DispatchScreenResizeMessage();

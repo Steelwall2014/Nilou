@@ -76,7 +76,7 @@ namespace nilou {
     };
     using FVertexStreamComponentList = std::vector<FVertexStreamComponent *>;
 
-    class FVertexFactory// : public FShaderSegment
+    class FVertexFactory
     {
     /*==============FVertexFactoryType Interface============*/
     public: 
@@ -95,14 +95,18 @@ namespace nilou {
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
         /** Override this to implement child VertexFactory */
-        virtual std::vector<FRHIVertexInput> GetVertexInputList() const { return std::vector<FRHIVertexInput>(); }
+        const FRHIVertexInputList* GetVertexInputList() const { return &VertexInputList; }
 
         const std::string &GetName() const { return Name; }
 
         virtual int32 GetPermutationId() const { return 0; }
+
+        virtual void InitVertexFactory() { }
         
     protected:
         std::string Name;
+
+        FRHIVertexInputList VertexInputList;
     };
 
 
