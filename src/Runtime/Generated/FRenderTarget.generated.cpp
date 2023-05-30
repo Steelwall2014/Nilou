@@ -28,6 +28,8 @@ struct TClassRegistry<nilou::FBlendStateInitializer::FRenderTarget>
 		Mngr.AddField<&nilou::FBlendStateInitializer::FRenderTarget::ColorDestBlend>("ColorDestBlend");
 		Mngr.AddField<&nilou::FBlendStateInitializer::FRenderTarget::ColorSrcBlend>("ColorSrcBlend");
 		Mngr.AddField<&nilou::FBlendStateInitializer::FRenderTarget::ColorWriteMask>("ColorWriteMask");
+		Mngr.AddMethod<&nilou::FBlendStateInitializer::FRenderTarget::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FBlendStateInitializer::FRenderTarget::Serialize>("Serialize");
 ;
         nilou::FBlendStateInitializer::FRenderTarget::StaticClass_->Type = Type_of<nilou::FBlendStateInitializer::FRenderTarget>;
         nilou::FBlendStateInitializer::FRenderTarget::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FBlendStateInitializer::FRenderTarget>);

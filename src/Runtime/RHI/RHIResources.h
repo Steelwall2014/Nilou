@@ -11,6 +11,7 @@
 #include "Platform.h"
 #include "RHIDefinitions.h"
 #include "ShaderParameter.h"
+#include "RHI.h"
 
 namespace glslang {
 class TShader;
@@ -90,7 +91,7 @@ namespace nilou {
 	{
 	public:
 		RHIRasterizerState() :RHIResource(ERHIResourceType::RRT_RasterizerState) { }
-		virtual bool Equals(RHIRasterizerState *) { return false; }
+		FRasterizerStateInitializer Initializer;
 	};
 	using RHIRasterizerStateRef = std::shared_ptr<RHIRasterizerState>;
 
@@ -98,7 +99,7 @@ namespace nilou {
 	{
 	public:
 		RHIDepthStencilState() :RHIResource(ERHIResourceType::RRT_DepthStencilState) { }
-		virtual bool Equals(RHIDepthStencilState *) { return false; }
+		FDepthStencilStateInitializer Initializer;
 	};
 	using RHIDepthStencilStateRef = std::shared_ptr<RHIDepthStencilState>;
 
@@ -106,7 +107,7 @@ namespace nilou {
 	{
 	public:
 		RHIBlendState() :RHIResource(ERHIResourceType::RRT_BlendState) { }
-		virtual bool Equals(RHIBlendState *) { return false; }
+		FBlendStateInitializer Initializer;
 	};
 	using RHIBlendStateRef = std::shared_ptr<RHIBlendState>;
 
@@ -287,13 +288,11 @@ namespace nilou {
         RHIBuffer *VertexBuffer;
 		uint8 Location;
         uint8 Offset;
-        uint8 Stride;
         EVertexElementType Type;
 
         FRHIVertexInput() 
             : VertexBuffer(nullptr)
             , Offset(0)
-            , Stride(0)
             , Type(EVertexElementType::VET_None)
         { }
     };
@@ -310,7 +309,7 @@ namespace nilou {
 			, RasterizerState(nullptr)
 			, BlendState(nullptr)
 			, VertexInputList(nullptr)
-			, PrimitiveMode(EPrimitiveMode::PM_Triangles)
+			, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
 		{ }
 
 		RHIVertexShader *VertexShader;

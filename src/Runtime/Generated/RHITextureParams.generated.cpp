@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/Actor.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;
@@ -26,6 +26,8 @@ struct TClassRegistry<nilou::RHITextureParams>
 		Mngr.AddField<&nilou::RHITextureParams::Wrap_R>("Wrap_R");
 		Mngr.AddField<&nilou::RHITextureParams::Wrap_S>("Wrap_S");
 		Mngr.AddField<&nilou::RHITextureParams::Wrap_T>("Wrap_T");
+		Mngr.AddMethod<&nilou::RHITextureParams::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::RHITextureParams::Serialize>("Serialize");
 ;
         nilou::RHITextureParams::StaticClass_->Type = Type_of<nilou::RHITextureParams>;
         nilou::RHITextureParams::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::RHITextureParams>);

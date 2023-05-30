@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SphereActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/SphereComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

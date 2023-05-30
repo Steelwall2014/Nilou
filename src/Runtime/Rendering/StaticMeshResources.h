@@ -219,7 +219,7 @@ namespace nilou {
 
         FStaticMeshRenderData* RenderData;
 
-        virtual void PostDeserialize() override;
+        virtual void PostDeserialize(FArchive& Ar) override;
 
         virtual ~UStaticMesh() { ReleaseResources(); }
         void ReleaseResources();

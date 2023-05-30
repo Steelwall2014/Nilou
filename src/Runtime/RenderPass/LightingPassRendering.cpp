@@ -44,7 +44,7 @@ namespace nilou {
                     PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
                     PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
 
-                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
+                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
 
                     PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
                     PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();

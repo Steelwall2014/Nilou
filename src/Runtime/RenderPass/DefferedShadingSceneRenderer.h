@@ -13,7 +13,15 @@
 namespace nilou {
 
     DECLARE_GLOBAL_SHADER(FScreenQuadVertexShader)
-    DECLARE_GLOBAL_SHADER(FRenderToScreenPixelShader)
+	class FRenderToScreenPixelShader : public FGlobalShader
+	{
+	public:
+        BEGIN_UNIFORM_BUFFER_STRUCT(UniformBlock)
+            SHADER_PARAMETER_STRUCT(float, GammaCorrection)
+            SHADER_PARAMETER_STRUCT(int, bEnableToneMapping)
+        END_UNIFORM_BUFFER_STRUCT()
+		DECLARE_SHADER_TYPE()
+	};
 
     class FParallelMeshDrawCommands
     {
@@ -107,10 +115,10 @@ namespace nilou {
 
         FShadowMapUniformBuffer(const ShadowMapResourceCreateInfo &CreateInfo);
 
-        template<int N>
-        TUniformBuffer<FShadowMappingBlock<N>> *Cast()
+        template<typename T>
+        TUniformBuffer<T> *Cast()
         {
-            return reinterpret_cast<TUniformBuffer<FShadowMappingBlock<N>>*>(UniformBuffer.get());
+            return reinterpret_cast<TUniformBuffer<T>*>(UniformBuffer.get());
         }
 
         std::shared_ptr<FUniformBuffer> UniformBuffer;
@@ -366,6 +374,12 @@ namespace nilou {
         void UpdateReflectionProbeFactors();
 
     };
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(BasePassPixelShaderUniformBlock)
+        SHADER_PARAMETER(uint32, MaterialShadingModel)
+        SHADER_PARAMETER(uint32, PrefilterEnvTextureNumMips)
+        SHADER_PARAMETER(float, ReflectionProbeFactor)
+    END_UNIFORM_BUFFER_STRUCT()
 
     extern FDefferedShadingSceneRenderer *Renderer;
 }

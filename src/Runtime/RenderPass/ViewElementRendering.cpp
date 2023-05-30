@@ -35,14 +35,12 @@ namespace nilou {
             PositionInput.Location = 0;
             PositionInput.Type = EVertexElementType::VET_Float3;
             PositionInput.Offset = 0;
-            PositionInput.Stride = sizeof(vec3);
 
             FRHIVertexInput ColorInput;
             ColorInput.VertexBuffer = ColorBuffer.VertexBufferRHI.get();
             ColorInput.Location = 1;
             ColorInput.Type = EVertexElementType::VET_Float3;
             ColorInput.Offset = 0;
-            ColorInput.Stride = sizeof(vec3);
             
             FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
             FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution);
@@ -59,7 +57,7 @@ namespace nilou {
                 PSOInitializer.VertexShader = ViewElementVS->GetVertexShaderRHI();
                 PSOInitializer.PixelShader = ViewElementPS->GetPixelShaderRHI();
 
-                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Lines;
+                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_LineList;
 
                 PSOInitializer.DepthStencilState = TStaticDepthStencilState<false>::CreateRHI().get();
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();

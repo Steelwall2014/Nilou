@@ -62,7 +62,6 @@ namespace nilou {
         VertexInput.VertexBuffer = Component.VertexBuffer->VertexBufferRHI.get();
         VertexInput.Location = Location;
         VertexInput.Offset = Component.Offset;
-        VertexInput.Stride = Component.Stride;
         VertexInput.Type = Component.Type;
         return VertexInput;
     }
@@ -225,7 +224,7 @@ namespace nilou {
         }
     }
 
-    void UStaticMesh::PostDeserialize()
+    void UStaticMesh::PostDeserialize(FArchive& Ar)
     {
         for (auto &lod_resource : LODResourcesData)
         {

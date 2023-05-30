@@ -235,7 +235,10 @@ public:
         return GetClass()->GetType().GetName();
     }
 
-    virtual void PostDeserialize() { }
+    virtual void PreSerialize(FArchive& Ar) { }
+    virtual void PostSerialize(FArchive& Ar) { }
+    virtual void PreDeserialize(FArchive& Ar) { }
+    virtual void PostDeserialize(FArchive& Ar) { }
 
     bool bIsSerializing = false;
 };
@@ -397,13 +400,13 @@ public:
                     {
                         using TKey = typename T::key_type;
                         using TValue = typename T::mapped_type;
-                        std::unique_ptr<TKey> key = std::make_unique<TKey>();
-                        std::unique_ptr<TValue> value = std::make_unique<TValue>();
+                        TKey key = TKey();
+                        TValue value = TValue();
                         FArchive local_Ar_key(Node["key"], Ar);
-                        TStaticSerializer<TKey>::Deserialize(*key, local_Ar_key);
+                        TStaticSerializer<TKey>::Deserialize(key, local_Ar_key);
                         FArchive local_Ar_value(Node["value"], Ar);
-                        TStaticSerializer<TValue>::Deserialize(*value, local_Ar_value);
-                        Object[*key] = *value;
+                        TStaticSerializer<TValue>::Deserialize(value, local_Ar_value);
+                        Object[key] = value;
                     }
                 }
             }
@@ -429,10 +432,10 @@ public:
                 {
                     using TKey = typename T::key_type;
                     nlohmann::json& Node = Ar.Node[i];
-                    std::unique_ptr<TKey> pkey = std::make_unique<TKey>();
+                    TKey key = TKey();
                     FArchive local_Ar(Node, Ar);
-                    TStaticSerializer<TKey>::Deserialize(*pkey, local_Ar);
-                    Object.insert(*pkey);
+                    TStaticSerializer<TKey>::Deserialize(key, local_Ar);
+                    Object.insert(key);
                 }
             }
         }

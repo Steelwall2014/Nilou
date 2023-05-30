@@ -371,7 +371,7 @@ namespace nilou {
                         Sphere.Radius,
                         0.0, glm::abs(far-near));
 
-                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>();
+                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<FDirectionalShadowMappingBlock>();
                     UniformBuffer->Data.Frustums[SplitIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
                     UniformBuffer->Data.Frustums[SplitIndex].FrustumFar = SplitFar;
                     UniformBuffer->Data.Frustums[SplitIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;

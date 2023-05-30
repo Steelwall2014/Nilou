@@ -43,5 +43,7 @@
     public: \
         const ::NClass *GetClass() const; \
         static const ::NClass *StaticClass(); \
+        NFUNCTION() \
         void Serialize(FArchive& Ar); \
+        NFUNCTION() \
         void Deserialize(FArchive& Ar);

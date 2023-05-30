@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/ArrowActor.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;
@@ -29,6 +29,8 @@ struct TClassRegistry<nilou::FImage>
 		Mngr.AddField<&nilou::FImage::NumMips>("NumMips");
 		Mngr.AddField<&nilou::FImage::PixelFormat>("PixelFormat");
 		Mngr.AddField<&nilou::FImage::Width>("Width");
+		Mngr.AddMethod<&nilou::FImage::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FImage::Serialize>("Serialize");
 ;
         nilou::FImage::StaticClass_->Type = Type_of<nilou::FImage>;
         nilou::FImage::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FImage>);

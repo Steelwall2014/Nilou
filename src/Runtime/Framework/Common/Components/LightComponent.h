@@ -139,9 +139,16 @@ namespace nilou {
         SHADER_PARAMETER(float, FrustumFar)
     END_UNIFORM_BUFFER_STRUCT()
 
-    template<int N>
-    BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, N, Frustums)
+    BEGIN_UNIFORM_BUFFER_STRUCT(FDirectionalShadowMappingBlock)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, CASCADED_SHADOWMAP_SPLIT_COUNT, Frustums)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FPointShadowMappingBlock)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, 6, Frustums)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FSpotShadowMappingBlock)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, 1, Frustums)
     END_UNIFORM_BUFFER_STRUCT()
 
     // Manually assign the alignment.

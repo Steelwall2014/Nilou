@@ -69,23 +69,23 @@ namespace nilou {
                 return Buffers[Name];
             return nullptr;
         }
-        template<typename T>
-        void SetUniformShaderBinding(const std::string &Name, T Value)
-        {
-            Uniforms.insert({Name, Value});;
-        }
-        std::optional<FUniformValue> GetUniformShaderBinding(const std::string &Name)
-        {
-            if (Uniforms.contains(Name))
-                return Uniforms.find(Name)->second;
-            return std::nullopt;
-        }
+        // template<typename T>
+        // void SetUniformShaderBinding(const std::string &Name, T Value)
+        // {
+        //     Uniforms.insert({Name, Value});;
+        // }
+        // std::optional<FUniformValue> GetUniformShaderBinding(const std::string &Name)
+        // {
+        //     if (Uniforms.contains(Name))
+        //         return Uniforms.find(Name)->second;
+        //     return std::nullopt;
+        // }
     
     private:
 	    std::map<std::string, RHIUniformBuffer *> UniformBuffers;
 	    std::map<std::string, FRHISampler *> Samplers;
 	    std::map<std::string, RHIBuffer *> Buffers;
-        std::map<std::string, FUniformValue> Uniforms;
+        // std::map<std::string, FUniformValue> Uniforms;
 
     };
 }

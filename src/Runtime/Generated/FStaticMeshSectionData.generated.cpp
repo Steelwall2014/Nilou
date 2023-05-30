@@ -29,6 +29,8 @@ struct TClassRegistry<nilou::FStaticMeshSectionData>
 		Mngr.AddField<&nilou::FStaticMeshSectionData::Tangents>("Tangents");
 		Mngr.AddField<&nilou::FStaticMeshSectionData::TexCoords>("TexCoords");
 		Mngr.AddField<&nilou::FStaticMeshSectionData::bCastShadow>("bCastShadow");
+		Mngr.AddMethod<&nilou::FStaticMeshSectionData::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FStaticMeshSectionData::Serialize>("Serialize");
 ;
         nilou::FStaticMeshSectionData::StaticClass_->Type = Type_of<nilou::FStaticMeshSectionData>;
         nilou::FStaticMeshSectionData::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FStaticMeshSectionData>);

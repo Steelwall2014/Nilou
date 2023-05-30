@@ -23,6 +23,8 @@ struct TClassRegistry<nilou::FRasterizerStateInitializer>
         Mngr.RegisterType<nilou::FRasterizerStateInitializer>();
 		Mngr.AddField<&nilou::FRasterizerStateInitializer::CullMode>("CullMode");
 		Mngr.AddField<&nilou::FRasterizerStateInitializer::FillMode>("FillMode");
+		Mngr.AddMethod<&nilou::FRasterizerStateInitializer::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FRasterizerStateInitializer::Serialize>("Serialize");
 ;
         nilou::FRasterizerStateInitializer::StaticClass_->Type = Type_of<nilou::FRasterizerStateInitializer>;
         nilou::FRasterizerStateInitializer::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FRasterizerStateInitializer>);

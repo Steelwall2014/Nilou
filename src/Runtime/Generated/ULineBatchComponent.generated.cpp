@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/LineBatchActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/LineBatchComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

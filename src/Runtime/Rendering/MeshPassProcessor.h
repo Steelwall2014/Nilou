@@ -17,7 +17,7 @@ namespace nilou {
         std::vector<std::pair<int, RHIUniformBuffer *>> UniformBufferBindings[EPipelineStage::PipelineStageNum];
         std::vector<std::pair<int, FRHISampler *>> SamplerBindings[EPipelineStage::PipelineStageNum];
         std::vector<std::pair<int, RHIBuffer *>> BufferBindings[EPipelineStage::PipelineStageNum];
-        std::vector<std::pair<int, FUniformValue>> UniformBindings[EPipelineStage::PipelineStageNum];
+        // std::vector<std::pair<int, FUniformValue>> UniformBindings[EPipelineStage::PipelineStageNum];
 
         bool SetShaderBinding(EPipelineStage Stage, const FRHIDescriptorSetLayoutBinding& Binding, FInputShaderBindings& InputBindings)
         {
@@ -46,17 +46,17 @@ namespace nilou {
                     bResourceFound = true;
                 }
             }
-            else if (Binding.ParameterType == EShaderParameterType::SPT_Float ||
-                     Binding.ParameterType == EShaderParameterType::SPT_Int ||
-                     Binding.ParameterType == EShaderParameterType::SPT_Uint)
-            {
-                auto Value = InputBindings.GetUniformShaderBinding(Binding.Name);
-                if (Value.has_value())
-                {
-                    UniformBindings[Stage].push_back({Binding.BindingPoint, Value.value()});
-                    bResourceFound = true;
-                }
-            }
+            // else if (Binding.ParameterType == EShaderParameterType::SPT_Float ||
+            //          Binding.ParameterType == EShaderParameterType::SPT_Int ||
+            //          Binding.ParameterType == EShaderParameterType::SPT_Uint)
+            // {
+            //     auto Value = InputBindings.GetUniformShaderBinding(Binding.Name);
+            //     if (Value.has_value())
+            //     {
+            //         UniformBindings[Stage].push_back({Binding.BindingPoint, Value.value()});
+            //         bResourceFound = true;
+            //     }
+            // }
             return bResourceFound;
         }
     };

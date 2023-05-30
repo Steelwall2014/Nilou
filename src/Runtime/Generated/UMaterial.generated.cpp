@@ -29,6 +29,7 @@ struct TClassRegistry<nilou::UMaterial>
 		Mngr.AddField<&nilou::UMaterial::ShadingModel>("ShadingModel");
 		Mngr.AddField<&nilou::UMaterial::StencilRefValue>("StencilRefValue");
 		Mngr.AddField<&nilou::UMaterial::Textures>("Textures");
+		Mngr.AddField<&nilou::UMaterial::UniformBlock>("UniformBlock");
 		Mngr.AddBases<nilou::UMaterial, nilou::NAsset>();
 ;
         nilou::UMaterial::StaticClass_->Type = Type_of<nilou::UMaterial>;

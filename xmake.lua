@@ -6,13 +6,9 @@ add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
-add_requires("vcpkg::glslang")
+-- add_requires("vcpkg::glslang")
 add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
-
-VULKAN_INCLUDE = "E:/VulkanSDK/1.3.246.1/Include"
-VULKAN_LIBRARY = {"E:/VulkanSDK/1.3.246.1/Lib/vulkan-1", 
-                  "E:/VulkanSDK/1.3.246.1/Lib/shaderc*"}
 
 add_defines([[PROJECT_DIR=R"($(projectdir))"]])
 
@@ -123,16 +119,6 @@ function BuildProject(config)
     end
 end
 
-function ExecuteHeaderTool(target)
-    if is_mode("release") then
-        build_path = "$(buildir)/windows/x64/release/"
-    else
-        build_path = "$(buildir)/windows/x64/debug/"
-    end
-    os.exec(build_path .. "HeaderTool ./src ./src/Runtime/Generated")
-    --D:\Nilou\build\windows\x64\debug\HeaderTool.exe D:\Nilou\src D:\Nilou\src\Runtime\Generated--
-end
-
 function copyFunc(target)
     if is_mode("release") then
         build_path = "$(buildir)/windows/x64/release/"
@@ -142,210 +128,174 @@ function copyFunc(target)
     os.cp("./External/shared/*.*", build_path)
 end
 
---[[
-function copyFunc(target)
-    if is_plat("windows") then
-        build_path = ""
-        src_path = ""
-        if is_mode("release") then
-            src_path = "third_party/binary/release/"
-            build_path = "$(buildir)/windows/x64/release/"
-        else
-            src_path = "third_party/binary/debug/"
-            build_path = "$(buildir)/windows/x64/debug/"
-        end
-        os.cp(src_path .. "*.*", build_path)
-        os.cp("glfw/dll/glfw3.dll", build_path .. "glfw3.dll")
-    end
-end
-]]--
 BuildExternalProject({projectName = "crossguid", macros = {"GUID_WINDOWS"}, link = {"Ole32"}})
 BuildExternalProject({projectName = "base64"})
--- BuildExternalProject({projectName = "dds"})
 BuildExternalProject({projectName = "glad"})
--- BuildExternalProject({projectName = "imgui"})
 
-include_paths = {
-        "./External/include", 
-        "./src/Runtime/Framework", 
-        "./src/Runtime/Applications", 
-        "./src/Runtime/RHI", 
-        "./src/Runtime/HAL", 
-        "./src/Runtime/Rendering", 
-        "./src/Runtime/GameStatics",
-        "./src/Runtime/Generated",
-        "./src/Runtime/Serialization",
-        "./src/Runtime/RenderPass",
-        "./src/Runtime/Geospatial",
-        "./src/Runtime/Cesium3DTiles",
-        "./Assets/Shaders",
-        VULKAN_INCLUDE}
- 
-function InstallHeaderTool() 
-    os.cp("./NilouHeaderTool/src/include/*", "./External/include")
-end
 BuildProject({
     projectName = "Nilou",
     projectType = "binary",
     macros = {},
     depends = {"crossguid", "glad", "base64"},
     files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
-    includePaths = include_paths,
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", VULKAN_LIBRARY},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
-    beforeBuildFunc = InstallHeaderTool,
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+    beforeBuildFunc = "Nilou",
     -- afterBuildFunc = copyFunc,
     enableException = true,
     --unityBuildBatch = 8
 })
 
-BuildProject({
-    projectName = "GLTFImporter",
-    projectType = "binary",
-    macros = {},
-    depends = {"crossguid", "glad", "base64"},
-    files = {"src/GLTFImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
-    includePaths = include_paths,
-    debugLink = {"lib/debug/*"},
-    releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
-    enableException = true,
-})
+target("ExecuteHeaderTool")
+    before_build("ExecuteHeaderTool")
 
-BuildProject({
-    projectName = "TextureImporter",
-    projectType = "binary",
-    macros = {},
-    depends = {"crossguid", "glad", "base64"},
-    files = {"src/TextureImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
-    includePaths = include_paths,
-    debugLink = {"lib/debug/*"},
-    releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
-    enableException = true,
-})
+-- BuildProject({
+--     projectName = "GLTFImporter",
+--     projectType = "binary",
+--     macros = {},
+--     depends = {"crossguid", "glad", "base64"},
+--     files = {"src/GLTFImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+--     includePaths = IncludePaths,
+--     debugLink = {"lib/debug/*"},
+--     releaseLink = {"lib/release/*"},
+--     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+--     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+--     enableException = true,
+-- })
 
-
-BuildProject({
-    projectName = "TestGlslang",
-    projectType = "binary",
-    depends = {"crossguid", "glad", "base64"},
-    files = {
-        "src/Runtime/UnitTests/TestGlslang/main.cpp",
-        "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
-    includePaths = include_paths,
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    enableException = true,
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
-})
+-- BuildProject({
+--     projectName = "TextureImporter",
+--     projectType = "binary",
+--     macros = {},
+--     depends = {"crossguid", "glad", "base64"},
+--     files = {"src/TextureImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+--     includePaths = IncludePaths,
+--     debugLink = {"lib/debug/*"},
+--     releaseLink = {"lib/release/*"},
+--     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+--     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+--     enableException = true,
+-- })
 
 
-BuildProject({
-    projectName = "TestUniformProject",
-    projectType = "binary",
-    macros = {},
-    depends = {"crossguid", "glad"},
-    files = {
-        "src/Runtime/Framework/Common/UniformBuffer.cpp", 
-        "src/Runtime/Rendering/RenderResource.cpp", 
-        "src/Runtime/Framework/Common/AssertionMacros.cpp",
-        "src/Runtime/UnitTests/TestUniformBuffer/main.cpp"},
-    includePaths = include_paths,
-    debugLink = {"lib/debug/*"},
-    releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
-    beforeBuildFunc = ExecuteHeaderTool,
-    -- afterBuildFunc = copyFunc,
-    enableException = true,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestGlslang",
+--     projectType = "binary",
+--     depends = {"crossguid", "glad", "base64"},
+--     files = {
+--         "src/Runtime/UnitTests/TestGlslang/main.cpp",
+--         "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
+--     includePaths = IncludePaths,
+--     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+--     enableException = true,
+--     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+-- })
 
-BuildProject({
-    projectName = "TestTransformProject",
-    projectType = "binary",
-    files = {
-        "src/Runtime/Framework/Common/Transform.cpp", 
-        "src/Runtime/UnitTests/TestTransform/main.cpp"},
-    includePaths = include_paths,
-    beforeBuildFunc = ExecuteHeaderTool,
-    enableException = true,
-    --unityBuildBatch = 8
-})
 
-BuildProject({
-    projectName = "TestPermutation",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestPermutation/main.cpp"},
-    enableException = true,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestUniformProject",
+--     projectType = "binary",
+--     macros = {},
+--     depends = {"crossguid", "glad"},
+--     files = {
+--         "src/Runtime/Framework/Common/UniformBuffer.cpp", 
+--         "src/Runtime/Rendering/RenderResource.cpp", 
+--         "src/Runtime/Framework/Common/AssertionMacros.cpp",
+--         "src/Runtime/UnitTests/TestUniformBuffer/main.cpp"},
+--     includePaths = IncludePaths,
+--     debugLink = {"lib/debug/*"},
+--     releaseLink = {"lib/release/*"},
+--     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
+--     beforeBuildFunc = ExecuteHeaderTool,
+--     -- afterBuildFunc = copyFunc,
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
 
-BuildProject({
-    projectName = "TestVirtualPath",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestVirtualPath/main.cpp"},
-    enableException = true,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestTransformProject",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/Framework/Common/Transform.cpp", 
+--         "src/Runtime/UnitTests/TestTransform/main.cpp"},
+--     includePaths = IncludePaths,
+--     beforeBuildFunc = ExecuteHeaderTool,
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
 
-BuildProject({
-    projectName = "TestShadInclude",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestShadInclude/main.cpp",
-        "./src/Runtime/GameStatics/**.cpp",},
-    includePaths = include_paths,
-    enableException = true,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestPermutation",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestPermutation/main.cpp"},
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
 
-BuildProject({
-    projectName = "TestRegex",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestRegex/main.cpp"},
-    enableException = true,
-    includePaths = include_paths,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestVirtualPath",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestVirtualPath/main.cpp"},
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
 
-BuildProject({
-    projectName = "TestShaderPreprocess",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestShaderPreprocess/main.cpp"},
-    enableException = true,
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestShadInclude",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestShadInclude/main.cpp",
+--         "./src/Runtime/GameStatics/**.cpp",},
+--     includePaths = IncludePaths,
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
 
-BuildProject({
-    projectName = "TestMultithread",
-    projectType = "binary",
-    files = {
-        "src/Runtime/UnitTests/TestMultithread/main.cpp"},
-    enableException = true,
-    includePaths = include_paths,
-    link = {"./External/lib/async++"},
-    --unityBuildBatch = 8
-})
+-- BuildProject({
+--     projectName = "TestRegex",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestRegex/main.cpp"},
+--     enableException = true,
+--     includePaths = IncludePaths,
+--     --unityBuildBatch = 8
+-- })
 
-target("NilouHeaderTool")
-    set_kind("binary")
-    add_files("NilouHeaderTool/src/NilouHeaderTool/*.cpp")
-    set_languages("clatest")
-    set_languages("cxx20")
-    add_includedirs("./NilouHeaderTool/External/include")
-    add_links("./NilouHeaderTool/External/lib/*")
-    after_build(copyFunc)
-    if is_mode("debug") then 
-        add_defines("NILOU_DEBUG")
-    end
+-- BuildProject({
+--     projectName = "TestShaderPreprocess",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestShaderPreprocess/main.cpp"},
+--     enableException = true,
+--     --unityBuildBatch = 8
+-- })
+
+-- BuildProject({
+--     projectName = "TestMultithread",
+--     projectType = "binary",
+--     files = {
+--         "src/Runtime/UnitTests/TestMultithread/main.cpp"},
+--     enableException = true,
+--     includePaths = IncludePaths,
+--     link = {"./External/lib/async++"},
+--     --unityBuildBatch = 8
+-- })
+
+-- target("NilouHeaderTool")
+--     set_kind("binary")
+--     add_files("NilouHeaderTool/src/NilouHeaderTool/*.cpp")
+--     set_languages("clatest")
+--     set_languages("cxx20")
+--     add_includedirs("./NilouHeaderTool/External/include")
+--     add_links("./NilouHeaderTool/External/lib/*")
+--     after_build(copyFunc)
+--     if is_mode("debug") then 
+--         add_defines("NILOU_DEBUG")
+--     end
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
 --

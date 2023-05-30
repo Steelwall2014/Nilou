@@ -35,6 +35,8 @@ struct TClassRegistry<nilou::FDepthStencilStateInitializer>
 		Mngr.AddField<&nilou::FDepthStencilStateInitializer::bEnableBackFaceStencil>("bEnableBackFaceStencil");
 		Mngr.AddField<&nilou::FDepthStencilStateInitializer::bEnableDepthWrite>("bEnableDepthWrite");
 		Mngr.AddField<&nilou::FDepthStencilStateInitializer::bEnableFrontFaceStencil>("bEnableFrontFaceStencil");
+		Mngr.AddMethod<&nilou::FDepthStencilStateInitializer::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FDepthStencilStateInitializer::Serialize>("Serialize");
 ;
         nilou::FDepthStencilStateInitializer::StaticClass_->Type = Type_of<nilou::FDepthStencilStateInitializer>;
         nilou::FDepthStencilStateInitializer::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FDepthStencilStateInitializer>);

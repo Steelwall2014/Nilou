@@ -56,30 +56,6 @@ namespace nilou {
         RenderPatch() : DeltaLod{0, 0, 0, 0}, Offset { 0, 0 }, Lod(0) {}
     };
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FCreateNodeListBlock)
-        SHADER_PARAMETER(uint32, MaxLOD)
-        SHADER_PARAMETER(uint32, PassLOD)
-        SHADER_PARAMETER(float, ScreenSizeDenominator)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FCreatePatchBlock)
-        SHADER_PARAMETER(uvec2, LodTextureSize)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FQuadTreeParameters)
-        SHADER_PARAMETER(uvec2, NodeCount)
-        SHADER_PARAMETER(uint32, LODNum)
-        SHADER_PARAMETER(uint32, NumQuadsPerPatch)
-        SHADER_PARAMETER(uint32, NumPatchesPerNode)
-        SHADER_PARAMETER(uint32, NumHeightfieldTextureMipmap)
-    END_UNIFORM_BUFFER_STRUCT()
-    
-    BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
-        SHADER_PARAMETER(uint32, HeightfieldWidth)
-        SHADER_PARAMETER(uint32, HeightfieldHeight)
-        SHADER_PARAMETER(vec2, PixelMeterSize)
-    END_UNIFORM_BUFFER_STRUCT()
-
     static unsigned int fromNodeLoctoNodeDescriptionIndex(uvec2 nodeLoc, unsigned int lod, const WorldLodParam &param)
     {
         return param.NodeDescriptionIndexOffset + nodeLoc.x * param.NodeSideNum.y + nodeLoc.y;
@@ -106,7 +82,6 @@ namespace nilou {
         VertexInput.VertexBuffer = Component.VertexBuffer->VertexBufferRHI.get();
         VertexInput.Location = Location;
         VertexInput.Offset = Component.Offset;
-        VertexInput.Stride = Component.Stride;
         VertexInput.Type = Component.Type;
         return VertexInput;
     }
@@ -377,9 +352,6 @@ namespace nilou {
         void BuildMinMaxTexture()
         {
             constexpr int BUILD_MINMAX_LOCAL_SIZE = 32;
-            BEGIN_UNIFORM_BUFFER_STRUCT(FBuildMinMaxBlock)
-                SHADER_PARAMETER(uvec2, Offset)
-            END_UNIFORM_BUFFER_STRUCT()
             auto BuildMinMaxBlock = CreateUniformBuffer<FBuildMinMaxBlock>();
             BuildMinMaxBlock->InitResource();
 

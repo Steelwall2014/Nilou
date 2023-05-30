@@ -563,7 +563,7 @@ namespace nilou {
          */
         virtual void ReadPixelsSync();
 
-        virtual void PostDeserialize() override;
+        virtual void PostDeserialize(FArchive& Ar) override;
     
     protected:
 

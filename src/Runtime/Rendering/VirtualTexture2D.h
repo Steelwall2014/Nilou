@@ -55,7 +55,7 @@ namespace nilou {
 
         uint32 GetBytePerTile() const { return BytePerTile; }
 
-        virtual void PostDeserialize() override;
+        virtual void PostDeserialize(FArchive& Ar) override;
 
         uint32 MaxPhysicalMemoryByte = 1024*1024*128;   // 128 MB physical memory limit for every virtual texture
 

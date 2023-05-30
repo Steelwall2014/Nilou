@@ -146,15 +146,15 @@ namespace nilou {
         switch (CreateInfo.LightType) 
         {
         case ELightType::LT_Directional:
-            UniformBuffer = CreateUniformBuffer<FShadowMappingBlock<CASCADED_SHADOWMAP_SPLIT_COUNT>>();
+            UniformBuffer = CreateUniformBuffer<FDirectionalShadowMappingBlock>();
             FrustumCount = CASCADED_SHADOWMAP_SPLIT_COUNT;
             break;
         case ELightType::LT_Point:
-            UniformBuffer = CreateUniformBuffer<FShadowMappingBlock<6>>();
+            UniformBuffer = CreateUniformBuffer<FPointShadowMappingBlock>();
             FrustumCount = 6;
             break;
         case ELightType::LT_Spot:
-            UniformBuffer = CreateUniformBuffer<FShadowMappingBlock<1>>();
+            UniformBuffer = CreateUniformBuffer<FSpotShadowMappingBlock>();
             FrustumCount = 1;
             break;
         }
@@ -214,13 +214,11 @@ namespace nilou {
             PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
             PositionVertexInput.Location = 0;
             PositionVertexInput.Offset = 0;
-            PositionVertexInput.Stride = sizeof(vec4);
             PositionVertexInput.Type = EVertexElementType::VET_Float4;
 
             UVVertexInput.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
             UVVertexInput.Location = 1;
             UVVertexInput.Offset = 0;
-            UVVertexInput.Stride = sizeof(vec2);
             UVVertexInput.Type = EVertexElementType::VET_Float2;
         }
         
@@ -264,11 +262,35 @@ namespace nilou {
         ComputeViewVisibility(Scene, ViewFamily.Views);
     }
 
+    struct BasePassUniformBlockManager
+    {
+        static TUniformBufferRef<BasePassPixelShaderUniformBlock> Get()
+        {
+            if (count == UniformBlocks.size())
+            {
+                auto ubo = CreateUniformBuffer<BasePassPixelShaderUniformBlock>();
+                ubo->InitResource();
+                UniformBlocks.push_back(ubo);
+            }
+            return UniformBlocks[count++];
+        }
+        static void ReleaseAll()
+        {
+            count = 0;
+        }
+        static std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>> UniformBlocks;
+        static int32 count;
+    };
+    std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>> BasePassUniformBlockManager::UniformBlocks = std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>>();
+    int32 BasePassUniformBlockManager::count = 0;
+
     void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews)
     {
         static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
         std::vector<int> Index(SceneViews.size(), 0);
         NILOU_LOG(Info, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
+        BasePassUniformBlockManager::ReleaseAll();
+
         for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
             if (!ViewFamily.ShowOnlyComponents.empty() && !ViewFamily.ShowOnlyComponents.contains(PrimitiveInfo->Primitive))
@@ -300,10 +322,6 @@ namespace nilou {
                     FReflectionProbeSceneProxy* SkyBoxProbeProxy = nullptr;
                     if (DefaultProbe && DefaultProbe->ReflectionProbeComponent)
                         SkyBoxProbeProxy = DefaultProbe->ReflectionProbeComponent->SceneProxy;
-
-                    Mesh.Element.Bindings.SetUniformShaderBinding(
-                        "MaterialShadingModel", 
-                        (uint32)Mesh.MaterialRenderProxy->ShadingModel);
 
                     std::vector<std::pair<FReflectionProbeSceneProxy*, float>> ReflectionProbes;
                     switch (PrimitiveInfo->SceneProxy->ReflectionProbeBlendMode)
@@ -359,7 +377,15 @@ namespace nilou {
                         for (auto [ReflectionProbe, factor] : ReflectionProbes)
                         {
                             FMeshBatch NewMesh = Mesh;
+                            auto UniformBlock = BasePassUniformBlockManager::Get();
+                            UniformBlock->Data.MaterialShadingModel = (uint32)Mesh.MaterialRenderProxy->ShadingModel;
+                            UniformBlock->Data.PrefilterEnvTextureNumMips = static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips());
+                            UniformBlock->Data.ReflectionProbeFactor = factor;
+                            UniformBlock->UpdateUniformBuffer();
 
+                            NewMesh.Element.Bindings.SetElementShaderBinding(
+                                "PIXEL_UNIFORM_BLOCK", 
+                                UniformBlock->GetRHI());
                             NewMesh.Element.Bindings.SetElementShaderBinding(
                                 "IrradianceTexture", 
                                 ReflectionProbe->IrradianceTexture);
@@ -372,18 +398,26 @@ namespace nilou {
                             NewMesh.Element.Bindings.SetElementShaderBinding(
                                 "FViewShaderParameters", 
                                 ViewInfo.ViewUniformBuffer->GetRHI());
-                            NewMesh.Element.Bindings.SetUniformShaderBinding(
-                                "PrefilterEnvTextureNumMips", 
-                                static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips()));
-                            NewMesh.Element.Bindings.SetUniformShaderBinding(
-                                "ReflectionProbeFactor", 
-                                factor);
+                            // NewMesh.Element.Bindings.SetUniformShaderBinding(
+                            //     "PrefilterEnvTextureNumMips", 
+                            //     );
+                            // NewMesh.Element.Bindings.SetUniformShaderBinding(
+                            //     "ReflectionProbeFactor", 
+                            //     factor);
                             
                             Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                         }
                     }
                     else 
                     {
+                        auto UniformBlock = BasePassUniformBlockManager::Get();
+                        UniformBlock->Data.MaterialShadingModel = (uint32)Mesh.MaterialRenderProxy->ShadingModel;
+                        UniformBlock->Data.PrefilterEnvTextureNumMips = 1;
+                        UniformBlock->Data.ReflectionProbeFactor = 0;
+                        UniformBlock->UpdateUniformBuffer();
+                        Mesh.Element.Bindings.SetElementShaderBinding(
+                            "PIXEL_UNIFORM_BLOCK", 
+                            UniformBlock->GetRHI());
                         Views[ViewIndex].DynamicMeshBatches.push_back(Mesh);
                     }
                 }
@@ -469,6 +503,8 @@ namespace nilou {
     
     void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
     {
+        static auto UniformBlock = CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>();
+        UniformBlock->InitResource();
         FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport.RenderTarget;
         std::vector<RHIFramebuffer*> RenderTargetFramebuffers;
         if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_TextureCube)
@@ -509,7 +545,7 @@ namespace nilou {
                 PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
                 PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
 
-                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
+                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
 
                 PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
@@ -531,18 +567,12 @@ namespace nilou {
                 {
                     if (ViewFamily.CaptureSource == SCS_SceneDepth)
                     {
+                        UniformBlock->Data.GammaCorrection = 1.f;
+                        UniformBlock->Data.bEnableToneMapping = 0;
                         RHICmdList->RHISetShaderSampler(
                             PSO, EPipelineStage::PS_Pixel, 
                             "SceneColor", 
                             FRHISampler(SceneTextures->DepthStencil));
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "GammaCorrection", 
-                            1.f);
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "bEnableToneMapping", 
-                            0);
                     }
                     else if (ViewFamily.CaptureSource == SCS_LinearColor)
                     {
@@ -550,14 +580,8 @@ namespace nilou {
                             PSO, EPipelineStage::PS_Pixel, 
                             "SceneColor", 
                             FRHISampler(SceneTextures->SceneColor));
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "GammaCorrection", 
-                            1.f);
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "bEnableToneMapping", 
-                            0);
+                        UniformBlock->Data.GammaCorrection = 1.f;
+                        UniformBlock->Data.bEnableToneMapping = 0;
                     }
                     else if (ViewFamily.CaptureSource == SCS_GammaColor)
                     {
@@ -565,14 +589,8 @@ namespace nilou {
                             PSO, EPipelineStage::PS_Pixel, 
                             "SceneColor", 
                             FRHISampler(SceneTextures->SceneColor));
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "GammaCorrection", 
-                            ViewFamily.GammaCorrection);
-                        RHICmdList->RHISetShaderUniformValue(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "bEnableToneMapping", 
-                            1);
+                        UniformBlock->Data.GammaCorrection = ViewFamily.GammaCorrection;
+                        UniformBlock->Data.bEnableToneMapping = 1;
                     }
                     else 
                     {
@@ -585,15 +603,14 @@ namespace nilou {
                         PSO, EPipelineStage::PS_Pixel, 
                         "SceneColor", 
                         FRHISampler(SceneTextures->SceneColor));
-                    RHICmdList->RHISetShaderUniformValue(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "GammaCorrection", 
-                        ViewFamily.GammaCorrection);
-                    RHICmdList->RHISetShaderUniformValue(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "bEnableToneMapping", 
-                        ViewFamily.bEnableToneMapping);
+                    UniformBlock->Data.GammaCorrection = ViewFamily.GammaCorrection;
+                    UniformBlock->Data.bEnableToneMapping = ViewFamily.bEnableToneMapping;
                 }
+                UniformBlock->UpdateUniformBuffer();
+                RHICmdList->RHISetShaderUniformBuffer(
+                    PSO, EPipelineStage::PS_Pixel, 
+                    "PIXEL_UNIFORM_BLOCK", 
+                    UniformBlock->GetRHI());
 
                 RHICmdList->RHIDrawArrays(0, 4);
             }

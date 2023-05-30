@@ -408,16 +408,20 @@ namespace nilou {
 namespace nilou {
 
     #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
-        struct TypeName \
-        { 
+        struct NSTRUCT TypeName \
+        { \
+            GENERATED_STRUCT_BODY()
     #define SHADER_PARAMETER(Type, MemberName) \
-            alignas(TShaderParameterTypeInfo<Type>::Alignment) Type MemberName;
+            alignas(TShaderParameterTypeInfo<Type>::Alignment) NPROPERTY() Type MemberName;
     #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \
+            NPROPERTY() \
             TAlignedStaticArray<Type, N, TShaderParameterTypeInfo<Type[N]>::Alignment> MemberName;
     #define SHADER_PARAMETER_STRUCT(Type, MemberName) \
+            NPROPERTY() \
             Type MemberName;
     #define SHADER_PARAMETER_STRUCT_ARRAY(Type, N, MemberName) \
-            Type MemberName[N];
+            NPROPERTY() \
+            std::array<Type, N> MemberName;
     #define END_UNIFORM_BUFFER_STRUCT() \
         };
 
@@ -426,8 +430,20 @@ namespace nilou {
     public:
         FUniformBuffer() : UniformBufferRHI(nullptr) { }
         inline RHIUniformBuffer *GetRHI() const { return UniformBufferRHI.get();}
+
+        inline EUniformBufferUsage GetUsage()
+        {
+            return Usage;
+        }
+        inline void SetUsage(EUniformBufferUsage InUsage)
+        {
+            Usage = InUsage;
+        }
+
     protected:
         RHIUniformBufferRef UniformBufferRHI;
+        uint32 Size;
+        EUniformBufferUsage Usage;
     };
 
     template<class UniformBufferStruct>
@@ -435,9 +451,10 @@ namespace nilou {
     {
     public:
         TUniformBuffer()
-            : Size(sizeof(UniformBufferStruct))
-            , Usage(EUniformBufferUsage::UniformBuffer_MultiFrame)
-        { }
+        { 
+            Size = sizeof(UniformBufferStruct);
+            Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
+        }
 
         /** Begin FRenderResource Interface */
         virtual void InitRHI() override
@@ -457,19 +474,7 @@ namespace nilou {
             FDynamicRHI::GetDynamicRHI()->RHIUpdateUniformBuffer(UniformBufferRHI, &Data);
         }
 
-        inline EUniformBufferUsage GetUsage()
-        {
-            return Usage;
-        }
-        inline void SetUsage(EUniformBufferUsage InUsage)
-        {
-            Usage = InUsage;
-        }
-
         UniformBufferStruct Data;
-    protected:
-        uint32 Size;
-        EUniformBufferUsage Usage;
     };
 
     template<class UniformBufferStruct>
@@ -480,4 +485,43 @@ namespace nilou {
     {
         return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
     }
+
+    class FDynamicUniformBuffer : public FUniformBuffer
+    {
+    public:
+        FDynamicUniformBuffer() { }
+        FDynamicUniformBuffer(const std::string& InStructName);
+        FDynamicUniformBuffer(const FDynamicUniformBuffer& Other);
+
+        template<typename T>
+        T* GetData() { return reinterpret_cast<T*>(Data); }
+
+        void UpdateDataType(std::string_view InStructName);
+
+        void SetScalarParameterValue(std::string_view Name, float Value);
+
+        /** Begin FRenderResource Interface */
+        virtual void InitRHI() override;
+        virtual void ReleaseRHI() override;
+        /** End FRenderResource Interface */
+
+        void UpdateUniformBuffer();
+
+        void Serialize(FArchive& Ar);
+        void Deserialize(FArchive& Ar);
+
+        virtual ~FDynamicUniformBuffer()
+        {
+            FUniformBuffer::~FUniformBuffer();
+            delete Data; 
+        }
+
+    protected:
+        std::string StructName;
+        void* Data = nullptr;
+        uint32 Size = 0;
+        EUniformBufferUsage Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
+    };
+
+    using FDynamicUniformBufferRef = std::shared_ptr<FDynamicUniformBuffer>;
 }

@@ -321,13 +321,10 @@ namespace nilou {
 	};
 	enum class EPrimitiveMode : uint8
 	{
-		PM_Points = 0,
-		PM_Lines,
-		PM_Line_Loop,
-		PM_Line_Strip,
-		PM_Triangles,
-		PM_Triangle_Strip,
-		PM_Triangle_Fan
+		PM_PointList = 0,
+		PM_LineList,
+		PM_TriangleList,
+		PM_TriangleStrip,
 	};
 	enum class EFramebufferAttachment : uint8
 	{

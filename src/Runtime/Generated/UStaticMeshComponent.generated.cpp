@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/StaticMeshActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/MeshComponent.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

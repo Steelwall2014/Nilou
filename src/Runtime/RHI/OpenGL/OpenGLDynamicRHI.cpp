@@ -139,14 +139,13 @@ namespace nilou {
     {
         switch(PrimitiveMode)
         {
-            case EPrimitiveMode::PM_Points : return GL_POINTS;
-            case EPrimitiveMode::PM_Lines : return GL_LINES;
-            case EPrimitiveMode::PM_Line_Loop : return GL_LINE_LOOP;
-            case EPrimitiveMode::PM_Line_Strip : return GL_LINE_STRIP;
-            case EPrimitiveMode::PM_Triangles : return GL_TRIANGLES;
-            case EPrimitiveMode::PM_Triangle_Strip : return GL_TRIANGLE_STRIP;
-            case EPrimitiveMode::PM_Triangle_Fan : return GL_TRIANGLE_FAN;
-            default: return GL_TRIANGLES;
+            case EPrimitiveMode::PM_PointList : return GL_POINTS;
+            case EPrimitiveMode::PM_LineList : return GL_LINES;
+            case EPrimitiveMode::PM_TriangleList : return GL_TRIANGLES;
+            case EPrimitiveMode::PM_TriangleStrip : return GL_TRIANGLE_STRIP;
+            default: 
+                NILOU_LOG(Error, "Unsupported primitive type {}", magic_enum::enum_name(PrimitiveMode));
+                return GL_TRIANGLES;
         };
     }
 
@@ -459,59 +458,59 @@ namespace nilou {
         return true;
     }
     
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
-    {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
-    {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
-        {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
-        }
-        glUniform1i(BaseIndex, Value);
-        return true;
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1i(BaseIndex, Value);
+    //     return true;
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
-    {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
-    {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
-        {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
-        }
-        glUniform1f(BaseIndex, Value);
-        return true;
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1f(BaseIndex, Value);
+    //     return true;
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
-    {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
-    {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
-        {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
-        }
-        glUniform1ui(BaseIndex, Value);
-        return true;
-    }
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1ui(BaseIndex, Value);
+    //     return true;
+    // }
 
 
 	void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)

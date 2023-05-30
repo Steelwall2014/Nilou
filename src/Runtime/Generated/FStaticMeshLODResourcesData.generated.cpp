@@ -22,6 +22,8 @@ struct TClassRegistry<nilou::FStaticMeshLODResourcesData>
         nilou::FStaticMeshLODResourcesData::StaticClass_ = std::make_unique<NClass>();
         Mngr.RegisterType<nilou::FStaticMeshLODResourcesData>();
 		Mngr.AddField<&nilou::FStaticMeshLODResourcesData::Sections>("Sections");
+		Mngr.AddMethod<&nilou::FStaticMeshLODResourcesData::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FStaticMeshLODResourcesData::Serialize>("Serialize");
 ;
         nilou::FStaticMeshLODResourcesData::StaticClass_->Type = Type_of<nilou::FStaticMeshLODResourcesData>;
         nilou::FStaticMeshLODResourcesData::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FStaticMeshLODResourcesData>);

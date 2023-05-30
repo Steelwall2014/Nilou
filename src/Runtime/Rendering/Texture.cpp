@@ -57,7 +57,7 @@ namespace nilou {
             cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
     }
 
-    void UTexture::PostDeserialize()
+    void UTexture::PostDeserialize(FArchive& Ar)
     {
         UpdateResource();
     }

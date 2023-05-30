@@ -36,19 +36,6 @@ namespace nilou {
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
     IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", EShaderFrequency::SF_Compute, Global);
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFastFourierTransformParameters)
-        SHADER_PARAMETER(vec2, WindDirection)
-        SHADER_PARAMETER(uint32, N)
-        SHADER_PARAMETER(float, WindSpeed)
-        SHADER_PARAMETER(float, Amplitude)
-        SHADER_PARAMETER(float, DisplacementTextureSize)
-        SHADER_PARAMETER(float, Time)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFFTButterflyBlock)
-        SHADER_PARAMETER(uint32, Ns)
-    END_UNIFORM_BUFFER_STRUCT()
-
     class FFourierTransformOceanVertexFactory : public FStaticVertexFactory
     {
         DECLARE_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory)

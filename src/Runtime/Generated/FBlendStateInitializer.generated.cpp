@@ -23,6 +23,8 @@ struct TClassRegistry<nilou::FBlendStateInitializer>
         Mngr.RegisterType<nilou::FBlendStateInitializer>();
 		Mngr.AddField<&nilou::FBlendStateInitializer::RenderTargets>("RenderTargets");
 		Mngr.AddField<&nilou::FBlendStateInitializer::bUseIndependentRenderTargetBlendStates>("bUseIndependentRenderTargetBlendStates");
+		Mngr.AddMethod<&nilou::FBlendStateInitializer::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FBlendStateInitializer::Serialize>("Serialize");
 ;
         nilou::FBlendStateInitializer::StaticClass_->Type = Type_of<nilou::FBlendStateInitializer>;
         nilou::FBlendStateInitializer::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FBlendStateInitializer>);

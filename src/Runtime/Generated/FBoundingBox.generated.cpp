@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Actor/SkyAtmosphereActor.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Actor/Actor.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;
@@ -23,6 +23,8 @@ struct TClassRegistry<nilou::FBoundingBox>
         Mngr.RegisterType<nilou::FBoundingBox>();
 		Mngr.AddField<&nilou::FBoundingBox::Max>("Max");
 		Mngr.AddField<&nilou::FBoundingBox::Min>("Min");
+		Mngr.AddMethod<&nilou::FBoundingBox::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FBoundingBox::Serialize>("Serialize");
 ;
         nilou::FBoundingBox::StaticClass_->Type = Type_of<nilou::FBoundingBox>;
         nilou::FBoundingBox::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FBoundingBox>);

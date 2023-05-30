@@ -181,7 +181,7 @@ namespace nilou {
             });
     }
 
-    void UVirtualTexture::PostDeserialize()
+    void UVirtualTexture::PostDeserialize(FArchive& Ar)
     {
         //StreamingPath = FPath::ContentDir().generic_string() + SerializationPath.generic_string();
         //StreamingBufferOffset = Ar.FileLength - Ar.BinLength;

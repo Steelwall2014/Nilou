@@ -42,26 +42,26 @@ namespace nilou {
                 RHICmdList->RHIBindComputeBuffer(PSO, (EPipelineStage)PipelineStage, BindingPoint, Buffer);
                 RHIGetError();
             }
-            for (auto &[BindingPoint, UniformValue] : ShaderBindings.UniformBindings[PipelineStage])
-            {
-                int index = UniformValue.Value.index();
-                if (index == 0)
-                {
-                    int32 value = std::get<int32>(UniformValue.Value);
-                    RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-                }
-                else if (index == 1)
-                {
-                    float value = std::get<float>(UniformValue.Value);
-                    RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-                }
-                else if (index == 2)
-                {
-                    uint32 value = std::get<uint32>(UniformValue.Value);
-                    RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-                }
-                RHIGetError();
-            }
+            // for (auto &[BindingPoint, UniformValue] : ShaderBindings.UniformBindings[PipelineStage])
+            // {
+            //     int index = UniformValue.Value.index();
+            //     if (index == 0)
+            //     {
+            //         int32 value = std::get<int32>(UniformValue.Value);
+            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
+            //     }
+            //     else if (index == 1)
+            //     {
+            //         float value = std::get<float>(UniformValue.Value);
+            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
+            //     }
+            //     else if (index == 2)
+            //     {
+            //         uint32 value = std::get<uint32>(UniformValue.Value);
+            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
+            //     }
+            //     RHIGetError();
+            // }
         }
 
         if (UseIndirect)

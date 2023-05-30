@@ -1,4 +1,4 @@
-#include "D:/Nilou/src/Runtime/Framework/Common/Components/SceneCaptureComponent.h"
+#include "D:/Nilou/src/Runtime/Framework/Common/Components/FourierTransformOcean.h"
 #include <UDRefl/UDRefl.hpp>
 
 using namespace Ubpa;

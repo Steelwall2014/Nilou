@@ -23,6 +23,8 @@ struct TClassRegistry<nilou::FVertexIndexBufferData>
         Mngr.RegisterType<nilou::FVertexIndexBufferData>();
 		Mngr.AddField<&nilou::FVertexIndexBufferData::Data>("Data");
 		Mngr.AddField<&nilou::FVertexIndexBufferData::Stride>("Stride");
+		Mngr.AddMethod<&nilou::FVertexIndexBufferData::Deserialize>("Deserialize");
+		Mngr.AddMethod<&nilou::FVertexIndexBufferData::Serialize>("Serialize");
 ;
         nilou::FVertexIndexBufferData::StaticClass_->Type = Type_of<nilou::FVertexIndexBufferData>;
         nilou::FVertexIndexBufferData::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<nilou::FVertexIndexBufferData>);

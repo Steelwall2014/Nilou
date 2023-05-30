@@ -4,7 +4,70 @@
 #include "VulkanDynamicRHI.h"
 #include "BaseApplication.h"
 #include "VulkanShader.h"
+#include "VulkanResources.h"
 #include "PipelineStateCache.h"
+
+namespace nilou {
+
+static VkFormat TranslateVertexElementTypeToVKFormat(EVertexElementType ElementType)
+{
+    switch (ElementType) 
+    {
+	case EVertexElementType::VET_Float1:
+		return VK_FORMAT_R32_SFLOAT;
+	case EVertexElementType::VET_Float2:
+		return VK_FORMAT_R32G32_SFLOAT;
+	case EVertexElementType::VET_Float3:
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	case EVertexElementType::VET_Float4:
+		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	case EVertexElementType::VET_Half2:
+		return VK_FORMAT_R16G16_SFLOAT;
+	case EVertexElementType::VET_Half4:
+		return VK_FORMAT_R16G16B16A16_SFLOAT;
+	case EVertexElementType::VET_UByte4:
+		return VK_FORMAT_R8G8B8A8_UINT;
+	case EVertexElementType::VET_UByte4N:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	case EVertexElementType::VET_Short2:
+		return VK_FORMAT_R16G16_SINT;
+	case EVertexElementType::VET_Short4:
+		return VK_FORMAT_R16G16B16A16_SINT;
+	case EVertexElementType::VET_Short2N:
+		return VK_FORMAT_R16G16_SNORM;
+	case EVertexElementType::VET_Short4N:		// 4 X 16 bit word: normalized
+		return VK_FORMAT_R16G16B16A16_SNORM;
+	case EVertexElementType::VET_UShort2:
+		return VK_FORMAT_R16G16_UINT;
+	case EVertexElementType::VET_UShort4:
+		return VK_FORMAT_R16G16B16A16_UINT;
+	case EVertexElementType::VET_UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
+		return VK_FORMAT_R16G16_UNORM;
+	case EVertexElementType::VET_UShort4N:		// 4 X 16 bit word unsigned: normalized
+		return VK_FORMAT_R16G16B16A16_UNORM;
+	case EVertexElementType::VET_UInt:
+		return VK_FORMAT_R32_UINT;
+	default:
+		break;
+    }
+    return VK_FORMAT_UNDEFINED;
+}
+
+static VkPrimitiveTopology TranslatePrimitiveMode(EPrimitiveMode PrimitiveMode)
+{
+    switch(PrimitiveMode)
+    {
+        case EPrimitiveMode::PM_PointList : return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        case EPrimitiveMode::PM_LineList : return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        case EPrimitiveMode::PM_TriangleList : return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case EPrimitiveMode::PM_TriangleStrip : return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        default: 
+            NILOU_LOG(Error, "Unsupported primitive type {}", magic_enum::enum_name(PrimitiveMode));
+            return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+    };
+}
+
+}
 
 namespace nilou {
 
@@ -436,7 +499,119 @@ FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(
     if (CachedPSO)
         return CachedPSO;
 
+    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>();
+
+    VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.VertexShader);
+    VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.PixelShader);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = VertexShader->Module;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = PixelShader->Module;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    std::map<RHIBuffer*, int> VertexBufferBindingMap;
+    int binding = 0;
+    for (auto& VertexInput : *Initializer.VertexInputList)
+    {
+        if (!VertexBufferBindingMap.contains(VertexInput.VertexBuffer))
+        {
+            VertexBufferBindingMap[VertexInput.VertexBuffer] = binding;
+            VkVertexInputBindingDescription& bindingDescription = bindingDescriptions.emplace_back();
+            bindingDescription.binding = binding;
+            bindingDescription.stride = VertexInput.VertexBuffer->GetStride();
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            binding++;
+        }
+        VkVertexInputAttributeDescription& attributeDescription = attributeDescriptions.emplace_back();
+        attributeDescription.binding = VertexBufferBindingMap[VertexInput.VertexBuffer];
+        attributeDescription.location = VertexInput.Location;
+        attributeDescription.format = TranslateVertexElementTypeToVKFormat(VertexInput.Type);
+        attributeDescription.offset = VertexInput.Offset;
+    }
     
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32>(bindingDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = TranslatePrimitiveMode(Initializer.PrimitiveMode);
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VulkanDepthStencilState* DepthStencilState = static_cast<VulkanDepthStencilState*>(Initializer.DepthStencilState);
+    VulkanRasterizerState* RasterizerState = static_cast<VulkanRasterizerState*>(Initializer.RasterizerState);
+    VulkanBlendState* BlendState = static_cast<VulkanBlendState*>(Initializer.BlendState);
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = BlendState->BlendStates;
+    colorBlending.blendConstants[0] = 0.0f;
+    colorBlending.blendConstants[1] = 0.0f;
+    colorBlending.blendConstants[2] = 0.0f;
+    colorBlending.blendConstants[3] = 0.0f;
+
+    std::vector<VkDynamicState> dynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR,
+        VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+        VK_DYNAMIC_STATE_DEPTH_BOUNDS
+    };
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = static_cast<uint32>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+    // if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+    //     throw std::runtime_error("failed to create pipeline layout!");
+    // }
+}
+
+RHIDepthStencilStateRef FVulkanDynamicRHI::RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer)
+{
+    return std::make_shared<VulkanDepthStencilState>(Initializer);
+}
+
+RHIRasterizerStateRef FVulkanDynamicRHI::RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer)
+{
+    return std::make_shared<VulkanRasterizerState>(Initializer);
+}
+
+RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitializer &Initializer)
+{
+    return std::make_shared<VulkanBlendState>(Initializer);
 }
 
 }

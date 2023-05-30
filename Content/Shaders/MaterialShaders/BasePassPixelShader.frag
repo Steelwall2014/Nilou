@@ -6,11 +6,11 @@ layout (location = 3) out vec2 MetallicRoughness;
 layout (location = 4) out vec3 Emissive;
 layout (location = 5) out uint ShadingModel;
 
-uniform uint MaterialShadingModel;
-
-uniform uint PrefilterEnvTextureNumMips;
-
-uniform float ReflectionProbeFactor;
+layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
+    uint MaterialShadingModel;
+    uint PrefilterEnvTextureNumMips;
+    float ReflectionProbeFactor;
+};
 //#include "../include/Maths.glsl"
 //#include "../include/Light.glsl"
 #include "../include/PBRFunctions.glsl"
