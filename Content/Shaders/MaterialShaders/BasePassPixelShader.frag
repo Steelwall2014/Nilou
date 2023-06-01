@@ -1,4 +1,5 @@
 #version 460 core
+#include "../include/Macros.glsl"
 layout (location = 0) out vec4 BaseColor;
 layout (location = 1) out vec3 RelativeWorldSpacePosition;
 layout (location = 2) out vec3 WorldSpaceNormal;
@@ -18,11 +19,11 @@ layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
 // To be filled
 //#include "../Materials/ColoredMaterial_Mat.glsl"
 
-uniform samplerCube IrradianceTexture;
+layout (binding=17) uniform samplerCube IrradianceTexture;
 
-uniform samplerCube PrefilteredTexture;
+layout (binding=18) uniform samplerCube PrefilteredTexture;
 
-uniform sampler2D IBL_BRDF_LUT;
+layout (binding=19) uniform sampler2D IBL_BRDF_LUT;
 
 //layout (std140) uniform FPrefilteredTextureBlock {
 //    uint NumMips;

@@ -23,7 +23,8 @@ layout(std140, binding = 5) uniform FCreatePatchBlock {
 
 #include "../include/ViewShaderParameters.glsl"
 
-uniform sampler2D MinMaxMap;
+#include "../include/Macros.glsl"
+layout (binding=6) uniform sampler2D MinMaxMap;
 
 #include "../include/FrustumCull.glsl"
 

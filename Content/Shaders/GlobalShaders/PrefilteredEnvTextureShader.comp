@@ -1,12 +1,13 @@
 #version 460
+#include "../include/Macros.glsl"
 
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout (binding = 0) uniform samplerCube EnvironmentTexture;
+layout (binding=0) uniform samplerCube EnvironmentTexture;
 
-layout (rgba16f, binding = 1) uniform imageCube PrefilteredTexture;
+layout (rgba16f, binding=1) uniform imageCube PrefilteredTexture;
 
-layout (std140) uniform PrefilteredEnvTextureShaderBlock {
+layout (std140, binding=2) uniform PrefilteredEnvTextureShaderBlock {
     int TextureSize;
     float roughness;
 };

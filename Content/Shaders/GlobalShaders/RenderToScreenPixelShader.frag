@@ -1,20 +1,21 @@
 #version 460
+#include "../include/Macros.glsl"
 layout (location = 0) out vec4 FragColor;
 
 layout (location = 0) in vec2 uv;
 
-uniform sampler2D SceneColor;
+layout (binding=0) uniform sampler2D SceneColor;
 
 #include "../include/PBRFunctions.glsl"
 
-layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
+layout(binding=1, std140) uniform PIXEL_UNIFORM_BLOCK {
 	float GammaCorrection;
 	int bEnableToneMapping;
 };
 
 void main()
 {
-#if USING_OPENGL
+#if RHI_API == RHI_OPENGL
 	vec3 color = texture(SceneColor, vec2(1-uv.x, uv.y)).rgb;
 #else
 	vec3 color = texture(SceneColor, uv).rgb;

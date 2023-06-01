@@ -1,14 +1,15 @@
 #version 430
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
     
-uniform sampler2D TransmittanceLUT;
-uniform sampler3D SingleScatteringRayleighLUT;
-uniform sampler3D SingleScatteringMieLUT;
-uniform sampler2D IrradianceLUT;
+#include "../include/Macros.glsl"
+layout (binding=0) uniform sampler2D TransmittanceLUT;
+layout (binding=1) uniform sampler3D SingleScatteringRayleighLUT;
+layout (binding=2) uniform sampler3D SingleScatteringMieLUT;
+layout (binding=3) uniform sampler2D IrradianceLUT;
 
-layout (rgba32f, binding=0) uniform image3D ScatteringDensityLUT;
+layout (rgba32f, binding=4) uniform image3D ScatteringDensityLUT;
 
-layout (std140) uniform ScatteringOrderBlock {
+layout (std140, binding=5) uniform ScatteringOrderBlock {
     int scattering_order;
 };
 #include "atmosphere_functions.glsl"

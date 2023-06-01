@@ -1,10 +1,11 @@
 #version 460
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
     
-uniform sampler3D SingleScatteringRayleighLUT;
-uniform sampler3D SingleScatteringMieLUT;
-layout (rgba32f, binding=0) uniform image2D IrradianceLUT;
-layout (std140) uniform ScatteringOrderBlock {
+#include "../include/Macros.glsl"
+layout (binding=0) uniform sampler3D SingleScatteringRayleighLUT;
+layout (binding=1) uniform sampler3D SingleScatteringMieLUT;
+layout (rgba32f, binding=2) uniform image2D IrradianceLUT;
+layout (std140, binding=3) uniform ScatteringOrderBlock {
     int scattering_order;
 };
 

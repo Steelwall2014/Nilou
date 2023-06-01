@@ -6,7 +6,7 @@ layout(location = 3) in vec4 COLOR;
 
 layout(location = 4) in vec2 TEXCOORD_0;
 
-layout (std140) uniform FPrimitiveShaderParameters {
+layout (std140, binding=8) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 	dmat4 ModelToLocal;
 };

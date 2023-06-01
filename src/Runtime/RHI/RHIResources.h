@@ -352,11 +352,13 @@ namespace nilou {
 		std::map<std::string, FRHIDescriptorSetLayoutBinding> Bindings;
 	};
 
-	class FRHIPipelineLayout
+	class FRHIPipelineLayout : public RHIResource
 	{
 	public:
+	 	FRHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
 		FRHIDescriptorSet DescriptorSets[EPipelineStage::PipelineStageNum];
 	};
+	using FRHIPipelineLayoutRef = std::shared_ptr<FRHIPipelineLayout>;
 
 	class FRHIGraphicsPipelineState : public RHIResource
 	{
@@ -365,7 +367,7 @@ namespace nilou {
 
 		FGraphicsPipelineStateInitializer Initializer;
 
-		FRHIPipelineLayout PipelineLayout;
+		FRHIPipelineLayoutRef PipelineLayout;
 
 		int GetBaseIndexByName(EPipelineStage PipelineStage, const std::string &Name);
 	};

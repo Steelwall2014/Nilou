@@ -33,4 +33,12 @@ public:
 };
 using VulkanBlendStateRef = std::shared_ptr<VulkanBlendState>;
 
+class VulkanPipelineLayout : public FRHIPipelineLayout
+{
+public:
+    VkDescriptorSetLayout DescriptorSetLayout;
+    VkPipelineLayout PipelineLayout;
+};
+using VulkanPipelineLayoutRef = std::shared_ptr<VulkanPipelineLayout>;
+
 }

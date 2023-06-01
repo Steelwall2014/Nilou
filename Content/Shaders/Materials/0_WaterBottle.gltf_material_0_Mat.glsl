@@ -1,3 +1,5 @@
+#version 460
+#include "../include/Macros.glsl"
 #define baseColorFactor_r (1.000000)
 #define baseColorFactor_g (1.000000)
 #define baseColorFactor_b (1.000000)
@@ -10,10 +12,10 @@
 
 #include "../include/BasePassCommon.glsl"
 
-uniform sampler2D baseColorTexture;
-uniform sampler2D metallicRoughnessTexture;
-uniform sampler2D emissiveTexture;
-uniform sampler2D normalTexture;
+layout (binding=0) uniform sampler2D baseColorTexture;
+layout (binding=1) uniform sampler2D metallicRoughnessTexture;
+layout (binding=2) uniform sampler2D emissiveTexture;
+layout (binding=3) uniform sampler2D normalTexture;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {

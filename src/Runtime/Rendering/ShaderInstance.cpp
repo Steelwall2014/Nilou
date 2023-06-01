@@ -29,7 +29,8 @@ namespace nilou {
                 ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  glslang::EShClientNone, 0);
                 break;
         }
-        ShaderRHI->ShaderGlsl = ShaderGlsl.get();
+        if (ShaderRHI)
+            ShaderRHI->ShaderGlsl = ShaderGlsl.get();
         ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
         ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
         ShaderGlsl->setStrings(&code_c_str, 1);

@@ -473,6 +473,7 @@ namespace nilou {
 		RRT_GeometryShader,
 		RRT_RayTracingShader,
 		RRT_ComputeShader,
+		RRT_PipelineLayout,
 		RRT_GraphicsPipelineState,
 		RRT_ComputePipelineState,
 		RRT_RayTracingPipelineState,
@@ -501,18 +502,12 @@ namespace nilou {
 		RRT_ShaderLibrary,
 		RRT_PipelineBinaryLibrary,
 
-		// DEPRECATED only used in opengl, will be replaced by RRT_GraphicsPipelineState or something
-		RRT_LinkedProgram,	
-
-		// DEPRECATED only used in opengl, will be replaced by RRT_VertexDeclaration or something
-		RRT_VertexArrayObject,	
-
 		RRT_Num
 	};
 
 	enum EPipelineStage
 	{
-		PS_Vertex,
+		PS_Vertex = 0,
 		PS_Pixel,
 		// PS_Geometry,
 		PS_Compute,

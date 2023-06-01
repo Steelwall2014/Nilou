@@ -14,10 +14,10 @@ namespace nilou {
         SPT_UniformBuffer,
         // SPT_ShaderStructureBuffer,
         SPT_Image,
-        SPT_AtomicUint,
-        SPT_Uint,
-        SPT_Int,
-        SPT_Float
+        // SPT_AtomicUint,
+        // SPT_Uint,
+        // SPT_Int,
+        // SPT_Float
 
     };
 

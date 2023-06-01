@@ -56,7 +56,7 @@ namespace nilou {
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
-                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
+                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout->DescriptorSets[PipelineStage];
                 
                 for (auto [Name,Binding] : DescriptorSets.Bindings)
                 {

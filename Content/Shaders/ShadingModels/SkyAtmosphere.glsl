@@ -1,4 +1,4 @@
-//#version 460
+#version 460
 #ifndef SKY_ATMOSPHERE_H
 #define SKY_ATMOSPHERE_H
 #include "../include/LightShaderParameters.glsl"

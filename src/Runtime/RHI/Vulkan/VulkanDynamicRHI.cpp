@@ -493,6 +493,29 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
 
 }
 
+static VkDescriptorType TranslateDescriptorType(EShaderParameterType Type)
+{
+    switch (Type) 
+    {
+    case EShaderParameterType::SPT_None: return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    case EShaderParameterType::SPT_Sampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case EShaderParameterType::SPT_UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case EShaderParameterType::SPT_Image: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    default: return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    }
+}
+
+static VkShaderStageFlagBits TranslateShaderStageFlagBits(EPipelineStage Stage)
+{
+    switch (Stage) 
+    {
+    case PS_Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
+    case PS_Pixel: return VK_SHADER_STAGE_FRAGMENT_BIT;
+    case PS_Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+    default: return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    }
+}
+
 FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer)
 {
     FRHIGraphicsPipelineState* CachedPSO = FPipelineStateCache::FindCachedGraphicsPSO(Initializer);
@@ -571,7 +594,7 @@ FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
+    colorBlending.attachmentCount = MAX_SIMULTANEOUS_RENDERTARGETS;
     colorBlending.pAttachments = BlendState->BlendStates;
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
@@ -589,14 +612,52 @@ FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(
     dynamicState.dynamicStateCount = static_cast<uint32>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    VulkanPipelineLayoutRef PipelineLayout = std::make_shared<VulkanPipelineLayout>();
+    AllocateParameterBindingPoint(PipelineLayout.get(), Initializer);
+    std::map<std::string, VkDescriptorSetLayoutBinding> DescriptorSets;
+    for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
+    {
+        for (auto& [Name, binding] : PipelineLayout->DescriptorSets[PipelineStage].Bindings)
+        {
+            if (DescriptorSets.contains(Name))
+            {
+                DescriptorSets[Name].stageFlags = DescriptorSets[Name].stageFlags | TranslateShaderStageFlagBits((EPipelineStage)PipelineStage);
+            }
+            else 
+            {
+                VkDescriptorSetLayoutBinding LayoutBinding{};
+                LayoutBinding.binding = binding.BindingPoint;
+                LayoutBinding.descriptorCount = 1;
+                LayoutBinding.descriptorType = TranslateDescriptorType(binding.ParameterType);
+                LayoutBinding.pImmutableSamplers = nullptr;
+                LayoutBinding.stageFlags = TranslateShaderStageFlagBits((EPipelineStage)PipelineStage);
+                DescriptorSets[Name] = LayoutBinding;
+            }
+        }
+    }
+    std::vector<VkDescriptorSetLayoutBinding> DescriptorSetsVec;
+    DescriptorSetsVec.reserve(DescriptorSets.size());
+    for (auto& [Name, binding] : DescriptorSets)
+        DescriptorSetsVec.push_back(binding);
+
+    VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{};
+    descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptorSetlayoutInfo.bindingCount = DescriptorSetsVec.size();
+    descriptorSetlayoutInfo.pBindings = DescriptorSetsVec.data();
+    if (vkCreateDescriptorSetLayout(device, &descriptorSetlayoutInfo, nullptr, &PipelineLayout->DescriptorSetLayout) != VK_SUCCESS) {
+        NILOU_LOG(Error, "failed to create descriptor set layout!");
+        return nullptr;
+    }
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &PipelineLayout->DescriptorSetLayout;
 
-    // if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-    //     throw std::runtime_error("failed to create pipeline layout!");
-    // }
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &PipelineLayout->PipelineLayout) != VK_SUCCESS) {
+        NILOU_LOG(Error, "failed to create pipeline layout!");
+        return nullptr;
+    }
 }
 
 RHIDepthStencilStateRef FVulkanDynamicRHI::RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer)

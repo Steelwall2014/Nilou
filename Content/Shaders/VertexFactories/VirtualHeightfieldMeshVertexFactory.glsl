@@ -6,11 +6,11 @@ layout(location = 4) in vec2 TEXCOORD_0;
 
 #include "../VirtualHeightfieldMesh/VHM_RenderPatch.glsl"
 
-layout(std430, binding=5) readonly buffer Patch_Buffer{
+layout(std430, binding=8) readonly buffer Patch_Buffer{
     RenderPatch patches[];
 };
 
-layout (std140) uniform FQuadTreeParameters {
+layout (std140, binding=9) uniform FQuadTreeParameters {
     uvec2   NodeCount;
     uint    LODNum;
     uint    NumQuadsPerPatch;
@@ -18,18 +18,19 @@ layout (std140) uniform FQuadTreeParameters {
 	uint	NumHeightfieldTextureMipmap;
 };
 
-layout (std140) uniform FBuildNormalTangentBlock {
+layout (std140, binding=10) uniform FBuildNormalTangentBlock {
     uint HeightfieldWidth;
     uint HeightfieldHeight;
     vec2 PixelMeterSize;
 };
 
-layout (std140) uniform FPrimitiveShaderParameters {
+layout (std140, binding=11) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 	dmat4 ModelToLocal;
 };
 
-uniform sampler2D HeightfieldTexture;
+#include "../include/Macros.glsl"
+layout (binding=1) uniform sampler2D HeightfieldTexture;
 
 //uniform sampler2D MinMaxMap;
 

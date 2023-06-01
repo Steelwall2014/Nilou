@@ -7,7 +7,7 @@
 using namespace nilou;
 namespace nilou {
 
-GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
+GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"Nilou");
 
 BaseApplication *GetAppication()
 {

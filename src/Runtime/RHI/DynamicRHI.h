@@ -161,6 +161,7 @@ namespace nilou {
 		static ivec3 RHIGetSparseTexturePageSize(ETextureType TextureType, EPixelFormat PixelFormat);
 
 	protected:
+		void AllocateParameterBindingPoint(FRHIPipelineLayout* PipelineLayout, const FGraphicsPipelineStateInitializer &Initializer);
 		static FDynamicRHI *DynamicRHI;
 		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
 	};
