@@ -91,4 +91,57 @@ namespace nilou {
             default: NILOU_LOG(Error, "Unknown PixelFormat: {}", (int)PixelFormat) return 0;
         }
     }
+
+	bool FGraphicsPipelineStateInitializer::operator==(const FGraphicsPipelineStateInitializer &Other) const
+	{
+		return 	memcmp(RenderTargetFormats, Other.RenderTargetFormats, sizeof(RenderTargetFormats)) == 0 && 
+				NumRenderTargetsEnabled == Other.NumRenderTargetsEnabled && 
+				DepthStencilTargetFormat == Other.DepthStencilTargetFormat &&
+				VertexShader == Other.VertexShader &&
+				PixelShader == Other.PixelShader &&
+				ComputeShader == Other.ComputeShader && 
+				PrimitiveMode == Other.PrimitiveMode && 
+				DepthStencilState == Other.DepthStencilState && 
+				RasterizerState == Other.RasterizerState && 
+				BlendState == Other.BlendState && 
+				VertexInputList == Other.VertexInputList;
+	}
+	
+	void FGraphicsPipelineStateInitializer::BuildRenderTargetFormats(RHIFramebuffer* Framebuffer)
+	{
+		NumRenderTargetsEnabled = 0;
+		if (Framebuffer)
+		{
+			for (auto [Attachment, Texture] : Framebuffer->Attachments)
+			{
+				if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
+				{
+					DepthStencilTargetFormat = Texture->GetFormat();
+				}
+				else 
+				{
+					uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
+					RenderTargetFormats[index] = Texture->GetFormat();
+					NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index);
+				}
+			}
+		}
+	}
+	
+
+}
+
+namespace std {
+
+size_t hash<nilou::FGraphicsPipelineStateInitializer>::operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept {
+	return hash<nilou::RHIVertexShader*>()(_Keyval.VertexShader) ^ 
+			hash<nilou::RHIPixelShader*>()(_Keyval.PixelShader) ^ 
+			hash<nilou::RHIComputeShader*>()(_Keyval.ComputeShader) ^ 
+			hash<nilou::EPrimitiveMode>()(_Keyval.PrimitiveMode) ^  
+			hash<nilou::RHIDepthStencilState*>()(_Keyval.DepthStencilState) ^  
+			hash<nilou::RHIRasterizerState*>()(_Keyval.RasterizerState) ^  
+			hash<nilou::RHIBlendState*>()(_Keyval.BlendState) ^
+			hash<const nilou::FRHIVertexInputList*>()(_Keyval.VertexInputList);
+}
+
 }

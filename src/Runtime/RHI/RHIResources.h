@@ -329,41 +329,9 @@ namespace nilou {
 
 		EPixelFormat DepthStencilTargetFormat;
 
-		bool operator==(const FGraphicsPipelineStateInitializer &Other) const
-		{
-			return 	RenderTargetFormats == Other.RenderTargetFormats && 
-					NumRenderTargetsEnabled == Other.NumRenderTargetsEnabled && 
-					DepthStencilTargetFormat == Other.DepthStencilTargetFormat &&
-					VertexShader == Other.VertexShader &&
-					PixelShader == Other.PixelShader &&
-					ComputeShader == Other.ComputeShader && 
-					PrimitiveMode == Other.PrimitiveMode && 
-					DepthStencilState == Other.DepthStencilState && 
-					RasterizerState == Other.RasterizerState && 
-					BlendState == Other.BlendState && 
-					VertexInputList == Other.VertexInputList;
-		}
+		bool operator==(const FGraphicsPipelineStateInitializer &Other) const;
 
-		void BuildRenderTargetFormats(RHIFramebuffer* Framebuffer)
-		{
-			NumRenderTargetsEnabled = 0;
-			if (Framebuffer)
-			{
-				for (auto [Attachment, Texture] : Framebuffer->Attachments)
-				{
-					if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
-					{
-						DepthStencilTargetFormat = Texture->GetFormat();
-					}
-					else 
-					{
-						uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
-						RenderTargetFormats[index] = Texture->GetFormat();
-						NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index);
-					}
-				}
-			}
-		}
+		void BuildRenderTargetFormats(RHIFramebuffer* Framebuffer);
 	};
 
 	class FRHIDescriptorSetLayoutBinding
@@ -491,16 +459,7 @@ namespace std {
 template<>
 struct hash<nilou::FGraphicsPipelineStateInitializer>
 {
-	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept {
-		return hash<nilou::RHIVertexShader*>()(_Keyval.VertexShader) ^ 
-				hash<nilou::RHIPixelShader*>()(_Keyval.PixelShader) ^ 
-				hash<nilou::RHIComputeShader*>()(_Keyval.ComputeShader) ^ 
-				hash<nilou::EPrimitiveMode>()(_Keyval.PrimitiveMode) ^  
-				hash<nilou::RHIDepthStencilState*>()(_Keyval.DepthStencilState) ^  
-				hash<nilou::RHIRasterizerState*>()(_Keyval.RasterizerState) ^  
-				hash<nilou::RHIBlendState*>()(_Keyval.BlendState) ^
-				hash<const nilou::FRHIVertexInputList*>()(_Keyval.VertexInputList);
-	}
+	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept;
 };
 
 }
