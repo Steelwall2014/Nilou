@@ -11,9 +11,51 @@
 
 namespace nilou {
 
+struct FVulkanRenderTargetLayout
+{
+    FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
+    
+    std::vector<VkAttachmentDescription> Desc;
+    std::vector<VkAttachmentReference> ColorReferences;
+    VkAttachmentReference DepthStencilReference;
+
+    uint32 RenderPassFullHash;
+
+    bool operator==(const FVulkanRenderTargetLayout& Other) const
+    {
+        if (Desc.size() != Other.Desc.size() || ColorReferences.size() != Other.ColorReferences.size())
+            return false;
+        size_t desc_size = sizeof(VkAttachmentDescription) * Desc.size();
+        size_t ref_size = sizeof(VkAttachmentReference) * ColorReferences.size();
+        if (std::memcmp(Desc.data(), Other.Desc.data(), desc_size) != 0 || 
+            std::memcmp(ColorReferences.data(), Other.ColorReferences.data(), ref_size) != 0 ||
+            std::memcmp(&DepthStencilReference, &Other.DepthStencilReference, sizeof(VkAttachmentReference)) != 0)
+            return false;
+
+        return true;
+    }
+};
+
+}
+namespace std {
+
+template<>
+struct hash<nilou::FVulkanRenderTargetLayout>
+{
+    size_t operator()(const nilou::FVulkanRenderTargetLayout& _Keyval) const noexcept
+    {
+        return _Keyval.RenderPassFullHash;
+    }
+};
+
+}
+
+namespace nilou {
+    
 class FVulkanDynamicRHI : public FDynamicRHI
 {
 public:
+    FVulkanDynamicRHI(const GfxConfiguration& Config);
     virtual int Initialize() override;
     virtual void Finalize() override;
     virtual void GetError(const char *file, int line) override;
@@ -22,15 +64,15 @@ public:
     /**
     * Set state
     */
-    virtual void RHISetViewport(int32 Width, int32 Height) override { }
-    virtual FRHIGraphicsPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override { return nullptr; }
-    virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override { }
-    virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override { return true; }
-    virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override { return true; }
-    virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI) override { return true; }
-    virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override { return true; }
-    virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override { return true; }
-    virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override { return true; }
+    virtual void RHISetViewport(int32 Width, int32 Height) override;
+    virtual FRHIGraphicsPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override;
+    virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override;
+    virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
+    virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
+    virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI) override;
+    virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override;
+    virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
+    virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
     // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value) override { return true; }
     // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value) override { return true; }
     // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value) override { return true; }
@@ -49,7 +91,7 @@ public:
     /**
     * Create/Update data
     */
-    virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer);
+    virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer) override;
     virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
     virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
     virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
@@ -57,26 +99,25 @@ public:
     virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) override;
     virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) override;
     virtual void RHIDestroyShader(RHIShader* Shader) override;
-    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override { return nullptr; }
-    virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) override { return nullptr; }
-    virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override { return nullptr; }
-    virtual RHIBufferRef RHICreateAtomicCounterBuffer(unsigned int Value) override { return nullptr; }
-    virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override { return nullptr; }
+    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override;
+    virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) override;
+    virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
+    virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
-            int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override { return nullptr; }
+            int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
     
     virtual RHITexture2DRef RHICreateTexture2D(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
     virtual RHITexture2DArrayRef RHICreateTexture2DArray(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override { return nullptr; }
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
     virtual RHITexture3DRef RHICreateTexture3D(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override { return nullptr; }
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
     virtual RHITextureCubeRef RHICreateTextureCube(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
     virtual RHITexture2DRef RHICreateSparseTexture2D(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
@@ -141,20 +182,26 @@ public:
     virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) override { }
     virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override { }
 
+    VkDevice device{};
+
+    static VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
     
 private:
 
     std::pair<VkShaderModule, shaderc_compilation_result_t> 
     RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
+    RHITextureRef RHICreateTextureInternal(
+        const std::string &name, EPixelFormat Format, 
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType);
 
     VkInstance instance{};
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice{};
-    VkDevice device{};
     VkDebugUtilsMessengerEXT debugMessenger{};
     VkSwapchainKHR swapChain{};
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat{};
+    VkFormat depthImageFormat{};
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
 
@@ -177,6 +224,7 @@ private:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
+    uint32 findMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties);
 
 };
 

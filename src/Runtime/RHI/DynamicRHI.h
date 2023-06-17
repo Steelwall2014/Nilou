@@ -26,9 +26,9 @@ namespace nilou {
 		static FDynamicRHI *GetDynamicRHI();
 		static void CreateDynamicRHI_RenderThread(const GfxConfiguration& configs);
 
-		FDynamicRHI() {}
+		FDynamicRHI(const GfxConfiguration&) {}
 		virtual ~FDynamicRHI() {}
-		virtual int Initialize() = 0;
+		virtual int Initialize();
 		virtual void Finalize();
 		virtual void GetError(const char *file, int line) = 0;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
@@ -74,7 +74,6 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) = 0;
 		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
-		virtual RHIBufferRef RHICreateAtomicCounterBuffer(unsigned int Value) = 0;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) = 0;

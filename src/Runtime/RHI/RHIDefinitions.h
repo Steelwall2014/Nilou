@@ -170,8 +170,6 @@ namespace nilou {
 
 		// Helper bit-masks
 		AnyDynamic = (Dynamic | Volatile),
-
-		AtomicCounter = 1 << 20,
 	};
 	constexpr EBufferUsageFlags operator|(EBufferUsageFlags a, EBufferUsageFlags b)
 	{
@@ -328,7 +326,7 @@ namespace nilou {
 	};
 	enum class EFramebufferAttachment : uint8
 	{
-		FA_Color_Attachment0,
+		FA_Color_Attachment0 = 0,
 		FA_Color_Attachment1,
 		FA_Color_Attachment2,
 		FA_Color_Attachment3,
@@ -360,8 +358,8 @@ namespace nilou {
 		// FA_Color_Attachment29,
 		// FA_Color_Attachment30,
 		// FA_Color_Attachment31,
-		FA_Depth_Attachment,
-		FA_Stencil_Attachment,
+		//FA_Depth_Attachment,
+		//FA_Stencil_Attachment,
 		FA_Depth_Stencil_Attachment
 	};
 

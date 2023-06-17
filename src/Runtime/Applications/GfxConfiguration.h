@@ -5,6 +5,7 @@
 #include <filesystem>
 
 #include "Common/Log.h"
+#include "RHIResources.h"
 
 namespace nilou {
 	struct GfxConfiguration {
@@ -18,23 +19,16 @@ namespace nilou {
 		/// \param[in] msaa the msaa sample count
 		/// \param[in] width the screen width in pixel
 		/// \param[in] height the screen height in pixel
-		GfxConfiguration(uint32_t r = 8, uint32_t g = 8,
-			uint32_t b = 8, uint32_t a = 8,
-			uint32_t d = 24, uint32_t s = 0, uint32_t msaa = 0,
+		GfxConfiguration(EPixelFormat InSwapChainFormat = EPixelFormat::PF_R8G8B8A8_sRGB, EPixelFormat InDepthFormat = EPixelFormat::PF_D24S8, uint32_t msaa = 0,
 			uint32_t width = 1920, uint32_t height = 1080, const wchar_t *app_name = L"Nilou") :
-			redBits(r), greenBits(g), blueBits(b), alphaBits(a),
-			depthBits(d), stencilBits(s), msaaSamples(msaa),
+			SwapChainFormat(InSwapChainFormat), DepthFormat(InDepthFormat), msaaSamples(msaa),
 			screenWidth(width), screenHeight(height), appName(app_name)
 		{
 			workDir = std::filesystem::current_path();
 		}
 
-		uint32_t redBits; ///< red color channel depth in bits
-		uint32_t greenBits; ///< green color channel depth in bits
-		uint32_t blueBits; ///< blue color channel depth in bits
-		uint32_t alphaBits; ///< alpha color channel depth in bits
-		uint32_t depthBits; ///< depth buffer depth in bits
-		uint32_t stencilBits; ///< stencil buffer depth in bits
+		EPixelFormat SwapChainFormat;
+		EPixelFormat DepthFormat;
 		uint32_t msaaSamples; ///< MSAA samples
 		uint32_t screenWidth;
 		uint32_t screenHeight;
@@ -47,12 +41,7 @@ namespace nilou {
 			out << "App Name:" << conf.appName << std::endl;
 			out << "Working Directory:" << conf.workDir << std::endl;
 			out << "GfxConfiguration:" <<
-				" R:" << conf.redBits <<
-				" G:" << conf.greenBits <<
-				" B:" << conf.blueBits <<
-				" A:" << conf.alphaBits <<
-				" D:" << conf.depthBits <<
-				" S:" << conf.stencilBits <<
+				" SwapChainFormat: " << magic_enum::enum_name(conf.SwapChainFormat) << 
 				" M:" << conf.msaaSamples <<
 				" W:" << conf.screenWidth <<
 				" H:" << conf.screenHeight <<

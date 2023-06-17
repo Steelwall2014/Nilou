@@ -5,7 +5,9 @@
 #include "BaseApplication.h"
 #include "VulkanShader.h"
 #include "VulkanResources.h"
+#include "VulkanTexture.h"
 #include "PipelineStateCache.h"
+#include "Common/Crc.h"
 
 namespace nilou {
 
@@ -67,6 +69,68 @@ static VkPrimitiveTopology TranslatePrimitiveMode(EPrimitiveMode PrimitiveMode)
     };
 }
 
+VkFormat FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(EPixelFormat Format)
+{
+    switch (Format) 
+    {
+    case EPixelFormat::PF_UNKNOWN:
+        return VK_FORMAT_UNDEFINED;
+    case EPixelFormat::PF_R8:
+        return VK_FORMAT_R8_UINT;
+    case EPixelFormat::PF_R8UI:
+        return VK_FORMAT_R8_UNORM;
+    case EPixelFormat::PF_R8G8:
+        return VK_FORMAT_R8G8_UINT;
+    case EPixelFormat::PF_R8G8B8:
+        return VK_FORMAT_R8G8B8_UINT;
+    case EPixelFormat::PF_R8G8B8_sRGB:
+        return VK_FORMAT_R8G8B8_SRGB;
+    case EPixelFormat::PF_B8G8R8:
+        return VK_FORMAT_B8G8R8_UINT;
+    case EPixelFormat::PF_B8G8R8_sRGB:
+        return VK_FORMAT_B8G8R8_SRGB;
+    case EPixelFormat::PF_R8G8B8A8:
+        return VK_FORMAT_R8G8B8A8_UINT;
+    case EPixelFormat::PF_R8G8B8A8_sRGB:
+        return VK_FORMAT_R8G8B8A8_SRGB;
+    case EPixelFormat::PF_B8G8R8A8:
+        return VK_FORMAT_B8G8R8A8_UINT;
+    case EPixelFormat::PF_B8G8R8A8_sRGB:
+        return VK_FORMAT_B8G8R8A8_SRGB;
+    case EPixelFormat::PF_D24S8:
+        return VK_FORMAT_D24_UNORM_S8_UINT;
+    case EPixelFormat::PF_D32F:
+        return VK_FORMAT_D32_SFLOAT;
+    case EPixelFormat::PF_D32FS8:
+        return VK_FORMAT_D32_SFLOAT_S8_UINT;
+    case EPixelFormat::PF_DXT1:
+        return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+    case EPixelFormat::PF_DXT1_sRGB:
+        return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+    case EPixelFormat::PF_DXT5:
+        return VK_FORMAT_BC3_UNORM_BLOCK;
+    case EPixelFormat::PF_DXT5_sRGB:
+        return VK_FORMAT_BC3_SRGB_BLOCK;
+    case EPixelFormat::PF_R16F:
+        return VK_FORMAT_R16_SFLOAT;
+    case EPixelFormat::PF_R16G16F:
+        return VK_FORMAT_R16G16_SFLOAT;
+    case EPixelFormat::PF_R16G16B16F:
+        return VK_FORMAT_R16G16B16_SFLOAT;
+    case EPixelFormat::PF_R16G16B16A16F:
+        return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case EPixelFormat::PF_R32F:
+        return VK_FORMAT_R32_SFLOAT;
+    case EPixelFormat::PF_R32G32F:
+        return VK_FORMAT_R32G32_SFLOAT;
+    case EPixelFormat::PF_R32G32B32F:
+        return VK_FORMAT_R32G32B32_SFLOAT;
+    case EPixelFormat::PF_R32G32B32A32F:
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
+    default:
+        return VK_FORMAT_UNDEFINED;
+    }
+}
 }
 
 namespace nilou {
@@ -166,10 +230,75 @@ bool FVulkanDynamicRHI::isDeviceSuitable(VkPhysicalDevice device) {
     swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     return indices.graphicsFamily.has_value() && swapChainAdequate;
 }
+}
+
+namespace nilou {
+
+FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
+    : FDynamicRHI(Config)
+{
+    swapChainImageFormat = TranslatePixelFormatToVKFormat(Config.SwapChainFormat);
+    depthImageFormat = TranslatePixelFormatToVKFormat(Config.DepthFormat);
+}
+
+void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
+{
+
+}
+
+FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHISetComputeShader(RHIComputeShader *ComputeShader)
+{
+    FGraphicsPipelineStateInitializer Initializer;
+    Initializer.ComputeShader = ComputeShader;
+    FRHIGraphicsPipelineState *PSO = RHIGetOrCreatePipelineStateObject(Initializer);
+    RHISetGraphicsPipelineState(PSO);
+    return PSO;
+}
+
+void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState)
+{
+    // VulkanGraphicsPipelineState* VulkanPipeline = static_cast<VulkanGraphicsPipelineState>(NewState);
+    // auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    // if (NewState->Initializer.ComputeShader)
+    //     bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
+    // vkCmdBindPipeline(commandBuffer, bind_point, VulkanPipeline.);
+}
+
+bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *)
+{
+    return true;
+}
+
+bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *)
+{
+    return true;
+}
+
+bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI)
+{
+    return true;
+}
+
+bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI)
+{
+    return true;
+}
+
+bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag)
+{
+    return true;
+}
+
+bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag)
+{
+    return true;
+}
+
 
 int FVulkanDynamicRHI::Initialize()
 {
-    uint32_t extensionCount = 0;
+    FDynamicRHI::Initialize();
+    uint32 extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
     VkApplicationInfo appInfo{};
@@ -329,7 +458,6 @@ int FVulkanDynamicRHI::Initialize()
         swapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
 
-        swapChainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;
         swapChainExtent = extent;
     }
 
@@ -362,6 +490,13 @@ int FVulkanDynamicRHI::Initialize()
 
     shader_compiler = shaderc_compiler_initialize();
 
+    magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
+        magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
+            ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
+            PageSize = ivec3(256, 128, 1);    
+        });
+    }); 
+
     return 0;
 }
 
@@ -389,110 +524,6 @@ void FVulkanDynamicRHI::GetError(const char *file, int line)
     
 }
 
-RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& code)
-{
-    auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_vertex_shader);
-
-    if (Module && result)
-    {
-        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>();
-        VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
-        return VulkanShader;
-    }
-
-    NILOU_LOG(Error, "failed to create vertex shader!");
-    return nullptr;
-}
-
-RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& code)
-{
-    auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_fragment_shader);
-
-    if (Module && result)
-    {
-        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>();
-        VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
-        return VulkanShader;
-    }
-
-    NILOU_LOG(Error, "failed to create pixel shader!");
-    return nullptr;
-}
-
-RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string& code)
-{
-    auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_compute_shader);
-
-    if (Module && result)
-    {
-        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>();
-        VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
-        return VulkanShader;
-    }
-
-    NILOU_LOG(Error, "failed to create compute shader!");
-    return nullptr;
-}
-
-void FVulkanDynamicRHI::RHIDestroyShader(RHIShader* Shader)
-{
-    VkShaderModule Module = VK_NULL_HANDLE;
-    shaderc_compilation_result_t Result = nullptr;
-    if (Shader->ResourceType == ERHIResourceType::RRT_VertexShader)
-    {
-        VulkanVertexShader* VulkanShader = reinterpret_cast<VulkanVertexShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    else if (Shader->ResourceType == ERHIResourceType::RRT_PixelShader)
-    {
-        VulkanPixelShader* VulkanShader = reinterpret_cast<VulkanPixelShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    else if (Shader->ResourceType == ERHIResourceType::RRT_ComputeShader)
-    {
-        VulkanComputeShader* VulkanShader = reinterpret_cast<VulkanComputeShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    if (Module != VK_NULL_HANDLE)
-        vkDestroyShaderModule(device, Module, nullptr);
-    if (Result != nullptr)
-        shaderc_result_release(Result);
-}
-
-std::pair<VkShaderModule, shaderc_compilation_result_t> 
-FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind)
-{
-    shaderc_compilation_result_t result = shaderc_compile_into_spv(shader_compiler, 
-        code.c_str(), code.size(), shaderc_vertex_shader, 
-        "", "main", nullptr);
-    shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
-    if (status != shaderc_compilation_status_success) {
-        const char* msg = shaderc_result_get_error_message(result);
-        return {};
-    }
-
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = shaderc_result_get_length(result);
-    createInfo.pCode = reinterpret_cast<const uint32*>(shaderc_result_get_bytes(result));
-    VkShaderModule Module{};
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &Module) != VK_SUCCESS) {
-        return {};
-    }
-
-    return { Module, result };
-
-}
-
 static VkDescriptorType TranslateDescriptorType(EShaderParameterType Type)
 {
     switch (Type) 
@@ -514,6 +545,94 @@ static VkShaderStageFlagBits TranslateShaderStageFlagBits(EPipelineStage Stage)
     case PS_Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
     default: return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
     }
+}
+
+
+FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
+{
+	for (uint32 Index = 0; Index < Initializer.NumRenderTargetsEnabled; ++Index)
+    {
+		EPixelFormat Format = Initializer.RenderTargetFormats[Index];
+		if (Format != EPixelFormat::PF_UNKNOWN)
+		{
+			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
+			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+			CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+			// If the initial != final we need to change the FullHashInfo and use FinalLayout
+			CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference& ColorRef = ColorReferences.emplace_back();
+            ColorRef.attachment = Index;
+			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
+    }
+    if (Initializer.DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
+    {
+        EPixelFormat Format = Initializer.DepthStencilTargetFormat;
+		VkAttachmentDescription& CurrDesc = Desc[MAX_SIMULTANEOUS_RENDERTARGETS];
+        CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+        CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        DepthStencilReference.attachment = Initializer.NumRenderTargetsEnabled;
+        DepthStencilReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    }
+    
+    RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
+}
+
+struct FVulkanLayoutManager
+{
+    FVulkanRenderPass* GetOrCreateRenderPass(VkDevice InDevice, const FVulkanRenderTargetLayout& RTLayout);
+    std::unordered_map<FVulkanRenderTargetLayout, FVulkanRenderPass> RenderPasses;
+};
+
+FVulkanLayoutManager LayoutManager;
+
+FVulkanRenderPass* FVulkanLayoutManager::GetOrCreateRenderPass(VkDevice InDevice, const FVulkanRenderTargetLayout& RTLayout)
+{
+    if (RenderPasses.contains(RTLayout))
+        return &RenderPasses[RTLayout];
+
+    FVulkanRenderPass& RenderPass = RenderPasses[RTLayout];
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = RTLayout.ColorReferences.data();
+    subpass.pDepthStencilAttachment = &RTLayout.DepthStencilReference;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<uint32>(RTLayout.Desc.size());
+    renderPassInfo.pAttachments = RTLayout.Desc.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(InDevice, &renderPassInfo, nullptr, &RenderPass.Handle) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+    return &RenderPass;
 }
 
 FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer)
@@ -658,6 +777,30 @@ FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHIGetOrCreatePipelineStateObject(
         NILOU_LOG(Error, "failed to create pipeline layout!");
         return nullptr;
     }
+
+    FVulkanRenderTargetLayout RTLayout(Initializer);
+    PSO->RenderPass = LayoutManager.GetOrCreateRenderPass(device, RTLayout);
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &RasterizerState->RasterizerState;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &DepthStencilState->DepthStencilState;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = PipelineLayout->PipelineLayout;
+    pipelineInfo.renderPass = PSO->RenderPass->Handle;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    // if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+    //     throw std::runtime_error("failed to create graphics pipeline!");
+    // }
 }
 
 RHIDepthStencilStateRef FVulkanDynamicRHI::RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer)
@@ -673,6 +816,22 @@ RHIRasterizerStateRef FVulkanDynamicRHI::RHICreateRasterizerState(const FRasteri
 RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitializer &Initializer)
 {
     return std::make_shared<VulkanBlendState>(Initializer);
+}
+
+
+
+uint32 FVulkanDynamicRHI::findMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties) 
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
 }
 
 }

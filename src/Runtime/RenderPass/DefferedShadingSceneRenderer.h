@@ -105,6 +105,7 @@ namespace nilou {
     {
     public:
         FShadowMapTexture(const ShadowMapResourceCreateInfo &CreateInfo);
+        RHIFramebuffer* GetFramebufferByIndex(int32 FrustumIndex) const { return ShadowMapFramebuffers[FrustumIndex].get(); }
         std::vector<RHIFramebufferRef> ShadowMapFramebuffers;
         RHITexture2DArrayRef DepthArray;
     };

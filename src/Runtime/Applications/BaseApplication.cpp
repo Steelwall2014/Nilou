@@ -1,6 +1,7 @@
 #include "BaseApplication.h"
 #include "DynamicRHI.h"
 #include "Common/Path.h"
+#include "Common/Crc.h"
 
 namespace nilou {
 
@@ -15,6 +16,7 @@ namespace nilou {
     {
         m_bQuit = false;
 
+        FCrc::Init();
         ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
         GameViewportClient = std::make_unique<UGameViewportClient>();

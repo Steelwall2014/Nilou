@@ -557,6 +557,8 @@ namespace nilou {
                 };
                 PSOInitializer.VertexInputList = &VertexInputList;
 
+                PSOInitializer.BuildRenderTargetFormats(OutputRenderTarget);
+
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                 
                 RHIGetError();

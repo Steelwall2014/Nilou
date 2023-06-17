@@ -1333,10 +1333,6 @@ namespace nilou {
     {
         return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, Data);
     }
-    RHIBufferRef FOpenGLDynamicRHI::RHICreateAtomicCounterBuffer(unsigned int Value)
-    {
-        return RHICreateBuffer(4, 4, EBufferUsageFlags::AtomicCounter | EBufferUsageFlags::Dynamic, &Value);
-    }
     RHIBufferRef FOpenGLDynamicRHI::RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
     {
         DispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
@@ -1832,6 +1828,7 @@ namespace nilou {
 
     int nilou::FOpenGLDynamicRHI::Initialize()
     {
+        FDynamicRHI::Initialize();
         //bool ret = Initialize();
         //if (!ret)
         //    return ret;
@@ -1858,9 +1855,6 @@ namespace nilou {
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
-            glslang::InitializeProcess();
-            *GetResources() = *GetDefaultResources();
-            GetResources()->maxAtomicCounterBindings = 5;
 
             magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
                 magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {

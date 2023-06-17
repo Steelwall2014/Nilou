@@ -24,6 +24,7 @@ namespace nilou {
         FInputShaderBindings &InputBindings, 
         const FRHIVertexInputList* VertexInputs,
         const FMeshBatchElement &Element,
+        RHIFramebuffer* Framebuffer,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
@@ -37,15 +38,14 @@ namespace nilou {
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
         Initializer.DepthStencilState = DepthStencilState;
-        RHIGetError();
 
         Initializer.RasterizerState = RasterizerState;
-        RHIGetError();
 
         Initializer.BlendState = BlendState;
 
         Initializer.VertexInputList = VertexInputs;
-        RHIGetError();
+        
+        Initializer.BuildRenderTargetFormats(Framebuffer);
 
         {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
@@ -127,6 +127,8 @@ namespace nilou {
                 #endif
                 const FRHIVertexInputList* VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
 
+                FSceneTexturesDeffered* SceneTexturesDeffered = static_cast<FSceneTexturesDeffered*>(SceneTextures);
+
                 BuildMeshDrawCommand(
                     RHICmdList,
                     // *Mesh.MaterialRenderProxy->GetType(),
@@ -141,6 +143,7 @@ namespace nilou {
                     Mesh.Element.Bindings,
                     VertexInputs,
                     Mesh.Element,
+                    SceneTexturesDeffered->GeometryPassFramebuffer.get(),
                     MeshDrawCommand);
 
                 DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

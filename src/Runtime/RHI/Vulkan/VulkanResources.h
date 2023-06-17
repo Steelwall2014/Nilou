@@ -3,9 +3,16 @@
 
 namespace nilou {
 
+struct FVulkanRenderPass
+{
+    VkRenderPass Handle;
+};
+
 class VulkanGraphicsPipelineState : public FRHIGraphicsPipelineState
 {
-
+public:
+    VkPipeline VulkanPipeline;
+    FVulkanRenderPass* RenderPass;
 };
 using VulkanGraphicsPipelineStateRef = std::shared_ptr<VulkanGraphicsPipelineState>;
 

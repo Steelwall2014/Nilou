@@ -4,6 +4,7 @@ layout(location = 3) in vec4 COLOR;
 
 layout(location = 4) in vec2 TEXCOORD_0;
 
+#include "../include/Macros.glsl"
 #include "../VirtualHeightfieldMesh/VHM_RenderPatch.glsl"
 
 layout(std430, binding=8) readonly buffer Patch_Buffer{
@@ -52,7 +53,7 @@ bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
 {
 	uint PatchGridSideNum = NumQuadsPerPatch+1;
 	vec2 PatchOriginalGridMeterSize = vec2(1);
-	uvec2 vertex_index = uvec2(gl_VertexID / PatchGridSideNum, gl_VertexID % PatchGridSideNum);
+	uvec2 vertex_index = uvec2(gl_VertexIndex / PatchGridSideNum, gl_VertexIndex % PatchGridSideNum);
 	bool on_edge = false;
 	if (vertex_index.x == 0 || vertex_index.x == PatchGridSideNum-1 ||
 		vertex_index.y == 0 || vertex_index.y == PatchGridSideNum-1)
@@ -118,7 +119,7 @@ void CalcNormalTangent(ivec2 id, uint MipmapLevel, out vec3 Normal, out vec4 Tan
 FVertexFactoryIntermediates VertexFactoryIntermediates()
 {
 	FVertexFactoryIntermediates VFIntermediates;
-	RenderPatch current_patch = patches[gl_InstanceID]; 
+	RenderPatch current_patch = patches[gl_InstanceIndex]; 
 	float scale = pow(2, current_patch.lod);
 	vec3 offset = vec3(current_patch.offset_x, current_patch.offset_y, 0);
 	vec3 pos = POSITION;
@@ -159,7 +160,7 @@ vec2 VertexFactoryGetTexCoord(FVertexFactoryIntermediates VFIntermediates)
 
 vec4 VertexFactoryGetColor(FVertexFactoryIntermediates VFIntermediates)
 {
-	RenderPatch current_patch = patches[gl_InstanceID]; 
+	RenderPatch current_patch = patches[gl_InstanceIndex]; 
 	return vec4(current_patch.lod / 5.0);
 //	return vec4(VFIntermediates.MinMax/vec2(10), 0, 1);
 }

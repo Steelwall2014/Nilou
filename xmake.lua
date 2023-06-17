@@ -6,7 +6,7 @@ add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
--- add_requires("vcpkg::glslang")
+add_requires("vcpkg::glslang")
 add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
 
@@ -141,7 +141,7 @@ BuildProject({
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*"},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
+    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     beforeBuildFunc = "Nilou",
     -- afterBuildFunc = copyFunc,
     enableException = true,

@@ -1,4 +1,5 @@
 #version 460 core
+#include "../include/Macros.glsl"
 layout(location = 0) in vec3 POSITION;
 layout(location = 1) in vec3 NORMAL;
 layout(location = 2) in vec4 TANGENT;
@@ -33,7 +34,7 @@ struct FVertexFactoryIntermediates
 FVertexFactoryIntermediates VertexFactoryIntermediates()
 {
 	FVertexFactoryIntermediates VFIntermediates;
-	uvec4 nodeLoc = NodeList[gl_InstanceID]; 
+	uvec4 nodeLoc = NodeList[gl_InstanceIndex]; 
 	float scale = pow(2, nodeLoc.z);
 
 	vec2 offset = vec2(nodeLoc.x, nodeLoc.y) * vec2(LODParams[nodeLoc.z].NodeMeterSize.x, LODParams[nodeLoc.z].NodeMeterSize.y);

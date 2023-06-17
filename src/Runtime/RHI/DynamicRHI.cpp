@@ -24,13 +24,21 @@ namespace nilou {
 	{
 		if (!strcmp(configs.defaultRHI, "opengl"))
 		{
-			FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
+			FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI(configs);
 		}
 		else if (!strcmp(configs.defaultRHI, "vulkan"))
 		{
-			FDynamicRHI::DynamicRHI = new FVulkanDynamicRHI;
+			FDynamicRHI::DynamicRHI = new FVulkanDynamicRHI(configs);
 		}
 	}
+
+    int FDynamicRHI::Initialize()
+    {
+        glslang::InitializeProcess();
+        *GetResources() = *GetDefaultResources();
+        GetResources()->maxAtomicCounterBindings = 5;
+        return 1;
+    }
 
 	void FDynamicRHI::Finalize()
 	{

@@ -23,7 +23,7 @@ namespace nilou {
 	class FOpenGLDynamicRHI : public FDynamicRHI
 	{
 	public:
-		FOpenGLDynamicRHI() {}
+		FOpenGLDynamicRHI(const GfxConfiguration& Config) : FDynamicRHI(Config) {}
 		virtual ~FOpenGLDynamicRHI() {}
 		virtual int Initialize() override;
 		virtual void Finalize() override;
@@ -71,7 +71,6 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override;
 		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) override;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
-		virtual RHIBufferRef RHICreateAtomicCounterBuffer(unsigned int Value) override;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;

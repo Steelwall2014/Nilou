@@ -56,6 +56,8 @@ namespace nilou {
                     };
                     PSOInitializer.VertexInputList = &VertexInputList;
 
+                    PSOInitializer.BuildRenderTargetFormats(SceneTextures->LightPassFramebuffer.get());
+
                     FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                     
                     RHIGetError();

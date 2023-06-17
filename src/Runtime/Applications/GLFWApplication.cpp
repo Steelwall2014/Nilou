@@ -161,6 +161,42 @@ namespace nilou {
         return true;
     }
 
+    void GetChannelsBit(EPixelFormat Format, uint8& redBits, uint8& greenBits, uint8& blueBits, uint8& alphaBits)
+    {
+        switch (Format) 
+        {
+        case EPixelFormat::PF_R8G8B8A8: 
+        case EPixelFormat::PF_R8G8B8A8_sRGB:
+        case EPixelFormat::PF_B8G8R8A8:
+        case EPixelFormat::PF_B8G8R8A8_sRGB:
+            redBits = 8; 
+            greenBits = 8, 
+            blueBits = 8, 
+            alphaBits = 8; 
+            break;
+        default:
+            assert(false);  // Not supported swap chain format
+            break;
+        }
+    }
+
+    void GetDepthBit(EPixelFormat Format, uint8& depthBits)
+    {
+        switch (Format) 
+        {
+        case EPixelFormat::PF_D24S8:
+            depthBits = 24;
+            break;
+        case EPixelFormat::PF_D32F:
+        case EPixelFormat::PF_D32FS8:
+            depthBits = 32;
+            break;
+        default:
+            assert(false);  // Not supported swap chain format
+            break;
+        }
+    }
+
     bool GLFWApplication::Initialize_RenderThread()
     {
         int result;
@@ -174,11 +210,14 @@ namespace nilou {
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         }
-        glfwWindowHint(GLFW_RED_BITS, m_Config.redBits);
-        glfwWindowHint(GLFW_GREEN_BITS, m_Config.greenBits);
-        glfwWindowHint(GLFW_BLUE_BITS, m_Config.blueBits);
-        glfwWindowHint(GLFW_ALPHA_BITS, m_Config.alphaBits);
-        glfwWindowHint(GLFW_DEPTH_BITS, m_Config.depthBits);
+        uint8 redBits, greenBits, blueBits, alphaBits, depthBits;
+        GetChannelsBit(m_Config.SwapChainFormat, redBits, greenBits, blueBits, alphaBits);
+        GetDepthBit(m_Config.DepthFormat, depthBits);
+        glfwWindowHint(GLFW_RED_BITS, redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, blueBits);
+        glfwWindowHint(GLFW_ALPHA_BITS, alphaBits);
+        glfwWindowHint(GLFW_DEPTH_BITS, depthBits);
 
 
         window = glfwCreateWindow(m_Config.screenWidth, m_Config.screenHeight, "Nilou", NULL, NULL);

@@ -463,11 +463,12 @@ namespace nilou {
 
         void CreateNodeListGPU(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
         {
+            static uint32 zero_value = 0;
             CreateNodeListBlock->Data.ScreenSizeDenominator = 2 * glm::tan(0.5*ViewShaderParameters->Data.CameraVerticalFieldOfView);
             RHIGetError();
             uint32 index_b_value = LodParams[LodCount-1].NodeSideNum.x * LodParams[LodCount-1].NodeSideNum.y;
-            RHIBufferRef IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateAtomicCounterBuffer(0);
-            RHIBufferRef IndexFinal = FDynamicRHI::GetDynamicRHI()->RHICreateAtomicCounterBuffer(0);
+            RHIBufferRef IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
+            RHIBufferRef IndexFinal = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
 
             RHIGetError();
             RHIBufferRef indirectArgs = FDynamicRHI::GetDynamicRHI()->RHICreateDispatchIndirectBuffer(index_b_value, 1, 1);
@@ -532,7 +533,7 @@ namespace nilou {
 
                 RHIGetError();
                 std::swap(NodeIDs_TempA, NodeIDs_TempB);
-                IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateAtomicCounterBuffer(0);
+                IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
             }
 
             RHIGetError();
@@ -566,7 +567,8 @@ namespace nilou {
 
         void CreatePatch(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
         {
-            AtomicPatchCounterBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateAtomicCounterBuffer(0);
+            static uint32 zero_value = 0;
+            AtomicPatchCounterBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreatePatchShader::StaticType, 0);
             FShaderInstance *CreatePatchShader = GetContentManager()->GetGlobalShader(PermutationParameters);

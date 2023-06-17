@@ -20,6 +20,7 @@ namespace nilou {
         FInputShaderBindings &InputBindings,  
         const FRHIVertexInputList* VertexInputs,
         const FMeshBatchElement &Element,
+        RHIFramebuffer* Framebuffer,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
@@ -42,6 +43,8 @@ namespace nilou {
         Initializer.BlendState = BlendState;
         RHIGetError();
         Initializer.VertexInputList = VertexInputs;
+
+        Initializer.BuildRenderTargetFormats(Framebuffer);
 
         {
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
@@ -117,6 +120,7 @@ namespace nilou {
                 const FRHIVertexInputList* VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                 FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                 InputBindings.SetElementShaderBinding("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
+            FSceneTexturesDeffered* SceneTextures = static_cast<FSceneTexturesDeffered*>(ViewInfo.SceneTextures);
                 BuildMeshDrawCommand(
                     RHICmdList,
                     // *Mesh.MaterialRenderProxy->GetType(),
@@ -131,6 +135,7 @@ namespace nilou {
                     InputBindings,
                     VertexInputs,
                     Mesh.Element,
+                    SceneTextures->PreZPassFramebuffer.get(),
                     MeshDrawCommand);
                 DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
             }

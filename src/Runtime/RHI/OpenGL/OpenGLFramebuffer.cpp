@@ -42,10 +42,10 @@ namespace nilou {
 			// ATTACHMENT(29)
 			// ATTACHMENT(30)
 			// ATTACHMENT(31)
-			case EFramebufferAttachment::FA_Depth_Attachment:
-				return GL_DEPTH_ATTACHMENT;
-			case EFramebufferAttachment::FA_Stencil_Attachment:
-				return GL_STENCIL_ATTACHMENT; 
+			// case EFramebufferAttachment::FA_Depth_Attachment:
+			// 	return GL_DEPTH_ATTACHMENT;
+			// case EFramebufferAttachment::FA_Stencil_Attachment:
+			// 	return GL_STENCIL_ATTACHMENT; 
 			case EFramebufferAttachment::FA_Depth_Stencil_Attachment:
 				return GL_DEPTH_STENCIL_ATTACHMENT;
 		}
