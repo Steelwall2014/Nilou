@@ -48,36 +48,44 @@ VkBufferUsageFlags TranslateBufferUsageFlags(EBufferUsageFlags InUsage, bool bZe
 	return OutVkUsage;
 }
 
-RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
+void FVulkanDynamicRHI::RHICreateBufferInternal(
+                    VkDevice Device, VkBufferUsageFlags UsageFlags,
+                    uint32 Size, void *Data, 
+                    VkBuffer* Buffer, VkDeviceMemory* Memory)
 {
-    VulkanBufferRef Buffer = std::make_shared<VulkanBuffer>(Stride, Size, InUsage);
-
     auto properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    const bool bZeroSize = (Size == 0);
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = Size;
-    bufferInfo.usage = TranslateBufferUsageFlags(InUsage, bZeroSize);
+    bufferInfo.usage = UsageFlags;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &Buffer->Buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(Device, &bufferInfo, nullptr, Buffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to create buffer!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, Buffer->Buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(Device, *Buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &Buffer->Memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(Device, &allocInfo, nullptr, Memory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(device, Buffer->Buffer, Buffer->Memory, 0);
+    vkBindBufferMemory(Device, *Buffer, *Memory, 0);
+}
+
+RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
+{
+    VulkanBufferRef Buffer = std::make_shared<VulkanBuffer>(Stride, Size, InUsage);
+
+    const bool bZeroSize = (Size == 0);
+    RHICreateBufferInternal(device, TranslateBufferUsageFlags(InUsage, bZeroSize), Size, Data, &Buffer->Buffers[0], &Buffer->Memories[0]);
 
     return Buffer;
 }
@@ -86,32 +94,7 @@ RHIUniformBufferRef FVulkanDynamicRHI::RHICreateUniformBuffer(uint32 Size, EUnif
 {
     VulkanUniformBufferRef Buffer = std::make_shared<VulkanUniformBuffer>(Size, InUsage);
 
-    auto properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    const bool bZeroSize = (Size == 0);
-
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = Size;
-    bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &Buffer->Buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, Buffer->Buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &Buffer->Memory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(device, Buffer->Buffer, Buffer->Memory, 0);
+    CreateBuffer(device, TranslateBufferUsageFlags(InUsage, bZ))
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data)

@@ -324,7 +324,7 @@ namespace nilou {
 
 		const FRHIVertexInputList* VertexInputList;
 
-		EPixelFormat RenderTargetFormats[MAX_SIMULTANEOUS_RENDERTARGETS] = { EPixelFormat::PF_R8G8B8 };
+		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { EPixelFormat::PF_R8G8B8 };
 		uint32 NumRenderTargetsEnabled;
 
 		EPixelFormat DepthStencilTargetFormat;
@@ -402,7 +402,7 @@ namespace nilou {
 		bool bClearDepthBuffer;
 		float ClearDepth;
 		bool bClearStencilBuffer;
-		int ClearStencil;
+		uint32 ClearStencil;
 		FRHIRenderPassInfo(
 			RHIFramebuffer *InFramebuffer, 
 			ivec2 InViewport,
@@ -411,7 +411,7 @@ namespace nilou {
 			bool bInClearStencilBuffer=false, 
 			vec4 InClearColor=vec4(0.f, 0.f, 0.f, 1.0f), 
 			float InClearDepth=1.0f,
-			int InClearStencil=0)
+			uint32 InClearStencil=0)
 			: Framebuffer(InFramebuffer)
 			, Viewport(InViewport)
 			, bClearColorBuffer(bInClearColorBuffer)

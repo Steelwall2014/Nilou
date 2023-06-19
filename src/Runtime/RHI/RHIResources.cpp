@@ -94,7 +94,7 @@ namespace nilou {
 
 	bool FGraphicsPipelineStateInitializer::operator==(const FGraphicsPipelineStateInitializer &Other) const
 	{
-		return 	memcmp(RenderTargetFormats, Other.RenderTargetFormats, sizeof(RenderTargetFormats)) == 0 && 
+		return 	RenderTargetFormats == Other.RenderTargetFormats && 
 				NumRenderTargetsEnabled == Other.NumRenderTargetsEnabled && 
 				DepthStencilTargetFormat == Other.DepthStencilTargetFormat &&
 				VertexShader == Other.VertexShader &&

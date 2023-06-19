@@ -14,6 +14,7 @@ namespace nilou {
 struct FVulkanRenderTargetLayout
 {
     FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
+    FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info);
     
     std::vector<VkAttachmentDescription> Desc;
     std::vector<VkAttachmentReference> ColorReferences;
@@ -34,6 +35,10 @@ struct FVulkanRenderTargetLayout
 
         return true;
     }
+
+private:
+    void InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer);
+
 };
 
 }
@@ -60,6 +65,9 @@ public:
     virtual void Finalize() override;
     virtual void GetError(const char *file, int line) override;
     virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Vulkan; }
+
+    virtual void RHIBeginFrame() override;
+    virtual void RHIEndFrame() override;
 
     /**
     * Set state
@@ -156,7 +164,7 @@ public:
     /**
     * Render pass
     */
-    virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo) override { }
+    virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo) override;
     virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override { }
     virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override { }
     virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override { }
@@ -193,6 +201,10 @@ private:
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType);
+    FRHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
+    FRHIGraphicsPipelineStateRef RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer);
+    std::shared_ptr<class VulkanPipelineLayout> RHICreatePipelineLayout(const FGraphicsPipelineStateInitializer& Initializer);
+    void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
 
     VkInstance instance{};
     VkSurfaceKHR surface{};
@@ -204,7 +216,13 @@ private:
     VkFormat depthImageFormat{};
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
+    VkCommandPool commandPool{};
+    std::vector<VkCommandBuffer> commandBuffers;
+    VkDescriptorPool descriptorPool{};
+    std::vector<VkDescriptorSet> descriptorSets;
+    class FVulkanCommandBufferManager* CommandBufferManager;
 
+    uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;
 
     struct SwapChainSupportDetails {
@@ -225,6 +243,7 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
     uint32 findMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties);
+    uint32 GetFramesInFlight() const { return swapChainImages.size(); }
 
 };
 

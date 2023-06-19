@@ -30,6 +30,9 @@ namespace nilou {
 		virtual void GetError(const char *file, int line) override;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::OpenGL; }
 
+		virtual void RHIBeginFrame() {}
+		virtual void RHIEndFrame() {}
+
 		/**
 		* Set state
 		*/
