@@ -11,6 +11,10 @@
 
 namespace nilou {
 
+class FVulkanCommandBufferManager;
+class FVulkanMemoryManager;
+class FVulkanStagingManager;
+
 struct FVulkanRenderTargetLayout
 {
     FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
@@ -180,8 +184,8 @@ public:
     virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) override { }
     virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) override { }
     virtual void RHIGenerateMipmap(RHITextureRef texture) override { }
-    virtual void *RHIMapComputeBuffer(RHIBufferRef buffer, EDataAccessFlag access) override { return nullptr; }
-    virtual void RHIUnmapComputeBuffer(RHIBufferRef buffer) override { }
+    virtual void *RHILockBuffer(RHIBufferRef buffer, EDataAccessFlag access) override;
+    virtual void RHIUnlockBuffer(RHIBufferRef buffer) override;
     virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override { return nullptr; }
     virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override { }
     virtual void RHIImageMemoryBarrier() override { }
@@ -190,7 +194,12 @@ public:
     virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) override { }
     virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override { }
 
+    FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager; }
     VkDevice device{};
+    VkPhysicalDeviceProperties GpuProps;
+    FVulkanCommandBufferManager* CommandBufferManager;
+    FVulkanMemoryManager* MemoryManager;
+    FVulkanStagingManager* StagingManager;
 
     static VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
     
@@ -220,7 +229,7 @@ private:
     std::vector<VkCommandBuffer> commandBuffers;
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
-    class FVulkanCommandBufferManager* CommandBufferManager;
+    uint32 MemoryTypeIndex;
 
     uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;
@@ -242,7 +251,6 @@ private:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    uint32 findMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties);
     uint32 GetFramesInFlight() const { return swapChainImages.size(); }
 
 };

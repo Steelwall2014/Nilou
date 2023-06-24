@@ -4,6 +4,7 @@
 #include <string_view>
 #include <iostream>
 #include <format>
+#include "AssertionMacros.h"
 
 namespace nilou {
 

@@ -53,6 +53,8 @@ public:
 	void AllocMemory();
 	void FreeMemory();
 
+	VkCommandBuffer GetHandle() const { return Handle; }
+
     VkCommandBuffer Handle{};
 
     std::vector<VkSemaphore> WaitSemaphores;
@@ -145,6 +147,8 @@ public:
 	void SubmitActiveCmdBuffer(std::vector<VkSemaphore> SignalSemaphores);
 
 	void FreeUnusedCmdBuffers();
+
+	void PrepareForNewActiveCommandBuffer();
 
     FVulkanCommandBufferPool Pool;
 

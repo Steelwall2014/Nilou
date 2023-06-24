@@ -295,13 +295,13 @@ namespace nilou {
             CreateLodTexture();
             CreatePatch(ViewShaderParameters);
 
-            uint32* final_nodelist_size = (uint32*)RHICmdList->RHIMapComputeBuffer(FinalNodeListIndirectArgs, EDataAccessFlag::DA_ReadOnly);
+            uint32* final_nodelist_size = (uint32*)RHICmdList->RHILockBuffer(FinalNodeListIndirectArgs, EDataAccessFlag::DA_ReadOnly);
             uint32 NodesFinalFeedbackSize = *final_nodelist_size;
-            RHICmdList->RHIUnmapComputeBuffer(FinalNodeListIndirectArgs);
+            RHICmdList->RHIUnlockBuffer(FinalNodeListIndirectArgs);
             
-            uvec4* data = (uvec4*)RHICmdList->RHIMapComputeBuffer(FinalNodeListBuffer, EDataAccessFlag::DA_ReadOnly);
+            uvec4* data = (uvec4*)RHICmdList->RHILockBuffer(FinalNodeListBuffer, EDataAccessFlag::DA_ReadOnly);
             memcpy(NodesFinalFeedback.get(), data, NodesFinalFeedbackSize * sizeof(uvec4));
-            RHICmdList->RHIUnmapComputeBuffer(FinalNodeListBuffer);
+            RHICmdList->RHIUnlockBuffer(FinalNodeListBuffer);
 
             vec2 HeightTextureMeterSize = NumQuadsPerPatch * NumPatchesPerNode * NodeCount;
             for (int i = 0; i < NodesFinalFeedbackSize; i++)

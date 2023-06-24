@@ -9,6 +9,8 @@
 #include "PipelineStateCache.h"
 #include "Common/Crc.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanMemory.h"
+#include "VulkanBuffer.h"
 
 namespace nilou {
 
@@ -514,6 +516,10 @@ int FVulkanDynamicRHI::Initialize()
 
     CommandBufferManager = new FVulkanCommandBufferManager(device);
 
+    MemoryManager = new FVulkanMemoryManager(device, physicalDevice);
+
+    StagingManager = new FVulkanStagingManager(device, this);
+
     /** Create descriptor pool */
     {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
@@ -534,6 +540,8 @@ int FVulkanDynamicRHI::Initialize()
 
         descriptorSets.resize(GetFramesInFlight());
     }
+
+    vkGetPhysicalDeviceProperties(physicalDevice, &GpuProps);
 
     shader_compiler = shaderc_compiler_initialize();
 
@@ -929,21 +937,6 @@ RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitial
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
 
-}
-
-
-uint32 FVulkanDynamicRHI::findMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties) 
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("failed to find suitable memory type!");
 }
 
 }

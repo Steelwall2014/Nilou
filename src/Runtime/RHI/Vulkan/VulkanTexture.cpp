@@ -1,5 +1,6 @@
 #include "VulkanTexture.h"
 #include "VulkanDynamicRHI.h"
+#include "VulkanMemory.h"
 
 namespace nilou {
 
@@ -102,18 +103,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
         return nullptr;
     }
 
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, Image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &Memory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate image memory!");
-    }
+    MemoryManager->AllocateImageMemory(&Memory, Image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     vkBindImageMemory(device, Image, Memory, 0);
     

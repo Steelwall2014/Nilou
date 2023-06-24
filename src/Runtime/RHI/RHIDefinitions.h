@@ -96,7 +96,7 @@ namespace nilou {
 	// 	static uint32 const AnyDynamic = (Dynamic | Volatile);
 	// };
 
-	enum EBufferUsageFlags
+	enum class EBufferUsageFlags
 	{
 		None                    = 0,
 

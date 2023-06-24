@@ -1737,7 +1737,7 @@ namespace nilou {
         glUseProgram(GLProgram->Resource);
     }
 
-    void *FOpenGLDynamicRHI::RHIMapComputeBuffer(RHIBufferRef buffer, EDataAccessFlag access)
+    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBufferRef buffer, EDataAccessFlag access)
     {
         GLenum GLAccess;
         switch (access) {
@@ -1751,7 +1751,7 @@ namespace nilou {
         return glMapBuffer(GLBuffer->Target, GLAccess);
     }
 
-    void FOpenGLDynamicRHI::RHIUnmapComputeBuffer(RHIBufferRef buffer)
+    void FOpenGLDynamicRHI::RHIUnlockBuffer(RHIBufferRef buffer)
     {
         OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
         glUnmapBuffer(GLBuffer->Target);

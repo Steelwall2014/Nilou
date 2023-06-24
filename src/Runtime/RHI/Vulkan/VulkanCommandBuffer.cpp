@@ -180,4 +180,30 @@ void FVulkanCommandBufferManager::FreeUnusedCmdBuffers()
 	Pool.FreeUnusedCmdBuffers(Queue);
 }
 
+void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
+{
+	for (int32 Index = 0; Index < Pool.CmdBuffers.size(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = Pool.CmdBuffers[Index];
+		//CmdBuffer->RefreshFenceStatus();
+		if (!CmdBuffer->bIsUploadOnly)
+		{
+			if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin || CmdBuffer->State == FVulkanCmdBuffer::EState::NeedReset)
+			{
+				ActiveCmdBuffer = CmdBuffer;
+				ActiveCmdBuffer->Begin();
+				return;
+			}
+			else
+			{
+				check(CmdBuffer->State == FVulkanCmdBuffer::EState::Submitted);
+			}
+		}
+	}
+
+	// All cmd buffers are being executed still
+	ActiveCmdBuffer = Pool.Create(false);
+	ActiveCmdBuffer->Begin();
+}
+
 }

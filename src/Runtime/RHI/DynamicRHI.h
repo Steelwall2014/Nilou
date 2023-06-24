@@ -147,8 +147,8 @@ namespace nilou {
 		virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) = 0;
 		virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) = 0;
 		virtual void RHIGenerateMipmap(RHITextureRef texture) = 0;
-		virtual void *RHIMapComputeBuffer(RHIBufferRef buffer, EDataAccessFlag access) = 0;
-		virtual void RHIUnmapComputeBuffer(RHIBufferRef buffer) = 0;
+		virtual void *RHILockBuffer(RHIBufferRef buffer, EDataAccessFlag access) = 0;
+		virtual void RHIUnlockBuffer(RHIBufferRef buffer) = 0;
 		virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) = 0;
 		virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) = 0;
 		virtual void RHIImageMemoryBarrier() = 0;
