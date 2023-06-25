@@ -1737,13 +1737,12 @@ namespace nilou {
         glUseProgram(GLProgram->Resource);
     }
 
-    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBufferRef buffer, EDataAccessFlag access)
+    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBufferRef buffer, EResourceLockMode LockMode)
     {
         GLenum GLAccess;
-        switch (access) {
-            case EDataAccessFlag::DA_ReadOnly: GLAccess = GL_READ_ONLY; break;
-            case EDataAccessFlag::DA_WriteOnly: GLAccess = GL_WRITE_ONLY; break;
-            case EDataAccessFlag::DA_ReadWrite: GLAccess = GL_READ_WRITE; break;
+        switch (LockMode) {
+            case EResourceLockMode::RLM_ReadOnly: GLAccess = GL_READ_ONLY; break;
+            case EResourceLockMode::RLM_WriteOnly: GLAccess = GL_WRITE_ONLY; break;
             default: std::cout << "Invalid Data access flag" << std::endl; break;
         }
         OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);

@@ -108,7 +108,10 @@ class FVulkanCommandBufferPool
 {
 public:
 
-    FVulkanCommandBufferPool(VkDevice InDevice, FVulkanCommandBufferManager& InMgr);
+    FVulkanCommandBufferPool(VkDevice InDevice, FVulkanCommandBufferManager& InMgr)
+		: Device(InDevice)
+		, Mgr(InMgr)
+	{}
 
     VkCommandPool Handle;
 

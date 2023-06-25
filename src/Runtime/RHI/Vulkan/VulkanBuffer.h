@@ -35,7 +35,7 @@ struct FPendingBufferLock
     FStagingBuffer* StagingBuffer;
     uint32 Offset;
     uint32 Size;
-    EDataAccessFlag LockMode;
+    EResourceLockMode LockMode;
 };
 
 class FVulkanStagingManager
@@ -75,7 +75,7 @@ protected:
     FVulkanDynamicRHI* VulkanRHI;
 };
 
-class VulkanBuffer : public RHIBuffer
+class VulkanMultiBuffer
 {
 public:
 	enum class ELockStatus : uint8
@@ -88,40 +88,47 @@ public:
     {
         NUM_BUFFERS = 3
     };
-    VulkanBuffer(uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
-        : RHIBuffer(InStride, InSize, InUsage)
-    { 
-        NumBuffers = GetNumBuffersFromUsage(InUsage);
-    }
+    VulkanMultiBuffer(FVulkanDynamicRHI* Context, uint32 InSize, EBufferUsageFlags InUsage);
     uint8 DynamicBufferIndex;
     uint8 NumBuffers;
     VkBuffer Buffers[NUM_BUFFERS];
     VkDeviceMemory Memories[NUM_BUFFERS];
-    void* Lock(class FVulkanDynamicRHI* Context, EDataAccessFlag Access, uint32 LockSize, uint32 Offset);
-    void Unlock();
+    EBufferUsageFlags Usage;
+    uint32 Size;
+    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset);
+    void Unlock(FVulkanDynamicRHI* Context);
     static uint8 GetNumBuffersFromUsage(EBufferUsageFlags InUsage)
     {
 		const bool bDynamic = EnumHasAnyFlags(InUsage, EBufferUsageFlags::Dynamic);
 		return bDynamic ? NUM_BUFFERS : 1;
     }
-    virtual ~VulkanBuffer();
+    ~VulkanMultiBuffer();
+};
+
+class VulkanBuffer : public RHIBuffer
+{
+public:
+    VulkanBuffer(FVulkanDynamicRHI* Context, uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
+        : RHIBuffer(InStride, InSize, InUsage)
+        , MultiBuffer(Context, InSize, InUsage)
+    { 
+    }
+    VulkanMultiBuffer MultiBuffer;
+    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
+    void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
 using VulkanBufferRef = std::shared_ptr<VulkanBuffer>;
 
 class VulkanUniformBuffer : public RHIUniformBuffer
 {
 public:
-    VulkanUniformBuffer(uint32 InSize, EUniformBufferUsage InUsage)
+    VulkanUniformBuffer(FVulkanDynamicRHI* Context, uint32 InSize, EUniformBufferUsage InUsage)
         : RHIUniformBuffer(InSize, InUsage)
+        , MultiBuffer(Context, InSize, EBufferUsageFlags::Dynamic)
     { }
-    enum
-    {
-        NUM_BUFFERS = 3
-    };
-    virtual ~VulkanUniformBuffer();
-    uint8 DynamicBufferIndex;
-    VkBuffer Buffers[NUM_BUFFERS];
-    VkDeviceMemory Memories[NUM_BUFFERS];
+    VulkanMultiBuffer MultiBuffer;
+    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
+    void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
 using VulkanUniformBufferRef = std::shared_ptr<VulkanUniformBuffer>;
 

@@ -19,6 +19,14 @@ namespace nilou {
 		DA_ReadWrite
 	};
 
+	enum EResourceLockMode
+	{
+		RLM_ReadOnly,
+		RLM_WriteOnly,
+		// RLM_WriteOnly_NoOverwrite,
+		RLM_Num
+	};
+
 	// class EBufferUsage
 	// {
 	// public:

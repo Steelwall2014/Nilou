@@ -1,3 +1,5 @@
+includes("configs.lua")
+local Configs = GetConfigs()
 add_rules("mode.release", "mode.debug")
 add_rules("plugin.vsxmake.autoupdate")
 set_runtimes("MD")
@@ -7,7 +9,7 @@ add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alia
 add_requires("vcpkg::draco")
 add_requires("vcpkg::magic-enum")
 add_requires("vcpkg::glslang")
-add_requires("vcpkg::llvm")
+-- add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
 
 add_defines([[PROJECT_DIR=R"($(projectdir))"]])
@@ -140,15 +142,17 @@ BuildProject({
     files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*"},
+    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", Configs.VULKAN_LIBRARY},
     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang"},
     beforeBuildFunc = "Nilou",
+    includePaths = Configs.INCLUDE_PATHS,
     -- afterBuildFunc = copyFunc,
     enableException = true,
     --unityBuildBatch = 8
 })
 
 target("ExecuteHeaderTool")
+    set_kind("phony")
     before_build("ExecuteHeaderTool")
 
 -- BuildProject({
