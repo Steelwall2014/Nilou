@@ -196,7 +196,6 @@ namespace nilou {
     void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)
     {
         AddedPrimitiveSceneInfos.emplace(InPrimitiveInfo);
-        InPrimitiveInfo->OcclusionQuery = FDynamicRHI::GetDynamicRHI()->RHICreateRenderQuery();
     }
 
     void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)

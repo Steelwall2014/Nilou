@@ -963,11 +963,11 @@ namespace nilou {
         glBindBufferBase(GLBuffer->Target, BaseIndex, GLBuffer->Resource);
     }
 
-    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage)
+    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data)
     {
         OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         GLenum GLUsage = GL_STATIC_DRAW;
-        if (EnumHasAnyFlags(usage, EBufferUsageFlags::Dynamic))
+        if (EnumHasAnyFlags(GLBuffer->GetUsage(), EBufferUsageFlags::Dynamic))
             GLUsage = GL_DYNAMIC_DRAW;
         glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
         glBufferData(GLBuffer->Target, size, data, GLUsage);
@@ -1441,17 +1441,12 @@ namespace nilou {
         return Texture;
     }
 
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer()
+    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments)
     {
-        return std::make_shared<OpenGLFramebuffer>();
-    }
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture)
-    {
-        return std::make_shared<OpenGLFramebuffer>(attachment, texture);
-    }
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index)
-    {
-        return std::make_shared<OpenGLFramebuffer>(attachment, texture, layer_index);
+        OpenGLFramebufferRef GLFramebuffer = std::make_shared<OpenGLFramebuffer>();
+        for (auto& [Attachment, Texture] : Attachments)
+            GLFramebuffer->AddAttachment(Attachment, Texture);
+        return GLFramebuffer;
     }
 
     void FOpenGLDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef UniformBuffer, void *Data)
@@ -1707,37 +1702,13 @@ namespace nilou {
 */
 namespace nilou {
 
-    FRHIRenderQueryRef FOpenGLDynamicRHI::RHICreateRenderQuery()
-    {
-        FOpenGLRenderQueryRef GLQuery = std::make_shared<FOpenGLRenderQuery>();
-        return GLQuery;
-    }
-
-    void FOpenGLDynamicRHI::RHIBeginRenderQuery(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glBeginQuery(GL_SAMPLES_PASSED, Query->Resource);
-    }
-
-    void FOpenGLDynamicRHI::RHIEndRenderQuery(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glEndQuery(GL_SAMPLES_PASSED);
-    }
-
-    void FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glGetQueryObjectui64v(Query->Resource, GL_QUERY_RESULT, &Query->Result);
-    }
-
     void FOpenGLDynamicRHI::RHIUseShaderProgram(OpenGLLinkedProgram *program)
     {
         OpenGLLinkedProgram *GLProgram = static_cast<OpenGLLinkedProgram*>(program);
         glUseProgram(GLProgram->Resource);
     }
 
-    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBufferRef buffer, EResourceLockMode LockMode)
+    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode)
     {
         GLenum GLAccess;
         switch (LockMode) {
@@ -1745,14 +1716,14 @@ namespace nilou {
             case EResourceLockMode::RLM_WriteOnly: GLAccess = GL_WRITE_ONLY; break;
             default: std::cout << "Invalid Data access flag" << std::endl; break;
         }
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
         return glMapBuffer(GLBuffer->Target, GLAccess);
     }
 
-    void FOpenGLDynamicRHI::RHIUnlockBuffer(RHIBufferRef buffer)
+    void FOpenGLDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
     {
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         glUnmapBuffer(GLBuffer->Target);
         glBindBuffer(GLBuffer->Target, 0);
     }

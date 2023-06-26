@@ -58,21 +58,19 @@ namespace nilou {
             "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
             Viewport.x, Viewport.y);
 
-        LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
-
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D24S8, 1, 
             Viewport.x, Viewport.y);
-        
-        LightPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, SceneColor);
-        LightPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
+
+        LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+            {FA_Color_Attachment0, SceneColor},
+            {FA_Depth_Stencil_Attachment, DepthStencil}
+        });
     }
 
     FSceneTexturesDeffered::FSceneTexturesDeffered(const SceneTextureCreateInfo &CreateInfo)
         : FSceneTextures(CreateInfo)
     {
-        GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
-        PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer();
 
         BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
@@ -98,15 +96,19 @@ namespace nilou {
             "ShadingModel", EPixelFormat::PF_R8UI, 1, 
             Viewport.x, Viewport.y);
 
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, BaseColor);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment1, RelativeWorldSpacePosition);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment2, WorldSpaceNormal);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment3, MetallicRoughness);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment4, Emissive);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment5, ShadingModel);
-        GeometryPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
+        GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+            {FA_Color_Attachment0, BaseColor},
+            {FA_Color_Attachment1, RelativeWorldSpacePosition},
+            {FA_Color_Attachment2, WorldSpaceNormal},
+            {FA_Color_Attachment3, MetallicRoughness},
+            {FA_Color_Attachment4, Emissive},
+            {FA_Color_Attachment5, ShadingModel},
+            {FA_Depth_Stencil_Attachment, DepthStencil}
+        });
         
-        PreZPassFramebuffer->AddAttachment(EFramebufferAttachment::FA_Depth_Stencil_Attachment, DepthStencil);
+        PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+            {FA_Depth_Stencil_Attachment, DepthStencil}
+        });
     }
 
     FShadowMapTexture::FShadowMapTexture(const ShadowMapResourceCreateInfo& CreateInfo)
@@ -134,10 +136,12 @@ namespace nilou {
         
         for (int i = 0; i < ShadowMapArraySize; i++)
         {
-            ShadowMapFramebuffers.push_back(FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer(
-                EFramebufferAttachment::FA_Depth_Stencil_Attachment, 
-                DepthArray, 
-                i));
+            RHITexture2DRef DepthView = FDynamicRHI::GetDynamicRHI()->RHICreateTextureView2D(
+                DepthArray.get(), DepthArray->GetFormat(), 0, 1, i);
+            DepthViews.push_back(DepthView);
+            ShadowMapFramebuffers.push_back(FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+                {FA_Depth_Stencil_Attachment, DepthView}
+            }));
         }
     }
 

@@ -61,7 +61,7 @@ namespace nilou {
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) = 0;
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) = 0;
 		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) = 0;
-		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage) = 0;
+		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) = 0;
 
 		/**
 		* Create/Update data
@@ -97,11 +97,7 @@ namespace nilou {
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY) = 0;
 
-		virtual RHIFramebufferRef RHICreateFramebuffer() = 0;
-		virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) = 0;
-		virtual RHIFramebufferRef RHICreateFramebuffer(
-			EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index
-		) = 0;
+		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) = 0;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) = 0;
 		virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) = 0;
 		virtual RHITexture2DRef RHICreateTextureView2D(
@@ -142,13 +138,9 @@ namespace nilou {
 		/**
 		* Utils
 		*/
-		virtual FRHIRenderQueryRef RHICreateRenderQuery() = 0;
-		virtual void RHIBeginRenderQuery(FRHIRenderQuery* RenderQuery) = 0;
-		virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) = 0;
-		virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) = 0;
 		virtual void RHIGenerateMipmap(RHITextureRef texture) = 0;
-		virtual void *RHILockBuffer(RHIBufferRef buffer, EResourceLockMode LockMode) = 0;
-		virtual void RHIUnlockBuffer(RHIBufferRef buffer) = 0;
+		virtual void *RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode) = 0;
+		virtual void RHIUnlockBuffer(RHIBuffer* buffer) = 0;
 		virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) = 0;
 		virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) = 0;
 		virtual void RHIImageMemoryBarrier() = 0;

@@ -36,16 +36,12 @@ _GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384�
   
 ## 运行
 1. 首先需要修改configs.lua中vulkan sdk的路径。
-2. 第一次运行之前，或者添加了被NCLASS标记的类之后，需要手动运行一次NilouHeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。
+2. 编译NilouHeaderTool。每次开始编译前，引擎会自动运行NilouHeaderTool，通过检测头文件的修改时间是否发生变化来判断是否需要重新生成反射代码。
 NilouHeaderTool的编译：
 ```sh
 cd NilouHeaderTool
 xmake f -p windows -a x64 -m release
 xmake -P .
-```
-NilouHeaderTool的运行：
-```sh
-xmake build -v ExecuteHeaderTool
 ```
 1. 接下来编译渲染引擎，渲染引擎的编译和运行如下。会启动vcpkg下载依赖库。
 ```sh

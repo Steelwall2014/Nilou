@@ -7,55 +7,13 @@
 #include <shaderc/shaderc.h>
 
 #include "DynamicRHI.h"
-#include "RHIResources.h"
+#include "VulkanResources.h"
 
 namespace nilou {
 
 class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
 class FVulkanStagingManager;
-
-struct FVulkanRenderTargetLayout
-{
-    FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
-    FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info);
-    
-    std::vector<VkAttachmentDescription> Desc;
-    std::vector<VkAttachmentReference> ColorReferences;
-    VkAttachmentReference DepthStencilReference;
-
-    uint32 RenderPassFullHash;
-
-    bool operator==(const FVulkanRenderTargetLayout& Other) const
-    {
-        if (Desc.size() != Other.Desc.size() || ColorReferences.size() != Other.ColorReferences.size())
-            return false;
-        size_t desc_size = sizeof(VkAttachmentDescription) * Desc.size();
-        size_t ref_size = sizeof(VkAttachmentReference) * ColorReferences.size();
-        if (std::memcmp(Desc.data(), Other.Desc.data(), desc_size) != 0 || 
-            std::memcmp(ColorReferences.data(), Other.ColorReferences.data(), ref_size) != 0 ||
-            std::memcmp(&DepthStencilReference, &Other.DepthStencilReference, sizeof(VkAttachmentReference)) != 0)
-            return false;
-
-        return true;
-    }
-
-private:
-    void InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer);
-
-};
-
-}
-namespace std {
-
-template<>
-struct hash<nilou::FVulkanRenderTargetLayout>
-{
-    size_t operator()(const nilou::FVulkanRenderTargetLayout& _Keyval) const noexcept
-    {
-        return _Keyval.RenderPassFullHash;
-    }
-};
 
 }
 
@@ -98,7 +56,7 @@ public:
     virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override { }
     virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override { }
     virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override { }
-    virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage) override { }
+    virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
 
     /**
     * Create/Update data
@@ -134,19 +92,15 @@ public:
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
 
-    virtual RHIFramebufferRef RHICreateFramebuffer() override { return nullptr; }
-    virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) override { return nullptr; }
-    virtual RHIFramebufferRef RHICreateFramebuffer(
-        EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index
-    ) override { return nullptr; }
+    virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
     virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override { }
     virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override { }
     virtual RHITexture2DRef RHICreateTextureView2D(
         RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
-    ) override { return nullptr; }
+    ) override;
     virtual RHITextureCubeRef RHICreateTextureViewCube(
         RHITexture* OriginTexture, EPixelFormat Format, uint32 MinMipLevel, uint32 NumMipLevels
-    ) override { return nullptr; }
+    ) override;
 
     virtual void RHIUpdateTexture2D(RHITexture2D* Texture, 
         int32 Xoffset, int32 Yoffset, 
@@ -179,13 +133,9 @@ public:
     /**
     * Utils
     */
-    virtual FRHIRenderQueryRef RHICreateRenderQuery() override { return nullptr; }
-    virtual void RHIBeginRenderQuery(FRHIRenderQuery* RenderQuery) override { }
-    virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) override { }
-    virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) override { }
     virtual void RHIGenerateMipmap(RHITextureRef texture) override { }
-    virtual void *RHILockBuffer(RHIBufferRef buffer, EResourceLockMode LockMode) override;
-    virtual void RHIUnlockBuffer(RHIBufferRef buffer) override;
+    virtual void *RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode) override;
+    virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
     virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override { return nullptr; }
     virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override { }
     virtual void RHIImageMemoryBarrier() override { }
@@ -200,6 +150,7 @@ public:
     FVulkanCommandBufferManager* CommandBufferManager;
     FVulkanMemoryManager* MemoryManager;
     FVulkanStagingManager* StagingManager;
+    FVulkanLayoutManager* LayoutManager;
 
     static VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
     

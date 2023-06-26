@@ -9,25 +9,29 @@ class VulkanTextureBase
 {
 public:
     VkImage Image;
+    VkImageView ImageView;
     VkDeviceMemory Memory;
 
     VulkanTextureBase(
         VkImage InImage,
+        VkImageView InImageView,
         VkDeviceMemory InMemory
     )
     : Image(InImage)
+    , ImageView(InImageView)
     , Memory(InMemory)
     { }
-    virtual ~VulkanTextureBase();
+    ~VulkanTextureBase();
 
 };
 
 template<typename BaseType>
-class TVulkanTexture : public BaseType, public VulkanTextureBase
+class TVulkanTexture : public BaseType
 {
 public:
     TVulkanTexture(
         VkImage InImage,
+        VkImageView InImageView,
         VkDeviceMemory InMemory,
         uint32 InSizeX,
         uint32 InSizeY,
@@ -36,9 +40,13 @@ public:
         EPixelFormat InFormat,
         const std::string &InTextureName
     )
-    : VulkanTextureBase(InImage, InMemory)
+    : TextureBase(InImage, InImageView, InMemory)
     , BaseType(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
     {}
+    VkImage GetImage() const { return TextureBase.Image; }
+    VkImageView GetImageView() const { return TextureBase.ImageView; }
+    VkDeviceMemory GetMemory() const { return TextureBase.Memory; }
+    VulkanTextureBase TextureBase;
 };
 
 class VulkanBaseTexture : public RHITexture

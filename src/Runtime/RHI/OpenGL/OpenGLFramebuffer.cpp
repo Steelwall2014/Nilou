@@ -58,38 +58,6 @@ namespace nilou {
 		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &MaxAttach);
 		glGenFramebuffers(1, &Resource);
 	}
-	OpenGLFramebuffer::OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture)
-	{
-		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &MaxAttach);
-		GLenum GLAttachment = TranslateFramebufferAttachment(attachment);
-		OpenGLTexture2DRef GLTexture = std::static_pointer_cast<OpenGLTexture2D>(texture);
-		glGenFramebuffers(1, &Resource);
-		glBindFramebuffer(GL_FRAMEBUFFER, Resource);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GLAttachment, GLTexture->Target, GLTexture->Resource, 0);
-		auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-			throw("Framebuffer incomplete");
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		Attachments[attachment] = texture;
-		if (GL_COLOR_ATTACHMENT0 <= GLAttachment && GLAttachment <= GL_COLOR_ATTACHMENT0+MaxAttach)
-			m_ColorAttachments.push_back(GLAttachment);
-	}
-	OpenGLFramebuffer::OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index)
-	{
-		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &MaxAttach);
-		GLenum GLAttachment = TranslateFramebufferAttachment(attachment);
-		OpenGLTexture2DArrayRef GLTexture = std::static_pointer_cast<OpenGLTexture2DArray>(texture);
-		glGenFramebuffers(1, &Resource);
-		glBindFramebuffer(GL_FRAMEBUFFER, Resource);
-		glFramebufferTextureLayer(GL_FRAMEBUFFER, GLAttachment, GLTexture->Resource, 0, layer_index);
-		auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-			throw("Framebuffer incomplete");
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		Attachments[attachment] = texture;
-		if (GL_COLOR_ATTACHMENT0 <= GLAttachment && GLAttachment <= GL_COLOR_ATTACHMENT0+MaxAttach)
-			m_ColorAttachments.push_back(GLAttachment);
-	}
 	void OpenGLFramebuffer::AddAttachment(EFramebufferAttachment attachment, RHITexture2DRef texture)
 	{
 		GLenum GLAttachment = TranslateFramebufferAttachment(attachment);
@@ -109,15 +77,5 @@ namespace nilou {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		return status == GL_FRAMEBUFFER_COMPLETE;
-	}
-
-	bool OpenGLFramebuffer::HasColorAttachment()
-	{
-		return !m_ColorAttachments.empty();
-	}
-
-	bool OpenGLFramebuffer::HasDepthAttachment()
-	{
-		return Attachments.size() > m_ColorAttachments.size();
 	}
 }

@@ -58,7 +58,7 @@ namespace nilou {
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
 		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override;
-		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage) override;
+		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
 
 		/**
 		* Create/Update data
@@ -94,11 +94,7 @@ namespace nilou {
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
 
-		virtual RHIFramebufferRef RHICreateFramebuffer() override;
-		virtual RHIFramebufferRef RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture) override;
-		virtual RHIFramebufferRef RHICreateFramebuffer(
-			EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index
-		) override;
+		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
 		virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
 		virtual RHITexture2DRef RHICreateTextureView2D(
@@ -139,13 +135,9 @@ namespace nilou {
 		/**
 		* Utils
 		*/
-		virtual FRHIRenderQueryRef RHICreateRenderQuery() override;
-		virtual void RHIBeginRenderQuery(FRHIRenderQuery* RenderQuery) override;
-		virtual void RHIEndRenderQuery(FRHIRenderQuery* RenderQuery) override;
-		virtual void RHIGetRenderQueryResult(FRHIRenderQuery* RenderQuery) override;
 		virtual void RHIGenerateMipmap(RHITextureRef texture) override;
-		virtual void *RHILockBuffer(RHIBufferRef buffer, EResourceLockMode LockMode) override;
-		virtual void RHIUnlockBuffer(RHIBufferRef buffer) override;
+		virtual void *RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode) override;
+		virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
 		virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override;
 		virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override;
 		virtual void RHIImageMemoryBarrier() override;

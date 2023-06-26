@@ -1,4 +1,5 @@
-#include "VulkanResources.h"
+#include "Common/Crc.h"
+#include "VulkanDynamicRHI.h"
 
 namespace nilou {
 
@@ -196,6 +197,98 @@ VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
 		BlendState.colorWriteMask |= (ColorTarget.ColorWriteMask & CW_BLUE) ? VK_COLOR_COMPONENT_B_BIT : 0;
 		BlendState.colorWriteMask |= (ColorTarget.ColorWriteMask & CW_ALPHA) ? VK_COLOR_COMPONENT_A_BIT : 0;
     }
+}
+
+
+FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
+{
+    InitWithInitializer(Initializer);
+}
+
+FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info)
+{
+    FGraphicsPipelineStateInitializer Initializer;
+    Initializer.BuildRenderTargetFormats(Info.Framebuffer);
+    InitWithInitializer(Initializer);
+}
+
+void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer)
+{
+	for (uint32 Index = 0; Index < Initializer.NumRenderTargetsEnabled; ++Index)
+    {
+		EPixelFormat Format = Initializer.RenderTargetFormats[Index];
+		if (Format != EPixelFormat::PF_UNKNOWN)
+		{
+			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
+			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+			CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+			// If the initial != final we need to change the FullHashInfo and use FinalLayout
+			CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference& ColorRef = ColorReferences.emplace_back();
+            ColorRef.attachment = Index;
+			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
+    }
+    if (Initializer.DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
+    {
+        EPixelFormat Format = Initializer.DepthStencilTargetFormat;
+		VkAttachmentDescription& CurrDesc = Desc[MAX_SIMULTANEOUS_RENDERTARGETS];
+        CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+        CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        DepthStencilReference.attachment = Initializer.NumRenderTargetsEnabled;
+        DepthStencilReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    }
+    
+    RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
+}
+
+FVulkanRenderPass* FVulkanLayoutManager::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
+{
+    if (RenderPasses.contains(RTLayout))
+        return &RenderPasses[RTLayout];
+
+    FVulkanRenderPass& RenderPass = RenderPasses[RTLayout];
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = RTLayout.ColorReferences.data();
+    subpass.pDepthStencilAttachment = &RTLayout.DepthStencilReference;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<uint32>(RTLayout.Desc.size());
+    renderPassInfo.pAttachments = RTLayout.Desc.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(Device, &renderPassInfo, nullptr, &RenderPass.Handle) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+    return &RenderPass;
 }
 
 }

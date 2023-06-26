@@ -1,5 +1,6 @@
 #pragma once
-#include "VulkanShader.h"
+#include <vulkan/vulkan.h>
+#include "RHIResources.h"
 
 namespace nilou {
 
@@ -47,5 +48,62 @@ public:
     VkPipelineLayout PipelineLayout;
 };
 using VulkanPipelineLayoutRef = std::shared_ptr<VulkanPipelineLayout>;
+
+struct FVulkanRenderTargetLayout
+{
+    FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
+    FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info);
+    
+    std::vector<VkAttachmentDescription> Desc;
+    std::vector<VkAttachmentReference> ColorReferences;
+    VkAttachmentReference DepthStencilReference;
+
+    uint32 RenderPassFullHash;
+
+    bool operator==(const FVulkanRenderTargetLayout& Other) const
+    {
+        if (Desc.size() != Other.Desc.size() || ColorReferences.size() != Other.ColorReferences.size())
+            return false;
+        size_t desc_size = sizeof(VkAttachmentDescription) * Desc.size();
+        size_t ref_size = sizeof(VkAttachmentReference) * ColorReferences.size();
+        if (std::memcmp(Desc.data(), Other.Desc.data(), desc_size) != 0 || 
+            std::memcmp(ColorReferences.data(), Other.ColorReferences.data(), ref_size) != 0 ||
+            std::memcmp(&DepthStencilReference, &Other.DepthStencilReference, sizeof(VkAttachmentReference)) != 0)
+            return false;
+
+        return true;
+    }
+
+private:
+    void InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer);
+
+};
+
+}
+
+namespace std {
+
+template<>
+struct hash<nilou::FVulkanRenderTargetLayout>
+{
+    size_t operator()(const nilou::FVulkanRenderTargetLayout& _Keyval) const noexcept
+    {
+        return _Keyval.RenderPassFullHash;
+    }
+};
+
+}
+
+namespace nilou {
+
+struct FVulkanLayoutManager
+{
+    FVulkanLayoutManager(VkDevice InDevice)
+        : Device(InDevice)
+    { }
+    VkDevice Device;
+    FVulkanRenderPass* GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout);
+    std::unordered_map<FVulkanRenderTargetLayout, FVulkanRenderPass> RenderPasses;
+};
 
 }

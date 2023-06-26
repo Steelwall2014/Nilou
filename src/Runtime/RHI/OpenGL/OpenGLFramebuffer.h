@@ -13,13 +13,9 @@ namespace nilou {
 	public:
 		GLuint	Resource;
 		OpenGLFramebuffer();
-		OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture);
-		OpenGLFramebuffer(EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index);
-		virtual void AddAttachment(EFramebufferAttachment attachment, RHITexture2DRef texture) override;
+		void AddAttachment(EFramebufferAttachment attachment, RHITexture2DRef texture);
 		bool Check();
-		virtual inline ~OpenGLFramebuffer() { glDeleteFramebuffers(1, &Resource); }
-		virtual bool HasColorAttachment() override;
-		virtual bool HasDepthAttachment() override;
+		virtual ~OpenGLFramebuffer() { glDeleteFramebuffers(1, &Resource); }
 		friend class FOpenGLDynamicRHI;
 	private:
 		std::vector<GLenum> m_ColorAttachments;

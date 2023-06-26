@@ -332,7 +332,7 @@ namespace nilou {
 		PM_TriangleList,
 		PM_TriangleStrip,
 	};
-	enum class EFramebufferAttachment : uint8
+	enum EFramebufferAttachment : uint8
 	{
 		FA_Color_Attachment0 = 0,
 		FA_Color_Attachment1,

@@ -95,6 +95,7 @@ public:
     VkDeviceMemory Memories[NUM_BUFFERS];
     EBufferUsageFlags Usage;
     uint32 Size;
+    FVulkanDynamicRHI* Context;
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset);
     void Unlock(FVulkanDynamicRHI* Context);
     static uint8 GetNumBuffersFromUsage(EBufferUsageFlags InUsage)
@@ -114,7 +115,7 @@ public:
     { 
     }
     VulkanMultiBuffer MultiBuffer;
-    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
+    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
 using VulkanBufferRef = std::shared_ptr<VulkanBuffer>;
@@ -127,7 +128,7 @@ public:
         , MultiBuffer(Context, InSize, EBufferUsageFlags::Dynamic)
     { }
     VulkanMultiBuffer MultiBuffer;
-    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
+    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
 using VulkanUniformBufferRef = std::shared_ptr<VulkanUniformBuffer>;

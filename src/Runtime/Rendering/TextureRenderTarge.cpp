@@ -27,8 +27,7 @@ namespace nilou {
         }
         if (NumMips > Image->GetNumMips())
             RHICmdList->RHIGenerateMipmap(Texture2DRHI);
-        RenderTargetFramebuffer = RHICmdList->RHICreateFramebuffer();
-        RenderTargetFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, Texture2DRHI);
+        RenderTargetFramebuffer = RHICmdList->RHICreateFramebuffer({{FA_Color_Attachment0, Texture2DRHI}});
         SamplerRHI.Texture = TextureRHI.get();
     }
 
@@ -71,10 +70,7 @@ namespace nilou {
                 TextureRHI.get(), TextureRHI->GetFormat(), 
                 0, 1, i);
         
-            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer();
-            RenderTargetFramebuffers[i]->AddAttachment(
-                EFramebufferAttachment::FA_Color_Attachment0, 
-                RenderTargetTextureViews[i]);
+            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer({{FA_Color_Attachment0, RenderTargetTextureViews[i]}});
         }
 
         RHIGetError();

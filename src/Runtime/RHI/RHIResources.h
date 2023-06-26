@@ -273,12 +273,9 @@ namespace nilou {
 	{
 	public:
 		RHIFramebuffer() : RHIResource(ERHIResourceType::RRT_Framebuffer) { }
-		virtual void AddAttachment(EFramebufferAttachment attachment, RHITexture2DRef texture) = 0;
 		virtual bool Check() = 0;
 		virtual ~RHIFramebuffer() { }
-		virtual bool HasColorAttachment() = 0;
-		virtual bool HasDepthAttachment() = 0;
-		std::map<EFramebufferAttachment, RHITextureRef> Attachments;
+		std::map<EFramebufferAttachment, RHITexture2DRef> Attachments;
 	};
 	using RHIFramebufferRef = std::shared_ptr<RHIFramebuffer>;
 
