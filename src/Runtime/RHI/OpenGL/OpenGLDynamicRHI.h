@@ -136,7 +136,7 @@ namespace nilou {
 		* Utils
 		*/
 		virtual void RHIGenerateMipmap(RHITextureRef texture) override;
-		virtual void *RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode) override;
+		virtual void *RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode) override;
 		virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
 		virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override;
 		virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override;

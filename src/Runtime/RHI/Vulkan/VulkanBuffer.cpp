@@ -391,10 +391,10 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
     return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DrawIndirect | EBufferUsageFlags::Dynamic, &command);
 }
 
-void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode)
+void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
-    return vkBuffer->Lock(this, LockMode, vkBuffer->GetSize(), 0);
+    return vkBuffer->Lock(this, LockMode, Size, Offset);
 }
 
 void FVulkanDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
@@ -405,9 +405,24 @@ void FVulkanDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
 
 void FVulkanDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data)
 {
-    void* Dst = RHILockBuffer(buffer, RLM_WriteOnly);
+    void* Dst = RHILockBuffer(buffer, 0, size, RLM_WriteOnly);
         std::memcpy(Dst, data, size);
     RHIUnlockBuffer(buffer);
+}
+
+void FVulkanDynamicRHI::RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void* Data)
+{
+    void* Dst = RHILockBuffer(Buffer, Offset, Size, RLM_WriteOnly);
+        std::memcpy(Dst, Data, Size);
+    RHIUnlockBuffer(Buffer);
+}
+
+void FVulkanDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef Buffer, void* Data)
+{
+    VulkanUniformBuffer* vkBuffer = static_cast<VulkanUniformBuffer*>(Buffer.get());
+    void* Dst = vkBuffer->Lock(this, RLM_WriteOnly, 0, Buffer->GetSize());
+        std::memcpy(Dst, Data, Buffer->GetSize());
+    vkBuffer->Unlock(this);
 }
 
 

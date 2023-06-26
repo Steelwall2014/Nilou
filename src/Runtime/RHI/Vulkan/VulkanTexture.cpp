@@ -1,6 +1,8 @@
 #include "VulkanTexture.h"
 #include "VulkanDynamicRHI.h"
 #include "VulkanMemory.h"
+#include "VulkanBuffer.h"
+#include "Templates/AlignmentTemplates.h"
 
 namespace nilou {
 
@@ -235,5 +237,58 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
         NumLevels, Format, OriginTexture->GetName()+"_View");
 
 }
+
+void FVulkanDynamicRHI::RHIUpdateTexture2D(RHITexture2D* Texture, 
+    int32 Xoffset, int32 Yoffset, 
+    int32 Width, int32 Height, 
+    int32 MipmapLevel, void* Data)
+{
+    const VkPhysicalDeviceLimits& Limits = GpuProps.limits;
+    uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(Texture->GetFormat());
+
+    uint32 Size = Width * Height * BytePerPixel;
+    Size = Align(Size, Limits.minMemoryMapAlignment);
+    FStagingBuffer* StagingBuffer = StagingManager->AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    void* Memory = StagingBuffer->GetMappedPointer();
+    std::memcpy(Memory, Data, Size);
+    
+	VkBufferImageCopy Region{};
+	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	Region.imageSubresource.mipLevel = MipmapLevel;
+	//Region.imageSubresource.baseArrayLayer = 0;
+	Region.imageSubresource.layerCount = 1;
+	Region.imageOffset.x = Xoffset;
+	Region.imageOffset.y = Yoffset;
+	//Region.imageOffset.z = 0;
+	Region.imageExtent.width = Width;
+	Region.imageExtent.height = Height;
+	Region.imageExtent.depth = 1;
+
+}
+
+void FVulkanDynamicRHI::RHIUpdateTexture3D(RHITexture3D* Texture, 
+    int32 Xoffset, int32 Yoffset, int32 Zoffset,
+    int32 Width, int32 Height, int32 Depth, 
+    int32 MipmapLevel, void* Data)
+{
+
+}
+
+void FVulkanDynamicRHI::RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
+    int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+    int32 Width, int32 Height,
+    int32 MipmapLevel, void* Data)
+{
+
+}
+
+void FVulkanDynamicRHI::RHIUpdateTextureCube(RHITextureCube* Texture, 
+    int32 Xoffset, int32 Yoffset, int32 LayerIndex,
+    int32 Width, int32 Height,
+    int32 MipmapLevel, void* Data)
+{
+
+}
+
 
 }

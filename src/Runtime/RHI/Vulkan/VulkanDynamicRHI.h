@@ -93,8 +93,8 @@ public:
         int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
 
     virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
-    virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override { }
-    virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override { }
+    virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
+    virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
     virtual RHITexture2DRef RHICreateTextureView2D(
         RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
     ) override;
@@ -105,19 +105,19 @@ public:
     virtual void RHIUpdateTexture2D(RHITexture2D* Texture, 
         int32 Xoffset, int32 Yoffset, 
         int32 Width, int32 Height, 
-        int32 MipmapLevel, void* Data) override { }
+        int32 MipmapLevel, void* Data) override;
     virtual void RHIUpdateTexture3D(RHITexture3D* Texture, 
         int32 Xoffset, int32 Yoffset, int32 Zoffset,
         int32 Width, int32 Height, int32 Depth, 
-        int32 MipmapLevel, void* Data) override { }
+        int32 MipmapLevel, void* Data) override;
     virtual void RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
         int32 Xoffset, int32 Yoffset, int32 LayerIndex,
         int32 Width, int32 Height,
-        int32 MipmapLevel, void* Data) override { }
+        int32 MipmapLevel, void* Data) override;
     virtual void RHIUpdateTextureCube(RHITextureCube* Texture, 
         int32 Xoffset, int32 Yoffset, int32 LayerIndex,
         int32 Width, int32 Height,
-        int32 MipmapLevel, void* Data) override { }
+        int32 MipmapLevel, void* Data) override;
 
     /**
     * Render pass
@@ -134,7 +134,7 @@ public:
     * Utils
     */
     virtual void RHIGenerateMipmap(RHITextureRef texture) override { }
-    virtual void *RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode) override;
+    virtual void *RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode) override;
     virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
     virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override { return nullptr; }
     virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override { }

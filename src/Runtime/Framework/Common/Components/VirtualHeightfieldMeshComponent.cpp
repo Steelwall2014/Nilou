@@ -295,11 +295,11 @@ namespace nilou {
             CreateLodTexture();
             CreatePatch(ViewShaderParameters);
 
-            uint32* final_nodelist_size = (uint32*)RHICmdList->RHILockBuffer(FinalNodeListIndirectArgs.get(), RLM_ReadOnly);
+            uint32* final_nodelist_size = (uint32*)RHICmdList->RHILockBuffer(FinalNodeListIndirectArgs.get(), 0, sizeof(uint32), RLM_ReadOnly);
             uint32 NodesFinalFeedbackSize = *final_nodelist_size;
             RHICmdList->RHIUnlockBuffer(FinalNodeListIndirectArgs.get());
             
-            uvec4* data = (uvec4*)RHICmdList->RHILockBuffer(FinalNodeListBuffer.get(), RLM_ReadOnly);
+            uvec4* data = (uvec4*)RHICmdList->RHILockBuffer(FinalNodeListBuffer.get(), 0, NodesFinalFeedbackSize * sizeof(uvec4), RLM_ReadOnly);
             memcpy(NodesFinalFeedback.get(), data, NodesFinalFeedbackSize * sizeof(uvec4));
             RHICmdList->RHIUnlockBuffer(FinalNodeListBuffer.get());
 

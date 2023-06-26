@@ -1,5 +1,6 @@
 #include "Crc.h"
 #include "AssertionMacros.h"
+#include "Templates/AlignmentTemplates.h"
 
 /** CRC 32 polynomial */
 enum { Crc32Poly = 0x04c11db7 };
@@ -152,22 +153,6 @@ uint32 FCrc::CRCTablesSB8[8][256] =
 	}
 };
 
-/**
- * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.
- *
- * @param  Val        The value to align.
- * @param  Alignment  The alignment value, must be a power of two.
- *
- * @return The value aligned up to the specified alignment.
- */
-template <typename T>
-inline constexpr T Align(T Val, uint64 Alignment)
-{
-	static_assert(std::is_integral_v<T> || std::is_pointer_v<T>, "Align expects an integer or pointer type");
-
-	return (T)(((uint64)Val + Alignment - 1) & ~(Alignment - 1));
-}
-
 template <typename T>
 inline typename std::enable_if<std::is_same<T, uint32>::value, T>::type ReverseBits( T Bits )
 {
@@ -220,7 +205,7 @@ uint32 FCrc::MemCrc32(const void* InData, int32 Length, uint32 CRC)
 	const uint8* __restrict Data = (uint8*)InData;
 
 	// First we need to align to 32-bits
-	int32 InitBytes = static_cast<int32>(Align(Data, 4) - Data);
+	int32 InitBytes = static_cast<int32>(nilou::Align(Data, 4) - Data);
 
 	if (Length > InitBytes)
 	{

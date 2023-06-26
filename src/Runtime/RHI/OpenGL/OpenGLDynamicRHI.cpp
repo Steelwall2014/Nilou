@@ -1708,7 +1708,7 @@ namespace nilou {
         glUseProgram(GLProgram->Resource);
     }
 
-    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBuffer* buffer, EResourceLockMode LockMode)
+    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
     {
         GLenum GLAccess;
         switch (LockMode) {
@@ -1718,7 +1718,8 @@ namespace nilou {
         }
         OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
-        return glMapBuffer(GLBuffer->Target, GLAccess);
+        uint8* Data = (uint8*)glMapBuffer(GLBuffer->Target, GLAccess);
+        return Data + Offset;
     }
 
     void FOpenGLDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
