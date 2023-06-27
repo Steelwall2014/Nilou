@@ -115,6 +115,7 @@ public:
     { 
     }
     VulkanMultiBuffer MultiBuffer;
+    VkBuffer GetHandle() const { return MultiBuffer.Buffers[MultiBuffer.DynamicBufferIndex]; }
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
@@ -128,6 +129,7 @@ public:
         , MultiBuffer(Context, InSize, EBufferUsageFlags::Dynamic)
     { }
     VulkanMultiBuffer MultiBuffer;
+    VkBuffer GetHandle() const { return MultiBuffer.Buffers[MultiBuffer.DynamicBufferIndex]; }
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };

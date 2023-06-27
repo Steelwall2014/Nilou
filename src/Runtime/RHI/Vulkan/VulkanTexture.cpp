@@ -3,6 +3,7 @@
 #include "VulkanMemory.h"
 #include "VulkanBuffer.h"
 #include "Templates/AlignmentTemplates.h"
+#include "VulkanCommandBuffer.h"
 
 namespace nilou {
 
@@ -102,7 +103,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     imageInfo.format = TranslatePixelFormatToVKFormat(Format);
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -144,19 +145,19 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
     if (TextureType == ETextureType::TT_Texture2D)
     {
-        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, InSizeX, InSizeY, 1, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 1, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture2DArray)
     {
-        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture3D)
     {
-        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_TextureCube)
     {
-        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, InSizeX, InSizeY, 6, NumMips, Format, name);
+        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 6, NumMips, Format, name);
     }
     return nullptr;
 
@@ -238,32 +239,254 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
 
 }
 
+static VkPipelineStageFlags GetVkStageFlagsForLayout(VkImageLayout Layout)
+{
+	VkPipelineStageFlags Flags = 0;
+
+	switch (Layout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+			break;
+			
+		case VK_IMAGE_LAYOUT_GENERAL:
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			Flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		default:
+			break;
+	}
+
+	return Flags;
+}
+
+static VkAccessFlags GetVkAccessMaskForLayout(const VkImageLayout Layout)
+{
+	VkAccessFlags Flags = 0;
+
+	switch (Layout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = 0;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
+			Flags = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+			Flags = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+			break;
+
+		case VK_IMAGE_LAYOUT_GENERAL:
+			// todo-jn: could be used for R64 in read layout
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			Flags = 0;
+			break;
+
+		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_ACCESS_SHADER_READ_BIT;
+			break;
+
+		default:
+			break;
+	}
+
+	return Flags;
+}
+
+static void TransitionImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = SrcLayout;
+    barrier.newLayout = DstLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = Image;
+    barrier.subresourceRange = SubresourceRange;
+    barrier.srcAccessMask = GetVkAccessMaskForLayout(SrcLayout);
+    barrier.dstAccessMask = GetVkAccessMaskForLayout(DstLayout);
+
+    VkPipelineStageFlags sourceStage = GetVkStageFlagsForLayout(SrcLayout);
+    VkPipelineStageFlags destinationStage = GetVkStageFlagsForLayout(DstLayout);
+
+    vkCmdPipelineBarrier(
+        CmdBuffer,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+}
+
+VkImageSubresourceRange MakeSubresourceRange(
+    VkImageAspectFlags aspectMask, 
+    uint32 baseMipLevel, 
+    uint32 levelCount, 
+    uint32 baseArrayLayer, 
+    uint32 layerCount)
+{
+    VkImageSubresourceRange Range;
+    Range.aspectMask = aspectMask;
+    Range.baseMipLevel = baseMipLevel;
+    Range.levelCount = levelCount;
+    Range.baseArrayLayer = baseArrayLayer;
+    Range.layerCount = layerCount;
+    return Range;
+}
+
+void FVulkanDynamicRHI::RHIUpdateTextureInternal(
+    RHITexture* Texture, void* Data, int32 MipmapLevel, 
+    int32 Xoffset, int32 Yoffset, int32 Zoffset, uint32 Width, uint32 Height, uint32 Depth,
+    int32 BaseArrayLayer)
+{
+    VulkanTexture* vkTexture = static_cast<VulkanTexture*>(Texture);
+    uint32 Size = Width * Height * Depth * TranslatePixelFormatToBytePerPixel(vkTexture->GetFormat());
+    const VkPhysicalDeviceLimits& Limits = GpuProps.limits;
+    uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(vkTexture->GetFormat());
+
+    uint32 DataSize = Align(Size, Limits.minMemoryMapAlignment);
+    FStagingBuffer* StagingBuffer = StagingManager->AcquireBuffer(DataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    void* Memory = StagingBuffer->GetMappedPointer();
+    std::memcpy(Memory, Data, Size);
+
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+    
+	VkBufferImageCopy Region{};
+	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	Region.imageSubresource.mipLevel = MipmapLevel;
+	Region.imageSubresource.baseArrayLayer = BaseArrayLayer;
+	Region.imageSubresource.layerCount = 1;
+	Region.imageOffset.x = Xoffset;
+	Region.imageOffset.y = Yoffset;
+	Region.imageOffset.z = Zoffset;
+	Region.imageExtent.width = Width;
+	Region.imageExtent.height = Height;
+	Region.imageExtent.depth = Depth;
+
+    TransitionImageLayout(
+        CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        MakeSubresourceRange(
+            Region.imageSubresource.aspectMask, 
+            Region.imageSubresource.mipLevel, 1, 
+            BaseArrayLayer, 1));
+
+    vkCmdCopyBufferToImage(
+        CmdBuffer->GetHandle(), StagingBuffer->Buffer, 
+        vkTexture->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+
+    TransitionImageLayout(
+        CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        MakeSubresourceRange(
+            Region.imageSubresource.aspectMask, 
+            Region.imageSubresource.mipLevel, 1, 
+            BaseArrayLayer, 1));
+
+    CommandBufferManager->SubmitUploadCmdBuffer();
+
+    StagingManager->ReleaseBuffer(CmdBuffer, StagingBuffer);
+}
+
 void FVulkanDynamicRHI::RHIUpdateTexture2D(RHITexture2D* Texture, 
     int32 Xoffset, int32 Yoffset, 
     int32 Width, int32 Height, 
     int32 MipmapLevel, void* Data)
 {
-    const VkPhysicalDeviceLimits& Limits = GpuProps.limits;
-    uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(Texture->GetFormat());
-
-    uint32 Size = Width * Height * BytePerPixel;
-    Size = Align(Size, Limits.minMemoryMapAlignment);
-    FStagingBuffer* StagingBuffer = StagingManager->AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    void* Memory = StagingBuffer->GetMappedPointer();
-    std::memcpy(Memory, Data, Size);
-    
-	VkBufferImageCopy Region{};
-	Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	Region.imageSubresource.mipLevel = MipmapLevel;
-	//Region.imageSubresource.baseArrayLayer = 0;
-	Region.imageSubresource.layerCount = 1;
-	Region.imageOffset.x = Xoffset;
-	Region.imageOffset.y = Yoffset;
-	//Region.imageOffset.z = 0;
-	Region.imageExtent.width = Width;
-	Region.imageExtent.height = Height;
-	Region.imageExtent.depth = 1;
-
+    RHIUpdateTextureInternal(
+        Texture,
+        Data, MipmapLevel, 
+        Xoffset, Yoffset, 0, 
+        Width, Height, 1, 0);
 }
 
 void FVulkanDynamicRHI::RHIUpdateTexture3D(RHITexture3D* Texture, 
@@ -271,7 +494,11 @@ void FVulkanDynamicRHI::RHIUpdateTexture3D(RHITexture3D* Texture,
     int32 Width, int32 Height, int32 Depth, 
     int32 MipmapLevel, void* Data)
 {
-
+    RHIUpdateTextureInternal(
+        Texture,
+        Data, MipmapLevel, 
+        Xoffset, Yoffset, Zoffset, 
+        Width, Height, Depth, 0);
 }
 
 void FVulkanDynamicRHI::RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
@@ -279,7 +506,11 @@ void FVulkanDynamicRHI::RHIUpdateTexture2DArray(RHITexture2DArray* Texture,
     int32 Width, int32 Height,
     int32 MipmapLevel, void* Data)
 {
-
+    RHIUpdateTextureInternal(
+        Texture,
+        Data, MipmapLevel, 
+        Xoffset, Yoffset, 0, 
+        Width, Height, 1, LayerIndex);
 }
 
 void FVulkanDynamicRHI::RHIUpdateTextureCube(RHITextureCube* Texture, 
@@ -287,8 +518,77 @@ void FVulkanDynamicRHI::RHIUpdateTextureCube(RHITextureCube* Texture,
     int32 Width, int32 Height,
     int32 MipmapLevel, void* Data)
 {
-
+    RHIUpdateTextureInternal(
+        Texture,
+        Data, MipmapLevel, 
+        Xoffset, Yoffset, 0, 
+        Width, Height, 1, LayerIndex);
 }
 
+void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
+{
+    VulkanTexture* vkTexture = static_cast<VulkanTexture*>(Texture.get());
+
+    int32 LayerCount = 1;
+    if (Texture->GetTextureType() == ETextureType::TT_Texture2DArray)
+        LayerCount = Texture->GetSizeXYZ().z;
+
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+
+    VkFormatProperties formatProperties = FormatProperties[Texture->GetFormat()];
+
+    int32 MipWidth = Texture->GetSizeXYZ().x;
+    int32 MipHeight = Texture->GetSizeXYZ().y;
+    int32 MipDepth = 1;
+    if (Texture->GetTextureType() == ETextureType::TT_Texture3D)
+        MipDepth = Texture->GetSizeXYZ().z;
+
+    for (int i = 0; i < Texture->GetNumMips()-1; i++)
+    {
+        VkImageSubresourceRange Range = MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, LayerCount);
+        
+        TransitionImageLayout(
+            CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+            Range);
+
+        VkImageBlit blit{};
+        blit.srcOffsets[0] = {0, 0, 0};
+        blit.srcOffsets[1] = {MipWidth, MipHeight, MipDepth};
+        blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.srcSubresource.mipLevel = i;
+        blit.srcSubresource.baseArrayLayer = 0;
+        blit.srcSubresource.layerCount = LayerCount;
+        blit.dstOffsets[0] = {0, 0, 0};
+        blit.dstOffsets[1] = { MipWidth > 1 ? MipWidth / 2 : 1, MipHeight > 1 ? MipHeight / 2 : 1, MipDepth > 1 ? MipDepth / 2 : 1 };
+        blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.dstSubresource.mipLevel = i+1;
+        blit.dstSubresource.baseArrayLayer = 0;
+        blit.dstSubresource.layerCount = LayerCount;
+
+        vkCmdBlitImage(CmdBuffer->GetHandle(),
+            vkTexture->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            vkTexture->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &blit,
+            VK_FILTER_LINEAR);
+
+        TransitionImageLayout(
+            CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            Range);
+
+        if (MipWidth > 1) MipWidth /= 2;
+        if (MipHeight > 1) MipHeight /= 2;
+        if (MipDepth > 1) MipDepth /= 2;
+    }
+
+    TransitionImageLayout(
+        CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, Texture->GetNumMips()-1, 1, 0, LayerCount));
+
+    CommandBufferManager->SubmitUploadCmdBuffer();
+
+}
 
 }

@@ -552,6 +552,13 @@ int FVulkanDynamicRHI::Initialize()
             PageSize = ivec3(256, 128, 1);    
         });
     }); 
+    
+    magic_enum::enum_for_each<EPixelFormat>(
+        [this](EPixelFormat PixelFormat) 
+        {
+            if (PixelFormat != PF_UNKNOWN)
+                vkGetPhysicalDeviceFormatProperties(physicalDevice, TranslatePixelFormatToVKFormat(PixelFormat), &FormatProperties[PixelFormat]);
+        });
 
     return 0;
 }
@@ -838,6 +845,57 @@ RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitial
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
 
+}
+
+void FVulkanDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    VulkanBuffer* vkIndexBuffer = static_cast<VulkanBuffer*>(IndexBuffer);
+    VkIndexType IndexType;
+    switch (IndexBuffer->GetStride()) 
+    {
+    case 1: IndexType = VK_INDEX_TYPE_UINT8_EXT; break;
+    case 2: IndexType = VK_INDEX_TYPE_UINT16; break;
+    case 4: IndexType = VK_INDEX_TYPE_UINT32; break;
+    default: throw "Invalid Stride";
+    }
+    vkCmdBindIndexBuffer(CmdBuffer->GetHandle(), vkIndexBuffer->GetHandle(), 0, IndexType);
+    vkCmdDrawIndexed(CmdBuffer->GetHandle(), static_cast<uint32>(IndexBuffer->GetCount()), InstanceCount, 0, 0, 0);
+}
+
+void FVulkanDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset)
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    VulkanBuffer* vkIndexBuffer = static_cast<VulkanBuffer*>(IndexBuffer);
+    VulkanBuffer* vkIndirectBuffer = static_cast<VulkanBuffer*>(IndirectBuffer);
+    VkIndexType IndexType;
+    switch (IndexBuffer->GetStride()) 
+    {
+    case 1: IndexType = VK_INDEX_TYPE_UINT8_EXT; break;
+    case 2: IndexType = VK_INDEX_TYPE_UINT16; break;
+    case 4: IndexType = VK_INDEX_TYPE_UINT32; break;
+    default: throw "Invalid Stride";
+    }
+    vkCmdBindIndexBuffer(CmdBuffer->GetHandle(), vkIndexBuffer->GetHandle(), 0, IndexType);
+    vkCmdDrawIndexedIndirect(CmdBuffer->GetHandle(), vkIndirectBuffer->GetHandle(), IndirectOffset, 1, sizeof(VkDrawIndexedIndirectCommand));
+}
+
+void FVulkanDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    vkCmdDispatch(CmdBuffer->GetHandle(), num_groups_x, num_groups_y, num_groups_z);
+}
+
+void FVulkanDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset)
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    VulkanBuffer* vkIndirectBuffer = static_cast<VulkanBuffer*>(indirectArgs);
+    vkCmdDispatchIndirect(CmdBuffer->GetHandle(), vkIndirectBuffer->GetHandle(), IndirectOffset);
+}
+
+void FVulkanDynamicRHI::RHIEndRenderPass()
+{
+    CommandBufferManager->SubmitActiveCmdBuffer();
 }
 
 }

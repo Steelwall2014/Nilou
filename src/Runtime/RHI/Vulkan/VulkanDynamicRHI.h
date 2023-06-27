@@ -124,20 +124,20 @@ public:
     */
     virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo) override;
     virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override { }
-    virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override { }
-    virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override { }
-    virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override { }
-    virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs) override { }
-    virtual void RHIEndRenderPass() override { }
+    virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override;
+    virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override;
+    virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
+    virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset = 1) override;
+    virtual void RHIEndRenderPass() override;
 
     /**
     * Utils
     */
-    virtual void RHIGenerateMipmap(RHITextureRef texture) override { }
+    virtual void RHIGenerateMipmap(RHITextureRef texture) override;
     virtual void *RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode) override;
     virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
     virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override { return nullptr; }
-    virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override { }
+    virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override;
     virtual void RHIImageMemoryBarrier() override { }
     virtual void RHIStorageMemoryBarrier() override { }
     virtual void RHIClearBuffer(uint32 flagbits) override { }
@@ -165,6 +165,10 @@ private:
     FRHIGraphicsPipelineStateRef RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer);
     std::shared_ptr<class VulkanPipelineLayout> RHICreatePipelineLayout(const FGraphicsPipelineStateInitializer& Initializer);
     void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
+    void RHIUpdateTextureInternal(
+        RHITexture* Texture, void* Data, int32 MipmapLevel, 
+        int32 Xoffset, int32 Yoffset, int32 Zoffset, uint32 Width, uint32 Height, uint32 Depth,
+        int32 BaseArrayLayer);
 
     VkInstance instance{};
     VkSurfaceKHR surface{};
@@ -184,6 +188,8 @@ private:
 
     uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;
+
+    VkFormatProperties FormatProperties[PF_PixelFormatNum];
 
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;

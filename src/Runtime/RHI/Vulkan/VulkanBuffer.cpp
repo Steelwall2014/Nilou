@@ -380,14 +380,14 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateShaderStorageBuffer(unsigned int DataBy
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
 {
-    DispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
+    VkDispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
     return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DispatchIndirect | EBufferUsageFlags::Dynamic, &command);
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
     int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance)
 {
-    DrawElementsIndirectCommand command{ Count, instanceCount, firstIndex, baseVertex, baseInstance };
+    VkDrawIndexedIndirectCommand command{ (uint32)Count, instanceCount, firstIndex, (int32)baseVertex, baseInstance };
     return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DrawIndirect | EBufferUsageFlags::Dynamic, &command);
 }
 
@@ -425,5 +425,19 @@ void FVulkanDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef Buffer, void*
     vkBuffer->Unlock(this);
 }
 
+void FVulkanDynamicRHI::RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size)
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+    VulkanBuffer* vkReadBuffer = static_cast<VulkanBuffer*>(readBuffer.get());
+    VulkanBuffer* vkWriteBuffer = static_cast<VulkanBuffer*>(writeBuffer.get());
+    VkBufferCopy Region{};
+    Region.size = size;
+    Region.srcOffset = readOffset;
+    Region.dstOffset = writeOffset;
+    vkCmdCopyBuffer(CmdBuffer->GetHandle(), vkReadBuffer->GetHandle(), vkWriteBuffer->GetHandle(), 1, &Region);
+    VkMemoryBarrier BarrierAfter = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT };
+    vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
+    CommandBufferManager->SubmitUploadCmdBuffer();
+}
 
 }

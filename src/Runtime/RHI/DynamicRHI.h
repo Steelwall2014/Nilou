@@ -132,7 +132,7 @@ namespace nilou {
 		virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) = 0;
 		virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) = 0;
 		virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
-		virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs) = 0;
+		virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset = 0) = 0;
 		virtual void RHIEndRenderPass() { }
 
 		/**

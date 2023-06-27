@@ -372,7 +372,7 @@ namespace nilou {
 	};
 
     
-	enum class EPixelFormat : uint8
+	enum EPixelFormat : uint8
 	{
 		PF_UNKNOWN = 0,
 		PF_R8,

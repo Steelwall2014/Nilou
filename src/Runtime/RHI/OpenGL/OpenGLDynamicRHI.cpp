@@ -1667,14 +1667,14 @@ namespace nilou {
         glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
     }
 
-    void FOpenGLDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs)
+    void FOpenGLDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset)
     {
         OpenGLBuffer *GLIndirectArgs = static_cast<OpenGLBuffer*>(indirectArgs);
 
         assert(GLIndirectArgs->Target == GL_DISPATCH_INDIRECT_BUFFER);
 
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, GLIndirectArgs->Resource);
-        glDispatchComputeIndirect(0);
+        glDispatchComputeIndirect(IndirectOffset);
     }
 
     void FOpenGLDynamicRHI::RHIEndRenderPass()
