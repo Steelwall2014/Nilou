@@ -1,6 +1,6 @@
 #pragma once
 
-#define check(expr) \
+#define Ncheck(expr) \
     AssertionMacros::zzzimpl_check(expr, __FILE__, __LINE__, "CRITICAL WARNING: "#expr" check failed")
 
 namespace AssertionMacros {

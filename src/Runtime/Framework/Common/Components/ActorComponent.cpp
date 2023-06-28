@@ -33,7 +33,7 @@ namespace nilou {
 
     void UActorComponent::OnRegister()
     {
-	    check(!bRegistered);
+	    Ncheck(!bRegistered);
         bRegistered = true;
 
         UpdateComponentToWorld();
@@ -42,7 +42,7 @@ namespace nilou {
 
     void UActorComponent::OnUnregister()
     {
-	    check(bRegistered);
+	    Ncheck(bRegistered);
 	    bRegistered = false;
     }
 
@@ -125,15 +125,15 @@ namespace nilou {
 
     void UActorComponent::InitializeComponent()
     {
-        check(bRegistered);
-        check(!bHasBeenInitialized);
+        Ncheck(bRegistered);
+        Ncheck(!bHasBeenInitialized);
 
         bHasBeenInitialized = true;
     }
 
     void UActorComponent::UninitializeComponent()
     {
-        check(bHasBeenInitialized);
+        Ncheck(bHasBeenInitialized);
 
         bHasBeenInitialized = false;
     }
@@ -150,8 +150,8 @@ namespace nilou {
 
     void UActorComponent::BeginPlay()
     {
-        check(bRegistered);
-        check(!bHasBegunPlay);
+        Ncheck(bRegistered);
+        Ncheck(!bHasBegunPlay);
         bHasBegunPlay = true;
     }
 

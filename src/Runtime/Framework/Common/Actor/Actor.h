@@ -171,7 +171,7 @@ namespace nilou {
 		template<class ComponentType, bool bClassIsActorComponent, bool bIncludeFromChildActors, typename Func>
 		void ForEachComponent_Internal(const NClass *ComponentClass, Func&& InFunc)
 		{
-			check(ComponentClass->IsChildOf(ComponentType::StaticClass()));
+			Ncheck(ComponentClass->IsChildOf(ComponentType::StaticClass()));
 			if constexpr (bIncludeFromChildActors)
 			{
 				std::vector<AActor*> ChildActors;

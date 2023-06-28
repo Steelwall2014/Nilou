@@ -500,6 +500,8 @@ namespace nilou {
 
         void SetScalarParameterValue(std::string_view Name, float Value);
 
+        std::string GetStructName() const { return StructName; }
+
         /** Begin FRenderResource Interface */
         virtual void InitRHI() override;
         virtual void ReleaseRHI() override;

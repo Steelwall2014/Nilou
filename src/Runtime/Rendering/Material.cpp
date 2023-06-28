@@ -44,9 +44,13 @@ namespace nilou {
         , DepthStencilState(Material.DepthStencilState)
         , RasterizerState(Material.RasterizerState)
         , RuntimeUniformBlocks(Material.RuntimeUniformBlocks)
+        , UniformBlock(std::make_shared<FDynamicUniformBuffer>())
     {
-        UniformBlock = std::make_shared<FDynamicUniformBuffer>(*Material.UniformBlock);
-        BeginInitResource(UniformBlock.get());
+        if (Material.UniformBlock->GetStructName() != "")
+        {
+            UniformBlock->UpdateDataType(Material.UniformBlock->GetStructName());
+            BeginInitResource(UniformBlock.get());
+        }
         SerializationPath = "";
         MaterialResource = new FMaterial(*Material.MaterialResource);
         DefaultMaterialInstance = new FMaterialRenderProxy(*Material.DefaultMaterialInstance);

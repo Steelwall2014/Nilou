@@ -175,7 +175,7 @@ void FVulkanStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingB
     // {
     //     FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
     //     FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer->GetFenceSignaledCounterA());
-    //     check(StagingBuffer);
+    //     Ncheck(StagingBuffer);
     //     ItemsForFence->Resources.Add(StagingBuffer);
     // }
     // else
@@ -280,7 +280,7 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
     }
     else 
     {
-        check(LockMode == RLM_WriteOnly);
+        Ncheck(LockMode == RLM_WriteOnly);
     
         DynamicBufferIndex = (DynamicBufferIndex + 1) % NumBuffers;
         if (bStatic)
@@ -296,7 +296,7 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
 
             {
                 std::lock_guard<std::mutex> ScopeLock(GPendingLockIBsMutex);
-                check(!GPendingLockIBs.contains(this));
+                Ncheck(!GPendingLockIBs.contains(this));
                 GPendingLockIBs[this] = PendingLock;
             }
         }
@@ -318,7 +318,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 	const bool bStatic = EnumHasAnyFlags(Usage, EBufferUsageFlags::Static) || !(bVolatile || bDynamic);
 	const bool bSR = EnumHasAnyFlags(Usage, EBufferUsageFlags::ShaderResource);
 
-	check(LockStatus != ELockStatus::Unlocked);
+	Ncheck(LockStatus != ELockStatus::Unlocked);
 
 	if (bVolatile || LockStatus == ELockStatus::PersistentMapping)
 	{
@@ -326,7 +326,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 	}
 	else
 	{
-		check(bStatic || bDynamic || bSR);
+		Ncheck(bStatic || bDynamic || bSR);
 
 		FPendingBufferLock PendingLock = GetPendingBufferLock(this);
 
@@ -343,7 +343,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
             // We need to do this on the active command buffer instead of using an upload command buffer. The high level code sometimes reuses the same
             // buffer in sequences of upload / dispatch, upload / dispatch, so we need to order the copy commands correctly with respect to the dispatches.
             FVulkanCmdBuffer* Cmd = Context->CommandBufferManager->GetActiveCmdBuffer();
-            check(Cmd && Cmd->IsOutsideRenderPass());
+            Ncheck(Cmd && Cmd->IsOutsideRenderPass());
             VkCommandBuffer CmdBuffer = Cmd->GetHandle();
 	        VkBufferCopy Region{};
             Region.size = PendingLock.Size;

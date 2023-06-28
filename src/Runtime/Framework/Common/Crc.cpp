@@ -178,7 +178,7 @@ void FCrc::Init()
 			CRC = (CRC & 1) ? (CRC >> 1) ^ RCrc32Poly : (CRC >> 1);
 		}
 
-		check(CRCTablesSB8[0][i] == CRC);
+		Ncheck(CRCTablesSB8[0][i] == CRC);
 	}
 
 	for (uint32 i = 0; i != 256; ++i)
@@ -187,7 +187,7 @@ void FCrc::Init()
 		for (uint32 j = 1; j != 8; ++j)
 		{
 			CRC = CRCTablesSB8[0][CRC & 0xFF] ^ (CRC >> 8);
-			check(CRCTablesSB8[j][i] == CRC);
+			Ncheck(CRCTablesSB8[j][i] == CRC);
 		}
 	}
 

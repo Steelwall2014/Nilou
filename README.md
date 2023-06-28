@@ -28,12 +28,6 @@ _pbr小球_
 _反射探针_
 ![](figures/ibl_and_shadow.png)
   
-_GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384的虚拟纹理，像素格式为float16，大小约为700mb（含7级mipmap）_
-![](figures/virtual_heightfield.png)
-这张虚拟纹理在github中是没有的，因为太大了，我上传了百度网盘  
-链接：https://pan.baidu.com/s/1MtKbJZ7K1Ymn9_n0iOwaGQ?pwd=s0a3  
-下载后将它放到Content/Textures目录下即可  
-  
 ## 运行
 1. 首先需要修改configs.lua中vulkan sdk的路径。
 2. 编译NilouHeaderTool。每次开始编译前，引擎会自动运行NilouHeaderTool，通过检测头文件的修改时间是否发生变化来判断是否需要重新生成反射代码。

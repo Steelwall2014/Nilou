@@ -196,7 +196,7 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 			}
 			else
 			{
-				check(CmdBuffer->State == FVulkanCmdBuffer::EState::Submitted);
+				Ncheck(CmdBuffer->State == FVulkanCmdBuffer::EState::Submitted);
 			}
 		}
 	}

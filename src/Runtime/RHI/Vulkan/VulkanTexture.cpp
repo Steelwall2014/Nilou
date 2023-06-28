@@ -145,19 +145,19 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
     if (TextureType == ETextureType::TT_Texture2D)
     {
-        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 1, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, InSizeX, InSizeY, 1, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture2DArray)
     {
-        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture3D)
     {
-        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_TextureCube)
     {
-        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 6, NumMips, Format, name);
+        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, InSizeX, InSizeY, 6, NumMips, Format, name);
     }
     return nullptr;
 

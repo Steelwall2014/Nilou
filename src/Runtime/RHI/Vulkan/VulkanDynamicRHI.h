@@ -185,6 +185,8 @@ private:
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
     uint32 MemoryTypeIndex;
+    FVulkanRenderPass* CurrentRenderPass;
+    class VulkanFramebuffer* CurrentFramebuffer;
 
     uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;

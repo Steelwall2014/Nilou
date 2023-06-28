@@ -27,7 +27,7 @@ public:
         }
         static Type FromDimensionValueId(int32 PermutationId)
         {
-            check(PermutationId == 0 || PermutationId == 1);
+            Ncheck(PermutationId == 0 || PermutationId == 1);
             return PermutationId == 1;
         }
         static std::vector<bool> GetValueRange()
@@ -47,7 +47,7 @@ public:
         static int32 ToDimensionValueId(Type E)
         {
             int32 PermutationId = static_cast<int32>(E) - TFirstValue;
-            check(PermutationId < PermutationCount && PermutationId >= 0);
+            Ncheck(PermutationId < PermutationCount && PermutationId >= 0);
             return PermutationId;
         }
         static int32 ToDefineValue(Type E)
@@ -56,7 +56,7 @@ public:
         }
         static Type FromDimensionValueId(int32 PermutationId)
         {
-            check(PermutationId < PermutationCount && PermutationId >= 0);
+            Ncheck(PermutationId < PermutationCount && PermutationId >= 0);
             return static_cast<Type>(PermutationId + TFirstValue);
         }
         static std::vector<int32> GetValueRange()
@@ -101,7 +101,7 @@ public:
         TShaderPermutationDomain<Ts...>() {}
         explicit TShaderPermutationDomain<Ts...>(int32 PermutationId)
         {
-            check(PermutationId == 0);
+            Ncheck(PermutationId == 0);
         }
 
         template<class DimensionToSet>
@@ -175,7 +175,7 @@ public:
             : DimensionValue(TDimension::FromDimensionValueId(PermutationId % TDimension::PermutationCount))
             , Tail(PermutationId / TDimension::PermutationCount)
         {
-            check(PermutationId >= 0 && PermutationId < PermutationCount);
+            Ncheck(PermutationId >= 0 && PermutationId < PermutationCount);
         }
 
         template<class DimensionToSet>

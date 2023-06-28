@@ -40,8 +40,8 @@ namespace nilou {
 
     void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory)
     {
-        check(std::filesystem::exists(RealShaderDirectory));
-        check(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
+        Ncheck(std::filesystem::exists(RealShaderDirectory));
+        Ncheck(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
         GetGShaderSourceDirectoryMappings()[VirtualShaderDirectory] = RealShaderDirectory;
     }
 

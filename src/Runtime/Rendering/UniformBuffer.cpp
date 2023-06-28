@@ -28,12 +28,15 @@ namespace nilou {
 
     void FDynamicUniformBuffer::UpdateDataType(std::string_view InStructName)
     {
-        StructName = InStructName;
-        Type type = Type(StructName);
-        TypeInfo* info = Mngr.GetTypeInfo(type);
-        ObjectView Obj = Mngr.New(type);
-        Data = Obj.GetPtr();
-        Size = info->size;
+        if (!InStructName.empty())
+        {
+            StructName = InStructName;
+            Type type = Type(StructName);
+            TypeInfo* info = Mngr.GetTypeInfo(type);
+            ObjectView Obj = Mngr.New(type);
+            Data = Obj.GetPtr();
+            Size = info->size;
+        }
     }
 
     /** Begin FRenderResource Interface */

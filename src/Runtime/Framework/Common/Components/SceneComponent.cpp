@@ -58,7 +58,7 @@ namespace nilou {
                     }
 
                     // Set the selected child node as the new root
-                    check(ChildToPromote != nullptr);
+                    Ncheck(ChildToPromote != nullptr);
                     Owner->SetRootComponent(ChildToPromote);
                 }
                 else    // ...not the root node, so we'll promote the selected child node to this position in its AttachParent's child array.
@@ -78,7 +78,7 @@ namespace nilou {
                                 break;
                             }
                         }
-                        check(Index != -1);
+                        Ncheck(Index != -1);
 
                         // Detach from parent
                         DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);

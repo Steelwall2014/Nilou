@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <string_view>
 #include <iostream>
-#include <format>
+#include <fmt/format.h>
 #include "AssertionMacros.h"
 
 namespace nilou {
@@ -46,7 +46,7 @@ namespace nilou {
 
     #define NILOU_LOG(Level, info, ...) \
         { \
-            std::string str = std::format(info, __VA_ARGS__); \
+            std::string str = fmt::format(info, __VA_ARGS__); \
             if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Info) \
             { \
                 std::cout << "[INFO] " << str << std::endl; \

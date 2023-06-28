@@ -281,7 +281,7 @@ namespace nilou {
 
     void GLTFParseResult::InitResource()
     {
-        check(IsInRenderingThread());
+        Ncheck(IsInRenderingThread());
         for (int i = 0; i < this->Textures.size(); i++)
         {
             this->Textures[i]->GetResource()->InitResource();

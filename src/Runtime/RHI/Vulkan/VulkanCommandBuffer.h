@@ -153,6 +153,16 @@ public:
 
 	void PrepareForNewActiveCommandBuffer();
 
+	bool HasPendingUploadCmdBuffer() const
+	{
+		return UploadCmdBuffer != nullptr;
+	}
+
+	bool HasPendingActiveCmdBuffer() const
+	{
+		return ActiveCmdBuffer != nullptr;
+	}
+
     FVulkanCommandBufferPool Pool;
 
     FVulkanQueue* Queue;

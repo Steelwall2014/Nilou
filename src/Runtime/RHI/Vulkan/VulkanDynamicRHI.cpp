@@ -10,6 +10,7 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanMemory.h"
 #include "VulkanBuffer.h"
+#include "VulkanFramebuffer.h"
 
 namespace nilou {
 
@@ -286,7 +287,6 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
     if (NewState->Initializer.ComputeShader)
         bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
         
-    //vkCmdBindPipeline(commandBuffer, bind_point, VulkanPipeline.);
 }
 
 bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *)
@@ -844,7 +844,12 @@ RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitial
 
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
-
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    FVulkanRenderPass* RenderPass = LayoutManager->GetOrCreateRenderPass(InInfo);
+    VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
+    CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);
+    CurrentFramebuffer = Framebuffer;
+    CurrentRenderPass = RenderPass;
 }
 
 void FVulkanDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -895,7 +900,14 @@ void FVulkanDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 Indi
 
 void FVulkanDynamicRHI::RHIEndRenderPass()
 {
-    CommandBufferManager->SubmitActiveCmdBuffer();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    CmdBuffer->EndRenderPass();
+    if (CommandBufferManager->HasPendingUploadCmdBuffer())
+    {
+        CommandBufferManager->SubmitUploadCmdBuffer();
+    }
+    CommandBufferManager->SubmitActiveCmdBuffer({});
+    CommandBufferManager->PrepareForNewActiveCommandBuffer();
 }
 
 }
