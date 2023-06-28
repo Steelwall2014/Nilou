@@ -11,6 +11,7 @@
 #include "VulkanMemory.h"
 #include "VulkanBuffer.h"
 #include "VulkanFramebuffer.h"
+#include "VulkanPipelineState.h"
 
 namespace nilou {
 
@@ -286,16 +287,24 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
         bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
-        
+
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
+    vkCmdBindPipeline(CmdBuffer->GetHandle(), bind_point, VulkanPipeline->VulkanPipeline);
 }
 
-bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *)
+bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
 {
-    return true;
+    return RHISetShaderUniformBuffer(
+        BoundPipelineState, PipelineStage, 
+        BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), UniformBufferRHI);
 }
 
-bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *)
+bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *UniformBufferRHI)
 {
+    if (CurrentDescriptorState)
+    {
+        CurrentDescriptorState->SetUniformBuffer(BaseIndex, static_cast<VulkanUniformBuffer*>(UniformBufferRHI));
+    }
     return true;
 }
 
@@ -612,7 +621,7 @@ static VkShaderStageFlagBits TranslateShaderStageFlagBits(EPipelineStage Stage)
 
 std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout(const FGraphicsPipelineStateInitializer& Initializer)
 {
-    VulkanPipelineLayoutRef PipelineLayout = std::make_shared<VulkanPipelineLayout>();
+    VulkanPipelineLayoutRef PipelineLayout = std::make_shared<VulkanPipelineLayout>(device);
     AllocateParameterBindingPoint(PipelineLayout.get(), Initializer);
     std::map<std::string, VkDescriptorSetLayoutBinding> DescriptorSets;
     for (int PipelineStage = PS_Vertex; PipelineStage <= PS_Compute; PipelineStage++)
@@ -663,7 +672,7 @@ std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout
 
 FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
-    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>();
+    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device);
 
     VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.VertexShader);
     VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.PixelShader);
@@ -784,7 +793,7 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
 
 FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
-    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>();
+    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device);
 
     VulkanComputeShader* ComputeShader = static_cast<VulkanComputeShader*>(Initializer.ComputeShader);
 

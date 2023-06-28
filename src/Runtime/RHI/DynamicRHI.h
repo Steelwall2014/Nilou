@@ -96,6 +96,7 @@ namespace nilou {
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY) = 0;
+		virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) = 0;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) = 0;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) = 0;
@@ -158,6 +159,7 @@ namespace nilou {
 		void AllocateParameterBindingPoint(FRHIPipelineLayout* PipelineLayout, const FGraphicsPipelineStateInitializer &Initializer);
 		static FDynamicRHI *DynamicRHI;
 		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
+    	std::unordered_map<uint32, RHISamplerStateRef> SamplerMap;
 	};
 
 	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)

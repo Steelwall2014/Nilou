@@ -34,6 +34,7 @@
 #include "Templates/ObjectMacros.h"
 #include "ShaderInstance.h"
 #include "PipelineStateCache.h"
+#include "Common/Crc.h"
 
 
 #ifdef NILOU_DEBUG
@@ -412,12 +413,12 @@ namespace nilou {
             // int unit_id = TexMngr.AllocUnit();
             glActiveTexture(GL_TEXTURE0 + BaseIndex);
             glBindTexture(GLTexture.Target, GLTexture.Resource);
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_MAG_FILTER, TranslateTextureFilter(SamplerRHI.Params.Mag_Filter));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_MIN_FILTER, TranslateTextureFilter(SamplerRHI.Params.Min_Filter));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_S, TranslateWrapMode(SamplerRHI.Params.Wrap_S));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_T, TranslateWrapMode(SamplerRHI.Params.Wrap_T));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_MAG_FILTER, TranslateTextureFilter(SamplerRHI.SamplerState->Mag_Filter));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_MIN_FILTER, TranslateTextureFilter(SamplerRHI.SamplerState->Min_Filter));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_S, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_S));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_T, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_T));
             if (GLTexture.Target == GL_TEXTURE_CUBE_MAP || GLTexture.Target == GL_TEXTURE_3D)
-                glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.Params.Wrap_R));
+                glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_R));
             glUniform1i(BaseIndex, BaseIndex);
         }
         return true;
@@ -1439,6 +1440,25 @@ namespace nilou {
         
 
         return Texture;
+    }
+
+    
+	RHISamplerStateRef FOpenGLDynamicRHI::RHICreateSamplerState(const RHITextureParams& Params)
+    {
+        RHISamplerStateRef SamplerStateRHI = std::make_shared<RHISamplerState>();
+        SamplerStateRHI->Mag_Filter = Params.Mag_Filter;
+        SamplerStateRHI->Min_Filter = Params.Min_Filter;
+        SamplerStateRHI->Wrap_S = Params.Wrap_S;
+        SamplerStateRHI->Wrap_T = Params.Wrap_T;
+        SamplerStateRHI->Wrap_R = Params.Wrap_R;
+
+        uint32 CRC = FCrc::MemCrc32(SamplerStateRHI.get(), sizeof(RHISamplerState));
+        auto Found = SamplerMap.find(CRC);
+        if (Found != SamplerMap.end())
+            return Found->second;
+        
+        SamplerMap[CRC] = SamplerStateRHI;
+        return SamplerStateRHI;
     }
 
     RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments)

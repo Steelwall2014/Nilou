@@ -367,24 +367,29 @@ namespace nilou {
 	};
 	using FRHIGraphicsPipelineStateRef = std::shared_ptr<FRHIGraphicsPipelineState>;
 
-	class FRHISampler : public RHIResource
+	struct RHISamplerState : public RHIResource
+	{
+		RHISamplerState() : RHIResource(ERHIResourceType::RRT_SamplerState) {}
+		ETextureFilters Mag_Filter=TF_Linear;
+		ETextureFilters Min_Filter=TF_Linear_Mipmap_Linear;
+		ETextureWrapModes Wrap_S=TW_Repeat; 
+		ETextureWrapModes Wrap_T=TW_Repeat; 
+		ETextureWrapModes Wrap_R=TW_Repeat;
+	};
+	using RHISamplerStateRef = std::shared_ptr<RHISamplerState>;
+
+	class FRHISampler
 	{
 	public:
-		FRHISampler() 
-			: RHIResource(ERHIResourceType::RRT_SamplerState) 
-			, Texture(nullptr)
-		{}
-		FRHISampler(RHITextureRef Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
-			: RHIResource(ERHIResourceType::RRT_SamplerState)
-			, Params(Params)
-			, Texture(Texture.get()) 
-		{}
-		FRHISampler(RHITexture *Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
-			: RHIResource(ERHIResourceType::RRT_SamplerState)
-			, Params(Params)
+		FRHISampler();
+		FRHISampler(RHITexture* Texture);
+		FRHISampler(RHITexture* Texture, RHISamplerState* InSamplerState) 
+			: SamplerState(InSamplerState)
 			, Texture(Texture) 
 		{}
-		RHITextureParams Params;
+		FRHISampler(RHITextureRef Texture) : FRHISampler(Texture.get()) {}
+		FRHISampler(RHITextureRef Texture, RHISamplerState* InSamplerState) : FRHISampler(Texture.get(), InSamplerState) {}
+		RHISamplerState* SamplerState;
 		RHITexture* Texture;
 	};
 	using FRHISamplerRef = std::shared_ptr<FRHISampler>;

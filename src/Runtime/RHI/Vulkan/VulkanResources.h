@@ -6,14 +6,27 @@ namespace nilou {
 
 struct FVulkanRenderPass
 {
+    FVulkanRenderPass(VkDevice InDevice)
+        : Device(InDevice)
+    { }
+    VkDevice Device;
     VkRenderPass Handle;
+    ~FVulkanRenderPass()
+    {
+        vkDestroyRenderPass(Device, Handle, nullptr);
+    }
 };
 
 class VulkanGraphicsPipelineState : public FRHIGraphicsPipelineState
 {
 public:
+    VulkanGraphicsPipelineState(VkDevice InDevice)
+        : Device(InDevice)
+    { }
+    VkDevice Device;
     VkPipeline VulkanPipeline;
     FVulkanRenderPass* RenderPass;
+    ~VulkanGraphicsPipelineState();
 };
 using VulkanGraphicsPipelineStateRef = std::shared_ptr<VulkanGraphicsPipelineState>;
 
@@ -41,11 +54,29 @@ public:
 };
 using VulkanBlendStateRef = std::shared_ptr<VulkanBlendState>;
 
+class VulkanSamplerState : public RHISamplerState
+{
+public:
+    VulkanSamplerState(VkDevice InDevice) : Device(InDevice) { }
+    ~VulkanSamplerState()
+    {
+        vkDestroySampler(Device, Handle, nullptr);
+    }
+    VkDevice Device;
+    VkSampler Handle;
+};
+using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
+
 class VulkanPipelineLayout : public FRHIPipelineLayout
 {
 public:
+    VulkanPipelineLayout(VkDevice InDevice)
+        : Device(InDevice)
+    {}
+    VkDevice Device;
     VkDescriptorSetLayout DescriptorSetLayout;
     VkPipelineLayout PipelineLayout;
+    ~VulkanPipelineLayout();
 };
 using VulkanPipelineLayoutRef = std::shared_ptr<VulkanPipelineLayout>;
 

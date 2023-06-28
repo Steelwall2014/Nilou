@@ -2,6 +2,7 @@
 
 #include "RHIResources.h"
 #include "Common/Log.h"
+#include "RHIStaticStates.h"
 
 namespace nilou {
 
@@ -128,6 +129,16 @@ namespace nilou {
 		}
 	}
 	
+	FRHISampler::FRHISampler()
+		: SamplerState(TStaticSamplerState<>::CreateRHI().get())
+		, Texture(nullptr) 
+	{ }
+
+	
+	FRHISampler::FRHISampler(RHITexture* Texture)
+		: SamplerState(TStaticSamplerState<>::CreateRHI().get())
+		, Texture(Texture) 
+	{ }
 
 }
 

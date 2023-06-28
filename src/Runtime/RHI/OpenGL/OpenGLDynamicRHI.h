@@ -93,6 +93,7 @@ namespace nilou {
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+		virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) override;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;

@@ -410,7 +410,7 @@ namespace nilou {
 	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
 	uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat);
 
-	enum class ETextureFilters : uint8
+	enum ETextureFilters : uint8
 	{
 		TF_Linear = 0,
 		TF_Nearest,
@@ -419,7 +419,7 @@ namespace nilou {
 		TF_Nearest_Mipmap_Linear,
 		TF_Linear_Mipmap_Linear,
 	};
-	enum class ETextureWrapModes : uint8
+	enum ETextureWrapModes : uint8
 	{
 		TW_Repeat = 0,
 		TW_Clamp,

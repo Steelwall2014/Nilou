@@ -91,6 +91,7 @@ public:
     virtual RHITexture2DRef RHICreateSparseTexture2D(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
+    virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) override;
 
     virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
     virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
@@ -187,6 +188,7 @@ private:
     uint32 MemoryTypeIndex;
     FVulkanRenderPass* CurrentRenderPass;
     class VulkanFramebuffer* CurrentFramebuffer;
+    class FVulkanCommonPipelineDescriptorState* CurrentDescriptorState;
 
     uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;

@@ -119,6 +119,11 @@ static inline VkBlendFactor BlendFactorToVulkan(EBlendFactor InFactor)
 	return VK_BLEND_FACTOR_MAX_ENUM;
 }
 
+VulkanGraphicsPipelineState::~VulkanGraphicsPipelineState()
+{
+	vkDestroyPipeline(Device, VulkanPipeline, nullptr);
+}
+
 VulkanDepthStencilState::VulkanDepthStencilState(const FDepthStencilStateInitializer& Initializer)
 {
     DepthStencilState = VkPipelineDepthStencilStateCreateInfo{};
@@ -199,6 +204,11 @@ VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
     }
 }
 
+VulkanPipelineLayout::~VulkanPipelineLayout()
+{
+	vkDestroyDescriptorSetLayout(Device, DescriptorSetLayout, nullptr);
+	vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
+}
 
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
 {
@@ -258,10 +268,11 @@ void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineState
 
 FVulkanRenderPass* FVulkanLayoutManager::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
 {
-    if (RenderPasses.contains(RTLayout))
-        return &RenderPasses[RTLayout];
+	auto Found = RenderPasses.find(RTLayout);
+    if (Found != RenderPasses.end())
+        return &Found->second;
 
-    FVulkanRenderPass& RenderPass = RenderPasses[RTLayout];
+    FVulkanRenderPass& RenderPass = RenderPasses.emplace(RTLayout, Device).first->second;
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;

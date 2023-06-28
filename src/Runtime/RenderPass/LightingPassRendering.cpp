@@ -88,7 +88,7 @@ namespace nilou {
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadingModel", 
-                        FRHISampler(SceneTextures->ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
+                        FRHISampler(SceneTextures->ShadingModel, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI().get()));
 
                     if (Scene->SkyAtmosphere)
                     {
@@ -136,7 +136,7 @@ namespace nilou {
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadowMaps", 
-                        FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, shadowMapSamplerParams));
+                        FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI().get()));
 
                     RHICmdList->RHIDrawArrays(0, 4);
                 }

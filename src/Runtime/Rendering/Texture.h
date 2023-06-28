@@ -348,7 +348,7 @@ namespace nilou {
 
         void SetSamplerParams(const RHITextureParams &InTextureParams)
         {
-            SamplerRHI.Params = InTextureParams;
+            SamplerRHI.SamplerState = GetSamplerStateRHI(InTextureParams);
         }
 
         /** Returns the width of the texture in pixels. */
@@ -379,8 +379,13 @@ namespace nilou {
             : NumMips(InNumMips)
             , Name(InName)
         { 
-            SamplerRHI.Params = InTextureParams;
+            SamplerRHI.SamplerState = GetSamplerStateRHI(InTextureParams);
             SamplerRHI.Texture = nullptr;
+        }
+
+        RHISamplerState* GetSamplerStateRHI(const RHITextureParams& InTextureParams)
+        {
+            return FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(InTextureParams).get();
         }
 
         FImage* Image;

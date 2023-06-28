@@ -4,8 +4,55 @@
 #include "VulkanBuffer.h"
 #include "Templates/AlignmentTemplates.h"
 #include "VulkanCommandBuffer.h"
+#include "Common/Crc.h"
 
 namespace nilou {
+
+static VkFilter TranslateFilterModeToVkFilter(ETextureFilters Filter)
+{
+    switch (Filter) 
+    {
+    case TF_Linear:
+    case TF_Linear_Mipmap_Linear:
+    case TF_Linear_Mipmap_Nearest: 
+        return VK_FILTER_LINEAR;
+    case TF_Nearest:
+    case TF_Nearest_Mipmap_Linear:
+    case TF_Nearest_Mipmap_Nearest: 
+        return VK_FILTER_NEAREST;
+    }
+    return VK_FILTER_MAX_ENUM;
+}
+
+static VkSamplerMipmapMode TranslateFilterModeToVkMipmapMode(ETextureFilters Filter)
+{
+    switch (Filter) 
+    {
+    case TF_Linear:
+    case TF_Nearest:
+    case TF_Linear_Mipmap_Linear:
+    case TF_Nearest_Mipmap_Linear:
+        return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    case TF_Linear_Mipmap_Nearest: 
+    case TF_Nearest_Mipmap_Nearest: 
+        return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    }
+    return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
+}
+
+static VkSamplerAddressMode TranslateWrapMode(ETextureWrapModes WrapMode)
+{
+    switch (WrapMode) 
+    {
+    case TW_Repeat:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case TW_Clamp:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case TW_Mirrored_Repeat:
+        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    }
+    return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+}
 
 VulkanTextureBase::~VulkanTextureBase()
 {
@@ -60,6 +107,38 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureCube(
             name, Format, NumMips, 
             InSizeX, InSizeY, 6, ETextureType::TT_TextureCube));
     return Texture;
+}
+
+RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const RHITextureParams& Params)
+{
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = TranslateFilterModeToVkFilter(Params.Mag_Filter);
+    samplerInfo.minFilter = TranslateFilterModeToVkFilter(Params.Min_Filter);;
+    samplerInfo.addressModeU = TranslateWrapMode(Params.Wrap_S);
+    samplerInfo.addressModeV = TranslateWrapMode(Params.Wrap_T);
+    samplerInfo.addressModeW = TranslateWrapMode(Params.Wrap_R);
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = GpuProps.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = TranslateFilterModeToVkMipmapMode(Params.Min_Filter);
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = FLT_MAX;
+    samplerInfo.mipLodBias = 0.0f;
+
+    uint32 CRC = FCrc::MemCrc32(&samplerInfo, sizeof(samplerInfo));
+    auto Found = SamplerMap.find(CRC);
+    if (Found != SamplerMap.end())
+        return Found->second;
+
+    VulkanSamplerStateRef RHI = std::make_shared<VulkanSamplerState>(device);
+    vkCreateSampler(device, &samplerInfo, nullptr, &RHI->Handle);
+    SamplerMap[CRC] = RHI;
+    return RHI;
 }
 
 RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
