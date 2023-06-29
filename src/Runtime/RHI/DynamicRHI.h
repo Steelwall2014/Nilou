@@ -60,7 +60,6 @@ namespace nilou {
 		*/
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) = 0;
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) = 0;
-		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) = 0;
 		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) = 0;
 
 		/**

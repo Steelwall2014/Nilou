@@ -12,6 +12,7 @@
 #include "VulkanBuffer.h"
 #include "VulkanFramebuffer.h"
 #include "VulkanPipelineState.h"
+#include "VulkanDescriptorSet.h"
 
 namespace nilou {
 
@@ -252,13 +253,25 @@ void FVulkanDynamicRHI::RHIBeginFrame()
 
 void FVulkanDynamicRHI::RHIEndFrame()
 {
-    
-    currentFrame = (currentFrame+1) % GetFramesInFlight();
+
 }
 
 void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
 {
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) Width;
+    viewport.height = (float) Width;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(CmdBuffer->GetHandle(), 0, 1, &viewport);
 
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = VkExtent2D{(uint32)Width, (uint32)Height};
+    vkCmdSetScissor(CmdBuffer->GetHandle(), 0, 1, &scissor);
 }
 
 FRHIGraphicsPipelineState *FVulkanDynamicRHI::RHISetComputeShader(RHIComputeShader *ComputeShader)
@@ -274,15 +287,9 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
 {
     VulkanGraphicsPipelineState* VulkanPipeline = static_cast<VulkanGraphicsPipelineState*>(NewState);
     VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(VulkanPipeline->PipelineLayout.get());
-    std::vector<VkDescriptorSetLayout> layouts(GetFramesInFlight(), VulkanLayout->DescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = GetFramesInFlight();
-    allocInfo.pSetLayouts = layouts.data();
-    if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
+    
+    FVulkanDescriptorSets Sets = DescriptorPoolsManager->AllocateDescriptorSets(VulkanLayout->DescriptorSetsLayout);
+    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, VulkanLayout->DescriptorSetsLayout.SetLayouts[0].Handle);
 
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
@@ -290,6 +297,17 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
 
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
     vkCmdBindPipeline(CmdBuffer->GetHandle(), bind_point, VulkanPipeline->VulkanPipeline);
+
+    if (NewState->Initializer.VertexInputList)
+    {
+        for (auto& VertexInput : *NewState->Initializer.VertexInputList)
+        {
+            VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(VertexInput.VertexBuffer);
+            VkBuffer vertexBuffers[] = {vkBuffer->GetHandle()};
+            VkDeviceSize offsets[] = {VertexInput.Offset};
+            vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), VertexInput.Location, 1, vertexBuffers, offsets);
+        }
+    }
 }
 
 bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
@@ -303,30 +321,61 @@ bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, E
 {
     if (CurrentDescriptorState)
     {
-        CurrentDescriptorState->SetUniformBuffer(BaseIndex, static_cast<VulkanUniformBuffer*>(UniformBufferRHI));
+        CurrentDescriptorState->SetUniformBuffer(BaseIndex, UniformBufferRHI);
+        return true;
     }
-    return true;
+    return false;
 }
 
-bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI)
+bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI)
 {
-    return true;
+    return RHISetShaderSampler(
+        BoundPipelineState, PipelineStage, 
+        BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), SamplerRHI);
 }
 
-bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI)
+bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI)
 {
-    return true;
+    if (CurrentDescriptorState)
+    {
+        CurrentDescriptorState->SetSampler(BaseIndex, SamplerRHI);
+        return true;
+    }
+    return false;
 }
 
-bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag)
+bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *Texture, EDataAccessFlag AccessFlag)
 {
-    return true;
+    return RHISetShaderSampler(
+        BoundPipelineState, PipelineStage, 
+        BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Texture);
 }
 
-bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag)
+bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *Texture, EDataAccessFlag AccessFlag)
 {
-    return true;
+    if (CurrentDescriptorState)
+    {
+        CurrentDescriptorState->SetImage(BaseIndex, Texture, AccessFlag);
+        return true;
+    }
+    return false;
 }
+
+void FVulkanDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer)
+{
+    RHIBindComputeBuffer(
+        BoundPipelineState, PipelineStage, 
+        BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), buffer);
+}
+
+void FVulkanDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer)
+{
+    if (CurrentDescriptorState)
+    {
+        CurrentDescriptorState->SetBuffer(BaseIndex, buffer);
+    }
+}
+
 
 
 int FVulkanDynamicRHI::Initialize()
@@ -528,28 +577,7 @@ int FVulkanDynamicRHI::Initialize()
 
     StagingManager = new FVulkanStagingManager(device, this);
 
-    LayoutManager = new FVulkanLayoutManager(device);
-
-    /** Create descriptor pool */
-    {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = GetFramesInFlight();
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = GetFramesInFlight();
-
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<uint32>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = GetFramesInFlight();
-
-        if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
-
-        descriptorSets.resize(GetFramesInFlight());
-    }
+    RenderPassManager = new FVulkanRenderPassManager(device);
 
     vkGetPhysicalDeviceProperties(physicalDevice, &GpuProps);
 
@@ -649,19 +677,12 @@ std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout
     for (auto& [Name, binding] : DescriptorSets)
         DescriptorSetsVec.push_back(binding);
 
-    VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{};
-    descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorSetlayoutInfo.bindingCount = DescriptorSetsVec.size();
-    descriptorSetlayoutInfo.pBindings = DescriptorSetsVec.data();
-    if (vkCreateDescriptorSetLayout(device, &descriptorSetlayoutInfo, nullptr, &PipelineLayout->DescriptorSetLayout) != VK_SUCCESS) {
-        NILOU_LOG(Error, "failed to create descriptor set layout!");
-        return nullptr;
-    }
+    PipelineLayout->DescriptorSetsLayout = FVulkanDescriptorSetsLayout(device, {DescriptorSetsVec});
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &PipelineLayout->DescriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &PipelineLayout->DescriptorSetsLayout.SetLayouts[0].Handle;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &PipelineLayout->PipelineLayout) != VK_SUCCESS) {
         NILOU_LOG(Error, "failed to create pipeline layout!");
@@ -765,7 +786,7 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
     VulkanPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout(Initializer);
 
     FVulkanRenderTargetLayout RTLayout(Initializer);
-    PSO->RenderPass = LayoutManager->GetOrCreateRenderPass(RTLayout);
+    PSO->RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -854,7 +875,7 @@ RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitial
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-    FVulkanRenderPass* RenderPass = LayoutManager->GetOrCreateRenderPass(InInfo);
+    FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(InInfo);
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
     CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);
     CurrentFramebuffer = Framebuffer;

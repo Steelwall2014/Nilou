@@ -14,6 +14,7 @@ namespace nilou {
 class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
 class FVulkanStagingManager;
+class FVulkanDescriptorPoolsManager;
 
 }
 
@@ -53,9 +54,8 @@ public:
     /**
     * Binding buffers
     */
-    virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override { }
-    virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override { }
-    virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override { }
+    virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
+    virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
     virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
 
     /**
@@ -151,7 +151,8 @@ public:
     FVulkanCommandBufferManager* CommandBufferManager;
     FVulkanMemoryManager* MemoryManager;
     FVulkanStagingManager* StagingManager;
-    FVulkanLayoutManager* LayoutManager;
+    FVulkanRenderPassManager* RenderPassManager;
+    FVulkanDescriptorPoolsManager* DescriptorPoolsManager;
 
     static VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
     
@@ -188,9 +189,8 @@ private:
     uint32 MemoryTypeIndex;
     FVulkanRenderPass* CurrentRenderPass;
     class VulkanFramebuffer* CurrentFramebuffer;
-    class FVulkanCommonPipelineDescriptorState* CurrentDescriptorState;
+    std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;
 
-    uint8 currentFrame = 0;
     class shaderc_compiler* shader_compiler = nullptr;
 
     VkFormatProperties FormatProperties[PF_PixelFormatNum];
@@ -212,7 +212,6 @@ private:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    uint32 GetFramesInFlight() const { return swapChainImages.size(); }
 
 };
 

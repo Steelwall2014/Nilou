@@ -182,7 +182,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     imageInfo.format = TranslatePixelFormatToVKFormat(Format);
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -224,19 +224,19 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
     if (TextureType == ETextureType::TT_Texture2D)
     {
-        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, InSizeX, InSizeY, 1, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 1, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture2DArray)
     {
-        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture3D)
     {
-        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_TextureCube)
     {
-        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, InSizeX, InSizeY, 6, NumMips, Format, name);
+        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, imageInfo.initialLayout, InSizeX, InSizeY, 6, NumMips, Format, name);
     }
     return nullptr;
 
@@ -533,7 +533,7 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
 
     TransitionImageLayout(
         CmdBuffer->GetHandle(), vkTexture->GetImage(), 
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
         MakeSubresourceRange(
             Region.imageSubresource.aspectMask, 
             Region.imageSubresource.mipLevel, 1, 
@@ -550,6 +550,7 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
             Region.imageSubresource.aspectMask, 
             Region.imageSubresource.mipLevel, 1, 
             BaseArrayLayer, 1));
+    vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     CommandBufferManager->SubmitUploadCmdBuffer();
 
@@ -621,6 +622,11 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
     int32 MipDepth = 1;
     if (Texture->GetTextureType() == ETextureType::TT_Texture3D)
         MipDepth = Texture->GetSizeXYZ().z;
+        
+    TransitionImageLayout(
+        CmdBuffer->GetHandle(), vkTexture->GetImage(), 
+        vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, vkTexture->GetNumMips(), 0, LayerCount));
 
     for (int i = 0; i < Texture->GetNumMips()-1; i++)
     {
@@ -628,7 +634,7 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
         
         TransitionImageLayout(
             CmdBuffer->GetHandle(), vkTexture->GetImage(), 
-            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
             Range);
 
         VkImageBlit blit{};
@@ -663,10 +669,12 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
 
     TransitionImageLayout(
         CmdBuffer->GetHandle(), vkTexture->GetImage(), 
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
         MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, Texture->GetNumMips()-1, 1, 0, LayerCount));
 
     CommandBufferManager->SubmitUploadCmdBuffer();
+
+    vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 }
 

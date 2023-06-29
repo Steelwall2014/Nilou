@@ -67,19 +67,6 @@ public:
 };
 using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
 
-class VulkanPipelineLayout : public FRHIPipelineLayout
-{
-public:
-    VulkanPipelineLayout(VkDevice InDevice)
-        : Device(InDevice)
-    {}
-    VkDevice Device;
-    VkDescriptorSetLayout DescriptorSetLayout;
-    VkPipelineLayout PipelineLayout;
-    ~VulkanPipelineLayout();
-};
-using VulkanPipelineLayoutRef = std::shared_ptr<VulkanPipelineLayout>;
-
 struct FVulkanRenderTargetLayout
 {
     FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
@@ -127,9 +114,9 @@ struct hash<nilou::FVulkanRenderTargetLayout>
 
 namespace nilou {
 
-struct FVulkanLayoutManager
+struct FVulkanRenderPassManager
 {
-    FVulkanLayoutManager(VkDevice InDevice)
+    FVulkanRenderPassManager(VkDevice InDevice)
         : Device(InDevice)
     { }
     VkDevice Device;

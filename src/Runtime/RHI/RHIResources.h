@@ -169,24 +169,25 @@ namespace nilou {
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual uvec3 GetSizeXYZ() { return uvec3(0, 0, 0); }
-		inline uint32 GetNumMips()
+		virtual uvec3 GetSizeXYZ() const { return uvec3(0, 0, 0); }
+		uint32 GetNumMips() const
 		{
 			return NumMips;
 		}
-		inline EPixelFormat GetFormat()
+		EPixelFormat GetFormat() const
 		{
 			return Format;
 		}
-		inline std::string GetName()
+		std::string GetName() const
 		{
 			return TextureName;
 		}
-		inline std::string SetName(const std::string &InTextureName)
+		std::string SetName(const std::string &InTextureName)
 		{
 			TextureName = InTextureName;
 		}
-		inline ETextureType GetTextureType() { return TextureType; };
+		ETextureType GetTextureType() const { return TextureType; };
+		uint32 GetNumLayers() const { return TextureType == ETextureType::TT_Texture2DArray ? GetSizeXYZ().z : 1; }
 	protected:
 		uint32 NumMips;
 		EPixelFormat Format;
@@ -205,9 +206,9 @@ namespace nilou {
 		, SizeY(InSizeY)
 		{ TextureType = ETextureType::TT_Texture2D; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, 1); }
-		inline uint32 GetSizeX() { return SizeX; }
-		inline uint32 GetSizeY() { return SizeY; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, 1); }
+		uint32 GetSizeX() const { return SizeX; }
+		uint32 GetSizeY() const { return SizeY; }
 
 	protected:
 		uint32 SizeX;
@@ -223,8 +224,8 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture2DArray; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
-		inline uint32 GetSizeZ() { return SizeZ; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
+		uint32 GetSizeZ() const { return SizeZ; }
 
 	private:
 		uint32 SizeZ;
@@ -241,10 +242,10 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture3D; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
-		inline uint32 GetSizeX() { return SizeX; }
-		inline uint32 GetSizeY() { return SizeY; }
-		inline uint32 GetSizeZ() { return SizeZ; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
+		uint32 GetSizeX() const { return SizeX; }
+		uint32 GetSizeY() const { return SizeY; }
+		uint32 GetSizeZ() const { return SizeZ; }
 
 	protected:
 		uint32 SizeX;
@@ -262,7 +263,7 @@ namespace nilou {
 		, Size(InSize)
 		{ TextureType = ETextureType::TT_TextureCube; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(Size, Size, 1); }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(Size, Size, 1); }
 
 	protected:
 		uint32 Size;

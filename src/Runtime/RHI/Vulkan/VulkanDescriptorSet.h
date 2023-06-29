@@ -23,6 +23,35 @@ public:
 			LayoutTypes[static_cast<VkDescriptorType>(i)] = 0;
 		}
 	}
+	FVulkanDescriptorSetsLayout(VkDevice InDevice, const std::vector<std::vector<VkDescriptorSetLayoutBinding>>& SetsLayoutBindings)
+		: Device(InDevice)
+	{
+		SetLayouts.resize(SetsLayoutBindings.size());
+		Handles.resize(SetsLayoutBindings.size());
+		for (int i = 0; i < SetsLayoutBindings.size(); i++)
+		{
+			auto& SetLayoutBindings = SetsLayoutBindings[i];
+			FSetLayout& Layout = SetLayouts[i];
+			Layout.LayoutBindings = SetLayoutBindings;
+			VkDescriptorSetLayoutCreateInfo layoutInfo{};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = static_cast<uint32_t>(SetLayoutBindings.size());
+			layoutInfo.pBindings = SetLayoutBindings.data();
+			vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &Handles[i]);
+			for (auto& Binding : SetLayoutBindings)
+			{
+				LayoutTypes[static_cast<VkDescriptorType>(Binding.descriptorType)] += 1;
+			}
+		}
+
+		GenerateHash();
+	}
+
+	~FVulkanDescriptorSetsLayout()
+	{
+		for (int i = 0; i < Handles.size(); i++)
+			vkDestroyDescriptorSetLayout(Device, Handles[i], nullptr);
+	}
 
 	uint32 GetTypesUsed(VkDescriptorType Type) const
 	{
@@ -101,10 +130,30 @@ public:
 
 		return true;
 	}
+
+	VkDescriptorSetAllocateInfo GetAllocateInfo() const
+	{
+		VkDescriptorSetAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorSetCount = SetLayouts.size();
+		allocInfo.pSetLayouts = Handles.data();
+		return allocInfo;
+	}
+
 	std::map<VkDescriptorType, uint32> LayoutTypes;
 	std::vector<FSetLayout> SetLayouts;
+	VkDevice Device;
+	std::vector<VkDescriptorSetLayout> Handles;
 
 	uint32 Hash = 0;
+};
+
+class FVulkanDescriptorSets
+{
+public:
+	FVulkanDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout) : Layout(InLayout), Handles(InLayout.SetLayouts.size()) { }
+	const FVulkanDescriptorSetsLayout& Layout;
+	std::vector<VkDescriptorSet> Handles;
 };
 
 }
@@ -164,16 +213,23 @@ private:
 	VkDescriptorPool DescriptorPool;
 };
 
-class FVulkanDescriptorPoolSet
+class FVulkanTypedDescriptorPoolSet
 {
-    std::vector<FVulkanDescriptorPool> PoolSet;
-
+public:
+	FVulkanTypedDescriptorPoolSet(VkDevice InDevice) : PoolCurrent(Pools.end()), Device(InDevice) { }
+	bool AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets);
+private:
+	VkDevice Device;
+	std::list<FVulkanDescriptorPool> Pools;
+	std::list<FVulkanDescriptorPool>::iterator PoolCurrent{};
 };
 
 class FVulkanDescriptorPoolsManager
 {
-    std::unordered_map<FVulkanDescriptorSetsLayout, FVulkanDescriptorPoolSet> PoolSets;
-    
+public:
+	VkDevice Device;
+    std::unordered_map<FVulkanDescriptorSetsLayout, FVulkanTypedDescriptorPoolSet> PoolSets;
+    FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);
 };
 
 }

@@ -57,7 +57,6 @@ namespace nilou {
 		*/
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
 		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
-		virtual void RHIBindFramebuffer(RHIFramebuffer *framebuffer) override;
 		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
 
 		/**
@@ -158,6 +157,7 @@ namespace nilou {
 		void glTexImage2D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint nummips, GLenum format, GLenum type, const void *pixels);
 		void glTexImage3D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint nummips, GLenum format, GLenum type, const void *pixels);
 		void EndDraw();
+		void RHIBindFramebuffer(RHIFramebuffer *framebuffer);
 
 		class OpenGLContext
 		{

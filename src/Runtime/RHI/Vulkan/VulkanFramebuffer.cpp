@@ -20,7 +20,7 @@ VulkanFramebuffer::VulkanFramebuffer(FVulkanDynamicRHI* InContext, std::map<EFra
     FGraphicsPipelineStateInitializer Initializer;
     Initializer.BuildRenderTargetFormats(this);
     FVulkanRenderTargetLayout RTLayout(Initializer);
-    FVulkanRenderPass* RenderPass = Context->LayoutManager->GetOrCreateRenderPass(RTLayout);
+    FVulkanRenderPass* RenderPass = Context->RenderPassManager->GetOrCreateRenderPass(RTLayout);
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass = RenderPass->Handle;
     framebufferInfo.attachmentCount = static_cast<uint32>(attachments.size());

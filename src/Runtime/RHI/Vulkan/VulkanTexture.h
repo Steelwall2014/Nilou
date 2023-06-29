@@ -11,15 +11,18 @@ public:
     VkImage Image;
     VkImageView ImageView;
     VkDeviceMemory Memory;
+    VkImageLayout ImageLayout;
 
     VulkanTextureBase(
         VkImage InImage,
         VkImageView InImageView,
-        VkDeviceMemory InMemory
+        VkDeviceMemory InMemory,
+        VkImageLayout InImageLayout
     )
     : Image(InImage)
     , ImageView(InImageView)
     , Memory(InMemory)
+    , ImageLayout(InImageLayout)
     { }
     ~VulkanTextureBase();
 
@@ -33,6 +36,7 @@ public:
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
+        VkImageLayout InImageLayout,
         uint32 InSizeX,
         uint32 InSizeY,
         uint32 InSizeZ,
@@ -40,12 +44,14 @@ public:
         EPixelFormat InFormat,
         const std::string &InTextureName
     )
-    : TextureBase(InImage, InImageView, InMemory)
+    : TextureBase(InImage, InImageView, InMemory, InImageLayout)
     , BaseType(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
     {}
     VkImage GetImage() const { return TextureBase.Image; }
     VkImageView GetImageView() const { return TextureBase.ImageView; }
     VkDeviceMemory GetMemory() const { return TextureBase.Memory; }
+    VkImageLayout GetImageLayout() const { return TextureBase.ImageLayout; }
+    void SetImageLayout(VkImageLayout ImageLayout) { TextureBase.ImageLayout = ImageLayout; }
     VulkanTextureBase TextureBase;
 };
 

@@ -75,4 +75,38 @@ bool FVulkanDescriptorPool::AllocateDescriptorSets(const VkDescriptorSetAllocate
 	return VK_SUCCESS == vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, OutSets);
 }
 
+bool FVulkanTypedDescriptorPoolSet::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets)
+{
+	if (!InLayout.Handles.empty())
+	{
+		auto Pool = PoolCurrent;
+		while (Pool == Pools.end() || !Pool->AllocateDescriptorSets(InLayout.GetAllocateInfo(), OutSets))
+		{
+			Pools.emplace_back(Device, InLayout, 32);
+			Pool = std::next(PoolCurrent);
+		}
+
+		Pool->TrackAddUsage(InLayout);
+
+		return true;
+	}
+
+	return false;
+}
+
+FVulkanDescriptorSets FVulkanDescriptorPoolsManager::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout)
+{
+	auto Found = PoolSets.find(Layout);
+	if (Found == PoolSets.end())
+	{
+		Found = PoolSets.insert({Layout, FVulkanTypedDescriptorPoolSet(Device)}).first;
+	}
+	FVulkanTypedDescriptorPoolSet& PoolSet = Found->second;
+
+	FVulkanDescriptorSets Sets{Layout};
+	PoolSet.AllocateDescriptorSets(Layout, Sets.Handles.data());
+	return Sets;
+	
+}
+
 }

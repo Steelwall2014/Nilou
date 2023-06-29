@@ -204,12 +204,6 @@ VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
     }
 }
 
-VulkanPipelineLayout::~VulkanPipelineLayout()
-{
-	vkDestroyDescriptorSetLayout(Device, DescriptorSetLayout, nullptr);
-	vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
-}
-
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
 {
     InitWithInitializer(Initializer);
@@ -266,7 +260,7 @@ void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineState
     RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
 }
 
-FVulkanRenderPass* FVulkanLayoutManager::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
+FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
 {
 	auto Found = RenderPasses.find(RTLayout);
     if (Found != RenderPasses.end())
