@@ -30,7 +30,7 @@ _反射探针_
   
 ## 运行
 1. 首先需要修改configs.lua中vulkan sdk的路径。
-2. 编译NilouHeaderTool。每次开始编译前，引擎会自动运行NilouHeaderTool，通过检测头文件的修改时间是否发生变化来判断是否需要重新生成反射代码。
+2. 编译NilouHeaderTool。每次开始编译前，引擎会自动运行NilouHeaderTool，通过检测头文件的修改时间是否发生变化来判断是否需要重新生成反射代码。注：由于*.generated.cpp里include的头文件不一定就是这个类真正定义在的那个文件，所以有时候*.generated.cpp会找不到这个类的声明了，这个时候把CachedHeaderModifiedTime.txt删除，让header tool重新生成反射代码就好了。
 NilouHeaderTool的编译：
 ```sh
 cd NilouHeaderTool

@@ -29,7 +29,7 @@ namespace nilou {
         RHIRasterizerState* RasterizerState,
         RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings,
-        const FRHIVertexInputList* VertexInputs,
+        FRHIVertexDeclaration* VertexDeclaration,
         const FMeshBatchElement &Element,
         RHIFramebuffer* Framebuffer,
         FMeshDrawCommand &OutMeshDrawCommand
@@ -41,17 +41,18 @@ namespace nilou {
         FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
         Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
-        FShaderInstance *PixelShader = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+        FShaderInstance *PixelShader = GetGlobalShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
         Initializer.DepthStencilState = DepthStencilState;
         Initializer.RasterizerState = RasterizerState;
         Initializer.BlendState = BlendState;
-        Initializer.VertexInputList = VertexInputs;
+        Initializer.VertexDeclaration = VertexDeclaration;
         Initializer.BuildRenderTargetFormats(Framebuffer);
 
         {
+            OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
@@ -393,7 +394,6 @@ namespace nilou {
                         MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
                         MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
                         #endif
-                        const FRHIVertexInputList* VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
                             UniformBuffer->GetRHI());
@@ -411,7 +411,7 @@ namespace nilou {
                             Mesh.MaterialRenderProxy->RasterizerState.get(),
                             Mesh.MaterialRenderProxy->BlendState.get(),
                             InputBindings,
-                            VertexInputs,
+                            Mesh.Element.VertexFactory->GetVertexDeclaration(),
                             Mesh.Element,
                             ShadowMapResources->ShadowMapTexture.GetFramebufferByIndex(SplitIndex),
                             MeshDrawCommand);

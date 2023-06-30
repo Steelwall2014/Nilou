@@ -137,7 +137,7 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, PipelineStage, ShaderType->ShaderMetaType);
         ShaderInstance->InitResource();
-        GetContentManager()->AddGlobalShader(ShaderParameter, ShaderInstance);
+        AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(

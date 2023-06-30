@@ -13,6 +13,8 @@
 #include "VulkanFramebuffer.h"
 #include "VulkanPipelineState.h"
 #include "VulkanDescriptorSet.h"
+#include "VulkanVertexDeclaration.h"
+#include "Common/Log.h"
 
 namespace nilou {
 
@@ -289,7 +291,7 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
     VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(VulkanPipeline->PipelineLayout.get());
     
     FVulkanDescriptorSets Sets = DescriptorPoolsManager->AllocateDescriptorSets(VulkanLayout->DescriptorSetsLayout);
-    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, VulkanLayout->DescriptorSetsLayout.SetLayouts[0].Handle);
+    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, Sets);
 
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
@@ -298,16 +300,7 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
     vkCmdBindPipeline(CmdBuffer->GetHandle(), bind_point, VulkanPipeline->VulkanPipeline);
 
-    if (NewState->Initializer.VertexInputList)
-    {
-        for (auto& VertexInput : *NewState->Initializer.VertexInputList)
-        {
-            VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(VertexInput.VertexBuffer);
-            VkBuffer vertexBuffers[] = {vkBuffer->GetHandle()};
-            VkDeviceSize offsets[] = {VertexInput.Offset};
-            vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), VertexInput.Location, 1, vertexBuffers, offsets);
-        }
-    }
+    
 }
 
 bool FVulkanDynamicRHI::RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *UniformBufferRHI)
@@ -359,6 +352,12 @@ bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipeli
         return true;
     }
     return false;
+}
+
+void FVulkanDynamicRHI::RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset)
+{
+    VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(Buffer);
+    CurrentStreamSources[StreamIndex] = { Offset, vkBuffer->GetHandle() };
 }
 
 void FVulkanDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer)
@@ -681,8 +680,8 @@ std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &PipelineLayout->DescriptorSetsLayout.SetLayouts[0].Handle;
+    pipelineLayoutInfo.setLayoutCount = PipelineLayout->DescriptorSetsLayout.Handles.size();
+    pipelineLayoutInfo.pSetLayouts = PipelineLayout->DescriptorSetsLayout.Handles.data();
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &PipelineLayout->PipelineLayout) != VK_SUCCESS) {
         NILOU_LOG(Error, "failed to create pipeline layout!");
@@ -717,24 +716,31 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
     std::vector<VkVertexInputBindingDescription> bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 
-    std::map<RHIBuffer*, int> VertexBufferBindingMap;
-    int binding = 0;
-    for (auto& VertexInput : *Initializer.VertexInputList)
+    VkVertexInputBindingDescription Bindings[MaxVertexElementCount];
+    uint32 BindingMask = 0;
+    VulkanVertexDeclaration* vkVertexDeclaration = static_cast<VulkanVertexDeclaration*>(Initializer.VertexDeclaration);
+    for (auto& Element : vkVertexDeclaration->Elements)
     {
-        if (!VertexBufferBindingMap.contains(VertexInput.VertexBuffer))
+        VkVertexInputBindingDescription& CurrBinding = Bindings[Element.StreamIndex];
+        if ((1 << Element.StreamIndex) & BindingMask != 0)
         {
-            VertexBufferBindingMap[VertexInput.VertexBuffer] = binding;
-            VkVertexInputBindingDescription& bindingDescription = bindingDescriptions.emplace_back();
-            bindingDescription.binding = binding;
-            bindingDescription.stride = VertexInput.VertexBuffer->GetStride();
-            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            binding++;
+            Ncheck(CurrBinding.binding == Element.StreamIndex);
+            Ncheck(CurrBinding.inputRate == VK_VERTEX_INPUT_RATE_VERTEX);
+            Ncheck(CurrBinding.stride == Element.Stride);
         }
-        VkVertexInputAttributeDescription& attributeDescription = attributeDescriptions.emplace_back();
-        attributeDescription.binding = VertexBufferBindingMap[VertexInput.VertexBuffer];
-        attributeDescription.location = VertexInput.Location;
-        attributeDescription.format = TranslateVertexElementTypeToVKFormat(VertexInput.Type);
-        attributeDescription.offset = VertexInput.Offset;
+        else
+        {
+            CurrBinding.binding = Element.StreamIndex;
+            CurrBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            CurrBinding.stride = Element.Stride;
+            bindingDescriptions.push_back(CurrBinding);
+        }
+        VkVertexInputAttributeDescription AttrDesc;
+        AttrDesc.binding = Element.StreamIndex;
+        AttrDesc.format = TranslateVertexElementTypeToVKFormat(Element.Type);
+        AttrDesc.location = Element.AttributeIndex;
+        AttrDesc.offset = Element.Offset;
+        attributeDescriptions.push_back(AttrDesc);
     }
     
     vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32>(bindingDescriptions.size());
@@ -870,6 +876,13 @@ RHIRasterizerStateRef FVulkanDynamicRHI::RHICreateRasterizerState(const FRasteri
 RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitializer &Initializer)
 {
     return std::make_shared<VulkanBlendState>(Initializer);
+}
+
+FRHIVertexDeclarationRef FVulkanDynamicRHI::RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements)
+{
+    VulkanVertexDeclarationRef Declaration = std::make_shared<VulkanVertexDeclaration>();
+    Declaration->Elements = Elements;
+    return Declaration;
 }
 
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)

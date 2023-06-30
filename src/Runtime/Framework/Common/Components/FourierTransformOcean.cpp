@@ -147,7 +147,7 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
-            FShaderInstance *DisplacementSpectrumShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementSpectrumShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(
@@ -183,7 +183,7 @@ namespace nilou {
                 PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(false);
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
-            FShaderInstance *FFTShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(FFTShader->GetComputeShaderRHI());
 
             ButterflyBlock->Data.Ns = Ns;
@@ -215,7 +215,7 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
-            FShaderInstance *DisplacementShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderImage(
@@ -243,7 +243,7 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
-            FShaderInstance *NormalFoamShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(NormalFoamShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(
@@ -310,7 +310,7 @@ namespace nilou {
             ButterflyBlock->InitResource();
             
             FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
-            FShaderInstance *GaussionSpectrumShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(GaussionSpectrumShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(

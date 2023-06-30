@@ -6,6 +6,7 @@
 #include "PrimitiveUtils.h"
 #include "Material.h"
 #include "VirtualTexture2D.h"
+#include "PipelineStateCache.h"
 
 #include <glad/glad.h>
 
@@ -76,16 +77,6 @@ namespace nilou {
         return true;
     }
 
-    static FRHIVertexInput AccessStreamComponent(const FVertexStreamComponent &Component, uint8 Location)
-    {
-        FRHIVertexInput VertexInput;
-        VertexInput.VertexBuffer = Component.VertexBuffer->VertexBufferRHI.get();
-        VertexInput.Location = Location;
-        VertexInput.Offset = Component.Offset;
-        VertexInput.Type = Component.Type;
-        return VertexInput;
-    }
-
     void FVHMVertexFactory::SetData(const FDataType &InData)
     {
         Data = InData;
@@ -93,25 +84,26 @@ namespace nilou {
 
     void FVHMVertexFactory::InitVertexFactory()
     {
-        ENQUEUE_RENDER_COMMAND(FVHMVertexFactory_InitVertexFactory)(
-            [this](FDynamicRHI*) 
+        Elements.clear();
+        if (Data.PositionComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.PositionComponent, 0, Streams));
+        }
+        if (Data.ColorComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.ColorComponent, 3, Streams));
+        }
+        for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+        {
+            if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
             {
-                VertexInputList.clear();
-                if (Data.PositionComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.PositionComponent, 0));
-                }
-                if (Data.ColorComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.ColorComponent, 3));
-                }
-                for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
-                {
-                    if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
-                    {
-                        VertexInputList.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i));
-                    }
-                }
+                Elements.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams));
+            }
+        }
+        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
+            [this](FDynamicRHI* RHICmdList) 
+            {
+                Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration(Elements);
             });
     }
 
@@ -356,7 +348,7 @@ namespace nilou {
             BuildMinMaxBlock->InitResource();
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxFirstPassShader::StaticType, 0);
-            FShaderInstance *CreateMinMaxFirstPassShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *CreateMinMaxFirstPassShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxFirstPassShader->GetComputeShaderRHI());
             FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
@@ -428,7 +420,7 @@ namespace nilou {
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(true);
             {   // Create MinMax texture for patches
                 FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxShader::StaticType, PermutationVector.ToDimensionValueId());
-                FShaderInstance *CreateMinMaxShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+                FShaderInstance *CreateMinMaxShader = GetGlobalShader(PermutationParameters);
                 FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
                 for (int LOD = 1; LOD < LodCount; LOD++)
                 {
@@ -445,7 +437,7 @@ namespace nilou {
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(false);
             {   // Create MinMax texture for nodes
                 FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxShader::StaticType, PermutationVector.ToDimensionValueId());
-                FShaderInstance *CreateMinMaxShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+                FShaderInstance *CreateMinMaxShader = GetGlobalShader(PermutationParameters);
                 FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
                 for (int LOD = LodCount; LOD < LodCount+3; LOD++)
                 {
@@ -475,7 +467,7 @@ namespace nilou {
 
             RHIGetError();
             FShaderPermutationParameters PermutationParameters(&FVHMCreateNodeListShader::StaticType, 0);
-            FShaderInstance *CreateNodeListShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *CreateNodeListShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateNodeListShader->GetComputeShaderRHI());
             
             RHIGetError();
@@ -544,7 +536,7 @@ namespace nilou {
         void CreateLodTexture()
         {
             FShaderPermutationParameters PermutationParameters(&FVHMCreateLodTextureShader::StaticType, 0);
-            FShaderInstance *CreateLodTextureShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *CreateLodTextureShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateLodTextureShader->GetComputeShaderRHI());
 
             FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
@@ -571,7 +563,7 @@ namespace nilou {
             AtomicPatchCounterBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreatePatchShader::StaticType, 0);
-            FShaderInstance *CreatePatchShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *CreatePatchShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreatePatchShader->GetComputeShaderRHI());
 
             FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(

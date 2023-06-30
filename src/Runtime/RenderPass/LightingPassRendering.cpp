@@ -36,8 +36,8 @@ namespace nilou {
                     PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
                     FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
 
-                    FShaderInstance *LightPassVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                    FShaderInstance *LightPassPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+                    FShaderInstance *LightPassVS = GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *LightPassPS = GetGlobalShader(PermutationParametersPS);
                     
                     FGraphicsPipelineStateInitializer PSOInitializer;
 
@@ -50,11 +50,7 @@ namespace nilou {
                     PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
                     PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI().get();
 
-                    static FRHIVertexInputList VertexInputList = {
-                        PositionVertexInput,
-                        UVVertexInput
-                    };
-                    PSOInitializer.VertexInputList = &VertexInputList;
+                    PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
 
                     PSOInitializer.BuildRenderTargetFormats(SceneTextures->LightPassFramebuffer.get());
 
@@ -63,6 +59,9 @@ namespace nilou {
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
                     RHIGetError();
+
+                    RHICmdList->RHISetStreamSource(0, PositionVertexBuffer.VertexBufferRHI.get(), 0);
+                    RHICmdList->RHISetStreamSource(1, UVVertexBuffer.VertexBufferRHI.get(), 0);
 
                     auto &Light = Lights[LightIndex];
                     RHICmdList->RHISetShaderSampler(

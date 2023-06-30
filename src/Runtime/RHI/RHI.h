@@ -11,13 +11,15 @@ namespace nilou {
         
     struct FVertexElement
     {
+		uint8 StreamIndex;
         uint8 Offset;
         EVertexElementType Type;
         uint8 AttributeIndex;
         uint16 Stride;
 
         FVertexElement() {}
-        FVertexElement(uint8 InOffset,EVertexElementType InType,uint8 InAttributeIndex,uint16 InStride):
+        FVertexElement(uint8 InStreamIndex,uint8 InOffset,EVertexElementType InType,uint8 InAttributeIndex,uint16 InStride):
+			StreamIndex(InStreamIndex),
             Offset(InOffset),
             Type(InType),
             AttributeIndex(InAttributeIndex),
@@ -26,6 +28,7 @@ namespace nilou {
 
         void operator=(const FVertexElement& Other)
         {
+			StreamIndex = Other.StreamIndex;
             Offset = Other.Offset;
             Type = Other.Type;
             AttributeIndex = Other.AttributeIndex;
@@ -34,6 +37,65 @@ namespace nilou {
     };
 
     using FVertexDeclarationElementList = std::vector<FVertexElement>;
+
+    class FVertexStreamComponent
+    {
+    public:
+        class FVertexBuffer *VertexBuffer;
+        uint8 Offset;
+        uint8 Stride;
+        EVertexElementType Type;
+
+        FVertexStreamComponent() 
+            : VertexBuffer(nullptr)
+            , Offset(0)
+            , Stride(0)
+            , Type(EVertexElementType::VET_None)
+        { }
+
+        FVertexStreamComponent(FVertexBuffer *InVertexBuffer, uint8 InOffset, uint8 InStride, EVertexElementType InType) 
+            : VertexBuffer(InVertexBuffer)
+            , Offset(InOffset)
+            , Stride(InStride)
+            , Type(InType)
+        { }
+    };
+    using FVertexStreamComponentList = std::vector<FVertexStreamComponent *>;
+
+    struct FVertexInputStream
+    {
+        uint32 StreamIndex : 4;
+        uint32 Offset : 28;
+        class RHIBuffer* VertexBuffer;
+
+        FVertexInputStream() :
+            StreamIndex(0),
+            Offset(0),
+            VertexBuffer(nullptr)
+        {}
+
+        FVertexInputStream(uint32 InStreamIndex, uint32 InOffset, RHIBuffer* InVertexBuffer)
+            : StreamIndex(InStreamIndex), Offset(InOffset), VertexBuffer(InVertexBuffer)
+        {
+        }
+
+        inline bool operator==(const FVertexInputStream& rhs) const
+        {
+            if (StreamIndex != rhs.StreamIndex ||
+                Offset != rhs.Offset || 
+                VertexBuffer != rhs.VertexBuffer) 
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        inline bool operator!=(const FVertexInputStream& rhs) const
+        {
+            return !(*this == rhs);
+        }
+    };
 
 
 	struct NSTRUCT FDepthStencilStateInitializer

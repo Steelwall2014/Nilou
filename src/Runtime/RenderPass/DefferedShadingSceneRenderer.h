@@ -5,6 +5,7 @@
 #include "MeshPassProcessor.h"
 #include "RHIResources.h"
 #include "SceneView.h"
+#include "PipelineStateCache.h"
 #include <unordered_map>
 #include <vector>
 #include <stack>
@@ -271,8 +272,7 @@ namespace nilou {
 
         static FScreenQuadPositionVertexBuffer PositionVertexBuffer;
         static FScreenQuadUVVertexBuffer UVVertexBuffer;
-        static FRHIVertexInput PositionVertexInput;
-        static FRHIVertexInput UVVertexInput;
+        static FRHIVertexDeclaration* ScreenQuadVertexDeclaration;
 
     protected:
 

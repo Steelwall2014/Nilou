@@ -4,6 +4,16 @@
 #include "Templates/ObjectMacros.h"
 
 namespace nilou {
+    
+    std::vector<FVertexInputStream> FVertexFactory::GetVertexInputStreams() const
+    {
+        std::vector<FVertexInputStream> Out;
+        for (int StreamIndex = 0; StreamIndex < Streams.size(); StreamIndex++)
+        {
+            Out.emplace_back(StreamIndex, Streams[StreamIndex].Offset, Streams[StreamIndex].VertexBuffer->VertexBufferRHI.get());
+        }
+        return Out;
+    }
 
     // void FVertexFactory::FillShaderBindings(
     //     std::map<std::string, RHIUniformBuffer *> &OutUniformBufferBindings, 

@@ -44,12 +44,7 @@ public:
     virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override;
     virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
     virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value) override { return true; }
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value) override { return true; }
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value) override { return true; }
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value) override { return true; }
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value) override { return true; }
-    // virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value) override { return true; }
+    virtual void RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset) override;
     
     /**
     * Binding buffers
@@ -119,6 +114,8 @@ public:
         int32 Xoffset, int32 Yoffset, int32 LayerIndex,
         int32 Width, int32 Height,
         int32 MipmapLevel, void* Data) override;
+
+    virtual FRHIVertexDeclarationRef RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements) override;
 
     /**
     * Render pass
@@ -190,6 +187,12 @@ private:
     FVulkanRenderPass* CurrentRenderPass;
     class VulkanFramebuffer* CurrentFramebuffer;
     std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;
+    struct StreamSource
+    {
+        uint32 Offset;
+        VkBuffer Buffer;
+    };
+    StreamSource CurrentStreamSources[MaxVertexElementCount];
 
     class shaderc_compiler* shader_compiler = nullptr;
 

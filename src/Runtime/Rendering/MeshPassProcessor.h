@@ -77,7 +77,7 @@ namespace nilou {
         * Resource bindings
         */
         FMeshDrawShaderBindings ShaderBindings;
-        // std::vector<FVertexInputStream> VertexStreams;
+        std::vector<FVertexInputStream> VertexStreams;
         
         RHIBuffer* IndexBuffer;
 

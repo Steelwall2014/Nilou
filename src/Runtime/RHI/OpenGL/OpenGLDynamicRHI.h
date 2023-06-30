@@ -45,13 +45,8 @@ namespace nilou {
 		virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override;
 		virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
 		virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value) override;
-		// virtual bool RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value) override;
-		
+		virtual void RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset) override;
+	
 		/**
 		* Binding buffers
 		*/
@@ -121,6 +116,8 @@ namespace nilou {
 			int32 Width, int32 Height,
 			int32 MipmapLevel, void* Data) override;
 
+		virtual FRHIVertexDeclarationRef RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements) override;
+
 		/**
 		* Render pass
 		*/
@@ -147,7 +144,6 @@ namespace nilou {
 		virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override;
 
 	private:
-		void RHISetVertexBuffer(const FRHIVertexInput *);
 		void RHISetRasterizerState(RHIRasterizerState *newState);
 		void RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef=0);
 		void RHISetBlendState(RHIBlendState *newState);
@@ -158,6 +154,7 @@ namespace nilou {
 		void glTexImage3D_usingTexStorage(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint nummips, GLenum format, GLenum type, const void *pixels);
 		void EndDraw();
 		void RHIBindFramebuffer(RHIFramebuffer *framebuffer);
+		void PrepareForDraw();
 
 		class OpenGLContext
 		{
@@ -174,6 +171,14 @@ namespace nilou {
 			int32 ViewportHeight = 0;
 		};
 		OpenGLContext ContextState;
+
+		struct StreamSource
+		{
+			uint32 Offset;
+			OpenGLBuffer* Buffer;
+		};
+		StreamSource CurrentStreamSources[MaxVertexElementCount];
+		OpenGLVertexDeclaration* CurrentVertexDeclaration;
 
 		class TextureUnitManager
 		{

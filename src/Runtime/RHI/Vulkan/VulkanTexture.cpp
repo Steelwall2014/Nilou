@@ -274,7 +274,7 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
 
     return std::make_shared<VulkanTexture2D>(
-        VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, 
+        VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, Texture->GetImageLayout(),
         Texture->GetSizeXYZ().x, Texture->GetSizeXYZ().y, 1, 
         NumLevels, Format, OriginTexture->GetName()+"_View");
 
@@ -312,7 +312,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
 
     return std::make_shared<VulkanTextureCube>(
-        VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, 
+        VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, Texture->GetImageLayout(),
         Texture->GetSizeXYZ().x, Texture->GetSizeXYZ().y, 6, 
         NumLevels, Format, OriginTexture->GetName()+"_View");
 

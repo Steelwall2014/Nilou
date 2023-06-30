@@ -280,21 +280,12 @@ namespace nilou {
 	};
 	using RHIFramebufferRef = std::shared_ptr<RHIFramebuffer>;
 
-	class FRHIVertexInput
-    {
-    public:
-        RHIBuffer *VertexBuffer;
-		uint8 Location;
-        uint8 Offset;
-        EVertexElementType Type;
-
-        FRHIVertexInput() 
-            : VertexBuffer(nullptr)
-            , Offset(0)
-            , Type(EVertexElementType::VET_None)
-        { }
-    };
-	using FRHIVertexInputList = std::vector<FRHIVertexInput>;
+	class FRHIVertexDeclaration : public RHIResource
+	{
+	public:
+		FRHIVertexDeclaration() : RHIResource(ERHIResourceType::RRT_VertexDeclaration) { }
+	};
+	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
 
 	class FGraphicsPipelineStateInitializer
 	{
@@ -306,7 +297,7 @@ namespace nilou {
 			, DepthStencilState(nullptr)
 			, RasterizerState(nullptr)
 			, BlendState(nullptr)
-			, VertexInputList(nullptr)
+			, VertexDeclaration(nullptr)
 			, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
 		{ }
 
@@ -320,7 +311,7 @@ namespace nilou {
         RHIRasterizerState* RasterizerState;
         RHIBlendState* BlendState;
 
-		const FRHIVertexInputList* VertexInputList;
+		FRHIVertexDeclaration* VertexDeclaration;
 
 		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { EPixelFormat::PF_R8G8B8 };
 		uint32 NumRenderTargetsEnabled;

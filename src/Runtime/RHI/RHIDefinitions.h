@@ -520,4 +520,9 @@ namespace nilou {
 
 		PipelineStageNum
 	};
+	
+	enum
+	{
+		MaxVertexElementCount = 17,
+	};
 }

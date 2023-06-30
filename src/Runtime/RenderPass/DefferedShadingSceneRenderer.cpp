@@ -172,8 +172,7 @@ namespace nilou {
 
     FSceneRenderer::FScreenQuadPositionVertexBuffer FSceneRenderer::PositionVertexBuffer;
     FSceneRenderer::FScreenQuadUVVertexBuffer FSceneRenderer::UVVertexBuffer;
-    FRHIVertexInput FSceneRenderer::PositionVertexInput;
-    FRHIVertexInput FSceneRenderer::UVVertexInput;
+    FRHIVertexDeclaration* FSceneRenderer::ScreenQuadVertexDeclaration;
 
     FSceneRenderer::TResourcesPool<
         FShadowMapResource, 
@@ -215,15 +214,30 @@ namespace nilou {
             PositionVertexBuffer.InitResource();
             UVVertexBuffer.InitResource();
                         
-            PositionVertexInput.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
-            PositionVertexInput.Location = 0;
-            PositionVertexInput.Offset = 0;
-            PositionVertexInput.Type = EVertexElementType::VET_Float4;
+            FVertexInputStream PositionVertexInputStream;
+            FVertexElement PositionVertexElement;
+            FVertexInputStream UVVertexInputStream;
+            FVertexElement UVVertexElement;
 
-            UVVertexInput.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
-            UVVertexInput.Location = 1;
-            UVVertexInput.Offset = 0;
-            UVVertexInput.Type = EVertexElementType::VET_Float2;
+            PositionVertexElement.AttributeIndex = 0;
+            PositionVertexElement.StreamIndex = 0;
+            PositionVertexElement.Offset = 0;
+            PositionVertexElement.Stride = sizeof(float) * 4;
+            PositionVertexElement.Type = EVertexElementType::VET_Float4;
+            PositionVertexInputStream.StreamIndex = 0;
+            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
+            PositionVertexInputStream.Offset = 0;
+                        
+            UVVertexElement.AttributeIndex = 1;
+            UVVertexElement.StreamIndex = 1;
+            UVVertexElement.Offset = 0;
+            UVVertexElement.Stride = sizeof(float) * 2;
+            UVVertexElement.Type = EVertexElementType::VET_Float2;
+            UVVertexInputStream.StreamIndex = 1;
+            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
+            UVVertexInputStream.Offset = 0;
+
+            ScreenQuadVertexDeclaration = FPipelineStateCache::GetOrCreateVertexDeclaration({PositionVertexElement, UVVertexElement});
         }
         
 
@@ -541,8 +555,8 @@ namespace nilou {
                 
                 FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
 
-                FShaderInstance *RenderToScreenVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                FShaderInstance *RenderToScreenPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+                FShaderInstance *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
+                FShaderInstance *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
                 
                 FGraphicsPipelineStateInitializer PSOInitializer;
 
@@ -555,11 +569,7 @@ namespace nilou {
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
                 PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
 
-                static FRHIVertexInputList VertexInputList = {
-                    PositionVertexInput,
-                    UVVertexInput
-                };
-                PSOInitializer.VertexInputList = &VertexInputList;
+                PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
 
                 PSOInitializer.BuildRenderTargetFormats(OutputRenderTarget);
 
@@ -568,6 +578,9 @@ namespace nilou {
                 RHIGetError();
                 RHICmdList->RHISetGraphicsPipelineState(PSO);
                 RHIGetError();
+
+                RHICmdList->RHISetStreamSource(0, PositionVertexBuffer.VertexBufferRHI.get(), 0);
+                RHICmdList->RHISetStreamSource(1, UVVertexBuffer.VertexBufferRHI.get(), 0);
 
                 if (ViewFamily.bIsSceneCapture)
                 {

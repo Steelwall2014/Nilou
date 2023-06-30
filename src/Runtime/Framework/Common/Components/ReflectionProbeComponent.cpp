@@ -77,7 +77,7 @@ namespace nilou {
     {
         // UTexture2D* lut = (UTexture2D*)GetContentManager()->GetTextureByPath("/Textures/my_lut.nasset");
         // FShaderPermutationParameters PermutationParameters(&FBrdfLUTShader::StaticType, 0);
-        // FShaderInstance *BrdfLUTShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+        // FShaderInstance *BrdfLUTShader = GetGlobalShader(PermutationParameters);
         // FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(BrdfLUTShader);
 
         // RHICmdList->RHISetShaderImage(
@@ -93,7 +93,7 @@ namespace nilou {
             IrradianceShaderUniformBuffer->UpdateUniformBuffer();
 
             FShaderPermutationParameters PermutationParameters(&FIrradianceEnvTextureShader::StaticType, 0);
-            FShaderInstance *IrradianceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *IrradianceShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(IrradianceShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderSampler(
@@ -113,7 +113,7 @@ namespace nilou {
         
         {
             FShaderPermutationParameters PermutationParameters(&FPrefilteredEnvTextureShader::StaticType, 0);
-            FShaderInstance *PrefilterShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+            FShaderInstance *PrefilterShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderSampler(

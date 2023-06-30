@@ -10,6 +10,7 @@
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
 #include "Common/Path.h"
+#include "PipelineStateCache.h"
 
 
 namespace nilou {
@@ -56,16 +57,6 @@ namespace nilou {
         }
     }
 
-    FRHIVertexInput AccessStreamComponent(const FVertexStreamComponent &Component, uint8 Location)
-    {
-        FRHIVertexInput VertexInput;
-        VertexInput.VertexBuffer = Component.VertexBuffer->VertexBufferRHI.get();
-        VertexInput.Location = Location;
-        VertexInput.Offset = Component.Offset;
-        VertexInput.Type = Component.Type;
-        return VertexInput;
-    }
-
     void FStaticVertexFactory::SetData(const FDataType &InData)
     {
         Data = InData;
@@ -73,33 +64,34 @@ namespace nilou {
 
     void FStaticVertexFactory::InitVertexFactory()
     {
-        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
-            [this](FDynamicRHI*) 
+        Elements.clear();
+        if (Data.PositionComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.PositionComponent, 0, Streams));
+        }
+        if (Data.NormalComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.NormalComponent, 1, Streams));
+        }
+        if (Data.TangentComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.TangentComponent, 2, Streams));
+        }
+        if (Data.ColorComponent.VertexBuffer != nullptr)
+        {
+            Elements.push_back(AccessStreamComponent(Data.ColorComponent, 3, Streams));
+        }
+        for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+        {
+            if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
             {
-                VertexInputList.clear();
-                if (Data.PositionComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.PositionComponent, 0));
-                }
-                if (Data.NormalComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.NormalComponent, 1));
-                }
-                if (Data.TangentComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.TangentComponent, 2));
-                }
-                if (Data.ColorComponent.VertexBuffer != nullptr)
-                {
-                    VertexInputList.push_back(AccessStreamComponent(Data.ColorComponent, 3));
-                }
-                for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
-                {
-                    if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
-                    {
-                        VertexInputList.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i));
-                    }
-                }
+                Elements.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams));
+            }
+        }
+        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
+            [this](FDynamicRHI* RHICmdList) 
+            {
+                Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration(Elements);
             });
     }
 

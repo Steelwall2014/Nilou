@@ -459,6 +459,11 @@ namespace nilou {
         return true;
     }
     
+    void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset)
+    {
+        CurrentStreamSources[StreamIndex] = { Offset, static_cast<OpenGLBuffer*>(Buffer) };
+    }
+    
     // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
     // {
     //     return RHISetShaderUniformValue(
@@ -513,18 +518,37 @@ namespace nilou {
     //     return true;
     // }
 
-
-	void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)
+    FRHIVertexDeclarationRef FOpenGLDynamicRHI::RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements)
     {
-        OpenGLBuffer *GLBuffer = static_cast<OpenGLBuffer*>(VertexInput->VertexBuffer);
-
-        auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(VertexInput->Type);
-
-        glBindBuffer(GL_ARRAY_BUFFER, GLBuffer->Resource);
-        glVertexAttribPointer(VertexInput->Location, Size, DataType, bNormalized, GLBuffer->GetStride(), (void*)0);
-        glEnableVertexAttribArray(VertexInput->Location);
-        ContextState.VertexAttributeEnabled[VertexInput->Location] = true;
+        OpenGLVertexDeclarationRef Declaration = std::make_shared<OpenGLVertexDeclaration>();
+        for (auto& Element : Elements)
+        {
+            OpenGLVertexDeclaration::Element OutElement;
+            OutElement.AttributeIndex = Element.AttributeIndex;
+            OutElement.StreamIndex = Element.StreamIndex;
+            OutElement.Offset = Element.Offset;
+            OutElement.Stride = Element.Stride;
+            auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(Element.Type);
+            OutElement.DataType = DataType;
+            OutElement.Size = Size;
+            OutElement.bNormalized = bNormalized;
+            OutElement.bShouldConvertToFloat = bShouldConvertToFloat;
+            Declaration->Elements.push_back(OutElement);
+        }
+        return Declaration;
     }
+
+	// void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)
+    // {
+    //     OpenGLBuffer *GLBuffer = static_cast<OpenGLBuffer*>(VertexInput->VertexBuffer);
+
+    //     auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(VertexInput->Type);
+
+    //     glBindBuffer(GL_ARRAY_BUFFER, GLBuffer->Resource);
+    //     glVertexAttribPointer(VertexInput->Location, Size, DataType, bNormalized, GLBuffer->GetStride(), (void*)0);
+    //     glEnableVertexAttribArray(VertexInput->Location);
+    //     ContextState.VertexAttributeEnabled[VertexInput->Location] = true;
+    // }
 
     void FOpenGLDynamicRHI::RHISetRasterizerState(RHIRasterizerState *newState)
     {
@@ -923,9 +947,7 @@ namespace nilou {
         RHISetDepthStencilState(NewState->Initializer.DepthStencilState);
         RHISetRasterizerState(NewState->Initializer.RasterizerState);
         RHISetBlendState(NewState->Initializer.BlendState);
-        if (NewState->Initializer.VertexInputList)
-            for (auto& VertexInput : *NewState->Initializer.VertexInputList)
-                RHISetVertexBuffer(&VertexInput);
+        CurrentVertexDeclaration = static_cast<OpenGLVertexDeclaration*>(NewState->Initializer.VertexDeclaration);
     }
 
 	FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHISetComputeShader(RHIComputeShader *ComputeShader)
@@ -987,6 +1009,16 @@ namespace nilou {
             }
             else
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }
+    void FOpenGLDynamicRHI::PrepareForDraw()
+    {
+        for (auto& Element : CurrentVertexDeclaration->Elements)
+        {
+            auto& StreamSource = CurrentStreamSources[Element.StreamIndex];
+            glBindBuffer(GL_ARRAY_BUFFER, StreamSource.Buffer->Resource);
+            glVertexAttribPointer(Element.AttributeIndex, Element.Size, Element.DataType, Element.bNormalized, Element.Stride, (void*)Element.Offset);
+            glEnableVertexAttribArray(Element.AttributeIndex);
         }
     }
 }
@@ -1646,6 +1678,7 @@ namespace nilou {
     
 	void FOpenGLDynamicRHI::RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount)
     {
+        PrepareForDraw();
         glDrawArraysInstanced(
             TranslatePrimitiveMode(ContextState.GraphicsPipelineState->Initializer.PrimitiveMode), 
             First, 
@@ -1656,6 +1689,7 @@ namespace nilou {
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
     {
+        PrepareForDraw();
         OpenGLBuffer *GLIndexBuffer = static_cast<OpenGLBuffer*>(IndexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLIndexBuffer->Resource);
         RHIGetError();
@@ -1671,6 +1705,7 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset)
     {
+        PrepareForDraw();
         OpenGLBuffer *GLIndexBuffer = static_cast<OpenGLBuffer*>(IndexBuffer);
         OpenGLBuffer *GLIndirectBuffer = static_cast<OpenGLBuffer*>(IndirectBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLIndexBuffer->Resource);

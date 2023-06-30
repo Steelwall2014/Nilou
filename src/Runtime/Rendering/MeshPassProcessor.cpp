@@ -22,6 +22,11 @@ namespace nilou {
     {
         RHIGetError();
         RHICmdList->RHISetGraphicsPipelineState(PipelineState);
+
+        for (auto& Stream : VertexStreams)
+        {
+            RHICmdList->RHISetStreamSource(Stream.StreamIndex, Stream.VertexBuffer, Stream.Offset);
+        }
         RHIGetError();
         FRHIGraphicsPipelineState *PSO = PipelineState;
         RHIGetError();

@@ -6,6 +6,7 @@
 #include "Shader.h"
 #include "Common/Asset/AssetLoader.h"
 #include "Templates/ObjectMacros.h"
+#include "ShaderMap.h"
 
 namespace nilou {
 

@@ -105,7 +105,7 @@ namespace nilou {
 				DepthStencilState == Other.DepthStencilState && 
 				RasterizerState == Other.RasterizerState && 
 				BlendState == Other.BlendState && 
-				VertexInputList == Other.VertexInputList;
+				VertexDeclaration == Other.VertexDeclaration;
 	}
 	
 	void FGraphicsPipelineStateInitializer::BuildRenderTargetFormats(RHIFramebuffer* Framebuffer)
@@ -152,7 +152,7 @@ size_t hash<nilou::FGraphicsPipelineStateInitializer>::operator()(const nilou::F
 			hash<nilou::RHIDepthStencilState*>()(_Keyval.DepthStencilState) ^  
 			hash<nilou::RHIRasterizerState*>()(_Keyval.RasterizerState) ^  
 			hash<nilou::RHIBlendState*>()(_Keyval.BlendState) ^
-			hash<const nilou::FRHIVertexInputList*>()(_Keyval.VertexInputList);
+			hash<nilou::FRHIVertexDeclaration*>()(_Keyval.VertexDeclaration);
 }
 
 }

@@ -12,6 +12,17 @@
 
 namespace nilou {
 
+	TShaderMap<FShaderPermutationParameters> GlobalShaders;
+    void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
+    {
+        GlobalShaders.AddShader(ShaderRHI, Parameters);
+    }
+
+    FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters)
+    {
+        return GlobalShaders.GetShader(Parameters);
+    }
+
     struct FArchiveHelper
     {
         nlohmann::json root;
@@ -274,16 +285,6 @@ namespace nilou {
     void FContentManager::Flush()
     {
         FContentEntry::Serialize(ContentEntry.get());
-    }
-    
-    void FContentManager::AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
-    {
-        GlobalShaders.AddShader(ShaderRHI, Parameters);
-    }
-
-    FShaderInstance *FContentManager::GetGlobalShader(const FShaderPermutationParameters &Parameters)
-    {
-        return GlobalShaders.GetShader(Parameters);
     }
 
     void FContentManager::ReleaseRenderResources()
