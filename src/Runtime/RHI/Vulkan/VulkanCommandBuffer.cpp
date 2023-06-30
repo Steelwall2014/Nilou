@@ -1,5 +1,6 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanQueue.h"
+#include "VulkanDynamicRHI.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -10,6 +11,10 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(VkDevice InDevice, FVulkanCommandBufferPool* 
 	, CmdBufferPool(InCmdBufferPool)
 {
 	AllocMemory();
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	vkCreateFence(Device, &fenceInfo, nullptr, &Fence);
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
@@ -18,6 +23,7 @@ FVulkanCmdBuffer::~FVulkanCmdBuffer()
 	{
 		FreeMemory();
 	}
+	vkDestroyFence(Device, Fence, nullptr);
 }
 
 void FVulkanCmdBuffer::AllocMemory()
@@ -118,8 +124,9 @@ void FVulkanCommandBufferPool::FreeUnusedCmdBuffers(FVulkanQueue* Queue)
 	}
 }
 
-FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice)
+FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* Context)
     : Pool(InDevice, *this)
+	, Queue(Context->GfxQueue)
 {
 
 }

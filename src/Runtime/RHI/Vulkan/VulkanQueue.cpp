@@ -8,7 +8,7 @@ FVulkanQueue::FVulkanQueue(VkDevice InDevice, uint32 InFamilyIndex)
     , QueueIndex(0)
     , Device(InDevice)
 {
-    vkGetDeviceQueue(InDevice, FamilyIndex, QueueIndex, &Queue);
+    vkGetDeviceQueue(InDevice, FamilyIndex, QueueIndex, &Handle);
 }
 
 void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphores, VkSemaphore* SignalSemaphores)
@@ -25,7 +25,7 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphore
 		SubmitInfo.pWaitSemaphores = CmdBuffer->WaitSemaphores.data();
 		SubmitInfo.pWaitDstStageMask = CmdBuffer->WaitFlags.data();
 	}
-    vkQueueSubmit(Queue, 1, &SubmitInfo, CmdBuffer->Fence);
+    vkQueueSubmit(Handle, 1, &SubmitInfo, CmdBuffer->Fence);
 	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
     CmdBuffer->MarkSemaphoresAsSubmitted();
 	LastSubmittedCmdBuffer = CmdBuffer;

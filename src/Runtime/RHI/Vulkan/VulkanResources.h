@@ -124,4 +124,6 @@ struct FVulkanRenderPassManager
     std::unordered_map<FVulkanRenderTargetLayout, FVulkanRenderPass> RenderPasses;
 };
 
+VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
+
 }

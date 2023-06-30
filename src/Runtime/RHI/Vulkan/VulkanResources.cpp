@@ -225,7 +225,7 @@ void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineState
 		{
 			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
 			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-			CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+			CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
 			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -245,7 +245,7 @@ void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineState
         EPixelFormat Format = Initializer.DepthStencilTargetFormat;
 		VkAttachmentDescription& CurrDesc = Desc[MAX_SIMULTANEOUS_RENDERTARGETS];
         CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-        CurrDesc.format = FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(Format);
+        CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
         CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -294,6 +294,69 @@ FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkan
         throw std::runtime_error("failed to create render pass!");
     }
     return &RenderPass;
+}
+
+VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
+{
+    switch (Format) 
+    {
+    case EPixelFormat::PF_UNKNOWN:
+        return VK_FORMAT_UNDEFINED;
+    case EPixelFormat::PF_R8:
+        return VK_FORMAT_R8_UNORM;
+    case EPixelFormat::PF_R8UI:
+        return VK_FORMAT_R8_UINT;
+    case EPixelFormat::PF_R8G8:
+        return VK_FORMAT_R8G8_UNORM;
+    case EPixelFormat::PF_R8G8B8:
+        return VK_FORMAT_R8G8B8_UNORM;
+    case EPixelFormat::PF_R8G8B8_sRGB:
+        return VK_FORMAT_R8G8B8_SRGB;
+    case EPixelFormat::PF_B8G8R8:
+        return VK_FORMAT_B8G8R8_UNORM;
+    case EPixelFormat::PF_B8G8R8_sRGB:
+        return VK_FORMAT_B8G8R8_SRGB;
+    case EPixelFormat::PF_R8G8B8A8:
+        return VK_FORMAT_R8G8B8A8_UNORM;
+    case EPixelFormat::PF_R8G8B8A8_sRGB:
+        return VK_FORMAT_R8G8B8A8_SRGB;
+    case EPixelFormat::PF_B8G8R8A8:
+        return VK_FORMAT_B8G8R8A8_UNORM;
+    case EPixelFormat::PF_B8G8R8A8_sRGB:
+        return VK_FORMAT_B8G8R8A8_SRGB;
+    case EPixelFormat::PF_D24S8:
+        return VK_FORMAT_D24_UNORM_S8_UINT;
+    case EPixelFormat::PF_D32F:
+        return VK_FORMAT_D32_SFLOAT;
+    case EPixelFormat::PF_D32FS8:
+        return VK_FORMAT_D32_SFLOAT_S8_UINT;
+    case EPixelFormat::PF_DXT1:
+        return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+    case EPixelFormat::PF_DXT1_sRGB:
+        return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+    case EPixelFormat::PF_DXT5:
+        return VK_FORMAT_BC3_UNORM_BLOCK;
+    case EPixelFormat::PF_DXT5_sRGB:
+        return VK_FORMAT_BC3_SRGB_BLOCK;
+    case EPixelFormat::PF_R16F:
+        return VK_FORMAT_R16_SFLOAT;
+    case EPixelFormat::PF_R16G16F:
+        return VK_FORMAT_R16G16_SFLOAT;
+    case EPixelFormat::PF_R16G16B16F:
+        return VK_FORMAT_R16G16B16_SFLOAT;
+    case EPixelFormat::PF_R16G16B16A16F:
+        return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case EPixelFormat::PF_R32F:
+        return VK_FORMAT_R32_SFLOAT;
+    case EPixelFormat::PF_R32G32F:
+        return VK_FORMAT_R32G32_SFLOAT;
+    case EPixelFormat::PF_R32G32B32F:
+        return VK_FORMAT_R32G32B32_SFLOAT;
+    case EPixelFormat::PF_R32G32B32A32F:
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
+    default:
+        return VK_FORMAT_UNDEFINED;
+    }
 }
 
 }

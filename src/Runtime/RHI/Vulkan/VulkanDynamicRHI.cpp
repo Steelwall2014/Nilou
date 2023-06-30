@@ -14,6 +14,8 @@
 #include "VulkanPipelineState.h"
 #include "VulkanDescriptorSet.h"
 #include "VulkanVertexDeclaration.h"
+#include "VulkanQueue.h"
+#include "VulkanSwapChain.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -75,69 +77,6 @@ static VkPrimitiveTopology TranslatePrimitiveMode(EPrimitiveMode PrimitiveMode)
             return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
     };
 }
-
-VkFormat FVulkanDynamicRHI::TranslatePixelFormatToVKFormat(EPixelFormat Format)
-{
-    switch (Format) 
-    {
-    case EPixelFormat::PF_UNKNOWN:
-        return VK_FORMAT_UNDEFINED;
-    case EPixelFormat::PF_R8:
-        return VK_FORMAT_R8_UINT;
-    case EPixelFormat::PF_R8UI:
-        return VK_FORMAT_R8_UNORM;
-    case EPixelFormat::PF_R8G8:
-        return VK_FORMAT_R8G8_UINT;
-    case EPixelFormat::PF_R8G8B8:
-        return VK_FORMAT_R8G8B8_UINT;
-    case EPixelFormat::PF_R8G8B8_sRGB:
-        return VK_FORMAT_R8G8B8_SRGB;
-    case EPixelFormat::PF_B8G8R8:
-        return VK_FORMAT_B8G8R8_UINT;
-    case EPixelFormat::PF_B8G8R8_sRGB:
-        return VK_FORMAT_B8G8R8_SRGB;
-    case EPixelFormat::PF_R8G8B8A8:
-        return VK_FORMAT_R8G8B8A8_UINT;
-    case EPixelFormat::PF_R8G8B8A8_sRGB:
-        return VK_FORMAT_R8G8B8A8_SRGB;
-    case EPixelFormat::PF_B8G8R8A8:
-        return VK_FORMAT_B8G8R8A8_UINT;
-    case EPixelFormat::PF_B8G8R8A8_sRGB:
-        return VK_FORMAT_B8G8R8A8_SRGB;
-    case EPixelFormat::PF_D24S8:
-        return VK_FORMAT_D24_UNORM_S8_UINT;
-    case EPixelFormat::PF_D32F:
-        return VK_FORMAT_D32_SFLOAT;
-    case EPixelFormat::PF_D32FS8:
-        return VK_FORMAT_D32_SFLOAT_S8_UINT;
-    case EPixelFormat::PF_DXT1:
-        return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-    case EPixelFormat::PF_DXT1_sRGB:
-        return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
-    case EPixelFormat::PF_DXT5:
-        return VK_FORMAT_BC3_UNORM_BLOCK;
-    case EPixelFormat::PF_DXT5_sRGB:
-        return VK_FORMAT_BC3_SRGB_BLOCK;
-    case EPixelFormat::PF_R16F:
-        return VK_FORMAT_R16_SFLOAT;
-    case EPixelFormat::PF_R16G16F:
-        return VK_FORMAT_R16G16_SFLOAT;
-    case EPixelFormat::PF_R16G16B16F:
-        return VK_FORMAT_R16G16B16_SFLOAT;
-    case EPixelFormat::PF_R16G16B16A16F:
-        return VK_FORMAT_R16G16B16A16_SFLOAT;
-    case EPixelFormat::PF_R32F:
-        return VK_FORMAT_R32_SFLOAT;
-    case EPixelFormat::PF_R32G32F:
-        return VK_FORMAT_R32G32_SFLOAT;
-    case EPixelFormat::PF_R32G32B32F:
-        return VK_FORMAT_R32G32B32_SFLOAT;
-    case EPixelFormat::PF_R32G32B32A32F:
-        return VK_FORMAT_R32G32B32A32_SFLOAT;
-    default:
-        return VK_FORMAT_UNDEFINED;
-    }
-}
 }
 
 namespace nilou {
@@ -179,7 +118,7 @@ FVulkanDynamicRHI::QueueFamilyIndices FVulkanDynamicRHI::findQueueFamilies(VkPhy
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
@@ -250,12 +189,14 @@ FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
 
 void FVulkanDynamicRHI::RHIBeginFrame()
 {
-
+    vkWaitForFences(device, 1, &FrameFence, VK_TRUE, UINT64_MAX);
+    VkSemaphore ImageAcquiredSemaphore;
+    VkResult result = SwapChain->AcquireImageIndex(&ImageAcquiredSemaphore);
 }
 
 void FVulkanDynamicRHI::RHIEndFrame()
 {
-
+    SwapChain->Present(GfxQueue, PresentQueue);
 }
 
 void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
@@ -463,12 +404,35 @@ int FVulkanDynamicRHI::Initialize()
         }
     }
 
+    std::optional<uint32> GfxQueueIndex, PresentQueueIndex;
     /** Create logical device */
     {
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        uint32 queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+        queueFamilies.resize(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+        
+        for (int i = 0; i < queueFamilies.size(); i++) {
+            const auto& queueFamily = queueFamilies[i];
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                GfxQueueIndex = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+            if (presentSupport) {
+                PresentQueueIndex = i;
+            }
+
+            if (GfxQueueIndex.has_value() && PresentQueueIndex.has_value()) {
+                break;
+            }
+        }
+
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueFamilyIndex = GfxQueueIndex.value();
         queueCreateInfo.queueCount = 1;
         float queuePriority = 1.0f;
         queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -494,51 +458,11 @@ int FVulkanDynamicRHI::Initialize()
 
     /** Create swap chain */
     {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
-        VkPresentModeKHR presentMode = VkPresentModeKHR::VK_PRESENT_MODE_MAILBOX_KHR;
         VkExtent2D extent{GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight};
-        uint32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-            imageCount = swapChainSupport.capabilities.maxImageCount;
-        }
-
-        VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface;
-
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
-        createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-        uint32 queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-        if (indices.graphicsFamily != indices.presentFamily) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
-        } else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-            NILOU_LOG(Error, "failed to create swap chain!")
-            return 1;
-        }
-
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
-        swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+        SwapChain = new FVulkanSwapChain(
+            physicalDevice, device, surface, extent, 
+            EPixelFormat::PF_B8G8R8A8_sRGB, 
+            1, &GfxQueueIndex.value(), swapChainImages);
 
         swapChainExtent = extent;
     }
@@ -569,8 +493,26 @@ int FVulkanDynamicRHI::Initialize()
             }
         }
     }
+    
+    {
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &FrameFence) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        }
+    }
 
-    CommandBufferManager = new FVulkanCommandBufferManager(device);
+    {
+        GfxQueue = new FVulkanQueue(device, GfxQueueIndex.value());
+        PresentQueue = new FVulkanQueue(device, PresentQueueIndex.value());
+    }
+
+    CommandBufferManager = new FVulkanCommandBufferManager(device, this);
 
     MemoryManager = new FVulkanMemoryManager(device, physicalDevice);
 
@@ -607,7 +549,6 @@ void FVulkanDynamicRHI::Finalize()
         vkDestroyImageView(device, imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
 
     DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
@@ -949,7 +890,7 @@ void FVulkanDynamicRHI::RHIEndRenderPass()
     {
         CommandBufferManager->SubmitUploadCmdBuffer();
     }
-    CommandBufferManager->SubmitActiveCmdBuffer({});
+    CommandBufferManager->SubmitActiveCmdBuffer({RenderFinishedSemaphore});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
 }
 

@@ -15,6 +15,7 @@ class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
 class FVulkanStagingManager;
 class FVulkanDescriptorPoolsManager;
+class FVulkanQueue;
 
 }
 
@@ -150,8 +151,11 @@ public:
     FVulkanStagingManager* StagingManager;
     FVulkanRenderPassManager* RenderPassManager;
     FVulkanDescriptorPoolsManager* DescriptorPoolsManager;
-
-    static VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
+    
+	FVulkanQueue* GfxQueue;
+	FVulkanQueue* ComputeQueue;
+	FVulkanQueue* TransferQueue;
+	FVulkanQueue* PresentQueue;
     
 private:
 
@@ -173,12 +177,13 @@ private:
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
-    VkSwapchainKHR swapChain{};
+    class FVulkanSwapChain* SwapChain;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat{};
     VkFormat depthImageFormat{};
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
+    std::vector<VkQueueFamilyProperties> queueFamilies;
     VkCommandPool commandPool{};
     std::vector<VkCommandBuffer> commandBuffers;
     VkDescriptorPool descriptorPool{};
@@ -193,6 +198,11 @@ private:
         VkBuffer Buffer;
     };
     StreamSource CurrentStreamSources[MaxVertexElementCount];
+    std::vector<VkFence> FrameFences;
+    std::vector<VkSemaphore> ImageAvailableSemaphores;
+    std::vector<VkSemaphore> RenderFinishedSemaphores;
+    uint32 CurrentSwapChainImageIndex;
+    
 
     class shaderc_compiler* shader_compiler = nullptr;
 

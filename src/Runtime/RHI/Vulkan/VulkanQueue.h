@@ -21,7 +21,7 @@ public:
 	}
 
     VkDevice Device;
-    VkQueue Queue;
+    VkQueue Handle;
 	uint32 FamilyIndex;
 	uint32 QueueIndex;
 

@@ -131,7 +131,7 @@ class FVulkanCommandBufferManager
 {
 public:
 
-    FVulkanCommandBufferManager(VkDevice InDevice);
+    FVulkanCommandBufferManager(VkDevice InDevice, class FVulkanDynamicRHI* Context);
 
 	FVulkanCmdBuffer* GetActiveCmdBuffer()
     {
@@ -163,12 +163,26 @@ public:
 		return ActiveCmdBuffer != nullptr;
 	}
 
+	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 10.0f);
+
     FVulkanCommandBufferPool Pool;
 
     FVulkanQueue* Queue;
 
     FVulkanCmdBuffer* ActiveCmdBuffer;
     FVulkanCmdBuffer* UploadCmdBuffer;
+
+	/** This semaphore is used to prevent overlaps between the (current) graphics cmdbuf and next upload cmdbuf. */
+	VkSemaphore ActiveCmdBufferSemaphore;
+
+	/** Holds semaphores associated with the recent render cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
+	std::vector<VkSemaphore> RenderingCompletedSemaphores;
+	
+	/** This semaphore is used to prevent overlaps between (current) upload cmdbuf and next graphics cmdbuf. */
+	VkSemaphore UploadCmdBufferSemaphore;
+	
+	/** Holds semaphores associated with the recent upload cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
+	std::vector<VkSemaphore> UploadCompletedSemaphores;
 
 };
 
