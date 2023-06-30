@@ -32,7 +32,7 @@ _GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384�
 ![](figures/virtual_heightfield.png)
 这张虚拟纹理在github中是没有的，因为太大了，我上传了百度网盘  
 链接：https://pan.baidu.com/s/1MtKbJZ7K1Ymn9_n0iOwaGQ?pwd=s0a3  
-下载后将它放到Content/Textures目录下即可  
+下载后将它放到Content/Textures目录下即可
   
 ## 运行
 第一次运行之前，或者添加了被NCLASS标记的类之后，需要手动运行一次NilouHeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
