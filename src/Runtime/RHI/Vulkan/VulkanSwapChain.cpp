@@ -1,4 +1,5 @@
 #include "VulkanSwapChain.h"
+#include "VulkanQueue.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -69,19 +70,31 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice Device,
 
     for (int i = 0; i < ImageAcquiredSemaphore.size(); i++)
     {
-        VkSemaphoreCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        vkCreateSemaphore(Device, &createInfo, nullptr, &ImageAcquiredSemaphore[i]);
+        ImageAcquiredSemaphore[i] = CreateSemephore(Device);
     }
 
 }
 
-VkResult FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
+void FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue)
 {
-    VkResult result = vkAcquireNextImageKHR(Device, Handle, UINT64_MAX, ImageAcquiredSemaphore[SemaphoreIndex], VK_NULL_HANDLE, &SemaphoreIndex);
+	VkPresentInfoKHR Info{};
+	Info.swapchainCount = 1;
+	Info.pSwapchains = &Handle;
+	Info.pImageIndices = (uint32*)&CurrentImageIndex;
+    vkQueuePresentKHR(PresentQueue->Handle, &Info); 
+}
+
+int32 FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
+{
     SemaphoreIndex = (SemaphoreIndex+1) % ImageAcquiredSemaphore.size();
-    *OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
-    return result;
+    uint32 ImageIndex;
+    VkResult result = vkAcquireNextImageKHR(
+        Device, Handle, UINT64_MAX, 
+        ImageAcquiredSemaphore[SemaphoreIndex]->Handle, 
+        VK_NULL_HANDLE, &ImageIndex);
+    CurrentImageIndex = SemaphoreIndex;
+    *OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex]->Handle;
+    return CurrentImageIndex;
 }
 
 }

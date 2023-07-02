@@ -42,8 +42,11 @@ namespace nilou {
     /** Begin FRenderResource Interface */
     void FDynamicUniformBuffer::InitRHI()
     {
-        FRenderResource::InitRHI();
-        UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, Data);
+        if (StructName != "")
+        {
+            FRenderResource::InitRHI();
+            UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, Data);
+        }
     }
     void FDynamicUniformBuffer::ReleaseRHI()
     {

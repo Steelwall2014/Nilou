@@ -57,7 +57,7 @@ namespace nilou {
         DebugMat->UpdateCode(R"(
 #include "../include/BasePassCommon.glsl"
 #include "../include/functions.glsl"
-uniform samplerCube Cube;
+layout(binding=0) uniform samplerCube Cube;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {

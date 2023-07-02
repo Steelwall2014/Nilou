@@ -7,7 +7,10 @@
 namespace nilou {
     class OpenGLGraphicsPipelineState : public FRHIGraphicsPipelineState
     {
+    public:
         friend class FOpenGLDynamicRHI;
+        OpenGLGraphicsPipelineState(const FGraphicsPipelineStateInitializer& InInitializer)
+            : FRHIGraphicsPipelineState(InInitializer) { }
     private:
         OpenGLLinkedProgramRef Program;
     };

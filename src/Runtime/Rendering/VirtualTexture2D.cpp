@@ -19,7 +19,7 @@ namespace nilou {
         FTextureResource::InitRHI();
         TextureRHI = FDynamicRHI::GetDynamicRHI()->RHICreateSparseTexture2D(
             Name, Image->GetPixelFormat(), 
-            NumMips, Image->GetWidth(), Image->GetHeight());
+            NumMips, Image->GetWidth(), Image->GetHeight(), TexCreate_Virtual);
         SamplerRHI.Texture = TextureRHI.get();
     }
 

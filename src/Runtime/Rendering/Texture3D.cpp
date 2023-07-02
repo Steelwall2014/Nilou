@@ -19,7 +19,7 @@ namespace nilou {
         FTextureResource::InitRHI();
         auto Texture3DRHI = RHICmdList->RHICreateTexture3D(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight(), Image->GetDepth());
+            Image->GetWidth(), Image->GetHeight(), Image->GetDepth(), TexCreate_CPUWritable);
         TextureRHI = Texture3DRHI;
         
         for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)

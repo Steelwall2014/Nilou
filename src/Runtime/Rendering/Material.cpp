@@ -191,8 +191,11 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
             [=](FDynamicRHI* RHICmdList) 
             {
-                UniformBlock->InitResource();
-                GetRenderProxy()->UniformBuffers["MAT_UNIFORM_BLOCK"] = UniformBlock.get();
+                if (UniformBlock->GetStructName() != "")
+                {
+                    UniformBlock->InitResource();
+                    GetRenderProxy()->UniformBuffers["MAT_UNIFORM_BLOCK"] = UniformBlock.get();
+                }
                 GetRenderProxy()->BlendState = RHICmdList->RHICreateBlendState(BlendState);
                 GetRenderProxy()->RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerState);
                 GetRenderProxy()->DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilState);

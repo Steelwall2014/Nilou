@@ -33,7 +33,7 @@
             "D:/Nilou/Assets/Shaders"
         ],
         "Nilou": [
-            "-rhi", "opengl"
+            "-rhi", "vulkan"
         ]
     },
     "cmake.configureOnOpen": false

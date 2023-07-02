@@ -1191,8 +1191,7 @@ namespace nilou {
         if (OutPSO)
             return OutPSO;
 
-        OpenGLGraphicsPipelineStateRef PSO = std::make_shared<OpenGLGraphicsPipelineState>();
-        PSO->Initializer = Initializer;
+        OpenGLGraphicsPipelineStateRef PSO = std::make_shared<OpenGLGraphicsPipelineState>(Initializer);
         PSO->PipelineLayout = std::make_shared<FRHIPipelineLayout>();
         RHIGetError();
         if (Initializer.ComputeShader != nullptr)
@@ -1384,7 +1383,7 @@ namespace nilou {
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTexture2D(
         const std::string &name, EPixelFormat InFormat, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY)
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags)
     {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
@@ -1400,7 +1399,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture2DArrayRef FOpenGLDynamicRHI::RHICreateTexture2DArray(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1417,7 +1416,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture3DRef FOpenGLDynamicRHI::RHICreateTexture3D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1434,7 +1433,7 @@ namespace nilou {
         return Texture;
     }
     RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureCube(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags
     )
     {
         RHIGetError();
@@ -1456,7 +1455,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateSparseTexture2D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);

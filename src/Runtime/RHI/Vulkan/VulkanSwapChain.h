@@ -19,11 +19,13 @@ public:
     std::vector<VkSurfaceFormatKHR> Formats;
     std::vector<VkPresentModeKHR> PresentModes;
     VkSwapchainKHR Handle;
-    std::vector<VkSemaphore> ImageAcquiredSemaphore;
+    std::vector<std::shared_ptr<FVulkanSemaphore>> ImageAcquiredSemaphore;
 
     void Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue);
 
-	VkResult AcquireImageIndex(VkSemaphore* OutSemaphore);
+	int32 AcquireImageIndex(VkSemaphore* OutSemaphore);
+
+    int32 CurrentImageIndex;
 
 private:
 

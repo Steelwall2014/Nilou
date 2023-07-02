@@ -4,12 +4,14 @@
 #include <vector>
 #include "Platform.h"
 #include "RHIResources.h"
+#include "Common/Log.h"
 
 namespace nilou {
 
 class FVulkanQueue;
 class FVulkanCommandBufferPool;
 class FVulkanCommandBufferManager;
+class FVulkanSemaphore;
 
 class FVulkanCmdBuffer
 {
@@ -50,10 +52,25 @@ public:
 		return State != EState::NotAllocated;
 	}
 
+	void Wait(uint64 Time)
+	{
+		vkWaitForFences(Device, 1, &Fence, VK_TRUE, Time);
+		RefreshFenceStatus();
+	}
+
 	void AllocMemory();
 	void FreeMemory();
 
 	VkCommandBuffer GetHandle() const { return Handle; }
+
+	void RefreshFenceStatus();
+
+	void AddWaitSemaphore(VkPipelineStageFlags Flags, VkSemaphore Semaphore)
+	{
+		Ncheck(std::find(WaitSemaphores.begin(), WaitSemaphores.end(), Semaphore) == WaitSemaphores.end());
+		WaitSemaphores.push_back(Semaphore);
+		WaitFlags.push_back(Flags);
+	}
 
     VkCommandBuffer Handle{};
 
@@ -108,17 +125,23 @@ class FVulkanCommandBufferPool
 {
 public:
 
-    FVulkanCommandBufferPool(VkDevice InDevice, FVulkanCommandBufferManager& InMgr)
+    FVulkanCommandBufferPool(VkDevice InDevice, FVulkanCommandBufferManager& InMgr, int32 QueueFamilyIndex)
 		: Device(InDevice)
 		, Mgr(InMgr)
-	{}
+	{
+		VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = QueueFamilyIndex;
+		vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle);
+	}
 
-    VkCommandPool Handle;
+    VkCommandPool Handle{};
 
     VkDevice Device;
 
-	std::vector<FVulkanCmdBuffer*> CmdBuffers;
-	std::vector<FVulkanCmdBuffer*> FreeCmdBuffers;
+	std::vector<std::shared_ptr<FVulkanCmdBuffer>> CmdBuffers;
+	std::vector<std::shared_ptr<FVulkanCmdBuffer>> FreeCmdBuffers;
 
     FVulkanCommandBufferManager& Mgr;
 
@@ -165,24 +188,26 @@ public:
 
 	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 10.0f);
 
+	VkDevice Device;
+
     FVulkanCommandBufferPool Pool;
 
-    FVulkanQueue* Queue;
+    FVulkanQueue* Queue{};
 
-    FVulkanCmdBuffer* ActiveCmdBuffer;
-    FVulkanCmdBuffer* UploadCmdBuffer;
+    FVulkanCmdBuffer* ActiveCmdBuffer = nullptr;
+    FVulkanCmdBuffer* UploadCmdBuffer = nullptr;
 
 	/** This semaphore is used to prevent overlaps between the (current) graphics cmdbuf and next upload cmdbuf. */
-	VkSemaphore ActiveCmdBufferSemaphore;
+	std::shared_ptr<FVulkanSemaphore> ActiveCmdBufferSemaphore{};
 
 	/** Holds semaphores associated with the recent render cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
-	std::vector<VkSemaphore> RenderingCompletedSemaphores;
+	std::vector<std::shared_ptr<FVulkanSemaphore>> RenderingCompletedSemaphores;
 	
 	/** This semaphore is used to prevent overlaps between (current) upload cmdbuf and next graphics cmdbuf. */
-	VkSemaphore UploadCmdBufferSemaphore;
+	std::shared_ptr<FVulkanSemaphore> UploadCmdBufferSemaphore{};
 	
 	/** Holds semaphores associated with the recent upload cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
-	std::vector<VkSemaphore> UploadCompletedSemaphores;
+	std::vector<std::shared_ptr<FVulkanSemaphore>> UploadCompletedSemaphores;
 
 };
 

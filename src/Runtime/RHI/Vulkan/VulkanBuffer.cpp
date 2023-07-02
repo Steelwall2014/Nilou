@@ -138,14 +138,16 @@ FStagingBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageF
     StagingBuffer->Device = Device;
     
 
-    VkBufferCreateInfo StagingBufferCreateInfo;
-    StagingBufferCreateInfo.flags = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    VkBufferCreateInfo StagingBufferCreateInfo{};
+    StagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     StagingBufferCreateInfo.size = Size;
     StagingBufferCreateInfo.usage = InUsageFlags;
 
     vkCreateBuffer(Device, &StagingBufferCreateInfo, nullptr, &StagingBuffer->Buffer);
 
     VulkanRHI->MemoryManager->AllocateBufferMemory(&StagingBuffer->StagingBufferMemory, StagingBuffer->Buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | InMemoryReadFlags);
+
+    vkBindBufferMemory(Device, StagingBuffer->Buffer, StagingBuffer->StagingBufferMemory, 0);
 
     {
         std::lock_guard<std::mutex> Lock(StagingLock);
@@ -185,7 +187,7 @@ void FVulkanStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingB
     StagingBuffer = nullptr;
 }
 
-VulkanMultiBuffer::VulkanMultiBuffer(FVulkanDynamicRHI* InContext, uint32 InSize, EBufferUsageFlags InUsage)
+VulkanMultiBuffer::VulkanMultiBuffer(FVulkanDynamicRHI* InContext, uint32 InSize, EBufferUsageFlags InUsage, VkBufferUsageFlags InVkUsage)
     : Size(InSize)
     , Usage(InUsage)
     , Context(InContext)
@@ -193,7 +195,7 @@ VulkanMultiBuffer::VulkanMultiBuffer(FVulkanDynamicRHI* InContext, uint32 InSize
     NumBuffers = GetNumBuffersFromUsage(InUsage);
 
     const bool bZeroSize = (Size == 0);
-    VkBufferUsageFlags UsageFlags = TranslateBufferUsageFlags(InUsage, bZeroSize);
+    VkBufferUsageFlags UsageFlags = InVkUsage | TranslateBufferUsageFlags(InUsage, bZeroSize);
     
     auto properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -302,10 +304,13 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
         }
         else
         {
-            FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
-            vkMapMemory(VulkanRHI->device, Memories[DynamicBufferIndex], 0, Size, 0, &Data);
-            DataOffset = Offset;
-            LockStatus = ELockStatus::PersistentMapping;
+            if (!MappedPointer)
+            {
+                FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+                vkMapMemory(VulkanRHI->device, Memories[DynamicBufferIndex], 0, Size, 0, &MappedPointer);
+                LockStatus = ELockStatus::PersistentMapping;
+            }
+            Data = (uint8*)MappedPointer + Offset;
         }
     }
     return Data;
@@ -420,8 +425,9 @@ void FVulkanDynamicRHI::RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32
 void FVulkanDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef Buffer, void* Data)
 {
     VulkanUniformBuffer* vkBuffer = static_cast<VulkanUniformBuffer*>(Buffer.get());
-    void* Dst = vkBuffer->Lock(this, RLM_WriteOnly, 0, Buffer->GetSize());
-        std::memcpy(Dst, Data, Buffer->GetSize());
+    int32 Size = Buffer->GetSize();
+    void* Dst = vkBuffer->Lock(this, RLM_WriteOnly, Size, 0);
+        std::memcpy(Dst, Data, Size);
     vkBuffer->Unlock(this);
 }
 

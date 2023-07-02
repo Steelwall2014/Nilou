@@ -212,14 +212,14 @@ namespace nilou {
                         EPixelFormat::PF_R16F, 
                         1, 
                         NodeCount.x, 
-                        NodeCount.y);
+                        NodeCount.y, TexCreate_UAV);
                     uvec2 size = LodParams[0].NodeSideNum * uvec2(8);
                     HeightMinMaxTexture = RHICmdList->RHICreateTexture2D(
                             "HeightMinMaxTexture", 
                             EPixelFormat::PF_R16G16F, 
                             LodCount+3, 
                             size.x, 
-                            size.y);
+                            size.y, TexCreate_UAV);
                     RHITextureParams params;
                     params.Mag_Filter = ETextureFilters::TF_Nearest;
                     params.Min_Filter = ETextureFilters::TF_Nearest;

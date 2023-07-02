@@ -187,7 +187,7 @@ namespace nilou {
 			TextureName = InTextureName;
 		}
 		ETextureType GetTextureType() const { return TextureType; };
-		uint32 GetNumLayers() const { return TextureType == ETextureType::TT_Texture2DArray ? GetSizeXYZ().z : 1; }
+		uint32 GetNumLayers() const { return TextureType == TT_Texture2DArray || TextureType == TT_TextureCube ? GetSizeXYZ().z : 1; }
 	protected:
 		uint32 NumMips;
 		EPixelFormat Format;
@@ -263,7 +263,7 @@ namespace nilou {
 		, Size(InSize)
 		{ TextureType = ETextureType::TT_TextureCube; }
 
-		virtual uvec3 GetSizeXYZ() const override { return uvec3(Size, Size, 1); }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(Size, Size, 6); }
 
 	protected:
 		uint32 Size;
@@ -313,10 +313,10 @@ namespace nilou {
 
 		FRHIVertexDeclaration* VertexDeclaration;
 
-		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { EPixelFormat::PF_R8G8B8 };
-		uint32 NumRenderTargetsEnabled;
+		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_UNKNOWN };
+		uint32 NumRenderTargetsEnabled = 0;
 
-		EPixelFormat DepthStencilTargetFormat;
+		EPixelFormat DepthStencilTargetFormat = PF_UNKNOWN;
 
 		bool operator==(const FGraphicsPipelineStateInitializer &Other) const;
 
@@ -349,7 +349,9 @@ namespace nilou {
 	class FRHIGraphicsPipelineState : public RHIResource
 	{
 	public: 
-		FRHIGraphicsPipelineState() : RHIResource(RRT_GraphicsPipelineState) {}
+		FRHIGraphicsPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
+			: RHIResource(RRT_GraphicsPipelineState)
+			, Initializer(InInitializer) {}
 
 		FGraphicsPipelineStateInitializer Initializer;
 

@@ -1,8 +1,14 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include "RHIResources.h"
+#include "VulkanSemaphore.h"
 
 namespace nilou {
+
+inline std::shared_ptr<FVulkanSemaphore> CreateSemephore(VkDevice Device)
+{
+    return std::make_shared<FVulkanSemaphore>(Device);
+}
 
 struct FVulkanRenderPass
 {
@@ -20,8 +26,9 @@ struct FVulkanRenderPass
 class VulkanGraphicsPipelineState : public FRHIGraphicsPipelineState
 {
 public:
-    VulkanGraphicsPipelineState(VkDevice InDevice)
+    VulkanGraphicsPipelineState(VkDevice InDevice, const FGraphicsPipelineStateInitializer& InInInitializer)
         : Device(InDevice)
+        , FRHIGraphicsPipelineState(InInInitializer)
     { }
     VkDevice Device;
     VkPipeline VulkanPipeline;
@@ -69,14 +76,17 @@ using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
 
 struct FVulkanRenderTargetLayout
 {
+    FVulkanRenderTargetLayout(const std::unordered_map<EFramebufferAttachment, EPixelFormat>& Attachments);
     FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
     FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info);
     
     std::vector<VkAttachmentDescription> Desc;
     std::vector<VkAttachmentReference> ColorReferences;
-    VkAttachmentReference DepthStencilReference;
+    VkAttachmentReference DepthStencilReference{};
 
-    uint32 RenderPassFullHash;
+    uint32 RenderPassFullHash = 0;
+
+    bool bHasDepthAttachment = false;
 
     bool operator==(const FVulkanRenderTargetLayout& Other) const
     {
@@ -93,7 +103,10 @@ struct FVulkanRenderTargetLayout
     }
 
 private:
-    void InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer);
+    void InitWithAttachments(
+        const std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS>& RenderTargetFormats,
+        uint32 NumRenderTargetsEnabled,
+        EPixelFormat DepthStencilTargetFormat);
 
 };
 

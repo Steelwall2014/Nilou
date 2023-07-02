@@ -2,7 +2,11 @@
 layout(location = 0) in vec3 POSITION;
 layout(location = 1) in vec3 NORMAL;
 layout(location = 2) in vec4 TANGENT;
+#if ENABLE_COLOR_COMPONENT
 layout(location = 3) in vec4 COLOR;
+#else
+const vec4 COLOR = vec4(0);
+#endif
 
 layout(location = 4) in vec2 TEXCOORD_0;
 

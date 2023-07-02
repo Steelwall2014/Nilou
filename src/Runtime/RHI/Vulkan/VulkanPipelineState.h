@@ -8,7 +8,12 @@ namespace nilou {
 
 struct FVulkanDescriptorSetWriter
 {
-    std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo> DescriptorInfo;
+    union
+    {
+        VkDescriptorBufferInfo BufferInfo;
+        VkDescriptorImageInfo ImageInfo;
+    };
+    //std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo> DescriptorInfo;
     VkWriteDescriptorSet WriteDescriptor;
 };
 
@@ -43,7 +48,7 @@ public:
         : Device(InDevice)
     {}
     VkDevice Device;
-    FVulkanDescriptorSetsLayout DescriptorSetsLayout;
+    std::shared_ptr<FVulkanDescriptorSetsLayout> DescriptorSetsLayout;
     VkPipelineLayout PipelineLayout;
     ~VulkanPipelineLayout();
 };

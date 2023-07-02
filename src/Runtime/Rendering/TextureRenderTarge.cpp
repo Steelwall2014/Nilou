@@ -17,7 +17,7 @@ namespace nilou {
         FTextureRenderTargetResource::InitRHI();
         auto Texture2DRHI = RHICmdList->RHICreateTexture2D(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight());
+            Image->GetWidth(), Image->GetHeight(), TexCreate_RenderTargetable);
         TextureRHI = Texture2DRHI;
         for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
         {
@@ -52,7 +52,7 @@ namespace nilou {
         FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
         auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight());
+            Image->GetWidth(), Image->GetHeight(), TexCreate_RenderTargetable);
         TextureRHI = TextureCubeRHI;
         SamplerRHI.Texture = TextureRHI.get();
         

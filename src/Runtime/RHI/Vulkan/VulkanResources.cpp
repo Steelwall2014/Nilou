@@ -126,7 +126,7 @@ VulkanGraphicsPipelineState::~VulkanGraphicsPipelineState()
 
 VulkanDepthStencilState::VulkanDepthStencilState(const FDepthStencilStateInitializer& Initializer)
 {
-    DepthStencilState = VkPipelineDepthStencilStateCreateInfo{};
+    DepthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     DepthStencilState.depthTestEnable = (Initializer.DepthTest != CF_Always || Initializer.bEnableDepthWrite) ? VK_TRUE : VK_FALSE;
     DepthStencilState.depthCompareOp = CompareOpToVulkan(Initializer.DepthTest);
     DepthStencilState.depthWriteEnable = Initializer.bEnableDepthWrite ? VK_TRUE : VK_FALSE;
@@ -165,7 +165,7 @@ VulkanDepthStencilState::VulkanDepthStencilState(const FDepthStencilStateInitial
 
 VulkanRasterizerState::VulkanRasterizerState(const FRasterizerStateInitializer& Initializer)
 {
-    RasterizerState = VkPipelineRasterizationStateCreateInfo{};
+    RasterizerState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	RasterizerState.polygonMode = RasterizerFillModeToVulkan(Initializer.FillMode);
 	RasterizerState.cullMode = RasterizerCullModeToVulkan(Initializer.CullMode);
 
@@ -204,23 +204,61 @@ VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
     }
 }
 
+FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const std::unordered_map<EFramebufferAttachment, EPixelFormat>& Attachments)
+{
+    std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
+    uint32 NumRenderTargetsEnabled = 0;
+    EPixelFormat DepthStencilTargetFormat;
+    for (auto [Attachment, Format] : Attachments)
+    {
+        if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
+        {
+            DepthStencilTargetFormat = Format;
+        }
+        else 
+        {
+            uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
+            RenderTargetFormats[index] = Format;
+            NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
+        }
+    }
+    InitWithAttachments(RenderTargetFormats, NumRenderTargetsEnabled, DepthStencilTargetFormat);
+}
+
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
 {
-    InitWithInitializer(Initializer);
+    InitWithAttachments(Initializer.RenderTargetFormats, Initializer.NumRenderTargetsEnabled, Initializer.DepthStencilTargetFormat);
 }
 
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info)
 {
-    FGraphicsPipelineStateInitializer Initializer;
-    Initializer.BuildRenderTargetFormats(Info.Framebuffer);
-    InitWithInitializer(Initializer);
+    std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
+    uint32 NumRenderTargetsEnabled = 0;
+    EPixelFormat DepthStencilTargetFormat;
+    for (auto [Attachment, Texture] : Info.Framebuffer->Attachments)
+    {
+        if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
+        {
+            DepthStencilTargetFormat = Texture->GetFormat();
+        }
+        else 
+        {
+            uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
+            RenderTargetFormats[index] = Texture->GetFormat();
+            NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
+        }
+    }
+    InitWithAttachments(RenderTargetFormats, NumRenderTargetsEnabled, DepthStencilTargetFormat);
 }
 
-void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineStateInitializer& Initializer)
+void FVulkanRenderTargetLayout::InitWithAttachments(        
+    const std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS>& RenderTargetFormats,
+    uint32 NumRenderTargetsEnabled,
+    EPixelFormat DepthStencilTargetFormat)
 {
-	for (uint32 Index = 0; Index < Initializer.NumRenderTargetsEnabled; ++Index)
+	for (uint32 Index = 0; Index < NumRenderTargetsEnabled; ++Index)
     {
-		EPixelFormat Format = Initializer.RenderTargetFormats[Index];
+		EPixelFormat Format = RenderTargetFormats[Index];
 		if (Format != EPixelFormat::PF_UNKNOWN)
 		{
 			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
@@ -240,21 +278,22 @@ void FVulkanRenderTargetLayout::InitWithInitializer(const FGraphicsPipelineState
 			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
     }
-    if (Initializer.DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
+    if (DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
     {
-        EPixelFormat Format = Initializer.DepthStencilTargetFormat;
-		VkAttachmentDescription& CurrDesc = Desc[MAX_SIMULTANEOUS_RENDERTARGETS];
+        bHasDepthAttachment = true;
+        EPixelFormat Format = DepthStencilTargetFormat;
+		VkAttachmentDescription& CurrDesc = Desc.emplace_back();
         CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
         CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        DepthStencilReference.attachment = Initializer.NumRenderTargetsEnabled;
-        DepthStencilReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        DepthStencilReference.attachment = NumRenderTargetsEnabled;
+        DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     }
     
     RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
@@ -269,9 +308,10 @@ FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkan
     FVulkanRenderPass& RenderPass = RenderPasses.emplace(RTLayout, Device).first->second;
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
+    subpass.colorAttachmentCount = RTLayout.ColorReferences.size();
     subpass.pColorAttachments = RTLayout.ColorReferences.data();
-    subpass.pDepthStencilAttachment = &RTLayout.DepthStencilReference;
+    if (RTLayout.bHasDepthAttachment)
+        subpass.pDepthStencilAttachment = &RTLayout.DepthStencilReference;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;

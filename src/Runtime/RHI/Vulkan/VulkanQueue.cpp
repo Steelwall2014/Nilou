@@ -14,6 +14,7 @@ FVulkanQueue::FVulkanQueue(VkDevice InDevice, uint32 InFamilyIndex)
 void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphores, VkSemaphore* SignalSemaphores)
 {
 	VkSubmitInfo SubmitInfo{};
+	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = &CmdBuffer->Handle;
 	SubmitInfo.signalSemaphoreCount = NumSignalSemaphores;
@@ -29,6 +30,8 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphore
 	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
     CmdBuffer->MarkSemaphoresAsSubmitted();
 	LastSubmittedCmdBuffer = CmdBuffer;
+	CmdBuffer->Wait(ULONG_MAX);
+	CmdBuffer->RefreshFenceStatus();
     
 }
 

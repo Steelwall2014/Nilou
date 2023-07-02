@@ -22,7 +22,7 @@ namespace nilou {
         FTextureResource::InitRHI();
         auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
             Name, Image->GetPixelFormat(), 
-            NumMips, Image->GetWidth(), Image->GetHeight());
+            NumMips, Image->GetWidth(), Image->GetHeight(), TexCreate_CPUWritable);
         TextureRHI = TextureCubeRHI;
         
         for (int i = 0; i < 6; i++)

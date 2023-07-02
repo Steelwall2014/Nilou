@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 #include "Platform.h"
 #include "Common/Crc.h"
 
@@ -37,7 +38,7 @@ public:
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layoutInfo.bindingCount = static_cast<uint32_t>(SetLayoutBindings.size());
 			layoutInfo.pBindings = SetLayoutBindings.data();
-			vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &Handles[i]);
+			VkResult res = vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &Handles[i]);
 			for (auto& Binding : SetLayoutBindings)
 			{
 				LayoutTypes[static_cast<VkDescriptorType>(Binding.descriptorType)] += 1;
@@ -45,12 +46,6 @@ public:
 		}
 
 		GenerateHash();
-	}
-
-	~FVulkanDescriptorSetsLayout()
-	{
-		for (int i = 0; i < Handles.size(); i++)
-			vkDestroyDescriptorSetLayout(Device, Handles[i], nullptr);
 	}
 
 	uint32 GetTypesUsed(VkDescriptorType Type) const
@@ -151,9 +146,12 @@ public:
 class FVulkanDescriptorSets
 {
 public:
-	FVulkanDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout) : Layout(InLayout), Handles(InLayout.SetLayouts.size()) { }
+	FVulkanDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout) 
+		: Layout(InLayout)
+		, Handles(InLayout.SetLayouts.size()){ }
 	const FVulkanDescriptorSetsLayout& Layout;
 	std::vector<VkDescriptorSet> Handles;
+	class FVulkanDescriptorPool* Owner;
 };
 
 }
@@ -217,18 +215,19 @@ class FVulkanTypedDescriptorPoolSet
 {
 public:
 	FVulkanTypedDescriptorPoolSet(VkDevice InDevice) : PoolCurrent(Pools.end()), Device(InDevice) { }
-	bool AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets);
+	bool AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets, FVulkanDescriptorPool** OutOwner);
 private:
 	VkDevice Device;
-	std::list<FVulkanDescriptorPool> Pools;
+	std::list<FVulkanDescriptorPool> Pools{};
 	std::list<FVulkanDescriptorPool>::iterator PoolCurrent{};
 };
 
 class FVulkanDescriptorPoolsManager
 {
 public:
+	FVulkanDescriptorPoolsManager(VkDevice InDevice) : Device(InDevice) { }
 	VkDevice Device;
-    std::unordered_map<FVulkanDescriptorSetsLayout, FVulkanTypedDescriptorPoolSet> PoolSets;
+    std::unordered_map<FVulkanDescriptorSetsLayout, std::shared_ptr<FVulkanTypedDescriptorPoolSet>> PoolSets;
     FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);
 };
 

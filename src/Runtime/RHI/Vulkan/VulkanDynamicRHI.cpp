@@ -183,20 +183,20 @@ namespace nilou {
 FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
     : FDynamicRHI(Config)
 {
-    swapChainImageFormat = TranslatePixelFormatToVKFormat(Config.SwapChainFormat);
-    depthImageFormat = TranslatePixelFormatToVKFormat(Config.DepthFormat);
+    swapChainImageFormat = Config.SwapChainFormat;
+    depthImageFormat = Config.DepthFormat;
 }
 
 void FVulkanDynamicRHI::RHIBeginFrame()
 {
-    vkWaitForFences(device, 1, &FrameFence, VK_TRUE, UINT64_MAX);
     VkSemaphore ImageAcquiredSemaphore;
-    VkResult result = SwapChain->AcquireImageIndex(&ImageAcquiredSemaphore);
+    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&ImageAcquiredSemaphore);
 }
 
 void FVulkanDynamicRHI::RHIEndFrame()
 {
     SwapChain->Present(GfxQueue, PresentQueue);
+    CommandBufferManager->FreeUnusedCmdBuffers();
 }
 
 void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
@@ -230,15 +230,18 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
 {
     VulkanGraphicsPipelineState* VulkanPipeline = static_cast<VulkanGraphicsPipelineState*>(NewState);
     VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(VulkanPipeline->PipelineLayout.get());
+    CurrentPipelineLayout = VulkanLayout;
     
-    FVulkanDescriptorSets Sets = DescriptorPoolsManager->AllocateDescriptorSets(VulkanLayout->DescriptorSetsLayout);
+    FVulkanDescriptorSets Sets = DescriptorPoolsManager->AllocateDescriptorSets(*VulkanLayout->DescriptorSetsLayout);
     CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, Sets);
 
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
+    {
         bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
+    }
 
-    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
     vkCmdBindPipeline(CmdBuffer->GetHandle(), bind_point, VulkanPipeline->VulkanPipeline);
 
     
@@ -280,7 +283,7 @@ bool FVulkanDynamicRHI::RHISetShaderSampler(FRHIGraphicsPipelineState *BoundPipe
 
 bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *Texture, EDataAccessFlag AccessFlag)
 {
-    return RHISetShaderSampler(
+    return RHISetShaderImage(
         BoundPipelineState, PipelineStage, 
         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Texture);
 }
@@ -298,7 +301,8 @@ bool FVulkanDynamicRHI::RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipeli
 void FVulkanDynamicRHI::RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(Buffer);
-    CurrentStreamSources[StreamIndex] = { Offset, vkBuffer->GetHandle() };
+    CurrentStreamSourceOffsets[StreamIndex] = Offset;
+    CurrentStreamSourceBuffers[StreamIndex] = vkBuffer->GetHandle();
 }
 
 void FVulkanDynamicRHI::RHIBindComputeBuffer(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer)
@@ -441,6 +445,9 @@ int FVulkanDynamicRHI::Initialize()
             "VK_KHR_swapchain"
         };
         VkPhysicalDeviceFeatures deviceFeatures{};
+        deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.shaderFloat64 = VK_TRUE;
+        deviceFeatures.wideLines = VK_TRUE;
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.pQueueCreateInfos = &queueCreateInfo;
@@ -456,73 +463,10 @@ int FVulkanDynamicRHI::Initialize()
         }
     }
 
-    /** Create swap chain */
-    {
-        VkExtent2D extent{GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight};
-        SwapChain = new FVulkanSwapChain(
-            physicalDevice, device, surface, extent, 
-            EPixelFormat::PF_B8G8R8A8_sRGB, 
-            1, &GfxQueueIndex.value(), swapChainImages);
-
-        swapChainExtent = extent;
-    }
-
-    /** Create image views */
-    {
-        swapChainImageViews.resize(swapChainImages.size());
-
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = swapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-                NILOU_LOG(Error, "failed to create image views!")
-                return 1;
-            }
-        }
-    }
-    
-    {
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphore) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &FrameFence) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
-        }
-    }
-
     {
         GfxQueue = new FVulkanQueue(device, GfxQueueIndex.value());
         PresentQueue = new FVulkanQueue(device, PresentQueueIndex.value());
     }
-
-    CommandBufferManager = new FVulkanCommandBufferManager(device, this);
-
-    MemoryManager = new FVulkanMemoryManager(device, physicalDevice);
-
-    StagingManager = new FVulkanStagingManager(device, this);
-
-    RenderPassManager = new FVulkanRenderPassManager(device);
-
-    vkGetPhysicalDeviceProperties(physicalDevice, &GpuProps);
-
-    shader_compiler = shaderc_compiler_initialize();
 
     magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
         magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
@@ -537,6 +481,114 @@ int FVulkanDynamicRHI::Initialize()
             if (PixelFormat != PF_UNKNOWN)
                 vkGetPhysicalDeviceFormatProperties(physicalDevice, TranslatePixelFormatToVKFormat(PixelFormat), &FormatProperties[PixelFormat]);
         });
+
+    CommandBufferManager = new FVulkanCommandBufferManager(device, this);
+
+    MemoryManager = new FVulkanMemoryManager(device, physicalDevice);
+
+    StagingManager = new FVulkanStagingManager(device, this);
+
+    RenderPassManager = new FVulkanRenderPassManager(device);
+
+    DescriptorPoolsManager = new FVulkanDescriptorPoolsManager(device);
+
+    /** Create swap chain */
+    {        
+        VkExtent2D extent{GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight};
+        SwapChain = new FVulkanSwapChain(
+            physicalDevice, device, surface, extent, 
+            swapChainImageFormat, 
+            1, &GfxQueueIndex.value(), swapChainImages);
+
+        swapChainExtent = extent;
+        DepthImage = RHICreateTexture2D(
+            "", depthImageFormat, 1, swapChainExtent.width, swapChainExtent.height, 
+            TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
+        depthImage = static_cast<VulkanTexture2D*>(DepthImage.get())->GetImage();
+    }
+
+    /** Create image views */
+    {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = depthImage;
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = TranslatePixelFormatToVKFormat(depthImageFormat);
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+        if (vkCreateImageView(device, &createInfo, nullptr, &depthImageView) != VK_SUCCESS) {
+            NILOU_LOG(Error, "failed to create image views!")
+            return 1;
+        }
+
+        swapChainImageViews.resize(swapChainImages.size());
+        swapChainFramebuffers.resize(swapChainImages.size());
+
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = swapChainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = TranslatePixelFormatToVKFormat(swapChainImageFormat);
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+                NILOU_LOG(Error, "failed to create image views!")
+                return 1;
+            }
+
+            std::array<VkImageView, 2> attachments = {
+                swapChainImageViews[i],
+                depthImageView
+            };
+
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            FVulkanRenderTargetLayout RTLayout({
+                { FA_Color_Attachment0, swapChainImageFormat }, 
+                { FA_Depth_Stencil_Attachment, depthImageFormat}} );
+            framebufferInfo.renderPass = RenderToScreenPass = RenderPassManager->GetOrCreateRenderPass(RTLayout)->Handle;
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = swapChainExtent.width;
+            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.layers = 1;
+
+            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+        }
+
+    }
+    
+    {
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
+
+    vkGetPhysicalDeviceProperties(physicalDevice, &GpuProps);
+
+    shader_compiler = shaderc_compiler_initialize();
+
+    CommandBufferManager->PrepareForNewActiveCommandBuffer();
 
     return 0;
 }
@@ -569,7 +621,7 @@ static VkDescriptorType TranslateDescriptorType(EShaderParameterType Type)
     switch (Type) 
     {
     case EShaderParameterType::SPT_None: return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-    case EShaderParameterType::SPT_Sampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case EShaderParameterType::SPT_Sampler: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     case EShaderParameterType::SPT_UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     case EShaderParameterType::SPT_Image: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     default: return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -617,12 +669,12 @@ std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout
     for (auto& [Name, binding] : DescriptorSets)
         DescriptorSetsVec.push_back(binding);
 
-    PipelineLayout->DescriptorSetsLayout = FVulkanDescriptorSetsLayout(device, {DescriptorSetsVec});
+    PipelineLayout->DescriptorSetsLayout = std::shared_ptr<FVulkanDescriptorSetsLayout>(new FVulkanDescriptorSetsLayout(device, {DescriptorSetsVec}));
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = PipelineLayout->DescriptorSetsLayout.Handles.size();
-    pipelineLayoutInfo.pSetLayouts = PipelineLayout->DescriptorSetsLayout.Handles.data();
+    pipelineLayoutInfo.setLayoutCount = PipelineLayout->DescriptorSetsLayout->Handles.size();
+    pipelineLayoutInfo.pSetLayouts = PipelineLayout->DescriptorSetsLayout->Handles.data();
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &PipelineLayout->PipelineLayout) != VK_SUCCESS) {
         NILOU_LOG(Error, "failed to create pipeline layout!");
@@ -633,7 +685,7 @@ std::shared_ptr<VulkanPipelineLayout> FVulkanDynamicRHI::RHICreatePipelineLayout
 
 FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
-    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device);
+    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device, Initializer);
 
     VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.VertexShader);
     VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.PixelShader);
@@ -712,7 +764,7 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = MAX_SIMULTANEOUS_RENDERTARGETS;
+    colorBlending.attachmentCount = Initializer.NumRenderTargetsEnabled;
     colorBlending.pAttachments = BlendState->BlendStates;
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
@@ -731,6 +783,8 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
     dynamicState.pDynamicStates = dynamicStates.data();
 
     VulkanPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout(Initializer);
+
+    PSO->PipelineLayout = PipelineLayout;
 
     FVulkanRenderTargetLayout RTLayout(Initializer);
     PSO->RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
@@ -761,7 +815,7 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
 
 FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
-    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device);
+    VulkanGraphicsPipelineStateRef PSO = std::make_shared<VulkanGraphicsPipelineState>(device, Initializer);
 
     VulkanComputeShader* ComputeShader = static_cast<VulkanComputeShader*>(Initializer.ComputeShader);
 
@@ -772,6 +826,8 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(const FGraph
     computeShaderStageInfo.pName = "main";
 
     VulkanPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout(Initializer);
+
+    PSO->PipelineLayout = PipelineLayout;
 
     VkComputePipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -826,18 +882,224 @@ FRHIVertexDeclarationRef FVulkanDynamicRHI::RHICreateVertexDeclaration(const std
     return Declaration;
 }
 
+
+
+static VkPipelineStageFlags GetVkStageFlagsForLayout(VkImageLayout Layout)
+{
+	VkPipelineStageFlags Flags = 0;
+
+	switch (Layout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+			break;
+			
+		case VK_IMAGE_LAYOUT_GENERAL:
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			Flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+
+		default:
+			break;
+	}
+
+	return Flags;
+}
+static VkAccessFlags GetVkAccessMaskForLayout(const VkImageLayout Layout)
+{
+	VkAccessFlags Flags = 0;
+
+	switch (Layout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = 0;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
+			Flags = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+			break;
+
+		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+			Flags = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+			break;
+
+		case VK_IMAGE_LAYOUT_GENERAL:
+			// todo-jn: could be used for R64 in read layout
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			Flags = 0;
+			break;
+
+		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+
+		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
+			// todo-jn: sync2 currently only used by depth/stencil targets
+			Flags = VK_ACCESS_SHADER_READ_BIT;
+			break;
+
+		default:
+			break;
+	}
+
+	return Flags;
+}
+// TODO: 把barrier封装一下
+static void TransitionImageLayout(FVulkanDynamicRHI* Context, RHITexture* Texture, VkImageLayout DstLayout)
+{
+	VulkanTextureBase* vkTexture = ResourceCast(Texture);
+    if (vkTexture->Image)
+    {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = vkTexture->ImageLayout;
+        barrier.newLayout = DstLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = vkTexture->Image;
+        switch (Texture->GetFormat()) 
+        {
+        case PF_D32F:
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; break;
+        case PF_D24S8:
+        case PF_D32FS8:
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT; break;
+        default:
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; break;
+        }
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = Texture->GetNumMips();
+        barrier.subresourceRange.layerCount = Texture->GetNumLayers();
+        barrier.srcAccessMask = GetVkAccessMaskForLayout(vkTexture->ImageLayout);
+        barrier.dstAccessMask = GetVkAccessMaskForLayout(DstLayout);
+
+        VkPipelineStageFlags sourceStage = GetVkStageFlagsForLayout(vkTexture->ImageLayout);
+        VkPipelineStageFlags destinationStage = GetVkStageFlagsForLayout(DstLayout);
+        FVulkanCmdBuffer* CmdBuffer = Context->CommandBufferManager->GetUploadCmdBuffer();
+        vkCmdPipelineBarrier(
+            CmdBuffer->GetHandle(),
+            sourceStage, destinationStage,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+        vkTexture->ImageLayout = DstLayout;
+    }
+}
+
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-    FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(InInfo);
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
-    CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);
-    CurrentFramebuffer = Framebuffer;
-    CurrentRenderPass = RenderPass;
+    if (Framebuffer)
+    {
+        for (auto& [Attachment, Texture] : Framebuffer->Attachments)
+        {
+            VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
+            if (Attachment == FA_Depth_Stencil_Attachment)
+            {
+                TransitionImageLayout(this, Texture.get(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            }
+            else 
+            {
+                TransitionImageLayout(this, Texture.get(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            }
+        }
+        FVulkanRenderTargetLayout RTLayout(InInfo);
+        FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
+        CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);
+    }
+    else 
+    {
+        CmdBuffer->BeginRenderPass(InInfo, RenderToScreenPass, swapChainFramebuffers[CurrentSwapChainImageIndex]);
+    }
 }
 
 void FVulkanDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
 {
+    PrepareForDraw();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VulkanBuffer* vkIndexBuffer = static_cast<VulkanBuffer*>(IndexBuffer);
     VkIndexType IndexType;
@@ -854,6 +1116,7 @@ void FVulkanDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCou
 
 void FVulkanDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset)
 {
+    PrepareForDraw();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VulkanBuffer* vkIndexBuffer = static_cast<VulkanBuffer*>(IndexBuffer);
     VulkanBuffer* vkIndirectBuffer = static_cast<VulkanBuffer*>(IndirectBuffer);
@@ -871,15 +1134,23 @@ void FVulkanDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer
 
 void FVulkanDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
 {
+    PrepareForDispatch();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     vkCmdDispatch(CmdBuffer->GetHandle(), num_groups_x, num_groups_y, num_groups_z);
+    CommandBufferManager->SubmitActiveCmdBuffer({});
+    CommandBufferManager->PrepareForNewActiveCommandBuffer();
+    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
 
 void FVulkanDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset)
 {
+    PrepareForDispatch();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VulkanBuffer* vkIndirectBuffer = static_cast<VulkanBuffer*>(indirectArgs);
     vkCmdDispatchIndirect(CmdBuffer->GetHandle(), vkIndirectBuffer->GetHandle(), IndirectOffset);
+    CommandBufferManager->SubmitActiveCmdBuffer({});
+    CommandBufferManager->PrepareForNewActiveCommandBuffer();
+    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
 
 void FVulkanDynamicRHI::RHIEndRenderPass()
@@ -890,8 +1161,42 @@ void FVulkanDynamicRHI::RHIEndRenderPass()
     {
         CommandBufferManager->SubmitUploadCmdBuffer();
     }
-    CommandBufferManager->SubmitActiveCmdBuffer({RenderFinishedSemaphore});
+    CommandBufferManager->SubmitActiveCmdBuffer({});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
+    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
+
+void FVulkanDynamicRHI::PrepareForDispatch()
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    vkCmdBindDescriptorSets(
+        CmdBuffer->GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, 
+        CurrentPipelineLayout->PipelineLayout, 0, 
+        CurrentDescriptorState->DescriptorSets.Handles.size(), 
+        CurrentDescriptorState->DescriptorSets.Handles.data(), 
+        0, nullptr);
+}
+
+void FVulkanDynamicRHI::PrepareForDraw()
+{
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    vkCmdBindDescriptorSets(
+        CmdBuffer->GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        CurrentPipelineLayout->PipelineLayout, 0, 
+        CurrentDescriptorState->DescriptorSets.Handles.size(), 
+        CurrentDescriptorState->DescriptorSets.Handles.data(), 
+        0, nullptr);
+    for (int i = 0; i < MaxVertexElementCount; i++)
+    {
+        if (CurrentStreamSourceBuffers[i] != VK_NULL_HANDLE)
+        {
+            vkCmdBindVertexBuffers(
+                CmdBuffer->GetHandle(), i, 1, 
+                &CurrentStreamSourceBuffers[i], &CurrentStreamSourceOffsets[i]);
+        }
+    }
+    RHISetViewport(swapChainExtent.width, swapChainExtent.height);
+}
+
 
 }

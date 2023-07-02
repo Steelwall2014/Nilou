@@ -74,19 +74,19 @@ namespace nilou {
 		
 		virtual RHITexture2DRef RHICreateTexture2D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
 		virtual RHITexture2DArrayRef RHICreateTexture2DArray(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
 		virtual RHITexture3DRef RHICreateTexture3D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
 		virtual RHITextureCubeRef RHICreateTextureCube(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
 		virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) override;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;

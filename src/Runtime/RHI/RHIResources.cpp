@@ -3,6 +3,7 @@
 #include "RHIResources.h"
 #include "Common/Log.h"
 #include "RHIStaticStates.h"
+#include "Common/Crc.h"
 
 namespace nilou {
 
@@ -123,7 +124,7 @@ namespace nilou {
 				{
 					uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
 					RenderTargetFormats[index] = Texture->GetFormat();
-					NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index);
+					NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
 				}
 			}
 		}
@@ -145,14 +146,7 @@ namespace nilou {
 namespace std {
 
 size_t hash<nilou::FGraphicsPipelineStateInitializer>::operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept {
-	return hash<nilou::RHIVertexShader*>()(_Keyval.VertexShader) ^ 
-			hash<nilou::RHIPixelShader*>()(_Keyval.PixelShader) ^ 
-			hash<nilou::RHIComputeShader*>()(_Keyval.ComputeShader) ^ 
-			hash<nilou::EPrimitiveMode>()(_Keyval.PrimitiveMode) ^  
-			hash<nilou::RHIDepthStencilState*>()(_Keyval.DepthStencilState) ^  
-			hash<nilou::RHIRasterizerState*>()(_Keyval.RasterizerState) ^  
-			hash<nilou::RHIBlendState*>()(_Keyval.BlendState) ^
-			hash<nilou::FRHIVertexDeclaration*>()(_Keyval.VertexDeclaration);
+	return FCrc::MemCrc32(&_Keyval, sizeof(_Keyval));
 }
 
 }

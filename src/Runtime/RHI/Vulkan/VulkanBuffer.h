@@ -88,14 +88,15 @@ public:
     {
         NUM_BUFFERS = 3
     };
-    VulkanMultiBuffer(FVulkanDynamicRHI* Context, uint32 InSize, EBufferUsageFlags InUsage);
-    uint8 DynamicBufferIndex;
+    VulkanMultiBuffer(FVulkanDynamicRHI* Context, uint32 InSize, EBufferUsageFlags InUsage, VkBufferUsageFlags InVkUsage);
+    uint8 DynamicBufferIndex = 0;
     uint8 NumBuffers;
     VkBuffer Buffers[NUM_BUFFERS];
     VkDeviceMemory Memories[NUM_BUFFERS];
     EBufferUsageFlags Usage;
     uint32 Size;
     FVulkanDynamicRHI* Context;
+    void* MappedPointer = nullptr;
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset);
     void Unlock(FVulkanDynamicRHI* Context);
     static uint8 GetNumBuffersFromUsage(EBufferUsageFlags InUsage)
@@ -111,7 +112,7 @@ class VulkanBuffer : public RHIBuffer
 public:
     VulkanBuffer(FVulkanDynamicRHI* Context, uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
         : RHIBuffer(InStride, InSize, InUsage)
-        , MultiBuffer(Context, InSize, InUsage)
+        , MultiBuffer(Context, InSize, InUsage, 0)
     { 
     }
     VulkanMultiBuffer MultiBuffer;
@@ -126,7 +127,7 @@ class VulkanUniformBuffer : public RHIUniformBuffer
 public:
     VulkanUniformBuffer(FVulkanDynamicRHI* Context, uint32 InSize, EUniformBufferUsage InUsage)
         : RHIUniformBuffer(InSize, InUsage)
-        , MultiBuffer(Context, InSize, EBufferUsageFlags::Dynamic)
+        , MultiBuffer(Context, InSize, EBufferUsageFlags::Dynamic, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
     { }
     VulkanMultiBuffer MultiBuffer;
     VkBuffer GetHandle() const { return MultiBuffer.Buffers[MultiBuffer.DynamicBufferIndex]; }

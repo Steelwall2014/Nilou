@@ -56,11 +56,11 @@ namespace nilou {
         Viewport = CreateInfo.OutputResolution;
         SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y);
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "DepthStencil", EPixelFormat::PF_D24S8, 1, 
-            Viewport.x, Viewport.y);
+            Viewport.x, Viewport.y, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
 
         LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
             {FA_Color_Attachment0, SceneColor},
@@ -74,27 +74,27 @@ namespace nilou {
 
         BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y);
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16F, 1, 
-            Viewport.x, Viewport.y);
+            "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16A16F, 1, 
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "WorldSpaceNormal", EPixelFormat::PF_R16G16B16F, 1, 
-            Viewport.x, Viewport.y);
+            "WorldSpaceNormal", EPixelFormat::PF_R16G16B16A16F, 1, 
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
-            Viewport.x, Viewport.y);
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "Emissive", EPixelFormat::PF_R16G16B16F, 1, 
-            Viewport.x, Viewport.y);
+            "Emissive", EPixelFormat::PF_R16G16B16A16F, 1, 
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
             "ShadingModel", EPixelFormat::PF_R8UI, 1, 
-            Viewport.x, Viewport.y);
+            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
             {FA_Color_Attachment0, BaseColor},
@@ -132,7 +132,7 @@ namespace nilou {
             "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
             CreateInfo.ShadowMapResolution.x, 
             CreateInfo.ShadowMapResolution.y, 
-            ShadowMapArraySize);
+            ShadowMapArraySize, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
         
         for (int i = 0; i < ShadowMapArraySize; i++)
         {

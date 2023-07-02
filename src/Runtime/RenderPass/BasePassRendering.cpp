@@ -165,6 +165,8 @@ namespace nilou {
             FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;
             
             ViewCommands.DispatchDraw(RHICmdList);
+
+            RHICmdList->RHIEndRenderPass();
         }
     
 

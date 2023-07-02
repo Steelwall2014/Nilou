@@ -3,6 +3,7 @@
 #include "VulkanResources.h"
 #include "VulkanDynamicRHI.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanDescriptorSet.h"
 
 namespace nilou {
 
@@ -148,15 +149,16 @@ static VkAccessFlags GetVkAccessMaskForLayout(const VkImageLayout Layout)
 	return Flags;
 }
 
-static void TransitionImageLayout(FVulkanDynamicRHI* Context, VulkanTexture* Texture, VkImageLayout DstLayout)
+static void TransitionImageLayout(FVulkanDynamicRHI* Context, RHITexture* Texture, VkImageLayout DstLayout)
 {
+	VulkanTextureBase* vkTexture = ResourceCast(Texture);
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = Texture->GetImageLayout();
+    barrier.oldLayout = vkTexture->ImageLayout;
     barrier.newLayout = DstLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = Texture->GetImage();
+    barrier.image = vkTexture->Image;
     switch (Texture->GetFormat()) 
     {
     case PF_D32F:
@@ -171,28 +173,28 @@ static void TransitionImageLayout(FVulkanDynamicRHI* Context, VulkanTexture* Tex
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = Texture->GetNumMips();
     barrier.subresourceRange.layerCount = Texture->GetNumLayers();
-    barrier.srcAccessMask = GetVkAccessMaskForLayout(Texture->GetImageLayout());
+    barrier.srcAccessMask = GetVkAccessMaskForLayout(vkTexture->ImageLayout);
     barrier.dstAccessMask = GetVkAccessMaskForLayout(DstLayout);
 
-    VkPipelineStageFlags sourceStage = GetVkStageFlagsForLayout(Texture->GetImageLayout());
+    VkPipelineStageFlags sourceStage = GetVkStageFlagsForLayout(vkTexture->ImageLayout);
     VkPipelineStageFlags destinationStage = GetVkStageFlagsForLayout(DstLayout);
-
+	FVulkanCmdBuffer* CmdBuffer = Context->CommandBufferManager->GetUploadCmdBuffer();
     vkCmdPipelineBarrier(
-        Context->CommandBufferManager->GetActiveCmdBuffer()->GetHandle(),
+        CmdBuffer->GetHandle(),
         sourceStage, destinationStage,
         0,
         0, nullptr,
         0, nullptr,
         1, &barrier
     );
-    Texture->SetImageLayout(DstLayout);
+    vkTexture->ImageLayout = DstLayout;
 }
 
 void FVulkanCommonPipelineDescriptorState::SetUniformBuffer(uint8 BindingIndex, RHIUniformBuffer* Buffer)
 {
     VulkanUniformBuffer* vkBuffer = static_cast<VulkanUniformBuffer*>(Buffer);
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
-    VkDescriptorBufferInfo& Info = std::get<VkDescriptorBufferInfo>(Writer.DescriptorInfo);
+    VkDescriptorBufferInfo& Info = Writer.BufferInfo;//std::get<VkDescriptorBufferInfo>(Writer.DescriptorInfo);
     Info.buffer = vkBuffer->GetHandle();
     Info.offset = 0;
     Info.range = vkBuffer->GetSize();
@@ -210,7 +212,7 @@ void FVulkanCommonPipelineDescriptorState::SetBuffer(uint8 BindingIndex, RHIBuff
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(Buffer);
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
-    VkDescriptorBufferInfo& Info = std::get<VkDescriptorBufferInfo>(Writer.DescriptorInfo);
+    VkDescriptorBufferInfo& Info = Writer.BufferInfo;//std::get<VkDescriptorBufferInfo>(Writer.DescriptorInfo);
     Info.buffer = vkBuffer->GetHandle();
     Info.offset = 0;
     Info.range = vkBuffer->GetSize();
@@ -226,12 +228,13 @@ void FVulkanCommonPipelineDescriptorState::SetBuffer(uint8 BindingIndex, RHIBuff
 
 void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISampler Sampler)
 {
-    VulkanTexture* vkTexture = static_cast<VulkanTexture*>(Sampler.Texture);
+	TransitionImageLayout(Context, Sampler.Texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VulkanTextureBase* vkTexture = ResourceCast(Sampler.Texture);
     VulkanSamplerState* vkSampler = static_cast<VulkanSamplerState*>(Sampler.SamplerState);
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
-    VkDescriptorImageInfo& Info = std::get<VkDescriptorImageInfo>(Writer.DescriptorInfo);
+    VkDescriptorImageInfo& Info = Writer.ImageInfo;//std::get<VkDescriptorImageInfo>(Writer.ImageInfo);
     Info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    Info.imageView = vkTexture->GetImageView();
+    Info.imageView = vkTexture->ImageView;
     Info.sampler = vkSampler->Handle;
     Writer.WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     Writer.WriteDescriptor.dstSet = DescriptorSets.Handles[0];
@@ -245,14 +248,12 @@ void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISa
 
 void FVulkanCommonPipelineDescriptorState::SetImage(uint8 BindingIndex, RHITexture* Image, EDataAccessFlag Access)
 {
-    VulkanTexture* vkTexture = static_cast<VulkanTexture*>(Image);
+	TransitionImageLayout(Context, Image, VK_IMAGE_LAYOUT_GENERAL);
+    VulkanTextureBase* vkTexture = ResourceCast(Image);
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
-    VkDescriptorImageInfo& Info = std::get<VkDescriptorImageInfo>(Writer.DescriptorInfo);
-    if (Access == EDataAccessFlag::DA_ReadOnly)
-        TransitionImageLayout(Context, vkTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    else if (Access == EDataAccessFlag::DA_WriteOnly)
-        TransitionImageLayout(Context, vkTexture, VK_IMAGE_LAYOUT_GENERAL);
-    Info.imageView = vkTexture->GetImageView();
+    VkDescriptorImageInfo& Info = Writer.ImageInfo;//std::get<VkDescriptorImageInfo>(Writer.DescriptorInfo);
+	Info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    Info.imageView = vkTexture->ImageView;
     Info.sampler = VK_NULL_HANDLE;
     Writer.WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     Writer.WriteDescriptor.dstSet = DescriptorSets.Handles[0];
@@ -267,6 +268,8 @@ void FVulkanCommonPipelineDescriptorState::SetImage(uint8 BindingIndex, RHITextu
 VulkanPipelineLayout::~VulkanPipelineLayout()
 {
 	vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
+	for (int i = 0; i < DescriptorSetsLayout->Handles.size(); i++)
+		vkDestroyDescriptorSetLayout(Device, DescriptorSetsLayout->Handles[i], nullptr);
 }
 
 }

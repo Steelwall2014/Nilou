@@ -74,19 +74,19 @@ public:
     
     virtual RHITexture2DRef RHICreateTexture2D(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
     virtual RHITexture2DArrayRef RHICreateTexture2DArray(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
     virtual RHITexture3DRef RHICreateTexture3D(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) override;
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
     virtual RHITextureCubeRef RHICreateTextureCube(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override;
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
     virtual RHITexture2DRef RHICreateSparseTexture2D(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY) override { return nullptr; }
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override { return nullptr; }
     virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) override;
 
     virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
@@ -163,7 +163,7 @@ private:
     RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType);
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType, ETextureCreateFlags InTexCreateFlags);
     FRHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
     FRHIGraphicsPipelineStateRef RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer);
     std::shared_ptr<class VulkanPipelineLayout> RHICreatePipelineLayout(const FGraphicsPipelineStateInitializer& Initializer);
@@ -179,29 +179,30 @@ private:
     VkDebugUtilsMessengerEXT debugMessenger{};
     class FVulkanSwapChain* SwapChain;
     std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat{};
-    VkFormat depthImageFormat{};
+    EPixelFormat swapChainImageFormat;
+    EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
+    VkImage depthImage;
+    RHITexture2DRef DepthImage;
+    VkImageView depthImageView;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
     VkCommandPool commandPool{};
     std::vector<VkCommandBuffer> commandBuffers;
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
     uint32 MemoryTypeIndex;
-    FVulkanRenderPass* CurrentRenderPass;
-    class VulkanFramebuffer* CurrentFramebuffer;
     std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;
-    struct StreamSource
-    {
-        uint32 Offset;
-        VkBuffer Buffer;
-    };
-    StreamSource CurrentStreamSources[MaxVertexElementCount];
+    VulkanPipelineLayout* CurrentPipelineLayout;
+    uint64 CurrentStreamSourceOffsets[MaxVertexElementCount] = { 0 };
+    VkBuffer CurrentStreamSourceBuffers[MaxVertexElementCount] = { nullptr };
     std::vector<VkFence> FrameFences;
     std::vector<VkSemaphore> ImageAvailableSemaphores;
     std::vector<VkSemaphore> RenderFinishedSemaphores;
-    uint32 CurrentSwapChainImageIndex;
+    uint32 CurrentSwapChainImageIndex = 0;
+
+    VkRenderPass RenderToScreenPass{};
     
 
     class shaderc_compiler* shader_compiler = nullptr;
@@ -225,6 +226,9 @@ private:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     bool isDeviceSuitable(VkPhysicalDevice device);
+
+    void PrepareForDispatch();
+    void PrepareForDraw();
 
 };
 

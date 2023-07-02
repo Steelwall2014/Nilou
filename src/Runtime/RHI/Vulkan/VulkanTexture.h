@@ -108,4 +108,32 @@ using VulkanTexture2DArrayRef = std::shared_ptr<VulkanTexture2DArray>;
 using VulkanTexture3DRef = std::shared_ptr<VulkanTexture3D>;
 using VulkanTextureCubeRef = std::shared_ptr<VulkanTextureCube>;
 
+inline VulkanTextureBase* ResourceCast(RHITexture* Texture)
+{
+    switch (Texture->GetTextureType()) 
+    {
+    case ETextureType::TT_Texture2D:
+    {
+        VulkanTexture2D* vkTextue = static_cast<VulkanTexture2D*>(Texture);
+        return &vkTextue->TextureBase;
+    }
+    case ETextureType::TT_Texture2DArray:
+    {
+        VulkanTexture2DArray* vkTextue = static_cast<VulkanTexture2DArray*>(Texture);
+        return &vkTextue->TextureBase;
+    }
+    case ETextureType::TT_Texture3D:
+    {
+        VulkanTexture3D* vkTextue = static_cast<VulkanTexture3D*>(Texture);
+        return &vkTextue->TextureBase;
+    }
+    case ETextureType::TT_TextureCube:
+    {
+        VulkanTextureCube* vkTextue = static_cast<VulkanTextureCube*>(Texture);
+        return &vkTextue->TextureBase;
+    }
+    }
+    return nullptr;
+}
+
 }

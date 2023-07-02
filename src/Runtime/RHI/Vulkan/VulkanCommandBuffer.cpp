@@ -5,16 +5,17 @@
 
 namespace nilou {
 
-FVulkanCmdBuffer::FVulkanCmdBuffer(VkDevice InDevice, FVulkanCommandBufferPool* InCmdBufferPool, bool bIsUploadOnly)
+FVulkanCmdBuffer::FVulkanCmdBuffer(VkDevice InDevice, FVulkanCommandBufferPool* InCmdBufferPool, bool bInIsUploadOnly)
 	: State(EState::NotAllocated)
 	, Device(InDevice)
 	, CmdBufferPool(InCmdBufferPool)
+	, bIsUploadOnly(bInIsUploadOnly)
 {
 	AllocMemory();
 	VkFenceCreateInfo fenceInfo{};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	vkCreateFence(Device, &fenceInfo, nullptr, &Fence);
+
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
@@ -22,6 +23,10 @@ FVulkanCmdBuffer::~FVulkanCmdBuffer()
 	if (State != EState::NotAllocated)
 	{
 		FreeMemory();
+	}
+	if (State == EState::Submitted)
+	{
+		vkWaitForFences(Device, 1, &Fence, VK_TRUE, (uint64)(33 * 1000 * 1000LL));
 	}
 	vkDestroyFence(Device, Fence, nullptr);
 }
@@ -95,26 +100,27 @@ FVulkanCmdBuffer* FVulkanCommandBufferPool::Create(bool bIsUploadOnly)
 {
 	for (int32 Index = FreeCmdBuffers.size() - 1; Index >= 0; --Index)
 	{
-		FVulkanCmdBuffer* CmdBuffer = FreeCmdBuffers[Index];
+		std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = FreeCmdBuffers[Index];
 		if (CmdBuffer->bIsUploadOnly == bIsUploadOnly)
 		{
 			FreeCmdBuffers.erase(FreeCmdBuffers.begin()+Index);
 			CmdBuffer->AllocMemory();
 			CmdBuffers.push_back(CmdBuffer);
-			return CmdBuffer;
+			return CmdBuffer.get();
 		}
 	}
 
-	FVulkanCmdBuffer* CmdBuffer = new FVulkanCmdBuffer(Device, this, bIsUploadOnly);
+	std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = std::make_shared<FVulkanCmdBuffer>(Device, this, bIsUploadOnly);
 	CmdBuffers.push_back(CmdBuffer);
+	return CmdBuffer.get();
 }
 
 void FVulkanCommandBufferPool::FreeUnusedCmdBuffers(FVulkanQueue* Queue)
 {
 	for (int32 Index = CmdBuffers.size() - 1; Index >= 0; --Index)
 	{
-		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
-		if (CmdBuffer != Queue->LastSubmittedCmdBuffer &&
+		std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = CmdBuffers[Index];
+		if (CmdBuffer.get() != Queue->LastSubmittedCmdBuffer &&
 			(CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin || CmdBuffer->State == FVulkanCmdBuffer::EState::NeedReset))
 		{
 			CmdBuffer->FreeMemory();
@@ -124,25 +130,49 @@ void FVulkanCommandBufferPool::FreeUnusedCmdBuffers(FVulkanQueue* Queue)
 	}
 }
 
-FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* Context)
-    : Pool(InDevice, *this)
-	, Queue(Context->GfxQueue)
+void FVulkanCmdBuffer::RefreshFenceStatus()
 {
+	if (State == EState::Submitted)
+	{
+		if (vkGetFenceStatus(Device, Fence) == VK_SUCCESS)
+		{
+			for (VkSemaphore Semaphore : SubmittedWaitSemaphores)
+			{
+				vkDestroySemaphore(Device, Semaphore, nullptr);
+			}
+			SubmittedWaitSemaphores.clear();
+			vkResetFences(Device, 1, &Fence);
+			State = EState::NeedReset;
+		}
+	}
+}
 
+FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* Context)
+    : Queue(Context->GfxQueue)
+	, Pool(InDevice, *this, Context->GfxQueue->FamilyIndex)
+	, Device(InDevice)
+{
+	ActiveCmdBufferSemaphore = CreateSemephore(Device);
+	ActiveCmdBuffer = Pool.Create(false);
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
 {
 	if (!UploadCmdBuffer)
 	{
+		UploadCmdBufferSemaphore = CreateSemephore(Device);
 		for (int32 Index = 0; Index < Pool.CmdBuffers.size(); ++Index)
 		{
-			FVulkanCmdBuffer* CmdBuffer = Pool.CmdBuffers[Index];
+			std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool.CmdBuffers[Index];
+			CmdBuffer->RefreshFenceStatus();
 			if (CmdBuffer->bIsUploadOnly)
 			{
-                UploadCmdBuffer = CmdBuffer;
-                UploadCmdBuffer->Begin();
-                return UploadCmdBuffer;
+				if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin || CmdBuffer->State == FVulkanCmdBuffer::EState::NeedReset)
+				{
+					UploadCmdBuffer = CmdBuffer.get();
+					UploadCmdBuffer->Begin();
+					return UploadCmdBuffer;
+				}
 			}
 		}
 
@@ -159,7 +189,32 @@ void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(uint32 NumSignalSemaphor
 	if (!UploadCmdBuffer->IsSubmitted() && UploadCmdBuffer->HasBegun())
     {
 		UploadCmdBuffer->End();
-        Queue->Submit(UploadCmdBuffer, NumSignalSemaphores, SignalSemaphores);
+
+		// Add semaphores associated with the recent active cmdbuf(s), if any. That will prevent
+		// the overlap, delaying execution of this cmdbuf until the graphics one(s) is complete.
+		for (std::shared_ptr<FVulkanSemaphore> WaitForThis : RenderingCompletedSemaphores)
+		{
+			UploadCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, WaitForThis->Handle);
+		}
+
+		if (NumSignalSemaphores == 0)
+		{
+			Ncheck(UploadCmdBufferSemaphore != nullptr);
+			std::shared_ptr<FVulkanSemaphore> Sema = UploadCmdBufferSemaphore;
+			Queue->Submit(UploadCmdBuffer, 1, &Sema->Handle);
+			UploadCompletedSemaphores.push_back(UploadCmdBufferSemaphore);
+			UploadCmdBufferSemaphore = nullptr;
+		}
+		else
+		{
+			std::vector<VkSemaphore> CombinedSemaphores;
+			CombinedSemaphores.push_back(UploadCmdBufferSemaphore->Handle);
+			for (int i = 0; i < NumSignalSemaphores; i++)
+				CombinedSemaphores.push_back(SignalSemaphores[i]);
+			Queue->Submit(UploadCmdBuffer, CombinedSemaphores.size(), CombinedSemaphores.data());
+		}
+		// the buffer will now hold on to the wait semaphores, so we can clear them here
+		RenderingCompletedSemaphores.clear();
     }
     UploadCmdBuffer = nullptr;
 }
@@ -175,7 +230,22 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(std::vector<VkSemaphore>
 		}
 
 		ActiveCmdBuffer->End();
+		// Add semaphores associated with the recent upload cmdbuf(s), if any. That will prevent
+		// the overlap, delaying execution of this cmdbuf until upload one(s) are complete.
+		for (std::shared_ptr<FVulkanSemaphore> UploadCompleteSema : UploadCompletedSemaphores)
+		{
+			ActiveCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, UploadCompleteSema->Handle);
+		}
+
+		SignalSemaphores.push_back(ActiveCmdBufferSemaphore->Handle);
 		Queue->Submit(ActiveCmdBuffer, SignalSemaphores.size(), SignalSemaphores.data());
+
+		RenderingCompletedSemaphores.push_back(ActiveCmdBufferSemaphore);
+		ActiveCmdBufferSemaphore = nullptr;
+
+		// the buffer will now hold on to the wait semaphores, so we can clear them here
+		UploadCompletedSemaphores.clear();	
+	
 	}
 
 	ActiveCmdBuffer = nullptr;
@@ -189,15 +259,17 @@ void FVulkanCommandBufferManager::FreeUnusedCmdBuffers()
 
 void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 {
+	if (ActiveCmdBufferSemaphore == nullptr)
+		ActiveCmdBufferSemaphore = CreateSemephore(Device);
 	for (int32 Index = 0; Index < Pool.CmdBuffers.size(); ++Index)
 	{
-		FVulkanCmdBuffer* CmdBuffer = Pool.CmdBuffers[Index];
-		//CmdBuffer->RefreshFenceStatus();
+		std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool.CmdBuffers[Index];
+		CmdBuffer->RefreshFenceStatus();
 		if (!CmdBuffer->bIsUploadOnly)
 		{
 			if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin || CmdBuffer->State == FVulkanCmdBuffer::EState::NeedReset)
 			{
-				ActiveCmdBuffer = CmdBuffer;
+				ActiveCmdBuffer = CmdBuffer.get();
 				ActiveCmdBuffer->Begin();
 				return;
 			}
@@ -211,6 +283,11 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 	// All cmd buffers are being executed still
 	ActiveCmdBuffer = Pool.Create(false);
 	ActiveCmdBuffer->Begin();
+}
+
+void FVulkanCommandBufferManager::WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait)
+{
+	CmdBuffer->Wait((uint64)(TimeInSecondsToWait * 1e9));
 }
 
 }

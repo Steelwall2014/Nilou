@@ -77,19 +77,19 @@ namespace nilou {
 		
 		virtual RHITexture2DRef RHICreateTexture2D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) = 0;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) = 0;
 		virtual RHITexture2DArrayRef RHICreateTexture2DArray(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) = 0;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) = 0;
 		virtual RHITexture3DRef RHICreateTexture3D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ) = 0;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) = 0;
 		virtual RHITextureCubeRef RHICreateTextureCube(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) = 0;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) = 0;
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
-			int32 NumMips, uint32 InSizeX, uint32 InSizeY) = 0;
+			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) = 0;
 		virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) = 0;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) = 0;

@@ -16,7 +16,7 @@ void FVulkanDescriptorSetsLayout::GenerateHash()
 FVulkanDescriptorPool::FVulkanDescriptorPool(VkDevice InDevice, const FVulkanDescriptorSetsLayout& InLayout, uint32 MaxSetsAllocations)
     : Device(InDevice)
     , Layout(InLayout)
-    , MaxDescriptorSets(MaxSetsAllocations * Layout.SetLayouts.size())
+    , MaxDescriptorSets(MaxSetsAllocations * InLayout.SetLayouts.size())
 {
 	std::vector<VkDescriptorPoolSize> Types;
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex <= VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
@@ -32,9 +32,12 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(VkDevice InDevice, const FVulkanDes
 	}
 
 	VkDescriptorPoolCreateInfo PoolInfo{};
+	PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	PoolInfo.poolSizeCount = Types.size();
 	PoolInfo.pPoolSizes = Types.data();
 	PoolInfo.maxSets = MaxDescriptorSets;
+
+	vkCreateDescriptorPool(Device, &PoolInfo, nullptr, &DescriptorPool);
 }
 
 FVulkanDescriptorPool::~FVulkanDescriptorPool()
@@ -75,18 +78,19 @@ bool FVulkanDescriptorPool::AllocateDescriptorSets(const VkDescriptorSetAllocate
 	return VK_SUCCESS == vkAllocateDescriptorSets(Device, &DescriptorSetAllocateInfo, OutSets);
 }
 
-bool FVulkanTypedDescriptorPoolSet::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets)
+bool FVulkanTypedDescriptorPoolSet::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets, FVulkanDescriptorPool** OutOwner)
 {
 	if (!InLayout.Handles.empty())
 	{
-		auto Pool = PoolCurrent;
-		while (Pool == Pools.end() || !Pool->AllocateDescriptorSets(InLayout.GetAllocateInfo(), OutSets))
+		while (PoolCurrent == Pools.end() || !PoolCurrent->AllocateDescriptorSets(InLayout.GetAllocateInfo(), OutSets))
 		{
 			Pools.emplace_back(Device, InLayout, 32);
-			Pool = std::next(PoolCurrent);
+			PoolCurrent = std::next(PoolCurrent);
 		}
 
-		Pool->TrackAddUsage(InLayout);
+		PoolCurrent->TrackAddUsage(InLayout);
+
+		*OutOwner = &(*PoolCurrent);
 
 		return true;
 	}
@@ -99,12 +103,12 @@ FVulkanDescriptorSets FVulkanDescriptorPoolsManager::AllocateDescriptorSets(cons
 	auto Found = PoolSets.find(Layout);
 	if (Found == PoolSets.end())
 	{
-		Found = PoolSets.insert({Layout, FVulkanTypedDescriptorPoolSet(Device)}).first;
+		Found = PoolSets.insert({Layout, std::make_shared<FVulkanTypedDescriptorPoolSet>(Device)}).first;
 	}
-	FVulkanTypedDescriptorPoolSet& PoolSet = Found->second;
+	FVulkanTypedDescriptorPoolSet* PoolSet = Found->second.get();
 
 	FVulkanDescriptorSets Sets{Layout};
-	PoolSet.AllocateDescriptorSets(Layout, Sets.Handles.data());
+	PoolSet->AllocateDescriptorSets(Layout, Sets.Handles.data(), &Sets.Owner);
 	return Sets;
 	
 }

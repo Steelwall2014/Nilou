@@ -124,6 +124,13 @@ namespace nilou {
     //     return &OutVertexInputs;
     // }
 
+    int32 FStaticVertexFactory::GetPermutationId() const
+    {
+        FPermutationDomain Domain;
+        Domain.Set<FDimensionEnableColorComponent>(Data.ColorComponent.VertexBuffer != nullptr);
+        return Domain.ToDimensionValueId();
+    }
+
     bool FStaticVertexFactory::ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters)
     {
         return true;
@@ -131,6 +138,8 @@ namespace nilou {
 
     void FStaticVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
     { 
+        FPermutationDomain Domain(Parameters.PermutationId);
+        Domain.ModifyCompilationEnvironment(OutEnvironment);
     }
 
     IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
