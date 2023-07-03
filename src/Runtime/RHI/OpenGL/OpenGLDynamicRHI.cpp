@@ -1527,7 +1527,7 @@ namespace nilou {
     }
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
-        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LevelIndex)
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LayerIndex)
     {
         auto GLTexture = TextureResourceCast(OriginTexture);
         uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinMipLevel));
@@ -1538,7 +1538,7 @@ namespace nilou {
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
             GLTexture.Resource, GLTexture.InternalFormat, 
-            MinMipLevel, NumMipLevels, LevelIndex, 1);
+            MinMipLevel, NumMipLevels, LayerIndex, 1);
         return OutTexture;
     }
 

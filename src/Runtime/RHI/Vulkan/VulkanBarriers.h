@@ -68,14 +68,14 @@ struct FVulkanImageLayout
 	FVulkanImageLayout GetSubresLayout(const VkImageSubresourceRange& SubresourceRange) const
 	{
 		FVulkanImageLayout OutLayout{MainLayout, SubresourceRange.levelCount, SubresourceRange.layerCount, SubresourceRange.aspectMask};
-		for (uint32 Mip = SubresourceRange.baseMipLevel; Mip < SubresourceRange.levelCount+SubresourceRange.baseMipLevel; Mip++)
+		for (uint32 Mip = 0; Mip < SubresourceRange.levelCount; Mip++)
 		{
-			for (uint32 Layer = SubresourceRange.baseArrayLayer; Layer < SubresourceRange.layerCount+SubresourceRange.baseArrayLayer; Layer++)
+			for (uint32 Layer = 0; Layer < SubresourceRange.layerCount; Layer++)
 			{
 				for (uint32 Plane = 0; Plane < NumPlanes; Plane++)
 				{
 					OutLayout.Set(
-						GetSubresLayout(Layer, Mip, Plane), 
+						GetSubresLayout(Layer+SubresourceRange.baseArrayLayer, Mip+SubresourceRange.baseMipLevel, Plane), 
 						{SubresourceRange.aspectMask, Mip, 1, Layer, 1});
 				}
 			}
@@ -141,6 +141,8 @@ struct FVulkanImageLayout
 	inline uint32 GetSubresRangeLayerCount(const VkImageSubresourceRange& SubresourceRange) const
 	{
 		Ncheck(SubresourceRange.baseArrayLayer < NumLayers);
+		if (SubresourceRange.baseArrayLayer >= NumLayers)
+			throw "";
 		return (SubresourceRange.layerCount == VK_REMAINING_ARRAY_LAYERS) ? (NumLayers - SubresourceRange.baseArrayLayer) : SubresourceRange.layerCount;
 	}
 

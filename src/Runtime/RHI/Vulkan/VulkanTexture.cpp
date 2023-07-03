@@ -285,7 +285,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
 
-    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
+    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, true, true);
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
     
@@ -337,12 +337,12 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
 }
 
-RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex)
+RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LayerIndex)
 {
     VulkanTextureBase* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
+    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, true, true);
 
     VkImageView ImageView{};
 
@@ -351,7 +351,7 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     viewInfo.format = TranslatePixelFormatToVKFormat(Format);
     viewInfo.subresourceRange.baseMipLevel = MinLevel;
     viewInfo.subresourceRange.levelCount = NumLevels;
-    viewInfo.subresourceRange.baseArrayLayer = LevelIndex;
+    viewInfo.subresourceRange.baseArrayLayer = LayerIndex;
     viewInfo.subresourceRange.layerCount = 1;
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
@@ -359,10 +359,10 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     const FVulkanImageLayout* Layout = Texture->GetImageLayout();
     FVulkanImageLayout ViewLayout = Layout->GetSubresLayout(viewInfo.subresourceRange);
 
-    return std::make_shared<VulkanTexture2D>(
-        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
-        OriginTexture->GetSizeXYZ().x, OriginTexture->GetSizeXYZ().y, 1, 
-        NumLevels, Format, OriginTexture->GetName()+"_View");
+    return std::make_shared<VulkanTextureView2D>(
+        Texture, Texture->Image, ImageView, Texture->Memory, ViewLayout,
+        OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 1, 
+        MinLevel, NumLevels, LayerIndex, 1, Format, OriginTexture->GetName()+"_View");
 
 }
 
@@ -373,19 +373,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     VulkanTextureBase* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-
-    switch (Format) 
-    {
-    case EPixelFormat::PF_D32F:
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        break;
-    case EPixelFormat::PF_D24S8:
-    case EPixelFormat::PF_D32FS8:
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        break;
-    default:
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    }
+    viewInfo.subresourceRange.aspectMask = GetFullAspectMask(OriginTexture->GetFormat());
 
     VkImageView ImageView{};
 
@@ -402,169 +390,11 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     const FVulkanImageLayout* Layout = Texture->GetImageLayout();
     FVulkanImageLayout ViewLayout = Layout->GetSubresLayout(viewInfo.subresourceRange);
 
-    return std::make_shared<VulkanTextureCube>(
-        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
-        OriginTexture->GetSizeXYZ().x, OriginTexture->GetSizeXYZ().y, 6, 
-        NumLevels, Format, OriginTexture->GetName()+"_View");
+    return std::make_shared<VulkanTextureViewCube>(
+        Texture, Texture->Image, ImageView, Texture->Memory, ViewLayout,
+        OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 6, 
+        MinLevel, NumLevels, 0, 6, Format, OriginTexture->GetName()+"_View");
 
-}
-
-static VkPipelineStageFlags GetVkStageFlagsForLayout(VkImageLayout Layout)
-{
-	VkPipelineStageFlags Flags = 0;
-
-	switch (Layout)
-	{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			Flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
-			break;
-			
-		case VK_IMAGE_LAYOUT_GENERAL:
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			Flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		default:
-			break;
-	}
-
-	return Flags;
-}
-
-static VkAccessFlags GetVkAccessMaskForLayout(const VkImageLayout Layout)
-{
-	VkAccessFlags Flags = 0;
-
-	switch (Layout)
-	{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			Flags = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			Flags = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			Flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
-			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			Flags = 0;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
-			Flags = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
-			Flags = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
-			break;
-
-		case VK_IMAGE_LAYOUT_GENERAL:
-			// todo-jn: could be used for R64 in read layout
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			Flags = 0;
-			break;
-
-		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_ACCESS_SHADER_READ_BIT;
-			break;
-
-		default:
-			break;
-	}
-
-	return Flags;
-}
-
-VkImageSubresourceRange MakeSubresourceRange(
-    VkImageAspectFlags aspectMask, 
-    uint32 baseMipLevel, 
-    uint32 levelCount, 
-    uint32 baseArrayLayer, 
-    uint32 layerCount)
-{
-    VkImageSubresourceRange Range;
-    Range.aspectMask = aspectMask;
-    Range.baseMipLevel = baseMipLevel;
-    Range.levelCount = levelCount;
-    Range.baseArrayLayer = baseArrayLayer;
-    Range.layerCount = layerCount;
-    return Range;
 }
 
 void FVulkanDynamicRHI::RHIUpdateTextureInternal(
@@ -607,7 +437,7 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
         BaseArrayLayer, 1);
 
     const FVulkanImageLayout* Layout = vkTexture->GetImageLayout();
-    VkImageLayout PartialLayout = Layout->GetSubresLayout(BaseArrayLayer, MipmapLevel, Region.imageSubresource.aspectMask);
+    VkImageLayout PartialLayout = Layout->GetSubresLayout(BaseArrayLayer, MipmapLevel, 0);
 
     {
         FVulkanPipelineBarrier Barrier;
@@ -706,7 +536,7 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
         const FVulkanImageLayout* Layout = vkTexture->GetImageLayout();
         FVulkanPipelineBarrier Barrier;
         Barrier.AddImageLayoutTransition(
-            vkTexture->Image, GetAspectMaskFromPixelFormat(Texture->GetFormat(), false, true),
+            vkTexture->Image, GetAspectMaskFromPixelFormat(Texture->GetFormat(), true, true),
             *Layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         Barrier.Execute(CmdBuffer);
     }
@@ -772,7 +602,7 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
         FVulkanPipelineBarrier Barrier;
         Barrier.AddImageLayoutTransition(
             vkTexture->Image, 
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
             Range);
         Barrier.Execute(CmdBuffer);
         vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Range);

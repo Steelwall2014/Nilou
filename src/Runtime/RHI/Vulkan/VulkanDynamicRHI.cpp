@@ -17,7 +17,6 @@
 #include "VulkanQueue.h"
 #include "VulkanSwapChain.h"
 #include "VulkanBarriers.h"
-#include "VulkanTexture.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -203,10 +202,12 @@ void FVulkanDynamicRHI::RHIBeginFrame()
     Region.levelCount = 1;
     FVulkanPipelineBarrier Barrier;
     Barrier.AddImageLayoutTransition(
-        swapChainImages[CurrentSwapChainImageIndex])
-    TransitionImageLayout(
-        CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+        swapChainImages[CurrentSwapChainImageIndex]->GetImage(),
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, Region);
+    Barrier.Execute(CmdBuffer);
+    // TransitionImageLayout(
+    //     CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+    //     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, Region);
     CommandBufferManager->SubmitUploadCmdBuffer();
 }
 
@@ -219,9 +220,14 @@ void FVulkanDynamicRHI::RHIEndFrame()
     Region.baseMipLevel = 0;
     Region.layerCount = 1;
     Region.levelCount = 1;
-    TransitionImageLayout(
-        CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+    FVulkanPipelineBarrier Barrier;
+    Barrier.AddImageLayoutTransition(
+        swapChainImages[CurrentSwapChainImageIndex]->GetImage(),
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
+    Barrier.Execute(CmdBuffer);
+    // TransitionImageLayout(
+    //     CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+    //     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
     CommandBufferManager->SubmitUploadCmdBuffer();
     SwapChain->Present(GfxQueue, PresentQueue);
     CommandBufferManager->FreeUnusedCmdBuffers();
@@ -530,29 +536,29 @@ int FVulkanDynamicRHI::Initialize()
             1, &GfxQueueIndex.value(), TempSwapChainImages);
         swapChainImages.resize(TempSwapChainImages.size());
         FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
-        VkImageSubresourceRange Region{};
-        Region.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        Region.baseArrayLayer = 0;
-        Region.baseMipLevel = 0;
-        Region.layerCount = 1;
-        Region.levelCount = 1;
         FVulkanPipelineBarrier Barrier;
         for (int i = 0; i < swapChainImages.size(); i++)
         {
             auto VulkanTexture = std::make_shared<VulkanTexture2D>(
                 TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, 
-                VK_IMAGE_LAYOUT_UNDEFINED, extent.width, extent.height, 1, 1, 
+                FVulkanImageLayout{VK_IMAGE_LAYOUT_UNDEFINED, 1, 1, VK_IMAGE_ASPECT_COLOR_BIT}, extent.width, extent.height, 1, 1, 
                 swapChainImageFormat, "SwapChainImage"+std::to_string(i));
-            Barrier.AddImageLayoutTransition(VulkanTexture->GetImage(), VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
+            Barrier.AddImageLayoutTransition(
+                VulkanTexture->GetImage(), VK_IMAGE_ASPECT_COLOR_BIT, 
+                *VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             swapChainImages[i] = VulkanTexture;
         }
-        Barrier.Execute(CmdBuffer);
 
         swapChainExtent = extent;
-        DepthImage = RHICreateTexture2D(
+        DepthImage = std::static_pointer_cast<VulkanTexture2D>(RHICreateTexture2D(
             "", depthImageFormat, 1, swapChainExtent.width, swapChainExtent.height, 
-            TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
-        depthImage = static_cast<VulkanTexture2D*>(DepthImage.get())->GetImage();
+            TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget));
+        depthImage = DepthImage->GetImage();
+        Barrier.AddImageLayoutTransition(
+            DepthImage->GetImage(), VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
+            *DepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+        Barrier.Execute(CmdBuffer);
     }
 
     /** Create image views */
@@ -582,7 +588,7 @@ int FVulkanDynamicRHI::Initialize()
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
+            createInfo.image = swapChainImages[i]->GetImage();
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             createInfo.format = TranslatePixelFormatToVKFormat(swapChainImageFormat);
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -599,6 +605,7 @@ int FVulkanDynamicRHI::Initialize()
                 NILOU_LOG(Error, "failed to create image views!")
                 return 1;
             }
+            swapChainImages[i]->TextureBase.ImageView = swapChainImageViews[i];
 
             std::array<VkImageView, 2> attachments = {
                 swapChainImageViews[i],
@@ -936,6 +943,47 @@ void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
     if (Framebuffer)
     {
+        if (InInfo.Framebuffer)
+        {
+            FVulkanPipelineBarrier Barrier;
+            for (auto& [Attachment, Texture] : InInfo.Framebuffer->Attachments)
+            {
+                VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
+                VkImage Image{};
+                VkImageAspectFlags Aspect = GetFullAspectMask(Texture->GetFormat());
+                VkImageLayout DstLayout = Attachment == FA_Depth_Stencil_Attachment ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                if (vkTexture->IsImageView())
+                {
+                    const FVulkanImageLayout* SrcLayout = vkTexture->ParentTexture->GetImageLayout();
+                    Barrier.AddImageLayoutTransition(
+                        vkTexture->ParentTexture->Image, Aspect, 
+                        vkTexture->BaseMipLevel, Texture->GetNumMips(), 
+                        vkTexture->BaseArrayLayer, Texture->GetNumLayers(),
+                        *SrcLayout, DstLayout);
+                    VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
+                        Aspect, 
+                        vkTexture->BaseMipLevel, Texture->GetNumMips(), 
+                        vkTexture->BaseArrayLayer, Texture->GetNumLayers());
+                    vkTexture->ParentTexture->SetImageLayout(DstLayout, SubresourceRange);
+                    SubresourceRange.baseArrayLayer = 0;
+                    SubresourceRange.baseMipLevel = 0;
+                    vkTexture->SetImageLayout(DstLayout, SubresourceRange);
+                }
+                else 
+                {
+                    VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
+                        Aspect, 
+                        0, Texture->GetNumMips(), 
+                        0, Texture->GetNumLayers());
+                    FVulkanImageLayout SrcLayout = *vkTexture->GetImageLayout();
+                    Barrier.AddImageLayoutTransition(
+                        vkTexture->Image, Aspect,
+                        SrcLayout, DstLayout);
+                    vkTexture->SetImageLayout(DstLayout, SubresourceRange);
+                }
+            }
+            Barrier.Execute(CommandBufferManager->GetUploadCmdBuffer());
+        }
         FVulkanRenderTargetLayout RTLayout(InInfo);
         FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
         CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);
@@ -1017,6 +1065,7 @@ void FVulkanDynamicRHI::RHIEndRenderPass()
 
 void FVulkanDynamicRHI::PrepareForDispatch()
 {
+    CurrentDescriptorState->UpdateDescriptorSet();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     vkCmdBindDescriptorSets(
         CmdBuffer->GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, 
@@ -1028,6 +1077,7 @@ void FVulkanDynamicRHI::PrepareForDispatch()
 
 void FVulkanDynamicRHI::PrepareForDraw()
 {
+    CurrentDescriptorState->UpdateDescriptorSet();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     vkCmdBindDescriptorSets(
         CmdBuffer->GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, 

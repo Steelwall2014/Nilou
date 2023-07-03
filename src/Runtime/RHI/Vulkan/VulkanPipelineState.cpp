@@ -22,7 +22,7 @@ void FVulkanCommonPipelineDescriptorState::SetUniformBuffer(uint8 BindingIndex, 
     Writer.WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     Writer.WriteDescriptor.descriptorCount = 1;
     Writer.WriteDescriptor.pBufferInfo = &Info;
-    vkUpdateDescriptorSets(Context->device, 1, &Writer.WriteDescriptor, 0, nullptr);
+    //vkUpdateDescriptorSets(Context->device, 1, &Writer.WriteDescriptor, 0, nullptr);
 }
 
 void FVulkanCommonPipelineDescriptorState::SetBuffer(uint8 BindingIndex, RHIBuffer* Buffer)
@@ -40,7 +40,7 @@ void FVulkanCommonPipelineDescriptorState::SetBuffer(uint8 BindingIndex, RHIBuff
     Writer.WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     Writer.WriteDescriptor.descriptorCount = 1;
     Writer.WriteDescriptor.pBufferInfo = &Info;
-    vkUpdateDescriptorSets(Context->device, 1, &Writer.WriteDescriptor, 0, nullptr);
+    //vkUpdateDescriptorSets(Context->device, 1, &Writer.WriteDescriptor, 0, nullptr);
 }
 
 void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISampler Sampler)

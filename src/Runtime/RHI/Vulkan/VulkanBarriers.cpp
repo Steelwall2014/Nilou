@@ -226,7 +226,7 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 
 	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
 		{
-			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, 0, 1, 0, 1);
+			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
 			for (; SubresourceRange.baseArrayLayer < SrcLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
 			{
 				for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < SrcLayout.NumMips; ++SubresourceRange.baseMipLevel)
@@ -258,7 +258,7 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 
 	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
 		{
-			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, SrcBaseMip, 1, SrcBaseLayer, 1);
+			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, SrcBaseMip, 1, SrcBaseLayer, 1);
 			for (; SubresourceRange.baseArrayLayer < SrcBaseLayer+SrcNumLayers; ++SubresourceRange.baseArrayLayer)
 			{
 				for (SubresourceRange.baseMipLevel = SrcBaseMip; SubresourceRange.baseMipLevel < SrcBaseMip+SrcNumMips; ++SubresourceRange.baseMipLevel)
@@ -290,7 +290,7 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 
 	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
 		{
-			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, 0, 1, 0, 1);
+			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
 			for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
 			{
 				for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)
@@ -326,7 +326,7 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 
 		ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
 			{
-				VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, 0, 1, 0, 1);
+				VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
 				for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
 				{
 					for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)

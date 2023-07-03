@@ -54,6 +54,7 @@ public:
     VkImage GetImage() const { return TextureBase.Image; }
     VkImageView GetImageView() const { return TextureBase.ImageView; }
     VkDeviceMemory GetMemory() const { return TextureBase.Memory; }
+    const FVulkanImageLayout* GetImageLayout() const { return TextureBase.GetImageLayout(); }
     VulkanTextureBase TextureBase;
 };
 
@@ -129,14 +130,13 @@ public:
         uint32 InNumLayers,
         EPixelFormat InFormat,
         const std::string &InTextureName)   
-        : BaseType(InParentTexture, InImage, InImageView, InMemory, InImageLayout, InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
+        : BaseType(InImage, InImageView, InMemory, InImageLayout, InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
     { 
-        TextureBase.IsImageView() = true; 
-        TextureBase.BaseMipLevel = InBaseMipLevel;
-        TextureBase.BaseArrayLayer = InBaseArrayLayer;
-        TextureBase.NumMips = InNumMips;
-        TextureBase.NumLayers = InNumLayers;
-        TextureBase.ParentTexture = InParentTexture;
+        this->TextureBase.BaseMipLevel = InBaseMipLevel;
+        this->TextureBase.BaseArrayLayer = InBaseArrayLayer;
+        this->TextureBase.NumMips = InNumMips;
+        this->TextureBase.NumLayers = InNumLayers;
+        this->TextureBase.ParentTexture = InParentTexture;
     }
 };
 using VulkanTextureView2D = TVulkanTextureView<VulkanTexture2D>;

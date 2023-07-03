@@ -16,6 +16,9 @@ class FVulkanMemoryManager;
 class FVulkanStagingManager;
 class FVulkanDescriptorPoolsManager;
 class FVulkanQueue;
+class VulkanBaseTexture2D;
+template<typename T>
+class TVulkanTexture;
 
 }
 
@@ -93,7 +96,7 @@ public:
     virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
     virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
     virtual RHITexture2DRef RHICreateTextureView2D(
-        RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
+        RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LayerIndex
     ) override;
     virtual RHITextureCubeRef RHICreateTextureViewCube(
         RHITexture* OriginTexture, EPixelFormat Format, uint32 MinMipLevel, uint32 NumMipLevels
@@ -180,13 +183,13 @@ private:
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
     class FVulkanSwapChain* SwapChain;
-    std::vector<std::shared_ptr<RHITexture2D>> swapChainImages;
+    std::vector<std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>>> swapChainImages;
     EPixelFormat swapChainImageFormat;
     EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
     VkImage depthImage;
-    RHITexture2DRef DepthImage;
+    std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>> DepthImage;
     VkImageView depthImageView;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;

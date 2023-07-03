@@ -93,7 +93,7 @@ namespace nilou {
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
 		virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
 		virtual RHITexture2DRef RHICreateTextureView2D(
-			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LevelIndex
+			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LayerIndex
 		) override;
 		virtual RHITextureCubeRef RHICreateTextureViewCube(
 			RHITexture* OriginTexture, EPixelFormat Format, uint32 MinMipLevel, uint32 NumMipLevels
