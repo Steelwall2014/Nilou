@@ -3,17 +3,14 @@
 #include "VulkanBuffer.h"
 #include "Platform.h"
 #include "VulkanDescriptorSet.h"
+#include "VulkanBarriers.h"
 
 namespace nilou {
 
 struct FVulkanDescriptorSetWriter
 {
-    union
-    {
-        VkDescriptorBufferInfo BufferInfo;
-        VkDescriptorImageInfo ImageInfo;
-    };
-    //std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo> DescriptorInfo;
+    VkDescriptorBufferInfo BufferInfo{};
+    VkDescriptorImageInfo ImageInfo{};
     VkWriteDescriptorSet WriteDescriptor;
 };
 
@@ -34,11 +31,15 @@ public:
 
     void SetImage(uint8 BindingIndex, RHITexture* Image, EDataAccessFlag Access);
 
+    void UpdateDescriptorSet();
+
     std::unordered_map<uint8, FVulkanDescriptorSetWriter> Writers;
 
     FVulkanDynamicRHI* Context;
 
     FVulkanDescriptorSets DescriptorSets;
+
+    FVulkanPipelineBarrier Barrier;
 };
 
 class VulkanPipelineLayout : public FRHIPipelineLayout

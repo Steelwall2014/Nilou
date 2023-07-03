@@ -1,6 +1,8 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanQueue.h"
 #include "VulkanDynamicRHI.h"
+#include "VulkanTexture.h"
+#include "VulkanBarriers.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -70,6 +72,47 @@ void FVulkanCmdBuffer::End()
 
 void FVulkanCmdBuffer::BeginRenderPass(const FRHIRenderPassInfo& InInfo, VkRenderPass RenderPass, VkFramebuffer Framebuffer)
 {
+	if (InInfo.Framebuffer)
+	{
+		FVulkanPipelineBarrier Barrier;
+		for (auto& [Attachment, Texture] : InInfo.Framebuffer->Attachments)
+		{
+			VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
+			VkImage Image{};
+			VkImageAspectFlags Aspect = GetAspectMaskFromPixelFormat(Texture->GetFormat(), false, true);
+			VkImageLayout DstLayout = Attachment == FA_Depth_Stencil_Attachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			if (vkTexture->IsImageView())
+			{
+				const FVulkanImageLayout* SrcLayout = vkTexture->ParentTexture->GetImageLayout();
+				Barrier.AddImageLayoutTransition(
+					vkTexture->ParentTexture->Image, Aspect, 
+					vkTexture->BaseMipLevel, Texture->GetNumMips(), 
+					vkTexture->BaseArrayLayer, Texture->GetNumLayers(),
+					*SrcLayout, DstLayout);
+				VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
+					Aspect, 
+					vkTexture->BaseMipLevel, Texture->GetNumMips(), 
+					vkTexture->BaseArrayLayer, Texture->GetNumLayers());
+				vkTexture->ParentTexture->SetImageLayout(DstLayout, SubresourceRange);
+				SubresourceRange.baseArrayLayer = 0;
+				SubresourceRange.baseMipLevel = 0;
+				vkTexture->SetImageLayout(DstLayout, SubresourceRange);
+			}
+			else 
+			{
+				VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
+					Aspect, 
+					0, Texture->GetNumMips(), 
+					0, Texture->GetNumLayers());
+				FVulkanImageLayout SrcLayout = *vkTexture->GetImageLayout();
+				Barrier.AddImageLayoutTransition(
+					vkTexture->Image, Aspect,
+					SrcLayout, DstLayout);
+				vkTexture->SetImageLayout(DstLayout, SubresourceRange);
+			}
+		}
+	}
+
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = RenderPass;

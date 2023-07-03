@@ -4,7 +4,8 @@
 
 namespace nilou {
 
-FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice Device, VkSurfaceKHR Surface, VkExtent2D Extent, EPixelFormat Format, int32 QueueFamilyIndexCount, uint32* QueueFamilyIndices, std::vector<VkImage>& OutImages)
+FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevice, VkSurfaceKHR Surface, VkExtent2D Extent, EPixelFormat Format, int32 QueueFamilyIndexCount, uint32* QueueFamilyIndices, std::vector<VkImage>& OutImages)
+    : Device(InDevice)
 {
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysDevice, Surface, &Capabilities);
 
@@ -78,6 +79,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice Device,
 void FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue)
 {
 	VkPresentInfoKHR Info{};
+    Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	Info.swapchainCount = 1;
 	Info.pSwapchains = &Handle;
 	Info.pImageIndices = (uint32*)&CurrentImageIndex;
@@ -92,7 +94,7 @@ int32 FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
         Device, Handle, UINT64_MAX, 
         ImageAcquiredSemaphore[SemaphoreIndex]->Handle, 
         VK_NULL_HANDLE, &ImageIndex);
-    CurrentImageIndex = SemaphoreIndex;
+    CurrentImageIndex = ImageIndex;
     *OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex]->Handle;
     return CurrentImageIndex;
 }

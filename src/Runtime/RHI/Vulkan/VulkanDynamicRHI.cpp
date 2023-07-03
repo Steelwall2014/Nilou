@@ -16,6 +16,8 @@
 #include "VulkanVertexDeclaration.h"
 #include "VulkanQueue.h"
 #include "VulkanSwapChain.h"
+#include "VulkanBarriers.h"
+#include "VulkanTexture.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -191,10 +193,36 @@ void FVulkanDynamicRHI::RHIBeginFrame()
 {
     VkSemaphore ImageAcquiredSemaphore;
     CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&ImageAcquiredSemaphore);
+    DescriptorPoolsManager->Reset();
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+    VkImageSubresourceRange Region{};
+    Region.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    Region.baseArrayLayer = 0;
+    Region.baseMipLevel = 0;
+    Region.layerCount = 1;
+    Region.levelCount = 1;
+    FVulkanPipelineBarrier Barrier;
+    Barrier.AddImageLayoutTransition(
+        swapChainImages[CurrentSwapChainImageIndex])
+    TransitionImageLayout(
+        CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, Region);
+    CommandBufferManager->SubmitUploadCmdBuffer();
 }
 
 void FVulkanDynamicRHI::RHIEndFrame()
 {
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+    VkImageSubresourceRange Region{};
+    Region.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    Region.baseArrayLayer = 0;
+    Region.baseMipLevel = 0;
+    Region.layerCount = 1;
+    Region.levelCount = 1;
+    TransitionImageLayout(
+        CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
+    CommandBufferManager->SubmitUploadCmdBuffer();
     SwapChain->Present(GfxQueue, PresentQueue);
     CommandBufferManager->FreeUnusedCmdBuffers();
 }
@@ -495,10 +523,30 @@ int FVulkanDynamicRHI::Initialize()
     /** Create swap chain */
     {        
         VkExtent2D extent{GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight};
+        std::vector<VkImage> TempSwapChainImages;
         SwapChain = new FVulkanSwapChain(
             physicalDevice, device, surface, extent, 
             swapChainImageFormat, 
-            1, &GfxQueueIndex.value(), swapChainImages);
+            1, &GfxQueueIndex.value(), TempSwapChainImages);
+        swapChainImages.resize(TempSwapChainImages.size());
+        FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+        VkImageSubresourceRange Region{};
+        Region.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        Region.baseArrayLayer = 0;
+        Region.baseMipLevel = 0;
+        Region.layerCount = 1;
+        Region.levelCount = 1;
+        FVulkanPipelineBarrier Barrier;
+        for (int i = 0; i < swapChainImages.size(); i++)
+        {
+            auto VulkanTexture = std::make_shared<VulkanTexture2D>(
+                TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, 
+                VK_IMAGE_LAYOUT_UNDEFINED, extent.width, extent.height, 1, 1, 
+                swapChainImageFormat, "SwapChainImage"+std::to_string(i));
+            Barrier.AddImageLayoutTransition(VulkanTexture->GetImage(), VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
+            swapChainImages[i] = VulkanTexture;
+        }
+        Barrier.Execute(CmdBuffer);
 
         swapChainExtent = extent;
         DepthImage = RHICreateTexture2D(
@@ -882,211 +930,12 @@ FRHIVertexDeclarationRef FVulkanDynamicRHI::RHICreateVertexDeclaration(const std
     return Declaration;
 }
 
-
-
-static VkPipelineStageFlags GetVkStageFlagsForLayout(VkImageLayout Layout)
-{
-	VkPipelineStageFlags Flags = 0;
-
-	switch (Layout)
-	{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			Flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
-			break;
-			
-		case VK_IMAGE_LAYOUT_GENERAL:
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			Flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-			break;
-
-		default:
-			break;
-	}
-
-	return Flags;
-}
-static VkAccessFlags GetVkAccessMaskForLayout(const VkImageLayout Layout)
-{
-	VkAccessFlags Flags = 0;
-
-	switch (Layout)
-	{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			Flags = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			Flags = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			Flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
-			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
-		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
-			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			Flags = 0;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
-			Flags = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
-			break;
-
-		case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
-			Flags = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
-			break;
-
-		case VK_IMAGE_LAYOUT_GENERAL:
-			// todo-jn: could be used for R64 in read layout
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			Flags = 0;
-			break;
-
-		case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
-			// todo-jn: sync2 currently only used by depth/stencil targets
-			Flags = VK_ACCESS_SHADER_READ_BIT;
-			break;
-
-		default:
-			break;
-	}
-
-	return Flags;
-}
-// TODO: 把barrier封装一下
-static void TransitionImageLayout(FVulkanDynamicRHI* Context, RHITexture* Texture, VkImageLayout DstLayout)
-{
-	VulkanTextureBase* vkTexture = ResourceCast(Texture);
-    if (vkTexture->Image)
-    {
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = vkTexture->ImageLayout;
-        barrier.newLayout = DstLayout;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = vkTexture->Image;
-        switch (Texture->GetFormat()) 
-        {
-        case PF_D32F:
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; break;
-        case PF_D24S8:
-        case PF_D32FS8:
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT; break;
-        default:
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; break;
-        }
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = Texture->GetNumMips();
-        barrier.subresourceRange.layerCount = Texture->GetNumLayers();
-        barrier.srcAccessMask = GetVkAccessMaskForLayout(vkTexture->ImageLayout);
-        barrier.dstAccessMask = GetVkAccessMaskForLayout(DstLayout);
-
-        VkPipelineStageFlags sourceStage = GetVkStageFlagsForLayout(vkTexture->ImageLayout);
-        VkPipelineStageFlags destinationStage = GetVkStageFlagsForLayout(DstLayout);
-        FVulkanCmdBuffer* CmdBuffer = Context->CommandBufferManager->GetUploadCmdBuffer();
-        vkCmdPipelineBarrier(
-            CmdBuffer->GetHandle(),
-            sourceStage, destinationStage,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier
-        );
-        vkTexture->ImageLayout = DstLayout;
-    }
-}
-
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
     if (Framebuffer)
     {
-        for (auto& [Attachment, Texture] : Framebuffer->Attachments)
-        {
-            VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
-            if (Attachment == FA_Depth_Stencil_Attachment)
-            {
-                TransitionImageLayout(this, Texture.get(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-            }
-            else 
-            {
-                TransitionImageLayout(this, Texture.get(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            }
-        }
         FVulkanRenderTargetLayout RTLayout(InInfo);
         FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
         CmdBuffer->BeginRenderPass(InInfo, RenderPass->Handle, Framebuffer->Handle);

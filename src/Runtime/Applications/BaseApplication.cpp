@@ -38,23 +38,24 @@ namespace nilou {
 
     void BaseApplication::Tick(double DeltaTime)
     {
+        ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
+            [this](FDynamicRHI* RHICmdList) 
+            {
+                RHICmdList->RHIBeginFrame();
+            });
         GameViewportClient->Tick(DeltaTime);
         static FViewport Viewport;
         Viewport.Width = GetConfiguration().screenWidth;
         Viewport.Height = GetConfiguration().screenHeight;
         GameViewportClient->Draw(Viewport);
-        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
-            [this](FDynamicRHI*) 
-            {
-                this->Tick_RenderThread();
-            });
-
         std::mutex m;
         std::unique_lock<std::mutex> lock(m);
         std::condition_variable fence;
-        ENQUEUE_RENDER_COMMAND(BaseApplication_Fence)(
-            [&fence](FDynamicRHI*) 
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
+            [this, &fence](FDynamicRHI* RHICmdList) 
             {
+                this->Tick_RenderThread();
+                RHICmdList->RHIEndFrame();
                 fence.notify_one();
             });
         fence.wait(lock);

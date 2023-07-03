@@ -82,7 +82,12 @@ bool FVulkanTypedDescriptorPoolSet::AllocateDescriptorSets(const FVulkanDescript
 {
 	if (!InLayout.Handles.empty())
 	{
-		while (PoolCurrent == Pools.end() || !PoolCurrent->AllocateDescriptorSets(InLayout.GetAllocateInfo(), OutSets))
+		if (PoolCurrent == Pools.end())
+		{
+			Pools.emplace_back(Device, InLayout, 32);
+			PoolCurrent = Pools.begin();
+		}
+		while (!PoolCurrent->CanAllocate(InLayout) || !PoolCurrent->AllocateDescriptorSets(InLayout.GetAllocateInfo(), OutSets))
 		{
 			Pools.emplace_back(Device, InLayout, 32);
 			PoolCurrent = std::next(PoolCurrent);

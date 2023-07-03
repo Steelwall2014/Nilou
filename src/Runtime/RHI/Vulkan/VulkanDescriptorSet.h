@@ -200,15 +200,15 @@ public:
 	}
 
 private:
-	VkDevice Device;
+	VkDevice Device{};
 
-	uint32 MaxDescriptorSets;
-	uint32 NumAllocatedDescriptorSets;
-	uint32 PeakAllocatedDescriptorSets;
+	uint32 MaxDescriptorSets{};
+	uint32 NumAllocatedDescriptorSets{};
+	uint32 PeakAllocatedDescriptorSets{};
 
 	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
 	const FVulkanDescriptorSetsLayout& Layout;
-	VkDescriptorPool DescriptorPool;
+	VkDescriptorPool DescriptorPool{};
 };
 
 class FVulkanTypedDescriptorPoolSet
@@ -216,6 +216,11 @@ class FVulkanTypedDescriptorPoolSet
 public:
 	FVulkanTypedDescriptorPoolSet(VkDevice InDevice) : PoolCurrent(Pools.end()), Device(InDevice) { }
 	bool AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& InLayout, VkDescriptorSet* OutSets, FVulkanDescriptorPool** OutOwner);
+	void Reset()
+	{
+		for (auto& Pool : Pools)
+			Pool.Reset();
+	}
 private:
 	VkDevice Device;
 	std::list<FVulkanDescriptorPool> Pools{};
@@ -226,6 +231,11 @@ class FVulkanDescriptorPoolsManager
 {
 public:
 	FVulkanDescriptorPoolsManager(VkDevice InDevice) : Device(InDevice) { }
+	void Reset()
+	{
+		for (auto& [Layout, PoolSet] : PoolSets)
+			PoolSet->Reset();
+	}
 	VkDevice Device;
     std::unordered_map<FVulkanDescriptorSetsLayout, std::shared_ptr<FVulkanTypedDescriptorPoolSet>> PoolSets;
     FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);

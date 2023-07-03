@@ -139,4 +139,23 @@ struct FVulkanRenderPassManager
 
 VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);
 
+inline VkImageAspectFlags GetAspectMaskFromPixelFormat(EPixelFormat Format, bool bIncludeStencil, bool bIncludeDepth = true)
+{
+    switch (Format)
+    {
+    case PF_D24S8:
+    case PF_D32FS8:
+        return (bIncludeDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) | (bIncludeStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+    case PF_D32F:
+        return VK_IMAGE_ASPECT_DEPTH_BIT;
+    default:
+        return VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+}
+
+inline VkImageAspectFlags GetFullAspectMask(EPixelFormat Format)
+{
+    return GetAspectMaskFromPixelFormat(Format, true, true);
+}
+
 }

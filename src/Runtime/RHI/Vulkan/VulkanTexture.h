@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include "RHIResources.h"
+#include "VulkanBarriers.h"
 
 namespace nilou {
 
@@ -11,20 +12,23 @@ public:
     VkImage Image;
     VkImageView ImageView;
     VkDeviceMemory Memory;
-    VkImageLayout ImageLayout;
+    uint8 BaseMipLevel;
+    uint8 NumMips;
+    uint8 BaseArrayLayer;
+    uint8 NumLayers;
+    VulkanTextureBase* ParentTexture = nullptr;
 
     VulkanTextureBase(
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
-        VkImageLayout InImageLayout
-    )
-    : Image(InImage)
-    , ImageView(InImageView)
-    , Memory(InMemory)
-    , ImageLayout(InImageLayout)
-    { }
+        const FVulkanImageLayout& InImageLayout
+    );
     ~VulkanTextureBase();
+    const FVulkanImageLayout* GetImageLayout() const;
+    void SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range);
+    void SetFullImageLayout(VkImageLayout Layout);
+    bool IsImageView() const { return ParentTexture != nullptr; }
 
 };
 
@@ -36,7 +40,7 @@ public:
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
-        VkImageLayout InImageLayout,
+        const FVulkanImageLayout& InImageLayout,
         uint32 InSizeX,
         uint32 InSizeY,
         uint32 InSizeZ,
@@ -50,8 +54,6 @@ public:
     VkImage GetImage() const { return TextureBase.Image; }
     VkImageView GetImageView() const { return TextureBase.ImageView; }
     VkDeviceMemory GetMemory() const { return TextureBase.Memory; }
-    VkImageLayout GetImageLayout() const { return TextureBase.ImageLayout; }
-    void SetImageLayout(VkImageLayout ImageLayout) { TextureBase.ImageLayout = ImageLayout; }
     VulkanTextureBase TextureBase;
 };
 
@@ -107,6 +109,38 @@ using VulkanTexture2DRef = std::shared_ptr<VulkanTexture2D>;
 using VulkanTexture2DArrayRef = std::shared_ptr<VulkanTexture2DArray>;
 using VulkanTexture3DRef = std::shared_ptr<VulkanTexture3D>;
 using VulkanTextureCubeRef = std::shared_ptr<VulkanTextureCube>;
+
+template<typename BaseType>
+class TVulkanTextureView : public BaseType
+{
+public:
+    TVulkanTextureView(
+        VulkanTextureBase* InParentTexture,
+        VkImage InImage,
+        VkImageView InImageView,
+        VkDeviceMemory InMemory,
+        const FVulkanImageLayout& InImageLayout,
+        uint32 InSizeX,
+        uint32 InSizeY,
+        uint32 InSizeZ,
+        uint32 InBaseMipLevel,
+        uint32 InNumMips,
+        uint32 InBaseArrayLayer,
+        uint32 InNumLayers,
+        EPixelFormat InFormat,
+        const std::string &InTextureName)   
+        : BaseType(InParentTexture, InImage, InImageView, InMemory, InImageLayout, InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
+    { 
+        TextureBase.IsImageView() = true; 
+        TextureBase.BaseMipLevel = InBaseMipLevel;
+        TextureBase.BaseArrayLayer = InBaseArrayLayer;
+        TextureBase.NumMips = InNumMips;
+        TextureBase.NumLayers = InNumLayers;
+        TextureBase.ParentTexture = InParentTexture;
+    }
+};
+using VulkanTextureView2D = TVulkanTextureView<VulkanTexture2D>;
+using VulkanTextureViewCube = TVulkanTextureView<VulkanTextureCube>;
 
 inline VulkanTextureBase* ResourceCast(RHITexture* Texture)
 {

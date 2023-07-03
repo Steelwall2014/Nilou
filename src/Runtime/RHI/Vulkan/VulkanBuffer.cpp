@@ -42,7 +42,7 @@ static std::mutex GPendingLockIBsMutex;
 
 static FPendingBufferLock GetPendingBufferLock(VulkanMultiBuffer* Buffer)
 {
-	FPendingBufferLock PendingLock;
+	FPendingBufferLock PendingLock{};
 
 	// Found only if it was created for Write
 	std::lock_guard<std::mutex> ScopeLock(GPendingLockIBsMutex);
@@ -237,6 +237,8 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
 	const bool bUAV = EnumHasAnyFlags(Usage, EBufferUsageFlags::UnorderedAccess);
 	const bool bSR = EnumHasAnyFlags(Usage, EBufferUsageFlags::ShaderResource);
 
+	LockStatus = ELockStatus::Locked;
+
     if (LockMode == RLM_ReadOnly)
     {
         FVulkanCmdBuffer* CmdBuffer = Context->GetCommandBufferManager()->GetUploadCmdBuffer();
@@ -308,8 +310,8 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
             {
                 FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
                 vkMapMemory(VulkanRHI->device, Memories[DynamicBufferIndex], 0, Size, 0, &MappedPointer);
-                LockStatus = ELockStatus::PersistentMapping;
             }
+            LockStatus = ELockStatus::PersistentMapping;
             Data = (uint8*)MappedPointer + Offset;
         }
     }

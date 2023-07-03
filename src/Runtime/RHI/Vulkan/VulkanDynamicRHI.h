@@ -172,13 +172,15 @@ private:
         RHITexture* Texture, void* Data, int32 MipmapLevel, 
         int32 Xoffset, int32 Yoffset, int32 Zoffset, uint32 Width, uint32 Height, uint32 Depth,
         int32 BaseArrayLayer);
+    void TransitionImageLayout(RHITexture* Texture, VkImageLayout DstLayout);
+    void TransitionImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
 
     VkInstance instance{};
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
     class FVulkanSwapChain* SwapChain;
-    std::vector<VkImage> swapChainImages;
+    std::vector<std::shared_ptr<RHITexture2D>> swapChainImages;
     EPixelFormat swapChainImageFormat;
     EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
