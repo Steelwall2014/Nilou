@@ -1,6 +1,7 @@
 #pragma once
+#include <vulkan/vulkan.h>
+#include <shaderc/shaderc.h>
 #include "RHIResources.h"
-#include "VulkanDynamicRHI.h"
 
 namespace nilou {
 
@@ -9,6 +10,7 @@ class TVulkanShader : public BaseType
 {
 public:
     friend class FVulkanDynamicRHI;
+    TVulkanShader(VkDevice InDevice) : Device(InDevice) { }
 
     virtual bool Success() override
     {
@@ -17,14 +19,19 @@ public:
 
     virtual void ReleaseRHI() override
     {
-        FDynamicRHI::GetDynamicRHI()->RHIDestroyShader(this);
+        if (Module != VK_NULL_HANDLE)
+            vkDestroyShaderModule(Device, Module, nullptr);
+        if (ShadercResult != nullptr)
+            shaderc_result_release(ShadercResult);
     }
 
 private:
 
-    class VkShaderModule_T* Module;
+    VkDevice Device;
 
-    class shaderc_compilation_result* ShadercResult;
+    VkShaderModule Module;
+
+    shaderc_compilation_result* ShadercResult;
 };
 
 using VulkanVertexShader = TVulkanShader<RHIVertexShader>;

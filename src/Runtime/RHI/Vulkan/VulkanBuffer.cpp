@@ -57,8 +57,9 @@ static FPendingBufferLock GetPendingBufferLock(VulkanMultiBuffer* Buffer)
 FStagingBuffer::~FStagingBuffer()
 {
     FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+    if (MappedPointer)
+        vkUnmapMemory(Device, StagingBufferMemory);
     VulkanRHI->MemoryManager->FreeMemory(StagingBufferMemory);
-    vkUnmapMemory(Device, StagingBufferMemory);
 }
 
 void* FStagingBuffer::GetMappedPointer()

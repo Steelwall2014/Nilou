@@ -233,8 +233,9 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStat
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info)
 {
     std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
+    RenderTargetFormats.fill(PF_UNKNOWN);
     uint32 NumRenderTargetsEnabled = 0;
-    EPixelFormat DepthStencilTargetFormat;
+    EPixelFormat DepthStencilTargetFormat = PF_UNKNOWN;
     for (auto [Attachment, Texture] : Info.Framebuffer->Attachments)
     {
         if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
@@ -276,6 +277,7 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
 			VkAttachmentReference& ColorRef = ColorReferences.emplace_back();
             ColorRef.attachment = Index;
 			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
 		}
     }
     if (DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
@@ -294,6 +296,7 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
 
         DepthStencilReference.attachment = NumRenderTargetsEnabled;
         DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
     }
     
     RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
@@ -323,6 +326,9 @@ FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkan
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    Ncheck(RTLayout.Desc.size() != 0);
+    if (RTLayout.Desc.size() == 0)
+        throw "";
     renderPassInfo.attachmentCount = static_cast<uint32>(RTLayout.Desc.size());
     renderPassInfo.pAttachments = RTLayout.Desc.data();
     renderPassInfo.subpassCount = 1;
@@ -395,7 +401,7 @@ VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
     case EPixelFormat::PF_R32G32B32A32F:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
     default:
-        return VK_FORMAT_UNDEFINED;
+        throw "Unknown PixelFormat!";
     }
 }
 

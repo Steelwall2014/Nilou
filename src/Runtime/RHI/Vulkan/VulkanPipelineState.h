@@ -39,7 +39,7 @@ public:
 
     FVulkanDescriptorSets DescriptorSets;
 
-    FVulkanPipelineBarrier Barrier;
+    FVulkanImageLayoutBarrierHelper Barrier;
 };
 
 class VulkanPipelineLayout : public FRHIPipelineLayout

@@ -15,8 +15,7 @@ namespace nilou {
     void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
         FPermutationDomain Domain(Parameter.PermutationId);
-        int FrustumCount = Domain.Get<FDimensionFrustumCount>();
-        Environment.SetDefine("FrustumCount", FrustumCount);
+        Domain.ModifyCompilationEnvironment(Environment);
     }
 
     static void BuildMeshDrawCommand(

@@ -217,21 +217,21 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 {
 	if (SrcLayout.AreAllSubresourcesSameLayout())
 	{
-		AddImageLayoutTransition(Image, SrcLayout.MainLayout, DstLayout, MakeSubresourceRange(AspectMask));
+		AddImageLayoutTransition(Image, SrcLayout.MainLayout, DstLayout, MakeSubresourceRange(AspectMask, 0, SrcLayout.NumMips, 0, SrcLayout.NumLayers));
 		return;
 	}
 
 	const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(DstLayout);
 	const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(DstLayout);
 
-	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
-		{
+	//ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
+	//	{
 			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
 			for (; SubresourceRange.baseArrayLayer < SrcLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
 			{
 				for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < SrcLayout.NumMips; ++SubresourceRange.baseMipLevel)
 				{
-					const VkImageLayout SubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
+					const VkImageLayout SubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel/*, SingleAspect*/);
 					if (SubresourceLayout != DstLayout)
 					{
 						const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SubresourceLayout);
@@ -242,28 +242,28 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 					}
 				}
 			}
-		});
+	//	});
 }
 
-void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
+void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcBaseLayer, const FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
 {
 	if (SrcLayout.AreAllSubresourcesSameLayout())
 	{
-		AddImageLayoutTransition(Image, SrcLayout.MainLayout, DstLayout, MakeSubresourceRange(AspectMask));
+		AddImageLayoutTransition(Image, SrcLayout.MainLayout, DstLayout, MakeSubresourceRange(AspectMask, SrcBaseMip, SrcLayout.NumMips, SrcBaseLayer, SrcLayout.NumLayers));
 		return;
 	}
 
 	const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(DstLayout);
 	const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(DstLayout);
 
-	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
-		{
+	//ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
+	//	{
 			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, SrcBaseMip, 1, SrcBaseLayer, 1);
-			for (; SubresourceRange.baseArrayLayer < SrcBaseLayer+SrcNumLayers; ++SubresourceRange.baseArrayLayer)
+			for (; SubresourceRange.baseArrayLayer < SrcBaseLayer+SrcLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
 			{
-				for (SubresourceRange.baseMipLevel = SrcBaseMip; SubresourceRange.baseMipLevel < SrcBaseMip+SrcNumMips; ++SubresourceRange.baseMipLevel)
+				for (SubresourceRange.baseMipLevel = SrcBaseMip; SubresourceRange.baseMipLevel < SrcBaseMip+SrcLayout.NumMips; ++SubresourceRange.baseMipLevel)
 				{
-					const VkImageLayout SubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
+					const VkImageLayout SubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel/*, SingleAspect*/);
 					if (SubresourceLayout != DstLayout)
 					{
 						const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SubresourceLayout);
@@ -274,81 +274,81 @@ void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspe
 					}
 				}
 			}
-		});
+	//	});
 }
 
-void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const FVulkanImageLayout& DstLayout)
-{
-	if (DstLayout.AreAllSubresourcesSameLayout())
-	{
-		AddImageLayoutTransition(Image, SrcLayout, DstLayout.MainLayout, MakeSubresourceRange(AspectMask));
-		return;
-	}
+// void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const FVulkanImageLayout& DstLayout)
+// {
+// 	if (DstLayout.AreAllSubresourcesSameLayout())
+// 	{
+// 		AddImageLayoutTransition(Image, SrcLayout, DstLayout.MainLayout, MakeSubresourceRange(AspectMask));
+// 		return;
+// 	}
 
-	const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SrcLayout);
-	const VkAccessFlags SrcAccessFlags = GetVkAccessMaskForLayout(SrcLayout);
+// 	const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SrcLayout);
+// 	const VkAccessFlags SrcAccessFlags = GetVkAccessMaskForLayout(SrcLayout);
 
-	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
-		{
-			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
-			for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
-			{
-				for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)
-				{
-					const VkImageLayout SubresourceLayout = DstLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
-					if (SubresourceLayout != SrcLayout)
-					{
-						const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(SubresourceLayout);
-						const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(SubresourceLayout);
+// 	ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
+// 		{
+// 			VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, 0, 1, 0, 1);
+// 			for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
+// 			{
+// 				for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)
+// 				{
+// 					const VkImageLayout SubresourceLayout = DstLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
+// 					if (SubresourceLayout != SrcLayout)
+// 					{
+// 						const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(SubresourceLayout);
+// 						const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(SubresourceLayout);
 
-						VkImageMemoryBarrier2& ImgBarrier = ImageBarriers.emplace_back();
-						SetupImageBarrier(ImgBarrier, Image, SrcStageMask, DstStageMask, SrcAccessFlags, DstAccessFlags, SrcLayout, SubresourceLayout, SubresourceRange);
-					}
-				}
-			}
-		});
-}
+// 						VkImageMemoryBarrier2& ImgBarrier = ImageBarriers.emplace_back();
+// 						SetupImageBarrier(ImgBarrier, Image, SrcStageMask, DstStageMask, SrcAccessFlags, DstAccessFlags, SrcLayout, SubresourceLayout, SubresourceRange);
+// 					}
+// 				}
+// 			}
+// 		});
+// }
 
-void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, const FVulkanImageLayout& SrcLayout, const FVulkanImageLayout& DstLayout)
-{
-	if (SrcLayout.AreAllSubresourcesSameLayout())
-	{
-		AddImageLayoutTransition(Image, AspectMask, SrcLayout.MainLayout, DstLayout);
-	}
-	else if (DstLayout.AreAllSubresourcesSameLayout())
-	{
-		AddImageLayoutTransition(Image, AspectMask, SrcLayout, DstLayout.MainLayout);
-	}
-	else
-	{
-		Ncheck(SrcLayout.NumLayers == DstLayout.NumLayers);
-		Ncheck(SrcLayout.NumMips == DstLayout.NumMips);
+// void FVulkanPipelineBarrier::AddImageLayoutTransition(VkImage Image, VkImageAspectFlags AspectMask, const FVulkanImageLayout& SrcLayout, const FVulkanImageLayout& DstLayout)
+// {
+// 	if (SrcLayout.AreAllSubresourcesSameLayout())
+// 	{
+// 		AddImageLayoutTransition(Image, AspectMask, SrcLayout.MainLayout, DstLayout);
+// 	}
+// 	else if (DstLayout.AreAllSubresourcesSameLayout())
+// 	{
+// 		AddImageLayoutTransition(Image, AspectMask, SrcLayout, DstLayout.MainLayout);
+// 	}
+// 	else
+// 	{
+// 		Ncheck(SrcLayout.NumLayers == DstLayout.NumLayers);
+// 		Ncheck(SrcLayout.NumMips == DstLayout.NumMips);
 
-		ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
-			{
-				VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(AspectMask, 0, 1, 0, 1);
-				for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
-				{
-					for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)
-					{
-						const VkImageLayout SrcSubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
-						const VkImageLayout DstSubresourceLayout = DstLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
-						if (SrcSubresourceLayout != DstSubresourceLayout)
-						{
-							const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SrcSubresourceLayout);
-							const VkAccessFlags SrcAccessFlags = GetVkAccessMaskForLayout(SrcSubresourceLayout);
+// 		ForEachAspect(AspectMask, [&](VkImageAspectFlagBits SingleAspect)
+// 			{
+// 				VkImageSubresourceRange SubresourceRange = MakeSubresourceRange(SingleAspect, 0, 1, 0, 1);
+// 				for (; SubresourceRange.baseArrayLayer < DstLayout.NumLayers; ++SubresourceRange.baseArrayLayer)
+// 				{
+// 					for (SubresourceRange.baseMipLevel = 0; SubresourceRange.baseMipLevel < DstLayout.NumMips; ++SubresourceRange.baseMipLevel)
+// 					{
+// 						const VkImageLayout SrcSubresourceLayout = SrcLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
+// 						const VkImageLayout DstSubresourceLayout = DstLayout.GetSubresLayout(SubresourceRange.baseArrayLayer, SubresourceRange.baseMipLevel, SingleAspect);
+// 						if (SrcSubresourceLayout != DstSubresourceLayout)
+// 						{
+// 							const VkPipelineStageFlags SrcStageMask = GetVkStageFlagsForLayout(SrcSubresourceLayout);
+// 							const VkAccessFlags SrcAccessFlags = GetVkAccessMaskForLayout(SrcSubresourceLayout);
 
-							const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(DstSubresourceLayout);
-							const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(DstSubresourceLayout);
+// 							const VkPipelineStageFlags DstStageMask = GetVkStageFlagsForLayout(DstSubresourceLayout);
+// 							const VkAccessFlags DstAccessFlags = GetVkAccessMaskForLayout(DstSubresourceLayout);
 
-							VkImageMemoryBarrier2& ImgBarrier = ImageBarriers.emplace_back();
-							SetupImageBarrier(ImgBarrier, Image, SrcStageMask, DstStageMask, SrcAccessFlags, DstAccessFlags, SrcSubresourceLayout, DstSubresourceLayout, SubresourceRange);
-						}
-					}
-				}
-			});
-	}
-}
+// 							VkImageMemoryBarrier2& ImgBarrier = ImageBarriers.emplace_back();
+// 							SetupImageBarrier(ImgBarrier, Image, SrcStageMask, DstStageMask, SrcAccessFlags, DstAccessFlags, SrcSubresourceLayout, DstSubresourceLayout, SubresourceRange);
+// 						}
+// 					}
+// 				}
+// 			});
+// 	}
+// }
 
 bool IsDepthOrStencilAspect(RHITexture* Texture)
 {
@@ -499,7 +499,7 @@ const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Textur
 {
     VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
     Ncheck(!bWriteOnly);
-    const FVulkanImageLayout* Layout = Find(VulkanTexture->ImageView);
+    const FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     
     if (!Layout && Fallback)
     {
@@ -515,7 +515,7 @@ const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Textur
         return nullptr;
     }
 
-    auto insert = Layouts.insert({VulkanTexture->ImageView, FVulkanImageLayout(LayoutIfNotFound, Texture->GetNumMips(), Texture->GetNumLayers(), GetFullAspectMask(Texture->GetFormat()))});
+    auto insert = Layouts.insert({VulkanTexture->Image, FVulkanImageLayout(LayoutIfNotFound, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
     return &insert.first->second;
 }
 
@@ -523,13 +523,13 @@ void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, const FVulkanImage
 {
     Ncheck((Texture->GetNumMips() == NewLayout.NumMips) && (Texture->GetNumLayers() == NewLayout.NumLayers));
     VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
-    SetFullLayout(VulkanTexture->ImageView, NewLayout);
+    SetFullLayout(VulkanTexture->Image, NewLayout);
 }
 
 void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLayout, bool bOnlyIfNotFound)
 {
     VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
-    FVulkanImageLayout* Layout = Find(VulkanTexture->ImageView);
+    FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     if (Layout)
     {
         if (!bOnlyIfNotFound)
@@ -539,24 +539,92 @@ void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLa
     }
     else
     {
-        Layouts.insert({VulkanTexture->ImageView, FVulkanImageLayout(InLayout, Texture->GetNumMips(), Texture->GetNumLayers(), GetFullAspectMask(Texture->GetFormat()))});
+        Layouts.insert({VulkanTexture->Image, FVulkanImageLayout(InLayout, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
     }
 }
 
 void FVulkanLayoutManager::SetLayout(RHITexture* Texture, const VkImageSubresourceRange& InSubresourceRange, VkImageLayout InLayout)
 {
     VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
-    FVulkanImageLayout* Layout = Find(VulkanTexture->ImageView);
+    FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     if (Layout)
     {
         Layout->Set(InLayout, InSubresourceRange);
     }
     else
     {
-        FVulkanImageLayout NewLayout(VK_IMAGE_LAYOUT_UNDEFINED, Texture->GetNumMips(), Texture->GetNumLayers(), GetFullAspectMask(Texture->GetFormat()));
+        FVulkanImageLayout NewLayout(VK_IMAGE_LAYOUT_UNDEFINED, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/);
         NewLayout.Set(InLayout, InSubresourceRange);
-        Layouts.insert({VulkanTexture->ImageView, NewLayout});
+        Layouts.insert({VulkanTexture->Image, NewLayout});
     }
 }
+
+void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange)
+{
+	if (Image->IsImageView())
+	{
+		VkImageSubresourceRange NewRange = SubresourceRange;
+		NewRange.baseArrayLayer += Image->BaseArrayLayer;
+		NewRange.baseMipLevel += Image->BaseMipLevel;
+		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, SrcLayout, DstLayout, NewRange);
+	}
+	else 
+	{
+		Barrier.AddImageLayoutTransition(Image->Image, SrcLayout, DstLayout, SubresourceRange);
+	}
+	Image->SetImageLayout(DstLayout, SubresourceRange);
+}
+
+void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
+{
+	VkImageSubresourceRange Range{AspectMask, Image->BaseMipLevel, Image->NumMips, Image->BaseArrayLayer, Image->NumLayers};
+	if (Image->IsImageView())
+	{
+		FVulkanImageLayout ParentSubresLayout = Image->ParentTexture->GetImageLayout().GetSubresLayout(Range);
+		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, Image->BaseMipLevel, Image->BaseArrayLayer, ParentSubresLayout, DstLayout);
+		Image->ParentTexture->SetImageLayout(DstLayout, Range);
+		#ifdef NILOU_DEBUG
+		Image->GetImageLayout();
+		#endif
+	}
+	else 
+	{
+		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+		Image->SetImageLayout(DstLayout, Range);
+	}
+}
+
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
+// {
+// 	VkImageSubresourceRange Range{AspectMask, SrcBaseMip, SrcNumMips, SrcBaseLayer, SrcNumLayers};
+// 	if (Image->IsImageView())
+// 	{
+// 		FVulkanImageLayout ParentSubresLayout = Image->ParentTexture->GetImageLayout().GetSubresLayout(Range);
+// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, ParentSubresLayout, DstLayout);
+// 	}
+// 	else 
+// 	{
+// 		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+// 	}
+// 	Image->SetImageLayout(DstLayout, Range);
+// }
+
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const struct FVulkanImageLayout& DstLayout)
+// {
+// 	if (Image->IsImageView())
+// 	{
+// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, SrcLayout, DstLayout);
+// 	}
+// 	else 
+// 	{
+// 		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+// 	}
+// 	Image->SetImageLayout(DstLayout, Range);
+// }
+
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, const struct FVulkanImageLayout& DstLayout)
+// {
+	
+// }
 
 }

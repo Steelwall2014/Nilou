@@ -19,7 +19,7 @@ namespace nilou {
         virtual bool Initialize();
         virtual bool Initialize_RenderThread() { return true; }
         virtual void Finalize();
-        virtual void Finalize_RenderThread() { }
+        virtual void Finalize_RenderThread();
         virtual void Tick(double);
         virtual void Tick_RenderThread();
 

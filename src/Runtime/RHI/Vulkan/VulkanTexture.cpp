@@ -30,10 +30,10 @@ static VkSamplerMipmapMode TranslateFilterModeToVkMipmapMode(ETextureFilters Fil
     switch (Filter) 
     {
     case TF_Linear:
-    case TF_Nearest:
     case TF_Linear_Mipmap_Linear:
     case TF_Nearest_Mipmap_Linear:
         return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    case TF_Nearest:
     case TF_Linear_Mipmap_Nearest: 
     case TF_Nearest_Mipmap_Nearest: 
         return VK_SAMPLER_MIPMAP_MODE_NEAREST;
@@ -59,12 +59,20 @@ VulkanTextureBase::VulkanTextureBase(
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
+        VkImageAspectFlags InAspectFlags,
         const FVulkanImageLayout& InImageLayout)
     : Image(InImage)
     , ImageView(InImageView)
     , Memory(InMemory)
+    , FullAspectFlags(InAspectFlags)
+    #ifdef NILOU_DEBUG
+    , DebugLayout(VK_IMAGE_LAYOUT_UNDEFINED, 0, 0)
+    #endif
 { 
-    GetLayoutManager().SetFullLayout(InImageView, InImageLayout);
+    if (InImage != VK_NULL_HANDLE)   // it means this texture is not a texture view
+    {
+        GetLayoutManager().SetFullLayout(InImage, InImageLayout);
+    }
 }
 
 VulkanTextureBase::~VulkanTextureBase()
@@ -75,28 +83,65 @@ VulkanTextureBase::~VulkanTextureBase()
         if (Image)
             vkDestroyImage(RHI->device, Image, nullptr);
         if (Memory)
+        {
+            assert(RHI->MemoryManager != nullptr);
             RHI->MemoryManager->FreeMemory(Memory);
+        }
     }
     if (ImageView)
         vkDestroyImageView(RHI->device, ImageView, nullptr);
 }
 
-const FVulkanImageLayout* VulkanTextureBase::GetImageLayout() const
+FVulkanImageLayout VulkanTextureBase::GetImageLayout() const
 {
-    return GetLayoutManager().GetFullLayout(ImageView);
+    if (IsImageView())
+    {
+        const FVulkanImageLayout* ParentLayout = GetLayoutManager().GetFullLayout(ParentTexture->Image);
+        VkImageSubresourceRange Range{};
+        Range.aspectMask = FullAspectFlags;
+        Range.baseArrayLayer = BaseArrayLayer;
+        Range.baseMipLevel = BaseMipLevel;
+        Range.levelCount = NumMips;
+        Range.layerCount = NumLayers;
+        FVulkanImageLayout Layout = ParentLayout->GetSubresLayout(Range);
+        #ifdef NILOU_DEBUG
+        VulkanTextureBase* NonconstThis = const_cast<VulkanTextureBase*>(this);
+        NonconstThis->DebugLayout = Layout;
+        #endif
+        return Layout;
+    }
+    else 
+    {
+        #ifdef NILOU_DEBUG
+        VulkanTextureBase* NonconstThis = const_cast<VulkanTextureBase*>(this);
+        NonconstThis->DebugLayout = *GetLayoutManager().GetFullLayout(Image);
+        #endif
+        return *GetLayoutManager().GetFullLayout(Image);
+    }
 }
 
 void VulkanTextureBase::SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range)
 {
-    GetLayoutManager().UpdateLayout(ImageView, Range, Layout);
+    if (IsImageView())
+    {
+        VkImageSubresourceRange NewRange = Range;
+        NewRange.baseArrayLayer += BaseArrayLayer;
+        NewRange.baseMipLevel += BaseMipLevel;
+        GetLayoutManager().UpdateLayout(Image, NewRange, Layout);
+    }
+    else 
+    {
+        GetLayoutManager().UpdateLayout(Image, Range, Layout);
+    }
+    #ifdef NILOU_DEBUG
+    DebugLayout = GetImageLayout();
+    #endif
 }
 
 void VulkanTextureBase::SetFullImageLayout(VkImageLayout Layout)
 {
-    FVulkanImageLayout NewLayout = *GetImageLayout();
-    NewLayout.MainLayout = Layout;
-    NewLayout.SubresLayouts.clear();
-    GetLayoutManager().SetFullLayout(ImageView, NewLayout);
+    VkImageSubresourceRange Range{FullAspectFlags, BaseMipLevel, NumMips, BaseArrayLayer, NumLayers};
+    SetImageLayout(Layout, Range);
 }
 
 RHITexture2DRef FVulkanDynamicRHI::RHICreateTexture2D(
@@ -285,7 +330,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = imageInfo.arrayLayers;
 
-    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, true, true);
+    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
     
@@ -299,7 +344,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     //         ImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
     //         Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     //     }
-    //     FVulkanPipelineBarrier Barrier;
+    //     FVulkanImageLayoutBarrierHelper Barrier;
     //     Barrier.AddImageLayoutTransition(
     //         Image, VK_IMAGE_LAYOUT_UNDEFINED, ImageLayout, 
     //         FVulkanPipelineBarrier::MakeSubresourceRange(Aspect, 
@@ -315,22 +360,22 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
     if (TextureType == ETextureType::TT_Texture2D)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1, GetFullAspectMask(Format)};
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1/*, GetFullAspectMask(Format)*/};
         return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, 1, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture2DArray)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, InSizeZ, GetFullAspectMask(Format)};
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, InSizeZ/*, GetFullAspectMask(Format)*/};
         return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_Texture3D)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1, GetFullAspectMask(Format)};
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1/*, GetFullAspectMask(Format)*/};
         return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
     }
     else if (TextureType == ETextureType::TT_TextureCube)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 6, GetFullAspectMask(Format)};
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 6/*, GetFullAspectMask(Format)*/};
         return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, 6, NumMips, Format, name);
     }
     return nullptr;
@@ -342,7 +387,7 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     VulkanTextureBase* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, true, true);
+    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
 
     VkImageView ImageView{};
 
@@ -356,11 +401,11 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
 
-    const FVulkanImageLayout* Layout = Texture->GetImageLayout();
-    FVulkanImageLayout ViewLayout = Layout->GetSubresLayout(viewInfo.subresourceRange);
+    FVulkanImageLayout Layout = Texture->GetImageLayout();
+    FVulkanImageLayout ViewLayout = Layout.GetSubresLayout(viewInfo.subresourceRange);
 
     return std::make_shared<VulkanTextureView2D>(
-        Texture, Texture->Image, ImageView, Texture->Memory, ViewLayout,
+        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 1, 
         MinLevel, NumLevels, LayerIndex, 1, Format, OriginTexture->GetName()+"_View");
 
@@ -373,7 +418,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     VulkanTextureBase* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    viewInfo.subresourceRange.aspectMask = GetFullAspectMask(OriginTexture->GetFormat());
+    viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
 
     VkImageView ImageView{};
 
@@ -387,11 +432,11 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
 
-    const FVulkanImageLayout* Layout = Texture->GetImageLayout();
-    FVulkanImageLayout ViewLayout = Layout->GetSubresLayout(viewInfo.subresourceRange);
+    FVulkanImageLayout Layout = Texture->GetImageLayout();
+    FVulkanImageLayout ViewLayout = Layout.GetSubresLayout(viewInfo.subresourceRange);
 
     return std::make_shared<VulkanTextureViewCube>(
-        Texture, Texture->Image, ImageView, Texture->Memory, ViewLayout,
+        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 6, 
         MinLevel, NumLevels, 0, 6, Format, OriginTexture->GetName()+"_View");
 
@@ -436,12 +481,12 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
         MipmapLevel, 1, 
         BaseArrayLayer, 1);
 
-    const FVulkanImageLayout* Layout = vkTexture->GetImageLayout();
-    VkImageLayout PartialLayout = Layout->GetSubresLayout(BaseArrayLayer, MipmapLevel, 0);
+    FVulkanImageLayout Layout = vkTexture->GetImageLayout();
+    VkImageLayout PartialLayout = Layout.GetSubresLayout(BaseArrayLayer, MipmapLevel);
 
     {
-        FVulkanPipelineBarrier Barrier;
-        Barrier.AddImageLayoutTransition(vkTexture->Image, 
+        FVulkanImageLayoutBarrierHelper Barrier;
+        Barrier.AddImageLayoutTransition(vkTexture, 
             PartialLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
             SubresRange);
         Barrier.Execute(CmdBuffer);
@@ -452,14 +497,12 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
         vkTexture->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
 
     {
-        FVulkanPipelineBarrier Barrier;
-        Barrier.AddImageLayoutTransition(vkTexture->Image, 
+        FVulkanImageLayoutBarrierHelper Barrier;
+        Barrier.AddImageLayoutTransition(vkTexture, 
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
             SubresRange);
         Barrier.Execute(CmdBuffer);
     }
-
-    vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresRange);
 
     CommandBufferManager->SubmitUploadCmdBuffer();
 
@@ -533,11 +576,11 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
         MipDepth = Texture->GetSizeXYZ().z;
     
     {
-        const FVulkanImageLayout* Layout = vkTexture->GetImageLayout();
-        FVulkanPipelineBarrier Barrier;
+        FVulkanImageLayout Layout = vkTexture->GetImageLayout();
+        FVulkanImageLayoutBarrierHelper Barrier;
         Barrier.AddImageLayoutTransition(
-            vkTexture->Image, GetAspectMaskFromPixelFormat(Texture->GetFormat(), true, true),
-            *Layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            vkTexture, GetAspectMaskFromPixelFormat(Texture->GetFormat(), true, true),
+            Layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         Barrier.Execute(CmdBuffer);
     }
 
@@ -546,9 +589,9 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
         VkImageSubresourceRange Range = FVulkanPipelineBarrier::MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, LayerCount);
         
         {
-            FVulkanPipelineBarrier Barrier;
+            FVulkanImageLayoutBarrierHelper Barrier;
             Barrier.AddImageLayoutTransition(
-                vkTexture->Image, 
+                vkTexture, 
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
                 Range);
             Barrier.Execute(CmdBuffer);
@@ -579,13 +622,12 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
             VK_FILTER_LINEAR);
 
         {
-            FVulkanPipelineBarrier Barrier;
+            FVulkanImageLayoutBarrierHelper Barrier;
             Barrier.AddImageLayoutTransition(
-                vkTexture->Image, 
+                vkTexture, 
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
                 Range);
             Barrier.Execute(CmdBuffer);
-            vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Range);
         }
         // TransitionImageLayout(
         //     CmdBuffer->GetHandle(), vkTexture->Image, 
@@ -599,13 +641,12 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
 
     {
         VkImageSubresourceRange Range = FVulkanPipelineBarrier::MakeSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, Texture->GetNumMips()-1, 1, 0, LayerCount);
-        FVulkanPipelineBarrier Barrier;
+        FVulkanImageLayoutBarrierHelper Barrier;
         Barrier.AddImageLayoutTransition(
-            vkTexture->Image, 
+            vkTexture, 
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
             Range);
         Barrier.Execute(CmdBuffer);
-        vkTexture->SetImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Range);
     }
     // TransitionImageLayout(
     //     CmdBuffer->GetHandle(), vkTexture->Image, 

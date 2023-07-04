@@ -30,11 +30,14 @@ namespace nilou {
     void BaseApplication::Finalize()
     {
         ContentManager->Flush();
-        ContentManager->ReleaseRenderResources();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }
     }
 
+    void BaseApplication::Finalize_RenderThread()
+    {
+        ContentManager->ReleaseRenderResources();
+    }
 
     void BaseApplication::Tick(double DeltaTime)
     {

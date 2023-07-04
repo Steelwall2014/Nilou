@@ -15,7 +15,7 @@ public:
     }
     ~FVulkanSemaphore()
     {
-        //vkDestroySemaphore(Device, Handle, nullptr);
+        vkDestroySemaphore(Device, Handle, nullptr);
     }
     VkSemaphore Handle;
 

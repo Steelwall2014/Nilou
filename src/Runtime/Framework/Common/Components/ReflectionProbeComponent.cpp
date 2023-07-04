@@ -114,16 +114,16 @@ namespace nilou {
         {
             FShaderPermutationParameters PermutationParameters(&FPrefilteredEnvTextureShader::StaticType, 0);
             FShaderInstance *PrefilterShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
-
-            RHICmdList->RHISetShaderSampler(
-                PSO, EPipelineStage::PS_Compute,
-                "EnvironmentTexture", *TextureTarget->GetResource()->GetSamplerRHI());
 
             int NumMips = PrefilteredTexture->NumMips;
             float delta_roughness = 1.0 / glm::max(NumMips-1, 1);
             for (int MipIndex = 0; MipIndex < NumMips; MipIndex++)
             {
+                FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
+
+                RHICmdList->RHISetShaderSampler(
+                    PSO, EPipelineStage::PS_Compute,
+                    "EnvironmentTexture", *TextureTarget->GetResource()->GetSamplerRHI());
                 PrefilterShaderUniformBuffer->Data.TextureSize = TextureTarget->GetSizeX() >> MipIndex;
                 PrefilterShaderUniformBuffer->Data.roughness = MipIndex * delta_roughness;
                 PrefilterShaderUniformBuffer->UpdateUniformBuffer();

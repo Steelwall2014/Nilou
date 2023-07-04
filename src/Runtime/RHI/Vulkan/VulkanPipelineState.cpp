@@ -48,9 +48,8 @@ void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISa
 	VulkanTextureBase* vkTexture = ResourceCast(Sampler.Texture);
 	{
 		Barrier.AddImageLayoutTransition(
-			vkTexture->Image, GetFullAspectMask(Sampler.Texture->GetFormat()),
-			*vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vkTexture->SetFullImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			vkTexture, GetFullAspectMask(Sampler.Texture->GetFormat()),
+			vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
     VulkanSamplerState* vkSampler = static_cast<VulkanSamplerState*>(Sampler.SamplerState);
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
@@ -73,9 +72,8 @@ void FVulkanCommonPipelineDescriptorState::SetImage(uint8 BindingIndex, RHITextu
     VulkanTextureBase* vkTexture = ResourceCast(Image);
 	{
 		Barrier.AddImageLayoutTransition(
-			vkTexture->Image, GetFullAspectMask(Image->GetFormat()),
-			*vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_GENERAL);
-		vkTexture->SetFullImageLayout(VK_IMAGE_LAYOUT_GENERAL);
+			vkTexture, GetFullAspectMask(Image->GetFormat()),
+			vkTexture->GetImageLayout(), VK_IMAGE_LAYOUT_GENERAL);
 	}
     FVulkanDescriptorSetWriter& Writer = Writers[BindingIndex];
     VkDescriptorImageInfo& Info = Writer.ImageInfo;//std::get<VkDescriptorImageInfo>(Writer.DescriptorInfo);

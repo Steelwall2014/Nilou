@@ -139,10 +139,10 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 	{
 		if (vkGetFenceStatus(Device, Fence) == VK_SUCCESS)
 		{
-			for (VkSemaphore Semaphore : SubmittedWaitSemaphores)
-			{
-				vkDestroySemaphore(Device, Semaphore, nullptr);
-			}
+			// for (VkSemaphore Semaphore : SubmittedWaitSemaphores)
+			// {
+			// 	vkDestroySemaphore(Device, Semaphore, nullptr);
+			// }
 			SubmittedWaitSemaphores.clear();
 			vkResetFences(Device, 1, &Fence);
 			State = EState::NeedReset;
@@ -151,7 +151,7 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 }
 
 FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* Context)
-    : Queue(Context->GfxQueue)
+    : Queue(Context->GfxQueue.get())
 	, Pool(InDevice, *this, Context->GfxQueue->FamilyIndex)
 	, Device(InDevice)
 {

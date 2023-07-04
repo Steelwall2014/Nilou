@@ -190,8 +190,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
 
 void FVulkanDynamicRHI::RHIBeginFrame()
 {
-    VkSemaphore ImageAcquiredSemaphore;
-    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&ImageAcquiredSemaphore);
+    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore);
     DescriptorPoolsManager->Reset();
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
     VkImageSubresourceRange Region{};
@@ -229,7 +228,7 @@ void FVulkanDynamicRHI::RHIEndFrame()
     //     CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
     //     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
     CommandBufferManager->SubmitUploadCmdBuffer();
-    SwapChain->Present(GfxQueue, PresentQueue);
+    SwapChain->Present(GfxQueue.get(), PresentQueue.get());
     CommandBufferManager->FreeUnusedCmdBuffers();
 }
 
@@ -240,7 +239,7 @@ void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
     viewport.x = 0.0f;
     viewport.y = 0.0f;
     viewport.width = (float) Width;
-    viewport.height = (float) Width;
+    viewport.height = (float) Height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(CmdBuffer->GetHandle(), 0, 1, &viewport);
@@ -408,6 +407,7 @@ int FVulkanDynamicRHI::Initialize()
             NILOU_LOG(Error, "failed to set up debug messenger!")
             return 1;
         }
+        NILOU_LOG(Info, "Setup debug messenger")
     }
 
     /** Create window surface */
@@ -417,6 +417,7 @@ int FVulkanDynamicRHI::Initialize()
             NILOU_LOG(Error, "failed to create window surface!")
             return 1;
         }
+        NILOU_LOG(Info, "Create window surface")
     }
 
     /** Pick physical device */
@@ -440,6 +441,7 @@ int FVulkanDynamicRHI::Initialize()
             NILOU_LOG(Error, "failed to find a suitable GPU!")
             return 1;
         }
+        NILOU_LOG(Info, "Pick physical device")
     }
 
     std::optional<uint32> GfxQueueIndex, PresentQueueIndex;
@@ -495,11 +497,13 @@ int FVulkanDynamicRHI::Initialize()
             NILOU_LOG(Error, "failed to create logical device!")
             return 1;
         }
+        NILOU_LOG(Info, "Create logical device")
     }
 
     {
-        GfxQueue = new FVulkanQueue(device, GfxQueueIndex.value());
-        PresentQueue = new FVulkanQueue(device, PresentQueueIndex.value());
+        GfxQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(device, GfxQueueIndex.value()));
+        PresentQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(device, PresentQueueIndex.value()));
+        NILOU_LOG(Info, "Create queues")
     }
 
     magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
@@ -512,28 +516,28 @@ int FVulkanDynamicRHI::Initialize()
     magic_enum::enum_for_each<EPixelFormat>(
         [this](EPixelFormat PixelFormat) 
         {
-            if (PixelFormat != PF_UNKNOWN)
+            if (PixelFormat != PF_UNKNOWN && PixelFormat != PF_PixelFormatNum)
                 vkGetPhysicalDeviceFormatProperties(physicalDevice, TranslatePixelFormatToVKFormat(PixelFormat), &FormatProperties[PixelFormat]);
         });
 
-    CommandBufferManager = new FVulkanCommandBufferManager(device, this);
+    CommandBufferManager = std::unique_ptr<FVulkanCommandBufferManager>(new FVulkanCommandBufferManager(device, this));
 
-    MemoryManager = new FVulkanMemoryManager(device, physicalDevice);
+    MemoryManager = std::unique_ptr<FVulkanMemoryManager>(new FVulkanMemoryManager(device, physicalDevice));
 
-    StagingManager = new FVulkanStagingManager(device, this);
+    StagingManager = std::unique_ptr<FVulkanStagingManager>(new FVulkanStagingManager(device, this));
 
-    RenderPassManager = new FVulkanRenderPassManager(device);
+    RenderPassManager = std::unique_ptr<FVulkanRenderPassManager>(new FVulkanRenderPassManager(device));
 
-    DescriptorPoolsManager = new FVulkanDescriptorPoolsManager(device);
+    DescriptorPoolsManager = std::unique_ptr<FVulkanDescriptorPoolsManager>(new FVulkanDescriptorPoolsManager(device));
 
     /** Create swap chain */
     {        
         VkExtent2D extent{GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight};
         std::vector<VkImage> TempSwapChainImages;
-        SwapChain = new FVulkanSwapChain(
+        SwapChain = std::unique_ptr<FVulkanSwapChain>(new FVulkanSwapChain(
             physicalDevice, device, surface, extent, 
             swapChainImageFormat, 
-            1, &GfxQueueIndex.value(), TempSwapChainImages);
+            1, &GfxQueueIndex.value(), TempSwapChainImages));
         swapChainImages.resize(TempSwapChainImages.size());
         FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
         FVulkanPipelineBarrier Barrier;
@@ -541,11 +545,11 @@ int FVulkanDynamicRHI::Initialize()
         {
             auto VulkanTexture = std::make_shared<VulkanTexture2D>(
                 TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, 
-                FVulkanImageLayout{VK_IMAGE_LAYOUT_UNDEFINED, 1, 1, VK_IMAGE_ASPECT_COLOR_BIT}, extent.width, extent.height, 1, 1, 
+                FVulkanImageLayout{VK_IMAGE_LAYOUT_UNDEFINED, 1, 1}, extent.width, extent.height, 1, 1, 
                 swapChainImageFormat, "SwapChainImage"+std::to_string(i));
             Barrier.AddImageLayoutTransition(
                 VulkanTexture->GetImage(), VK_IMAGE_ASPECT_COLOR_BIT, 
-                *VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+                VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             swapChainImages[i] = VulkanTexture;
         }
 
@@ -556,7 +560,7 @@ int FVulkanDynamicRHI::Initialize()
         depthImage = DepthImage->GetImage();
         Barrier.AddImageLayoutTransition(
             DepthImage->GetImage(), VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
-            *DepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            DepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         Barrier.Execute(CmdBuffer);
     }
@@ -607,26 +611,31 @@ int FVulkanDynamicRHI::Initialize()
             }
             swapChainImages[i]->TextureBase.ImageView = swapChainImageViews[i];
 
-            std::array<VkImageView, 2> attachments = {
-                swapChainImageViews[i],
-                depthImageView
-            };
+            // std::array<VkImageView, 2> attachments = {
+            //     swapChainImageViews[i],
+            //     depthImageView
+            // };
 
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            FVulkanRenderTargetLayout RTLayout({
-                { FA_Color_Attachment0, swapChainImageFormat }, 
-                { FA_Depth_Stencil_Attachment, depthImageFormat}} );
-            framebufferInfo.renderPass = RenderToScreenPass = RenderPassManager->GetOrCreateRenderPass(RTLayout)->Handle;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapChainExtent.width;
-            framebufferInfo.height = swapChainExtent.height;
-            framebufferInfo.layers = 1;
+            // VkFramebufferCreateInfo framebufferInfo{};
+            // framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            // FVulkanRenderTargetLayout RTLayout({
+            //     { FA_Color_Attachment0, swapChainImageFormat }, 
+            //     { FA_Depth_Stencil_Attachment, depthImageFormat}} );
+            // RenderToScreenPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
+            // framebufferInfo.renderPass = RenderToScreenPass->Handle;
+            // framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            // framebufferInfo.pAttachments = attachments.data();
+            // framebufferInfo.width = swapChainExtent.width;
+            // framebufferInfo.height = swapChainExtent.height;
+            // framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
+            // if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            //     throw std::runtime_error("failed to create framebuffer!");
+            // }
+            swapChainFramebuffers[i] = std::shared_ptr<VulkanFramebuffer>(
+                new VulkanFramebuffer(this, {
+                        { FA_Color_Attachment0, swapChainImages[i] }, 
+                        { FA_Depth_Stencil_Attachment, DepthImage}}));
         }
 
     }
@@ -650,11 +659,19 @@ int FVulkanDynamicRHI::Initialize()
 
 void FVulkanDynamicRHI::Finalize()
 {
+    CommandBufferManager = nullptr;
+    StagingManager = nullptr;
+    RenderPassManager = nullptr;
+    DescriptorPoolsManager = nullptr;
+    SwapChain = nullptr;
+    swapChainFramebuffers.clear();
+    // swapChainImages.clear();
+    // DepthImage = nullptr;
+    FPipelineStateCache::ClearCacheGraphicsPSO();
+    FPipelineStateCache::ClearCacheVertexDeclarations();
+    MemoryManager = nullptr;
+
     shaderc_compiler_release(shader_compiler);
-    
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
 
     vkDestroyDevice(device, nullptr);
 
@@ -941,48 +958,23 @@ void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
+    CurrentFramebuffer = Framebuffer;
     if (Framebuffer)
     {
         if (InInfo.Framebuffer)
         {
-            FVulkanPipelineBarrier Barrier;
+            FVulkanImageLayoutBarrierHelper Barrier;
             for (auto& [Attachment, Texture] : InInfo.Framebuffer->Attachments)
             {
                 VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
                 VkImage Image{};
                 VkImageAspectFlags Aspect = GetFullAspectMask(Texture->GetFormat());
+                FVulkanImageLayout SrcLayout = vkTexture->GetImageLayout();
                 VkImageLayout DstLayout = Attachment == FA_Depth_Stencil_Attachment ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                if (vkTexture->IsImageView())
-                {
-                    const FVulkanImageLayout* SrcLayout = vkTexture->ParentTexture->GetImageLayout();
-                    Barrier.AddImageLayoutTransition(
-                        vkTexture->ParentTexture->Image, Aspect, 
-                        vkTexture->BaseMipLevel, Texture->GetNumMips(), 
-                        vkTexture->BaseArrayLayer, Texture->GetNumLayers(),
-                        *SrcLayout, DstLayout);
-                    VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
-                        Aspect, 
-                        vkTexture->BaseMipLevel, Texture->GetNumMips(), 
-                        vkTexture->BaseArrayLayer, Texture->GetNumLayers());
-                    vkTexture->ParentTexture->SetImageLayout(DstLayout, SubresourceRange);
-                    SubresourceRange.baseArrayLayer = 0;
-                    SubresourceRange.baseMipLevel = 0;
-                    vkTexture->SetImageLayout(DstLayout, SubresourceRange);
-                }
-                else 
-                {
-                    VkImageSubresourceRange SubresourceRange = FVulkanPipelineBarrier::MakeSubresourceRange(
-                        Aspect, 
-                        0, Texture->GetNumMips(), 
-                        0, Texture->GetNumLayers());
-                    FVulkanImageLayout SrcLayout = *vkTexture->GetImageLayout();
-                    Barrier.AddImageLayoutTransition(
-                        vkTexture->Image, Aspect,
-                        SrcLayout, DstLayout);
-                    vkTexture->SetImageLayout(DstLayout, SubresourceRange);
-                }
+                Barrier.AddImageLayoutTransition(vkTexture, Aspect, SrcLayout, DstLayout);
             }
             Barrier.Execute(CommandBufferManager->GetUploadCmdBuffer());
+            //CommandBufferManager->SubmitUploadCmdBuffer();
         }
         FVulkanRenderTargetLayout RTLayout(InInfo);
         FVulkanRenderPass* RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
@@ -990,8 +982,15 @@ void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
     }
     else 
     {
-        CmdBuffer->BeginRenderPass(InInfo, RenderToScreenPass, swapChainFramebuffers[CurrentSwapChainImageIndex]);
+        CmdBuffer->BeginRenderPass(InInfo, RenderToScreenPass->Handle, swapChainFramebuffers[CurrentSwapChainImageIndex]->Handle);
     }
+}
+
+void FVulkanDynamicRHI::RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount)
+{
+    PrepareForDraw();
+    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    vkCmdDraw(CmdBuffer->GetHandle(), Count, InstanceCount, First, 0);
 }
 
 void FVulkanDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
@@ -1058,6 +1057,10 @@ void FVulkanDynamicRHI::RHIEndRenderPass()
     {
         CommandBufferManager->SubmitUploadCmdBuffer();
     }
+    if (CurrentFramebuffer == GetRenderToScreenFramebuffer())
+    {
+        CmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, CurrentImageAcquiredSemaphore);
+    }
     CommandBufferManager->SubmitActiveCmdBuffer({});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
     CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
@@ -1095,6 +1098,11 @@ void FVulkanDynamicRHI::PrepareForDraw()
         }
     }
     RHISetViewport(swapChainExtent.width, swapChainExtent.height);
+}
+
+RHIFramebuffer* FVulkanDynamicRHI::GetRenderToScreenFramebuffer()
+{
+    return swapChainFramebuffers[CurrentSwapChainImageIndex].get();
 }
 
 

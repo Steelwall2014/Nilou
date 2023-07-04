@@ -12,7 +12,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>();
+        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>(device);
         VulkanShader->Module = Module;
         VulkanShader->ShadercResult = result;
         return VulkanShader;
@@ -29,7 +29,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>();
+        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>(device);
         VulkanShader->Module = Module;
         VulkanShader->ShadercResult = result;
         return VulkanShader;
@@ -46,7 +46,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>();
+        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>(device);
         VulkanShader->Module = Module;
         VulkanShader->ShadercResult = result;
         return VulkanShader;
@@ -58,30 +58,30 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
 void FVulkanDynamicRHI::RHIDestroyShader(RHIShader* Shader)
 {
-    VkShaderModule Module = VK_NULL_HANDLE;
-    shaderc_compilation_result_t Result = nullptr;
-    if (Shader->ResourceType == ERHIResourceType::RRT_VertexShader)
-    {
-        VulkanVertexShader* VulkanShader = reinterpret_cast<VulkanVertexShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    else if (Shader->ResourceType == ERHIResourceType::RRT_PixelShader)
-    {
-        VulkanPixelShader* VulkanShader = reinterpret_cast<VulkanPixelShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    else if (Shader->ResourceType == ERHIResourceType::RRT_ComputeShader)
-    {
-        VulkanComputeShader* VulkanShader = reinterpret_cast<VulkanComputeShader*>(Shader);
-        Module = VulkanShader->Module;
-        Result = VulkanShader->ShadercResult;
-    }
-    if (Module != VK_NULL_HANDLE)
-        vkDestroyShaderModule(device, Module, nullptr);
-    if (Result != nullptr)
-        shaderc_result_release(Result);
+    // VkShaderModule Module = VK_NULL_HANDLE;
+    // shaderc_compilation_result_t Result = nullptr;
+    // if (Shader->ResourceType == ERHIResourceType::RRT_VertexShader)
+    // {
+    //     VulkanVertexShader* VulkanShader = reinterpret_cast<VulkanVertexShader*>(Shader);
+    //     Module = VulkanShader->Module;
+    //     Result = VulkanShader->ShadercResult;
+    // }
+    // else if (Shader->ResourceType == ERHIResourceType::RRT_PixelShader)
+    // {
+    //     VulkanPixelShader* VulkanShader = reinterpret_cast<VulkanPixelShader*>(Shader);
+    //     Module = VulkanShader->Module;
+    //     Result = VulkanShader->ShadercResult;
+    // }
+    // else if (Shader->ResourceType == ERHIResourceType::RRT_ComputeShader)
+    // {
+    //     VulkanComputeShader* VulkanShader = reinterpret_cast<VulkanComputeShader*>(Shader);
+    //     Module = VulkanShader->Module;
+    //     Result = VulkanShader->ShadercResult;
+    // }
+    // if (Module != VK_NULL_HANDLE)
+    //     vkDestroyShaderModule(device, Module, nullptr);
+    // if (Result != nullptr)
+    //     shaderc_result_release(Result);
 }
 
 std::pair<VkShaderModule, shaderc_compilation_result_t> 

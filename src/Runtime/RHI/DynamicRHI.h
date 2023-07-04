@@ -151,11 +151,13 @@ namespace nilou {
 		// The direction of each axis is the same as UV's.
 		static ivec3 RHIGetSparseTexturePageSize(ETextureType TextureType, EPixelFormat PixelFormat);
 
+		virtual RHIFramebuffer* GetRenderToScreenFramebuffer() { return RenderToScreenFramebuffer.get(); }
 	protected:
 		void AllocateParameterBindingPoint(FRHIPipelineLayout* PipelineLayout, const FGraphicsPipelineStateInitializer &Initializer);
 		static FDynamicRHI *DynamicRHI;
 		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
     	std::unordered_map<uint32, RHISamplerStateRef> SamplerMap;
+		RHIFramebufferRef RenderToScreenFramebuffer{};
 	};
 
 	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)

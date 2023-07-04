@@ -9,12 +9,12 @@ class FVulkanCmdBuffer;
 
 struct FStagingBuffer
 {
-    VkDevice Device;
-    VkBuffer Buffer;
-    VkDeviceMemory StagingBufferMemory;
-    VkMemoryPropertyFlagBits MemoryReadFlags;
-    uint32 BufferSize;
-    void* MappedPointer;
+    VkDevice Device{};
+    VkBuffer Buffer{};
+    VkDeviceMemory StagingBufferMemory{};
+    VkMemoryPropertyFlagBits MemoryReadFlags{};
+    uint32 BufferSize{};
+    void* MappedPointer{};
 
     ~FStagingBuffer();
 

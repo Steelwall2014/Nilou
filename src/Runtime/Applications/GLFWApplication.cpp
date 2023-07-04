@@ -354,6 +354,7 @@ namespace nilou {
 
     void GLFWApplication::Finalize_RenderThread()
     {
+        BaseApplication::Finalize_RenderThread();
         glfwTerminate();
     }
 

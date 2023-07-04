@@ -9,23 +9,29 @@ namespace nilou {
 class VulkanTextureBase
 {
 public:
-    VkImage Image;
-    VkImageView ImageView;
-    VkDeviceMemory Memory;
-    uint8 BaseMipLevel;
-    uint8 NumMips;
-    uint8 BaseArrayLayer;
-    uint8 NumLayers;
-    VulkanTextureBase* ParentTexture = nullptr;
+    VkImage Image{};
+    VkImageView ImageView{};
+    VkDeviceMemory Memory{};
+    uint8 BaseMipLevel{};
+    uint8 NumMips{};
+    uint8 BaseArrayLayer{};
+    uint8 NumLayers{};
+    VulkanTextureBase* ParentTexture{};
+    VkImageAspectFlags FullAspectFlags{};
+
+    #ifdef NILOU_DEBUG
+    FVulkanImageLayout DebugLayout;
+    #endif
 
     VulkanTextureBase(
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
+        VkImageAspectFlags InFullAspectFlag, 
         const FVulkanImageLayout& InImageLayout
     );
     ~VulkanTextureBase();
-    const FVulkanImageLayout* GetImageLayout() const;
+    FVulkanImageLayout GetImageLayout() const;
     void SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range);
     void SetFullImageLayout(VkImageLayout Layout);
     bool IsImageView() const { return ParentTexture != nullptr; }
@@ -48,13 +54,16 @@ public:
         EPixelFormat InFormat,
         const std::string &InTextureName
     )
-    : TextureBase(InImage, InImageView, InMemory, InImageLayout)
+    : TextureBase(InImage, InImageView, InMemory, GetFullAspectMask(InFormat), InImageLayout)
     , BaseType(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName)
-    {}
+    {
+        TextureBase.NumMips = InNumMips;
+        TextureBase.NumLayers = BaseType::GetNumLayers();
+    }
     VkImage GetImage() const { return TextureBase.Image; }
     VkImageView GetImageView() const { return TextureBase.ImageView; }
     VkDeviceMemory GetMemory() const { return TextureBase.Memory; }
-    const FVulkanImageLayout* GetImageLayout() const { return TextureBase.GetImageLayout(); }
+    FVulkanImageLayout GetImageLayout() const { return TextureBase.GetImageLayout(); }
     VulkanTextureBase TextureBase;
 };
 
@@ -137,6 +146,9 @@ public:
         this->TextureBase.NumMips = InNumMips;
         this->TextureBase.NumLayers = InNumLayers;
         this->TextureBase.ParentTexture = InParentTexture;
+        #ifdef NILOU_DEBUG
+        this->TextureBase.DebugLayout = this->TextureBase.GetImageLayout();
+        #endif
     }
 };
 using VulkanTextureView2D = TVulkanTextureView<VulkanTexture2D>;

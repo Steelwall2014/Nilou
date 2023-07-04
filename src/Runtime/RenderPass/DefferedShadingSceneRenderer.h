@@ -274,8 +274,6 @@ namespace nilou {
         static FScreenQuadUVVertexBuffer UVVertexBuffer;
         static FRHIVertexDeclaration* ScreenQuadVertexDeclaration;
 
-    protected:
-
         template <typename TResource, typename TCreateInfo>
         class TResourcesPool
         {
@@ -316,9 +314,10 @@ namespace nilou {
                 OccupiedResourcesMap.erase(Resource);
             }
 
-            /** Release all free SceneTextures */
-            void ReleaseUnusedTextures()
+            /** Release all resources */
+            void ReleaseAll()
             {
+                assert(OccupiedResourcesMap.size() == 0);
                 for (auto iter = FreeResourcesMap.begin(); iter != FreeResourcesMap.end(); iter++)
                 {
                     // delete iter->second;

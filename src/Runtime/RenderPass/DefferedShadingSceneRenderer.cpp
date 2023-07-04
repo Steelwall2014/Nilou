@@ -543,7 +543,7 @@ namespace nilou {
         {
             FViewInfo& ViewInfo = Views[ViewIndex];
             FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
-            RHIFramebuffer* OutputRenderTarget = nullptr;
+            RHIFramebuffer* OutputRenderTarget = RHICmdList->GetRenderToScreenFramebuffer();
             if (ViewIndex < RenderTargetFramebuffers.size())
                 OutputRenderTarget = RenderTargetFramebuffers[ViewIndex];
 

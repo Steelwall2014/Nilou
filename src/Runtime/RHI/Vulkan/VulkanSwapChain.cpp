@@ -1,77 +1,79 @@
 #include "VulkanSwapChain.h"
 #include "VulkanQueue.h"
 #include "Common/Log.h"
+#define DEBUG_HELPER NILOU_LOG(Info, "{} {}", __FILE__, __LINE__);
+// FVulkanSwapChain的构造函数看起来会导致一些堆损坏的bug，可能是在这之前某些数组越界了
 
 namespace nilou {
 
 FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevice, VkSurfaceKHR Surface, VkExtent2D Extent, EPixelFormat Format, int32 QueueFamilyIndexCount, uint32* QueueFamilyIndices, std::vector<VkImage>& OutImages)
     : Device(InDevice)
 {
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysDevice, Surface, &Capabilities);
+    DEBUG_HELPER vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysDevice, Surface, &Capabilities);
 
     uint32 formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(PhysDevice, Surface, &formatCount, nullptr);
+    DEBUG_HELPER vkGetPhysicalDeviceSurfaceFormatsKHR(PhysDevice, Surface, &formatCount, nullptr);
 
-    if (formatCount != 0) {
-        Formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(PhysDevice, Surface, &formatCount, Formats.data());
+    DEBUG_HELPER if (formatCount != 0) {
+    DEBUG_HELPER     Formats.resize(formatCount);
+    DEBUG_HELPER     vkGetPhysicalDeviceSurfaceFormatsKHR(PhysDevice, Surface, &formatCount, Formats.data());
     }
 
     uint32 presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(PhysDevice, Surface, &presentModeCount, nullptr);
+    DEBUG_HELPER vkGetPhysicalDeviceSurfacePresentModesKHR(PhysDevice, Surface, &presentModeCount, nullptr);
 
-    if (presentModeCount != 0) {
-        PresentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(PhysDevice, Surface, &presentModeCount, PresentModes.data());
+    DEBUG_HELPER if (presentModeCount != 0) {
+    DEBUG_HELPER     PresentModes.resize(presentModeCount);
+    DEBUG_HELPER     vkGetPhysicalDeviceSurfacePresentModesKHR(PhysDevice, Surface, &presentModeCount, PresentModes.data());
     }
 
-    uint32 imageCount = Capabilities.minImageCount + 1;
-    if (Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount) {
-        imageCount = Capabilities.maxImageCount;
+    DEBUG_HELPER uint32 imageCount = Capabilities.minImageCount + 1;
+    DEBUG_HELPER if (Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount) {
+    DEBUG_HELPER     imageCount = Capabilities.maxImageCount;
     }
 
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = Surface;
+    DEBUG_HELPER VkSwapchainCreateInfoKHR createInfo{};
+    DEBUG_HELPER createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    DEBUG_HELPER createInfo.surface = Surface;
 
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = TranslatePixelFormatToVKFormat(Format);
-    createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    createInfo.imageExtent = Extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;;
+    DEBUG_HELPER createInfo.minImageCount = imageCount;
+    DEBUG_HELPER createInfo.imageFormat = TranslatePixelFormatToVKFormat(Format);
+    DEBUG_HELPER createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    DEBUG_HELPER createInfo.imageExtent = Extent;
+    DEBUG_HELPER createInfo.imageArrayLayers = 1;
+    DEBUG_HELPER createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;;
 
-    if (QueueFamilyIndices == nullptr)
+    DEBUG_HELPER if (QueueFamilyIndices == nullptr)
     {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = QueueFamilyIndexCount;
-        createInfo.pQueueFamilyIndices = QueueFamilyIndices;
+    DEBUG_HELPER     createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    DEBUG_HELPER     createInfo.queueFamilyIndexCount = QueueFamilyIndexCount;
+    DEBUG_HELPER     createInfo.pQueueFamilyIndices = QueueFamilyIndices;
     }
     else 
     {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    DEBUG_HELPER     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    createInfo.preTransform = Capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    createInfo.clipped = VK_TRUE;
+    DEBUG_HELPER createInfo.preTransform = Capabilities.currentTransform;
+    DEBUG_HELPER createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    DEBUG_HELPER createInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+    DEBUG_HELPER createInfo.clipped = VK_TRUE;
 
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    DEBUG_HELPER createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(Device, &createInfo, nullptr, &Handle) != VK_SUCCESS) {
-        throw("failed to create swap chain!");
+    DEBUG_HELPER if (vkCreateSwapchainKHR(Device, &createInfo, nullptr, &Handle) != VK_SUCCESS) {
+    DEBUG_HELPER     throw("failed to create swap chain!");
     }
 
-    vkGetSwapchainImagesKHR(Device, Handle, &imageCount, nullptr);
-    OutImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(Device, Handle, &imageCount, OutImages.data());
+    DEBUG_HELPER vkGetSwapchainImagesKHR(Device, Handle, &imageCount, nullptr);
+    DEBUG_HELPER OutImages.resize(imageCount);
+    DEBUG_HELPER vkGetSwapchainImagesKHR(Device, Handle, &imageCount, OutImages.data());
 
-    ImageAcquiredSemaphore.resize(imageCount);
+    DEBUG_HELPER ImageAcquiredSemaphore.resize(imageCount);
 
-    for (int i = 0; i < ImageAcquiredSemaphore.size(); i++)
+    DEBUG_HELPER for (int i = 0; i < ImageAcquiredSemaphore.size(); i++)
     {
-        ImageAcquiredSemaphore[i] = CreateSemephore(Device);
+    DEBUG_HELPER     ImageAcquiredSemaphore[i] = CreateSemephore(Device);
     }
 
 }

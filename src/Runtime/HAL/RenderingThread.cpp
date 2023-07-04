@@ -65,8 +65,10 @@ namespace nilou {
             if (Resource)
                 Resource->ReleaseResource();
         }
-        FDynamicRHI::GetDynamicRHI()->Finalize();
+        FSceneRenderer::ShadowMapResourcesPool.ReleaseAll();
+        FSceneRenderer::SceneTexturesPool.ReleaseAll();
         GetAppication()->Finalize_RenderThread();
+        FDynamicRHI::GetDynamicRHI()->Finalize();
     }
 
     bool IsInRenderingThread()

@@ -125,7 +125,7 @@ public:
     * Render pass
     */
     virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo) override;
-    virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override { }
+    virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override;
     virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override;
     virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override;
     virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
@@ -146,19 +146,21 @@ public:
     virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) override { }
     virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override { }
 
-    FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager; }
+    virtual RHIFramebuffer* GetRenderToScreenFramebuffer() override;
+
+    FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager.get(); }
     VkDevice device{};
     VkPhysicalDeviceProperties GpuProps;
-    FVulkanCommandBufferManager* CommandBufferManager;
-    FVulkanMemoryManager* MemoryManager;
-    FVulkanStagingManager* StagingManager;
-    FVulkanRenderPassManager* RenderPassManager;
-    FVulkanDescriptorPoolsManager* DescriptorPoolsManager;
+    std::unique_ptr<FVulkanCommandBufferManager> CommandBufferManager;
+    std::unique_ptr<FVulkanMemoryManager> MemoryManager;
+    std::unique_ptr<FVulkanStagingManager> StagingManager;
+    std::unique_ptr<FVulkanRenderPassManager> RenderPassManager;
+    std::unique_ptr<FVulkanDescriptorPoolsManager> DescriptorPoolsManager;
     
-	FVulkanQueue* GfxQueue;
-	FVulkanQueue* ComputeQueue;
-	FVulkanQueue* TransferQueue;
-	FVulkanQueue* PresentQueue;
+	std::unique_ptr<FVulkanQueue> GfxQueue;
+	std::unique_ptr<FVulkanQueue> ComputeQueue;
+	std::unique_ptr<FVulkanQueue> TransferQueue;
+	std::unique_ptr<FVulkanQueue> PresentQueue;
     
 private:
 
@@ -182,7 +184,7 @@ private:
     VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
-    class FVulkanSwapChain* SwapChain;
+    std::unique_ptr<class FVulkanSwapChain> SwapChain;
     std::vector<std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>>> swapChainImages;
     EPixelFormat swapChainImageFormat;
     EPixelFormat depthImageFormat;
@@ -191,13 +193,8 @@ private:
     VkImage depthImage;
     std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>> DepthImage;
     VkImageView depthImageView;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<std::shared_ptr<class VulkanFramebuffer>> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
-    VkCommandPool commandPool{};
-    std::vector<VkCommandBuffer> commandBuffers;
-    VkDescriptorPool descriptorPool{};
-    std::vector<VkDescriptorSet> descriptorSets;
-    uint32 MemoryTypeIndex;
     std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;
     VulkanPipelineLayout* CurrentPipelineLayout;
     uint64 CurrentStreamSourceOffsets[MaxVertexElementCount] = { 0 };
@@ -206,8 +203,10 @@ private:
     std::vector<VkSemaphore> ImageAvailableSemaphores;
     std::vector<VkSemaphore> RenderFinishedSemaphores;
     uint32 CurrentSwapChainImageIndex = 0;
+    VkSemaphore CurrentImageAcquiredSemaphore;
+    VulkanFramebuffer* CurrentFramebuffer;
 
-    VkRenderPass RenderToScreenPass{};
+    FVulkanRenderPass* RenderToScreenPass{};
     
 
     class shaderc_compiler* shader_compiler = nullptr;

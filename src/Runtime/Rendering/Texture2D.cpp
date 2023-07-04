@@ -19,7 +19,7 @@ namespace nilou {
         FTextureResource::InitRHI();
         auto Texture2DRHI = RHICmdList->RHICreateTexture2D(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight(), TexCreate_CPUWritable);
+            Image->GetWidth(), Image->GetHeight(), TexCreate_CPUWritable | TexCreate_UAV);
         for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
         {
             RHICmdList->RHIUpdateTexture2D(Texture2DRHI.get(), 

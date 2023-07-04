@@ -13,7 +13,7 @@ class FVulkanSwapChain
 {
 public:
     FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice Device, VkSurfaceKHR Surface, VkExtent2D Extent, EPixelFormat Format, int32 QueueFamilyIndexCount, uint32* QueueFamilyIndices, std::vector<VkImage>& OutImages);
-
+    ~FVulkanSwapChain() { vkDestroySwapchainKHR(Device, Handle, nullptr); }
     VkDevice Device;
     VkSurfaceCapabilitiesKHR Capabilities;
     std::vector<VkSurfaceFormatKHR> Formats;
