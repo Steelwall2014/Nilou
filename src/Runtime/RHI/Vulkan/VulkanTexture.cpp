@@ -333,7 +333,6 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
-    
     // if (Format == PF_D32F || Format == PF_D24S8 || Format == PF_D32FS8)
     // {
     //     FVulkanCmdBuffer* UploadCmdBuffer = CommandBufferManager->GetUploadCmdBuffer();

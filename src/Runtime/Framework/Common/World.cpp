@@ -260,6 +260,12 @@ namespace nilou {
             }
         }
     }
+
+    void UWorld::Release()
+    {
+        CameraActors.clear();
+        Actors.clear();
+    }
     
     void UWorld::SendAllEndOfFrameUpdates()
     {

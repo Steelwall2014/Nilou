@@ -59,7 +59,10 @@ FStagingBuffer::~FStagingBuffer()
     FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
     if (MappedPointer)
         vkUnmapMemory(Device, StagingBufferMemory);
-    VulkanRHI->MemoryManager->FreeMemory(StagingBufferMemory);
+    if (Buffer)
+        vkDestroyBuffer(Device, Buffer, nullptr);
+    if (StagingBufferMemory)
+        VulkanRHI->MemoryManager->FreeMemory(StagingBufferMemory);
 }
 
 void* FStagingBuffer::GetMappedPointer()

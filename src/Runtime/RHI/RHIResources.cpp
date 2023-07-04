@@ -131,13 +131,13 @@ namespace nilou {
 	}
 	
 	FRHISampler::FRHISampler()
-		: SamplerState(TStaticSamplerState<>::CreateRHI().get())
+		: SamplerState(TStaticSamplerState<>::CreateRHI())
 		, Texture(nullptr) 
 	{ }
 
 	
 	FRHISampler::FRHISampler(RHITexture* Texture)
-		: SamplerState(TStaticSamplerState<>::CreateRHI().get())
+		: SamplerState(TStaticSamplerState<>::CreateRHI())
 		, Texture(Texture) 
 	{ }
 

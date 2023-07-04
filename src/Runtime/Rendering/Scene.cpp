@@ -298,4 +298,18 @@ namespace nilou {
             LightInfo->LightUniformBufferRHI->UpdateUniformBuffer();
         }
     }
+
+    void FScene::Release_RenderThread()
+    {
+        std::set<FPrimitiveSceneInfo*> PrimitivesToDelete = AddedPrimitiveSceneInfos;
+        std::set<FLightSceneInfo*> LightsToDelete = AddedLightSceneInfos;
+        std::set<FReflectionProbeSceneInfo*> ReflectionProbesToDelete = ReflectionProbes;
+        for (FPrimitiveSceneInfo* PrimitiveInfo : PrimitivesToDelete)
+            RemovePrimitiveSceneInfo_RenderThread(PrimitiveInfo);
+        for (FLightSceneInfo* LightInfo : LightsToDelete)
+            RemoveLightSceneInfo_RenderThread(LightInfo);
+        for (FReflectionProbeSceneInfo* ProbeInfo : ReflectionProbesToDelete)
+            RemoveReflectionProbeSceneInfo_RenderThread(ProbeInfo);
+        SkyAtmosphereStack.clear();
+    }
 }

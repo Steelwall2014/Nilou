@@ -99,6 +99,28 @@ void FVulkanCmdBuffer::BeginRenderPass(const FRHIRenderPassInfo& InInfo, VkRende
 	State = EState::IsInsideRenderPass;
 }
 
+FVulkanCommandBufferPool::~FVulkanCommandBufferPool()
+{
+	// for (auto& CmdBuffer : CmdBuffers)
+	// {
+	// 	if (CmdBuffer->HasBegun())
+	// 	{
+	// 		if (!CmdBuffer->HasEnded())
+	// 		{
+	// 			CmdBuffer->End();
+	// 		}
+	// 		if (!CmdBuffer->IsSubmitted())
+	// 		{
+	// 			Mgr.Queue->Submit(CmdBuffer.get());
+	// 		}
+	// 		Mgr.WaitForCmdBuffer(CmdBuffer.get());
+	// 	}
+	// }
+	CmdBuffers.clear();
+	FreeCmdBuffers.clear();
+	vkDestroyCommandPool(Device, Handle, nullptr);
+}
+
 FVulkanCmdBuffer* FVulkanCommandBufferPool::Create(bool bIsUploadOnly)
 {
 	for (int32 Index = FreeCmdBuffers.size() - 1; Index >= 0; --Index)
@@ -290,7 +312,7 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 
 void FVulkanCommandBufferManager::WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait)
 {
-	CmdBuffer->Wait((uint64)(TimeInSecondsToWait * 1e9));
+	CmdBuffer->Wait(~0UL);
 }
 
 }

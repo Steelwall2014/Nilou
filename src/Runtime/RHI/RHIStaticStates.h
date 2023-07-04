@@ -282,11 +282,11 @@ namespace nilou {
 		>
 	{
 	public:
-		static RHISamplerStateRef CreateRHI()
+		static RHISamplerState* CreateRHI()
 		{
-			static RHISamplerStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(
+			static RHISamplerState* RHI = FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(
 				{Mag_Filter, Min_Filter, Wrap_S, Wrap_T, Wrap_R}
-			);
+			).get();
 			return RHI;
 		}
 	};

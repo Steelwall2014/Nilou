@@ -135,6 +135,7 @@ public:
 		poolInfo.queueFamilyIndex = QueueFamilyIndex;
 		vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle);
 	}
+	~FVulkanCommandBufferPool();
 
     VkCommandPool Handle{};
 

@@ -476,6 +476,11 @@ namespace nilou {
 
         }
 
+        virtual ~UTexture()
+        {
+            ReleaseResource();
+        }
+
         /**
          * Create a new UVirtualTexture object from this texture
          * Note: the content of this texture will be MOVED to the newly created virtual texture

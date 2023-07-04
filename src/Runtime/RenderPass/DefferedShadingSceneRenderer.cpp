@@ -59,7 +59,7 @@ namespace nilou {
             Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
         DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "DepthStencil", EPixelFormat::PF_D24S8, 1, 
+            "FSceneTextures DepthStencil", EPixelFormat::PF_D24S8, 1, 
             Viewport.x, Viewport.y, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
 
         LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
@@ -129,7 +129,7 @@ namespace nilou {
             return;
         }
         DepthArray = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2DArray(
-            "DepthStencil", EPixelFormat::PF_D32FS8, 1, 
+            "FShadowMapTexture DepthArray", EPixelFormat::PF_D32FS8, 1, 
             CreateInfo.ShadowMapResolution.x, 
             CreateInfo.ShadowMapResolution.y, 
             ShadowMapArraySize, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);

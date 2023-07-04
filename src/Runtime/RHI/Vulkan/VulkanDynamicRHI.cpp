@@ -21,6 +21,33 @@
 
 namespace nilou {
 
+namespace VulkanRHI {
+
+std::unordered_map<VkImage, std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureType, ETextureCreateFlags>> GCreatedImage;
+VkResult vkCreateImage(
+    VkDevice                                    device,
+    const VkImageCreateInfo*                    pCreateInfo,
+    std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureType, ETextureCreateFlags>                          pAllocator,
+    VkImage*                                    pImage)
+{
+    VkResult res = ::vkCreateImage(device, pCreateInfo, nullptr, pImage);
+    GCreatedImage.insert({*pImage, pAllocator});
+    return res;
+}
+
+void vkDestroyImage(
+    VkDevice                                    device,
+    VkImage                                     image,
+    const VkAllocationCallbacks*                pAllocator)
+{
+    ::vkDestroyImage(device, image, pAllocator);
+    GCreatedImage.erase(image);
+    if (GCreatedImage.size() == 1)
+        std::cout << 1;
+}
+
+}
+
 static VkFormat TranslateVertexElementTypeToVKFormat(EVertexElementType ElementType)
 {
     switch (ElementType) 
@@ -555,9 +582,8 @@ int FVulkanDynamicRHI::Initialize()
 
         swapChainExtent = extent;
         DepthImage = std::static_pointer_cast<VulkanTexture2D>(RHICreateTexture2D(
-            "", depthImageFormat, 1, swapChainExtent.width, swapChainExtent.height, 
+            "Vulkan Render to Screen DepthStencil", depthImageFormat, 1, swapChainExtent.width, swapChainExtent.height, 
             TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget));
-        depthImage = DepthImage->GetImage();
         Barrier.AddImageLayoutTransition(
             DepthImage->GetImage(), VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
             DepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
@@ -567,25 +593,6 @@ int FVulkanDynamicRHI::Initialize()
 
     /** Create image views */
     {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = depthImage;
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = TranslatePixelFormatToVKFormat(depthImageFormat);
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-        if (vkCreateImageView(device, &createInfo, nullptr, &depthImageView) != VK_SUCCESS) {
-            NILOU_LOG(Error, "failed to create image views!")
-            return 1;
-        }
-
         swapChainImageViews.resize(swapChainImages.size());
         swapChainFramebuffers.resize(swapChainImages.size());
 
@@ -659,17 +666,19 @@ int FVulkanDynamicRHI::Initialize()
 
 void FVulkanDynamicRHI::Finalize()
 {
-    CommandBufferManager = nullptr;
+    SamplerMap.clear();
     StagingManager = nullptr;
     RenderPassManager = nullptr;
     DescriptorPoolsManager = nullptr;
     SwapChain = nullptr;
     swapChainFramebuffers.clear();
-    // swapChainImages.clear();
-    // DepthImage = nullptr;
+    DepthImage = nullptr;
     FPipelineStateCache::ClearCacheGraphicsPSO();
     FPipelineStateCache::ClearCacheVertexDeclarations();
+    CommandBufferManager = nullptr;
     MemoryManager = nullptr;
+    for (auto ImageView : swapChainImageViews)
+        vkDestroyImageView(device, ImageView, nullptr);
 
     shaderc_compiler_release(shader_compiler);
 

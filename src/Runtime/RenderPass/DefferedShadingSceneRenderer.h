@@ -70,6 +70,12 @@ namespace nilou {
     {
     public:
         FSceneTextures(const SceneTextureCreateInfo &CreateInfo);
+        virtual ~FSceneTextures()
+        {
+            SceneColor = nullptr;
+            DepthStencil = nullptr;
+            LightPassFramebuffer = nullptr;
+        }
         ivec2 Viewport;
         RHITexture2DRef SceneColor;
         RHITexture2DRef DepthStencil;
@@ -80,6 +86,17 @@ namespace nilou {
     {
     public:
         FSceneTexturesDeffered(const SceneTextureCreateInfo &CreateInfo);
+        virtual ~FSceneTexturesDeffered()
+        {
+            PreZPassFramebuffer = nullptr;
+            GeometryPassFramebuffer = nullptr;
+            BaseColor = nullptr;
+            RelativeWorldSpacePosition = nullptr;
+            WorldSpaceNormal = nullptr;
+            MetallicRoughness = nullptr;
+            Emissive = nullptr;
+            ShadingModel = nullptr;
+        }
         RHIFramebufferRef PreZPassFramebuffer;
         RHIFramebufferRef GeometryPassFramebuffer;
         RHITexture2DRef BaseColor;
@@ -106,6 +123,12 @@ namespace nilou {
     {
     public:
         FShadowMapTexture(const ShadowMapResourceCreateInfo &CreateInfo);
+        ~FShadowMapTexture()
+        {
+            ShadowMapFramebuffers.clear();
+            DepthViews.clear();
+            DepthArray = nullptr;
+        }
         RHIFramebuffer* GetFramebufferByIndex(int32 FrustumIndex) const { return ShadowMapFramebuffers[FrustumIndex].get(); }
         std::vector<RHIFramebufferRef> ShadowMapFramebuffers;
         std::vector<RHITexture2DRef> DepthViews;
@@ -117,6 +140,11 @@ namespace nilou {
     public:
 
         FShadowMapUniformBuffer(const ShadowMapResourceCreateInfo &CreateInfo);
+
+        ~FShadowMapUniformBuffer()
+        {
+            UniformBuffer = nullptr;
+        }
 
         template<typename T>
         TUniformBuffer<T> *Cast()
@@ -287,7 +315,7 @@ namespace nilou {
                 if (iter != FreeResourcesMap.end() && !iter->second.empty())
                 {
                     auto& stk = iter->second;
-                    Resource = stk.top(); stk.pop();
+                    Resource = stk.back(); stk.pop_back();
                     OccupiedResourcesMap[Resource] = CreateInfo;
                     // FreeResourcesMap.erase(iter);
                 }
@@ -309,7 +337,7 @@ namespace nilou {
             void Free(TResource* Resource)
             {
                 const TCreateInfo& CreateInfo = OccupiedResourcesMap[Resource];
-                FreeResourcesMap[CreateInfo].push(Resource);
+                FreeResourcesMap[CreateInfo].push_back(Resource);
                 // FreeResourcesMap.insert({CreateInfo, Resource});
                 OccupiedResourcesMap.erase(Resource);
             }
@@ -318,15 +346,11 @@ namespace nilou {
             void ReleaseAll()
             {
                 assert(OccupiedResourcesMap.size() == 0);
-                for (auto iter = FreeResourcesMap.begin(); iter != FreeResourcesMap.end(); iter++)
+                for (auto& [CreateInfo, stk] : FreeResourcesMap)
                 {
-                    // delete iter->second;
-                    auto& stk = iter->second;
-                    for (int i = 0; i < stk.size(); i++)
+                    for (auto& res : stk)
                     {
-                        TResource* res = stk.top();
                         delete res;
-                        stk.pop();
                     }
                 }
                 FreeResourcesMap.clear();
@@ -334,8 +358,7 @@ namespace nilou {
 
         private:
             std::map<TResource*, TCreateInfo> OccupiedResourcesMap;
-
-            std::map<TCreateInfo, std::stack<TResource*>> FreeResourcesMap;
+            std::map<TCreateInfo, std::vector<TResource*>> FreeResourcesMap;
         };
 
         static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;

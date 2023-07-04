@@ -25,6 +25,8 @@ public:
             shaderc_result_release(ShadercResult);
     }
 
+    ~TVulkanShader() { ReleaseRHI(); }
+
 private:
 
     VkDevice Device;

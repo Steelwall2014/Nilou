@@ -133,6 +133,8 @@ namespace nilou {
         {
             return EShadingPath::Deferred;
         }
+
+        void Release_RenderThread();
         
 
         std::set<FPrimitiveSceneInfo*> AddedPrimitiveSceneInfos;

@@ -190,9 +190,7 @@ private:
     EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
-    VkImage depthImage;
     std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>> DepthImage;
-    VkImageView depthImageView;
     std::vector<std::shared_ptr<class VulkanFramebuffer>> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
     std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;

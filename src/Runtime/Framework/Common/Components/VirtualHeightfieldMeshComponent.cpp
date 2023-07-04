@@ -223,7 +223,7 @@ namespace nilou {
                     RHITextureParams params;
                     params.Mag_Filter = ETextureFilters::TF_Nearest;
                     params.Min_Filter = ETextureFilters::TF_Nearest;
-                    HeightMinMaxSampler = FRHISampler(HeightMinMaxTexture.get(), TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI().get());
+                    HeightMinMaxSampler = FRHISampler(HeightMinMaxTexture.get(), TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI());
                     for (int i = 0; i < LodCount+3; i++)
                     {
                         HeightMinMaxTextureViews.push_back(RHICmdList->RHICreateTextureView2D(
