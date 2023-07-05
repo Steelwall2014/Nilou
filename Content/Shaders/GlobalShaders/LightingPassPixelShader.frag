@@ -35,6 +35,7 @@ layout (std140, binding=6) uniform FLightUniformBlock {
 #include "../ShadingModels/DefaultLit.glsl"
 #include "../ShadingModels/OceanSurface.glsl"
 #include "../ShadingModels/SkyAtmosphere.glsl"
+#include "../include/functions.glsl"
 
 #include "../include/ShadowMapShaderParameters.glsl"
 layout (binding=7) uniform sampler2DArray ShadowMaps;
@@ -50,9 +51,13 @@ float CalculateVisibility(int FrustumIndex, vec3 RelativePosition, float bias)
         return 1;
 
     vec4 LightClipNDC = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(RelativePosition+CameraPosition, 1));
-    LightClipNDC /= LightClipNDC.w;
-    LightClipNDC = LightClipNDC * 0.5 + 0.5;
+    LightClipNDC = ClipToNDC(LightClipNDC);
+#if RHI_API == RHI_VULKAN
+    // Sampling a render target, so we need to do the 1-uv.y
+    vec2 ShadowMapUV = vec2(LightClipNDC.x, 1-LightClipNDC.y);
+#else
     vec2 ShadowMapUV = LightClipNDC.xy;
+#endif
     float SceneLightSpaceDepth = LightClipNDC.z;
     vec2 Resolution = vec2(Frustums[FrustumIndex].Resolution);
     float result = 0;

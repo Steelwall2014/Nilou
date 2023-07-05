@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "Common/Maths.h"
 
 namespace nilou {
     namespace Geospatial {

@@ -32,4 +32,11 @@ vec4 mytextureCubeLod(samplerCube Cube, vec3 sampleVec, float Lod)
         return vec4(0);
     return color;
 }
+vec4 ClipToNDC(vec4 ClipPosition)
+{
+    ClipPosition /= ClipPosition.w;
+    // NDC depth range [0, 1], while other axis [-1, 1]
+    ClipPosition.xy = ClipPosition.xy * 0.5 + 0.5;
+    return ClipPosition;
+}
 #endif
