@@ -310,13 +310,13 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
         }
         else
         {
-            if (!MappedPointer)
+            if (!MappedPointers[DynamicBufferIndex])
             {
                 FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
-                vkMapMemory(VulkanRHI->device, Memories[DynamicBufferIndex], 0, Size, 0, &MappedPointer);
+                vkMapMemory(VulkanRHI->device, Memories[DynamicBufferIndex], 0, Size, 0, &MappedPointers[DynamicBufferIndex]);
             }
             LockStatus = ELockStatus::PersistentMapping;
-            Data = (uint8*)MappedPointer + Offset;
+            Data = (uint8*)MappedPointers[DynamicBufferIndex] + Offset;
         }
     }
     return Data;
@@ -333,7 +333,12 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 
 	if (bVolatile || LockStatus == ELockStatus::PersistentMapping)
 	{
-		// Nothing to do here...
+        if (MappedPointers[DynamicBufferIndex])
+        {
+            FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+            vkUnmapMemory(VulkanRHI->device, Memories[DynamicBufferIndex]);
+            MappedPointers[DynamicBufferIndex] = nullptr;
+        }
 	}
 	else
 	{
@@ -372,14 +377,14 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
 {
     VulkanBufferRef Buffer = std::make_shared<VulkanBuffer>(this, Stride, Size, InUsage);
-
+    RHIUpdateBuffer(Buffer.get(), 0, Size, Data);
     return Buffer;
 }
 
 RHIUniformBufferRef FVulkanDynamicRHI::RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data)
 {
     VulkanUniformBufferRef Buffer = std::make_shared<VulkanUniformBuffer>(this, Size, InUsage);
-
+    RHIUpdateUniformBuffer(Buffer, Data);
     return Buffer;
 
 }

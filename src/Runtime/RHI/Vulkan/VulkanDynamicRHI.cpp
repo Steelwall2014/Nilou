@@ -1044,7 +1044,7 @@ void FVulkanDynamicRHI::RHIDispatch(unsigned int num_groups_x, unsigned int num_
     vkCmdDispatch(CmdBuffer->GetHandle(), num_groups_x, num_groups_y, num_groups_z);
     CommandBufferManager->SubmitActiveCmdBuffer({});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
-    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
+    //CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
 
 void FVulkanDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset)
@@ -1055,7 +1055,7 @@ void FVulkanDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 Indi
     vkCmdDispatchIndirect(CmdBuffer->GetHandle(), vkIndirectBuffer->GetHandle(), IndirectOffset);
     CommandBufferManager->SubmitActiveCmdBuffer({});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
-    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
+    //CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
 
 void FVulkanDynamicRHI::RHIEndRenderPass()
@@ -1072,7 +1072,7 @@ void FVulkanDynamicRHI::RHIEndRenderPass()
     }
     CommandBufferManager->SubmitActiveCmdBuffer({});
     CommandBufferManager->PrepareForNewActiveCommandBuffer();
-    CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
+    //CurrentDescriptorState->DescriptorSets.Owner->TrackRemoveUsage(CurrentDescriptorState->DescriptorSets.Layout);
 }
 
 void FVulkanDynamicRHI::PrepareForDispatch()

@@ -96,7 +96,7 @@ public:
     EBufferUsageFlags Usage;
     uint32 Size;
     FVulkanDynamicRHI* Context;
-    void* MappedPointer = nullptr;
+    void* MappedPointers[NUM_BUFFERS]{};
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset);
     void Unlock(FVulkanDynamicRHI* Context);
     static uint8 GetNumBuffersFromUsage(EBufferUsageFlags InUsage)
