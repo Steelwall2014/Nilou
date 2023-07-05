@@ -17,6 +17,7 @@
 #include "VulkanQueue.h"
 #include "VulkanSwapChain.h"
 #include "VulkanBarriers.h"
+#include "RHIStaticStates.h"
 #include "Common/Log.h"
 
 namespace nilou {
@@ -264,9 +265,9 @@ void FVulkanDynamicRHI::RHISetViewport(int32 Width, int32 Height)
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    viewport.y = (float) Height;
     viewport.width = (float) Width;
-    viewport.height = (float) Height;
+    viewport.height = -(float) Height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(CmdBuffer->GetHandle(), 0, 1, &viewport);
@@ -396,7 +397,7 @@ int FVulkanDynamicRHI::Initialize()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_1;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -837,9 +838,12 @@ FRHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGrap
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    VulkanDepthStencilState* DepthStencilState = static_cast<VulkanDepthStencilState*>(Initializer.DepthStencilState);
-    VulkanRasterizerState* RasterizerState = static_cast<VulkanRasterizerState*>(Initializer.RasterizerState);
-    VulkanBlendState* BlendState = static_cast<VulkanBlendState*>(Initializer.BlendState);
+    static RHIDepthStencilState* DefaultDepthStencilState = TStaticDepthStencilState<>::CreateRHI().get();
+    static RHIRasterizerState* DefaultRasterizerState = TStaticRasterizerState<>::CreateRHI().get();
+    static RHIBlendState* DefaultBlendState = TStaticBlendState<>::CreateRHI().get();
+    VulkanDepthStencilState* DepthStencilState = static_cast<VulkanDepthStencilState*>(Initializer.DepthStencilState ? Initializer.DepthStencilState : DefaultDepthStencilState);
+    VulkanRasterizerState* RasterizerState = static_cast<VulkanRasterizerState*>(Initializer.RasterizerState ? Initializer.RasterizerState : DefaultRasterizerState);
+    VulkanBlendState* BlendState = static_cast<VulkanBlendState*>(Initializer.BlendState ? Initializer.BlendState : DefaultBlendState);
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -966,6 +970,7 @@ FRHIVertexDeclarationRef FVulkanDynamicRHI::RHICreateVertexDeclaration(const std
 void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
 {
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+    RHISetViewport(InInfo.Viewport.x, InInfo.Viewport.y);
     VulkanFramebuffer* Framebuffer = static_cast<VulkanFramebuffer*>(InInfo.Framebuffer);
     CurrentFramebuffer = Framebuffer;
     if (Framebuffer)
@@ -1106,7 +1111,7 @@ void FVulkanDynamicRHI::PrepareForDraw()
                 &CurrentStreamSourceBuffers[i], &CurrentStreamSourceOffsets[i]);
         }
     }
-    RHISetViewport(swapChainExtent.width, swapChainExtent.height);
+    //RHISetViewport(swapChainExtent.width, swapChainExtent.height);
 }
 
 RHIFramebuffer* FVulkanDynamicRHI::GetRenderToScreenFramebuffer()

@@ -29,7 +29,6 @@ namespace nilou {
 
     void BaseApplication::Finalize()
     {
-        GameViewportClient->World = nullptr;
         ContentManager->Flush();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }
@@ -37,6 +36,7 @@ namespace nilou {
 
     void BaseApplication::Finalize_RenderThread()
     {
+        GameViewportClient->World = nullptr;
         GetScene()->Release_RenderThread();
         ContentManager->ReleaseRenderResources();
     }

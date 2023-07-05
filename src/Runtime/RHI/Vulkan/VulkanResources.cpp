@@ -250,6 +250,27 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& I
         }
     }
     InitWithAttachments(RenderTargetFormats, NumRenderTargetsEnabled, DepthStencilTargetFormat);
+    if (Info.bClearDepthBuffer)
+    {
+        Ncheck(DepthStencilReference.attachment < Desc.size());
+        VkAttachmentDescription& CurrDesc = Desc[DepthStencilReference.attachment];
+        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    }
+    if (Info.bClearStencilBuffer)
+    {
+        Ncheck(DepthStencilReference.attachment < Desc.size());
+        VkAttachmentDescription& CurrDesc = Desc[DepthStencilReference.attachment];
+        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    }
+    if (Info.bClearColorBuffer)
+    {
+        Ncheck(DepthStencilReference.attachment < Desc.size());
+        for (auto& Ref : ColorReferences)
+        {
+            VkAttachmentDescription& CurrDesc = Desc[Ref.attachment];
+            CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        }
+    }
 }
 
 void FVulkanRenderTargetLayout::InitWithAttachments(        
@@ -265,8 +286,8 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
 			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
 			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 			CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
@@ -287,10 +308,10 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
 		VkAttachmentDescription& CurrDesc = Desc.emplace_back();
         CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
         CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 

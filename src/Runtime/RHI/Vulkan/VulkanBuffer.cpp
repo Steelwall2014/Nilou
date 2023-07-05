@@ -79,6 +79,7 @@ void FStagingBuffer::FlushMappedMemory()
     if (!IsCoherent())
     {
         VkMappedMemoryRange Range{};
+        Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         Range.memory = StagingBufferMemory;
         Range.offset = 0;
         Range.size = BufferSize;
@@ -358,7 +359,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
             FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
             // We need to do this on the active command buffer instead of using an upload command buffer. The high level code sometimes reuses the same
             // buffer in sequences of upload / dispatch, upload / dispatch, so we need to order the copy commands correctly with respect to the dispatches.
-            FVulkanCmdBuffer* Cmd = Context->CommandBufferManager->GetActiveCmdBuffer();
+            FVulkanCmdBuffer* Cmd = Context->CommandBufferManager->GetUploadCmdBuffer();
             Ncheck(Cmd && Cmd->IsOutsideRenderPass());
             VkCommandBuffer CmdBuffer = Cmd->GetHandle();
 	        VkBufferCopy Region{};
@@ -368,6 +369,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
             VkMemoryBarrier BarrierAfter = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT };
 	        vkCmdPipelineBarrier(CmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
             Context->StagingManager->ReleaseBuffer(Cmd, StagingBuffer);
+            Context->CommandBufferManager->SubmitUploadCmdBuffer();
 		}
 	}
 

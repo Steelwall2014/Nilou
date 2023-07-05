@@ -15,8 +15,8 @@ struct FVulkanRenderPass
     FVulkanRenderPass(VkDevice InDevice)
         : Device(InDevice)
     { }
-    VkDevice Device;
-    VkRenderPass Handle;
+    VkDevice Device{};
+    VkRenderPass Handle{};
     ~FVulkanRenderPass()
     {
         vkDestroyRenderPass(Device, Handle, nullptr);
@@ -30,9 +30,9 @@ public:
         : Device(InDevice)
         , FRHIGraphicsPipelineState(InInInitializer)
     { }
-    VkDevice Device;
-    VkPipeline VulkanPipeline;
-    FVulkanRenderPass* RenderPass;
+    VkDevice Device{};
+    VkPipeline VulkanPipeline{};
+    FVulkanRenderPass* RenderPass{};
     ~VulkanGraphicsPipelineState();
 };
 using VulkanGraphicsPipelineStateRef = std::shared_ptr<VulkanGraphicsPipelineState>;
@@ -69,8 +69,8 @@ public:
     {
         vkDestroySampler(Device, Handle, nullptr);
     }
-    VkDevice Device;
-    VkSampler Handle;
+    VkDevice Device{};
+    VkSampler Handle{};
 };
 using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
 
@@ -132,7 +132,7 @@ struct FVulkanRenderPassManager
     FVulkanRenderPassManager(VkDevice InDevice)
         : Device(InDevice)
     { }
-    VkDevice Device;
+    VkDevice Device{};
     FVulkanRenderPass* GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout);
     std::unordered_map<FVulkanRenderTargetLayout, FVulkanRenderPass> RenderPasses;
 };

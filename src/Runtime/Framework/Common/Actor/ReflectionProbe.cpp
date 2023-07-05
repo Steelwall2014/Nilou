@@ -84,13 +84,14 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
     return vec3(0);
 }
         )");
-        DebugMat->SetTextureParameterValue("Cube", IrradianceTexture.get());
+        DebugMat->SetTextureParameterValue("Cube", EnvironmentTexture.get());
 
         // DebugSphere = CreateComponent<USphereComponent>(this); 
         // DebugSphere->SetMaterial(DebugMat.get());
-        // DebugSphere->SetRelativeScale3D(dvec3(1000));
+        // DebugSphere->SetRelativeScale3D(dvec3(70));
         // DebugSphere->AttachToComponent(GetRootComponent());
-        // SceneCaptureComponent->HideComponent(DebugSphere.get());
+        // DebugSphere->SetCastShadow(false);
+        // ReflectionProbeComponent->HideComponent(DebugSphere.get());
     }
 
 }

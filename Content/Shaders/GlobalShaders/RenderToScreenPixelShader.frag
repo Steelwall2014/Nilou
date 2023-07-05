@@ -15,11 +15,7 @@ layout(binding=1, std140) uniform PIXEL_UNIFORM_BLOCK {
 
 void main()
 {
-#if RHI_API == RHI_OPENGL
 	vec3 color = texture(SceneColor, vec2(1-uv.x, uv.y)).rgb;
-#else
-	vec3 color = texture(SceneColor, uv).rgb;
-#endif
     if (bEnableToneMapping != 0)
 		color = vec3(1.0) - exp(-color);
 	FragColor = vec4(pow(color, vec3(1.0 / GammaCorrection)), 1);

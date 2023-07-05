@@ -8,4 +8,7 @@ void main()
 {
     gl_Position = vec4(POSITION, 1.0f);
     uv = TEXCOORD_0;
+#if RHI_API == RHI_VULKAN
+    uv.y = 1-uv.y;
+#endif
 }
