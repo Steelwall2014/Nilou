@@ -18,7 +18,11 @@ float lerp(float from, float to, float t)
 }
 vec4 mytextureCube(samplerCube Cube, vec3 sampleVec)
 {
+#if RHI_API == RHI_VULKAN
+    vec4 color = texture(Cube, sampleVec);
+#elif RHI_API == RHI_OPENGL
     vec4 color = texture(Cube, sampleVec.xzy);
+#endif
     // Sometimes it just returns NaN....
     // Weird....
     if (isnan(color.r) || isnan(color.g) || isnan(color.b) || isnan(color.a))
@@ -27,7 +31,11 @@ vec4 mytextureCube(samplerCube Cube, vec3 sampleVec)
 }
 vec4 mytextureCubeLod(samplerCube Cube, vec3 sampleVec, float Lod)
 {
+#if RHI_API == RHI_VULKAN
+    vec4 color = textureLod(Cube, sampleVec, Lod);
+#elif RHI_API == RHI_OPENGL
     vec4 color = textureLod(Cube, sampleVec.xzy, Lod);
+#endif
     if (isnan(color.r) || isnan(color.g) || isnan(color.b) || isnan(color.a))
         return vec4(0);
     return color;

@@ -1880,12 +1880,15 @@ namespace nilou {
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
+            glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
             magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
                 magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
                     
+                    if (PixelFormat == PF_PixelFormatNum)
+                        return;
                     ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
-                    if (PixelFormat == EPixelFormat::PF_UNKNOWN)
+                    if (PixelFormat == PF_UNKNOWN)
                     {
                         PageSize = ivec3(1);
                         return;

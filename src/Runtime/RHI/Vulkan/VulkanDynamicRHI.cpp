@@ -506,7 +506,8 @@ int FVulkanDynamicRHI::Initialize()
         queueCreateInfo.pQueuePriorities = &queuePriority;
 
         std::vector<const char*> deviceExtensions = {
-            "VK_KHR_swapchain"
+            "VK_KHR_swapchain",
+            VK_EXT_NON_SEAMLESS_CUBE_MAP_EXTENSION_NAME
         };
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;

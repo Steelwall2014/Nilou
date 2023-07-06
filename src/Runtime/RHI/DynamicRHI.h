@@ -32,6 +32,7 @@ namespace nilou {
 		virtual void Finalize();
 		virtual void GetError(const char *file, int line) = 0;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
+		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return GetDynamicRHI()->GetCurrentGraphicsAPI(); }
 
 		virtual void RHIBeginFrame() = 0;
 		virtual void RHIEndFrame() = 0;

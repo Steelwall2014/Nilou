@@ -168,6 +168,7 @@ VulkanRasterizerState::VulkanRasterizerState(const FRasterizerStateInitializer& 
     RasterizerState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	RasterizerState.polygonMode = RasterizerFillModeToVulkan(Initializer.FillMode);
 	RasterizerState.cullMode = RasterizerCullModeToVulkan(Initializer.CullMode);
+    RasterizerState.frontFace = VK_FRONT_FACE_CLOCKWISE;    // Set the front face to clockwise because we will use flipped viewport in vulkan
 
 	//RasterizerState.depthClampEnable = VK_FALSE;
 	// RasterizerState.depthBiasEnable = Initializer.DepthBias != 0.0f ? VK_TRUE : VK_FALSE;

@@ -55,7 +55,7 @@ float CalculateVisibility(int FrustumIndex, vec3 RelativePosition, float bias)
 #if RHI_API == RHI_VULKAN
     // Sampling a render target, so we need to do the 1-uv.y
     vec2 ShadowMapUV = vec2(LightClipNDC.x, 1-LightClipNDC.y);
-#else
+#elif RHI_API == RHI_OPENGL
     vec2 ShadowMapUV = LightClipNDC.xy;
 #endif
     float SceneLightSpaceDepth = LightClipNDC.z;

@@ -7,7 +7,7 @@
 using namespace nilou;
 namespace nilou {
 
-GfxConfiguration config(EPixelFormat::PF_B8G8R8A8_sRGB, EPixelFormat::PF_D32FS8, 0, 1600, 900, L"Nilou");
+GfxConfiguration config(EPixelFormat::PF_B8G8R8A8, EPixelFormat::PF_D32FS8, 0, 1600, 900, L"Nilou");
 
 BaseApplication *GetAppication()
 {
