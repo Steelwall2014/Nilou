@@ -11,28 +11,21 @@
 
 namespace nilou {
 
-    class FOpenGLRenderQuery : public FRHIRenderQuery
+    class OpenGLVertexDeclaration : public FRHIVertexDeclaration
     {
     public:
-
-        /** The query resource. */
-        GLuint Resource;
-
-        /** The cached query result. */
-        GLuint64 Result;
-
-        FOpenGLRenderQuery()
-            : Result(0)
+        struct Element
         {
-            glGenQueries(1, &Resource);
-        }
-
-        ~FOpenGLRenderQuery()
-        {
-            glDeleteQueries(1, &Resource);
-        }
-
+            uint8 StreamIndex;
+            uint8 Offset;
+            uint8 AttributeIndex;
+            uint16 Stride;
+            GLenum DataType;
+            GLint Size;
+            bool bNormalized;
+            bool bShouldConvertToFloat;
+        };
+        std::vector<Element> Elements;
     };
-
-    using FOpenGLRenderQueryRef = std::shared_ptr<FOpenGLRenderQuery>;
+    using OpenGLVertexDeclarationRef = std::shared_ptr<OpenGLVertexDeclaration>;
 }

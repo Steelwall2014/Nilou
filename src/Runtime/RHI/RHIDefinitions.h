@@ -1,5 +1,6 @@
 #pragma once
 #include "Platform.h"
+#include "Common/EnumClassFlags.h"
 
 // #define _GM nilou::FDynamicRHI::GetDynamicRHI()
 // #define DEPTH_BUFFER_BIT 0x00000100
@@ -17,6 +18,14 @@ namespace nilou {
 		DA_ReadOnly,
 		DA_WriteOnly,
 		DA_ReadWrite
+	};
+
+	enum EResourceLockMode
+	{
+		RLM_ReadOnly,
+		RLM_WriteOnly,
+		// RLM_WriteOnly_NoOverwrite,
+		RLM_Num
 	};
 
 	// class EBufferUsage
@@ -96,7 +105,7 @@ namespace nilou {
 	// 	static uint32 const AnyDynamic = (Dynamic | Volatile);
 	// };
 
-	enum EBufferUsageFlags
+	enum class EBufferUsageFlags
 	{
 		None                    = 0,
 
@@ -170,8 +179,6 @@ namespace nilou {
 
 		// Helper bit-masks
 		AnyDynamic = (Dynamic | Volatile),
-
-		AtomicCounter = 1 << 20,
 	};
 	constexpr EBufferUsageFlags operator|(EBufferUsageFlags a, EBufferUsageFlags b)
 	{
@@ -321,17 +328,14 @@ namespace nilou {
 	};
 	enum class EPrimitiveMode : uint8
 	{
-		PM_Points = 0,
-		PM_Lines,
-		PM_Line_Loop,
-		PM_Line_Strip,
-		PM_Triangles,
-		PM_Triangle_Strip,
-		PM_Triangle_Fan
+		PM_PointList = 0,
+		PM_LineList,
+		PM_TriangleList,
+		PM_TriangleStrip,
 	};
-	enum class EFramebufferAttachment : uint8
+	enum EFramebufferAttachment : uint8
 	{
-		FA_Color_Attachment0,
+		FA_Color_Attachment0 = 0,
 		FA_Color_Attachment1,
 		FA_Color_Attachment2,
 		FA_Color_Attachment3,
@@ -363,13 +367,13 @@ namespace nilou {
 		// FA_Color_Attachment29,
 		// FA_Color_Attachment30,
 		// FA_Color_Attachment31,
-		FA_Depth_Attachment,
-		FA_Stencil_Attachment,
+		//FA_Depth_Attachment,
+		//FA_Stencil_Attachment,
 		FA_Depth_Stencil_Attachment
 	};
 
     
-	enum class EPixelFormat : uint8
+	enum EPixelFormat : uint8
 	{
 		PF_UNKNOWN = 0,
 		PF_R8,
@@ -407,7 +411,7 @@ namespace nilou {
 	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
 	uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat);
 
-	enum class ETextureFilters : uint8
+	enum ETextureFilters : uint8
 	{
 		TF_Linear = 0,
 		TF_Nearest,
@@ -416,7 +420,7 @@ namespace nilou {
 		TF_Nearest_Mipmap_Linear,
 		TF_Linear_Mipmap_Linear,
 	};
-	enum class ETextureWrapModes : uint8
+	enum ETextureWrapModes : uint8
 	{
 		TW_Repeat = 0,
 		TW_Clamp,
@@ -450,7 +454,7 @@ namespace nilou {
 		EStencilOp_Num,
 	};
 
-	enum class ETextureType
+	enum ETextureType
 	{
 		TT_Texture2D = 0,
 		TT_Texture2DArray,
@@ -476,6 +480,7 @@ namespace nilou {
 		RRT_GeometryShader,
 		RRT_RayTracingShader,
 		RRT_ComputeShader,
+		RRT_PipelineLayout,
 		RRT_GraphicsPipelineState,
 		RRT_ComputePipelineState,
 		RRT_RayTracingPipelineState,
@@ -504,22 +509,213 @@ namespace nilou {
 		RRT_ShaderLibrary,
 		RRT_PipelineBinaryLibrary,
 
-		// DEPRECATED only used in opengl, will be replaced by RRT_GraphicsPipelineState or something
-		RRT_LinkedProgram,	
-
-		// DEPRECATED only used in opengl, will be replaced by RRT_VertexDeclaration or something
-		RRT_VertexArrayObject,	
-
 		RRT_Num
 	};
 
 	enum EPipelineStage
 	{
-		PS_Vertex,
+		PS_Vertex = 0,
 		PS_Pixel,
 		// PS_Geometry,
 		PS_Compute,
 
 		PipelineStageNum
 	};
+	
+	enum
+	{
+		MaxVertexElementCount = 17,
+	};
+
+	enum class ETextureCreateFlags : uint64
+	{
+		None                              = 0,
+
+		// Texture can be used as a render target
+		RenderTargetable                  = 1ull << 0,
+		// Texture can be used as a resolve target
+		ResolveTargetable                 = 1ull << 1,
+		// Texture can be used as a depth-stencil target.
+		DepthStencilTargetable            = 1ull << 2,
+		// Texture can be used as a shader resource.
+		ShaderResource                    = 1ull << 3,
+		// Texture is encoded in sRGB gamma space
+		SRGB                              = 1ull << 4,
+		// Texture data is writable by the CPU
+		CPUWritable                       = 1ull << 5,
+		// Texture will be created with an un-tiled format
+		NoTiling                          = 1ull << 6,
+		// Texture will be used for video decode
+		VideoDecode                       = 1ull << 7,
+		// Texture that may be updated every frame
+		Dynamic                           = 1ull << 8,
+		// Texture will be used as a render pass attachment that will be read from
+		InputAttachmentRead               = 1ull << 9,
+		/** Texture represents a foveation attachment */
+		Foveation                         = 1ull << 10,
+		// Prefer 3D internal surface tiling mode for volume textures when possible
+		Tiling3D                          = 1ull << 11,
+		// This texture has no GPU or CPU backing. It only exists in tile memory on TBDR GPUs (i.e., mobile).
+		Memoryless                        = 1ull << 12,
+		// Create the texture with the flag that allows mip generation later, only applicable to D3D11
+		GenerateMipCapable                = 1ull << 13,
+		// The texture can be partially allocated in fastvram
+		FastVRAMPartialAlloc              = 1ull << 14,
+		// Do not create associated shader resource view, only applicable to D3D11 and D3D12
+		DisableSRVCreation                = 1ull << 15,
+		// Do not allow Delta Color Compression (DCC) to be used with this texture
+		DisableDCC                        = 1ull << 16,
+		// UnorderedAccessView (DX11 only)
+		// Warning: Causes additional synchronization between draw calls when using a render target allocated with this flag, use sparingly
+		// See: GCNPerformanceTweets.pdf Tip 37
+		UAV                               = 1ull << 17,
+		// Render target texture that will be displayed on screen (back buffer)
+		Presentable                       = 1ull << 18,
+		// Texture data is accessible by the CPU
+		CPUReadback                       = 1ull << 19,
+		// Texture was processed offline (via a texture conversion process for the current platform)
+		OfflineProcessed                  = 1ull << 20,
+		// Texture needs to go in fast VRAM if available (HINT only)
+		FastVRAM                          = 1ull << 21,
+		// by default the texture is not showing up in the list - this is to reduce clutter, using the FULL option this can be ignored
+		HideInVisualizeTexture            = 1ull << 22,
+		// Texture should be created in virtual memory, with no physical memory allocation made
+		// You must make further calls to RHIVirtualTextureSetFirstMipInMemory to allocate physical memory
+		// and RHIVirtualTextureSetFirstMipVisible to map the first mip visible to the GPU
+		Virtual                           = 1ull << 23,
+		// Creates a RenderTargetView for each array slice of the texture
+		// Warning: if this was specified when the resource was created, you can't use SV_RenderTargetArrayIndex to route to other slices!
+		TargetArraySlicesIndependently    = 1ull << 24,
+		// Texture that may be shared with DX9 or other devices
+		Shared                            = 1ull << 25,
+		// RenderTarget will not use full-texture fast clear functionality.
+		NoFastClear                       = 1ull << 26,
+		// Texture is a depth stencil resolve target
+		DepthStencilResolveTarget         = 1ull << 27,
+		// Flag used to indicted this texture is a streamable 2D texture, and should be counted towards the texture streaming pool budget.
+		Streamable                        = 1ull << 28,
+		// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
+		NoFastClearFinalize               = 1ull << 29,
+		/** Texture needs to support atomic operations */
+		Atomic64Compatible                = 1ull << 30,
+		// Workaround for 128^3 volume textures getting bloated 4x due to tiling mode on some platforms.
+		ReduceMemoryWithTilingMode        = 1ull << 31,
+		/** Texture needs to support atomic operations */
+		AtomicCompatible                  = 1ull << 33,
+		/** Texture should be allocated for external access. Vulkan only */
+		External                		  = 1ull << 34,
+		/** Don't automatically transfer across GPUs in multi-GPU scenarios.  For example, if you are transferring it yourself manually. */
+		MultiGPUGraphIgnore				  = 1ull << 35,
+
+	};
+	ENUM_CLASS_FLAGS(ETextureCreateFlags);
+
+// Compatibility defines
+#define TexCreate_None                           ETextureCreateFlags::None
+#define TexCreate_RenderTargetable               ETextureCreateFlags::RenderTargetable
+#define TexCreate_ResolveTargetable              ETextureCreateFlags::ResolveTargetable
+#define TexCreate_DepthStencilTargetable         ETextureCreateFlags::DepthStencilTargetable
+#define TexCreate_ShaderResource                 ETextureCreateFlags::ShaderResource
+#define TexCreate_SRGB                           ETextureCreateFlags::SRGB
+#define TexCreate_CPUWritable                    ETextureCreateFlags::CPUWritable
+#define TexCreate_NoTiling                       ETextureCreateFlags::NoTiling
+#define TexCreate_VideoDecode                    ETextureCreateFlags::VideoDecode
+#define TexCreate_Dynamic                        ETextureCreateFlags::Dynamic
+#define TexCreate_InputAttachmentRead            ETextureCreateFlags::InputAttachmentRead
+#define TexCreate_Foveation                      ETextureCreateFlags::Foveation
+#define TexCreate_3DTiling                       ETextureCreateFlags::Tiling3D
+#define TexCreate_Memoryless                     ETextureCreateFlags::Memoryless
+#define TexCreate_GenerateMipCapable             ETextureCreateFlags::GenerateMipCapable
+#define TexCreate_FastVRAMPartialAlloc           ETextureCreateFlags::FastVRAMPartialAlloc
+#define TexCreate_DisableSRVCreation             ETextureCreateFlags::DisableSRVCreation
+#define TexCreate_DisableDCC                     ETextureCreateFlags::DisableDCC
+#define TexCreate_UAV                            ETextureCreateFlags::UAV
+#define TexCreate_Presentable                    ETextureCreateFlags::Presentable
+#define TexCreate_CPUReadback                    ETextureCreateFlags::CPUReadback
+#define TexCreate_OfflineProcessed               ETextureCreateFlags::OfflineProcessed
+#define TexCreate_FastVRAM                       ETextureCreateFlags::FastVRAM
+#define TexCreate_HideInVisualizeTexture         ETextureCreateFlags::HideInVisualizeTexture
+#define TexCreate_Virtual                        ETextureCreateFlags::Virtual
+#define TexCreate_TargetArraySlicesIndependently ETextureCreateFlags::TargetArraySlicesIndependently
+#define TexCreate_Shared                         ETextureCreateFlags::Shared
+#define TexCreate_NoFastClear                    ETextureCreateFlags::NoFastClear
+#define TexCreate_DepthStencilResolveTarget      ETextureCreateFlags::DepthStencilResolveTarget
+#define TexCreate_Streamable                     ETextureCreateFlags::Streamable
+#define TexCreate_NoFastClearFinalize            ETextureCreateFlags::NoFastClearFinalize
+#define TexCreate_ReduceMemoryWithTilingMode     ETextureCreateFlags::ReduceMemoryWithTilingMode
+#define TexCreate_Transient                      ETextureCreateFlags::Transient
+#define TexCreate_AtomicCompatible               ETextureCreateFlags::AtomicCompatible
+#define TexCreate_External               		 ETextureCreateFlags::External
+#define TexCreate_MultiGPUGraphIgnore            ETextureCreateFlags::MultiGPUGraphIgnore
+
+enum class ERHIAccess : uint32
+{
+	// Used when the previous state of a resource is not known,
+	// which implies we have to flush all GPU caches etc.
+	Unknown = 0,
+
+	// Read states
+	CPURead             	= 1 <<  0,
+	Present             	= 1 <<  1,
+	IndirectArgs        	= 1 <<  2,
+	VertexOrIndexBuffer 	= 1 <<  3,
+	SRVCompute          	= 1 <<  4,
+	SRVGraphics         	= 1 <<  5,
+	CopySrc             	= 1 <<  6,
+	ResolveSrc          	= 1 <<  7,
+	DSVRead					= 1 <<  8,
+
+	// Read-write states
+	UAVCompute          	= 1 <<  9,
+	UAVGraphics         	= 1 << 10,
+	RTV                 	= 1 << 11,
+	CopyDest            	= 1 << 12,
+	ResolveDst          	= 1 << 13,
+	DSVWrite            	= 1 << 14,
+
+	// Ray tracing acceleration structure states.
+	// Buffer that contains an AS must always be in either of these states.
+	// BVHRead -- required for AS inputs to build/update/copy/trace commands.
+	// BVHWrite -- required for AS outputs of build/update/copy commands.
+	BVHRead                  = 1 << 15,
+	BVHWrite                 = 1 << 16,
+
+	// Invalid released state (transient resources)
+	Discard					= 1 << 17,
+
+	// Shading Rate Source
+	ShadingRateSource	= 1 << 18,
+
+	Last = ShadingRateSource,
+	None = Unknown,
+	Mask = (Last << 1) - 1,
+
+	// A mask of the two possible SRV states
+	SRVMask = SRVCompute | SRVGraphics,
+
+	// A mask of the two possible UAV states
+	UAVMask = UAVCompute | UAVGraphics,
+
+	// A mask of all bits representing read-only states which cannot be combined with other write states.
+	ReadOnlyExclusiveMask = CPURead | Present | IndirectArgs | VertexOrIndexBuffer | SRVGraphics | SRVCompute | CopySrc | ResolveSrc | BVHRead,
+
+	// A mask of all bits representing read-only states on the compute pipe which cannot be combined with other write states.
+	ReadOnlyExclusiveComputeMask = CPURead | IndirectArgs | SRVCompute | CopySrc | BVHRead,
+
+	// A mask of all bits representing read-only states which may be combined with other write states.
+	ReadOnlyMask = ReadOnlyExclusiveMask | DSVRead | ShadingRateSource,
+
+	// A mask of all bits representing readable states which may also include writable states.
+	ReadableMask = ReadOnlyMask | UAVMask,
+
+	// A mask of all bits representing write-only states which cannot be combined with other read states.
+	WriteOnlyExclusiveMask = RTV | CopyDest | ResolveDst,
+
+	// A mask of all bits representing write-only states which may be combined with other read states.
+	WriteOnlyMask = WriteOnlyExclusiveMask | DSVWrite,
+
+	// A mask of all bits representing writable states which may also include readable states.
+	WritableMask = WriteOnlyMask | UAVMask | BVHWrite
+};
+ENUM_CLASS_FLAGS(ERHIAccess)
 }

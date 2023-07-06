@@ -34,8 +34,7 @@ namespace nilou {
         VT->Name = std::move(Name);
         VT->TextureResource->Name = std::move(this->TextureResource->Name);
         VT->TextureResource->NumMips = std::move(this->TextureResource->NumMips);
-        VT->TextureResource->SamplerRHI.Params = std::move(this->TextureResource->SamplerRHI.Params);
-        VT->TextureResource->SamplerRHI.ResourceType = std::move(this->TextureResource->SamplerRHI.ResourceType);
+        VT->TextureResource->SamplerRHI.SamplerState = std::move(this->TextureResource->SamplerRHI.SamplerState);
         this->TextureResource = nullptr;
         return VT;
     }
@@ -57,7 +56,7 @@ namespace nilou {
             cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
     }
 
-    void UTexture::PostDeserialize()
+    void UTexture::PostDeserialize(FArchive& Ar)
     {
         UpdateResource();
     }

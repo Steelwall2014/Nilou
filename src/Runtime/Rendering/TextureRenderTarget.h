@@ -29,6 +29,11 @@ namespace nilou {
         }
 		
         virtual void InitRHI() override;
+
+        virtual void ReleaseRHI() override 
+        { 
+            RenderTargetFramebuffer = nullptr;
+        }
         
         virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return this; }
 
@@ -46,6 +51,12 @@ namespace nilou {
         }
 		
         virtual void InitRHI() override;
+
+        virtual void ReleaseRHI() override 
+        { 
+            RenderTargetTextureViews.fill(nullptr);
+            RenderTargetFramebuffers.fill(nullptr);
+        }
         
         virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return this; }
 

@@ -2,9 +2,14 @@
 #include <string>
 #include <map>
 #include <memory>
-#include "ShaderMap.h"
-#include "UniformBuffer.h"
+#include <vector>
+#include <filesystem>
+#include <unordered_map>
+#include <functional>
+// #include "ShaderMap.h"
+// #include "UniformBuffer.h"
 #include "Common/Path.h"
+#include "Templates/TypeTraits.h"
 
 
 namespace nilou {
@@ -124,9 +129,6 @@ namespace nilou {
         bool CreateDirectory(const std::filesystem::path &InPath, bool bNeedFlush=true);
 
         void Flush();
-    
-		void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap = false);
-		FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
 
         void ReleaseRenderResources();
 
@@ -141,8 +143,6 @@ namespace nilou {
         std::unique_ptr<FContentEntry> ContentEntry;
 
         FContentEntry *CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
-
-        TShaderMap<FShaderPermutationParameters> GlobalShaders;
 
         void ForEachContentInternal(FContentEntry* Entry, std::function<void(NAsset*)> &&Func);
 

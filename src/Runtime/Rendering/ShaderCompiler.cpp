@@ -40,8 +40,8 @@ namespace nilou {
 
     void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory)
     {
-        check(std::filesystem::exists(RealShaderDirectory));
-        check(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
+        Ncheck(std::filesystem::exists(RealShaderDirectory));
+        Ncheck(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
         GetGShaderSourceDirectoryMappings()[VirtualShaderDirectory] = RealShaderDirectory;
     }
 
@@ -92,8 +92,12 @@ namespace nilou {
     {
         std::stringstream stream;
         stream << "#version 460\n";
+        stream << "#define RHI_OPENGL (0)\n";
+        stream << "#define RHI_VULKAN (1)\n";
         if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-            stream << "#define USING_OPENGL 1\n";
+            stream << "#define RHI_API RHI_OPENGL\n";
+        else if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+            stream << "#define RHI_API RHI_VULKAN\n";
 
         for (auto &[key, value] : Environment.Definitions)
             stream << "#define " << key << " " << value << "\n";
@@ -133,7 +137,7 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, PipelineStage, ShaderType->ShaderMetaType);
         ShaderInstance->InitResource();
-        GetContentManager()->AddGlobalShader(ShaderParameter, ShaderInstance);
+        AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(

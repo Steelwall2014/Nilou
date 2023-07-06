@@ -3,7 +3,7 @@
 "Real-time Realistic Ocean Lighting using Seamless Transitions from Geometry to BRDF" and 
 Crest Ocean System
 */
-//#version 460
+#version 460
 #ifndef OCEAN_SURFACE_H
 #define OCEAN_SURFACE_H
 

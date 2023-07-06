@@ -18,6 +18,8 @@
 
 namespace nilou {
 
+    class FShaderInstance;
+
     template<EShaderFrequency ShaderFrequency, bool IsMaterialShader>
     struct TShaderFrequencyAssertHelper
     { };
@@ -62,4 +64,8 @@ namespace nilou {
     {
         DECLARE_SHADER_TYPE()
     };
+
+    void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap=false);
+
+    FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
 }

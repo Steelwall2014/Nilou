@@ -30,19 +30,19 @@ namespace nilou {
             ColorBuffer.Init(Colors);
             PositionBuffer.InitResource();
             ColorBuffer.InitResource();
-            FRHIVertexInput PositionInput;
-            PositionInput.VertexBuffer = PositionBuffer.VertexBufferRHI.get();
-            PositionInput.Location = 0;
-            PositionInput.Type = EVertexElementType::VET_Float3;
-            PositionInput.Offset = 0;
-            PositionInput.Stride = sizeof(vec3);
-
-            FRHIVertexInput ColorInput;
-            ColorInput.VertexBuffer = ColorBuffer.VertexBufferRHI.get();
-            ColorInput.Location = 1;
-            ColorInput.Type = EVertexElementType::VET_Float3;
-            ColorInput.Offset = 0;
-            ColorInput.Stride = sizeof(vec3);
+            FVertexElement PositionElement;
+            PositionElement.AttributeIndex = 0;
+            PositionElement.StreamIndex = 0;
+            PositionElement.Offset = 0;
+            PositionElement.Stride = 3 * sizeof(float);
+            PositionElement.Type = EVertexElementType::VET_Float3;
+            FVertexElement ColorElement;
+            ColorElement.AttributeIndex = 1;
+            ColorElement.StreamIndex = 1;
+            ColorElement.Offset = 0;
+            ColorElement.Stride = 3 * sizeof(float);
+            ColorElement.Type = EVertexElementType::VET_Float3;
+            FRHIVertexDeclaration* Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration({ PositionElement, ColorElement} );
             
             FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
             FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution);
@@ -51,38 +51,35 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersVS(&FViewElementVS::StaticType, 0);
                 FShaderPermutationParameters PermutationParametersPS(&FViewElementPS::StaticType, 0);
 
-                FShaderInstance *ViewElementVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                FShaderInstance *ViewElementPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+                FShaderInstance *ViewElementVS = GetGlobalShader(PermutationParametersVS);
+                FShaderInstance *ViewElementPS = GetGlobalShader(PermutationParametersPS);
                 
-                FRHIGraphicsPipelineInitializer PSOInitializer;
+                FGraphicsPipelineStateInitializer PSOInitializer;
 
-                PSOInitializer.VertexShader = ViewElementVS;
-                PSOInitializer.PixelShader = ViewElementPS;
+                PSOInitializer.VertexShader = ViewElementVS->GetVertexShaderRHI();
+                PSOInitializer.PixelShader = ViewElementPS->GetPixelShaderRHI();
 
-                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Lines;
+                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_LineList;
+
+                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false>::CreateRHI().get();
+                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
+
+                PSOInitializer.VertexDeclaration = Declaration;
 
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
-                
-                RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false>::CreateRHI();
-                RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                RHIBlendStateRef BlendState = TStaticBlendState<>::CreateRHI();
                 RHIGetError();
                 RHICmdList->RHISetGraphicsPipelineState(PSO);
-                RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                RHICmdList->RHISetBlendState(BlendState.get());
                 RHIGetError();
+
+                RHICmdList->RHISetStreamSource(0, PositionBuffer.VertexBufferRHI.get(), 0);
+                RHICmdList->RHISetStreamSource(1, ColorBuffer.VertexBufferRHI.get(), 0);
 
                 RHICmdList->RHISetShaderUniformBuffer(
                     PSO, EPipelineStage::PS_Vertex, 
                     "FViewShaderParameters", 
                     ViewInfo.ViewUniformBuffer->GetRHI());
 
-                RHIGetError();
-
-                RHICmdList->RHISetVertexBuffer(PSO, &PositionInput);
-                RHIGetError();
-                RHICmdList->RHISetVertexBuffer(PSO, &ColorInput);
                 RHIGetError();
 
                 RHICmdList->RHIDrawArrays(0, Positions.size());

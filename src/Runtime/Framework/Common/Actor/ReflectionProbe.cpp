@@ -57,11 +57,11 @@ namespace nilou {
         DebugMat->UpdateCode(R"(
 #include "../include/BasePassCommon.glsl"
 #include "../include/functions.glsl"
-uniform samplerCube Cube;
+layout(binding=0) uniform samplerCube Cube;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {
-    return mytextureCube(Cube, vs_out.RelativeWorldPosition);
+    return mytextureCubeLod(Cube, normalize(vs_out.RelativeWorldPosition), 0);
 }
 vec3 MaterialGetEmissive(VS_Out vs_out)
 {
@@ -84,13 +84,14 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
     return vec3(0);
 }
         )");
-        DebugMat->SetTextureParameterValue("Cube", IrradianceTexture.get());
+        DebugMat->SetTextureParameterValue("Cube", PrefilteredTexture.get());
 
         // DebugSphere = CreateComponent<USphereComponent>(this); 
         // DebugSphere->SetMaterial(DebugMat.get());
-        // DebugSphere->SetRelativeScale3D(dvec3(1000));
+        // DebugSphere->SetRelativeScale3D(dvec3(70));
         // DebugSphere->AttachToComponent(GetRootComponent());
-        // SceneCaptureComponent->HideComponent(DebugSphere.get());
+        // DebugSphere->SetCastShadow(false);
+        // ReflectionProbeComponent->HideComponent(DebugSphere.get());
     }
 
 }

@@ -261,4 +261,33 @@ namespace nilou {
 			return RHI;
 		}
 	};
+
+	template<
+		ETextureFilters Mag_Filter=TF_Linear,
+		ETextureFilters Min_Filter=TF_Linear_Mipmap_Linear,
+		ETextureWrapModes Wrap_S=TW_Repeat, 
+		ETextureWrapModes Wrap_T=TW_Repeat, 
+		ETextureWrapModes Wrap_R=TW_Repeat
+		>
+	class TStaticSamplerState : TStaticStateRHI<
+		TStaticSamplerState<
+			Mag_Filter,
+			Min_Filter,
+			Wrap_S,
+			Wrap_T,
+			Wrap_R
+			>,
+		RHISamplerStateRef,
+		RHISamplerState*
+		>
+	{
+	public:
+		static RHISamplerState* CreateRHI()
+		{
+			static RHISamplerState* RHI = FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(
+				{Mag_Filter, Min_Filter, Wrap_S, Wrap_T, Wrap_R}
+			).get();
+			return RHI;
+		}
+	};
 }

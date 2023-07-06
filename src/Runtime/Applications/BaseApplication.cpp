@@ -1,6 +1,7 @@
 #include "BaseApplication.h"
 #include "DynamicRHI.h"
 #include "Common/Path.h"
+#include "Common/Crc.h"
 
 namespace nilou {
 
@@ -15,6 +16,7 @@ namespace nilou {
     {
         m_bQuit = false;
 
+        FCrc::Init();
         ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
         GameViewportClient = std::make_unique<UGameViewportClient>();
@@ -28,31 +30,37 @@ namespace nilou {
     void BaseApplication::Finalize()
     {
         ContentManager->Flush();
-        ContentManager->ReleaseRenderResources();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }
     }
 
+    void BaseApplication::Finalize_RenderThread()
+    {
+        GameViewportClient->World = nullptr;
+        GetScene()->Release_RenderThread();
+        ContentManager->ReleaseRenderResources();
+    }
 
     void BaseApplication::Tick(double DeltaTime)
     {
+        ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
+            [this](FDynamicRHI* RHICmdList) 
+            {
+                RHICmdList->RHIBeginFrame();
+            });
         GameViewportClient->Tick(DeltaTime);
         static FViewport Viewport;
         Viewport.Width = GetConfiguration().screenWidth;
         Viewport.Height = GetConfiguration().screenHeight;
         GameViewportClient->Draw(Viewport);
-        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
-            [this](FDynamicRHI*) 
-            {
-                this->Tick_RenderThread();
-            });
-
         std::mutex m;
         std::unique_lock<std::mutex> lock(m);
         std::condition_variable fence;
-        ENQUEUE_RENDER_COMMAND(BaseApplication_Fence)(
-            [&fence](FDynamicRHI*) 
+        ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
+            [this, &fence](FDynamicRHI* RHICmdList) 
             {
+                this->Tick_RenderThread();
+                RHICmdList->RHIEndFrame();
                 fence.notify_one();
             });
         fence.wait(lock);

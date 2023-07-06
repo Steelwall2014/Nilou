@@ -1,5 +1,5 @@
 #version 460
-
+#include "../include/Macros.glsl"
 #ifndef SM_Unlit
 #define SM_Unlit (0)
 #endif
@@ -18,27 +18,28 @@
 
 layout (location = 0) out vec4 FragColor;
 
-in vec2 uv;
+layout (location = 0) in vec2 uv;
 
-uniform sampler2D BaseColor;
-uniform sampler2D RelativeWorldSpacePosition;
-uniform sampler2D WorldSpaceNormal;
-uniform sampler2D MetallicRoughness;
-uniform sampler2D Emissive;
-uniform usampler2D ShadingModel;
+layout (binding=0) uniform sampler2D BaseColor;
+layout (binding=1) uniform sampler2D RelativeWorldSpacePosition;
+layout (binding=2) uniform sampler2D WorldSpaceNormal;
+layout (binding=3) uniform sampler2D MetallicRoughness;
+layout (binding=4) uniform sampler2D Emissive;
+layout (binding=5) uniform usampler2D ShadingModel;
 
 #include "../include/LightShaderParameters.glsl"
-layout (std140) uniform FLightUniformBlock {
+layout (std140, binding=6) uniform FLightUniformBlock {
     FLightShaderParameters light;
 };
 
 #include "../ShadingModels/DefaultLit.glsl"
 #include "../ShadingModels/OceanSurface.glsl"
 #include "../ShadingModels/SkyAtmosphere.glsl"
+#include "../include/functions.glsl"
 
 #include "../include/ShadowMapShaderParameters.glsl"
-uniform sampler2DArray ShadowMaps;
-layout (std140) uniform FShadowMappingBlock {
+layout (binding=7) uniform sampler2DArray ShadowMaps;
+layout (std140, binding=8) uniform FShadowMappingBlock {
     FShadowMappingParameters Frustums[FrustumCount];
 };
 
@@ -50,9 +51,13 @@ float CalculateVisibility(int FrustumIndex, vec3 RelativePosition, float bias)
         return 1;
 
     vec4 LightClipNDC = vec4(Frustums[FrustumIndex].WorldToClip * dvec4(RelativePosition+CameraPosition, 1));
-    LightClipNDC /= LightClipNDC.w;
-    LightClipNDC = LightClipNDC * 0.5 + 0.5;
+    LightClipNDC = ClipToNDC(LightClipNDC);
+#if RHI_API == RHI_VULKAN
+    // Sampling a render target, so we need to do the 1-uv.y
+    vec2 ShadowMapUV = vec2(LightClipNDC.x, 1-LightClipNDC.y);
+#elif RHI_API == RHI_OPENGL
     vec2 ShadowMapUV = LightClipNDC.xy;
+#endif
     float SceneLightSpaceDepth = LightClipNDC.z;
     vec2 Resolution = vec2(Frustums[FrustumIndex].Resolution);
     float result = 0;

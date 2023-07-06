@@ -14,7 +14,9 @@ layout(std430, binding=1) writeonly buffer Patch_Buffer{
 layout(std430, binding=2) readonly buffer LODParams_Buffer{
     WorldLODParam LODParams[];
 };
-layout(binding = 3) uniform atomic_uint patch_index;
+layout(std430, binding = 3) buffer AtomicIndexBuffer {
+    uint patch_index;
+};
 layout(r16f, binding=4) uniform image2D LODMap;
 
 layout(std140, binding = 5) uniform FCreatePatchBlock {
@@ -23,7 +25,8 @@ layout(std140, binding = 5) uniform FCreatePatchBlock {
 
 #include "../include/ViewShaderParameters.glsl"
 
-uniform sampler2D MinMaxMap;
+#include "../include/Macros.glsl"
+layout (binding=6) uniform sampler2D MinMaxMap;
 
 #include "../include/FrustumCull.glsl"
 
@@ -139,7 +142,7 @@ void main()
         temp_patch.DeltaLod_x_pos = 0;
     }
 
-    uint index = atomicCounterIncrement(patch_index);
+    uint index = atomicAdd(patch_index, 1);
 //    atomicCounterIncrement(patch_index);
     patches[index] = temp_patch;
 //    patches[index].offset_x = nodeLoc.x;

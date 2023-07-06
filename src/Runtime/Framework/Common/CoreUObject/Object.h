@@ -4,6 +4,7 @@
 #include "Templates/ObjectMacros.h"
 #include "SerializeHelper.h"
 #include "Archive.h"
+#include "Common/ContentManager.h"
 // #include "Object.generated.h"
 namespace nilou {
 

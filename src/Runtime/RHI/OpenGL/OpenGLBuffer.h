@@ -32,8 +32,8 @@ namespace nilou {
                 Target = GL_DRAW_INDIRECT_BUFFER;
             else if (EnumHasAnyFlags(InUsage, EBufferUsageFlags::DispatchIndirect))
                 Target = GL_DISPATCH_INDIRECT_BUFFER;
-            else if (EnumHasAnyFlags(InUsage, EBufferUsageFlags::AtomicCounter))
-                Target = GL_ATOMIC_COUNTER_BUFFER;
+            // else if (EnumHasAnyFlags(InUsage, EBufferUsageFlags::AtomicCounter))
+            //     Target = GL_ATOMIC_COUNTER_BUFFER;
             
             GLenum GLUsage = GL_STATIC_DRAW;
             if (EnumHasAnyFlags(InUsage, EBufferUsageFlags::Dynamic))

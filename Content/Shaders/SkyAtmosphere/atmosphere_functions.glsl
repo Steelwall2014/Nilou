@@ -582,7 +582,7 @@ vec3 GetSkyColor(
     return color;
 }
 
-layout (std140) uniform AtmosphereParametersBlock {
+layout (std140, binding=50) uniform AtmosphereParametersBlock {
 	AtmosphereParameters ATMOSPHERE;
 };
 

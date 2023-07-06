@@ -36,27 +36,32 @@ namespace nilou {
                     PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
                     FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
 
-                    FShaderInstance *LightPassVS = GetContentManager()->GetGlobalShader(PermutationParametersVS);
-                    FShaderInstance *LightPassPS = GetContentManager()->GetGlobalShader(PermutationParametersPS);
+                    FShaderInstance *LightPassVS = GetGlobalShader(PermutationParametersVS);
+                    FShaderInstance *LightPassPS = GetGlobalShader(PermutationParametersPS);
                     
-                    FRHIGraphicsPipelineInitializer PSOInitializer;
+                    FGraphicsPipelineStateInitializer PSOInitializer;
 
-                    PSOInitializer.VertexShader = LightPassVS;
-                    PSOInitializer.PixelShader = LightPassPS;
+                    PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
+                    PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
 
-                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_Triangle_Strip;
+                    PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
+
+                    PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
+                    PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                    PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI().get();
+
+                    PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
+
+                    PSOInitializer.BuildRenderTargetFormats(SceneTextures->LightPassFramebuffer.get());
 
                     FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
                     
-                    RHIDepthStencilStateRef DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-                    RHIRasterizerStateRef RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                    RHIBlendStateRef BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
                     RHIGetError();
                     RHICmdList->RHISetGraphicsPipelineState(PSO);
-                    RHICmdList->RHISetDepthStencilState(DepthStencilState.get());
-                    RHICmdList->RHISetRasterizerState(RasterizerState.get());
-                    RHICmdList->RHISetBlendState(BlendState.get());
                     RHIGetError();
+
+                    RHICmdList->RHISetStreamSource(0, PositionVertexBuffer.VertexBufferRHI.get(), 0);
+                    RHICmdList->RHISetStreamSource(1, UVVertexBuffer.VertexBufferRHI.get(), 0);
 
                     auto &Light = Lights[LightIndex];
                     RHICmdList->RHISetShaderSampler(
@@ -82,7 +87,7 @@ namespace nilou {
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadingModel", 
-                        FRHISampler(SceneTextures->ShadingModel, RHITextureParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest)));
+                        FRHISampler(SceneTextures->ShadingModel, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI()));
 
                     if (Scene->SkyAtmosphere)
                     {
@@ -117,10 +122,6 @@ namespace nilou {
                         ViewInfo.ViewUniformBuffer->GetRHI());
                     RHIGetError();
 
-                    RHICmdList->RHISetVertexBuffer(PSO, &PositionVertexInput);
-                    RHIGetError();
-                    RHICmdList->RHISetVertexBuffer(PSO, &UVVertexInput);
-                    RHIGetError();
                     RHICmdList->RHISetShaderUniformBuffer(
                         PSO, EPipelineStage::PS_Pixel, 
                         "FLightUniformBlock", 
@@ -134,7 +135,7 @@ namespace nilou {
                     RHICmdList->RHISetShaderSampler(
                         PSO, EPipelineStage::PS_Pixel, 
                         "ShadowMaps", 
-                        FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, shadowMapSamplerParams));
+                        FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI()));
 
                     RHICmdList->RHIDrawArrays(0, 4);
                 }

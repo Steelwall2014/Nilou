@@ -11,7 +11,7 @@
 namespace nilou {
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-        SHADER_PARAMETER_STRUCT_ARRAY(dvec4, 6, FrustumPlanes)
+        SHADER_PARAMETER_ARRAY(dvec4, 6, FrustumPlanes)
         SHADER_PARAMETER(mat4, RelWorldToView)
         SHADER_PARAMETER(mat4, ViewToClip)
         SHADER_PARAMETER(mat4, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView

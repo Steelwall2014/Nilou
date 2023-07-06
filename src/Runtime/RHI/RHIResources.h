@@ -11,7 +11,11 @@
 #include "Platform.h"
 #include "RHIDefinitions.h"
 #include "ShaderParameter.h"
+#include "RHI.h"
 
+namespace glslang {
+class TShader;
+}
 
 namespace nilou {
 
@@ -56,6 +60,7 @@ namespace nilou {
 	{
 	public:
 		RHIShader(ERHIResourceType InResourceType) : RHIResource(InResourceType) {}
+		glslang::TShader* ShaderGlsl = nullptr;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -86,7 +91,7 @@ namespace nilou {
 	{
 	public:
 		RHIRasterizerState() :RHIResource(ERHIResourceType::RRT_RasterizerState) { }
-		virtual bool Equals(RHIRasterizerState *) { return false; }
+		FRasterizerStateInitializer Initializer;
 	};
 	using RHIRasterizerStateRef = std::shared_ptr<RHIRasterizerState>;
 
@@ -94,7 +99,7 @@ namespace nilou {
 	{
 	public:
 		RHIDepthStencilState() :RHIResource(ERHIResourceType::RRT_DepthStencilState) { }
-		virtual bool Equals(RHIDepthStencilState *) { return false; }
+		FDepthStencilStateInitializer Initializer;
 	};
 	using RHIDepthStencilStateRef = std::shared_ptr<RHIDepthStencilState>;
 
@@ -102,7 +107,7 @@ namespace nilou {
 	{
 	public:
 		RHIBlendState() :RHIResource(ERHIResourceType::RRT_BlendState) { }
-		virtual bool Equals(RHIBlendState *) { return false; }
+		FBlendStateInitializer Initializer;
 	};
 	using RHIBlendStateRef = std::shared_ptr<RHIBlendState>;
 
@@ -164,24 +169,25 @@ namespace nilou {
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual uvec3 GetSizeXYZ() { return uvec3(0, 0, 0); }
-		inline uint32 GetNumMips()
+		virtual uvec3 GetSizeXYZ() const { return uvec3(0, 0, 0); }
+		uint32 GetNumMips() const
 		{
 			return NumMips;
 		}
-		inline EPixelFormat GetFormat()
+		EPixelFormat GetFormat() const
 		{
 			return Format;
 		}
-		inline std::string GetName()
+		std::string GetName() const
 		{
 			return TextureName;
 		}
-		inline std::string SetName(const std::string &InTextureName)
+		std::string SetName(const std::string &InTextureName)
 		{
 			TextureName = InTextureName;
 		}
-		inline ETextureType GetTextureType() { return TextureType; };
+		ETextureType GetTextureType() const { return TextureType; };
+		uint32 GetNumLayers() const { return TextureType == TT_Texture2DArray || TextureType == TT_TextureCube ? GetSizeXYZ().z : 1; }
 	protected:
 		uint32 NumMips;
 		EPixelFormat Format;
@@ -200,9 +206,9 @@ namespace nilou {
 		, SizeY(InSizeY)
 		{ TextureType = ETextureType::TT_Texture2D; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, 1); }
-		inline uint32 GetSizeX() { return SizeX; }
-		inline uint32 GetSizeY() { return SizeY; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, 1); }
+		uint32 GetSizeX() const { return SizeX; }
+		uint32 GetSizeY() const { return SizeY; }
 
 	protected:
 		uint32 SizeX;
@@ -218,8 +224,8 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture2DArray; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
-		inline uint32 GetSizeZ() { return SizeZ; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
+		uint32 GetSizeZ() const { return SizeZ; }
 
 	private:
 		uint32 SizeZ;
@@ -236,10 +242,10 @@ namespace nilou {
 		, SizeZ(InSizeZ)
 		{ TextureType = ETextureType::TT_Texture3D; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(SizeX, SizeY, SizeZ); }
-		inline uint32 GetSizeX() { return SizeX; }
-		inline uint32 GetSizeY() { return SizeY; }
-		inline uint32 GetSizeZ() { return SizeZ; }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
+		uint32 GetSizeX() const { return SizeX; }
+		uint32 GetSizeY() const { return SizeY; }
+		uint32 GetSizeZ() const { return SizeZ; }
 
 	protected:
 		uint32 SizeX;
@@ -257,7 +263,7 @@ namespace nilou {
 		, Size(InSize)
 		{ TextureType = ETextureType::TT_TextureCube; }
 
-		inline virtual uvec3 GetSizeXYZ() { return uvec3(Size, Size, 1); }
+		virtual uvec3 GetSizeXYZ() const override { return uvec3(Size, Size, 6); }
 
 	protected:
 		uint32 Size;
@@ -268,61 +274,53 @@ namespace nilou {
 	{
 	public:
 		RHIFramebuffer() : RHIResource(ERHIResourceType::RRT_Framebuffer) { }
-		virtual void AddAttachment(EFramebufferAttachment attachment, RHITexture2DRef texture) = 0;
 		virtual bool Check() = 0;
 		virtual ~RHIFramebuffer() { }
-		virtual bool HasColorAttachment() = 0;
-		virtual bool HasDepthAttachment() = 0;
-		std::map<EFramebufferAttachment, RHITextureRef> Attachments;
+		std::map<EFramebufferAttachment, RHITexture2DRef> Attachments;
 	};
 	using RHIFramebufferRef = std::shared_ptr<RHIFramebuffer>;
 
-    class FRHIVertexDeclaration : public RHIResource
-    {
-    public:
-        FRHIVertexDeclaration() : RHIResource(ERHIResourceType::RRT_VertexDeclaration) {}
-    };
+	class FRHIVertexDeclaration : public RHIResource
+	{
+	public:
+		FRHIVertexDeclaration() : RHIResource(ERHIResourceType::RRT_VertexDeclaration) { }
+	};
 	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
 
-	class FRHIGraphicsPipelineInitializer
+	class FGraphicsPipelineStateInitializer
 	{
 	public: 
-		FRHIGraphicsPipelineInitializer()
+		FGraphicsPipelineStateInitializer()
 			: VertexShader(nullptr)
 			, PixelShader(nullptr)
 			, ComputeShader(nullptr)
-			, PrimitiveMode(EPrimitiveMode::PM_Triangles)
+			, DepthStencilState(nullptr)
+			, RasterizerState(nullptr)
+			, BlendState(nullptr)
+			, VertexDeclaration(nullptr)
+			, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
 		{ }
 
-		class FShaderInstance *VertexShader;
-		class FShaderInstance *PixelShader;
-		class FShaderInstance *ComputeShader;
+		RHIVertexShader *VertexShader;
+		RHIPixelShader *PixelShader;
+		RHIComputeShader *ComputeShader;
 
 		EPrimitiveMode PrimitiveMode;
 
-		bool operator==(const FRHIGraphicsPipelineInitializer &Other) const
-		{
-			return 	VertexShader == Other.VertexShader &&
-					PixelShader == Other.PixelShader &&
-					PrimitiveMode == Other.PrimitiveMode;
-		}
-		
+        RHIDepthStencilState* DepthStencilState;
+        RHIRasterizerState* RasterizerState;
+        RHIBlendState* BlendState;
 
-		bool operator<(const FRHIGraphicsPipelineInitializer &Other) const
-		{
-			return this->tuplize() < Other.tuplize();
-			
-		}
+		FRHIVertexDeclaration* VertexDeclaration;
 
-	private:
-		std::tuple<
-			FShaderInstance *const &, 
-			FShaderInstance *const &, 
-			FShaderInstance *const &, 
-			const EPrimitiveMode&> tuplize() const
-		{
-			return std::tie(VertexShader, PixelShader, ComputeShader, PrimitiveMode);
-		}
+		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_UNKNOWN };
+		uint32 NumRenderTargetsEnabled = 0;
+
+		EPixelFormat DepthStencilTargetFormat = PF_UNKNOWN;
+
+		bool operator==(const FGraphicsPipelineStateInitializer &Other) const;
+
+		void BuildRenderTargetFormats(RHIFramebuffer* Framebuffer);
 	};
 
 	class FRHIDescriptorSetLayoutBinding
@@ -340,63 +338,55 @@ namespace nilou {
 		std::map<std::string, FRHIDescriptorSetLayoutBinding> Bindings;
 	};
 
-	class FRHIPipelineLayout
+	class FRHIPipelineLayout : public RHIResource
 	{
 	public:
+	 	FRHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
 		FRHIDescriptorSet DescriptorSets[EPipelineStage::PipelineStageNum];
 	};
+	using FRHIPipelineLayoutRef = std::shared_ptr<FRHIPipelineLayout>;
 
 	class FRHIGraphicsPipelineState : public RHIResource
 	{
 	public: 
-		FRHIGraphicsPipelineState() : RHIResource(RRT_GraphicsPipelineState) {}
+		FRHIGraphicsPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
+			: RHIResource(RRT_GraphicsPipelineState)
+			, Initializer(InInitializer) {}
 
-		FRHIGraphicsPipelineInitializer Initializer;
+		FGraphicsPipelineStateInitializer Initializer;
 
-		FRHIPipelineLayout PipelineLayout;
+		FRHIPipelineLayoutRef PipelineLayout;
 
 		int GetBaseIndexByName(EPipelineStage PipelineStage, const std::string &Name);
 	};
 	using FRHIGraphicsPipelineStateRef = std::shared_ptr<FRHIGraphicsPipelineState>;
 
-	class FRHISampler : public RHIResource
+	struct RHISamplerState : public RHIResource
+	{
+		RHISamplerState() : RHIResource(ERHIResourceType::RRT_SamplerState) {}
+		ETextureFilters Mag_Filter=TF_Linear;
+		ETextureFilters Min_Filter=TF_Linear_Mipmap_Linear;
+		ETextureWrapModes Wrap_S=TW_Repeat; 
+		ETextureWrapModes Wrap_T=TW_Repeat; 
+		ETextureWrapModes Wrap_R=TW_Repeat;
+	};
+	using RHISamplerStateRef = std::shared_ptr<RHISamplerState>;
+
+	class FRHISampler
 	{
 	public:
-		FRHISampler() 
-			: RHIResource(ERHIResourceType::RRT_SamplerState) 
-			, Texture(nullptr)
-		{}
-		FRHISampler(RHITextureRef Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
-			: RHIResource(ERHIResourceType::RRT_SamplerState)
-			, Params(Params)
-			, Texture(Texture.get()) 
-		{}
-		FRHISampler(RHITexture *Texture, const RHITextureParams &Params=RHITextureParams::DefaultParams) 
-			: RHIResource(ERHIResourceType::RRT_SamplerState)
-			, Params(Params)
+		FRHISampler();
+		FRHISampler(RHITexture* Texture);
+		FRHISampler(RHITexture* Texture, RHISamplerState* InSamplerState) 
+			: SamplerState(InSamplerState)
 			, Texture(Texture) 
 		{}
-		RHITextureParams Params;
+		FRHISampler(RHITextureRef Texture) : FRHISampler(Texture.get()) {}
+		FRHISampler(RHITextureRef Texture, RHISamplerState* InSamplerState) : FRHISampler(Texture.get(), InSamplerState) {}
+		RHISamplerState* SamplerState;
 		RHITexture* Texture;
 	};
 	using FRHISamplerRef = std::shared_ptr<FRHISampler>;
-
-	class FRHIVertexInput
-    {
-    public:
-        RHIBuffer *VertexBuffer;
-		uint8 Location;
-        uint8 Offset;
-        uint8 Stride;
-        EVertexElementType Type;
-
-        FRHIVertexInput() 
-            : VertexBuffer(nullptr)
-            , Offset(0)
-            , Stride(0)
-            , Type(EVertexElementType::VET_None)
-        { }
-    };
 
 	class FRHIRenderPassInfo
 	{
@@ -408,7 +398,7 @@ namespace nilou {
 		bool bClearDepthBuffer;
 		float ClearDepth;
 		bool bClearStencilBuffer;
-		int ClearStencil;
+		uint32 ClearStencil;
 		FRHIRenderPassInfo(
 			RHIFramebuffer *InFramebuffer, 
 			ivec2 InViewport,
@@ -417,7 +407,7 @@ namespace nilou {
 			bool bInClearStencilBuffer=false, 
 			vec4 InClearColor=vec4(0.f, 0.f, 0.f, 1.0f), 
 			float InClearDepth=1.0f,
-			int InClearStencil=0)
+			uint32 InClearStencil=0)
 			: Framebuffer(InFramebuffer)
 			, Viewport(InViewport)
 			, bClearColorBuffer(bInClearColorBuffer)
@@ -458,4 +448,14 @@ namespace nilou {
         uint32 	num_groups_y;
         uint32 	num_groups_z;
     };
+}
+
+namespace std {
+
+template<>
+struct hash<nilou::FGraphicsPipelineStateInitializer>
+{
+	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept;
+};
+
 }

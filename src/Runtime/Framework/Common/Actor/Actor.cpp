@@ -193,7 +193,7 @@ namespace nilou {
 	void AActor::RegisterAllComponents()
     {
         UWorld* const World = GetWorld();
-        check(World);
+        Ncheck(World);
 
         if (RootComponent != nullptr && !RootComponent->IsRegistered())
         {

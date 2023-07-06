@@ -1,4 +1,8 @@
 #include <cstdint>
+// Put it here to always include Ncheck. (Platform.h is included by almost every file)
+// Ncheck is IMPORTANT! Use it frequently!
+// For example, bounds checking
+#include "Common/Log.h" 
 
 typedef std::int8_t int8;
 typedef std::int16_t int16;

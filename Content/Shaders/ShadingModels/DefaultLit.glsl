@@ -1,4 +1,4 @@
-//#version 460
+#version 460
 #ifndef DEFAULT_LIT_H
 #define DEFAULT_LIT_H
 

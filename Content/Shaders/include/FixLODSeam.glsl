@@ -1,6 +1,6 @@
 bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
 {
-	uvec2 vertex_index = uvec2(gl_VertexID / PatchGridSideNum, gl_VertexID % PatchGridSideNum);
+	uvec2 vertex_index = uvec2(gl_VertexIndex / PatchGridSideNum, gl_VertexIndex % PatchGridSideNum);
 	bool on_edge = false;
 	if (vertex_index.x == 0 || vertex_index.x == PatchGridSideNum-1 ||
 		vertex_index.y == 0 || vertex_index.y == PatchGridSideNum-1)

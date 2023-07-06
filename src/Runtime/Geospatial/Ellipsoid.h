@@ -1,6 +1,5 @@
 #pragma once
 #include <optional>
-#include <glm/glm.hpp>
 
 #include "Cartographic.h"
 

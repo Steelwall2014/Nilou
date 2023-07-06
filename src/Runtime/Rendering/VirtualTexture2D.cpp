@@ -19,7 +19,7 @@ namespace nilou {
         FTextureResource::InitRHI();
         TextureRHI = FDynamicRHI::GetDynamicRHI()->RHICreateSparseTexture2D(
             Name, Image->GetPixelFormat(), 
-            NumMips, Image->GetWidth(), Image->GetHeight());
+            NumMips, Image->GetWidth(), Image->GetHeight(), TexCreate_Virtual);
         SamplerRHI.Texture = TextureRHI.get();
     }
 
@@ -181,7 +181,7 @@ namespace nilou {
             });
     }
 
-    void UVirtualTexture::PostDeserialize()
+    void UVirtualTexture::PostDeserialize(FArchive& Ar)
     {
         //StreamingPath = FPath::ContentDir().generic_string() + SerializationPath.generic_string();
         //StreamingBufferOffset = Ar.FileLength - Ar.BinLength;

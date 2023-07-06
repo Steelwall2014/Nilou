@@ -10,6 +10,7 @@
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
 #include "Common/Path.h"
+#include "PipelineStateCache.h"
 
 
 namespace nilou {
@@ -52,18 +53,8 @@ namespace nilou {
                 TexCoords[i].BindToVertexFactoryData(Data.TexCoordComponent[i]);
             Colors.BindToVertexFactoryData(Data.ColorComponent);
             VertexFactory->SetData(Data);
+            VertexFactory->InitVertexFactory();
         }
-    }
-
-    FRHIVertexInput AccessStreamComponent(const FVertexStreamComponent &Component, uint8 Location)
-    {
-        FRHIVertexInput VertexInput;
-        VertexInput.VertexBuffer = Component.VertexBuffer->VertexBufferRHI.get();
-        VertexInput.Location = Location;
-        VertexInput.Offset = Component.Offset;
-        VertexInput.Stride = Component.Stride;
-        VertexInput.Type = Component.Type;
-        return VertexInput;
     }
 
     void FStaticVertexFactory::SetData(const FDataType &InData)
@@ -71,33 +62,73 @@ namespace nilou {
         Data = InData;
     }
 
-    std::vector<FRHIVertexInput> FStaticVertexFactory::GetVertexInputList() const
+    void FStaticVertexFactory::InitVertexFactory()
     {
-        std::vector<FRHIVertexInput> OutVertexInputs;
+        Elements.clear();
         if (Data.PositionComponent.VertexBuffer != nullptr)
         {
-            OutVertexInputs.push_back(AccessStreamComponent(Data.PositionComponent, 0));
+            Elements.push_back(AccessStreamComponent(Data.PositionComponent, 0, Streams));
         }
         if (Data.NormalComponent.VertexBuffer != nullptr)
         {
-            OutVertexInputs.push_back(AccessStreamComponent(Data.NormalComponent, 1));
+            Elements.push_back(AccessStreamComponent(Data.NormalComponent, 1, Streams));
         }
         if (Data.TangentComponent.VertexBuffer != nullptr)
         {
-            OutVertexInputs.push_back(AccessStreamComponent(Data.TangentComponent, 2));
+            Elements.push_back(AccessStreamComponent(Data.TangentComponent, 2, Streams));
         }
         if (Data.ColorComponent.VertexBuffer != nullptr)
         {
-            OutVertexInputs.push_back(AccessStreamComponent(Data.ColorComponent, 3));
+            Elements.push_back(AccessStreamComponent(Data.ColorComponent, 3, Streams));
         }
         for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
         {
             if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
             {
-                OutVertexInputs.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i));
+                Elements.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams));
             }
         }
-        return OutVertexInputs;
+        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
+            [this](FDynamicRHI* RHICmdList) 
+            {
+                Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration(Elements);
+            });
+    }
+
+    // FRHIVertexInputList* FStaticVertexFactory::GetVertexInputList() const
+    // {
+    //     OutVertexInputs.clear();
+    //     if (Data.PositionComponent.VertexBuffer != nullptr)
+    //     {
+    //         OutVertexInputs.push_back(AccessStreamComponent(Data.PositionComponent, 0));
+    //     }
+    //     if (Data.NormalComponent.VertexBuffer != nullptr)
+    //     {
+    //         OutVertexInputs.push_back(AccessStreamComponent(Data.NormalComponent, 1));
+    //     }
+    //     if (Data.TangentComponent.VertexBuffer != nullptr)
+    //     {
+    //         OutVertexInputs.push_back(AccessStreamComponent(Data.TangentComponent, 2));
+    //     }
+    //     if (Data.ColorComponent.VertexBuffer != nullptr)
+    //     {
+    //         OutVertexInputs.push_back(AccessStreamComponent(Data.ColorComponent, 3));
+    //     }
+    //     for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+    //     {
+    //         if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
+    //         {
+    //             OutVertexInputs.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i));
+    //         }
+    //     }
+    //     return &OutVertexInputs;
+    // }
+
+    int32 FStaticVertexFactory::GetPermutationId() const
+    {
+        FPermutationDomain Domain;
+        Domain.Set<FDimensionEnableColorComponent>(Data.ColorComponent.VertexBuffer != nullptr);
+        return Domain.ToDimensionValueId();
     }
 
     bool FStaticVertexFactory::ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters)
@@ -107,6 +138,8 @@ namespace nilou {
 
     void FStaticVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
     { 
+        FPermutationDomain Domain(Parameters.PermutationId);
+        Domain.ModifyCompilationEnvironment(OutEnvironment);
     }
 
     IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
@@ -133,6 +166,7 @@ namespace nilou {
             }
             if (Section->IndexBuffer.GetIndiceData() != nullptr)
                 BeginInitResource(&Section->IndexBuffer);
+            Section->VertexFactory.InitVertexFactory();
         }
         bIsInitialized = true;
     }
@@ -191,7 +225,7 @@ namespace nilou {
         }
     }
 
-    void UStaticMesh::PostDeserialize()
+    void UStaticMesh::PostDeserialize(FArchive& Ar)
     {
         for (auto &lod_resource : LODResourcesData)
         {
@@ -230,8 +264,7 @@ namespace nilou {
                 LODResouce->Sections.push_back(Section);
             }
             RenderData->LODResources.push_back(LODResouce);
-        }   
-        LODResourcesData.clear();   
+        }    
         RenderData->InitResources();  
     }
 

@@ -1,8 +1,9 @@
 #version 460
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
     
-uniform sampler2D TransmittanceLUT;
-layout (rgba32f, binding=0) uniform image2D IrradianceLUT;
+#include "../include/Macros.glsl"
+layout (binding=0) uniform sampler2D TransmittanceLUT;
+layout (rgba32f, binding=1) uniform image2D IrradianceLUT;
 
 #include "atmosphere_functions.glsl"
 

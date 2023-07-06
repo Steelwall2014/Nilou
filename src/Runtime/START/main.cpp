@@ -6,10 +6,29 @@
 
 using namespace nilou;
 namespace nilou {
+
+GfxConfiguration config(EPixelFormat::PF_B8G8R8A8, EPixelFormat::PF_D32FS8, 0, 1600, 900, L"Nilou");
+
+BaseApplication *GetAppication()
+{
+    static BaseApplication *g_pApp;
+    if (g_pApp == nullptr)
+    {
+        g_pApp = new GLFWApplication(config);
+    }
+    return g_pApp;
 }
 
-int main()
+}
+
+int main(int argc, char* argv[])
 {
+    const char* DefaultRHI = "opengl";
+    if (argc >= 3 && !strcmp(argv[1], "-rhi"))
+        DefaultRHI = argv[2];
+    assert(!strcmp(DefaultRHI, "opengl") || !strcmp(DefaultRHI, "vulkan"));
+    config.defaultRHI = DefaultRHI;
+    
     int ret;
 
     if ((ret = GetAppication()->Initialize()) != true) {

@@ -32,6 +32,9 @@
             "D:/Nilou/src/Runtime/Cesium3DTiles",
             "D:/Nilou/Assets/Shaders"
         ],
+        "Nilou": [
+            "-rhi", "vulkan"
+        ]
     },
     "cmake.configureOnOpen": false
 }

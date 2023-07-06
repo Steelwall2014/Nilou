@@ -1,7 +1,7 @@
 #ifndef OCEAN_FFT_PARAMETERS_H
 #define OCEAN_FFT_PARAMETERS_H
 
-layout (std140) uniform FOceanFastFourierTransformParameters {
+layout (std140, binding=49) uniform FOceanFastFourierTransformParameters {
 	vec2 WindDirection;
 	uint N;
 	float WindSpeed;

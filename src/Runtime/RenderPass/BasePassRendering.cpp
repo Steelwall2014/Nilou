@@ -18,36 +18,37 @@ namespace nilou {
         FMaterialRenderProxy *Material,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
-        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
-        const FRasterizerStateInitializer &RasterizerStateInitializer,
-        const FBlendStateInitializer &BlendStateInitializer,
+        RHIDepthStencilState* DepthStencilState,
+        RHIRasterizerState* RasterizerState,
+        RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings, 
-        std::vector<FRHIVertexInput> &VertexInputs,
+        FRHIVertexDeclaration* VertexDeclaration,
         const FMeshBatchElement &Element,
+        RHIFramebuffer* Framebuffer,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
 
         FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader;
+        Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
         FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
-        Initializer.PixelShader = PixelShader;
+        Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
-        auto BasePassDepthStencilState = DepthStencilStateInitializer;
-        BasePassDepthStencilState.DepthTest = ECompareFunction::CF_Equal;
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(BasePassDepthStencilState);
-        RHIGetError();
+        Initializer.DepthStencilState = DepthStencilState;
 
-        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
-        RHIGetError();
+        Initializer.RasterizerState = RasterizerState;
 
-        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
-        RHIGetError();
+        Initializer.BlendState = BlendState;
+
+        Initializer.VertexDeclaration = VertexDeclaration;
+        
+        Initializer.BuildRenderTargetFormats(Framebuffer);
 
         {
+            OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
             RHIGetError();
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
@@ -56,7 +57,7 @@ namespace nilou {
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
-                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PipelineStage];
+                FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout->DescriptorSets[PipelineStage];
                 
                 for (auto [Name,Binding] : DescriptorSets.Bindings)
                 {
@@ -83,7 +84,6 @@ namespace nilou {
                 }
             }
 
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
             if (Element.NumVertices == 0)
             {
                 OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
@@ -117,7 +117,9 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
                 RHIGetError();
                 
-                FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
+                FBasePassPS::FPermutationDomain Domain;
+                Domain.Set<FBasePassPS::FDimensionEnableReflectionProbe>((bool)Mesh.bEnableReflectionProbe);
+                FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, Domain.ToDimensionValueId());
                 RHIGetError();
 
 
@@ -126,16 +128,8 @@ namespace nilou {
                 MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
                 MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
                 #endif
-                std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
-                auto BlendState = Mesh.MaterialRenderProxy->BlendState;
 
-                // Emissive channel is also used as indirect light channel
-                // So we need to set its blend state.
-                BlendState.bUseIndependentRenderTargetBlendStates = true;
-                BlendState.RenderTargets[4].ColorWriteMask = CW_RGB;
-                BlendState.RenderTargets[4].ColorBlendOp = EBlendOperation::BO_Add;
-                BlendState.RenderTargets[4].ColorDestBlend = EBlendFactor::BF_One;
-                BlendState.RenderTargets[4].ColorSrcBlend = EBlendFactor::BF_One;
+                FSceneTexturesDeffered* SceneTexturesDeffered = static_cast<FSceneTexturesDeffered*>(SceneTextures);
 
                 BuildMeshDrawCommand(
                     RHICmdList,
@@ -145,12 +139,13 @@ namespace nilou {
                     Mesh.MaterialRenderProxy,
                     PermutationParametersVS,
                     PermutationParametersPS,
-                    Mesh.MaterialRenderProxy->DepthStencilState,
-                    Mesh.MaterialRenderProxy->RasterizerState,
-                    BlendState,
+                    TStaticDepthStencilState<true, CF_Equal>::CreateRHI().get(),
+                    Mesh.MaterialRenderProxy->RasterizerState.get(),
+                    Mesh.MaterialRenderProxy->BlendState.get(),
                     Mesh.Element.Bindings,
-                    VertexInputs,
+                    Mesh.Element.VertexFactory->GetVertexDeclaration(),
                     Mesh.Element,
+                    SceneTexturesDeffered->GeometryPassFramebuffer.get(),
                     MeshDrawCommand);
 
                 DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
@@ -172,6 +167,8 @@ namespace nilou {
             FParallelMeshDrawCommands &ViewCommands = Views[ViewIndex].MeshDrawCommands;
             
             ViewCommands.DispatchDraw(RHICmdList);
+
+            RHICmdList->RHIEndRenderPass();
         }
     
 

@@ -77,7 +77,7 @@ namespace nilou {
     {
         // UTexture2D* lut = (UTexture2D*)GetContentManager()->GetTextureByPath("/Textures/my_lut.nasset");
         // FShaderPermutationParameters PermutationParameters(&FBrdfLUTShader::StaticType, 0);
-        // FShaderInstance *BrdfLUTShader = GetContentManager()->GetGlobalShader(PermutationParameters);
+        // FShaderInstance *BrdfLUTShader = GetGlobalShader(PermutationParameters);
         // FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(BrdfLUTShader);
 
         // RHICmdList->RHISetShaderImage(
@@ -93,8 +93,8 @@ namespace nilou {
             IrradianceShaderUniformBuffer->UpdateUniformBuffer();
 
             FShaderPermutationParameters PermutationParameters(&FIrradianceEnvTextureShader::StaticType, 0);
-            FShaderInstance *IrradianceShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(IrradianceShader);
+            FShaderInstance *IrradianceShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(IrradianceShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute,
@@ -113,17 +113,17 @@ namespace nilou {
         
         {
             FShaderPermutationParameters PermutationParameters(&FPrefilteredEnvTextureShader::StaticType, 0);
-            FShaderInstance *PrefilterShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader);
-
-            RHICmdList->RHISetShaderSampler(
-                PSO, EPipelineStage::PS_Compute,
-                "EnvironmentTexture", *TextureTarget->GetResource()->GetSamplerRHI());
+            FShaderInstance *PrefilterShader = GetGlobalShader(PermutationParameters);
 
             int NumMips = PrefilteredTexture->NumMips;
             float delta_roughness = 1.0 / glm::max(NumMips-1, 1);
             for (int MipIndex = 0; MipIndex < NumMips; MipIndex++)
             {
+                FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
+
+                RHICmdList->RHISetShaderSampler(
+                    PSO, EPipelineStage::PS_Compute,
+                    "EnvironmentTexture", *TextureTarget->GetResource()->GetSamplerRHI());
                 PrefilterShaderUniformBuffer->Data.TextureSize = TextureTarget->GetSizeX() >> MipIndex;
                 PrefilterShaderUniformBuffer->Data.roughness = MipIndex * delta_roughness;
                 PrefilterShaderUniformBuffer->UpdateUniformBuffer();
@@ -146,6 +146,8 @@ namespace nilou {
             }
             
         }
+
+        SceneProxy->bHasData = true;
 
     }
 

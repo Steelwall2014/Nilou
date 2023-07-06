@@ -2,7 +2,7 @@
 
 #include "../include/ViewShaderParameters.glsl"
 
-out VS_Out vs_out;
+layout(location = 0) out VS_Out vs_out;
 void main()
 {
     FVertexFactoryIntermediates VFIntermediates = VertexFactoryIntermediates();

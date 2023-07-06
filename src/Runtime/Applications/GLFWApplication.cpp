@@ -1,3 +1,4 @@
+#define GLFW_INCLUDE_VULKAN
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -160,18 +161,63 @@ namespace nilou {
         return true;
     }
 
+    void GetChannelsBit(EPixelFormat Format, uint8& redBits, uint8& greenBits, uint8& blueBits, uint8& alphaBits)
+    {
+        switch (Format) 
+        {
+        case EPixelFormat::PF_R8G8B8A8: 
+        case EPixelFormat::PF_R8G8B8A8_sRGB:
+        case EPixelFormat::PF_B8G8R8A8:
+        case EPixelFormat::PF_B8G8R8A8_sRGB:
+            redBits = 8; 
+            greenBits = 8, 
+            blueBits = 8, 
+            alphaBits = 8; 
+            break;
+        default:
+            assert(false);  // Not supported swap chain format
+            break;
+        }
+    }
+
+    void GetDepthBit(EPixelFormat Format, uint8& depthBits)
+    {
+        switch (Format) 
+        {
+        case EPixelFormat::PF_D24S8:
+            depthBits = 24;
+            break;
+        case EPixelFormat::PF_D32F:
+        case EPixelFormat::PF_D32FS8:
+            depthBits = 32;
+            break;
+        default:
+            assert(false);  // Not supported swap chain format
+            break;
+        }
+    }
+
     bool GLFWApplication::Initialize_RenderThread()
     {
         int result;
         glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RED_BITS, m_Config.redBits);
-        glfwWindowHint(GLFW_GREEN_BITS, m_Config.greenBits);
-        glfwWindowHint(GLFW_BLUE_BITS, m_Config.blueBits);
-        glfwWindowHint(GLFW_ALPHA_BITS, m_Config.alphaBits);
-        glfwWindowHint(GLFW_DEPTH_BITS, m_Config.depthBits);
+        auto RHI_API = FDynamicRHI::GetDynamicRHI()->GetCurrentGraphicsAPI();
+        if (RHI_API == EGraphicsAPI::Vulkan) {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        }
+        else if (RHI_API == EGraphicsAPI::OpenGL) {
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        }
+        uint8 redBits, greenBits, blueBits, alphaBits, depthBits;
+        GetChannelsBit(m_Config.SwapChainFormat, redBits, greenBits, blueBits, alphaBits);
+        GetDepthBit(m_Config.DepthFormat, depthBits);
+        glfwWindowHint(GLFW_RED_BITS, redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, blueBits);
+        glfwWindowHint(GLFW_ALPHA_BITS, alphaBits);
+        glfwWindowHint(GLFW_DEPTH_BITS, depthBits);
 
 
         window = glfwCreateWindow(m_Config.screenWidth, m_Config.screenHeight, "Nilou", NULL, NULL);
@@ -191,13 +237,13 @@ namespace nilou {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
         // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO(); (void)io;
-        ImGui::StyleColorsDark();
+        // IMGUI_CHECKVERSION();
+        // ImGui::CreateContext();
+        // ImGuiIO &io = ImGui::GetIO(); (void)io;
+        // ImGui::StyleColorsDark();
 
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 460");
+        // ImGui_ImplGlfw_InitForOpenGL(window, true);
+        // ImGui_ImplOpenGL3_Init("#version 460");
 
         InputActionMapping EnableCursor_mapping("EnableCursor");
         EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
@@ -289,17 +335,17 @@ namespace nilou {
         glfwPollEvents();
         ProcessInput_RenderThread();
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGui::Begin("Nilou");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        // ImGui_ImplOpenGL3_NewFrame();
+        // ImGui_ImplGlfw_NewFrame();
+        // ImGui::NewFrame();
+        // ImGui::Begin("Nilou");
+        // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 
-        ImGui::End();
-        ImGui::Render();
+        // ImGui::End();
+        // ImGui::Render();
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
         m_bQuit = glfwWindowShouldClose(window);
 
@@ -308,6 +354,7 @@ namespace nilou {
 
     void GLFWApplication::Finalize_RenderThread()
     {
+        BaseApplication::Finalize_RenderThread();
         glfwTerminate();
     }
 
@@ -366,17 +413,6 @@ namespace nilou {
                 else
                     glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             });
-    }
-
-    BaseApplication *GetAppication()
-    {
-        static BaseApplication *g_pApp;
-        if (g_pApp == nullptr)
-        {
-            GfxConfiguration config(8, 8, 8, 8, 32, 0, 0, 1600, 900, L"test");
-            g_pApp = new GLFWApplication(config);
-        }
-        return g_pApp;
     }
 
 }

@@ -15,8 +15,7 @@ namespace nilou {
     void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
         FPermutationDomain Domain(Parameter.PermutationId);
-        int FrustumCount = Domain.Get<FDimensionFrustumCount>();
-        Environment.SetDefine("FrustumCount", FrustumCount);
+        Domain.ModifyCompilationEnvironment(Environment);
     }
 
     static void BuildMeshDrawCommand(
@@ -25,30 +24,34 @@ namespace nilou {
         FMaterialRenderProxy *Material,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
-        const FDepthStencilStateInitializer &DepthStencilStateInitializer,
-        const FRasterizerStateInitializer &RasterizerStateInitializer,
-        const FBlendStateInitializer &BlendStateInitializer,
+        RHIDepthStencilState* DepthStencilState,
+        RHIRasterizerState* RasterizerState,
+        RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings,
-        std::vector<FRHIVertexInput> &VertexInputs,
+        FRHIVertexDeclaration* VertexDeclaration,
         const FMeshBatchElement &Element,
+        RHIFramebuffer* Framebuffer,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
         
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
 
         FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader;
+        Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
-        FShaderInstance *PixelShader = GetContentManager()->GetGlobalShader(PermutationParametersPS);
-        Initializer.PixelShader = PixelShader;
+        FShaderInstance *PixelShader = GetGlobalShader(PermutationParametersPS);
+        Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
         OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
-        OutMeshDrawCommand.DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilStateInitializer);
-        OutMeshDrawCommand.RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerStateInitializer);
-        OutMeshDrawCommand.BlendState = RHICmdList->RHICreateBlendState(BlendStateInitializer);
+        Initializer.DepthStencilState = DepthStencilState;
+        Initializer.RasterizerState = RasterizerState;
+        Initializer.BlendState = BlendState;
+        Initializer.VertexDeclaration = VertexDeclaration;
+        Initializer.BuildRenderTargetFormats(Framebuffer);
 
         {
+            OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
             OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
@@ -56,7 +59,7 @@ namespace nilou {
        
             auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PS_Vertex]; // alias
             auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PS_Vertex]; // alias
-            FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout.DescriptorSets[PS_Vertex];
+            FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout->DescriptorSets[PS_Vertex];
             
             for (auto [Name,Binding] : DescriptorSets.Bindings)
             {
@@ -82,7 +85,6 @@ namespace nilou {
 
             }
 
-            OutMeshDrawCommand.ShaderBindings.VertexAttributeBindings = VertexInputs;
             if (Element.NumVertices == 0)
             {
                 OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
@@ -371,7 +373,7 @@ namespace nilou {
                         Sphere.Radius,
                         0.0, glm::abs(far-near));
 
-                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<CASCADED_SHADOWMAP_SPLIT_COUNT>();
+                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<FDirectionalShadowMappingBlock>();
                     UniformBuffer->Data.Frustums[SplitIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
                     UniformBuffer->Data.Frustums[SplitIndex].FrustumFar = SplitFar;
                     UniformBuffer->Data.Frustums[SplitIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
@@ -391,7 +393,6 @@ namespace nilou {
                         MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
                         MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
                         #endif
-                        std::vector<FRHIVertexInput> VertexInputs = Mesh.Element.VertexFactory->GetVertexInputList();
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
                             UniformBuffer->GetRHI());
@@ -405,12 +406,13 @@ namespace nilou {
                             Mesh.MaterialRenderProxy,
                             PermutationParametersVS,
                             PermutationParametersPS,
-                            Mesh.MaterialRenderProxy->DepthStencilState,
-                            Mesh.MaterialRenderProxy->RasterizerState,
-                            Mesh.MaterialRenderProxy->BlendState,
+                            Mesh.MaterialRenderProxy->DepthStencilState.get(),
+                            Mesh.MaterialRenderProxy->RasterizerState.get(),
+                            Mesh.MaterialRenderProxy->BlendState.get(),
                             InputBindings,
-                            VertexInputs,
+                            Mesh.Element.VertexFactory->GetVertexDeclaration(),
                             Mesh.Element,
+                            ShadowMapResources->ShadowMapTexture.GetFramebufferByIndex(SplitIndex),
                             MeshDrawCommand);
                         DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                     }

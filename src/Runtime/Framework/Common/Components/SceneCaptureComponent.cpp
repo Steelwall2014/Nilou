@@ -212,22 +212,45 @@ namespace nilou {
             ViewFamily.bEnableToneMapping = true;
         }
 
-        std::array<dvec3, 6> ForwardVectors = {
-            dvec3(1, 0, 0), 
-            dvec3(-1, 0, 0), 
-            dvec3(0, 0, 1), 
-            dvec3(0, 0, -1), 
-            dvec3(0, 1, 0), 
-            dvec3(0, -1, 0), 
-        };
-        std::array<dvec3, 6> UpVectors = {
-            dvec3(0, 0, -1), 
-            dvec3(0, 0, -1), 
-            dvec3(0, 1, 0), 
-            dvec3(0, -1, 0), 
-            dvec3(0, 0, -1), 
-            dvec3(0, 0, -1), 
-        };
+        std::array<dvec3, 6> ForwardVectors, UpVectors;
+        if (FDynamicRHI::StaticGetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+        {
+            ForwardVectors = {
+                dvec3(1, 0, 0), 
+                dvec3(-1, 0, 0), 
+                dvec3(0, 1, 0), 
+                dvec3(0, -1, 0), 
+                dvec3(0, 0, 1), 
+                dvec3(0, 0, -1), 
+            };
+            UpVectors = {
+                dvec3(0, 1, 0), 
+                dvec3(0, 1, 0), 
+                dvec3(0, 0, -1), 
+                dvec3(0, 0, 1), 
+                dvec3(0, 1, 0), 
+                dvec3(0, 1, 0), 
+            };
+        }
+        else 
+        {
+            ForwardVectors = {
+                dvec3(1, 0, 0), 
+                dvec3(-1, 0, 0), 
+                dvec3(0, 0, 1), 
+                dvec3(0, 0, -1), 
+                dvec3(0, 1, 0), 
+                dvec3(0, -1, 0), 
+            };
+            UpVectors = {
+                dvec3(0, 0, -1), 
+                dvec3(0, 0, -1), 
+                dvec3(0, 1, 0), 
+                dvec3(0, -1, 0), 
+                dvec3(0, 0, -1), 
+                dvec3(0, 0, -1), 
+            };
+        }
 
         std::vector<FSceneView> SceneViews;
         SceneViews.reserve(ViewUniformBuffers.size());

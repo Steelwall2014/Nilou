@@ -41,7 +41,6 @@ namespace nilou {
         FScene *Scene;
         UPrimitiveComponent *Primitive;
         FPrimitiveSceneProxy *SceneProxy;
-        FRHIRenderQueryRef OcclusionQuery;
         std::map<FReflectionProbeSceneInfo*, float> ReflectionProbeFactors;
         bool bNeedsUniformBufferUpdate = false;
     };
@@ -134,6 +133,8 @@ namespace nilou {
         {
             return EShadingPath::Deferred;
         }
+
+        void Release_RenderThread();
         
 
         std::set<FPrimitiveSceneInfo*> AddedPrimitiveSceneInfos;

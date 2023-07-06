@@ -3,6 +3,19 @@
 #include "Material.h"
 
 namespace nilou {
+    
+    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFastFourierTransformParameters)
+        SHADER_PARAMETER(vec2, WindDirection)
+        SHADER_PARAMETER(uint32, N)
+        SHADER_PARAMETER(float, WindSpeed)
+        SHADER_PARAMETER(float, Amplitude)
+        SHADER_PARAMETER(float, DisplacementTextureSize)
+        SHADER_PARAMETER(float, Time)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFFTButterflyBlock)
+        SHADER_PARAMETER(uint32, Ns)
+    END_UNIFORM_BUFFER_STRUCT()
 
     class NCLASS UFourierTransformOceanComponent : public UPrimitiveComponent
     {

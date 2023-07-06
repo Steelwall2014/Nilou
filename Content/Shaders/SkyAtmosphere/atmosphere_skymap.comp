@@ -3,15 +3,16 @@ layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 #include "atmosphere_functions.glsl"
 
-layout (std140) uniform SkyMapParameters {
+layout (std140, binding=0) uniform SkyMapParameters {
     vec3 SunLightDir;
     vec2 SkyMapSize;
 };
-uniform sampler2D TransmittanceLUT;
-uniform sampler3D SingleScatteringRayleighLUT;
-uniform sampler3D SingleScatteringMieLUT;
+#include "../include/Macros.glsl"
+layout (binding=1) uniform sampler2D TransmittanceLUT;
+layout (binding=2) uniform sampler3D SingleScatteringRayleighLUT;
+layout (binding=3) uniform sampler3D SingleScatteringMieLUT;
 
-layout (rgba32f, binding=0) uniform image2D SkyMap;
+layout (rgba32f, binding=4) uniform image2D SkyMap;
 
 
 

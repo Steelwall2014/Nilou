@@ -26,6 +26,8 @@ namespace nilou {
 
         void Tick(double DeltaTime);
 
+        void Release();
+
         FScene *Scene = nullptr;
 
         // Default reflection probe as a fallback

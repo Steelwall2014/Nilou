@@ -1,6 +1,6 @@
 #ifndef VIEWSHADERPARAMETERS_H
 #define VIEWSHADERPARAMETERS_H
-layout (std140) uniform FViewShaderParameters {
+layout (std140, binding=48) uniform FViewShaderParameters {
     dvec4 FrustumPlanes[6];
     mat4 RelWorldToView;
     mat4 ViewToClip;

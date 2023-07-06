@@ -36,19 +36,6 @@ namespace nilou {
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
     IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", EShaderFrequency::SF_Compute, Global);
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFastFourierTransformParameters)
-        SHADER_PARAMETER(vec2, WindDirection)
-        SHADER_PARAMETER(uint32, N)
-        SHADER_PARAMETER(float, WindSpeed)
-        SHADER_PARAMETER(float, Amplitude)
-        SHADER_PARAMETER(float, DisplacementTextureSize)
-        SHADER_PARAMETER(float, Time)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFFTButterflyBlock)
-        SHADER_PARAMETER(uint32, Ns)
-    END_UNIFORM_BUFFER_STRUCT()
-
     class FFourierTransformOceanVertexFactory : public FStaticVertexFactory
     {
         DECLARE_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory)
@@ -160,8 +147,8 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
-            FShaderInstance *DisplacementSpectrumShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementSpectrumShader);
+            FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementSpectrumShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
@@ -196,8 +183,8 @@ namespace nilou {
                 PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(false);
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
-            FShaderInstance *FFTShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(FFTShader);
+            FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(FFTShader->GetComputeShaderRHI());
 
             ButterflyBlock->Data.Ns = Ns;
             ButterflyBlock->UpdateUniformBuffer();
@@ -228,8 +215,8 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
-            FShaderInstance *DisplacementShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementShader);
+            FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
@@ -256,8 +243,8 @@ namespace nilou {
         {
             FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
             FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
-            FShaderInstance *NormalFoamShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(NormalFoamShader);
+            FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(NormalFoamShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
@@ -299,14 +286,14 @@ namespace nilou {
 
             N = glm::pow(2, FFTPow);
             group_num = N / 32;     // 这里的32是写死在glsl中的"local_size"
-            GaussianRandomRT = RHICmdList->RHICreateTexture2D("GaussianRandomRT", EPixelFormat::PF_R16G16F, 1, N, N);
-            HeightSpectrumRT = RHICmdList->RHICreateTexture2D("HeightSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
-            DisplaceXSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceXSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
-            DisplaceYSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceYSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N);
-            IntermediateRT = RHICmdList->RHICreateTexture2D("IntermediateRT", EPixelFormat::PF_R16G16F, 1, N, N);
-            DisplaceRT = RHICmdList->RHICreateTexture2D("DisplaceRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N);
-            NormalRT = RHICmdList->RHICreateTexture2D("NormalRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N);
-            FoamRT = RHICmdList->RHICreateTexture2D("FoamRT", EPixelFormat::PF_R16F, FFTPow, N, N);
+            GaussianRandomRT = RHICmdList->RHICreateTexture2D("GaussianRandomRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
+            HeightSpectrumRT = RHICmdList->RHICreateTexture2D("HeightSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
+            DisplaceXSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceXSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
+            DisplaceYSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceYSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
+            IntermediateRT = RHICmdList->RHICreateTexture2D("IntermediateRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
+            DisplaceRT = RHICmdList->RHICreateTexture2D("DisplaceRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, TexCreate_UAV);
+            NormalRT = RHICmdList->RHICreateTexture2D("NormalRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, TexCreate_UAV);
+            FoamRT = RHICmdList->RHICreateTexture2D("FoamRT", EPixelFormat::PF_R16F, FFTPow, N, N, TexCreate_UAV);
 
             DisplaceSampler = FRHISampler(DisplaceRT.get());
             NormalSampler = FRHISampler(NormalRT.get());
@@ -323,8 +310,8 @@ namespace nilou {
             ButterflyBlock->InitResource();
             
             FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
-            FShaderInstance *GaussionSpectrumShader = GetContentManager()->GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(GaussionSpectrumShader);
+            FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
+            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(GaussionSpectrumShader->GetComputeShaderRHI());
 
             RHICmdList->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 

@@ -4,8 +4,13 @@ layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 #include "VHM_MinMaxLODNum.glsl"
 #include "VHM_WorldLODParam.glsl"
 
-layout(binding = 0) uniform atomic_uint index_B;
-layout(binding = 1) uniform atomic_uint index_Final;
+layout(std430, binding=0) buffer AtomicIndexBlock1 {
+    uint index_B;
+};
+
+layout(std430, binding=1) buffer AtomicIndexBlock2 {
+    uint index_Final;
+};
 
 layout(std430, binding=2) readonly buffer NodeIDs_TempA_Buffer{
     uvec2 NodeIDs_TempA[];
@@ -23,19 +28,21 @@ layout(std430, binding=6) writeonly buffer NodeDescription_Buffer{
     uint NodeDevided[];
 };
 
-layout(std140) uniform FCreateNodeListBlock {
+layout(std140, binding=7) uniform FCreateNodeListBlock {
     uint MaxLOD;
     uint PassLOD;
     float ScreenSizeDenominator;
 };
 
-layout (std140) uniform FPrimitiveShaderParameters {
+layout (std140, binding=8) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
+	dmat4 ModelToLocal;
 };
 
 #include "../include/ViewShaderParameters.glsl"
 
-uniform sampler2D MinMaxMap;
+#include "../include/Macros.glsl"
+layout (binding=9) uniform sampler2D MinMaxMap;
 
 
 //float GetNodeSize(uint lod)
@@ -107,13 +114,13 @@ void main()
     uint index = fromNodeLoctoNodeDescriptionIndex(nodeLoc, PassLOD, LODParams[PassLOD]);
     if(PassLOD > 0 && !MeetScreenSize(nodeLoc, PassLOD)){
         //divide
-        uint i = atomicCounterIncrement(index_B);
+        uint i = atomicAdd(index_B, 1);
         NodeIDs_TempB[i] = nodeLoc * 2;
-        i = atomicCounterIncrement(index_B);
+        i = atomicAdd(index_B, 1);
         NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(1,0);
-        i = atomicCounterIncrement(index_B);
+        i = atomicAdd(index_B, 1);
         NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(0,1);
-        i = atomicCounterIncrement(index_B);
+        i = atomicAdd(index_B, 1);
         NodeIDs_TempB[i] = nodeLoc * 2 + uvec2(1,1);
         NodeDevided[index] = 1;
     }
@@ -138,7 +145,7 @@ void main()
         if (bFrustumCulled)
             return;
         
-        uint i = atomicCounterIncrement(index_Final);
+        uint i = atomicAdd(index_Final, 1);
         NodeIDs_Final[i].x = nodeLoc.x;
         NodeIDs_Final[i].y = nodeLoc.y;
         NodeIDs_Final[i].z = PassLOD;

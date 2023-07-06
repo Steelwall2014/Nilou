@@ -17,7 +17,7 @@ namespace nilou {
         FTextureRenderTargetResource::InitRHI();
         auto Texture2DRHI = RHICmdList->RHICreateTexture2D(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight());
+            Image->GetWidth(), Image->GetHeight(), TexCreate_RenderTargetable | TexCreate_UAV);
         TextureRHI = Texture2DRHI;
         for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
         {
@@ -27,8 +27,7 @@ namespace nilou {
         }
         if (NumMips > Image->GetNumMips())
             RHICmdList->RHIGenerateMipmap(Texture2DRHI);
-        RenderTargetFramebuffer = RHICmdList->RHICreateFramebuffer();
-        RenderTargetFramebuffer->AddAttachment(EFramebufferAttachment::FA_Color_Attachment0, Texture2DRHI);
+        RenderTargetFramebuffer = RHICmdList->RHICreateFramebuffer({{FA_Color_Attachment0, Texture2DRHI}});
         SamplerRHI.Texture = TextureRHI.get();
     }
 
@@ -53,7 +52,7 @@ namespace nilou {
         FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
         auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
             Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight());
+            Image->GetWidth(), Image->GetHeight(), TexCreate_RenderTargetable | TexCreate_UAV);
         TextureRHI = TextureCubeRHI;
         SamplerRHI.Texture = TextureRHI.get();
         
@@ -71,10 +70,7 @@ namespace nilou {
                 TextureRHI.get(), TextureRHI->GetFormat(), 
                 0, 1, i);
         
-            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer();
-            RenderTargetFramebuffers[i]->AddAttachment(
-                EFramebufferAttachment::FA_Color_Attachment0, 
-                RenderTargetTextureViews[i]);
+            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer({{FA_Color_Attachment0, RenderTargetTextureViews[i]}});
         }
 
         RHIGetError();

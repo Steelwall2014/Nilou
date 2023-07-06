@@ -2,12 +2,14 @@
 
 #include "RHIResources.h"
 #include "Common/Log.h"
+#include "RHIStaticStates.h"
+#include "Common/Crc.h"
 
 namespace nilou {
 
     int FRHIGraphicsPipelineState::GetBaseIndexByName(EPipelineStage PipelineStage, const std::string &Name)
     {
-        FRHIDescriptorSet &DescriptorSet = PipelineLayout.DescriptorSets[PipelineStage];
+        FRHIDescriptorSet &DescriptorSet = PipelineLayout->DescriptorSets[PipelineStage];
         auto iter = DescriptorSet.Bindings.find(Name);
         if (iter != DescriptorSet.Bindings.end())
             return iter->second.BindingPoint;
@@ -91,4 +93,60 @@ namespace nilou {
             default: NILOU_LOG(Error, "Unknown PixelFormat: {}", (int)PixelFormat) return 0;
         }
     }
+
+	bool FGraphicsPipelineStateInitializer::operator==(const FGraphicsPipelineStateInitializer &Other) const
+	{
+		return 	RenderTargetFormats == Other.RenderTargetFormats && 
+				NumRenderTargetsEnabled == Other.NumRenderTargetsEnabled && 
+				DepthStencilTargetFormat == Other.DepthStencilTargetFormat &&
+				VertexShader == Other.VertexShader &&
+				PixelShader == Other.PixelShader &&
+				ComputeShader == Other.ComputeShader && 
+				PrimitiveMode == Other.PrimitiveMode && 
+				DepthStencilState == Other.DepthStencilState && 
+				RasterizerState == Other.RasterizerState && 
+				BlendState == Other.BlendState && 
+				VertexDeclaration == Other.VertexDeclaration;
+	}
+	
+	void FGraphicsPipelineStateInitializer::BuildRenderTargetFormats(RHIFramebuffer* Framebuffer)
+	{
+		NumRenderTargetsEnabled = 0;
+		if (Framebuffer)
+		{
+			for (auto [Attachment, Texture] : Framebuffer->Attachments)
+			{
+				if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
+				{
+					DepthStencilTargetFormat = Texture->GetFormat();
+				}
+				else 
+				{
+					uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
+					RenderTargetFormats[index] = Texture->GetFormat();
+					NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
+				}
+			}
+		}
+	}
+	
+	FRHISampler::FRHISampler()
+		: SamplerState(TStaticSamplerState<>::CreateRHI())
+		, Texture(nullptr) 
+	{ }
+
+	
+	FRHISampler::FRHISampler(RHITexture* Texture)
+		: SamplerState(TStaticSamplerState<>::CreateRHI())
+		, Texture(Texture) 
+	{ }
+
+}
+
+namespace std {
+
+size_t hash<nilou::FGraphicsPipelineStateInitializer>::operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept {
+	return FCrc::MemCrc32(&_Keyval, sizeof(_Keyval));
+}
+
 }

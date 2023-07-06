@@ -17,66 +17,7 @@
 
 namespace nilou {
 
-    struct FVertexInputStream
-    {
-        //uint32 StreamIndex : 4;
-        uint32 Offset/* : 28*/;
-        RHIBuffer* VertexBuffer;
-
-        FVertexInputStream() :
-            //StreamIndex(0),
-            Offset(0),
-            VertexBuffer(nullptr)
-        {}
-
-        FVertexInputStream(/*uint32 InStreamIndex, */uint32 InOffset, RHIBuffer* InVertexBuffer)
-            : /*StreamIndex(InStreamIndex), */Offset(InOffset), VertexBuffer(InVertexBuffer)
-        {
-        }
-
-        inline bool operator==(const FVertexInputStream& rhs) const
-        {
-            if (/*StreamIndex != rhs.StreamIndex ||*/
-                Offset != rhs.Offset || 
-                VertexBuffer != rhs.VertexBuffer) 
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        inline bool operator!=(const FVertexInputStream& rhs) const
-        {
-            return !(*this == rhs);
-        }
-    };
-
-    class FVertexStreamComponent
-    {
-    public:
-        FVertexBuffer *VertexBuffer;
-        uint8 Offset;
-        uint8 Stride;
-        EVertexElementType Type;
-
-        FVertexStreamComponent() 
-            : VertexBuffer(nullptr)
-            , Offset(0)
-            , Stride(0)
-            , Type(EVertexElementType::VET_None)
-        { }
-
-        FVertexStreamComponent(FVertexBuffer *InVertexBuffer, uint8 InOffset, uint8 InStride, EVertexElementType InType) 
-            : VertexBuffer(InVertexBuffer)
-            , Offset(InOffset)
-            , Stride(InStride)
-            , Type(InType)
-        { }
-    };
-    using FVertexStreamComponentList = std::vector<FVertexStreamComponent *>;
-
-    class FVertexFactory// : public FShaderSegment
+    class FVertexFactory
     {
     /*==============FVertexFactoryType Interface============*/
     public: 
@@ -94,15 +35,60 @@ namespace nilou {
 
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
-        /** Override this to implement child VertexFactory */
-        virtual std::vector<FRHIVertexInput> GetVertexInputList() const { return std::vector<FRHIVertexInput>(); }
+        std::vector<FVertexInputStream> GetVertexInputStreams() const;
+        std::vector<FVertexElement> GetVertexElements() const { return Elements; }
+        FRHIVertexDeclaration* GetVertexDeclaration() const { return Declaration; }
 
         const std::string &GetName() const { return Name; }
 
         virtual int32 GetPermutationId() const { return 0; }
+
+        virtual void InitVertexFactory() { }
+
+        struct FVertexStream
+        {
+            const FVertexBuffer* VertexBuffer = nullptr;
+            uint32 Offset = 0;
+            uint16 Stride = 0;
+
+            friend bool operator==(const FVertexStream& A,const FVertexStream& B)
+            {
+                return A.VertexBuffer == B.VertexBuffer && A.Stride == B.Stride && A.Offset == B.Offset;
+            }
+
+            FVertexStream()
+            {
+            }
+        };
+
+        static FVertexElement AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex, std::vector<FVertexStream>& InOutStreams)
+        {
+            FVertexStream VertexStream;
+            VertexStream.VertexBuffer = Component.VertexBuffer;
+            VertexStream.Stride = Component.Stride;
+            VertexStream.Offset = Component.Offset;
+            auto iter = std::find(InOutStreams.begin(), InOutStreams.end(), VertexStream);
+            uint8 StreamIndex;
+            if (iter != InOutStreams.end())
+            {
+                StreamIndex = iter - InOutStreams.begin();
+            }
+            else 
+            {
+                InOutStreams.push_back(VertexStream);
+                StreamIndex = InOutStreams.size()-1;
+            }
+            return FVertexElement(StreamIndex, Component.Offset, Component.Type, AttributeIndex, VertexStream.Stride);
+        }
         
     protected:
         std::string Name;
+
+        std::vector<FVertexStream> Streams;
+
+        std::vector<FVertexElement> Elements;
+
+        FRHIVertexDeclaration* Declaration;
     };
 
 

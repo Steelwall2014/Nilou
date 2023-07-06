@@ -9,7 +9,7 @@ _她真的好美_
 提取码：y4ws  
 后来我觉得这个还有再继续做下去的价值，可以变成我试验各种图形学算法的游乐场，但是我发现这个项目当时的架构根本就没什么可扩展性，因此开始了长达4个月的重构之旅。  
 重构选用了xmake作为构建工具。在重构中我尽量尝试模仿虚幻引擎的Actor和组件机制以及渲染体系，虽然依然很丑，但是已经有了那么一点样子。
-构建系统使用xmake，我使用的编译器为clang-cl，只能运行在windows系统上。  
+构建系统使用xmake，编译器需要为msvc c++20，只能运行在windows系统上。渲染引擎使用vcpkg作为包管理工具，因此需要事先下载vcpkg。  
 ## 截图
 _3DTiles_
 ![](figures/3dtiles.png)
@@ -28,32 +28,24 @@ _pbr小球_
 _反射探针_
 ![](figures/ibl_and_shadow.png)
   
-_GPU Driven的地形，颜色代表lod等级。高度图采用一张16384*16384的虚拟纹理，像素格式为float16，大小约为700mb（含7级mipmap）_
-![](figures/virtual_heightfield.png)
-这张虚拟纹理在github中是没有的，因为太大了，我上传了百度网盘  
-链接：https://pan.baidu.com/s/1MtKbJZ7K1Ymn9_n0iOwaGQ?pwd=s0a3  
-下载后将它放到Content/Textures目录下即可
-  
 ## 运行
-第一次运行之前，或者添加了被NCLASS标记的类之后，需要手动运行一次NilouHeaderTool（我暂时还没有找到能够自动判断是否需要运行的方法）。  
+1. 首先需要修改configs.lua中vulkan sdk的路径。
+2. 编译NilouHeaderTool。每次开始编译前，引擎会自动运行NilouHeaderTool，通过检测头文件的修改时间是否发生变化来判断是否需要重新生成反射代码。注：由于*.generated.cpp里include的头文件不一定就是这个类真正定义在的那个文件，所以有时候*.generated.cpp会找不到这个类的声明了，这个时候把CachedHeaderModifiedTime.txt删除，让header tool重新生成反射代码就好了。
 NilouHeaderTool的编译：
 ```sh
 cd NilouHeaderTool
-xmake f -p windows -a x64 -m debug
+xmake f -p windows -a x64 -m release
 xmake -P .
 ```
-NilouHeaderTool的运行：
+3. 接下来编译渲染引擎，渲染引擎的编译和运行如下。会启动vcpkg下载依赖库。
 ```sh
-lua .\execute_header_tool.lua
-```
-系统的编译和运行：
-```sh
+xmake f -p windows -a x64 -m debug
 xmake build -v Nilou  
 xmake run Nilou
 ```
 ## Features
 - 一个比较完备的场景管理架构。参照虚幻引擎搭建了Actor和Component的架构，使得整个项目更有扩展性。
-- 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象，可以根据名称获取成员变量和成员函数。通过NilouHeaderTool解析头文件，为打上NCLASS标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。
+- 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象，可以根据名称获取成员变量和成员函数，可以自动生成序列化和反序列化代码。通过NilouHeaderTool解析头文件，为打上NCLASS标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。
 - 系统中实现了一个简单的虚拟文件系统，用来管理纹理、材质、网格模型等资源。纹理、材质、网格模型具有序列化方法，参考glb格式定义了一种文件格式（nasset）来保存这些资源。
 - 对顶点着色器、片元着色器复用的支持。顶点着色器和片元着色器都是MaterialShader，其本身是不完整的。顶点着色器还需要顶点工厂和材质，片元着色器还需要材质，才能构成一个完整的着色器，而顶点工厂和材质则需要实现一系列接口。此外也可以定义GlobalShader，一般用在计算着色器上。
 - Shader permutation的支持，MaterialShader和GlobalShader都可以定义一个FPermutationDomain，多个FShaderPermutation*（如FShaderPermutationBool），也就是Domain中的不同维度。系统会自动编译shader所有的permutation，用户可以为每个维度指定值，然后选取对应的permutation。总体来说和UE中对应的功能类似。

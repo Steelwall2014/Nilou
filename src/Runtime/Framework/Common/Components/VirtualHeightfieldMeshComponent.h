@@ -22,7 +22,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual std::vector<FRHIVertexInput> GetVertexInputList() const override;
+        virtual void InitVertexFactory() override;
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -112,5 +112,33 @@ namespace nilou {
         int NumMaxRenderingNodes = 500;
 
     };
+    
+    BEGIN_UNIFORM_BUFFER_STRUCT(FCreateNodeListBlock)
+        SHADER_PARAMETER(uint32, MaxLOD)
+        SHADER_PARAMETER(uint32, PassLOD)
+        SHADER_PARAMETER(float, ScreenSizeDenominator)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FCreatePatchBlock)
+        SHADER_PARAMETER(uvec2, LodTextureSize)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FQuadTreeParameters)
+        SHADER_PARAMETER(uvec2, NodeCount)
+        SHADER_PARAMETER(uint32, LODNum)
+        SHADER_PARAMETER(uint32, NumQuadsPerPatch)
+        SHADER_PARAMETER(uint32, NumPatchesPerNode)
+        SHADER_PARAMETER(uint32, NumHeightfieldTextureMipmap)
+    END_UNIFORM_BUFFER_STRUCT()
+    
+    BEGIN_UNIFORM_BUFFER_STRUCT(FBuildNormalTangentBlock)
+        SHADER_PARAMETER(uint32, HeightfieldWidth)
+        SHADER_PARAMETER(uint32, HeightfieldHeight)
+        SHADER_PARAMETER(vec2, PixelMeterSize)
+    END_UNIFORM_BUFFER_STRUCT()
+
+    BEGIN_UNIFORM_BUFFER_STRUCT(FBuildMinMaxBlock)
+        SHADER_PARAMETER(uvec2, Offset)
+    END_UNIFORM_BUFFER_STRUCT()
 
 }

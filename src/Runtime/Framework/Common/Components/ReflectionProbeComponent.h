@@ -62,6 +62,15 @@ namespace nilou {
         virtual void SendRenderDynamicData() override;
 
         FReflectionProbeSceneProxy* SceneProxy;
+  
+        BEGIN_UNIFORM_BUFFER_STRUCT(IrradianceEnvTextureShaderBlock)
+            alignas(16) NPROPERTY() int TextureSize;
+        END_UNIFORM_BUFFER_STRUCT()
+
+        BEGIN_UNIFORM_BUFFER_STRUCT(PrefilteredEnvTextureShaderBlock)
+            SHADER_PARAMETER(int, TextureSize);
+            SHADER_PARAMETER(float, roughness);
+        END_UNIFORM_BUFFER_STRUCT()
 
     protected:
 
@@ -70,15 +79,6 @@ namespace nilou {
         dvec3 OriginOffset;
 
         void UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList);
-  
-        BEGIN_UNIFORM_BUFFER_STRUCT(IrradianceEnvTextureShaderBlock)
-            alignas(16) int TextureSize;
-        END_UNIFORM_BUFFER_STRUCT()
-
-        BEGIN_UNIFORM_BUFFER_STRUCT(PrefilteredEnvTextureShaderBlock)
-            SHADER_PARAMETER(int, TextureSize);
-            SHADER_PARAMETER(float, roughness);
-        END_UNIFORM_BUFFER_STRUCT()
 
         TUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
         TUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
@@ -99,6 +99,8 @@ namespace nilou {
         FRHISampler* IrradianceTexture;
 
         FRHISampler* PrefilteredTexture;
+
+        bool bHasData = false;
 
         class FReflectionProbeSceneInfo* ReflectionProbeSceneInfo;
 

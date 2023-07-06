@@ -11,26 +11,34 @@ namespace nilou {
     {
         FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
         const char *code_c_str = Code.c_str();
+        glslang::EShClient client = glslang::EShClientOpenGL;
+        glslang::EShTargetClientVersion version = glslang::EShTargetOpenGL_450;
+        if (RHICmdList->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
+        {
+            client = glslang::EShClientVulkan;
+            version = glslang::EShTargetVulkan_1_3;
+        }
         switch (PipelineStage) 
         {
             case EPipelineStage::PS_Vertex:
-                ShaderRHI = RHICmdList->RHICreateVertexShader(code_c_str);
+                ShaderRHI = RHICmdList->RHICreateVertexShader(Code);
                 ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  glslang::EShClientNone, 0);
+                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  client, 0);
                 break;
             case EPipelineStage::PS_Pixel:
-                ShaderRHI = RHICmdList->RHICreatePixelShader(code_c_str);
+                ShaderRHI = RHICmdList->RHICreatePixelShader(Code);
                 ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  glslang::EShClientNone, 0);
+                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  client, 0);
                 break;
             case EPipelineStage::PS_Compute:
-                ShaderRHI = RHICmdList->RHICreateComputeShader(code_c_str);
+                ShaderRHI = RHICmdList->RHICreateComputeShader(Code);
                 ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangCompute);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  glslang::EShClientNone, 0);
+                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  client, 0);
                 break;
         }
-        
-        ShaderGlsl->setEnvClient(glslang::EShClientNone, glslang::EShTargetClientVersion(0));
+        if (ShaderRHI)
+            ShaderRHI->ShaderGlsl = ShaderGlsl.get();
+        ShaderGlsl->setEnvClient(client, version);
         ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
         ShaderGlsl->setStrings(&code_c_str, 1);
         std::string preprocess;

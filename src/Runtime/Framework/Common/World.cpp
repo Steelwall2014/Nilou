@@ -29,6 +29,7 @@
 
 #include "Georeference.h"
 #include "VirtualTexture2D.h"
+#include "MaterialUniformBlocks.h"
 
 // #include <ogrsf_frmts.h>
 
@@ -53,6 +54,16 @@ namespace nilou {
     {
         UMaterial* PBRExhibitionMaterial = GetContentManager()->GetMaterialByPath("/Materials/PBRExhibition.nasset");
         UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
+        // PBRExhibitionMaterial->UpdateUniformBlockType<PBRExhibition_UniformBlock>();
+        auto Data = PBRExhibitionMaterial->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
+        // data->Red = 1;
+        // data->Green = 1;
+        // data->Blue = 1;
+        // data->Metallic = 0;
+        // data->Roughness = 0;
+        // PBRExhibitionMaterial->ContentEntry->bIsDirty = true;
+        // PBRExhibitionMaterial->ContentEntry->bNeedFlush = true;
+        // GetContentManager()->Flush();
         if (Mesh)
         {
             FTransform MeshTransform;
@@ -76,12 +87,13 @@ namespace nilou {
             {
                 for (int j = 0; j <= 4; j++)
                 {
-                    UMaterial* mat = PBRExhibitionMaterial->CreateMaterialInstance();
+                    UMaterialInstance* mat = PBRExhibitionMaterial->CreateMaterialInstance();
                     mat->SetScalarParameterValue("Red", 1.f);
                     mat->SetScalarParameterValue("Green", 1.f);
                     mat->SetScalarParameterValue("Blue", 1.f);
                     mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
                     mat->SetScalarParameterValue("Roughness", (j)*0.25f);
+                    auto Data = mat->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
                     SphereTransform.SetTranslation(vec3(-2, j*0.3, i*0.3));
                     SphereTransform.SetScale3D(dvec3(0.1));
                     std::shared_ptr<ASphereActor> Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
@@ -247,6 +259,12 @@ namespace nilou {
                     Component->TickComponent(DeltaTime);
             }
         }
+    }
+
+    void UWorld::Release()
+    {
+        CameraActors.clear();
+        Actors.clear();
     }
     
     void UWorld::SendAllEndOfFrameUpdates()

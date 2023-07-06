@@ -33,6 +33,8 @@
 #include "RHIResources.h"
 #include "Templates/ObjectMacros.h"
 #include "ShaderInstance.h"
+#include "PipelineStateCache.h"
+#include "Common/Crc.h"
 
 
 #ifdef NILOU_DEBUG
@@ -48,10 +50,10 @@ using namespace std::literals;  // For the use of operator""s
 */
 namespace nilou {
 
-	void FDynamicRHI::CreateDynamicRHI_RenderThread()
-	{
-		FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
-	}
+	// void FDynamicRHI::CreateDynamicRHI_RenderThread()
+	// {
+	// 	FDynamicRHI::DynamicRHI = new FOpenGLDynamicRHI;
+	// }
 
     static GLenum TranslateCompareFunction(ECompareFunction CompareFunction)
     {
@@ -138,14 +140,13 @@ namespace nilou {
     {
         switch(PrimitiveMode)
         {
-            case EPrimitiveMode::PM_Points : return GL_POINTS;
-            case EPrimitiveMode::PM_Lines : return GL_LINES;
-            case EPrimitiveMode::PM_Line_Loop : return GL_LINE_LOOP;
-            case EPrimitiveMode::PM_Line_Strip : return GL_LINE_STRIP;
-            case EPrimitiveMode::PM_Triangles : return GL_TRIANGLES;
-            case EPrimitiveMode::PM_Triangle_Strip : return GL_TRIANGLE_STRIP;
-            case EPrimitiveMode::PM_Triangle_Fan : return GL_TRIANGLE_FAN;
-            default: return GL_TRIANGLES;
+            case EPrimitiveMode::PM_PointList : return GL_POINTS;
+            case EPrimitiveMode::PM_LineList : return GL_LINES;
+            case EPrimitiveMode::PM_TriangleList : return GL_TRIANGLES;
+            case EPrimitiveMode::PM_TriangleStrip : return GL_TRIANGLE_STRIP;
+            default: 
+                NILOU_LOG(Error, "Unsupported primitive type {}", magic_enum::enum_name(PrimitiveMode));
+                return GL_TRIANGLES;
         };
     }
 
@@ -412,12 +413,12 @@ namespace nilou {
             // int unit_id = TexMngr.AllocUnit();
             glActiveTexture(GL_TEXTURE0 + BaseIndex);
             glBindTexture(GLTexture.Target, GLTexture.Resource);
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_MAG_FILTER, TranslateTextureFilter(SamplerRHI.Params.Mag_Filter));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_MIN_FILTER, TranslateTextureFilter(SamplerRHI.Params.Min_Filter));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_S, TranslateWrapMode(SamplerRHI.Params.Wrap_S));
-            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_T, TranslateWrapMode(SamplerRHI.Params.Wrap_T));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_MAG_FILTER, TranslateTextureFilter(SamplerRHI.SamplerState->Mag_Filter));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_MIN_FILTER, TranslateTextureFilter(SamplerRHI.SamplerState->Min_Filter));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_S, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_S));
+            glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_T, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_T));
             if (GLTexture.Target == GL_TEXTURE_CUBE_MAP || GLTexture.Target == GL_TEXTURE_3D)
-                glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.Params.Wrap_R));
+                glTexParameteri(GLTexture.Target, GL_TEXTURE_WRAP_R, TranslateWrapMode(SamplerRHI.SamplerState->Wrap_R));
             glUniform1i(BaseIndex, BaseIndex);
         }
         return true;
@@ -458,75 +459,101 @@ namespace nilou {
         return true;
     }
     
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
+    void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset)
     {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+        CurrentStreamSources[StreamIndex] = { Offset, static_cast<OpenGLBuffer*>(Buffer) };
     }
+    
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, int32 Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, int32 Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1i(BaseIndex, Value);
+    //     return true;
+    // }
+
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
+
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1f(BaseIndex, Value);
+    //     return true;
+    // }
+
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
+    // {
+    //     return RHISetShaderUniformValue(
+    //         BoundPipelineState, PipelineStage, 
+    //         BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
+    // }
+
+    // bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
+    // {
+    //     if (BoundPipelineState != ContextState.GraphicsPipelineState)
+    //     {
+    //         NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
+    //         return false;
+    //     }
+    //     glUniform1ui(BaseIndex, Value);
+    //     return true;
+    // }
+
+    FRHIVertexDeclarationRef FOpenGLDynamicRHI::RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements)
     {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
+        OpenGLVertexDeclarationRef Declaration = std::make_shared<OpenGLVertexDeclaration>();
+        for (auto& Element : Elements)
         {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
+            OpenGLVertexDeclaration::Element OutElement;
+            OutElement.AttributeIndex = Element.AttributeIndex;
+            OutElement.StreamIndex = Element.StreamIndex;
+            OutElement.Offset = Element.Offset;
+            OutElement.Stride = Element.Stride;
+            auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(Element.Type);
+            OutElement.DataType = DataType;
+            OutElement.Size = Size;
+            OutElement.bNormalized = bNormalized;
+            OutElement.bShouldConvertToFloat = bShouldConvertToFloat;
+            Declaration->Elements.push_back(OutElement);
         }
-        glUniform1i(BaseIndex, Value);
-        return true;
+        return Declaration;
     }
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, float Value)
-    {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
-    }
+	// void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)
+    // {
+    //     OpenGLBuffer *GLBuffer = static_cast<OpenGLBuffer*>(VertexInput->VertexBuffer);
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, float Value)
-    {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
-        {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
-        }
-        glUniform1f(BaseIndex, Value);
-        return true;
-    }
+    //     auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(VertexInput->Type);
 
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, uint32 Value)
-    {
-        return RHISetShaderUniformValue(
-            BoundPipelineState, PipelineStage, 
-            BoundPipelineState->GetBaseIndexByName(PipelineStage, ParameterName), Value);
-    }
-
-    bool FOpenGLDynamicRHI::RHISetShaderUniformValue(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, uint32 Value)
-    {
-        if (BoundPipelineState != ContextState.GraphicsPipelineState)
-        {
-            NILOU_LOG(Error, "RHISetShaderSampler BoundPipelineState parameter is different from ContextState.GraphicsPipelineState");
-            return false;
-        }
-        glUniform1ui(BaseIndex, Value);
-        return true;
-    }
-
-
-	void FOpenGLDynamicRHI::RHISetVertexBuffer(FRHIGraphicsPipelineState *BoundPipelineState, FRHIVertexInput *VertexInput)
-    {
-        OpenGLBuffer *GLBuffer = static_cast<OpenGLBuffer*>(VertexInput->VertexBuffer);
-
-        auto [DataType, Size, bNormalized, bShouldConvertToFloat] = TranslateVertexElementType(VertexInput->Type);
-
-        glBindBuffer(GL_ARRAY_BUFFER, GLBuffer->Resource);
-        glVertexAttribPointer(VertexInput->Location, Size, DataType, bNormalized, GLBuffer->GetStride(), (void*)0);
-        glEnableVertexAttribArray(VertexInput->Location);
-        ContextState.VertexAttributeEnabled[VertexInput->Location] = true;
-    }
+    //     glBindBuffer(GL_ARRAY_BUFFER, GLBuffer->Resource);
+    //     glVertexAttribPointer(VertexInput->Location, Size, DataType, bNormalized, GLBuffer->GetStride(), (void*)0);
+    //     glEnableVertexAttribArray(VertexInput->Location);
+    //     ContextState.VertexAttributeEnabled[VertexInput->Location] = true;
+    // }
 
     void FOpenGLDynamicRHI::RHISetRasterizerState(RHIRasterizerState *newState)
     {
+        if (!newState)
+            return;
         OpenGLRasterizerState* RasterizerState = static_cast<OpenGLRasterizerState*>(newState);
         if (ContextState.RasterizerState.FillMode != RasterizerState->FillMode)
         {
@@ -560,6 +587,8 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHISetDepthStencilState(RHIDepthStencilState *newState, uint32 StencilRef)
     {
+        if (!newState)
+            return;
         OpenGLDepthStencilState* DepthStencilState = static_cast<OpenGLDepthStencilState*>(newState);
         if (ContextState.DepthStencilState.bZEnable != DepthStencilState->bZEnable)
         {
@@ -690,6 +719,8 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHISetBlendState(RHIBlendState *newState)
     {
+        if (!newState)
+            return;
         OpenGLBlendState* BlendState = static_cast<OpenGLBlendState*>(newState);
 	    bool bABlendWasSet = false;
         for (uint32 RenderTargetIndex = 0;RenderTargetIndex < MAX_SIMULTANEOUS_RENDERTARGETS; ++RenderTargetIndex)
@@ -910,21 +941,22 @@ namespace nilou {
     void FOpenGLDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState)
     {
         OpenGLGraphicsPipelineState *GLState = static_cast<OpenGLGraphicsPipelineState *>(NewState);
-        // FRHIGraphicsPipelineInitializer &Initializer = GLState->Initializer;
+        // FGraphicsPipelineStateInitializer &Initializer = GLState->Initializer;
         RHIUseShaderProgram(GLState->Program.get());
-        // RHISetDepthStencilState(StateData.DepthStentilState.get());
-        // RHISetRasterizerState(StateData.RasterizerState.get());
-        // RHISetBlendState(StateData.BlendState.get());
         ContextState.GraphicsPipelineState = GLState;
+        RHISetDepthStencilState(NewState->Initializer.DepthStencilState);
+        RHISetRasterizerState(NewState->Initializer.RasterizerState);
+        RHISetBlendState(NewState->Initializer.BlendState);
+        CurrentVertexDeclaration = static_cast<OpenGLVertexDeclaration*>(NewState->Initializer.VertexDeclaration);
     }
 
-	FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHISetComputeShader(FShaderInstance *ComputeShader)
+	FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHISetComputeShader(RHIComputeShader *ComputeShader)
     {
         RHIGetError();
-        FRHIGraphicsPipelineInitializer Initializer;
+        FGraphicsPipelineStateInitializer Initializer;
         Initializer.ComputeShader = ComputeShader;
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHIGetOrCreatePipelineStateObject(Initializer);
-        FDynamicRHI::GetDynamicRHI()->RHISetGraphicsPipelineState(PSO);
+        FRHIGraphicsPipelineState *PSO = RHIGetOrCreatePipelineStateObject(Initializer);
+        RHISetGraphicsPipelineState(PSO);
         RHIGetError();
         return PSO;
     }
@@ -954,11 +986,11 @@ namespace nilou {
         glBindBufferBase(GLBuffer->Target, BaseIndex, GLBuffer->Resource);
     }
 
-    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data, EBufferUsageFlags usage)
+    void FOpenGLDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data)
     {
         OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         GLenum GLUsage = GL_STATIC_DRAW;
-        if (EnumHasAnyFlags(usage, EBufferUsageFlags::Dynamic))
+        if (EnumHasAnyFlags(GLBuffer->GetUsage(), EBufferUsageFlags::Dynamic))
             GLUsage = GL_DYNAMIC_DRAW;
         glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
         glBufferData(GLBuffer->Target, size, data, GLUsage);
@@ -979,6 +1011,16 @@ namespace nilou {
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
     }
+    void FOpenGLDynamicRHI::PrepareForDraw()
+    {
+        for (auto& Element : CurrentVertexDeclaration->Elements)
+        {
+            auto& StreamSource = CurrentStreamSources[Element.StreamIndex];
+            glBindBuffer(GL_ARRAY_BUFFER, StreamSource.Buffer->Resource);
+            glVertexAttribPointer(Element.AttributeIndex, Element.Size, Element.DataType, Element.bNormalized, Element.Stride, (void*)Element.Offset);
+            glEnableVertexAttribArray(Element.AttributeIndex);
+        }
+    }
 }
 
 /**
@@ -991,224 +1033,202 @@ namespace nilou {
     //     return ContextState.GraphicsPipelineState;
     // }
 
-    EShaderParameterType TranslateToShaderParameterType(const glslang::TType *Type)
-    {
-        EShaderParameterType type = EShaderParameterType::SPT_None;
-        glslang::TBasicType BasicType = Type->getBasicType();
-        switch (BasicType)
-        {
-        case glslang::TBasicType::EbtBlock:
-            type = EShaderParameterType::SPT_UniformBuffer;
-            break;
-        case glslang::TBasicType::EbtSampler:
-            type = EShaderParameterType::SPT_Sampler;
-            break;
-        case glslang::TBasicType::EbtAtomicUint:
-            type = EShaderParameterType::SPT_AtomicUint;
-            break;
-        case glslang::TBasicType::EbtUint:
-            type = EShaderParameterType::SPT_Uint;
-            break;
-        case glslang::TBasicType::EbtFloat:
-            type = EShaderParameterType::SPT_Float;
-            break;
-        case glslang::TBasicType::EbtInt:
-            type = EShaderParameterType::SPT_Int;
-            break;
-        }  
-        if (Type->isImage())
-            type = EShaderParameterType::SPT_Image;
+    // EShaderParameterType TranslateToShaderParameterType(const glslang::TType *Type)
+    // {
+    //     EShaderParameterType type = EShaderParameterType::SPT_None;
+    //     glslang::TBasicType BasicType = Type->getBasicType();
+    //     switch (BasicType)
+    //     {
+    //     case glslang::TBasicType::EbtBlock:
+    //         type = EShaderParameterType::SPT_UniformBuffer;
+    //         break;
+    //     case glslang::TBasicType::EbtSampler:
+    //         type = EShaderParameterType::SPT_Sampler;
+    //         break;
+    //     case glslang::TBasicType::EbtAtomicUint:
+    //         type = EShaderParameterType::SPT_AtomicUint;
+    //         break;
+    //     case glslang::TBasicType::EbtUint:
+    //         type = EShaderParameterType::SPT_Uint;
+    //         break;
+    //     case glslang::TBasicType::EbtFloat:
+    //         type = EShaderParameterType::SPT_Float;
+    //         break;
+    //     case glslang::TBasicType::EbtInt:
+    //         type = EShaderParameterType::SPT_Int;
+    //         break;
+    //     }  
+    //     if (Type->isImage())
+    //         type = EShaderParameterType::SPT_Image;
         
-        return type;
-    }
+    //     return type;
+    // }
 
-    void AllocateParameterBindingPoint(FRHIPipelineLayout &PipelineLayout, int PipelineResource, glslang::TProgram &ProgramGlsl/*, const std::set<FShaderParameterInfo> &ParsedParameters, *//*EPipelineStage PipelineStage*/)
-    {
-        FRHIDescriptorSet &VertexDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Vertex];
-        FRHIDescriptorSet &PixelDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Pixel];
-        FRHIDescriptorSet &ComputeDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Compute];
+    // void AllocateParameterBindingPoint(FRHIPipelineLayout &PipelineLayout, int PipelineResource, glslang::TProgram &ProgramGlsl/*, const std::set<FShaderParameterInfo> &ParsedParameters, *//*EPipelineStage PipelineStage*/)
+    // {
+    //     FRHIDescriptorSet &VertexDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Vertex];
+    //     FRHIDescriptorSet &PixelDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Pixel];
+    //     FRHIDescriptorSet &ComputeDescriptorSet = PipelineLayout.DescriptorSets[EPipelineStage::PS_Compute];
 
         
-        int Buffer_block_num = ProgramGlsl.getNumBufferBlocks();
-        if (Buffer_block_num > 0)
-            NILOU_LOG(Warning, "")
+    //     int Buffer_block_num = ProgramGlsl.getNumBufferBlocks();
+    //     if (Buffer_block_num > 0)
+    //         NILOU_LOG(Warning, "")
 
             
-        int max_sampler_binding_point = -1;
-        int NumUniformVariable = ProgramGlsl.getNumUniformVariables();
-        for (int i = 0; i < NumUniformVariable; i++)
-        {
-            const glslang::TObjectReflection &refl = ProgramGlsl.getUniform(i);
-            FRHIDescriptorSetLayoutBinding binding;
-            binding.Name = refl.name;
-            binding.ParameterType = TranslateToShaderParameterType(refl.getType());
-            binding.BindingPoint = refl.getBinding();
-            if (binding.ParameterType == EShaderParameterType::SPT_Image)
-            {
-                if (binding.BindingPoint == -1)
-                {
-                    NILOU_LOG(Error, "image1/2/3D variables must have an explicit binding point");
-                    continue;
-                }
-            }
-            else if (binding.ParameterType == EShaderParameterType::SPT_Sampler)
-            {
-                binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
-                if (binding.BindingPoint == -1)
-                {
-                    NILOU_LOG(Warning, "Shader parameter {} is omitted in glsl", binding.Name)
-                    continue;
-                }
-                max_sampler_binding_point = std::max(max_sampler_binding_point, binding.BindingPoint);
-            }
-            else if (binding.ParameterType == EShaderParameterType::SPT_AtomicUint)
-            {
-                if (binding.BindingPoint == -1)
-                {
-                    NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
-                    continue;
-                }
-            }
-            else if (binding.ParameterType == EShaderParameterType::SPT_Float || 
-                     binding.ParameterType == EShaderParameterType::SPT_Int || 
-                     binding.ParameterType == EShaderParameterType::SPT_Uint)
-            {
-                binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
-                if (binding.BindingPoint == -1)
-                {
-                    continue;
-                }
-            }
-            else 
-            {
-                continue;
-            }
+    //     int max_sampler_binding_point = -1;
+    //     int NumUniformVariable = ProgramGlsl.getNumUniformVariables();
+    //     for (int i = 0; i < NumUniformVariable; i++)
+    //     {
+    //         const glslang::TObjectReflection &refl = ProgramGlsl.getUniform(i);
+    //         FRHIDescriptorSetLayoutBinding binding;
+    //         binding.Name = refl.name;
+    //         binding.ParameterType = TranslateToShaderParameterType(refl.getType());
+    //         binding.BindingPoint = refl.getBinding();
+    //         if (binding.ParameterType == EShaderParameterType::SPT_Image)
+    //         {
+    //             if (binding.BindingPoint == -1)
+    //             {
+    //                 NILOU_LOG(Error, "image1/2/3D variables must have an explicit binding point");
+    //                 continue;
+    //             }
+    //         }
+    //         else if (binding.ParameterType == EShaderParameterType::SPT_Sampler)
+    //         {
+    //             binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
+    //             if (binding.BindingPoint == -1)
+    //             {
+    //                 NILOU_LOG(Warning, "Shader parameter {} is omitted in glsl", binding.Name)
+    //                 continue;
+    //             }
+    //             max_sampler_binding_point = std::max(max_sampler_binding_point, binding.BindingPoint);
+    //         }
+    //         else if (binding.ParameterType == EShaderParameterType::SPT_AtomicUint)
+    //         {
+    //             if (binding.BindingPoint == -1)
+    //             {
+    //                 NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
+    //                 continue;
+    //             }
+    //         }
+    //         else if (binding.ParameterType == EShaderParameterType::SPT_Float || 
+    //                  binding.ParameterType == EShaderParameterType::SPT_Int || 
+    //                  binding.ParameterType == EShaderParameterType::SPT_Uint)
+    //         {
+    //             binding.BindingPoint = glGetUniformLocation(PipelineResource, binding.Name.c_str());
+    //             if (binding.BindingPoint == -1)
+    //             {
+    //                 continue;
+    //             }
+    //         }
+    //         else 
+    //         {
+    //             continue;
+    //         }
 
-            if (refl.stages & EShLangVertexMask)
-            {
-                VertexDescriptorSet.Bindings[binding.Name] = binding;
-            }
-            if (refl.stages & EShLangFragmentMask)
-            {
-                PixelDescriptorSet.Bindings[binding.Name] = binding;
-            }
-            if (refl.stages & EShLangComputeMask)
-            {
-                ComputeDescriptorSet.Bindings[binding.Name] = binding;
-            }
-        }
+    //         if (refl.stages & EShLangVertexMask)
+    //         {
+    //             VertexDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //         if (refl.stages & EShLangFragmentMask)
+    //         {
+    //             PixelDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //         if (refl.stages & EShLangComputeMask)
+    //         {
+    //             ComputeDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //     }
 
-        int NumUniformBlock = ProgramGlsl.getNumUniformBlocks();
-        for (int i = 0; i < NumUniformBlock; i++)
-        {
-            const glslang::TObjectReflection &refl = ProgramGlsl.getUniformBlock(i);
-            FRHIDescriptorSetLayoutBinding binding;
-            binding.Name = refl.name;
-            binding.ParameterType = TranslateToShaderParameterType(refl.getType());
-            binding.BindingPoint = refl.getBinding();
-            if (binding.BindingPoint == -1)
-            {
-                if (binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
-                {
-                    int block_index = glGetUniformBlockIndex(PipelineResource, binding.Name.c_str());
-                    if (block_index == -1)
-                    {
-                        NILOU_LOG(Warning, "Shader parameter {} is omitted in glsl", binding.Name)
-                        continue;
-                    }
-                    glUniformBlockBinding(PipelineResource, block_index, ++max_sampler_binding_point);
-                    binding.BindingPoint = max_sampler_binding_point;
-                }
-                else if (binding.ParameterType == EShaderParameterType::SPT_AtomicUint)
-                {
-                    NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
-                    continue;
-                }
-            }
+    //     int NumUniformBlock = ProgramGlsl.getNumUniformBlocks();
+    //     for (int i = 0; i < NumUniformBlock; i++)
+    //     {
+    //         const glslang::TObjectReflection &refl = ProgramGlsl.getUniformBlock(i);
+    //         FRHIDescriptorSetLayoutBinding binding;
+    //         binding.Name = refl.name;
+    //         binding.ParameterType = TranslateToShaderParameterType(refl.getType());
+    //         binding.BindingPoint = refl.getBinding();
+    //         if (binding.BindingPoint == -1)
+    //         {
+    //             if (binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
+    //             {
+    //                 int block_index = glGetUniformBlockIndex(PipelineResource, binding.Name.c_str());
+    //                 if (block_index == -1)
+    //                 {
+    //                     NILOU_LOG(Warning, "Shader parameter {} is omitted in glsl", binding.Name)
+    //                     continue;
+    //                 }
+    //                 glUniformBlockBinding(PipelineResource, block_index, ++max_sampler_binding_point);
+    //                 binding.BindingPoint = max_sampler_binding_point;
+    //             }
+    //             else if (binding.ParameterType == EShaderParameterType::SPT_AtomicUint)
+    //             {
+    //                 NILOU_LOG(Error, "Atomic uint variables must have an explicit binding point");
+    //                 continue;
+    //             }
+    //         }
 
-            if (refl.stages & EShLangVertexMask)
-            {
-                VertexDescriptorSet.Bindings[binding.Name] = binding;
-            }
-            if (refl.stages & EShLangFragmentMask)
-            {
-                PixelDescriptorSet.Bindings[binding.Name] = binding;
-            }
-            if (refl.stages & EShLangComputeMask)
-            {
-                ComputeDescriptorSet.Bindings[binding.Name] = binding;
-            }
-        }
+    //         if (refl.stages & EShLangVertexMask)
+    //         {
+    //             VertexDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //         if (refl.stages & EShLangFragmentMask)
+    //         {
+    //             PixelDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //         if (refl.stages & EShLangComputeMask)
+    //         {
+    //             ComputeDescriptorSet.Bindings[binding.Name] = binding;
+    //         }
+    //     }
         
-    }
+    // }
 
-    FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHIGetOrCreatePipelineStateObject(const FRHIGraphicsPipelineInitializer &Initializer)
+    FRHIGraphicsPipelineState *FOpenGLDynamicRHI::RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer)
     {
         RHIGetError();
-        if (CachedPipelineStateObjects.find(Initializer) != CachedPipelineStateObjects.end())
-        {
-            return CachedPipelineStateObjects[Initializer].get();
-        }
+        FRHIGraphicsPipelineState* OutPSO = FPipelineStateCache::FindCachedGraphicsPSO(Initializer);
+        if (OutPSO)
+            return OutPSO;
 
-        OpenGLGraphicsPipelineStateRef PSO = std::make_shared<OpenGLGraphicsPipelineState>();
-        PSO->Initializer = Initializer;
+        OpenGLGraphicsPipelineStateRef PSO = std::make_shared<OpenGLGraphicsPipelineState>(Initializer);
+        PSO->PipelineLayout = std::make_shared<FRHIPipelineLayout>();
+        RHIGetError();
         if (Initializer.ComputeShader != nullptr)
         {
-            glslang::TProgram program;
-            program.addShader(Initializer.ComputeShader->ShaderGlsl.get());
-            bool res = program.link(EShMsgDefault);
-            if (!res)
-            {
-                std::string info = program.getInfoLog();
-                std::string debuginfo = program.getInfoDebugLog();
-                NILOU_LOG(Error, "{}\n{}", info, debuginfo);
-            }
-            program.buildReflection();
-
-            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader->ShaderRHI.get());
+            OpenGLComputeShader *comp = static_cast<OpenGLComputeShader *>(Initializer.ComputeShader);
             PSO->Program = RHICreateLinkedProgram(comp);
-            FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;
-            // const std::set<FShaderParameterInfo> &ComputeShaderParams = Initializer.ComputeShader->Parameters;
-            AllocateParameterBindingPoint(PSO->PipelineLayout, PSO->Program->Resource, program/*, ComputeShaderParams, EPipelineStage::PS_Compute*/);
         }
         else if (
             Initializer.VertexShader != nullptr && 
             Initializer.PixelShader != nullptr)
         {
-            RHIGetError();
-            glslang::TProgram program;
-            program.addShader(Initializer.VertexShader->ShaderGlsl.get());
-            program.addShader(Initializer.PixelShader->ShaderGlsl.get());
-            bool res = program.link(EShMsgDefault);
-            if (!res)
-            {
-                std::string info = program.getInfoLog();
-                std::string debuginfo = program.getInfoDebugLog();
-                NILOU_LOG(Error, "{}\n{}", info, debuginfo);
-            }
-            program.buildReflection();
-
-            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader->ShaderRHI.get());
-            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader->ShaderRHI.get());
+            OpenGLVertexShader *vert = static_cast<OpenGLVertexShader *>(Initializer.VertexShader);
+            OpenGLPixelShader *frag = static_cast<OpenGLPixelShader *>(Initializer.PixelShader);
 
             PSO->Program = RHICreateLinkedProgram(vert, frag);
-
-            FRHIPipelineLayout &PipelineLayout = PSO->PipelineLayout;
-            // const std::set<FShaderParameterInfo> &VertexShaderParams = Initializer.VertexShader->Parameters;
-            // const std::set<FShaderParameterInfo> &PixelShaderParams = Initializer.PixelShader->Parameters;
-            AllocateParameterBindingPoint(PSO->PipelineLayout, PSO->Program->Resource, program/*, VertexShaderParams, EPipelineStage::PS_Vertex*/);
-
+        }
+        AllocateParameterBindingPoint(PSO->PipelineLayout.get(), Initializer);
+        for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
+        {
+            for (auto& [Name, Binding] : PSO->PipelineLayout->DescriptorSets[PipelineStage].Bindings)
+            {
+                if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
+                {
+                    Binding.BindingPoint = glGetUniformLocation(PSO->Program->Resource, Name.c_str());
+                }
+            }
         }
 
-        CachedPipelineStateObjects[Initializer] = PSO;
+        FPipelineStateCache::CacheGraphicsPSO(Initializer, PSO);
 
         RHIGetError();
         return PSO.get();
     }
 
-    RHIVertexShaderRef FOpenGLDynamicRHI::RHICreateVertexShader(const char *code)
+    RHIVertexShaderRef FOpenGLDynamicRHI::RHICreateVertexShader(const std::string& code)
     {
-        nilou::OpenGLVertexShaderRef vert = std::make_shared<nilou::OpenGLVertexShader>(code);
+        nilou::OpenGLVertexShaderRef vert = std::make_shared<nilou::OpenGLVertexShader>(code.c_str());
 
         if (!vert->Success())
         {
@@ -1219,9 +1239,9 @@ namespace nilou {
         return vert;
     }
 
-    RHIPixelShaderRef FOpenGLDynamicRHI::RHICreatePixelShader(const char *code)
+    RHIPixelShaderRef FOpenGLDynamicRHI::RHICreatePixelShader(const std::string& code)
     {
-        nilou::OpenGLPixelShaderRef pixel = std::make_shared<nilou::OpenGLPixelShader>(code);
+        nilou::OpenGLPixelShaderRef pixel = std::make_shared<nilou::OpenGLPixelShader>(code.c_str());
 
         if (!pixel->Success())
         {
@@ -1232,9 +1252,9 @@ namespace nilou {
         return pixel;
     }
 
-    RHIComputeShaderRef FOpenGLDynamicRHI::RHICreateComputeShader(const char *code)
+    RHIComputeShaderRef FOpenGLDynamicRHI::RHICreateComputeShader(const std::string& code)
     {
-        nilou::OpenGLComputeShaderRef comp = std::make_shared<nilou::OpenGLComputeShader>(code);
+        nilou::OpenGLComputeShaderRef comp = std::make_shared<nilou::OpenGLComputeShader>(code.c_str());
 
         if (!comp->Success())
         {
@@ -1345,10 +1365,6 @@ namespace nilou {
     {
         return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, Data);
     }
-    RHIBufferRef FOpenGLDynamicRHI::RHICreateAtomicCounterBuffer(unsigned int Value)
-    {
-        return RHICreateBuffer(4, 4, EBufferUsageFlags::AtomicCounter | EBufferUsageFlags::Dynamic, &Value);
-    }
     RHIBufferRef FOpenGLDynamicRHI::RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
     {
         DispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
@@ -1367,7 +1383,7 @@ namespace nilou {
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTexture2D(
         const std::string &name, EPixelFormat InFormat, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY)
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags)
     {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
         glGenTextures(1, &Texture->Resource);
@@ -1383,7 +1399,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture2DArrayRef FOpenGLDynamicRHI::RHICreateTexture2DArray(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1400,7 +1416,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture3DRef FOpenGLDynamicRHI::RHICreateTexture3D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name);
@@ -1417,7 +1433,7 @@ namespace nilou {
         return Texture;
     }
     RHITextureCubeRef FOpenGLDynamicRHI::RHICreateTextureCube(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags
     )
     {
         RHIGetError();
@@ -1439,7 +1455,7 @@ namespace nilou {
         return Texture;
     }
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateSparseTexture2D(
-        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY
+        const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags
     )
     {
         OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name);
@@ -1457,17 +1473,31 @@ namespace nilou {
         return Texture;
     }
 
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer()
+    
+	RHISamplerStateRef FOpenGLDynamicRHI::RHICreateSamplerState(const RHITextureParams& Params)
     {
-        return std::make_shared<OpenGLFramebuffer>();
+        RHISamplerStateRef SamplerStateRHI = std::make_shared<RHISamplerState>();
+        SamplerStateRHI->Mag_Filter = Params.Mag_Filter;
+        SamplerStateRHI->Min_Filter = Params.Min_Filter;
+        SamplerStateRHI->Wrap_S = Params.Wrap_S;
+        SamplerStateRHI->Wrap_T = Params.Wrap_T;
+        SamplerStateRHI->Wrap_R = Params.Wrap_R;
+
+        uint32 CRC = FCrc::MemCrc32(SamplerStateRHI.get(), sizeof(RHISamplerState));
+        auto Found = SamplerMap.find(CRC);
+        if (Found != SamplerMap.end())
+            return Found->second;
+        
+        SamplerMap[CRC] = SamplerStateRHI;
+        return SamplerStateRHI;
     }
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DRef texture)
+
+    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments)
     {
-        return std::make_shared<OpenGLFramebuffer>(attachment, texture);
-    }
-    RHIFramebufferRef FOpenGLDynamicRHI::RHICreateFramebuffer(EFramebufferAttachment attachment, RHITexture2DArrayRef texture, unsigned int layer_index)
-    {
-        return std::make_shared<OpenGLFramebuffer>(attachment, texture, layer_index);
+        OpenGLFramebufferRef GLFramebuffer = std::make_shared<OpenGLFramebuffer>();
+        for (auto& [Attachment, Texture] : Attachments)
+            GLFramebuffer->AddAttachment(Attachment, Texture);
+        return GLFramebuffer;
     }
 
     void FOpenGLDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef UniformBuffer, void *Data)
@@ -1497,7 +1527,7 @@ namespace nilou {
     }
 
     RHITexture2DRef FOpenGLDynamicRHI::RHICreateTextureView2D(
-        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LevelIndex)
+        RHITexture* OriginTexture, EPixelFormat InFormat, uint32 MinMipLevel, uint32 NumMipLevels, uint32 LayerIndex)
     {
         auto GLTexture = TextureResourceCast(OriginTexture);
         uvec2 size = uvec2(OriginTexture->GetSizeXYZ()) / uvec2(glm::pow(2, MinMipLevel));
@@ -1508,7 +1538,7 @@ namespace nilou {
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
             GLTexture.Resource, GLTexture.InternalFormat, 
-            MinMipLevel, NumMipLevels, LevelIndex, 1);
+            MinMipLevel, NumMipLevels, LayerIndex, 1);
         return OutTexture;
     }
 
@@ -1647,6 +1677,7 @@ namespace nilou {
     
 	void FOpenGLDynamicRHI::RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount)
     {
+        PrepareForDraw();
         glDrawArraysInstanced(
             TranslatePrimitiveMode(ContextState.GraphicsPipelineState->Initializer.PrimitiveMode), 
             First, 
@@ -1657,6 +1688,7 @@ namespace nilou {
     
 	void FOpenGLDynamicRHI::RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount)
     {
+        PrepareForDraw();
         OpenGLBuffer *GLIndexBuffer = static_cast<OpenGLBuffer*>(IndexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLIndexBuffer->Resource);
         RHIGetError();
@@ -1672,6 +1704,7 @@ namespace nilou {
 
     void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset)
     {
+        PrepareForDraw();
         OpenGLBuffer *GLIndexBuffer = static_cast<OpenGLBuffer*>(IndexBuffer);
         OpenGLBuffer *GLIndirectBuffer = static_cast<OpenGLBuffer*>(IndirectBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GLIndexBuffer->Resource);
@@ -1688,14 +1721,14 @@ namespace nilou {
         glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
     }
 
-    void FOpenGLDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs)
+    void FOpenGLDynamicRHI::RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset)
     {
         OpenGLBuffer *GLIndirectArgs = static_cast<OpenGLBuffer*>(indirectArgs);
 
         assert(GLIndirectArgs->Target == GL_DISPATCH_INDIRECT_BUFFER);
 
         glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, GLIndirectArgs->Resource);
-        glDispatchComputeIndirect(0);
+        glDispatchComputeIndirect(IndirectOffset);
     }
 
     void FOpenGLDynamicRHI::RHIEndRenderPass()
@@ -1723,53 +1756,29 @@ namespace nilou {
 */
 namespace nilou {
 
-    FRHIRenderQueryRef FOpenGLDynamicRHI::RHICreateRenderQuery()
-    {
-        FOpenGLRenderQueryRef GLQuery = std::make_shared<FOpenGLRenderQuery>();
-        return GLQuery;
-    }
-
-    void FOpenGLDynamicRHI::RHIBeginRenderQuery(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glBeginQuery(GL_SAMPLES_PASSED, Query->Resource);
-    }
-
-    void FOpenGLDynamicRHI::RHIEndRenderQuery(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glEndQuery(GL_SAMPLES_PASSED);
-    }
-
-    void FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRHIRenderQuery *RenderQuery)
-    {
-        FOpenGLRenderQuery *Query = static_cast<FOpenGLRenderQuery*>(RenderQuery);
-        glGetQueryObjectui64v(Query->Resource, GL_QUERY_RESULT, &Query->Result);
-    }
-
     void FOpenGLDynamicRHI::RHIUseShaderProgram(OpenGLLinkedProgram *program)
     {
         OpenGLLinkedProgram *GLProgram = static_cast<OpenGLLinkedProgram*>(program);
         glUseProgram(GLProgram->Resource);
     }
 
-    void *FOpenGLDynamicRHI::RHIMapComputeBuffer(RHIBufferRef buffer, EDataAccessFlag access)
+    void *FOpenGLDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
     {
         GLenum GLAccess;
-        switch (access) {
-            case EDataAccessFlag::DA_ReadOnly: GLAccess = GL_READ_ONLY; break;
-            case EDataAccessFlag::DA_WriteOnly: GLAccess = GL_WRITE_ONLY; break;
-            case EDataAccessFlag::DA_ReadWrite: GLAccess = GL_READ_WRITE; break;
+        switch (LockMode) {
+            case EResourceLockMode::RLM_ReadOnly: GLAccess = GL_READ_ONLY; break;
+            case EResourceLockMode::RLM_WriteOnly: GLAccess = GL_WRITE_ONLY; break;
             default: std::cout << "Invalid Data access flag" << std::endl; break;
         }
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         glBindBuffer(GLBuffer->Target, GLBuffer->Resource);
-        return glMapBuffer(GLBuffer->Target, GLAccess);
+        uint8* Data = (uint8*)glMapBuffer(GLBuffer->Target, GLAccess);
+        return Data + Offset;
     }
 
-    void FOpenGLDynamicRHI::RHIUnmapComputeBuffer(RHIBufferRef buffer)
+    void FOpenGLDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
     {
-        OpenGLBufferRef GLBuffer = std::static_pointer_cast<OpenGLBuffer>(buffer);
+        OpenGLBuffer* GLBuffer = static_cast<OpenGLBuffer*>(buffer);
         glUnmapBuffer(GLBuffer->Target);
         glBindBuffer(GLBuffer->Target, 0);
     }
@@ -1844,9 +1853,15 @@ namespace nilou {
 
     int nilou::FOpenGLDynamicRHI::Initialize()
     {
+        FDynamicRHI::Initialize();
         //bool ret = Initialize();
         //if (!ret)
         //    return ret;
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return false;
+        }
 
         bool ret = gladLoadGL();
         if (!ret)
@@ -1865,15 +1880,15 @@ namespace nilou {
             glGenVertexArrays(1, &ContextState.VertexArrayObject);
             glBindVertexArray(ContextState.VertexArrayObject);
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
-            glslang::InitializeProcess();
-            *GetResources() = *GetDefaultResources();
-            GetResources()->maxAtomicCounterBindings = 5;
+            glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
             magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
                 magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
                     
+                    if (PixelFormat == PF_PixelFormatNum)
+                        return;
                     ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
-                    if (PixelFormat == EPixelFormat::PF_UNKNOWN)
+                    if (PixelFormat == PF_UNKNOWN)
                     {
                         PageSize = ivec3(1);
                         return;
@@ -1907,11 +1922,12 @@ namespace nilou {
         return ret;
     }
 
-    void nilou::FOpenGLDynamicRHI::Finalize()
+    void FOpenGLDynamicRHI::Finalize()
     {
+        FDynamicRHI::Finalize();
     }
 
-    nilou::FOpenGLDynamicRHI::OpenGLTextureResource nilou::FOpenGLDynamicRHI::TextureResourceCast(nilou::RHITexture *texture)
+    FOpenGLDynamicRHI::OpenGLTextureResource FOpenGLDynamicRHI::TextureResourceCast(RHITexture *texture)
     {
         OpenGLTextureResource resource;
         if (texture->GetTextureType() == ETextureType::TT_Texture2D)

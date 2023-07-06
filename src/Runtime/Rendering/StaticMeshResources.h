@@ -26,6 +26,9 @@ namespace nilou {
         DECLARE_VERTEX_FACTORY_TYPE(FStaticVertexFactory)
     public:
 
+        class FDimensionEnableColorComponent : SHADER_PERMUTATION_BOOL("ENABLE_COLOR_COMPONENT");
+        using FPermutationDomain = TShaderPermutationDomain<FDimensionEnableColorComponent>;
+
         FStaticVertexFactory() { }
 
         struct FDataType
@@ -43,7 +46,9 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual std::vector<FRHIVertexInput> GetVertexInputList() const override;
+        virtual void InitVertexFactory() override;
+
+        virtual int32 GetPermutationId() const override;
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -219,7 +224,7 @@ namespace nilou {
 
         FStaticMeshRenderData* RenderData;
 
-        virtual void PostDeserialize() override;
+        virtual void PostDeserialize(FArchive& Ar) override;
 
         virtual ~UStaticMesh() { ReleaseResources(); }
         void ReleaseResources();

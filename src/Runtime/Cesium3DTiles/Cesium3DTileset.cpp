@@ -75,9 +75,8 @@ namespace nilou {
             std::shared_ptr<UTexture2D> Texture = std::make_shared<UTexture2D>();
             Texture->Name = TextureName;
             Texture->ImageData = image;
-            Texture->UpdateResource();
             
-            RHITextureParams &TextureParams = Texture->GetResource()->SamplerRHI.Params;
+            RHITextureParams& TextureParams = Texture->TextureParams;
             if (gltf_texture.sampler != -1)
             {
                 tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
@@ -89,6 +88,7 @@ namespace nilou {
                 TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
                 TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
+            Texture->UpdateResource();
             OutTextures.push_back(Texture);
         }
 
@@ -281,7 +281,7 @@ namespace nilou {
 
     void GLTFParseResult::InitResource()
     {
-        check(IsInRenderingThread());
+        Ncheck(IsInRenderingThread());
         for (int i = 0; i < this->Textures.size(); i++)
         {
             this->Textures[i]->GetResource()->InitResource();

@@ -1,10 +1,12 @@
 #include "../include/BasePassCommon.glsl"
 
-uniform float Red;
-uniform float Green;
-uniform float Blue;
-uniform float Metallic;
-uniform float Roughness;
+layout (std140, binding=0) uniform MAT_UNIFORM_BLOCK {
+    float Red;
+    float Green;
+    float Blue;
+    float Metallic;
+    float Roughness;
+};
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {

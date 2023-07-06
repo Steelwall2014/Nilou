@@ -102,11 +102,18 @@ namespace nilou {
 
         void UpdateCode(const std::string &InCode, bool bRecompile=true);
 
+        template<typename T>
+        void UpdateUniformBlockType()
+        {
+            UniformBlock->UpdateDataType(Ubpa::Type_of<T>.GetName());
+            BeginInitResource(UniformBlock.get());
+        }
+
         void SetTextureParameterValue(const std::string &Name, UTexture *Texture);
 
-        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer);
+        void SetScalarParameterValue(const std::string &Name, float Value);
 
-        void SetScalarParameterValue(const std::string &Name, FUniformValue Uniform);
+        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer);
 
         void SetShadingModel(EShadingModel InShadingModel);
 
@@ -123,8 +130,6 @@ namespace nilou {
             return DefaultMaterialInstance;
         }
 
-        void UpdateDataToMaterialProxy();
-
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
 
         UMaterialInstance* CreateMaterialInstance();
@@ -133,7 +138,9 @@ namespace nilou {
 
         std::string GetMateiralCode() const { return Code; }
 
-        virtual void PostDeserialize() override;
+        virtual void PostSerialize(FArchive& Ar) override;
+
+        virtual void PostDeserialize(FArchive& Ar) override;
 
         void ReleaseResources()
         {
@@ -148,17 +155,20 @@ namespace nilou {
             }
         }
 
+        FDynamicUniformBuffer* GetUniformBlock() { return UniformBlock.get(); }
+
     protected:
+
+        NPROPERTY()
+        std::shared_ptr<FDynamicUniformBuffer> UniformBlock;
+        
+        std::map<std::string, FUniformBuffer *> RuntimeUniformBlocks;
 
         FMaterial* MaterialResource;
 
         std::string Code;
 
         FMaterialRenderProxy* DefaultMaterialInstance;
-
-        std::map<std::string, FUniformBuffer *> UniformBuffers;
-
-        std::map<std::string, FUniformValue> Uniforms;
         
     };
 
@@ -168,7 +178,7 @@ namespace nilou {
     public:
         UMaterialInstance() { }
 
-        UMaterialInstance(UMaterial* Material)
+        explicit UMaterialInstance(UMaterial* Material)
             : UMaterial(*Material)
         {
 
@@ -200,8 +210,6 @@ namespace nilou {
                 OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
             for (auto &[Name, UniformBuffer] : UniformBuffers)
                 OutBindings.SetElementShaderBinding(Name, UniformBuffer->GetRHI());
-            for (auto &[Name, Uniform] : Uniforms)
-                OutBindings.SetUniformShaderBinding(Name, Uniform);
         }
 
         std::string Name;
@@ -212,15 +220,13 @@ namespace nilou {
 
         std::map<std::string, FUniformBuffer *> UniformBuffers;
 
-        std::map<std::string, FUniformValue> Uniforms;
-
         uint8 StencilRefValue = 0;
 
-        FRasterizerStateInitializer RasterizerState;
+        RHIRasterizerStateRef RasterizerState = nullptr;
 
-        FDepthStencilStateInitializer DepthStencilState;
+        RHIDepthStencilStateRef DepthStencilState = nullptr;
 
-        FBlendStateInitializer BlendState;
+        RHIBlendStateRef BlendState = nullptr;
 
         EShadingModel ShadingModel;
 

@@ -1,12 +1,13 @@
 #version 460
+#include "../include/Macros.glsl"
 
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout (binding = 0) uniform samplerCube EnvironmentTexture;
+layout (binding=0) uniform samplerCube EnvironmentTexture;
 
-layout (rgba16f, binding = 1) uniform imageCube PrefilteredTexture;
+layout (rgba16f, binding=1) uniform imageCube PrefilteredTexture;
 
-layout (std140) uniform PrefilteredEnvTextureShaderBlock {
+layout (std140, binding=2) uniform PrefilteredEnvTextureShaderBlock {
     int TextureSize;
     float roughness;
 };
@@ -14,6 +15,24 @@ layout (std140) uniform PrefilteredEnvTextureShaderBlock {
 #include "../include/Maths.glsl"
 #include "../include/functions.glsl"
 
+#if RHI_API == RHI_VULKAN
+vec3 ForwardVectors[6] = {
+    vec3(1, 0, 0), 
+    vec3(-1, 0, 0), 
+    vec3(0, 1, 0), 
+    vec3(0, -1, 0), 
+    vec3(0, 0, 1), 
+    vec3(0, 0, -1), 
+};
+vec3 UpVectors[6] = {
+    vec3(0, 1, 0), 
+    vec3(0, 1, 0), 
+    vec3(0, 0, -1), 
+    vec3(0, 0, 1), 
+    vec3(0, 1, 0), 
+    vec3(0, 1, 0), 
+};
+#elif RHI_API == RHI_OPENGL
 vec3 ForwardVectors[6] = {
     vec3(1, 0, 0), 
     vec3(-1, 0, 0), 
@@ -30,6 +49,7 @@ vec3 UpVectors[6] = {
     vec3(0, 0, -1), 
     vec3(0, 0, -1), 
 };
+#endif
     
 float RadicalInverse_VdC(uint bits) 
 {
@@ -102,6 +122,10 @@ void main()
         }
         prefilteredColor = prefilteredColor / totalWeight;
 
+    #if RHI_API == RHI_VULKAN
+        imageStore(PrefilteredTexture, ivec3(gl_GlobalInvocationID.x, TextureSize-1-gl_GlobalInvocationID.y, i), vec4(prefilteredColor, 0));
+    #elif RHI_API == RHI_OPENGL
         imageStore(PrefilteredTexture, ivec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, i), vec4(prefilteredColor, 0));
+    #endif
     }
 }
