@@ -112,18 +112,16 @@ namespace nilou {
 
         std::shared_ptr<AArrowActor> ArrorActor = World->SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         
-        // FTransform ReflectionProbeTransform1;
-        // ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
-        // std::shared_ptr<AReflectionProbe> ReflectionProbe1 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
-        // for (auto Sphere : PBRSpheres)
-        //     ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
-        // ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
+        FTransform ReflectionProbeTransform1;
+        ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
+        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
+        for (auto Sphere : PBRSpheres)
+            ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
+        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
 
         FTransform ReflectionProbeTransform2;
         ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe2 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
-        ReflectionProbe2->ReflectionProbeComponent->SetExtent(dvec3(100));
-        World->SkyboxReflectionProbe = ReflectionProbe2.get();
     }
 
     static void LoadSkyAtmosphere(UWorld* World)
@@ -137,10 +135,10 @@ namespace nilou {
         SphereActor->SphereComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
         std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = World->SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
 
-        // std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
-        // SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
-        // SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
-        // World->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+        std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
+        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
+        World->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
     }
 
     static void LoadVirtualHeightfieldMesh(UWorld* World)
