@@ -19,11 +19,13 @@ layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
 // To be filled
 //#include "../Materials/ColoredMaterial_Mat.glsl"
 
+#if ENABLE_REFLECTION_PROBE
 layout (binding=17) uniform samplerCube IrradianceTexture;
 
 layout (binding=18) uniform samplerCube PrefilteredTexture;
 
 layout (binding=19) uniform sampler2D IBL_BRDF_LUT;
+#endif
 
 //layout (std140) uniform FPrefilteredTextureBlock {
 //    uint NumMips;
@@ -42,6 +44,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 } 
 
+#if ENABLE_REFLECTION_PROBE
 vec3 CalcIndirectLighting(vec3 baseColor, float metallic, float roughness)
 {
     vec3 V = normalize(-vs_out.RelativeWorldPosition);
@@ -67,6 +70,7 @@ vec3 CalcIndirectLighting(vec3 baseColor, float metallic, float roughness)
     vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
     return kD * diffuse + specular;
 }
+#endif
 
 void main()
 {
@@ -81,7 +85,9 @@ void main()
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
     Emissive = GammaToLinear(MaterialGetEmissive(vs_out));
     ShadingModel = MaterialShadingModel;
+#if ENABLE_REFLECTION_PROBE
     Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
+#endif
 //    vec3 projCoords = frag_lightspace_pos[0].xyz / frag_lightspace_pos[0].w;
 //    projCoords = projCoords * 0.5 + 0.5;
 //    float closestDepth = texture(shadowMap, vec3(projCoords.xy, 0)).r; 

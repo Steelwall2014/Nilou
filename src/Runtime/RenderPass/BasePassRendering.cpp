@@ -117,7 +117,9 @@ namespace nilou {
                 FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
                 RHIGetError();
                 
-                FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
+                FBasePassPS::FPermutationDomain Domain;
+                Domain.Set<FBasePassPS::FDimensionEnableReflectionProbe>((bool)Mesh.bEnableReflectionProbe);
+                FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, Domain.ToDimensionValueId());
                 RHIGetError();
 
 

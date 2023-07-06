@@ -147,6 +147,8 @@ namespace nilou {
             
         }
 
+        SceneProxy->bHasData = true;
+
     }
 
     FReflectionProbeSceneProxy* UReflectionProbeComponent::CreateSceneProxy()

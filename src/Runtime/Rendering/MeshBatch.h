@@ -49,12 +49,14 @@ namespace nilou {
 	    uint32 bUseForDepthPass : 1;	// Whether it can be used in depth pass.
 	    //uint32 bWireframe		: 1;
 	    uint32 bSelectable      : 1;
+        uint32 bEnableReflectionProbe : 1;
         
         FMeshBatch() 
             : CastShadow(true)
             , bUseForDepthPass(true)
             //, bWireframe(false)
             , bSelectable(true)
+            , bEnableReflectionProbe(true)
         { }
     };
 

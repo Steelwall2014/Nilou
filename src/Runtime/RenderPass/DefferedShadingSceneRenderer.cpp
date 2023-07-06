@@ -340,6 +340,9 @@ namespace nilou {
                     FReflectionProbeSceneProxy* SkyBoxProbeProxy = nullptr;
                     if (DefaultProbe && DefaultProbe->ReflectionProbeComponent)
                         SkyBoxProbeProxy = DefaultProbe->ReflectionProbeComponent->SceneProxy;
+                    Mesh.Element.Bindings.SetElementShaderBinding(
+                        "FViewShaderParameters", 
+                        ViewInfo.ViewUniformBuffer->GetRHI());
 
                     std::vector<std::pair<FReflectionProbeSceneProxy*, float>> ReflectionProbes;
                     switch (PrimitiveInfo->SceneProxy->ReflectionProbeBlendMode)
@@ -404,24 +407,23 @@ namespace nilou {
                             NewMesh.Element.Bindings.SetElementShaderBinding(
                                 "PIXEL_UNIFORM_BLOCK", 
                                 UniformBlock->GetRHI());
-                            NewMesh.Element.Bindings.SetElementShaderBinding(
-                                "IrradianceTexture", 
-                                ReflectionProbe->IrradianceTexture);
-                            NewMesh.Element.Bindings.SetElementShaderBinding(
-                                "PrefilteredTexture", 
-                                ReflectionProbe->PrefilteredTexture);
-                            NewMesh.Element.Bindings.SetElementShaderBinding(
-                                "IBL_BRDF_LUT", 
-                                IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
-                            NewMesh.Element.Bindings.SetElementShaderBinding(
-                                "FViewShaderParameters", 
-                                ViewInfo.ViewUniformBuffer->GetRHI());
-                            // NewMesh.Element.Bindings.SetUniformShaderBinding(
-                            //     "PrefilterEnvTextureNumMips", 
-                            //     );
-                            // NewMesh.Element.Bindings.SetUniformShaderBinding(
-                            //     "ReflectionProbeFactor", 
-                            //     factor);
+                            if (ReflectionProbe->bHasData)
+                            {
+                                NewMesh.Element.Bindings.SetElementShaderBinding(
+                                    "IrradianceTexture", 
+                                    ReflectionProbe->IrradianceTexture);
+                                NewMesh.Element.Bindings.SetElementShaderBinding(
+                                    "PrefilteredTexture", 
+                                    ReflectionProbe->PrefilteredTexture);
+                                NewMesh.Element.Bindings.SetElementShaderBinding(
+                                    "IBL_BRDF_LUT", 
+                                    IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
+                                NewMesh.bEnableReflectionProbe = true;
+                            }
+                            else 
+                            {
+                                NewMesh.bEnableReflectionProbe = false;
+                            }
                             
                             Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
                         }
@@ -436,6 +438,7 @@ namespace nilou {
                         Mesh.Element.Bindings.SetElementShaderBinding(
                             "PIXEL_UNIFORM_BLOCK", 
                             UniformBlock->GetRHI());
+                        Mesh.bEnableReflectionProbe = false;
                         Views[ViewIndex].DynamicMeshBatches.push_back(Mesh);
                     }
                 }

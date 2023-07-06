@@ -100,6 +100,8 @@ namespace nilou {
 
         FRHISampler* PrefilteredTexture;
 
+        bool bHasData = false;
+
         class FReflectionProbeSceneInfo* ReflectionProbeSceneInfo;
 
     };
