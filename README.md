@@ -37,7 +37,7 @@ cd NilouHeaderTool
 xmake f -p windows -a x64 -m release
 xmake -P .
 ```
-1. 接下来编译渲染引擎，渲染引擎的编译和运行如下。会启动vcpkg下载依赖库。
+3. 接下来编译渲染引擎，渲染引擎的编译和运行如下。会启动vcpkg下载依赖库。
 ```sh
 xmake f -p windows -a x64 -m debug
 xmake build -v Nilou  
