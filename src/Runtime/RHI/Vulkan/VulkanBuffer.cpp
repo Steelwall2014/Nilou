@@ -379,14 +379,16 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
 {
     VulkanBufferRef Buffer = std::make_shared<VulkanBuffer>(this, Stride, Size, InUsage);
-    RHIUpdateBuffer(Buffer.get(), 0, Size, Data);
+    if (Data)
+        RHIUpdateBuffer(Buffer.get(), 0, Size, Data);
     return Buffer;
 }
 
 RHIUniformBufferRef FVulkanDynamicRHI::RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data)
 {
     VulkanUniformBufferRef Buffer = std::make_shared<VulkanUniformBuffer>(this, Size, InUsage);
-    RHIUpdateUniformBuffer(Buffer, Data);
+    if (Data)
+        RHIUpdateUniformBuffer(Buffer, Data);
     return Buffer;
 
 }
