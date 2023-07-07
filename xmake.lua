@@ -138,7 +138,7 @@ BuildExternalProject({projectName = "glad"})
 BuildProject({
     projectName = "Nilou",
     projectType = "binary",
-    macros = {},
+    macros = {"FMT_USE_NONTYPE_TEMPLATE_ARGS=0"},
     depends = {"crossguid", "glad", "base64"},
     files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
     debugLink = {"lib/debug/*"},
