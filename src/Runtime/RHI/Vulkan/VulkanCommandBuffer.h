@@ -170,7 +170,6 @@ public:
 	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void SubmitUploadCmdBuffer(uint32 NumSignalSemaphores = 0, VkSemaphore* SignalSemaphores = nullptr);
-
 	void SubmitActiveCmdBuffer(std::vector<VkSemaphore> SignalSemaphores);
 
 	void FreeUnusedCmdBuffers();

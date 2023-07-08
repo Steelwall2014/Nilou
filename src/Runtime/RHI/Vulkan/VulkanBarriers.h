@@ -310,16 +310,16 @@ inline FVulkanLayoutManager& GetLayoutManager()
     static FVulkanLayoutManager Mng(false, nullptr);
     return Mng;
 }
-class VulkanTextureBase;
+class VulkanTexture;
 struct FVulkanImageLayoutBarrierHelper
 {
 	FVulkanPipelineBarrier Barrier;
 	
-	void AddImageLayoutTransition(VulkanTextureBase* Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
-	void AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout);
-	// void AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout);
-	// void AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const struct FVulkanImageLayout& DstLayout);
-	// void AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, const struct FVulkanImageLayout& DstLayout);
+	void AddImageLayoutTransition(VulkanTexture* Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
+	void AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout);
+	// void AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout);
+	// void AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const struct FVulkanImageLayout& DstLayout);
+	// void AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, const struct FVulkanImageLayout& DstLayout);
 	void Execute(VkCommandBuffer CmdBuffer) { Barrier.Execute(CmdBuffer); }
 	void Execute(FVulkanCmdBuffer* CmdBuffer)  { Barrier.Execute(CmdBuffer); }
 };

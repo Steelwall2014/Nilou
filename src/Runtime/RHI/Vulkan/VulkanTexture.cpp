@@ -55,16 +55,30 @@ static VkSamplerAddressMode TranslateWrapMode(ETextureWrapModes WrapMode)
     return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
 }
 
-VulkanTextureBase::VulkanTextureBase(
+VulkanTexture::VulkanTexture(
+        VulkanTexture* InParentTexture,
         VkImage InImage,
         VkImageView InImageView,
         VkDeviceMemory InMemory,
         VkImageAspectFlags InAspectFlags,
-        const FVulkanImageLayout& InImageLayout)
-    : Image(InImage)
+        const FVulkanImageLayout& InImageLayout,
+        uint32 InSizeX,
+        uint32 InSizeY,
+        uint32 InSizeZ,
+        uint32 InNumMips,
+        uint32 InBaseMipLevel,
+        uint32 InBaseArrayLayer,
+        EPixelFormat InFormat,
+        const std::string &InTextureName,
+        ETextureType InTextureType)
+    : RHITexture(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName, InTextureType)
+    , Image(InImage)
     , ImageView(InImageView)
     , Memory(InMemory)
     , FullAspectFlags(InAspectFlags)
+    , BaseArrayLayer(InBaseArrayLayer)
+    , BaseMipLevel(InBaseMipLevel)
+    , ParentTexture(InParentTexture)
     #ifdef NILOU_DEBUG
     , DebugLayout(VK_IMAGE_LAYOUT_UNDEFINED, 0, 0)
     #endif
@@ -75,7 +89,7 @@ VulkanTextureBase::VulkanTextureBase(
     }
 }
 
-VulkanTextureBase::~VulkanTextureBase()
+VulkanTexture::~VulkanTexture()
 {
     FVulkanDynamicRHI* RHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
     if (!IsImageView())
@@ -92,7 +106,7 @@ VulkanTextureBase::~VulkanTextureBase()
         vkDestroyImageView(RHI->device, ImageView, nullptr);
 }
 
-FVulkanImageLayout VulkanTextureBase::GetImageLayout() const
+FVulkanImageLayout VulkanTexture::GetImageLayout() const
 {
     if (IsImageView())
     {
@@ -102,10 +116,10 @@ FVulkanImageLayout VulkanTextureBase::GetImageLayout() const
         Range.baseArrayLayer = BaseArrayLayer;
         Range.baseMipLevel = BaseMipLevel;
         Range.levelCount = NumMips;
-        Range.layerCount = NumLayers;
+        Range.layerCount = GetNumLayers();
         FVulkanImageLayout Layout = ParentLayout->GetSubresLayout(Range);
         #ifdef NILOU_DEBUG
-        VulkanTextureBase* NonconstThis = const_cast<VulkanTextureBase*>(this);
+        VulkanTexture* NonconstThis = const_cast<VulkanTexture*>(this);
         NonconstThis->DebugLayout = Layout;
         #endif
         return Layout;
@@ -113,14 +127,14 @@ FVulkanImageLayout VulkanTextureBase::GetImageLayout() const
     else 
     {
         #ifdef NILOU_DEBUG
-        VulkanTextureBase* NonconstThis = const_cast<VulkanTextureBase*>(this);
+        VulkanTexture* NonconstThis = const_cast<VulkanTexture*>(this);
         NonconstThis->DebugLayout = *GetLayoutManager().GetFullLayout(Image);
         #endif
         return *GetLayoutManager().GetFullLayout(Image);
     }
 }
 
-void VulkanTextureBase::SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range)
+void VulkanTexture::SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range)
 {
     if (IsImageView())
     {
@@ -138,9 +152,9 @@ void VulkanTextureBase::SetImageLayout(VkImageLayout Layout, const VkImageSubres
     #endif
 }
 
-void VulkanTextureBase::SetFullImageLayout(VkImageLayout Layout)
+void VulkanTexture::SetFullImageLayout(VkImageLayout Layout)
 {
-    VkImageSubresourceRange Range{FullAspectFlags, BaseMipLevel, NumMips, BaseArrayLayer, NumLayers};
+    VkImageSubresourceRange Range{FullAspectFlags, BaseMipLevel, NumMips, BaseArrayLayer, GetNumLayers()};
     SetImageLayout(Layout, Range);
 }
 
@@ -333,49 +347,62 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
-    // if (Format == PF_D32F || Format == PF_D24S8 || Format == PF_D32FS8)
-    // {
-    //     FVulkanCmdBuffer* UploadCmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
-    //     ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    //     VkImageAspectFlags Aspect = GetFullAspectMask();
-    //     if (Format == PF_D32F)
-    //     {
-    //         ImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    //         Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-    //     }
-    //     FVulkanImageLayoutBarrierHelper Barrier;
-    //     Barrier.AddImageLayoutTransition(
-    //         Image, VK_IMAGE_LAYOUT_UNDEFINED, ImageLayout, 
-    //         FVulkanPipelineBarrier::MakeSubresourceRange(Aspect, 
-    //         0, NumMips, 0, imageInfo.arrayLayers));
-    //     Barrier.Execute(UploadCmdBuffer);
-    //     // TransitionImageLayout(
-    //     //     UploadCmdBuffer->GetHandle(), Image, 
-    //     //     VK_IMAGE_LAYOUT_UNDEFINED, ImageLayout,
-    //     //     MakeSubresourceRange(Aspect, 
-    //     //     0, NumMips, 0, imageInfo.arrayLayers));
-    //     CommandBufferManager->SubmitUploadCmdBuffer();
-    // }
 
     if (TextureType == ETextureType::TT_Texture2D)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1/*, GetFullAspectMask(Format)*/};
-        return std::make_shared<VulkanTexture2D>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, 1, NumMips, Format, name);
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1};
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(
+            nullptr, 
+            Image, 
+            ImageView, 
+            Memory, 
+            GetFullAspectMask(Format), 
+            Layout, 
+            InSizeX, InSizeY, 1, 
+            NumMips, 0, 0, 
+            Format, name, TT_Texture2D));
     }
     else if (TextureType == ETextureType::TT_Texture2DArray)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, InSizeZ/*, GetFullAspectMask(Format)*/};
-        return std::make_shared<VulkanTexture2DArray>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, InSizeZ};
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(
+            nullptr, 
+            Image, 
+            ImageView, 
+            Memory, 
+            GetFullAspectMask(Format), 
+            Layout, 
+            InSizeX, InSizeY, 1, 
+            NumMips, 0, 0, 
+            Format, name, TT_Texture2DArray));
     }
     else if (TextureType == ETextureType::TT_Texture3D)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1/*, GetFullAspectMask(Format)*/};
-        return std::make_shared<VulkanTexture3D>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, InSizeZ, NumMips, Format, name);
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1};
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(
+            nullptr, 
+            Image, 
+            ImageView, 
+            Memory, 
+            GetFullAspectMask(Format), 
+            Layout, 
+            InSizeX, InSizeY, InSizeZ, 
+            NumMips, 0, 0, 
+            Format, name, TT_Texture3D));
     }
     else if (TextureType == ETextureType::TT_TextureCube)
     {
-        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 6/*, GetFullAspectMask(Format)*/};
-        return std::make_shared<VulkanTextureCube>(Image, ImageView, Memory, Layout, InSizeX, InSizeY, 6, NumMips, Format, name);
+        FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 6};
+        return std::shared_ptr<VulkanTexture>(new VulkanTexture(
+            nullptr, 
+            Image, 
+            ImageView, 
+            Memory, 
+            GetFullAspectMask(Format), 
+            Layout, 
+            InSizeX, InSizeY, 6, 
+            NumMips, 0, 0, 
+            Format, name, TT_TextureCube));
     }
     return nullptr;
 
@@ -383,7 +410,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
 RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LayerIndex)
 {
-    VulkanTextureBase* Texture = ResourceCast(OriginTexture);
+    VulkanTexture* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
@@ -403,10 +430,10 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     FVulkanImageLayout Layout = Texture->GetImageLayout();
     FVulkanImageLayout ViewLayout = Layout.GetSubresLayout(viewInfo.subresourceRange);
 
-    return std::make_shared<VulkanTextureView2D>(
-        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
+    return std::make_shared<VulkanTexture>(
+        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, GetFullAspectMask(Format), ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 1, 
-        MinLevel, NumLevels, LayerIndex, 1, Format, OriginTexture->GetName()+"_View");
+        NumLevels, MinLevel, LayerIndex, Format, OriginTexture->GetName()+"_View", TT_Texture2D);
 
 }
 
@@ -414,7 +441,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
 {
     if (OriginTexture->GetTextureType() != ETextureType::TT_TextureCube)
         return nullptr;
-    VulkanTextureBase* Texture = ResourceCast(OriginTexture);
+    VulkanTexture* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(Format, false, true);
@@ -434,10 +461,10 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     FVulkanImageLayout Layout = Texture->GetImageLayout();
     FVulkanImageLayout ViewLayout = Layout.GetSubresLayout(viewInfo.subresourceRange);
 
-    return std::make_shared<VulkanTextureViewCube>(
-        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, ViewLayout,
+    return std::make_shared<VulkanTexture>(
+        Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, GetFullAspectMask(Format), ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 6, 
-        MinLevel, NumLevels, 0, 6, Format, OriginTexture->GetName()+"_View");
+        NumLevels, MinLevel, 0, Format, OriginTexture->GetName()+"_View", TT_TextureCube);
 
 }
 
@@ -447,7 +474,7 @@ void FVulkanDynamicRHI::RHIUpdateTextureInternal(
     int32 BaseArrayLayer)
 {
 
-    VulkanTextureBase* vkTexture = ResourceCast(Texture);
+    VulkanTexture* vkTexture = ResourceCast(Texture);
     uint32 Size = Width * Height * Depth * TranslatePixelFormatToBytePerPixel(Texture->GetFormat());
     const VkPhysicalDeviceLimits& Limits = GpuProps.limits;
     uint8 BytePerPixel = TranslatePixelFormatToBytePerPixel(Texture->GetFormat());
@@ -558,7 +585,7 @@ void FVulkanDynamicRHI::RHIUpdateTextureCube(RHITextureCube* Texture,
 
 void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
 {
-    VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
+    VulkanTexture* vkTexture = ResourceCast(Texture.get());
 
     int32 LayerCount = 1;
     if (Texture->GetTextureType() == ETextureType::TT_Texture2DArray)

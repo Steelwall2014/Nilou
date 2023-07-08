@@ -161,15 +161,22 @@ namespace nilou {
 	class RHITexture : public RHIResource 
 	{
 	public:
-		RHITexture(uint32 InNumMips, EPixelFormat InFormat, std::string InTextureName)
+		RHITexture(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, const std::string &InTextureName, ETextureType InTextureType)
 			: RHIResource(ERHIResourceType::RRT_Texture)
 			, NumMips(InNumMips)
 			, Format(InFormat)
 			, TextureName(InTextureName)
+			, TextureType(InTextureType)
+			, SizeX(InSizeX)
+			, SizeY(InSizeY)
+			, SizeZ(InSizeZ)
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual uvec3 GetSizeXYZ() const { return uvec3(0, 0, 0); }
+		virtual uvec3 GetSizeXYZ() const { return uvec3(SizeX, SizeY, SizeZ); }
+		uint32 GetSizeX() const { return SizeX; }
+		uint32 GetSizeY() const { return SizeY; }
+		uint32 GetSizeZ() const { return SizeZ; }
 		uint32 GetNumMips() const
 		{
 			return NumMips;
@@ -193,81 +200,21 @@ namespace nilou {
 		EPixelFormat Format;
 		ETextureType TextureType;
 		std::string TextureName;
+		uint32 SizeX;
+		uint32 SizeY;
+		uint32 SizeZ;
 
 	};
 	using RHITextureRef = std::shared_ptr<RHITexture>;
-	
-	class RHITexture2D : public RHITexture 
-	{
-	public:
-		RHITexture2D(uint32 InSizeX, uint32 InSizeY, uint32 InNumMips, EPixelFormat InFormat, std::string InTextureName)
-		: RHITexture(InNumMips, InFormat, InTextureName)
-		, SizeX(InSizeX)
-		, SizeY(InSizeY)
-		{ TextureType = ETextureType::TT_Texture2D; }
 
-		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, 1); }
-		uint32 GetSizeX() const { return SizeX; }
-		uint32 GetSizeY() const { return SizeY; }
-
-	protected:
-		uint32 SizeX;
-		uint32 SizeY;
-	};
+	// Deprecated typenames
+	using RHITexture2D = RHITexture;
+	using RHITexture2DArray = RHITexture;
+	using RHITexture3D = RHITexture;
+	using RHITextureCube = RHITexture;
 	using RHITexture2DRef = std::shared_ptr<RHITexture2D>;
-	
-	class RHITexture2DArray : public RHITexture2D 
-	{
-	public:
-		RHITexture2DArray(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, std::string InTextureName)
-		: RHITexture2D(InSizeX, InSizeY, InNumMips, InFormat, InTextureName)
-		, SizeZ(InSizeZ)
-		{ TextureType = ETextureType::TT_Texture2DArray; }
-
-		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
-		uint32 GetSizeZ() const { return SizeZ; }
-
-	private:
-		uint32 SizeZ;
-	};
 	using RHITexture2DArrayRef = std::shared_ptr<RHITexture2DArray>;
-
-	class RHITexture3D : public RHITexture
-	{
-	public:
-		RHITexture3D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, std::string InTextureName)
-		: RHITexture(InNumMips, InFormat, InTextureName)
-		, SizeX(InSizeX)
-		, SizeY(InSizeY)
-		, SizeZ(InSizeZ)
-		{ TextureType = ETextureType::TT_Texture3D; }
-
-		virtual uvec3 GetSizeXYZ() const override { return uvec3(SizeX, SizeY, SizeZ); }
-		uint32 GetSizeX() const { return SizeX; }
-		uint32 GetSizeY() const { return SizeY; }
-		uint32 GetSizeZ() const { return SizeZ; }
-
-	protected:
-		uint32 SizeX;
-		uint32 SizeY;
-		uint32 SizeZ;
-
-	};
 	using RHITexture3DRef = std::shared_ptr<RHITexture3D>;
-	
-	class RHITextureCube : public RHITexture 
-	{
-	public:
-		RHITextureCube(uint32 InSize, uint32 InNumMips, EPixelFormat InFormat, std::string InTextureName)
-		: RHITexture(InNumMips, InFormat, InTextureName)
-		, Size(InSize)
-		{ TextureType = ETextureType::TT_TextureCube; }
-
-		virtual uvec3 GetSizeXYZ() const override { return uvec3(Size, Size, 6); }
-
-	protected:
-		uint32 Size;
-	};
 	using RHITextureCubeRef = std::shared_ptr<RHITextureCube>;
 
 	class RHIFramebuffer : public RHIResource 

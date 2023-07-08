@@ -45,7 +45,7 @@ void FVulkanCommonPipelineDescriptorState::SetBuffer(uint8 BindingIndex, RHIBuff
 
 void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISampler Sampler)
 {
-	VulkanTextureBase* vkTexture = ResourceCast(Sampler.Texture);
+	VulkanTexture* vkTexture = ResourceCast(Sampler.Texture);
 	{
 		Barrier.AddImageLayoutTransition(
 			vkTexture, GetFullAspectMask(Sampler.Texture->GetFormat()),
@@ -69,7 +69,7 @@ void FVulkanCommonPipelineDescriptorState::SetSampler(uint8 BindingIndex, FRHISa
 
 void FVulkanCommonPipelineDescriptorState::SetImage(uint8 BindingIndex, RHITexture* Image, EDataAccessFlag Access)
 {
-    VulkanTextureBase* vkTexture = ResourceCast(Image);
+    VulkanTexture* vkTexture = ResourceCast(Image);
 	{
 		Barrier.AddImageLayoutTransition(
 			vkTexture, GetFullAspectMask(Image->GetFormat()),
