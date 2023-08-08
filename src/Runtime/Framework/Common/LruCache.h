@@ -24,6 +24,7 @@ namespace nilou {
                 MoveToFront(iter);
                 return *iter;
             }
+            throw "Key Error";
         }
 
         Value& Get_ThreadSafe(const Key& key)

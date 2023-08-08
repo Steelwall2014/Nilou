@@ -44,10 +44,10 @@ namespace nilou {
 
         static FRenderingThread *RenderingThread;
         static uint32 GetFrameCount() { return FRenderingThread::FrameCount; }
+        static uint32 FrameCount;
 
     private:
 
-        static uint32 FrameCount;
         std::mutex mutex;
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
 

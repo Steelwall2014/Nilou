@@ -218,8 +218,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
 
 void FVulkanDynamicRHI::RHIBeginFrame()
 {
-    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore);
-    DescriptorPoolsManager->Reset();
+    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore->Handle);
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
     VkImageSubresourceRange Region{};
     Region.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -256,6 +255,7 @@ void FVulkanDynamicRHI::RHIEndFrame()
     //     CmdBuffer->Handle, swapChainImages[CurrentSwapChainImageIndex], 
     //     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, Region);
     CommandBufferManager->SubmitUploadCmdBuffer();
+    CommandBufferManager->RefreshFenceStatus();
     SwapChain->Present(GfxQueue.get(), PresentQueue.get());
     CommandBufferManager->FreeUnusedCmdBuffers();
 }
@@ -293,10 +293,14 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
     VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(VulkanPipeline->PipelineLayout.get());
     CurrentPipelineLayout = VulkanLayout;
     
-    FVulkanDescriptorSets Sets = DescriptorPoolsManager->AllocateDescriptorSets(*VulkanLayout->DescriptorSetsLayout);
-    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, Sets);
-
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();   
+    if (CmdBuffer->CurrentSetContainer == nullptr)
+    {
+        FVulkanDescriptorPoolSetContainer* SetContainer = DescriptorPoolsManager->AcquirePoolSetContainer();
+        CmdBuffer->CurrentSetContainer = SetContainer;
+    }
+    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, CmdBuffer->CurrentSetContainer->AllocateDescriptorSets(*VulkanLayout->DescriptorSetsLayout));
+
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
     {
@@ -530,8 +534,8 @@ int FVulkanDynamicRHI::Initialize()
     }
 
     {
-        GfxQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(device, GfxQueueIndex.value()));
-        PresentQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(device, PresentQueueIndex.value()));
+        GfxQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(this, device, GfxQueueIndex.value()));
+        PresentQueue = std::unique_ptr<FVulkanQueue>(new FVulkanQueue(this, device, PresentQueueIndex.value()));
         NILOU_LOG(Info, "Create queues")
     }
 
@@ -558,6 +562,8 @@ int FVulkanDynamicRHI::Initialize()
     RenderPassManager = std::unique_ptr<FVulkanRenderPassManager>(new FVulkanRenderPassManager(device));
 
     DescriptorPoolsManager = std::unique_ptr<FVulkanDescriptorPoolsManager>(new FVulkanDescriptorPoolsManager(device));
+
+    CurrentImageAcquiredSemaphore = std::make_shared<FVulkanSemaphore>();
 
     /** Create swap chain */
     {        
@@ -669,6 +675,7 @@ int FVulkanDynamicRHI::Initialize()
 void FVulkanDynamicRHI::Finalize()
 {
     SamplerMap.clear();
+    StagingManager->Deinit();
     StagingManager = nullptr;
     RenderPassManager = nullptr;
     DescriptorPoolsManager = nullptr;

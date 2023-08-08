@@ -125,7 +125,7 @@ namespace nilou {
 
     void UVirtualTexture::UpdateTileInternal(uint32 TileX, uint32 TileY, uint32 MipmapLevel)
     {
-        MipmapLevel = glm::clamp(MipmapLevel, 0u, uint32(GetResource()->NumMips));
+        MipmapLevel = glm::clamp(MipmapLevel, 0u, uint32(GetResource()->NumMips-1));
         auto Tile = Tiles[MipmapLevel][TileX][TileY].get();
         std::unique_lock<std::mutex> lock(Tile->mutex, std::try_to_lock);
         if (!lock.owns_lock())

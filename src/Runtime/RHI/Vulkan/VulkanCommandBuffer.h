@@ -65,17 +65,22 @@ public:
 
 	void RefreshFenceStatus();
 
-	void AddWaitSemaphore(VkPipelineStageFlags Flags, VkSemaphore Semaphore)
+	void AddWaitSemaphore(VkPipelineStageFlags Flags, std::shared_ptr<FVulkanSemaphore> Semaphore)
 	{
 		Ncheck(std::find(WaitSemaphores.begin(), WaitSemaphores.end(), Semaphore) == WaitSemaphores.end());
 		WaitSemaphores.push_back(Semaphore);
 		WaitFlags.push_back(Flags);
 	}
 
+	uint64 GetFenceSignaledCounter() const
+	{
+		return FenceSignaledCounter;
+	}
+
     VkCommandBuffer Handle{};
 
-    std::vector<VkSemaphore> WaitSemaphores;
-	std::vector<VkSemaphore> SubmittedWaitSemaphores;
+    std::vector<std::shared_ptr<FVulkanSemaphore>> WaitSemaphores;
+	std::vector<std::shared_ptr<FVulkanSemaphore>> SubmittedWaitSemaphores;
 
     std::vector<VkPipelineStageFlags> WaitFlags;
 
@@ -83,7 +88,14 @@ public:
 
 	VkFence Fence{};
 
-	FVulkanCommandBufferPool* CmdBufferPool;
+	// Last value passed after the fence got signaled
+	volatile uint64 FenceSignaledCounter{};
+	// Last value when we submitted the cmd buffer; useful to track down if something waiting for the fence has actually been submitted
+	volatile uint64 SubmittedFenceCounter{};
+
+	FVulkanCommandBufferPool* CmdBufferPool{};
+	
+	class FVulkanDescriptorPoolSetContainer* CurrentSetContainer{};
 
     void Begin();
     void End();
@@ -149,6 +161,8 @@ public:
     FVulkanCmdBuffer* Create(bool bIsUploadOnly);
 
 	void FreeUnusedCmdBuffers(FVulkanQueue* Queue);
+
+	void RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer = nullptr);
 };
 
 class FVulkanCommandBufferManager
@@ -188,6 +202,11 @@ public:
 	}
 
 	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 10.0f);
+
+	void RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer = nullptr)
+	{
+		Pool.RefreshFenceStatus(SkipCmdBuffer);
+	}
 
 	VkDevice Device;
 

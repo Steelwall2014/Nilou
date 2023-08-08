@@ -477,7 +477,7 @@ namespace nilou {
             RHIGetError();
             FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
-                "index_Final", IndexFinal.get());
+                "AtomicIndexBlock2", IndexFinal.get());
             RHIGetError();
             FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
@@ -514,7 +514,7 @@ namespace nilou {
                     "NodeIDs_TempB_Buffer", NodeIDs_TempB.get());
                 FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
                     PSO, EPipelineStage::PS_Compute, 
-                    "index_B", IndexB.get());
+                    "AtomicIndexBlock1", IndexB.get());
 
                 RHIGetError();
                 FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(indirectArgs.get());
@@ -577,7 +577,7 @@ namespace nilou {
                 "LODParams_Buffer", LodParamsBuffer.get());
             FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
-                "patch_index", AtomicPatchCounterBuffer.get());
+                "AtomicIndexBuffer", AtomicPatchCounterBuffer.get());
             FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODMap", LodTexture.get(), EDataAccessFlag::DA_ReadOnly);

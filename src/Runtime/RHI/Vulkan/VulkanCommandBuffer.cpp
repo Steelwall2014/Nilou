@@ -1,4 +1,5 @@
 #include "VulkanCommandBuffer.h"
+#include "VulkanDescriptorSet.h"
 #include "VulkanQueue.h"
 #include "VulkanDynamicRHI.h"
 #include "VulkanTexture.h"
@@ -163,18 +164,29 @@ void FVulkanCommandBufferPool::FreeUnusedCmdBuffers(FVulkanQueue* Queue)
 	}
 }
 
+void FVulkanCommandBufferPool::RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer)
+{
+	for (int32 Index = 0; Index < CmdBuffers.size(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index].get();
+		if (CmdBuffer != SkipCmdBuffer)
+		{
+			CmdBuffer->RefreshFenceStatus();
+		}
+	}
+}
+
 void FVulkanCmdBuffer::RefreshFenceStatus()
 {
 	if (State == EState::Submitted)
 	{
 		if (vkGetFenceStatus(Device, Fence) == VK_SUCCESS)
 		{
-			// for (VkSemaphore Semaphore : SubmittedWaitSemaphores)
-			// {
-			// 	vkDestroySemaphore(Device, Semaphore, nullptr);
-			// }
 			SubmittedWaitSemaphores.clear();
 			vkResetFences(Device, 1, &Fence);
+			++FenceSignaledCounter;
+			if (CurrentSetContainer)
+				CurrentSetContainer->Reset();
 			State = EState::NeedReset;
 		}
 	}
@@ -227,7 +239,7 @@ void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(uint32 NumSignalSemaphor
 		// the overlap, delaying execution of this cmdbuf until the graphics one(s) is complete.
 		for (std::shared_ptr<FVulkanSemaphore> WaitForThis : RenderingCompletedSemaphores)
 		{
-			UploadCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, WaitForThis->Handle);
+			UploadCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, WaitForThis);
 		}
 
 		if (NumSignalSemaphores == 0)
@@ -267,7 +279,7 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(std::vector<VkSemaphore>
 		// the overlap, delaying execution of this cmdbuf until upload one(s) are complete.
 		for (std::shared_ptr<FVulkanSemaphore> UploadCompleteSema : UploadCompletedSemaphores)
 		{
-			ActiveCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, UploadCompleteSema->Handle);
+			ActiveCmdBuffer->AddWaitSemaphore(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, UploadCompleteSema);
 		}
 
 		SignalSemaphores.push_back(ActiveCmdBufferSemaphore->Handle);

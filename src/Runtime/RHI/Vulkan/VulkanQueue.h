@@ -6,12 +6,13 @@
 namespace nilou {
 
 class FVulkanCmdBuffer;
+class FVulkanDynamicRHI;
 
 class FVulkanQueue
 {
 public:
 
-    FVulkanQueue(VkDevice InDevice, uint32 InFamilyIndex);
+    FVulkanQueue(FVulkanDynamicRHI* InContext, VkDevice InDevice, uint32 InFamilyIndex);
 
 	void Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphores = 0, VkSemaphore* SignalSemaphores = nullptr);
 
@@ -20,6 +21,7 @@ public:
 		Submit(CmdBuffer, 1, &SignalSemaphore);
 	}
 
+	FVulkanDynamicRHI* Context;
     VkDevice Device;
     VkQueue Handle;
 	uint32 FamilyIndex;

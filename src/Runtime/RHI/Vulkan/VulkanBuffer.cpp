@@ -107,6 +107,15 @@ constexpr T AlignArbitrary(T Val, uint64 Alignment)
 	return (T)((((uint64)Val + Alignment - 1) / Alignment) * Alignment);
 }
 
+void FVulkanStagingManager::Deinit()
+{
+    ProcessPendingFree(true, true);
+
+    Ncheck(UsedStagingBuffers.size() == 0);
+    Ncheck(PendingFreeStagingBuffers.size() == 0);
+    Ncheck(FreeStagingBuffers.size() == 0);
+}
+
 FStagingBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags, VkMemoryPropertyFlagBits InMemoryReadFlags)
 {
     if (InMemoryReadFlags == VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
@@ -129,15 +138,15 @@ FStagingBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageF
             FFreeEntry& FreeBuffer = FreeStagingBuffers[Index];
             if (FreeBuffer.StagingBuffer->BufferSize == Size && FreeBuffer.StagingBuffer->MemoryReadFlags == InMemoryReadFlags)
             {
-                FStagingBufferRef Buffer = FreeBuffer.StagingBuffer;
+                FStagingBuffer* Buffer = FreeBuffer.StagingBuffer;
                 FreeStagingBuffers.erase(FreeStagingBuffers.begin()+Index);
                 UsedStagingBuffers.push_back(Buffer);
-                return Buffer.get();
+                return Buffer;
             }
         }
     }
 
-    FStagingBufferRef StagingBuffer = std::make_shared<FStagingBuffer>();
+    FStagingBuffer* StagingBuffer = new FStagingBuffer();
     StagingBuffer->MemoryReadFlags = InMemoryReadFlags;
     StagingBuffer->BufferSize = Size;
     StagingBuffer->Device = Device;
@@ -161,35 +170,104 @@ FStagingBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageF
         PeakUsedMemory = std::max(UsedMemory, PeakUsedMemory);
     }
 
-    return StagingBuffer.get();
+    return StagingBuffer;
 }
 
 void FVulkanStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer)
 {
     std::lock_guard<std::mutex> Lock(StagingLock);
-    FStagingBufferRef StagingBufferRef = nullptr;
-    for (auto iter = UsedStagingBuffers.begin(); iter != UsedStagingBuffers.end(); iter++)
+
+    if (CmdBuffer)
     {
-        if (iter->get() == StagingBuffer)
+        FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
+        FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer->GetFenceSignaledCounter());
+        Ncheck(StagingBuffer);
+        ItemsForFence->Resources.push_back(StagingBuffer);
+    }
+    else
+    {
+        FreeStagingBuffers.push_back({StagingBuffer, FRenderingThread::GetFrameCount()});
+    }
+    StagingBuffer = nullptr;
+}
+
+FVulkanStagingManager::FPendingItemsPerCmdBuffer::FPendingItems* FVulkanStagingManager::FPendingItemsPerCmdBuffer::FindOrAddItemsForFence(uint64 Fence)
+{
+    for (int32 Index = 0; Index < PendingItems.size(); ++Index)
+    {
+        if (PendingItems[Index].FenceCounter == Fence)
         {
-            StagingBufferRef = *iter;
-            UsedStagingBuffers.erase(iter);
-            break;
+            return &PendingItems[Index];
         }
     }
 
-    // if (CmdBuffer)
-    // {
-    //     FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
-    //     FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer->GetFenceSignaledCounterA());
-    //     Ncheck(StagingBuffer);
-    //     ItemsForFence->Resources.Add(StagingBuffer);
-    // }
-    // else
-    // {
-        FreeStagingBuffers.push_back({StagingBufferRef, FRenderingThread::GetFrameCount()});
-    // }
-    StagingBuffer = nullptr;
+    FPendingItems& New = PendingItems.emplace_back();
+    New.FenceCounter = Fence;
+    return &New;
+}
+
+FVulkanStagingManager::FPendingItemsPerCmdBuffer* FVulkanStagingManager::FindOrAdd(FVulkanCmdBuffer* CmdBuffer)
+{
+    for (int32 Index = 0; Index < PendingFreeStagingBuffers.size(); ++Index)
+    {
+        if (PendingFreeStagingBuffers[Index].CmdBuffer == CmdBuffer)
+        {
+            return &PendingFreeStagingBuffers[Index];
+        }
+    }
+
+    FPendingItemsPerCmdBuffer& New = PendingFreeStagingBuffers.emplace_back();
+    New.CmdBuffer = CmdBuffer;
+    return &New;
+}
+
+void FVulkanStagingManager::ProcessPendingFree(bool bImmediately, bool bFreeToOS)
+{
+    std::lock_guard<std::mutex> Lock(StagingLock);
+    ProcessPendingFreeNoLock(bImmediately, bFreeToOS);
+}
+
+void FVulkanStagingManager::ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS)
+{
+    int32 NumOriginalFreeBuffers = FreeStagingBuffers.size();
+    for (int32 Index = PendingFreeStagingBuffers.size() - 1; Index >= 0; --Index)
+    {
+        FPendingItemsPerCmdBuffer& EntriesPerCmdBuffer = PendingFreeStagingBuffers[Index];
+        for (int32 FenceIndex = EntriesPerCmdBuffer.PendingItems.size() - 1; FenceIndex >= 0; --FenceIndex)
+        {
+            FPendingItemsPerCmdBuffer::FPendingItems& PendingItems = EntriesPerCmdBuffer.PendingItems[FenceIndex];
+            if (bImmediately || PendingItems.FenceCounter < EntriesPerCmdBuffer.CmdBuffer->GetFenceSignaledCounter())
+            {
+                for (int32 ResourceIndex = 0; ResourceIndex < PendingItems.Resources.size(); ++ResourceIndex)
+                {
+                    Ncheck(PendingItems.Resources[ResourceIndex]);
+                    FreeStagingBuffers.push_back({PendingItems.Resources[ResourceIndex], FRenderingThread::GetFrameCount()});
+                }
+
+                EntriesPerCmdBuffer.PendingItems.erase(EntriesPerCmdBuffer.PendingItems.begin() + FenceIndex);
+            }
+        }
+
+        if (EntriesPerCmdBuffer.PendingItems.size() == 0)
+        {
+            PendingFreeStagingBuffers.erase(PendingFreeStagingBuffers.begin() + Index);
+        }
+    }
+
+    if (bFreeToOS)
+    {
+        int32 NumFreeBuffers = bImmediately ? FreeStagingBuffers.size() : NumOriginalFreeBuffers;
+        for (int32 Index = NumFreeBuffers - 1; Index >= 0; --Index)
+        {
+            FFreeEntry& Entry = FreeStagingBuffers[Index];
+            if (bImmediately || Entry.FrameNumber < FRenderingThread::GetFrameCount())
+            {
+                UsedMemory -= Entry.StagingBuffer->GetSize();
+                delete Entry.StagingBuffer;
+                FreeStagingBuffers.erase(FreeStagingBuffers.begin()+Index);
+            }
+        }
+    }
 }
 
 VulkanMultiBuffer::VulkanMultiBuffer(FVulkanDynamicRHI* InContext, uint32 InSize, EBufferUsageFlags InUsage, VkBufferUsageFlags InVkUsage)
@@ -265,7 +343,7 @@ void* VulkanMultiBuffer::Lock(FVulkanDynamicRHI* Context, EResourceLockMode Lock
         
         // Force upload.
         Context->CommandBufferManager->SubmitUploadCmdBuffer();
-        //Device->WaitUntilIdle();
+        Context->CommandBufferManager->RefreshFenceStatus();
 
         // Flush.
         StagingBuffer->FlushMappedMemory();
@@ -359,7 +437,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
             FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
             // We need to do this on the active command buffer instead of using an upload command buffer. The high level code sometimes reuses the same
             // buffer in sequences of upload / dispatch, upload / dispatch, so we need to order the copy commands correctly with respect to the dispatches.
-            FVulkanCmdBuffer* Cmd = Context->CommandBufferManager->GetUploadCmdBuffer();
+            FVulkanCmdBuffer* Cmd = Context->CommandBufferManager->GetActiveCmdBuffer();
             Ncheck(Cmd && Cmd->IsOutsideRenderPass());
             VkCommandBuffer CmdBuffer = Cmd->GetHandle();
 	        VkBufferCopy Region{};
@@ -369,7 +447,7 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
             VkMemoryBarrier BarrierAfter = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT };
 	        vkCmdPipelineBarrier(CmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
             Context->StagingManager->ReleaseBuffer(Cmd, StagingBuffer);
-            Context->CommandBufferManager->SubmitUploadCmdBuffer();
+            //Context->CommandBufferManager->SubmitUploadCmdBuffer();
 		}
 	}
 

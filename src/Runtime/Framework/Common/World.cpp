@@ -146,7 +146,7 @@ namespace nilou {
         FTransform VHMTransform;
         VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
         std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = World->SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
-        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/TestVirtualHeightfield.nasset")));
+        VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.nasset")));
         VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
     }
@@ -195,9 +195,11 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
-        LoadPBRExibition(this);
+        //LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);
+
+        LoadVirtualHeightfieldMesh(this);
 
         // LoadFFTOcean(this);
 

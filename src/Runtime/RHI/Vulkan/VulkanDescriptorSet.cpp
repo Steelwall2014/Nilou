@@ -103,19 +103,40 @@ bool FVulkanTypedDescriptorPoolSet::AllocateDescriptorSets(const FVulkanDescript
 	return false;
 }
 
-FVulkanDescriptorSets FVulkanDescriptorPoolsManager::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout)
+FVulkanTypedDescriptorPoolSet* FVulkanDescriptorPoolSetContainer::AcquireTypedPoolSet(const FVulkanDescriptorSetsLayout& Layout)
 {
-	auto Found = PoolSets.find(Layout);
-	if (Found == PoolSets.end())
+	auto Found = TypedDescriptorPools.find(Layout);
+	if (Found == TypedDescriptorPools.end())
 	{
-		Found = PoolSets.insert({Layout, std::make_shared<FVulkanTypedDescriptorPoolSet>(Device)}).first;
+		Found = TypedDescriptorPools.insert({Layout, std::make_shared<FVulkanTypedDescriptorPoolSet>(Device)}).first;
 	}
 	FVulkanTypedDescriptorPoolSet* PoolSet = Found->second.get();
-
-	FVulkanDescriptorSets Sets{Layout};
-	PoolSet->AllocateDescriptorSets(Layout, Sets.Handles.data(), &Sets.Owner);
-	return Sets;
+	return PoolSet;
 	
+}
+
+FVulkanDescriptorSets FVulkanDescriptorPoolSetContainer::AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout)
+{
+	FVulkanDescriptorSets Sets{Layout};
+	AcquireTypedPoolSet(Layout)->AllocateDescriptorSets(Layout, Sets.Handles.data(), &Sets.Owner);
+	return Sets;
+}
+
+FVulkanDescriptorPoolSetContainer* FVulkanDescriptorPoolsManager::AcquirePoolSetContainer()
+{
+	for (auto& PoolSet : PoolSets)
+	{
+		if (PoolSet->IsUnused())
+		{
+			PoolSet->SetUsed(true);
+			return PoolSet.get();
+		}
+	}
+
+	FVulkanDescriptorPoolSetContainer* PoolSet = new FVulkanDescriptorPoolSetContainer(Device);
+	PoolSets.push_back(std::unique_ptr<FVulkanDescriptorPoolSetContainer>(PoolSet));
+
+	return PoolSet;
 }
 
 }

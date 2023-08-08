@@ -227,18 +227,44 @@ private:
 	std::list<FVulkanDescriptorPool>::iterator PoolCurrent{};
 };
 
+class FVulkanDescriptorPoolSetContainer
+{
+public:
+	FVulkanDescriptorPoolSetContainer(VkDevice InDevice) : Device(InDevice) { }
+	void Reset()
+	{
+		for (auto& [Layout, PoolSet] : TypedDescriptorPools)
+			PoolSet->Reset();
+	}
+
+	inline void SetUsed(bool bInUsed)
+	{
+		bUsed = bInUsed;
+	}
+
+	inline bool IsUnused() const
+	{
+		return !bUsed;
+	}
+
+	VkDevice Device;
+    std::unordered_map<FVulkanDescriptorSetsLayout, std::shared_ptr<FVulkanTypedDescriptorPoolSet>> TypedDescriptorPools;
+
+	FVulkanTypedDescriptorPoolSet* AcquireTypedPoolSet(const FVulkanDescriptorSetsLayout& Layout);
+
+	FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);
+
+	bool bUsed;
+};
+
 class FVulkanDescriptorPoolsManager
 {
 public:
 	FVulkanDescriptorPoolsManager(VkDevice InDevice) : Device(InDevice) { }
-	void Reset()
-	{
-		for (auto& [Layout, PoolSet] : PoolSets)
-			PoolSet->Reset();
-	}
+	FVulkanDescriptorPoolSetContainer* AcquirePoolSetContainer();
+	void ReleasePoolSet(FVulkanDescriptorPoolSetContainer* PoolSet);
 	VkDevice Device;
-    std::unordered_map<FVulkanDescriptorSetsLayout, std::shared_ptr<FVulkanTypedDescriptorPoolSet>> PoolSets;
-    FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);
+	std::vector<std::unique_ptr<FVulkanDescriptorPoolSetContainer>> PoolSets;
 };
 
 }

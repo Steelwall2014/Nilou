@@ -42,7 +42,6 @@ namespace nilou {
                 lock.unlock();
                 RenderCommand.DoTask();
             }
-            FRenderingThread::FrameCount++;
         }
         return 0;
     }

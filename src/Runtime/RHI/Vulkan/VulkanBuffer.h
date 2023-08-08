@@ -25,10 +25,12 @@ struct FStagingBuffer
         return MemoryReadFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT != 0;
     }
 
+    uint32 GetSize() const { return BufferSize; }
+
     void FlushMappedMemory();
     void InvalidateMappedMemory();
 };
-using FStagingBufferRef = std::shared_ptr<FStagingBuffer>;
+// using FStagingBufferRef = std::shared_ptr<FStagingBuffer>;
 
 struct FPendingBufferLock
 {
@@ -49,27 +51,49 @@ public:
     {
     }
 
+    void Deinit();
+
     FStagingBuffer* AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VkMemoryPropertyFlagBits InMemoryReadFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     // Sets pointer to nullptr
     void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
 
+    void ProcessPendingFree(bool bImmediately, bool bFreeToOS);
+
 protected:
     friend class FMemoryManager;
+    struct FPendingItemsPerCmdBuffer
+    {
+        FVulkanCmdBuffer* CmdBuffer;
+        struct FPendingItems
+        {
+            uint64 FenceCounter;
+            std::vector<FStagingBuffer*> Resources;
+        };
+
+
+        inline FPendingItems* FindOrAddItemsForFence(uint64 Fence);
+
+        std::vector<FPendingItems> PendingItems;
+    };
 
     std::mutex StagingLock;
 
-    std::vector<FStagingBufferRef> UsedStagingBuffers;
+    std::vector<FStagingBuffer*> UsedStagingBuffers;
+    std::vector<FPendingItemsPerCmdBuffer> PendingFreeStagingBuffers;
 
     struct FFreeEntry
     {
-        FStagingBufferRef StagingBuffer;
+        FStagingBuffer* StagingBuffer;
         uint32 FrameNumber;
     };
     std::vector<FFreeEntry> FreeStagingBuffers;
 
     uint64 PeakUsedMemory;
     uint64 UsedMemory;
+
+    FPendingItemsPerCmdBuffer* FindOrAdd(FVulkanCmdBuffer* CmdBuffer);
+    void ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS);
 
     VkDevice Device;
     FVulkanDynamicRHI* VulkanRHI;

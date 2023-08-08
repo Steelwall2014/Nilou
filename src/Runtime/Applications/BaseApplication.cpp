@@ -61,6 +61,7 @@ namespace nilou {
             {
                 this->Tick_RenderThread();
                 RHICmdList->RHIEndFrame();
+                FRenderingThread::FrameCount++;
                 fence.notify_one();
             });
         fence.wait(lock);

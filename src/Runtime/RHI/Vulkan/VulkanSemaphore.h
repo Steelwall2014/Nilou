@@ -6,6 +6,10 @@ namespace nilou {
 class FVulkanSemaphore
 {
 public:
+    FVulkanSemaphore()
+        : Device(VK_NULL_HANDLE)
+    {
+    }
     FVulkanSemaphore(VkDevice InDevice)
         : Device(InDevice)
     {
@@ -15,12 +19,12 @@ public:
     }
     ~FVulkanSemaphore()
     {
-        vkDestroySemaphore(Device, Handle, nullptr);
+        if (Device && Handle)
+            vkDestroySemaphore(Device, Handle, nullptr);
     }
-    VkSemaphore Handle;
+    VkSemaphore Handle{};
 
-private:
-    VkDevice Device;
+    VkDevice Device{};
 };
 
 }

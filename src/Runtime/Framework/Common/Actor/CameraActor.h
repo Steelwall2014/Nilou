@@ -44,7 +44,7 @@ namespace nilou {
 		float CameraRollInput = 0.f;
 		float ZoomFactor;
 		bool bZoomingIn = false;
-		float MovementSpeed = 1.0f;
+		float MovementSpeed = 100.0f;
 		float MouseSensitivity = 0.18f;
     };
 

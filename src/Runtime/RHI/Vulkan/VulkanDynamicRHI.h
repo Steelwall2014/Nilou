@@ -201,7 +201,7 @@ private:
     std::vector<VkSemaphore> ImageAvailableSemaphores;
     std::vector<VkSemaphore> RenderFinishedSemaphores;
     uint32 CurrentSwapChainImageIndex = 0;
-    VkSemaphore CurrentImageAcquiredSemaphore;
+    std::shared_ptr<FVulkanSemaphore> CurrentImageAcquiredSemaphore;
     VulkanFramebuffer* CurrentFramebuffer;
 
     FVulkanRenderPass* RenderToScreenPass{};
