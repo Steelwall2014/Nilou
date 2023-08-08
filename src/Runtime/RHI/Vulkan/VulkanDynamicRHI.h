@@ -16,9 +16,7 @@ class FVulkanMemoryManager;
 class FVulkanStagingManager;
 class FVulkanDescriptorPoolsManager;
 class FVulkanQueue;
-class VulkanBaseTexture2D;
-template<typename T>
-class TVulkanTexture;
+class VulkanTexture;
 
 }
 
@@ -185,12 +183,12 @@ private:
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
     std::unique_ptr<class FVulkanSwapChain> SwapChain;
-    std::vector<std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>>> swapChainImages;
+    std::vector<std::shared_ptr<VulkanTexture>> swapChainImages;
     EPixelFormat swapChainImageFormat;
     EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
-    std::shared_ptr<TVulkanTexture<VulkanBaseTexture2D>> DepthImage;
+    std::shared_ptr<VulkanTexture> DepthImage;
     std::vector<std::shared_ptr<class VulkanFramebuffer>> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
     std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;

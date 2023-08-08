@@ -579,9 +579,9 @@ int FVulkanDynamicRHI::Initialize()
         for (int i = 0; i < swapChainImages.size(); i++)
         {
             auto VulkanTexture = std::make_shared<VulkanTexture2D>(
-                TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, 
+                nullptr, TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
                 FVulkanImageLayout{VK_IMAGE_LAYOUT_UNDEFINED, 1, 1}, extent.width, extent.height, 1, 1, 
-                swapChainImageFormat, "SwapChainImage"+std::to_string(i));
+                0, 0, swapChainImageFormat, "SwapChainImage"+std::to_string(i), TT_Texture2D);
             Barrier.AddImageLayoutTransition(
                 VulkanTexture->GetImage(), VK_IMAGE_ASPECT_COLOR_BIT, 
                 VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -624,7 +624,7 @@ int FVulkanDynamicRHI::Initialize()
                 NILOU_LOG(Error, "failed to create image views!")
                 return 1;
             }
-            swapChainImages[i]->TextureBase.ImageView = swapChainImageViews[i];
+            swapChainImages[i]->ImageView = swapChainImageViews[i];
 
             // std::array<VkImageView, 2> attachments = {
             //     swapChainImageViews[i],
@@ -988,7 +988,7 @@ void FVulkanDynamicRHI::RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo)
             FVulkanImageLayoutBarrierHelper Barrier;
             for (auto& [Attachment, Texture] : InInfo.Framebuffer->Attachments)
             {
-                VulkanTextureBase* vkTexture = ResourceCast(Texture.get());
+                VulkanTexture* vkTexture = ResourceCast(Texture.get());
                 VkImage Image{};
                 VkImageAspectFlags Aspect = GetFullAspectMask(Texture->GetFormat());
                 FVulkanImageLayout SrcLayout = vkTexture->GetImageLayout();

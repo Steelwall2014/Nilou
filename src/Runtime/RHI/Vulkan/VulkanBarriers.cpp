@@ -357,7 +357,7 @@ bool IsDepthOrStencilAspect(RHITexture* Texture)
 
 // void FVulkanPipelineBarrier::AddImageAccessTransition(RHITexture* Surface, ERHIAccess SrcAccess, ERHIAccess DstAccess, const VkImageSubresourceRange& SubresourceRange, VkImageLayout& InOutLayout)
 // {
-//     VulkanTextureBase* VulkanTexture = ResourceCast(Surface);
+//     VulkanTexture* VulkanTexture = ResourceCast(Surface);
 // 	// This function should only be used for known states.
 // 	Ncheck(DstAccess != ERHIAccess::Unknown);
 // 	const bool bIsDepthStencil = IsDepthOrStencilAspect(Surface);
@@ -497,7 +497,7 @@ VkImageSubresourceRange FVulkanPipelineBarrier::MakeSubresourceRange(VkImageAspe
 
 const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Texture, bool bAddIfNotFound, VkImageLayout LayoutIfNotFound)
 {
-    VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
+    VulkanTexture* VulkanTexture = ResourceCast(Texture);
     Ncheck(!bWriteOnly);
     const FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     
@@ -522,13 +522,13 @@ const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Textur
 void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, const FVulkanImageLayout& NewLayout)
 {
     Ncheck((Texture->GetNumMips() == NewLayout.NumMips) && (Texture->GetNumLayers() == NewLayout.NumLayers));
-    VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
+    VulkanTexture* VulkanTexture = ResourceCast(Texture);
     SetFullLayout(VulkanTexture->Image, NewLayout);
 }
 
 void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLayout, bool bOnlyIfNotFound)
 {
-    VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
+    VulkanTexture* VulkanTexture = ResourceCast(Texture);
     FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     if (Layout)
     {
@@ -545,7 +545,7 @@ void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLa
 
 void FVulkanLayoutManager::SetLayout(RHITexture* Texture, const VkImageSubresourceRange& InSubresourceRange, VkImageLayout InLayout)
 {
-    VulkanTextureBase* VulkanTexture = ResourceCast(Texture);
+    VulkanTexture* VulkanTexture = ResourceCast(Texture);
     FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
     if (Layout)
     {
@@ -559,7 +559,7 @@ void FVulkanLayoutManager::SetLayout(RHITexture* Texture, const VkImageSubresour
     }
 }
 
-void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange)
+void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange)
 {
 	if (Image->IsImageView())
 	{
@@ -575,9 +575,9 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase
 	Image->SetImageLayout(DstLayout, SubresourceRange);
 }
 
-void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
+void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
 {
-	VkImageSubresourceRange Range{AspectMask, Image->BaseMipLevel, Image->NumMips, Image->BaseArrayLayer, Image->NumLayers};
+	VkImageSubresourceRange Range{AspectMask, Image->BaseMipLevel, Image->GetNumMips(), Image->BaseArrayLayer, Image->GetNumLayers()};
 	if (Image->IsImageView())
 	{
 		FVulkanImageLayout ParentSubresLayout = Image->ParentTexture->GetImageLayout().GetSubresLayout(Range);
@@ -594,7 +594,7 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase
 	}
 }
 
-// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, uint32 SrcBaseMip, uint32 SrcNumMips, uint32 SrcBaseLayer, uint32 SrcNumLayers, const struct FVulkanImageLayout& SrcLayout, VkImageLayout DstLayout)
 // {
 // 	VkImageSubresourceRange Range{AspectMask, SrcBaseMip, SrcNumMips, SrcBaseLayer, SrcNumLayers};
 // 	if (Image->IsImageView())
@@ -609,7 +609,7 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase
 // 	Image->SetImageLayout(DstLayout, Range);
 // }
 
-// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const struct FVulkanImageLayout& DstLayout)
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, VkImageLayout SrcLayout, const struct FVulkanImageLayout& DstLayout)
 // {
 // 	if (Image->IsImageView())
 // 	{
@@ -622,7 +622,7 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase
 // 	Image->SetImageLayout(DstLayout, Range);
 // }
 
-// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTextureBase* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, const struct FVulkanImageLayout& DstLayout)
+// void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Image, VkImageAspectFlags AspectMask, const struct FVulkanImageLayout& SrcLayout, const struct FVulkanImageLayout& DstLayout)
 // {
 	
 // }
