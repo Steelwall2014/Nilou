@@ -80,6 +80,8 @@ namespace nilou {
 
         void UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList);
 
+        std::vector<RHITextureCubeRef> PrefilteredTextureMips;
+
         TUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
         TUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
 

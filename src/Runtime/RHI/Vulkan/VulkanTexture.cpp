@@ -372,7 +372,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
             Memory, 
             GetFullAspectMask(Format), 
             Layout, 
-            InSizeX, InSizeY, 1, 
+            InSizeX, InSizeY, InSizeZ, 
             NumMips, 0, 0, 
             Format, name, TT_Texture2DArray));
     }

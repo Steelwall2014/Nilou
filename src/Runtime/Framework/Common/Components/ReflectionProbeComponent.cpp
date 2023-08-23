@@ -117,6 +117,18 @@ namespace nilou {
 
             int NumMips = PrefilteredTexture->NumMips;
             float delta_roughness = 1.0 / glm::max(NumMips-1, 1);
+            if (PrefilteredTextureMips.size() != NumMips)
+            {
+                PrefilteredTextureMips.resize(NumMips);
+                for (int MipIndex = 0; MipIndex < NumMips; MipIndex++)
+                {
+                    RHITexture* CubeMap = PrefilteredTexture->GetResource()->TextureRHI.get();
+                    RHITextureCubeRef TextureView = RHICmdList->RHICreateTextureViewCube(
+                        CubeMap, CubeMap->GetFormat(), 
+                        MipIndex, 1);
+                    PrefilteredTextureMips[MipIndex] = TextureView;
+                }
+            }
             for (int MipIndex = 0; MipIndex < NumMips; MipIndex++)
             {
                 FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(PrefilterShader->GetComputeShaderRHI());
@@ -127,14 +139,10 @@ namespace nilou {
                 PrefilterShaderUniformBuffer->Data.TextureSize = TextureTarget->GetSizeX() >> MipIndex;
                 PrefilterShaderUniformBuffer->Data.roughness = MipIndex * delta_roughness;
                 PrefilterShaderUniformBuffer->UpdateUniformBuffer();
-                RHITexture* CubeMap = PrefilteredTexture->GetResource()->TextureRHI.get();
-                RHITextureCubeRef TextureView = RHICmdList->RHICreateTextureViewCube(
-                    CubeMap, CubeMap->GetFormat(), 
-                    MipIndex, 1);
                 RHICmdList->RHISetShaderImage(
                     PSO, EPipelineStage::PS_Compute,
                     "PrefilteredTexture", 
-                    TextureView.get(), 
+                    PrefilteredTextureMips[MipIndex].get(), 
                     EDataAccessFlag::DA_WriteOnly);
                 RHICmdList->RHISetShaderUniformBuffer(
                     PSO, EPipelineStage::PS_Compute, 
