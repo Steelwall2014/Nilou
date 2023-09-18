@@ -176,6 +176,7 @@ class FVulkanCommandBufferManager
 public:
 
     FVulkanCommandBufferManager(VkDevice InDevice, class FVulkanDynamicRHI* InContext);
+	~FVulkanCommandBufferManager();
 
 	FVulkanCmdBuffer* GetActiveCmdBuffer()
     {
@@ -192,6 +193,7 @@ public:
 	void SubmitUploadCmdBuffer(uint32 NumSignalSemaphores = 0, VkSemaphore* SignalSemaphores = nullptr);
 	void SubmitActiveCmdBuffer(std::vector<VkSemaphore> SignalSemaphores);
 
+	// Called at the end of frame. Need to call RefreshFenceStatus() before calling this function
 	void FreeUnusedCmdBuffers();
 
 	void PrepareForNewActiveCommandBuffer();
@@ -210,12 +212,12 @@ public:
 
 	void RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer = nullptr)
 	{
-		Pool.RefreshFenceStatus(SkipCmdBuffer);
+		Pool->RefreshFenceStatus(SkipCmdBuffer);
 	}
 
 	VkDevice Device;
 
-    FVulkanCommandBufferPool Pool;
+    std::unique_ptr<FVulkanCommandBufferPool> Pool;
 
     FVulkanQueue* Queue{};
 

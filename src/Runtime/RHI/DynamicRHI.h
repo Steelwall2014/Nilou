@@ -68,7 +68,6 @@ namespace nilou {
 		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) = 0;
 		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) = 0;
 		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) = 0;
-		virtual void RHIDestroyShader(RHIShader* Shader) = 0;
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) = 0;
 		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;

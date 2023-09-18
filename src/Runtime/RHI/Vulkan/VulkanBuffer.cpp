@@ -176,6 +176,7 @@ FStagingBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageF
 void FVulkanStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer)
 {
     std::lock_guard<std::mutex> Lock(StagingLock);
+    UsedStagingBuffers.erase(std::find(UsedStagingBuffers.begin(), UsedStagingBuffers.end(), StagingBuffer));
 
     if (CmdBuffer)
     {

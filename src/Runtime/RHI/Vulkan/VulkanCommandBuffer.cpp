@@ -48,7 +48,11 @@ void FVulkanCmdBuffer::AllocMemory()
 
 void FVulkanCmdBuffer::FreeMemory()
 {
+	Ncheck(State != EState::NotAllocated);
+	Ncheck(Handle != VK_NULL_HANDLE);
 	vkFreeCommandBuffers(Device, CmdBufferPool->Handle, 1, &Handle);
+	Handle = VK_NULL_HANDLE;
+	State = EState::NotAllocated;
 }
 
 void FVulkanCmdBuffer::Begin()
@@ -111,24 +115,25 @@ void FVulkanCmdBuffer::BeginRenderPass(const FRHIRenderPassInfo& InInfo, VkRende
 
 FVulkanCommandBufferPool::~FVulkanCommandBufferPool()
 {
-	// for (auto& CmdBuffer : CmdBuffers)
-	// {
-	// 	if (CmdBuffer->HasBegun())
-	// 	{
-	// 		if (!CmdBuffer->HasEnded())
-	// 		{
-	// 			CmdBuffer->End();
-	// 		}
-	// 		if (!CmdBuffer->IsSubmitted())
-	// 		{
-	// 			Mgr.Queue->Submit(CmdBuffer.get());
-	// 		}
-	// 		Mgr.WaitForCmdBuffer(CmdBuffer.get());
-	// 	}
-	// }
+	for (auto& CmdBuffer : CmdBuffers)
+	{
+		if (CmdBuffer->HasBegun())
+		{
+			if (!CmdBuffer->HasEnded())
+			{
+				CmdBuffer->End();
+			}
+			if (!CmdBuffer->IsSubmitted())
+			{
+				Mgr.Queue->Submit(CmdBuffer.get());
+			}
+		}
+		Mgr.WaitForCmdBuffer(CmdBuffer.get());
+	}
 	CmdBuffers.clear();
 	FreeCmdBuffers.clear();
 	vkDestroyCommandPool(Device, Handle, nullptr);
+	Handle = VK_NULL_HANDLE;
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferPool::Create(bool bIsUploadOnly)
@@ -198,12 +203,22 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 
 FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* InContext)
     : Queue(InContext->GfxQueue.get())
-	, Pool(InContext, InDevice, *this, InContext->GfxQueue->FamilyIndex)
+	, Pool(new FVulkanCommandBufferPool(InContext, InDevice, *this, InContext->GfxQueue->FamilyIndex))
 	, Device(InDevice)
 	, Context(InContext)
 {
 	ActiveCmdBufferSemaphore = CreateSemephore(Device);
-	ActiveCmdBuffer = Pool.Create(false);
+	ActiveCmdBuffer = Pool->Create(false);
+}
+
+FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
+{
+	// The Pool must be release before semaphores
+	Pool = nullptr;
+	ActiveCmdBufferSemaphore = nullptr;
+	UploadCmdBufferSemaphore = nullptr;
+	RenderingCompletedSemaphores.clear();
+	UploadCompletedSemaphores.clear();
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
@@ -211,9 +226,9 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
 	if (!UploadCmdBuffer)
 	{
 		UploadCmdBufferSemaphore = CreateSemephore(Device);
-		for (int32 Index = 0; Index < Pool.CmdBuffers.size(); ++Index)
+		for (int32 Index = 0; Index < Pool->CmdBuffers.size(); ++Index)
 		{
-			std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool.CmdBuffers[Index];
+			std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool->CmdBuffers[Index];
 			CmdBuffer->RefreshFenceStatus();
 			if (CmdBuffer->bIsUploadOnly)
 			{
@@ -227,7 +242,7 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
 		}
 
 		// All cmd buffers are being executed still
-		UploadCmdBuffer = Pool.Create(true);
+		UploadCmdBuffer = Pool->Create(true);
 		UploadCmdBuffer->Begin();
 	}
 
@@ -304,16 +319,16 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(std::vector<VkSemaphore>
 
 void FVulkanCommandBufferManager::FreeUnusedCmdBuffers()
 {
-	Pool.FreeUnusedCmdBuffers(Queue);
+	Pool->FreeUnusedCmdBuffers(Queue);
 }
 
 void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 {
 	if (ActiveCmdBufferSemaphore == nullptr)
 		ActiveCmdBufferSemaphore = CreateSemephore(Device);
-	for (int32 Index = 0; Index < Pool.CmdBuffers.size(); ++Index)
+	for (int32 Index = 0; Index < Pool->CmdBuffers.size(); ++Index)
 	{
-		std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool.CmdBuffers[Index];
+		std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = Pool->CmdBuffers[Index];
 		CmdBuffer->RefreshFenceStatus();
 		if (!CmdBuffer->bIsUploadOnly)
 		{
@@ -331,13 +346,13 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 	}
 
 	// All cmd buffers are being executed still
-	ActiveCmdBuffer = Pool.Create(false);
+	ActiveCmdBuffer = Pool->Create(false);
 	ActiveCmdBuffer->Begin();
 }
 
 void FVulkanCommandBufferManager::WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait)
 {
-	CmdBuffer->Wait(~0UL);
+	CmdBuffer->Wait(TimeInSecondsToWait);
 }
 
 }

@@ -676,6 +676,7 @@ int FVulkanDynamicRHI::Initialize()
 
 void FVulkanDynamicRHI::Finalize()
 {
+    CommandBufferManager = nullptr;
     SamplerMap.clear();
     StagingManager->Deinit();
     StagingManager = nullptr;
@@ -686,7 +687,6 @@ void FVulkanDynamicRHI::Finalize()
     DepthImage = nullptr;
     FPipelineStateCache::ClearCacheGraphicsPSO();
     FPipelineStateCache::ClearCacheVertexDeclarations();
-    CommandBufferManager = nullptr;
     MemoryManager = nullptr;
     for (auto ImageView : swapChainImageViews)
         vkDestroyImageView(device, ImageView, nullptr);
