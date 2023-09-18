@@ -29,6 +29,7 @@ namespace nilou {
 		void ToOrigin();
 		void SpeedUp(float AxisValue);
 
+        NPROPERTY()
         std::shared_ptr<UCameraComponent> CameraComponent;
 
 		/** TEST SCENE CAPTURE */

@@ -71,7 +71,9 @@ namespace nilou {
 
     public:
 
-        friend std::ostream &operator<<(std::ostream &out, const TTransform &obj);
+        template <typename U>
+        friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
+        friend class TClassRegistry<TTransform>;
 
         TTransform();
         TTransform(const glm::tquat<T> &rotation);
@@ -113,6 +115,87 @@ namespace nilou {
     using FTransform = TTransform<double>;
     using FTransform3f = TTransform<float>;
 }
+
+template<typename T>
+class TStaticSerializer<nilou::TRotator<T>>
+{
+public:
+    static void Serialize(nilou::TRotator<T>& Object, FArchive& Ar)
+    {
+        {
+            FArchive local_Ar(Ar.Node["Pitch"], Ar);
+            TStaticSerializer<decltype(Object.Pitch)>::Serialize(Object.Pitch, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Yaw"], Ar);
+            TStaticSerializer<decltype(Object.Yaw)>::Serialize(Object.Yaw, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Roll"], Ar);
+            TStaticSerializer<decltype(Object.Roll)>::Serialize(Object.Roll, local_Ar);
+        }
+    }
+    static void Deserialize(nilou::TRotator<T>& Object, FArchive& Ar)
+    {
+        {
+            FArchive local_Ar(Ar.Node["Pitch"], Ar);
+            TStaticSerializer<decltype(Object.Pitch)>::Deserialize(Object.Pitch, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Yaw"], Ar);
+            TStaticSerializer<decltype(Object.Yaw)>::Deserialize(Object.Yaw, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Roll"], Ar);
+            TStaticSerializer<decltype(Object.Roll)>::Deserialize(Object.Roll, local_Ar);
+        }
+    }
+};
+
+template<typename T>
+class TStaticSerializer<nilou::TTransform<T>>
+{
+public:
+    static void Serialize(nilou::TTransform<T>& Object, FArchive& Ar)
+    {
+        auto Rotation = Object.GetRotation();
+        auto Translation = Object.GetTranslation();
+        auto Scale = Object.GetScale3D();
+        {
+            FArchive local_Ar(Ar.Node["Rotation"], Ar);
+            TStaticSerializer<decltype(Rotation)>::Serialize(Rotation, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Translation"], Ar);
+            TStaticSerializer<decltype(Translation)>::Serialize(Translation, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Scale"], Ar);
+            TStaticSerializer<decltype(Scale)>::Serialize(Scale, local_Ar);
+        }
+    }
+    static void Deserialize(nilou::TTransform<T>& Object, FArchive& Ar)
+    {
+        auto Rotation = Object.GetRotation();
+        auto Translation = Object.GetTranslation();
+        auto Scale = Object.GetScale3D();
+        {
+            FArchive local_Ar(Ar.Node["Rotation"], Ar);
+            TStaticSerializer<decltype(Rotation)>::Deserialize(Rotation, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Translation"], Ar);
+            TStaticSerializer<decltype(Translation)>::Deserialize(Translation, local_Ar);
+        }
+        {
+            FArchive local_Ar(Ar.Node["Scale"], Ar);
+            TStaticSerializer<decltype(Scale)>::Deserialize(Scale, local_Ar);
+        }
+        Object.SetRotation(Rotation);
+        Object.SetTranslation(Translation);
+        Object.SetScale3D(Scale);
+    }
+};
 
 namespace nilou {
 

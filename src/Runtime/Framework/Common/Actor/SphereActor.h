@@ -13,6 +13,7 @@ namespace nilou {
             SphereComponent->AttachToComponent(GetRootComponent());
         }
         
+        NPROPERTY()
         std::shared_ptr<USphereComponent> SphereComponent;
     };
 

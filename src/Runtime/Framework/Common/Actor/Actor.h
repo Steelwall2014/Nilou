@@ -20,8 +20,7 @@ namespace nilou {
 	class UWorld;
 
 	
-	class NCLASS AActor : public NObject,
-                   public std::enable_shared_from_this<AActor>
+	class NCLASS AActor : public NObject
 	{
 		GENERATED_BODY()
 	public:
@@ -135,8 +134,6 @@ namespace nilou {
 		{
 			OwnedWorld = InOwnedWorld;
 		}
-
-		bool IsValid() const { return !weak_from_this().expired(); }
 
 	protected:
 

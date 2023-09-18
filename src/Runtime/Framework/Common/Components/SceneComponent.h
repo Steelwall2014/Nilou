@@ -247,10 +247,13 @@ namespace nilou {
         FBoundingBox Bounds;
 
     private:
+        NPROPERTY()
         dvec3 RelativeLocation = dvec3(0.0f, 0.0f, 0.0f);
 
+        NPROPERTY()
         FRotator RelativeRotation = FRotator();
 
+        NPROPERTY()
         dvec3 RelativeScale3D = dvec3(1.0f, 1.0f, 1.0f);
 
  	    /** True if we have ever updated ComponentToWorld based on RelativeLocation/Rotation/Scale. Used at startup to make sure it is initialized. */

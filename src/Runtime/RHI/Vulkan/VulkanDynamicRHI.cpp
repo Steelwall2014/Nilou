@@ -299,8 +299,10 @@ void FVulkanDynamicRHI::RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *N
         FVulkanDescriptorPoolSetContainer* SetContainer = DescriptorPoolsManager->AcquirePoolSetContainer();
         CmdBuffer->CurrentSetContainer = SetContainer;
     }
-    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, CmdBuffer->CurrentSetContainer->AllocateDescriptorSets(*VulkanLayout->DescriptorSetsLayout));
+    FVulkanDescriptorSets DescriptorSets = CmdBuffer->CurrentSetContainer->AllocateDescriptorSets(*VulkanLayout->DescriptorSetsLayout);
+    CurrentDescriptorState = std::make_unique<FVulkanCommonPipelineDescriptorState>(this, DescriptorSets);
 
+    // compute管线暂时也沿用了FRHIGraphicsPipelineState
     auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
     if (NewState->Initializer.ComputeShader)
     {

@@ -15,6 +15,7 @@ namespace nilou {
 
 
 
+        NPROPERTY()
         std::shared_ptr<ULightComponent> LightComponent;
     };
 

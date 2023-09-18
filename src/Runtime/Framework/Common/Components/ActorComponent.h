@@ -11,8 +11,7 @@ namespace nilou {
     class AActor;
     class UWorld;
 
-    class NCLASS UActorComponent : public NObject, 
-                            public std::enable_shared_from_this<UActorComponent>
+    class NCLASS UActorComponent : public NObject
     {
         GENERATED_BODY()
     public:

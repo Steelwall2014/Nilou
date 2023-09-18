@@ -264,14 +264,14 @@ namespace detail
 	}
 
 	template <typename T, precision P>
-	template <typename U>
+	template <typename U, std::enable_if_t<std::is_scalar_v<U>, int>>
 	GLM_FUNC_QUALIFIER tquat<T, P> & tquat<T, P>::operator*=(U s)
 	{
 		return (*this = detail::compute_quat_mul_scalar<T, P, detail::is_aligned<P>::value>::call(*this, static_cast<U>(s)));
 	}
 
 	template <typename T, precision P>
-	template <typename U>
+	template <typename U, std::enable_if_t<std::is_scalar_v<U>, int>>
 	GLM_FUNC_QUALIFIER tquat<T, P> & tquat<T, P>::operator/=(U s)
 	{
 		return (*this = detail::compute_quat_div_scalar<T, P, detail::is_aligned<P>::value>::call(*this, static_cast<U>(s)));

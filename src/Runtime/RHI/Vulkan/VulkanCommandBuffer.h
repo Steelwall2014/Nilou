@@ -19,7 +19,7 @@ public:
 
     friend class FVulkanQueue;
 
-	FVulkanCmdBuffer(VkDevice InDevice, FVulkanCommandBufferPool* CmdBufferPool, bool bIsUploadOnly);
+	FVulkanCmdBuffer(class FVulkanDynamicRHI* Context, VkDevice InDevice, FVulkanCommandBufferPool* CmdBufferPool, bool bIsUploadOnly);
 	~FVulkanCmdBuffer();
 
 	bool IsInsideRenderPass() const
@@ -88,6 +88,8 @@ public:
 
 	VkFence Fence{};
 
+	FVulkanDynamicRHI* Context;
+
 	// Last value passed after the fence got signaled
 	volatile uint64 FenceSignaledCounter{};
 	// Last value when we submitted the cmd buffer; useful to track down if something waiting for the fence has actually been submitted
@@ -137,9 +139,10 @@ class FVulkanCommandBufferPool
 {
 public:
 
-    FVulkanCommandBufferPool(VkDevice InDevice, FVulkanCommandBufferManager& InMgr, int32 QueueFamilyIndex)
+    FVulkanCommandBufferPool(FVulkanDynamicRHI* InContext, VkDevice InDevice, FVulkanCommandBufferManager& InMgr, int32 QueueFamilyIndex)
 		: Device(InDevice)
 		, Mgr(InMgr)
+		, Context(InContext)
 	{
 		VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -158,6 +161,9 @@ public:
 
     FVulkanCommandBufferManager& Mgr;
 
+	// TODO: 封装出一个VulkanDevice，来替换掉到处出现的Context
+	FVulkanDynamicRHI* Context;
+
     FVulkanCmdBuffer* Create(bool bIsUploadOnly);
 
 	void FreeUnusedCmdBuffers(FVulkanQueue* Queue);
@@ -169,7 +175,7 @@ class FVulkanCommandBufferManager
 {
 public:
 
-    FVulkanCommandBufferManager(VkDevice InDevice, class FVulkanDynamicRHI* Context);
+    FVulkanCommandBufferManager(VkDevice InDevice, class FVulkanDynamicRHI* InContext);
 
 	FVulkanCmdBuffer* GetActiveCmdBuffer()
     {
@@ -227,6 +233,8 @@ public:
 	
 	/** Holds semaphores associated with the recent upload cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
 	std::vector<std::shared_ptr<FVulkanSemaphore>> UploadCompletedSemaphores;
+
+	FVulkanDynamicRHI* Context;
 
 };
 

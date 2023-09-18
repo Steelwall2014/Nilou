@@ -13,6 +13,7 @@ namespace nilou {
             VHMComponent->AttachToComponent(GetRootComponent());
         }
 
+        NPROPERTY()
         std::shared_ptr<UVirtualHeightfieldMeshComponent> VHMComponent;
     };
 

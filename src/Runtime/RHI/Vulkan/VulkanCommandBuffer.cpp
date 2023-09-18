@@ -8,11 +8,12 @@
 
 namespace nilou {
 
-FVulkanCmdBuffer::FVulkanCmdBuffer(VkDevice InDevice, FVulkanCommandBufferPool* InCmdBufferPool, bool bInIsUploadOnly)
+FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDynamicRHI* InContext, VkDevice InDevice, FVulkanCommandBufferPool* InCmdBufferPool, bool bInIsUploadOnly)
 	: State(EState::NotAllocated)
 	, Device(InDevice)
 	, CmdBufferPool(InCmdBufferPool)
 	, bIsUploadOnly(bInIsUploadOnly)
+	, Context(InContext)
 {
 	AllocMemory();
 	VkFenceCreateInfo fenceInfo{};
@@ -144,7 +145,7 @@ FVulkanCmdBuffer* FVulkanCommandBufferPool::Create(bool bIsUploadOnly)
 		}
 	}
 
-	std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = std::make_shared<FVulkanCmdBuffer>(Device, this, bIsUploadOnly);
+	std::shared_ptr<FVulkanCmdBuffer> CmdBuffer = std::make_shared<FVulkanCmdBuffer>(Context, Device, this, bIsUploadOnly);
 	CmdBuffers.push_back(CmdBuffer);
 	return CmdBuffer.get();
 }
@@ -186,16 +187,20 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 			vkResetFences(Device, 1, &Fence);
 			++FenceSignaledCounter;
 			if (CurrentSetContainer)
-				CurrentSetContainer->Reset();
+			{
+				Context->DescriptorPoolsManager->ReleasePoolSet(CurrentSetContainer);
+				CurrentSetContainer = nullptr;
+			}
 			State = EState::NeedReset;
 		}
 	}
 }
 
-FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* Context)
-    : Queue(Context->GfxQueue.get())
-	, Pool(InDevice, *this, Context->GfxQueue->FamilyIndex)
+FVulkanCommandBufferManager::FVulkanCommandBufferManager(VkDevice InDevice, FVulkanDynamicRHI* InContext)
+    : Queue(InContext->GfxQueue.get())
+	, Pool(InContext, InDevice, *this, InContext->GfxQueue->FamilyIndex)
 	, Device(InDevice)
+	, Context(InContext)
 {
 	ActiveCmdBufferSemaphore = CreateSemephore(Device);
 	ActiveCmdBuffer = Pool.Create(false);

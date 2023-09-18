@@ -13,6 +13,7 @@ namespace nilou {
             SkyAtmosphereComponent->AttachToComponent(GetRootComponent());
         }
 
+        NPROPERTY()
         std::shared_ptr<USkyAtmosphereComponent> SkyAtmosphereComponent;
     };
 

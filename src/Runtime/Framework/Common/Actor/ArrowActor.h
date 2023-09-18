@@ -11,10 +11,13 @@ namespace nilou {
 		
     protected:
 
+        NPROPERTY()
         std::shared_ptr<UArrowComponent> xArrowComponent;
 
+        NPROPERTY()
         std::shared_ptr<UArrowComponent> yArrowComponent;
 
+        NPROPERTY()
         std::shared_ptr<UArrowComponent> zArrowComponent;
     };
 

@@ -48,7 +48,7 @@ public:
     { 
         if (Object)
         {
-            if (T::StaticClass()->IsChildOf(nilou::NAsset::StaticClass()))
+            if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
             {
                 auto asset = std::static_pointer_cast<nilou::NAsset>(Object);
                 Ar.Node = asset->SerializationPath.generic_string();
@@ -61,10 +61,13 @@ public:
     }
     static void Deserialize(std::shared_ptr<T>& Object, FArchive& Ar) 
     { 
-        if (T::StaticClass()->IsChildOf(nilou::NAsset::StaticClass()) && Ar.Node.is_string())
+        if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
         {
-            std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
-            Object = std::static_pointer_cast<T>(nilou::GetContentManager()->GetContentByPath(path));
+            if (Ar.Node.is_string())
+            {
+                std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+                Object = std::static_pointer_cast<T>(nilou::GetContentManager()->GetContentByPath(path)->shared_from_this());
+            }
         }
         else if (Ar.Node.contains("ClassName"))
         {
@@ -87,7 +90,7 @@ public:
     { 
         if (Object)
         {
-            if (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
+            if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
             {
                 auto asset = static_cast<nilou::NAsset*>(Object);
                 Ar.Node = asset->SerializationPath.generic_string();
@@ -100,10 +103,13 @@ public:
     }
     static void Deserialize(T*& Object, FArchive& Ar) 
     { 
-        if (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value && Ar.Node.is_string())
+        if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
         {
-            std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
-            Object = static_cast<T*>(nilou::GetContentManager()->GetContentByPath(path));
+            if (Ar.Node.is_string())
+            {
+                std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+                Object = static_cast<T*>(nilou::GetContentManager()->GetContentByPath(path));
+            }
         }
         else if (Ar.Node.contains("ClassName"))
         {

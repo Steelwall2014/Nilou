@@ -64,7 +64,11 @@ void FVulkanDescriptorPool::Reset()
 {
 	if (DescriptorPool != VK_NULL_HANDLE)
 	{
-		vkResetDescriptorPool(Device, DescriptorPool, 0);
+		VkResult res = vkResetDescriptorPool(Device, DescriptorPool, 0);
+		if (res != VK_SUCCESS)
+		{
+			NILOU_LOG(Error, "vkResetDescriptorPool failed!");
+		}
 	}
 
 	NumAllocatedDescriptorSets = 0;
@@ -137,6 +141,12 @@ FVulkanDescriptorPoolSetContainer* FVulkanDescriptorPoolsManager::AcquirePoolSet
 	PoolSets.push_back(std::unique_ptr<FVulkanDescriptorPoolSetContainer>(PoolSet));
 
 	return PoolSet;
+}
+
+void FVulkanDescriptorPoolsManager::ReleasePoolSet(FVulkanDescriptorPoolSetContainer* PoolSetContainer)
+{
+	PoolSetContainer->Reset();
+	PoolSetContainer->SetUsed(false);
 }
 
 }

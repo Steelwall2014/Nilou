@@ -13,6 +13,7 @@ namespace nilou {
             LineBatchComponent->AttachToComponent(GetRootComponent());
         }
 
+        NPROPERTY()
         std::shared_ptr<ULineBatchComponent> LineBatchComponent;
     };
 

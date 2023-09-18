@@ -17,6 +17,7 @@ namespace nilou {
 
 
 
+        NPROPERTY()
         std::shared_ptr<UStaticMeshComponent> StaticMeshComponent;
     };
 

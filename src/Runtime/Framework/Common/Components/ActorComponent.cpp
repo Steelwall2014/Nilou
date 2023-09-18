@@ -144,7 +144,7 @@ namespace nilou {
         if (InOwner)
         {
             WorldPrivate = InOwner->GetWorld();
-            InOwner->AddOwnedComponent(shared_from_this());
+            InOwner->AddOwnedComponent(std::static_pointer_cast<UActorComponent>(shared_from_this()));
         }
     }
 
@@ -169,7 +169,7 @@ namespace nilou {
 
         if (AActor *MyOwner = GetOwner())
         {
-            MyOwner->RemoveOwnedComponent(this->shared_from_this());
+            MyOwner->RemoveOwnedComponent(std::static_pointer_cast<UActorComponent>(this->shared_from_this()));
             if (static_cast<UActorComponent *>(MyOwner->GetRootComponent()) == this)
             {
                 MyOwner->SetRootComponent(nullptr);

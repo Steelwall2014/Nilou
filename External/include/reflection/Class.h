@@ -219,7 +219,7 @@ public:
 
 };
 
-class NCLASS NObject
+class NCLASS NObject : public std::enable_shared_from_this<NObject>
 {
     GENERATED_BODY();
 public:

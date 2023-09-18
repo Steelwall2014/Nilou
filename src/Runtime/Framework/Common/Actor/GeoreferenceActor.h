@@ -31,8 +31,11 @@ namespace nilou {
 
     private:
 
+        NPROPERTY()
         double OriginLongitude;
+        NPROPERTY()
         double OriginLatitude;
+        NPROPERTY()
         double OriginHeight;
 
         // ENU转ECEF (ENU->XYZ)

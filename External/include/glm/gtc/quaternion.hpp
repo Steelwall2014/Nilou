@@ -125,9 +125,9 @@ namespace glm
 		GLM_FUNC_DECL tquat<T, P> & operator-=(tquat<U, P> const & q);
 		template <typename U>
 		GLM_FUNC_DECL tquat<T, P> & operator*=(tquat<U, P> const & q);
-		template <typename U>
+		template <typename U, std::enable_if_t<std::is_scalar_v<U>, int> = 0>
 		GLM_FUNC_DECL tquat<T, P> & operator*=(U s);
-		template <typename U>
+		template <typename U, std::enable_if_t<std::is_scalar_v<U>, int> = 0>
 		GLM_FUNC_DECL tquat<T, P> & operator/=(U s);
 	};
 

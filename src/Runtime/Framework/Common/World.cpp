@@ -195,11 +195,11 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
-        //LoadPBRExibition(this);
+        LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);
 
-        LoadVirtualHeightfieldMesh(this);
+        //LoadVirtualHeightfieldMesh(this);
 
         // LoadFFTOcean(this);
 

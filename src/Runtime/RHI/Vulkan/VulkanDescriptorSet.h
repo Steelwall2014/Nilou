@@ -39,6 +39,10 @@ public:
 			layoutInfo.bindingCount = static_cast<uint32_t>(SetLayoutBindings.size());
 			layoutInfo.pBindings = SetLayoutBindings.data();
 			VkResult res = vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &Handles[i]);
+			if (res != VK_SUCCESS)
+			{
+				NILOU_LOG(Error, "vkCreateDescriptorSetLayout failed!");
+			}
 			for (auto& Binding : SetLayoutBindings)
 			{
 				LayoutTypes[static_cast<VkDescriptorType>(Binding.descriptorType)] += 1;
@@ -254,7 +258,7 @@ public:
 
 	FVulkanDescriptorSets AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout);
 
-	bool bUsed;
+	bool bUsed = true;
 };
 
 class FVulkanDescriptorPoolsManager
@@ -266,5 +270,13 @@ public:
 	VkDevice Device;
 	std::vector<std::unique_ptr<FVulkanDescriptorPoolSetContainer>> PoolSets;
 };
+
+/**
+* PoolsManager作为descriptor管理的顶层，是一个单例类，放在VulkanDynamicRHI里
+* 每次要开始使用ActiveCmdBuffer之前，从PoolsManager中分配出一个PoolSetContainer给ActiveCmdBuffer。
+* 每次绑定PSO的时候，PoolSetContainer分配一个对应当前layout的DescriptorSets
+* PoolSetContainer一个layout对应一个PoolSet，一个PoolSet中有很多Pool，DescriptorSets实际是从Pool中分配出来
+* 这里名为DescriptorSets，但实际只分配了一个Set，所以可以看为DescriptorSet
+*/
 
 }

@@ -9,7 +9,7 @@ namespace nilou {
 
     void USceneCaptureComponent::HideComponent(UPrimitiveComponent* InComponent)
     {
-        if (InComponent && InComponent->IsValid())
+        if (InComponent)
         {
             HiddenComponents.insert(InComponent);
         }
@@ -17,7 +17,7 @@ namespace nilou {
 
     void USceneCaptureComponent::HideActorComponents(AActor* InActor)
     {
-        if (InActor && InActor->IsValid())
+        if (InActor)
         {
             auto Actor = InActor;
             std::vector<UPrimitiveComponent*> PrimitiveComponents;
@@ -31,7 +31,7 @@ namespace nilou {
 
     void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
     {
-        if (InComponent && InComponent->IsValid())
+        if (InComponent)
         {
             ShowOnlyComponents.insert(InComponent);
         }
@@ -39,7 +39,7 @@ namespace nilou {
 
     void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
     {
-        if (InActor && InActor->IsValid())
+        if (InActor)
         {
             auto Actor = InActor;
             std::vector<UPrimitiveComponent*> PrimitiveComponents;
@@ -70,7 +70,7 @@ namespace nilou {
             return;
         for (USceneCaptureComponent* Component : SceneCapturesToUpdate)
         {
-            if (Component && Component->IsValid())
+            if (Component)
                 Component->UpdateSceneCaptureContents(Scene);
         }
         SceneCapturesToUpdate.clear();
@@ -213,6 +213,7 @@ namespace nilou {
         }
 
         std::array<dvec3, 6> ForwardVectors, UpVectors;
+        // The forward and up vectors of cube maps for vulkan and opengl are different
         if (FDynamicRHI::StaticGetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
         {
             ForwardVectors = {

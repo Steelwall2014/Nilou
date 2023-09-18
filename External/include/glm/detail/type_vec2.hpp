@@ -275,7 +275,7 @@ namespace glm
 	template <typename T, precision P>
 	GLM_FUNC_DECL tvec2<T, P> operator/(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
 
-	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value::value, int> = 0>
+	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
 	GLM_FUNC_DECL tvec2<T, P> operator%(tvec2<T, P> const & v, T scalar);
 
 	template <typename T, precision P, std::enable_if_t<detail::bit_operator<T>::value, int> = 0>
