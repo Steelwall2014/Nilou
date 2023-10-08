@@ -70,7 +70,7 @@ VulkanTexture::VulkanTexture(
         uint32 InBaseArrayLayer,
         EPixelFormat InFormat,
         const std::string &InTextureName,
-        ETextureType InTextureType)
+        ETextureDimension InTextureType)
     : RHITexture(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName, InTextureType)
     , Image(InImage)
     , ImageView(InImageView)
@@ -165,7 +165,7 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTexture2D(
     VulkanTexture2DRef Texture = std::static_pointer_cast<VulkanTexture2D>(
         RHICreateTextureInternal(
             name, Format, NumMips, 
-            InSizeX, InSizeY, 1, ETextureType::TT_Texture2D, InTexCreateFlags));
+            InSizeX, InSizeY, 1, ETextureDimension::Texture2D, InTexCreateFlags));
     return Texture;
 }
 
@@ -176,7 +176,7 @@ RHITexture2DArrayRef FVulkanDynamicRHI::RHICreateTexture2DArray(
     VulkanTexture2DArrayRef Texture = std::static_pointer_cast<VulkanTexture2DArray>(
         RHICreateTextureInternal(
             name, Format, NumMips, 
-            InSizeX, InSizeY, InSizeZ, ETextureType::TT_Texture2DArray, InTexCreateFlags));
+            InSizeX, InSizeY, InSizeZ, ETextureDimension::Texture2DArray, InTexCreateFlags));
     return Texture;
 }
 
@@ -187,7 +187,7 @@ RHITexture3DRef FVulkanDynamicRHI::RHICreateTexture3D(
     VulkanTexture3DRef Texture = std::static_pointer_cast<VulkanTexture3D>(
         RHICreateTextureInternal(
             name, Format, NumMips, 
-            InSizeX, InSizeY, InSizeZ, ETextureType::TT_Texture3D, InTexCreateFlags));
+            InSizeX, InSizeY, InSizeZ, ETextureDimension::Texture3D, InTexCreateFlags));
     return Texture;
 }
 
@@ -198,7 +198,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureCube(
     VulkanTextureCubeRef Texture = std::static_pointer_cast<VulkanTextureCube>(
         RHICreateTextureInternal(
             name, Format, NumMips, 
-            InSizeX, InSizeY, 6, ETextureType::TT_TextureCube, InTexCreateFlags));
+            InSizeX, InSizeY, 6, ETextureDimension::TextureCube, InTexCreateFlags));
     return Texture;
 }
 
@@ -236,7 +236,7 @@ RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const RHITexturePara
 
 RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     const std::string &name, EPixelFormat Format, 
-    int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType, ETextureCreateFlags InTexCreateFlags)
+    int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags)
 {
     VkImageViewCreateInfo viewInfo{};
     VkImageCreateInfo imageInfo{};
@@ -245,28 +245,28 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     imageInfo.extent.width = InSizeX;
     imageInfo.extent.height = InSizeY;
     imageInfo.mipLevels = NumMips;
-    if (TextureType == ETextureType::TT_Texture2D)
+    if (TextureType == ETextureDimension::Texture2D)
     {
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.arrayLayers = 1;
         imageInfo.extent.depth = 1;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     }
-    else if (TextureType == ETextureType::TT_Texture2DArray)
+    else if (TextureType == ETextureDimension::Texture2DArray)
     {
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.arrayLayers = InSizeZ;
         imageInfo.extent.depth = 1;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     }
-    else if (TextureType == ETextureType::TT_Texture3D)
+    else if (TextureType == ETextureDimension::Texture3D)
     {
         imageInfo.imageType = VK_IMAGE_TYPE_3D;
         imageInfo.arrayLayers = 1;
         imageInfo.extent.depth = InSizeZ;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
     }
-    else if (TextureType == ETextureType::TT_TextureCube)
+    else if (TextureType == ETextureDimension::TextureCube)
     {
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.arrayLayers = 6;
@@ -348,7 +348,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
 
     vkCreateImageView(device, &viewInfo, nullptr, &ImageView);
 
-    if (TextureType == ETextureType::TT_Texture2D)
+    if (TextureType == ETextureDimension::Texture2D)
     {
         FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1};
         return std::shared_ptr<VulkanTexture>(new VulkanTexture(
@@ -360,9 +360,9 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
             Layout, 
             InSizeX, InSizeY, 1, 
             NumMips, 0, 0, 
-            Format, name, TT_Texture2D));
+            Format, name, ETextureDimension::Texture2D));
     }
-    else if (TextureType == ETextureType::TT_Texture2DArray)
+    else if (TextureType == ETextureDimension::Texture2DArray)
     {
         FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, InSizeZ};
         return std::shared_ptr<VulkanTexture>(new VulkanTexture(
@@ -374,9 +374,9 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
             Layout, 
             InSizeX, InSizeY, InSizeZ, 
             NumMips, 0, 0, 
-            Format, name, TT_Texture2DArray));
+            Format, name, ETextureDimension::Texture2DArray));
     }
-    else if (TextureType == ETextureType::TT_Texture3D)
+    else if (TextureType == ETextureDimension::Texture3D)
     {
         FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 1};
         return std::shared_ptr<VulkanTexture>(new VulkanTexture(
@@ -388,9 +388,9 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
             Layout, 
             InSizeX, InSizeY, InSizeZ, 
             NumMips, 0, 0, 
-            Format, name, TT_Texture3D));
+            Format, name, ETextureDimension::Texture3D));
     }
-    else if (TextureType == ETextureType::TT_TextureCube)
+    else if (TextureType == ETextureDimension::TextureCube)
     {
         FVulkanImageLayout Layout{ImageLayout, (uint32)NumMips, 6};
         return std::shared_ptr<VulkanTexture>(new VulkanTexture(
@@ -402,7 +402,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
             Layout, 
             InSizeX, InSizeY, 6, 
             NumMips, 0, 0, 
-            Format, name, TT_TextureCube));
+            Format, name, ETextureDimension::TextureCube));
     }
     return nullptr;
 
@@ -433,13 +433,13 @@ RHITexture2DRef FVulkanDynamicRHI::RHICreateTextureView2D(RHITexture* OriginText
     return std::make_shared<VulkanTexture>(
         Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, GetFullAspectMask(Format), ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 1, 
-        NumLevels, MinLevel, LayerIndex, Format, OriginTexture->GetName()+"_View", TT_Texture2D);
+        NumLevels, MinLevel, LayerIndex, Format, OriginTexture->GetName()+"_View", ETextureDimension::Texture2D);
 
 }
 
 RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels)
 {
-    if (OriginTexture->GetTextureType() != ETextureType::TT_TextureCube)
+    if (OriginTexture->GetTextureType() != ETextureDimension::TextureCube)
         return nullptr;
     VulkanTexture* Texture = ResourceCast(OriginTexture);
     VkImageViewCreateInfo viewInfo{};
@@ -464,7 +464,7 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureViewCube(RHITexture* Origin
     return std::make_shared<VulkanTexture>(
         Texture, VK_NULL_HANDLE, ImageView, VK_NULL_HANDLE, GetFullAspectMask(Format), ViewLayout,
         OriginTexture->GetSizeXYZ().x >> MinLevel, OriginTexture->GetSizeXYZ().y >> MinLevel, 6, 
-        NumLevels, MinLevel, 0, Format, OriginTexture->GetName()+"_View", TT_TextureCube);
+        NumLevels, MinLevel, 0, Format, OriginTexture->GetName()+"_View", ETextureDimension::TextureCube);
 
 }
 
@@ -588,7 +588,7 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
     VulkanTexture* vkTexture = ResourceCast(Texture.get());
 
     int32 LayerCount = 1;
-    if (Texture->GetTextureType() == ETextureType::TT_Texture2DArray)
+    if (Texture->GetTextureType() == ETextureDimension::Texture2DArray)
         LayerCount = Texture->GetSizeXYZ().z;
 
     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
@@ -598,7 +598,7 @@ void FVulkanDynamicRHI::RHIGenerateMipmap(RHITextureRef Texture)
     int32 MipWidth = Texture->GetSizeXYZ().x;
     int32 MipHeight = Texture->GetSizeXYZ().y;
     int32 MipDepth = 1;
-    if (Texture->GetTextureType() == ETextureType::TT_Texture3D)
+    if (Texture->GetTextureType() == ETextureDimension::Texture3D)
         MipDepth = Texture->GetSizeXYZ().z;
     
     {

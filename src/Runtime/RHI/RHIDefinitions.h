@@ -454,14 +454,14 @@ namespace nilou {
 		EStencilOp_Num,
 	};
 
-	enum ETextureType
+	enum class ETextureDimension
 	{
-		TT_Texture2D = 0,
-		TT_Texture2DArray,
-		TT_Texture3D,
-		TT_TextureCube,
+		Texture2D = 0,
+		Texture2DArray,
+		Texture3D,
+		TextureCube,
 
-		TT_TextureTypeNum,
+		TextureDimensionsNum,
 	};
 
 	enum ERHIResourceType

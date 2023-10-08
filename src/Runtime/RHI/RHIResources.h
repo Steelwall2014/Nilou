@@ -161,7 +161,7 @@ namespace nilou {
 	class RHITexture : public RHIResource 
 	{
 	public:
-		RHITexture(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, const std::string &InTextureName, ETextureType InTextureType)
+		RHITexture(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, const std::string &InTextureName, ETextureDimension InTextureType)
 			: RHIResource(ERHIResourceType::RRT_Texture)
 			, NumMips(InNumMips)
 			, Format(InFormat)
@@ -193,12 +193,12 @@ namespace nilou {
 		{
 			TextureName = InTextureName;
 		}
-		ETextureType GetTextureType() const { return TextureType; };
-		uint32 GetNumLayers() const { return TextureType == TT_Texture2DArray || TextureType == TT_TextureCube ? GetSizeXYZ().z : 1; }
+		ETextureDimension GetTextureType() const { return TextureType; };
+		uint32 GetNumLayers() const { return TextureType == ETextureDimension::Texture2DArray || TextureType == ETextureDimension::TextureCube ? GetSizeXYZ().z : 1; }
 	protected:
 		uint32 NumMips;
 		EPixelFormat Format;
-		ETextureType TextureType;
+		ETextureDimension TextureType;
 		std::string TextureName;
 		uint32 SizeX;
 		uint32 SizeY;
@@ -278,7 +278,7 @@ namespace nilou {
 		EShaderParameterType ParameterType;
 		// int32 DiscriptorCount;
 	};
-
+	// TODO: 这个玩意是我在还没怎么接触vulkan的时候弄出来的，其实不应该叫这个名字，会混淆，以后改掉
 	class FRHIDescriptorSet
 	{
 	public:

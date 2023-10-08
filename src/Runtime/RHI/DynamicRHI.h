@@ -149,13 +149,13 @@ namespace nilou {
 		// The page size is represented as X, Y and Z.
 		// They correspond to column, row, and channel.
 		// The direction of each axis is the same as UV's.
-		static ivec3 RHIGetSparseTexturePageSize(ETextureType TextureType, EPixelFormat PixelFormat);
+		static ivec3 RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat);
 
 		virtual RHIFramebuffer* GetRenderToScreenFramebuffer() { return RenderToScreenFramebuffer.get(); }
 	protected:
 		void AllocateParameterBindingPoint(FRHIPipelineLayout* PipelineLayout, const FGraphicsPipelineStateInitializer &Initializer);
 		static FDynamicRHI *DynamicRHI;
-		static ivec3 SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
+		static ivec3 SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_PixelFormatNum];
     	std::unordered_map<uint32, RHISamplerStateRef> SamplerMap;
 		RHIFramebufferRef RenderToScreenFramebuffer{};
 	};

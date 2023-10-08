@@ -165,7 +165,7 @@ private:
     RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureType TextureType, ETextureCreateFlags InTexCreateFlags);
+        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);
     FRHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
     FRHIGraphicsPipelineStateRef RHICreateComputePSO(const FGraphicsPipelineStateInitializer &Initializer);
     std::shared_ptr<class VulkanPipelineLayout> RHICreatePipelineLayout(const FGraphicsPipelineStateInitializer& Initializer);

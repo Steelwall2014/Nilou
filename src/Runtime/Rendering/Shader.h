@@ -68,4 +68,11 @@ namespace nilou {
     void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap=false);
 
     FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
+
+    template <typename T>
+    FShaderInstance *GetGlobalShader(int PermutationId=0)
+    {
+        FShaderPermutationParameters PermutationParameters(&T::StaticType, PermutationId);
+        return GetGlobalShader(PermutationParameters);
+    }
 }

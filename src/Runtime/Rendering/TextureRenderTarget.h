@@ -25,7 +25,7 @@ namespace nilou {
         FTextureRenderTarget2DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
         { 
-            TextureType = ETextureType::TT_Texture2D;
+            TextureType = ETextureDimension::Texture2D;
         }
 		
         virtual void InitRHI() override;
@@ -47,7 +47,7 @@ namespace nilou {
         FTextureRenderTargetCubeResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
         { 
-            TextureType = ETextureType::TT_TextureCube;
+            TextureType = ETextureDimension::TextureCube;
         }
 		
         virtual void InitRHI() override;

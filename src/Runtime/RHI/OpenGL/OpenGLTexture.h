@@ -27,7 +27,7 @@ namespace nilou {
 			uint32 InNumMips,
 			EPixelFormat InFormat,
 			const std::string &InTextureName,
-			ETextureType InTextureType
+			ETextureDimension InTextureType
 		)
 		: RHITexture(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName, InTextureType)
 		, Resource(InResource)

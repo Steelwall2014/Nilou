@@ -15,7 +15,7 @@ namespace nilou {
 		return FDynamicRHI::DynamicRHI;
 	}
 
-	ivec3 FDynamicRHI::RHIGetSparseTexturePageSize(ETextureType TextureType, EPixelFormat PixelFormat) 
+	ivec3 FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat) 
 	{ 
 		return FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat]; 
 	}
@@ -231,5 +231,5 @@ namespace nilou {
         
     }
 
-	ivec3 FDynamicRHI::SparseTextureTileSizes[(int)ETextureType::TT_TextureTypeNum][(int)EPixelFormat::PF_PixelFormatNum];
+	ivec3 FDynamicRHI::SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_PixelFormatNum];
 }

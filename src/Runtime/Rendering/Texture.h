@@ -326,7 +326,7 @@ namespace nilou {
          */
         int32 NumMips;
 
-        ETextureType TextureType = ETextureType::TT_Texture2D;
+        ETextureDimension TextureType = ETextureDimension::Texture2D;
 
         virtual ~FTexture() { ReleaseResource(); }
 		
@@ -487,7 +487,7 @@ namespace nilou {
          */
         std::shared_ptr<class UVirtualTexture> MakeVirtualTexture();
 
-        ETextureType GetTextureType() const
+        ETextureDimension GetTextureType() const
         {
             return TextureResource->TextureType;
         }

@@ -1385,7 +1385,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags)
     {
-        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name, TT_Texture2D);
+        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name, ETextureDimension::Texture2D);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
@@ -1402,7 +1402,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
-        OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name, TT_Texture2DArray);
+        OpenGLTexture2DArrayRef Texture = std::make_shared<OpenGLTexture2DArray>(0, GL_TEXTURE_2D_ARRAY, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name, ETextureDimension::Texture2DArray);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
@@ -1419,7 +1419,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags
     )
     {
-        OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name, TT_Texture3D);
+        OpenGLTexture3DRef Texture = std::make_shared<OpenGLTexture3D>(0, GL_TEXTURE_3D, InSizeX, InSizeY, InSizeZ, NumMips, InFormat, name, ETextureDimension::Texture3D);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
@@ -1437,7 +1437,7 @@ namespace nilou {
     )
     {
         RHIGetError();
-        OpenGLTextureCubeRef Texture = std::make_shared<OpenGLTextureCube>(0, GL_TEXTURE_CUBE_MAP, InSizeX, InSizeY, 1, NumMips, InFormat, name, TT_TextureCube);
+        OpenGLTextureCubeRef Texture = std::make_shared<OpenGLTextureCube>(0, GL_TEXTURE_CUBE_MAP, InSizeX, InSizeY, 1, NumMips, InFormat, name, ETextureDimension::TextureCube);
         glGenTextures(1, &Texture->Resource);
         glBindTexture(Texture->Target, Texture->Resource);
         // Texture->Handle = glGetTextureHandleARB(Texture->Resource);
@@ -1458,7 +1458,7 @@ namespace nilou {
         const std::string &name, EPixelFormat InFormat, int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags
     )
     {
-        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name, TT_Texture2D);
+        OpenGLTexture2DRef Texture = std::make_shared<OpenGLTexture2D>(0, GL_TEXTURE_2D, InSizeX, InSizeY, 1, NumMips, InFormat, name, ETextureDimension::Texture2D);
         glGenTextures(1, &Texture->Resource);
         // glActiveTexture(GL_TEXTURE0);
         glBindTexture(Texture->Target, Texture->Resource);
@@ -1534,7 +1534,7 @@ namespace nilou {
         OpenGLTexture2DRef OutTexture = std::make_shared<OpenGLTexture2D>(
             0, GL_TEXTURE_2D, 
             size.x, size.y, 1, 
-            NumMipLevels, InFormat, OriginTexture->GetName() + "_View", TT_Texture2D);
+            NumMipLevels, InFormat, OriginTexture->GetName() + "_View", ETextureDimension::Texture2D);
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_2D, 
             GLTexture.Resource, GLTexture.InternalFormat, 
@@ -1550,7 +1550,7 @@ namespace nilou {
         OpenGLTextureCubeRef OutTexture = std::make_shared<OpenGLTextureCube>(
             0, GL_TEXTURE_CUBE_MAP, 
             size.x, size.y, 1, 
-            NumMipLevels, InFormat, OriginTexture->GetName() + "_View", TT_TextureCube);
+            NumMipLevels, InFormat, OriginTexture->GetName() + "_View", ETextureDimension::TextureCube);
         glGenTextures(1, &OutTexture->Resource);
         glTextureView(OutTexture->Resource, GL_TEXTURE_CUBE_MAP, 
             GLTexture.Resource, GLTexture.InternalFormat, 
@@ -1882,7 +1882,7 @@ namespace nilou {
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
             glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
-            magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
+            magic_enum::enum_for_each<ETextureDimension>([](ETextureDimension TextureType) {
                 magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
                     
                     if (PixelFormat == PF_PixelFormatNum)
@@ -1898,16 +1898,16 @@ namespace nilou {
                     GLenum Target;
                     switch (TextureType) 
                     {
-                    case ETextureType::TT_Texture2D:
+                    case ETextureDimension::Texture2D:
                         Target = GL_TEXTURE_2D;
                         break;
-                    case ETextureType::TT_Texture2DArray:
+                    case ETextureDimension::Texture2DArray:
                         Target = GL_TEXTURE_2D_ARRAY;
                         break;
-                    case ETextureType::TT_Texture3D:
+                    case ETextureDimension::Texture3D:
                         Target = GL_TEXTURE_3D;
                         break;
-                    case ETextureType::TT_TextureCube:
+                    case ETextureDimension::TextureCube:
                         Target = GL_TEXTURE_CUBE_MAP;
                         break;
                     }

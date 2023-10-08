@@ -24,11 +24,11 @@ namespace nilou {
 
 namespace VulkanRHI {
 
-std::unordered_map<VkImage, std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureType, ETextureCreateFlags>> GCreatedImage;
+std::unordered_map<VkImage, std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureDimension, ETextureCreateFlags>> GCreatedImage;
 VkResult vkCreateImage(
     VkDevice                                    device,
     const VkImageCreateInfo*                    pCreateInfo,
-    std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureType, ETextureCreateFlags>                          pAllocator,
+    std::tuple<EPixelFormat, int32, uint32, uint32, uint32, ETextureDimension, ETextureCreateFlags>                          pAllocator,
     VkImage*                                    pImage)
 {
     VkResult res = ::vkCreateImage(device, pCreateInfo, nullptr, pImage);
@@ -541,7 +541,7 @@ int FVulkanDynamicRHI::Initialize()
         NILOU_LOG(Info, "Create queues")
     }
 
-    magic_enum::enum_for_each<ETextureType>([](ETextureType TextureType) {
+    magic_enum::enum_for_each<ETextureDimension>([](ETextureDimension TextureType) {
         magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
             ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
             PageSize = ivec3(256, 128, 1);    
@@ -583,7 +583,7 @@ int FVulkanDynamicRHI::Initialize()
             auto VulkanTexture = std::make_shared<VulkanTexture2D>(
                 nullptr, TempSwapChainImages[i], VK_NULL_HANDLE, VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
                 FVulkanImageLayout{VK_IMAGE_LAYOUT_UNDEFINED, 1, 1}, extent.width, extent.height, 1, 1, 
-                0, 0, swapChainImageFormat, "SwapChainImage"+std::to_string(i), TT_Texture2D);
+                0, 0, swapChainImageFormat, "SwapChainImage"+std::to_string(i), ETextureDimension::Texture2D);
             Barrier.AddImageLayoutTransition(
                 VulkanTexture->GetImage(), VK_IMAGE_ASPECT_COLOR_BIT, 
                 VulkanTexture->GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);

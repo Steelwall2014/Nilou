@@ -10,7 +10,7 @@ namespace nilou {
         FTexture2DArrayResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureResource(InName, InTextureParams, InNumMips)
         { 
-            TextureType = ETextureType::TT_Texture2DArray;
+            TextureType = ETextureDimension::Texture2DArray;
         }
 
         virtual void InitRHI() override;

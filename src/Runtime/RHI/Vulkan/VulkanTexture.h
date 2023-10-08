@@ -36,7 +36,7 @@ public:
         uint32 InBaseArrayLayer,
         EPixelFormat InFormat,
         const std::string &InTextureName,
-        ETextureType InTextureType
+        ETextureDimension InTextureType
     );
     ~VulkanTexture();
     VkImage GetImage() const { return Image; }

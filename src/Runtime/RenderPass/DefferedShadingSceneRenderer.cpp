@@ -528,7 +528,7 @@ namespace nilou {
         UniformBlock->InitResource();
         FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport.RenderTarget;
         std::vector<RHIFramebuffer*> RenderTargetFramebuffers;
-        if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_TextureCube)
+        if (RenderTarget && RenderTarget->TextureType == ETextureDimension::TextureCube)
         {
             FTextureRenderTargetCubeResource* RenderTargetCube = RenderTarget->GetTextureRenderTargetCubeResource();
             for (int i = 0; i < 6; i++)
@@ -536,7 +536,7 @@ namespace nilou {
                 RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[i].get());
             }
         }
-        else if (RenderTarget && RenderTarget->TextureType == ETextureType::TT_Texture2D)
+        else if (RenderTarget && RenderTarget->TextureType == ETextureDimension::Texture2D)
         {
             FTextureRenderTarget2DResource* RenderTarget2D = RenderTarget->GetTextureRenderTarget2DResource();
             RenderTargetFramebuffers.push_back(RenderTarget2D->RenderTargetFramebuffer.get());

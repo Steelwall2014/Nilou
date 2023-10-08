@@ -10,7 +10,7 @@ namespace nilou {
         FTexture3DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
             : FTextureResource(InName, InTextureParams, InNumMips)
         { 
-            TextureType = ETextureType::TT_Texture3D;
+            TextureType = ETextureDimension::Texture3D;
         }
 
         virtual void InitRHI() override;

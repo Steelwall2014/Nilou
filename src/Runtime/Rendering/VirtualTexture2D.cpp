@@ -185,7 +185,7 @@ namespace nilou {
     {
         //StreamingPath = FPath::ContentDir().generic_string() + SerializationPath.generic_string();
         //StreamingBufferOffset = Ar.FileLength - Ar.BinLength;
-        PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(ETextureType::TT_Texture2D, ImageData.GetPixelFormat());
+        PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension::Texture2D, ImageData.GetPixelFormat());
         BytePerTile = PageSize.x * PageSize.y * TranslatePixelFormatToBytePerPixel(ImageData.GetPixelFormat());
         LruCache.SetCapacity(MaxPhysicalMemoryByte / BytePerTile);
         
@@ -234,7 +234,7 @@ namespace nilou {
     //     UTexture::Deserialize(Ar);
     //     StreamingPath = FPath::ContentDir().generic_string() + SerializationPath.generic_string();
     //     StreamingBufferOffset = Ar.FileLength - Ar.BinLength;
-    //     PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(ETextureType::TT_Texture2D, ImageData->GetPixelFormat());
+    //     PageSize = FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension::Texture2D, ImageData->GetPixelFormat());
     //     BytePerTile = PageSize.x * PageSize.y * TranslatePixelFormatToBytePerPixel(ImageData->GetPixelFormat());
     //     LruCache.SetCapacity(MaxPhysicalMemoryByte / BytePerTile);
         
