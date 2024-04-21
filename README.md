@@ -38,13 +38,13 @@ cd NilouHeaderTool
 xmake f -p windows -a x64 -m release
 xmake -P .
 ```
-3. 接下来编译渲染引擎，渲染引擎的编译和运行如下。会启动vcpkg下载依赖库。第一次编译的时候会出现一大堆无法解析的外部符号错误，这是因为生成的反射代码没有被xmake加入到构建中，这时再运行一次编译即可。
+3. 接下来编译渲染引擎，渲染引擎的编译和运行如下。编译前会启动vcpkg下载依赖库，会将NilouHeaderTool/src/include/reflection复制到External/include/reflection中。第一次编译的时候会出现一大堆无法解析的外部符号错误，这是正常的，这是因为生成的反射代码没有被xmake加入到构建中，再运行一次编译即可。
 ```sh
 xmake f -p windows -a x64 -m debug
 xmake build -v Nilou  
 xmake run Nilou
 ```
-如果想要使用Vulkan，需要加上参数 ```-rhi vulkan```。
+如果想要使用Vulkan，需要在可执行程序后面加上参数 ```-rhi vulkan```。
 ## Features
 - 一个比较完备的场景管理架构。参照虚幻引擎搭建了Actor和Component的架构，使得整个项目更有扩展性。
 - 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象，可以根据名称获取成员变量和成员函数，可以自动生成序列化和反序列化代码。通过NilouHeaderTool解析头文件，为打上NCLASS标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。
@@ -63,6 +63,9 @@ xmake run Nilou
 - 实现了Scene capture和反射探针，实现了IBL。
 - 同时支持OpenGL和Vulkan（vulkan暂时不支持虚拟纹理）
 ## TODO
+- HBAO
+- Virtual Shadow Map
+- 不依赖于硬件的虚拟纹理（就是用另一张纹理来当页表，而不是图形API提供的虚拟纹理 e.g. opengl的sparse texture）
 - 水下散射
 - 全局光照
 - 屏幕空间反射
