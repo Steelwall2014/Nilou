@@ -117,7 +117,7 @@ namespace nilou {
 
     static void LoadDamagedHelmet(UWorld* World)
     {
-        UStaticMesh* Helmet = GetContentManager()->GetStaticMeshByPath("/Testgltf/mesh_helmet_LP_13930damagedHelmet.nasset");
+        UStaticMesh* Helmet = GetContentManager()->GetStaticMeshByPath("/Testgltf/DamagedHelmet.nasset");
         if (Helmet == nullptr)
         {
             std::vector<UTexture2D*> Textures;
@@ -127,11 +127,6 @@ namespace nilou {
             Helmet = StaticMeshes[0];
         }
         FTransform MeshTransform;
-        // MeshTransform.SetFromMatrix(
-        //             mat4(vec4(0.0f, -1.0f, 0.0f, 0.0f), 
-        //                                 vec4(0.0f, 0.0f, 1.0f, 0.0f),
-        //                                 vec4(1.0f, 0.0f, 0.0f, 0.0f),
-        //                                 vec4(0.0f, 0.0f, 0.0f, 1.0f)));
         std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "damaged helmet");
         StaticMeshActor->SetStaticMesh(Helmet);
         StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Simple);
@@ -199,8 +194,8 @@ namespace nilou {
         bHasBegunPlay = true;
 
         FTransform CameraActorTransform;
-        CameraActorTransform.SetTranslation(vec3(0, -2, 0));
-        CameraActorTransform.SetRotator(FRotator(0, 90, 0));
+        CameraActorTransform.SetTranslation(vec3(-2, 0, 2));
+        CameraActorTransform.SetRotator(FRotator(-45, 0, 0));
         std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
         CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
 
@@ -208,6 +203,7 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
+        std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);

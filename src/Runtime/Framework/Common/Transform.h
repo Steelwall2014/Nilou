@@ -409,6 +409,62 @@ namespace nilou {
     {
         SetFromMatrix(matrix);
     }
+
+    template <typename T>
+    static glm::tquat<T> UEMatrixToQuat(glm::tmat3x3<T> M)
+    {
+        glm::tquat<T> out;
+        T s;
+
+        // Check diagonal (trace)
+        const T tr = M[0][0] + M[1][1] + M[2][2];
+
+        if (tr > 0.0f) 
+        {
+            T InvS = 1 / glm::sqrt(tr + T(1.f));
+            out.w = T(T(0.5f) * (T(1.f) / InvS));
+            s = T(0.5f) * InvS;
+
+            out.x = ((M[1][2] - M[2][1]) * s);
+            out.y = ((M[2][0] - M[0][2]) * s);
+            out.z = ((M[0][1] - M[1][0]) * s);
+        } 
+        else 
+        {
+            // diagonal is negative
+            int i = 0;
+
+            if (M[1][1] > M[0][0])
+                i = 1;
+
+            if (M[2][2] > M[i][i])
+                i = 2;
+
+            static constexpr int nxt[3] = { 1, 2, 0 };
+            const int j = nxt[i];
+            const int k = nxt[j];
+    
+            s = M[i][i] - M[j][j] - M[k][k] + T(1.0f);
+
+            T InvS = 1 / glm::sqrt(s);
+
+            T qt[4];
+            qt[i] = T(0.5f) * (T(1.f) / InvS);
+
+            s = T(0.5f) * InvS;
+
+            qt[3] = (M[j][k] - M[k][j]) * s;
+            qt[j] = (M[i][j] + M[j][i]) * s;
+            qt[k] = (M[i][k] + M[k][i]) * s;
+
+            out.x = qt[0];
+            out.y = qt[1];
+            out.z = qt[2];
+            out.w = qt[3];
+
+        }
+        return out;
+    }
     
     template <typename T>
     void TTransform<T>::SetFromMatrix(const glm::tmat4x4<T> &matrix)
@@ -423,7 +479,12 @@ namespace nilou {
             matrix[0][0] / scale3d.x, matrix[0][1] / scale3d.x, matrix[0][2] / scale3d.x,
             matrix[1][0] / scale3d.y, matrix[1][1] / scale3d.y, matrix[1][2] / scale3d.y,
             matrix[2][0] / scale3d.z, matrix[2][1] / scale3d.z, matrix[2][2] / scale3d.z };
-        glm::tquat<T> rotation(rotation_mat);        // 矩阵转四元数算法见《3D数学基础：图形与游戏开发》P168
+        if (glm::determinant(rotation_mat) < 0.f)
+        {
+            scale3d[0] *= -1;
+            rotation_mat[0] = -rotation_mat[0];
+        }
+        glm::tquat<T> rotation = UEMatrixToQuat(rotation_mat);
 
         Rotation = rotation;
         Translation = translation;

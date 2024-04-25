@@ -255,6 +255,18 @@ inline NObject* CreateDefaultObject(const std::string& TypeName)
     return nullptr;
 }
 
+inline NObject* CreateDefaultObject(const NClass* Class)
+{
+    auto Object = Ubpa::UDRefl::Mngr.New(Class->GetType());
+    auto BaseObject = Object.StaticCast(Ubpa::Type_of<NObject>);
+    NObject* pObject = BaseObject.AsPtr<NObject>();
+    if (pObject) 
+        return pObject;
+    if (Object)
+        Ubpa::UDRefl::Mngr.Delete(Object);
+    return nullptr;
+}
+
 /** Older solution */
 // template<typename, typename T>
 // struct HasMethodSerialize

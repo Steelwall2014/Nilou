@@ -53,7 +53,7 @@
 	],
 	"meshes":[
 		{
-			"name":"mesh_helmet_LP_13930damagedHelmet",
+			"name":"DamagedHelmet",
 			"primitives":[
 				{
 					"attributes":{
@@ -89,23 +89,23 @@
 	"images":[
 		{
 			"mimeType":"image/jpeg",
-			"name":"Image_2",
-			"uri":"Image_2.jpg"
+			"name":"Default_emissive",
+			"uri":"Default_emissive.jpg"
 		},
 		{
 			"mimeType":"image/jpeg",
-			"name":"Image_4",
-			"uri":"Image_4.jpg"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"Image_3-Image_1",
-			"uri":"Image_3-Image_1.png"
+			"name":"Default_normal",
+			"uri":"Default_normal.jpg"
 		},
 		{
 			"mimeType":"image/jpeg",
-			"name":"Image_0",
-			"uri":"Image_0.jpg"
+			"name":"Default_metalRoughness",
+			"uri":"Default_metalRoughness.jpg"
+		},
+		{
+			"mimeType":"image/jpeg",
+			"name":"Default_albedo",
+			"uri":"Default_albedo.jpg"
 		}
 	],
 	"accessors":[

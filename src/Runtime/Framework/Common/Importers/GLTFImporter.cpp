@@ -4,6 +4,8 @@
 #include "StaticMeshResources.h"
 #include <regex>
 
+namespace fs = std::filesystem;
+
 namespace nilou {
 
     static bool _LoadGLTFModel(const std::string& InFilePath, tinygltf::Model& model)
@@ -63,15 +65,20 @@ namespace nilou {
         return mode;
     }
 
-    static void _ImportMaterials(const std::filesystem::path& FilePath, const std::string& OutDirectory, tinygltf::Model& model, std::vector<UMaterial*>& OutMaterials, std::vector<UTexture2D*>& OutTextures)
+    static void _ImportMaterials(const fs::path& FilePath, const std::string& OutDirectory, tinygltf::Model& model, std::vector<UMaterial*>& OutMaterials, std::vector<UTexture2D*>& OutTextures)
     {
         for (int TextureIndex = 0; TextureIndex < model.textures.size(); TextureIndex++)
         {
             tinygltf::Texture &gltf_texture = model.textures[TextureIndex];
             tinygltf::Image gltf_image = model.images[gltf_texture.source];
-            if (gltf_texture.name == "")
-                gltf_texture.name = "Texture_" + std::to_string(TextureIndex)+ "_"  + FilePath.filename().replace_extension().generic_string();
-            UTexture2D* Texture = GetContentManager()->CreateAsset<UTexture2D>(gltf_texture.name, OutDirectory);
+            std::string texture_name = gltf_texture.name;
+            if (texture_name == "")
+                texture_name = gltf_image.name;
+            if (texture_name == "")
+                texture_name = fs::path(gltf_image.uri).filename().replace_extension().generic_string();
+            if (texture_name == "")
+                texture_name = "Texture_" + std::to_string(TextureIndex)+ "_"  + FilePath.filename().replace_extension().generic_string();
+            UTexture2D* Texture = GetContentManager()->CreateAsset<UTexture2D>(texture_name, OutDirectory);
 
             // Currently only support 8-bit per channel
             EPixelFormat Format;
@@ -282,11 +289,71 @@ namespace nilou {
         }
         return Vertices;
     }
-    static void _ImportMesh(const std::filesystem::path& FilePath, const std::string& OutDirectory, const std::vector<UMaterial*>& Materials, tinygltf::Model& model, std::vector<UStaticMesh*>& OutMeshes)
+    static void _CalcNodeTransform(tinygltf::Model& model, int node_idx, const FTransform& parent_transform, std::vector<FTransform>& node_transforms)
     {
+        auto& node = model.nodes[node_idx];
+        FTransform local_transform;
+        if (!node.matrix.empty())
+        {
+            mat4 transform = mat4(
+                node.matrix[0], node.matrix[1], node.matrix[2], node.matrix[3],
+                node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7],
+                node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11],
+                node.matrix[12], node.matrix[13], node.matrix[14], node.matrix[15]);
+            local_transform.SetFromMatrix(transform);            
+        }
+        else
+        {
+            if (!node.scale.empty())
+            {
+                local_transform.SetScale3D(vec3(node.scale[0], node.scale[1], node.scale[2]));
+            }
+            if (!node.rotation.empty())
+            {
+                quat rotation = quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+                local_transform.SetRotation(rotation);
+            }
+            if (!node.translation.empty())
+            {
+                local_transform.SetTranslation(vec3(node.translation[0], node.translation[1], node.translation[2]));
+            }
+        }
+        FTransform global_transform = parent_transform * local_transform;
+        node_transforms[node_idx] = global_transform;
+        for (int child : node.children)
+        {
+            _CalcNodeTransform(model, child, global_transform, node_transforms);
+        }
+    }
+    static void _ImportMesh(const fs::path& FilePath, const std::string& OutDirectory, const std::vector<UMaterial*>& Materials, tinygltf::Model& model, std::vector<UStaticMesh*>& OutMeshes)
+    {
+        std::vector<FTransform> node_transforms(model.nodes.size());
+        for (auto& Scene : model.scenes)
+        {
+            for (int root : Scene.nodes)
+            {
+                // gltf may have multiple root nodes
+                _CalcNodeTransform(model, root, FTransform::Identity, node_transforms);
+            }
+        }
+        std::vector<FTransform> mesh_transforms(model.meshes.size());
+        for (auto& node : model.nodes)
+        {
+            if (node.mesh != -1)
+            {
+                mesh_transforms[node.mesh] = node_transforms[node.mesh];
+            }
+        }
+        // simply swap Y and Z axis
+        FTransform axis_transform;
+        axis_transform.SetFromMatrix(dmat4(1.0, 0.0, 0.0, 0.0,
+                                                0.0, 0.0, 1.0, 0.0,
+                                                0.0, 1.0, 0.0, 0.0,
+                                                0.0, 0.0, 0.0, 1.0));
         for (int MeshIndex = 0; MeshIndex < model.meshes.size(); MeshIndex++)
         {
             tinygltf::Mesh &gltf_mesh = model.meshes[MeshIndex];
+            const FTransform& transform = mesh_transforms[MeshIndex] * axis_transform;
             if (gltf_mesh.name == "")
                 gltf_mesh.name = "Mesh_" + std::to_string(MeshIndex) + "_" + FilePath.filename().replace_extension().generic_string();
             UStaticMesh *StaticMesh = GetContentManager()->CreateAsset<UStaticMesh>(gltf_mesh.name, OutDirectory);
@@ -331,13 +398,14 @@ namespace nilou {
                         }
                         idx_ptr += stride;
                     }
+                    for (int i = 0; i < indices_accessor.count; i+=3)
+                    {
+                        // Since Y and Z axis are swapped, we need to swap the winding order
+                        std::swap(primitive.Indices[i], primitive.Indices[i + 2]);
+                    }
                 }
 
                 {   // Vertex
-                    mat4 Transform = mat4(vec4(0.0f, -1.0f, 0.0f, 0.0f), 
-                                        vec4(0.0f, 0.0f, 1.0f, 0.0f),
-                                        vec4(1.0f, 0.0f, 0.0f, 0.0f),
-                                        vec4(0.0f, 0.0f, 0.0f, 1.0f));
                     for (auto &[attr_name, attr_index] : gltf_prim.attributes)
                     {
                         tinygltf::Accessor &attr_accessor = model.accessors[attr_index];
@@ -353,35 +421,30 @@ namespace nilou {
                             // GLTF defines +Y as up, +Z as forward and -X as right
                             // While Nilou defines +Z as up, +X as forward and +Y as right
                             // So we need to convert the position
-                            // for (vec3 &pos : primitive.Positions)
-                            // {
-                            //     vec3 new_pos;
-                            //     new_pos.x = pos.z;
-                            //     new_pos.y = -pos.x;
-                            //     new_pos.z = pos.y;
-                            //     vec3 new_pos2 = vec3(Transform * vec4(pos, 1.0f));
-                            //     pos = new_pos;
-                            // }
+                            for (vec3 &pos : primitive.Positions)
+                            {
+                                pos = transform.TransformPosition(pos);
+                            }
                         }
                         else if (attr_name == "NORMAL")
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *nrm_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
                             primitive.Normals = BufferToVector<vec3>(nrm_ptr, attr_accessor.count, attr_bufferview.byteStride);
-                            // for (vec3 &nrm : primitive.Normals)
-                            // {
-                            //     nrm = vec3(Transform * vec4(nrm, 0.0f));
-                            // }
+                            for (vec3 &nrm : primitive.Normals)
+                            {
+                                nrm = transform.TransformVector(nrm);
+                            }
                         }
                         else if (attr_name == "TANGENT")
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC4 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *tng_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
                             primitive.Tangents = BufferToVector<vec4>(tng_ptr, attr_accessor.count, attr_bufferview.byteStride);
-                            // for (vec4 &tng : primitive.Tangents)
-                            // {
-                            //     tng = Transform * tng;
-                            // }
+                            for (vec4 &tng : primitive.Tangents)
+                            {
+                                tng = vec4(transform.TransformVector(vec3(tng)), tng.w);
+                            }
                         }
                         else if (attr_name == "COLOR") 
                         {
@@ -418,7 +481,7 @@ namespace nilou {
         {
             return;
         }
-        std::filesystem::path FilePath = InFilePath;
+        fs::path FilePath = InFilePath;
 
         _ImportMaterials(FilePath, OutDirectory, model, Materials, Textures);
         
