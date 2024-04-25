@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "Common/AssetImporter.h"
 #include "World.h"
 #include "BaseApplication.h"
 #include "Common/Transform.h"
@@ -54,16 +55,6 @@ namespace nilou {
     {
         UMaterial* PBRExhibitionMaterial = GetContentManager()->GetMaterialByPath("/Materials/PBRExhibition.nasset");
         UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
-        // PBRExhibitionMaterial->UpdateUniformBlockType<PBRExhibition_UniformBlock>();
-        auto Data = PBRExhibitionMaterial->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
-        // data->Red = 1;
-        // data->Green = 1;
-        // data->Blue = 1;
-        // data->Metallic = 0;
-        // data->Roughness = 0;
-        // PBRExhibitionMaterial->ContentEntry->bIsDirty = true;
-        // PBRExhibitionMaterial->ContentEntry->bNeedFlush = true;
-        // GetContentManager()->Flush();
         if (Mesh)
         {
             FTransform MeshTransform;
@@ -93,7 +84,7 @@ namespace nilou {
                     mat->SetScalarParameterValue("Blue", 1.f);
                     mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
                     mat->SetScalarParameterValue("Roughness", (j)*0.25f);
-                    auto Data = mat->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
+                    // auto Data = mat->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
                     SphereTransform.SetTranslation(vec3(-2, j*0.3, i*0.3));
                     SphereTransform.SetScale3D(dvec3(0.1));
                     std::shared_ptr<ASphereActor> Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
@@ -122,6 +113,28 @@ namespace nilou {
         FTransform ReflectionProbeTransform2;
         ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe2 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
+    }
+
+    static void LoadDamagedHelmet(UWorld* World)
+    {
+        UStaticMesh* Helmet = GetContentManager()->GetStaticMeshByPath("/Testgltf/mesh_helmet_LP_13930damagedHelmet.nasset");
+        if (Helmet == nullptr)
+        {
+            std::vector<UTexture2D*> Textures;
+            std::vector<UMaterial*> Materials;
+            std::vector<UStaticMesh*> StaticMeshes;
+            FGLTFImporter::Import(R"(D:\Nilou\Assets\Models\DamagedHelmet.gltf)", "/Testgltf", Textures, Materials, StaticMeshes);
+            Helmet = StaticMeshes[0];
+        }
+        FTransform MeshTransform;
+        // MeshTransform.SetFromMatrix(
+        //             mat4(vec4(0.0f, -1.0f, 0.0f, 0.0f), 
+        //                                 vec4(0.0f, 0.0f, 1.0f, 0.0f),
+        //                                 vec4(1.0f, 0.0f, 0.0f, 0.0f),
+        //                                 vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+        std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "damaged helmet");
+        StaticMeshActor->SetStaticMesh(Helmet);
+        StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Simple);
     }
 
     static void LoadSkyAtmosphere(UWorld* World)
@@ -195,7 +208,7 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
-        LoadPBRExibition(this);
+        // LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);
 
@@ -205,10 +218,12 @@ namespace nilou {
 
         // Load3DTileset(this);
 
+        LoadDamagedHelmet(this);
+
         // // std::vector<FDynamicMeshVertex> OutVerts;
         // // std::vector<uint32> OutIndices;
         // // BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
-        // // UStaticMesh *cube = GetContentManager()->CreateFile<UStaticMesh>("StaticMeshes/Cube.nasset");
+        // // UStaticMesh *cube = GetContentManager()->CreateAsset<UStaticMesh>("StaticMeshes/Cube.nasset");
         // // cube->LocalBoundingBox = FBoundingBox(dvec3(-0.5), dvec3(0.5));
         // // cube->MaterialSlots.push_back(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         // // std::unique_ptr<FStaticMeshLODResources> resources = std::make_unique<FStaticMeshLODResources>();
@@ -229,22 +244,27 @@ namespace nilou {
         // GetContentManager()->Flush();
 
         // std::shared_ptr<FImage> img =GetAssetLoader()->SyncOpenAndReadImage(R"(E:\Downloads\ibl_brdf_lut.png)");
-        // UTexture2D* LUT = GetContentManager()->CreateFile<UTexture2D>("/Textures/IBL_BRDF_LUT.nasset");
+        // UTexture2D* LUT = GetContentManager()->CreateAsset<UTexture2D>("/Textures/IBL_BRDF_LUT.nasset");
         // LUT->Name = "IBL_BRDF_LUT";
         // LUT->ImageData = img;
         // LUT->UpdateResource();
 
-        // UMaterial* MirrorMaterial = GetContentManager()->CreateFile<UMaterial>("/Materials/MirrorMaterial.nasset");
-        // MirrorMaterial->Name = "MirrorMaterial";
-        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
-
-        // UMaterial* OceanMaterial2 = GetContentManager()->CreateFile<UMaterial>("/Materials/OceanMaterial2.nasset");
-        // OceanMaterial2->Name = "OceanMaterial2";
-        // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Materials/OceanMaterial2_Mat.glsl");
-
-        // UMaterial* PBRExhibition = GetContentManager()->CreateFile<UMaterial>("/Materials/PBRExhibition.nasset");
-        // PBRExhibition->Name = "PBRExhibition";
+        // UMaterial* PBRExhibition = GetContentManager()->CreateAsset<UMaterial>("PBRExhibition", "/Materials");
         // PBRExhibition->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.glsl");
+        // PBRExhibition->SetScalarParameterValue("Red", 1.f);
+        // PBRExhibition->SetScalarParameterValue("Green", 1.f);
+        // PBRExhibition->SetScalarParameterValue("Blue", 1.f);
+        // PBRExhibition->SetScalarParameterValue("Metallic", 0.f);
+        // PBRExhibition->SetScalarParameterValue("Roughness", 0.8f);
+        // PBRExhibition->MarkAssetDirty();
+
+        // UMaterial* MirrorMaterial = GetContentManager()->CreateAsset<UMaterial>("MirrorMaterial", "/Materials");
+        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
+        // MirrorMaterial->MarkAssetDirty();
+
+        // UMaterial* OceanMaterial2 = GetContentManager()->CreateAsset<UMaterial>("OceanMaterial2", "/Materials");
+        // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Materials/OceanMaterial2_Mat.glsl");
+        // OceanMaterial2->MarkAssetDirty();
 
     }
 

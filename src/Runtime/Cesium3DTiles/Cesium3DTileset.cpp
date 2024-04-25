@@ -151,7 +151,7 @@ namespace nilou {
             OutUniformBuffer->Data.metallicFactor = gltf_material.pbrMetallicRoughness.metallicFactor;
             OutUniformBuffer->Data.roughnessFactor = gltf_material.pbrMetallicRoughness.roughnessFactor;
             OutMaterials.push_back(Material);
-            Material->SetParameterValue("FGLTFMaterialBlock", OutUniformBuffer.get());
+            Material->SetVectorParameterValue("baseColorFactor", OutUniformBuffer->Data.baseColorFactor);
         }
     }
 

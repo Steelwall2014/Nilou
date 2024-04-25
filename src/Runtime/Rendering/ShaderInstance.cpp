@@ -36,8 +36,6 @@ namespace nilou {
                 ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  client, 0);
                 break;
         }
-        if (ShaderRHI)
-            ShaderRHI->ShaderGlsl = ShaderGlsl.get();
         ShaderGlsl->setEnvClient(client, version);
         ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
         ShaderGlsl->setStrings(&code_c_str, 1);
@@ -53,8 +51,13 @@ namespace nilou {
                 ShaderName, 
                 info,
                 debuginfo);
-            ShaderGlsl == nullptr;
+            NILOU_LOG(Error, "Shader code: \n{}", Code);
+            ShaderGlsl = nullptr;
+            ShaderRHI = nullptr;
+            return;
         }
+
+        ShaderRHI->ShaderGlsl = ShaderGlsl.get();
     }
 
     void FShaderInstance::ReleaseRHI()

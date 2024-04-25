@@ -56,10 +56,19 @@ namespace nilou {
                 continue;
             }
         }
+        if (to[i] == '/')
+        {
+            i++;
+        }
         while(to[i] != '\0'){
             result.push_back(to[i++]);
         }
         return result;
+    }
+
+    std::filesystem::path FPath::VirtualPathToAbsPath(const std::string &VirtualPath)
+    {
+        return FPath::ContentDir() / VirtualPath.substr(1);
     }
 
 }

@@ -45,7 +45,7 @@ namespace nilou {
 		FPipelineStateCache::ClearCacheGraphicsPSO();
 	}
 
-    EShaderParameterType TranslateToShaderParameterType(const glslang::TType *Type)
+    static EShaderParameterType TranslateToShaderParameterType(const glslang::TType *Type)
     {
         EShaderParameterType type = EShaderParameterType::SPT_None;
         glslang::TBasicType BasicType = Type->getBasicType();

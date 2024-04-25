@@ -59,7 +59,7 @@ int main()
 {
     glslang::InitializeProcess();
     TShader *Shader = new TShader(EShLanguage::EShLangCompute);
-    std::ifstream in{"D:\\Nilou\\Assets\\Shaders\\VirtualHeightfieldMesh\\VHM_create_lod_texture.comp"};
+    std::ifstream in{"D:\\Nilou\\Content\\Shaders\\VirtualHeightfieldMesh\\VHM_create_lod_texture.comp"};
     char buffer[1024];
     std::stringstream res;
     while (in.getline(buffer, sizeof(buffer)))
@@ -67,7 +67,25 @@ int main()
         res << buffer << "\n";
     }
     std::string code = res.str();
-    const char *s = code.c_str();
+    const char *s = R"(
+#version 460
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(r16f, binding=3) uniform image2D LODMap;
+
+layout (std140, binding=4) uniform FQuadTreeParameters {
+    uvec2   NodeCount;
+    uint    LODNum[2];
+    uint    NumQuadsPerPatch;
+    uint    NumPatchesPerNode;
+	uint	NumHeightfieldTextureMipmap;
+};
+
+void main()
+{
+    imageStore(LODMap, ivec2(NodeCount), vec4(LODNum[0], NumQuadsPerPatch, NumPatchesPerNode, NumHeightfieldTextureMipmap));
+}
+    )";
     Shader->setStrings(&s, 1);
     Shader->setEnvInput(EShSourceGlsl , EShLanguage::EShLangCompute,  EShClientNone, 0);
     Shader->setEnvClient(EShClientNone, EShTargetClientVersion(0));
@@ -103,7 +121,8 @@ int main()
         auto name = program.getUniformName(i);
         auto binding = program.getUniformBinding(i);
         auto obj = program.getUniform(i);
-        bool b = obj.getType()->isImage();
+        auto b = obj.getType()->getArraySizes();
+        auto tname = obj.getType()->getBasicString();
         std::cout << name;
     }
 
@@ -113,6 +132,13 @@ int main()
         auto name = program.getUniformBlockName(i);
         auto binding = program.getUniformBlockBinding(i);
         auto obj = program.getUniformBlock(i);
+        auto stru = obj.getType()->getStruct();
+        for (auto& type : *stru)
+        {
+            auto name = type.type->getFieldName();
+            auto basic_type = type.type->getBasicType();
+            std::cout << name;
+        }
         std::cout << name;
     }
 

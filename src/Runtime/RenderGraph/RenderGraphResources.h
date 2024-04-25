@@ -26,6 +26,8 @@ protected:
 
     RHIResource* ResourceRHI = nullptr;
 
+    bool bIsPersistent = false;
+
 private:
 
     friend class FRenderGraph;
@@ -42,6 +44,7 @@ struct FRDGTextureDesc
     uint32 NumMips;
     EPixelFormat Format;
     ETextureDimension TextureType;
+    ETextureCreateFlags TexCreateFlags;
 
     bool operator==(const FRDGTextureDesc& Other) const = default;
 };
@@ -51,6 +54,7 @@ class FRDGTexture : public FRDGResource
 public:
     FRDGTexture(const FRDGTextureDesc&) { }
 };
+using FRDGTextureRef = std::shared_ptr<FRDGTexture>;
 
 struct FRDGBufferDesc
 {
@@ -66,6 +70,7 @@ class FRDGBuffer : public FRDGResource
 public:
     FRDGBuffer(const FRDGBufferDesc&) { }
 };
+using FRDGBufferRef = std::shared_ptr<FRDGBuffer>;
 
 struct FRDGUniformBufferDesc
 {
@@ -100,6 +105,7 @@ private:
     uint8* Data;
 
 };
+using FRDGUniformBufferRef = std::shared_ptr<FRDGUniformBuffer>;
 
 }
 

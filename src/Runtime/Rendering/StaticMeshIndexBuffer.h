@@ -30,7 +30,7 @@ namespace nilou {
 
         void Init(uint32 InNumIndices, EIndexBufferStride DesiredStride);
 
-        void Init(void *Data, uint32 InNumIndices, uint32 Stride);
+        void Init(void *Data, uint32 InStride, uint32 InNumIndices);
 
         void Init(const std::vector<uint8>& InIndices);
         void Init(const std::vector<uint16>& InIndices);

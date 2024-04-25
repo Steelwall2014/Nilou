@@ -32,43 +32,43 @@ void Write(std::string filename, std::string code)
 namespace nilou {
 
 
-    std::map<std::string, std::string> &GetGShaderSourceDirectoryMappings()
-    {
-        static std::map<std::string, std::string> GShaderSourceDirectoryMappings;
-        return GShaderSourceDirectoryMappings;
-    }
+    // std::map<std::string, std::string> &GetGShaderSourceDirectoryMappings()
+    // {
+    //     static std::map<std::string, std::string> GShaderSourceDirectoryMappings;
+    //     return GShaderSourceDirectoryMappings;
+    // }
 
-    void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory)
-    {
-        Ncheck(std::filesystem::exists(RealShaderDirectory));
-        Ncheck(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
-        GetGShaderSourceDirectoryMappings()[VirtualShaderDirectory] = RealShaderDirectory;
-    }
+    // void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory)
+    // {
+    //     Ncheck(std::filesystem::exists(RealShaderDirectory));
+    //     Ncheck(GetGShaderSourceDirectoryMappings().count(VirtualShaderDirectory) == 0);
+    //     GetGShaderSourceDirectoryMappings()[VirtualShaderDirectory] = RealShaderDirectory;
+    // }
 
-    std::string GetShaderAbsolutePathFromVirtualPath(const std::string &VirtualFilePath)
-    {
-        bool RealFilePathFound = false;
-        std::filesystem::path RealFilePath;
-        std::filesystem::path ParentVirtualDirectoryPath = std::filesystem::path(VirtualFilePath).parent_path();
-        std::filesystem::path RelativeVirtualDirectoryPath = std::filesystem::path(VirtualFilePath).filename();
+    // std::string GetShaderAbsolutePathFromVirtualPath(const std::string &VirtualFilePath)
+    // {
+    //     bool RealFilePathFound = false;
+    //     std::filesystem::path RealFilePath;
+    //     std::filesystem::path ParentVirtualDirectoryPath = std::filesystem::path(VirtualFilePath).parent_path();
+    //     std::filesystem::path RelativeVirtualDirectoryPath = std::filesystem::path(VirtualFilePath).filename();
 
-        while (!ParentVirtualDirectoryPath.empty() && ParentVirtualDirectoryPath.generic_string() != "/")
-        {
-            if (GetGShaderSourceDirectoryMappings().count(ParentVirtualDirectoryPath.generic_string()) != 0)
-            {
-                RealFilePath = 
-                    std::filesystem::path(GetGShaderSourceDirectoryMappings()[ParentVirtualDirectoryPath.generic_string()]) / RelativeVirtualDirectoryPath;
-                RealFilePathFound = true;
-                break;
-            }
+    //     while (!ParentVirtualDirectoryPath.empty() && ParentVirtualDirectoryPath.generic_string() != "/")
+    //     {
+    //         if (GetGShaderSourceDirectoryMappings().count(ParentVirtualDirectoryPath.generic_string()) != 0)
+    //         {
+    //             RealFilePath = 
+    //                 std::filesystem::path(GetGShaderSourceDirectoryMappings()[ParentVirtualDirectoryPath.generic_string()]) / RelativeVirtualDirectoryPath;
+    //             RealFilePathFound = true;
+    //             break;
+    //         }
 
-            RelativeVirtualDirectoryPath = ParentVirtualDirectoryPath.filename() / RelativeVirtualDirectoryPath;
-            ParentVirtualDirectoryPath = ParentVirtualDirectoryPath.parent_path();
-        }
-        if (!RealFilePathFound)
-            std::cout << "[ERROR] Can't map virtual shader source path " << VirtualFilePath << std::endl;
-        return RealFilePath.generic_string();
-    }
+    //         RelativeVirtualDirectoryPath = ParentVirtualDirectoryPath.filename() / RelativeVirtualDirectoryPath;
+    //         ParentVirtualDirectoryPath = ParentVirtualDirectoryPath.parent_path();
+    //     }
+    //     if (!RealFilePathFound)
+    //         std::cout << "[ERROR] Can't map virtual shader source path " << VirtualFilePath << std::endl;
+    //     return RealFilePath.generic_string();
+    // }
 
     void AddUniformsToSStream(const std::set<FShaderParameterCode> &ParameterCodes, std::stringstream &Out)
     {
@@ -142,7 +142,6 @@ namespace nilou {
 
     void FShaderCompiler::CompileVertexMaterialShader(
         FDynamicRHI *DynamicRHI,
-        FMaterial *Material, 
         const std::string &MaterialPreprocessedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
@@ -169,7 +168,6 @@ namespace nilou {
 
     void FShaderCompiler::CompilePixelMaterialShader(
         FDynamicRHI *DynamicRHI, 
-        FMaterial *Material, 
         const std::string& MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
@@ -210,68 +208,63 @@ namespace nilou {
 
     }
 
-    template<typename Func, typename Filter>
-    void ForEachVertexFactory(Func f, Filter filter)
+    template<typename Func>
+    void ForEachGlobalShader(Func f)
     {
-        std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
-        for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
-        {
-            if (VertexFactoryType->Name == "FVertexFactory")
-                continue;
-            if (!filter(VertexFactoryType))
-                continue;
-            VertexFactoryType->ReadSourceCode();
-            for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
-            {
-                FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
-                if (!VertexFactoryType->ShouldCompilePermutation(VFParameters))
-                    continue;
-                f(VFParameters);
-            }
-        }
+        ForEachShader(
+            f,
+            [](FShaderType *ShaderType) { return ShaderType->ShaderMetaType == EShaderMetaType::SMT_Global; });
+    }
 
+    template<typename Func>
+    void ForEachMaterialShader(Func f)
+    {
+        ForEachShader(
+            f,
+            [](FShaderType *ShaderType) { return ShaderType->ShaderMetaType == EShaderMetaType::SMT_Material; });
     }
 
     void FShaderCompiler::CompileGlobalShaders(FDynamicRHI *DynamicRHI)
     {
-        ForEachShader(
+        ForEachGlobalShader(
             [DynamicRHI](const FShaderPermutationParameters &ShaderParameter) 
             {
                 CompileGlobalShader(DynamicRHI, ShaderParameter);
-            },
-            [](FShaderType *ShaderType) 
-            {
-                return ShaderType->ShaderMetaType == EShaderMetaType::SMT_Global;
             });
     }
     
-    void FShaderCompiler::CompileMaterialShader(FMaterial *Material, 
-        const std::string &MaterialParsedResult,FDynamicRHI *DynamicRHI)
+    void FShaderCompiler::CompileMaterialShader(FMaterialShaderMap* ShaderMap,
+        const std::string &MaterialParsedResult, FDynamicRHI *DynamicRHI)
     {
-        ForEachShader(
-            [Material, &MaterialParsedResult, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
+        ForEachMaterialShader(
+            [ShaderMap, &MaterialParsedResult, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
-                    ForEachVertexFactory(
-                    [Material, &MaterialParsedResult, &ShaderParameter, DynamicRHI]
-                    (const FVertexFactoryPermutationParameters &VFParameters) {
-                        CompileVertexMaterialShader(
-                            DynamicRHI, Material, MaterialParsedResult, VFParameters, ShaderParameter, 
-                            Material->ShaderMap->VertexShaderMap);
-                    }, 
-                    [](FVertexFactoryType *) 
-                    { return true; });
+                    // Iterate over all vertex factory types
+                    std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
+                    for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
+                    {
+                        if (VertexFactoryType->Name == "FVertexFactory")    // It's the base class so skip it
+                            continue;
+                        VertexFactoryType->ReadSourceCode();
+                        for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
+                        {
+                            FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
+                            if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
+                                continue;
+                            CompileVertexMaterialShader(
+                                DynamicRHI, MaterialParsedResult, VFParameters, ShaderParameter, 
+                                ShaderMap->VertexShaderMap);
+                        }
+                    }
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
                     CompilePixelMaterialShader(
-                        DynamicRHI, Material, MaterialParsedResult, ShaderParameter, 
-                        Material->ShaderMap->PixelShaderMap);
+                        DynamicRHI, MaterialParsedResult, ShaderParameter, 
+                        ShaderMap->PixelShaderMap);
                 }
-            },
-            [](FShaderType *ShaderType) {
-                return ShaderType->ShaderMetaType == EShaderMetaType::SMT_Material;
             });
 
     }

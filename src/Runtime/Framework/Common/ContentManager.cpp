@@ -35,35 +35,6 @@ namespace nilou {
 
     namespace fs = std::filesystem;
 
-    static std::string ReadClassName(std::ifstream &in)
-    {
-        char c;
-        int i = 0;
-        std::string temp;
-        std::string res;
-        while (i < 3 && !in.eof())
-        {
-            in.read(&c, 1);
-            if (c == ' ' || c == '\n' || c == '\t')
-                continue;
-            if (c == '\"')
-                i++;
-            temp += c;
-        }
-        if (temp == "{\"ClassName\":\"")
-        {
-            while (true)
-            {
-                in.read(&c, 1);
-                if (c == '\"')
-                    break;
-                else
-                    res += c;
-            }
-        }
-        return res;
-    }
-
     std::unique_ptr<FContentEntry> 
     FContentEntry::Build(const fs::path &DirectoryPath, const fs::path &ContentBasePath)
     {
@@ -72,12 +43,13 @@ namespace nilou {
         directory_entry->bIsDirectory = true;
         directory_entry->AbsolutePath = DirectoryPath;
         directory_entry->Name = DirectoryPath.filename().generic_string();
-        directory_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), DirectoryPath.generic_string());
+        directory_entry->VirtualPath = "/" + FPath::RelativePath(ContentBasePath.generic_string(), DirectoryPath.generic_string());
         for (const fs::directory_entry &dir_entry : fs::directory_iterator(DirectoryPath))
         {
             if (dir_entry.is_directory())
             {
                 auto entry = Build(dir_entry.path(), ContentBasePath);
+                entry->Parent = directory_entry.get();
                 directory_entry->Children[entry->Name] = std::move(entry);
             }
             else 
@@ -86,23 +58,20 @@ namespace nilou {
                 if (Path.extension().generic_string() != ".nasset")
                     continue;
                 std::ifstream in{Path.generic_string()};
-                // std::string class_name = ReadClassName(in);
-                // if (class_name != "")
-                // {
                 auto file_entry = std::make_unique<FContentEntry>();
                 file_entry->bIsDirty = false;
                 file_entry->bIsDirectory = false;
                 file_entry->AbsolutePath = Path;
                 file_entry->Name = Path.filename().generic_string();
-                file_entry->RelativePath = FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
+                file_entry->VirtualPath = "/" + FPath::RelativePath(ContentBasePath.generic_string(), Path.generic_string());
+                file_entry->Parent = directory_entry.get();
                 directory_entry->Children[file_entry->Name] = std::move(file_entry);
-                // }
             }
         }
         return directory_entry;
     }
 
-    NAsset* FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
+    FContentEntry* FContentEntry::Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth)
     {
         if (tokens[depth] == Entry->Name)
         {
@@ -110,34 +79,37 @@ namespace nilou {
             {
                 for (auto &[Name, Child] : Entry->Children)
                 {
-                    NAsset *object = Search(Child.get(), tokens, depth+1);
-                    if (object != nullptr)
-                        return object;
+                    FContentEntry *entry = Search(Child.get(), tokens, depth+1);
+                    if (entry != nullptr)
+                        return entry;
                 }
             }
             else
             {
-                return Entry->Object.get();
+                return Entry;
             }
         }
 
         return nullptr;
     }
 
-    void FContentEntry::Serialize(FContentEntry *Entry)
+    void FContentEntry::Serialize(FContentEntry *Entry, bool bRecursive)
     {
         if (Entry->bIsDirectory)
         {
-            if (Entry->bIsDirty && Entry->bNeedFlush)
+            if (Entry->bIsDirty)
                 fs::create_directory(Entry->AbsolutePath);
-            for (auto &[Name, Child] : Entry->Children)
+            if (bRecursive)
             {
-                Serialize(Child.get());
+                for (auto &[Name, Child] : Entry->Children)
+                {
+                    Serialize(Child.get(), bRecursive);
+                }
             }
         }
         else 
         {         
-            if (Entry->bIsDirty && Entry->bNeedFlush && !Entry->Object->SerializationPath.empty())
+            if (Entry->bIsDirty)
             {
                 FArchiveHelper ArHelper;
                 Entry->Object->PreSerialize(ArHelper.Ar);
@@ -145,6 +117,7 @@ namespace nilou {
                 Entry->Object->PostSerialize(ArHelper.Ar);
                 std::ofstream out(Entry->AbsolutePath, std::ios::binary);
                 out << ArHelper.Ar;
+                Entry->bIsDirty = false;
             }
         }
     }
@@ -167,13 +140,13 @@ namespace nilou {
     FContentManager::FContentManager(const fs::path &InContentBasePath)
         : ContentBasePath(InContentBasePath)
     {
-        ContentEntry = FContentEntry::Build(ContentBasePath, ContentBasePath);
+        RootEntry = FContentEntry::Build(ContentBasePath, ContentBasePath);
     }
 
     void FContentManager::Init()
     {
         std::vector<FContentEntry*> Entries;
-        FContentEntry::Deserialize(ContentEntry.get(), Entries);
+        FContentEntry::Deserialize(RootEntry.get(), Entries);
         BS::thread_pool pool;
         std::vector<std::future<std::unique_ptr<FArchiveHelper>>> futures;
         for (int i = 0; i < Entries.size(); i++)
@@ -199,57 +172,143 @@ namespace nilou {
                 auto class_name = std::string(ArHelper->Ar.Node["ClassName"]);
                 if (!GameStatics::StartsWith(class_name, "nilou::"))
                     class_name = "nilou::" + class_name;
-                Entries[i]->Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(class_name)));
-                Entries[i]->Object->SerializationPath = Entries[i]->RelativePath;
+                NAsset* asset = static_cast<NAsset*>(CreateDefaultObject(class_name));
+                if (asset == nullptr)
+                {
+                    NILOU_LOG(Info, "Failed to create object of class {}", class_name);
+                    continue;
+                }
+                Entries[i]->Object = std::unique_ptr<NAsset>(asset);
                 Entries[i]->Object->ContentEntry = Entries[i];
                 Archives.push_back(std::move(ArHelper));
             }
         }
+        // Because of some dependencies between assets, we need to deserialize them in three steps
+        // TODO: dependency graph
         for (int i = 0; i < Archives.size(); i++)
         {
             Entries[i]->Object->PreDeserialize(Archives[i]->Ar);
+        }
+        for (int i = 0; i < Archives.size(); i++)
+        {
             Entries[i]->Object->Deserialize(Archives[i]->Ar);
+        }
+        for (int i = 0; i < Archives.size(); i++)
+        {
             Entries[i]->Object->PostDeserialize(Archives[i]->Ar);
         }
     }
 
-    NAsset *FContentManager::GetContentByPath(const fs::path &InPath)
+    NAsset *FContentManager::GetContentByPath(const std::string &InPath)
     {
-        std::string path = InPath.generic_string();
-        auto tokens = GameStatics::Split(path, '/');
-        tokens.insert(tokens.begin(), "Content");
-        return FContentEntry::Search(ContentEntry.get(), tokens, 0);
+        FContentEntry* Entry = GetEntryByPath(InPath);
+        if (Entry)
+            return Entry->Object.get();
+        else
+            return nullptr;
     }
 
-    UMaterial *FContentManager::GetMaterialByPath(const fs::path &InPath)
+    UMaterial *FContentManager::GetMaterialByPath(const std::string &InPath)
     {
         return dynamic_cast<UMaterial*>(GetContentByPath(InPath));
     }
 
-    UTexture *FContentManager::GetTextureByPath(const fs::path &InPath)
+    UTexture *FContentManager::GetTextureByPath(const std::string &InPath)
     {
         return dynamic_cast<UTexture*>(GetContentByPath(InPath));
     }
 
-    UStaticMesh *FContentManager::GetStaticMeshByPath(const fs::path &InPath)
+    UStaticMesh *FContentManager::GetStaticMeshByPath(const std::string &InPath)
     {
         return dynamic_cast<UStaticMesh*>(GetContentByPath(InPath));
     }
 
-    bool FContentManager::CreateDirectory(const std::filesystem::path &InPath, bool bNeedFlush)
+    NAsset* FContentManager::CreateAsset(const std::string& Name, const std::string &VirtualDirectory, const NClass* Class)
     {
-        FContentEntry *entry = CreateDirectoryInternal(InPath, bNeedFlush);
+        if (!Class->IsChildOf(NAsset::StaticClass()))
+            return nullptr;
+        std::filesystem::path Directory = std::filesystem::path(VirtualDirectory);
+        std::filesystem::path InPath = Directory / (Name + ".nasset");
+        FContentEntry *temp_entry = CreateDirectoryInternal(Directory);
+        if (temp_entry)
+        {
+            std::string filename = InPath.filename().generic_string();
+            if (temp_entry->Children.find(filename) == temp_entry->Children.end())
+            {
+                auto Entry = std::make_unique<FContentEntry>();
+                Entry->AbsolutePath = temp_entry->AbsolutePath / InPath.filename();
+                Entry->VirtualPath = "/" + FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
+                Entry->Name = InPath.filename().generic_string();
+                Entry->bIsDirectory = false;
+                Entry->bIsDirty = true;
+                auto Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(Class)));
+                Object->Name = Name;
+                Object->ContentEntry = Entry.get();
+                NAsset *raw_p = Object.get();
+                Entry->Object = std::move(Object);
+                Entry->Parent = temp_entry;
+                temp_entry->Children[filename] = std::move(Entry);
+                return raw_p;
+            }
+        }
+        return nullptr;
+    }
+
+    bool FContentManager::RenameAsset(const std::string &AssetPathToRename, const std::string &NewName)
+    {
+        NAsset* AssetToRename = GetContentByPath(AssetPathToRename);
+        return RenameAsset(AssetToRename, NewName);
+    }
+
+    bool FContentManager::RenameAsset(NAsset* AssetToRename, const std::string &NewName)
+    {
+        // TODO: search for dependencies
+        if (AssetToRename && AssetToRename->ContentEntry)
+        {
+            FContentEntry *EntryToRename = AssetToRename->ContentEntry;
+            fs::path old_absolute_path = EntryToRename->AbsolutePath;
+            fs::path virtual_path = fs::path(EntryToRename->VirtualPath).replace_filename(NewName);
+            EntryToRename->VirtualPath = virtual_path.generic_string();
+            EntryToRename->AbsolutePath = FPath::VirtualPathToAbsPath(EntryToRename->VirtualPath);
+            EntryToRename->Name = NewName;
+            AssetToRename->Name = NewName;
+            SaveAsset(EntryToRename->VirtualPath);
+            fs::remove(old_absolute_path);
+            return true;
+        }
+        return false;
+    }
+
+    bool FContentManager::SaveAsset(const std::string &AssetPathToSave)
+    {
+        NAsset* AssetToSave = GetContentByPath(AssetPathToSave);
+        return SaveAsset(AssetToSave);
+    }
+
+    bool FContentManager::SaveAsset(NAsset* AssetToSave)
+    {
+        if (AssetToSave && AssetToSave->ContentEntry)
+        {
+            FContentEntry::Serialize(AssetToSave->ContentEntry);
+            return true;
+        }
+        return false;
+    }
+
+    bool FContentManager::CreateDirectory(const std::filesystem::path &InPath)
+    {
+        FContentEntry *entry = CreateDirectoryInternal(InPath);
         if (entry) 
             return true;
         else
             return false;
     }
 
-    FContentEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush)
+    FContentEntry *FContentManager::CreateDirectoryInternal(const std::filesystem::path &InPath)
     {
         std::string path = InPath.generic_string();
         auto tokens = GameStatics::Split(path, '/');
-        FContentEntry *temp_entry = ContentEntry.get();
+        FContentEntry *temp_entry = RootEntry.get();
         int depth = 0;
         FContentEntry *res;
         while (depth < tokens.size())
@@ -265,12 +324,12 @@ namespace nilou {
             {
                 auto Entry = std::make_unique<FContentEntry>();
                 Entry->AbsolutePath = temp_entry->AbsolutePath / fs::path(tokens[depth]);
-                Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
+                Entry->VirtualPath = "/" + FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
                 Entry->Name = tokens[depth];
                 Entry->bIsDirectory = true;
                 Entry->bIsDirty = true;
-                Entry->bNeedFlush = bNeedFlush;
                 FContentEntry *raw = Entry.get();
+                Entry->Parent = temp_entry;
                 temp_entry->Children[Entry->Name] = std::move(Entry);
                 temp_entry = raw;
             }
@@ -284,7 +343,7 @@ namespace nilou {
 
     void FContentManager::Flush()
     {
-        FContentEntry::Serialize(ContentEntry.get());
+        FContentEntry::Serialize(RootEntry.get(), true);
     }
 
     void FContentManager::ReleaseRenderResources()
@@ -318,43 +377,39 @@ namespace nilou {
         return GetAppication()->GetContentManager();
     }
 
-    void FContentManager::ForEachContent(std::function<void(NAsset*)> &&Func)
-    {
-        ForEachContentInternal(ContentEntry.get(), std::forward<std::function<void(NAsset*)>>(Func));
-    }
-
-    void FContentManager::ForEachEntry(std::function<void(FContentEntry*)> &&Func)
-    {
-        ForEachEntryInternal(ContentEntry.get(), std::forward<std::function<void(FContentEntry*)>>(Func));
-    }
-
-    void FContentManager::ForEachContentInternal(FContentEntry* Entry, std::function<void(NAsset*)> &&Func)
+    template<typename T>
+    static void ForEachTemplate(FContentEntry* Entry, const std::function<void(T*)> &Func)
     {
         if (Entry->bIsDirectory)
         {
             for (auto &[Name, Child] : Entry->Children)
             {
-                ForEachContentInternal(Child.get(), std::forward<std::function<void(NAsset*)>>(Func));
+                ForEachTemplate(Child.get(), Func);
             }
         }
         else 
-        {              
-            Func(Entry->Object.get());
+        {     
+            if constexpr (std::is_same_v<T, FContentEntry>)         
+                Func(Entry);
+            else if constexpr (std::is_same_v<T, NAsset>)
+                Func(Entry->Object.get());
         }
     }
 
-    void FContentManager::ForEachEntryInternal(FContentEntry* Entry, std::function<void(FContentEntry*)> &&Func)
+    void FContentManager::ForEachContent(const std::function<void(NAsset*)> &Func)
     {
-        if (Entry->bIsDirectory)
-        {
-            for (auto &[Name, Child] : Entry->Children)
-            {
-                ForEachEntryInternal(Child.get(), std::forward<std::function<void(FContentEntry*)>>(Func));
-            }
-        }
-        else 
-        {              
-            Func(Entry);
-        }
+        ForEachTemplate(RootEntry.get(), Func);
+    }
+
+    void FContentManager::ForEachEntry(const std::function<void(FContentEntry*)> &Func)
+    {
+        ForEachTemplate(RootEntry.get(), Func);
+    }
+
+    FContentEntry* FContentManager::GetEntryByPath(const std::string &InPath)
+    {
+        auto tokens = GameStatics::Split(InPath, '/');
+        tokens.insert(tokens.begin(), "Content");
+        return FContentEntry::Search(RootEntry.get(), tokens, 0);
     }
 }

@@ -31,36 +31,86 @@ namespace nilou {
         SM_ShadingModelNum
     };
 
-    class FMaterial
+    
+    class FMaterialUniformBuffer : public FUniformBuffer
     {
-        friend class FShaderCompiler;
-        friend class FMaterialRenderProxy;
-        friend class UMaterial;
-        friend class UMaterialInstance;
     public:
+        friend class UMaterial;
 
-        FMaterial()
-            : ShaderMap(new FMaterialShaderMap)
-        { 
+        FMaterialUniformBuffer() { }
+
+        struct Field
+        {
+            std::string Name;
+            std::string Type;   // only "float","vec2","vec3","vec4" are supported
+            uint32 Offset;
+        };
+
+        void SetScalarParameterValue(const std::string& Name, float Value)
+        {
+            auto Found = Fields.find(Name);
+            if (Found != Fields.end())
+            {
+                float* ptr = (float*)(Data.get() + Found->second.Offset);
+                *ptr = Value;
+            }
         }
 
-        FMaterial(const FMaterial& Other)
-            : Name(Other.Name)
-            , ShaderMap(Other.ShaderMap)
-            , bShaderCompiled(Other.bShaderCompiled)
-        { 
+        template<typename T>
+        void SetVectorParameterValue(const std::string& Name, const T& Value)
+        {
+            static_assert(
+                std::is_same_v<T, vec2> || 
+                std::is_same_v<T, vec3> || 
+                std::is_same_v<T, vec4>, "FMaterialUniformBuffer::SetVectorParameterValue T must be vec2,vec3 or vec4");
+            auto Found = Fields.find(Name);
+            if (Found != Fields.end())
+            {
+                T* ptr = (T*)(Data.get() + Found->second.Offset);
+                *ptr = Value;
+            }
         }
 
-        std::string Name;
+        template<typename T>
+        T GetField(const std::string& Name)
+        {
+            auto Found = Fields.find(Name);
+            if (Found != Fields.end())
+            {
+                return _GetField<T>(Found->second.Offset);
+            }
+            return T();
+        }
 
-        void UpdateMaterialCode_RenderThread(const std::string &InCode, FDynamicRHI* RHICmdList);
+        /** Begin FRenderResource Interface */
+        virtual void InitRHI() override;
+        virtual void ReleaseRHI() override;
+        /** End FRenderResource Interface */
+
+        void UpdateUniformBuffer();
+
+        void Serialize(FArchive& Ar);
+        void Deserialize(FArchive& Ar);
 
     protected:
 
-        std::shared_ptr<FMaterialShaderMap> ShaderMap;
+        std::unique_ptr<uint8[]> Data = nullptr;
+        uint32 Size = 0;
+        EUniformBufferUsage Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
+        std::map<std::string, Field> Fields;
 
-        bool bShaderCompiled = false;
 
+        template<typename T>
+        T _GetField(int32 Offset) 
+        { 
+            static_assert(
+                std::is_same_v<T, float> || 
+                std::is_same_v<T, vec2> || 
+                std::is_same_v<T, vec3> || 
+                std::is_same_v<T, vec4>, "FMaterialUniformBuffer::GetField T must be float,vec2,vec3 or vec4");
+            T out = *(T*)(Data.get() + Offset);
+            return out;
+        }
     };
 
     class NCLASS UMaterial : public NAsset
@@ -72,12 +122,9 @@ namespace nilou {
 
         UMaterial();
 
-        UMaterial(const UMaterial& Material);
+        virtual ~UMaterial();
 
         static UMaterial *GetDefaultMaterial();
-
-        NPROPERTY()
-        std::string Name;
 
         NPROPERTY()
         std::string ShaderVirtualPath;
@@ -100,20 +147,17 @@ namespace nilou {
         NPROPERTY()
         uint8 StencilRefValue = 0;
 
-        void UpdateCode(const std::string &InCode, bool bRecompile=true);
-
-        template<typename T>
-        void UpdateUniformBlockType()
-        {
-            UniformBlock->UpdateDataType(Ubpa::Type_of<T>.GetName());
-            BeginInitResource(UniformBlock.get());
-        }
+        void UpdateCode(const std::string &InCode);
 
         void SetTextureParameterValue(const std::string &Name, UTexture *Texture);
 
         void SetScalarParameterValue(const std::string &Name, float Value);
 
-        void SetParameterValue(const std::string &Name, FUniformBuffer *UniformBuffer);
+        void SetVectorParameterValue(const std::string& Name, const vec2& Value);
+
+        void SetVectorParameterValue(const std::string& Name, const vec3& Value);
+
+        void SetVectorParameterValue(const std::string& Name, const vec4& Value);
 
         void SetShadingModel(EShadingModel InShadingModel);
 
@@ -127,14 +171,12 @@ namespace nilou {
         
         FMaterialRenderProxy* GetRenderProxy() const
         {
-            return DefaultMaterialInstance;
+            return MaterialRenderProxy;
         }
 
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
 
         UMaterialInstance* CreateMaterialInstance();
-
-        FMaterial *GetResource() { return MaterialResource; }
 
         std::string GetMateiralCode() const { return Code; }
 
@@ -144,31 +186,20 @@ namespace nilou {
 
         void ReleaseResources()
         {
-            if (MaterialResource)
-            {
-                FMaterial* ToDelete = MaterialResource;
-                ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
-                    [ToDelete](FDynamicRHI*) 
-                    {
-                        delete ToDelete;
-                    });
-            }
         }
-
-        FDynamicUniformBuffer* GetUniformBlock() { return UniformBlock.get(); }
 
     protected:
 
-        NPROPERTY()
-        std::shared_ptr<FDynamicUniformBuffer> UniformBlock;
-        
-        std::map<std::string, FUniformBuffer *> RuntimeUniformBlocks;
-
-        FMaterial* MaterialResource;
-
         std::string Code;
 
-        FMaterialRenderProxy* DefaultMaterialInstance;
+        // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances
+        std::shared_ptr<FMaterialShaderMap> MaterialShaderMap = nullptr;
+        // While FMaterialRenderProxy contains uniform buffers, so it is UNIQUE for each material/material instance
+        // However, std::function requires the functor to be copyable, so we use naked pointer here.
+        // So, be careful when you use this pointer, it may be invalid if the material is destroyed.
+        FMaterialRenderProxy* MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
+        // Same as above
+        FMaterialUniformBuffer* MaterialUniformBlock = nullptr;
         
     };
 
@@ -177,13 +208,6 @@ namespace nilou {
         GENERATED_BODY()
     public:
         UMaterialInstance() { }
-
-        explicit UMaterialInstance(UMaterial* Material)
-            : UMaterial(*Material)
-        {
-
-        }
-
     };
 
     class FMaterialRenderProxy
@@ -191,7 +215,7 @@ namespace nilou {
         friend class UMaterial;
         friend class UMaterialInstance;
     public:
-        FMaterialRenderProxy() { }
+        FMaterialRenderProxy(UMaterial* InMaterial);
 
         FShaderInstance *GetShader(
             const FVertexFactoryPermutationParameters VFParameter, 
@@ -207,18 +231,16 @@ namespace nilou {
         void FillShaderBindings(FInputShaderBindings &OutBindings)
         { 
             for (auto &[Name, Texture] : Textures)
-                OutBindings.SetElementShaderBinding(Name, Texture->GetResource()->GetSamplerRHI());
-            for (auto &[Name, UniformBuffer] : UniformBuffers)
-                OutBindings.SetElementShaderBinding(Name, UniformBuffer->GetRHI());
+                OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
+            if (UniformBuffer)
+                OutBindings.SetElementShaderBinding("MAT_UNIFORM_BLOCK", UniformBuffer->GetRHI());
         }
 
-        std::string Name;
+        FMaterialShaderMap* ShaderMap;
 
-        std::shared_ptr<FMaterialShaderMap> ShaderMap;
+        std::map<std::string, FTextureResource *> Textures;
 
-        std::map<std::string, UTexture *> Textures;
-
-        std::map<std::string, FUniformBuffer *> UniformBuffers;
+        FMaterialUniformBuffer* UniformBuffer = nullptr;
 
         uint8 StencilRefValue = 0;
 
@@ -230,9 +252,7 @@ namespace nilou {
 
         EShadingModel ShadingModel;
 
-    private:
-
-        FMaterialRenderProxy(const FMaterialRenderProxy& Other);
+        UMaterial* Material;
 
     };
 

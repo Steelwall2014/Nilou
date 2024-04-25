@@ -43,7 +43,7 @@ namespace nilou {
 
         virtual int32 GetPermutationId() const { return 0; }
 
-        virtual void InitVertexFactory() { }
+        virtual void InitVertexFactory() = 0;
 
         struct FVertexStream
         {

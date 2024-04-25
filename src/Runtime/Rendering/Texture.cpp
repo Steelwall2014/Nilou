@@ -58,81 +58,12 @@ namespace nilou {
 
     void UTexture::PostDeserialize(FArchive& Ar)
     {
-        UpdateResource();
+        if (GetResource() == nullptr)
+        {
+            // Sometimes the resource has been created in UMaterial::PostDeserialize
+            // In this case, we don't need to create it again
+            UpdateResource();
+        }
     }
-
-    // void UTexture::Serialize(FArchive &Ar)
-    // {
-    //     nlohmann::json &json = Ar.json;
-    //     nlohmann::json &content = json["Content"];
-    //     content["Name"] = Name;
-    //     if (ImageData)
-    //     {
-    //         nlohmann::json &image = content["ImageData"];
-    //         image["Width"] = ImageData->GetWidth();
-    //         image["Height"] = ImageData->GetHeight();
-    //         image["Channel"] = ImageData->GetChannel();
-    //         image["Depth"] = ImageData->GetDepth();
-    //         image["DataSize"] = ImageData->GetDataSize();
-    //         image["NumMips"] = ImageData->GetNumMips();
-    //         image["ImageType"] = magic_enum::enum_name(ImageData->GetImageType());
-    //         image["PixelFormat"] = magic_enum::enum_name(ImageData->GetPixelFormat());
-    //         if (ImageData->GetData())
-    //             Ar.OutBuffers.AddBuffer(image["Data"], ImageData->GetActualDataSize(), ImageData->GetData());
-    //     }
-    //     content["NumMips"] = NumMips;
-    //     content["TextureParams"]["Wrap_S"] = magic_enum::enum_name(TextureParams.Wrap_S);
-    //     content["TextureParams"]["Wrap_R"] = magic_enum::enum_name(TextureParams.Wrap_R);
-    //     content["TextureParams"]["Wrap_T"] = magic_enum::enum_name(TextureParams.Wrap_T);
-    //     content["TextureParams"]["MagFilter"] = magic_enum::enum_name(TextureParams.Mag_Filter);
-    //     content["TextureParams"]["MinFilter"] = magic_enum::enum_name(TextureParams.Min_Filter);
-    // }
-
-    // void UTexture::Deserialize(FArchive& Ar)
-    // {
-    //     nlohmann::json &json = Ar.json;
-
-    //     if (json.contains("Content") == false) return;
-    //     nlohmann::json& content = json["Content"];
-
-    //     if (content.contains("Name"))
-    //         Name = content["Name"];
-        
-    //     if (content.contains("ImageData"))
-    //     {
-    //         nlohmann::json& image = content["ImageData"];
-    //         ImageCreateInfo ImageInfo;
-    //         ImageInfo.Width = image["Width"];
-    //         ImageInfo.Height = image["Height"];
-    //         ImageInfo.Channel = image["Channel"];
-    //         ImageInfo.Depth = image["Depth"];
-    //         ImageInfo.NumMips = image["NumMips"];
-    //         ImageInfo.ImageType = magic_enum::enum_cast<EImageType>(std::string(image["ImageType"])).value();
-    //         ImageInfo.PixelFormat = magic_enum::enum_cast<EPixelFormat>(std::string(image["PixelFormat"])).value();
-    //         ImageData = CreateImage(ImageInfo);
-    //     }
-
-    //     NumMips = content["NumMips"];
-    //     TextureParams.Wrap_R = magic_enum::enum_cast<ETextureWrapModes>(std::string(content["TextureParams"]["Wrap_R"])).value();
-    //     TextureParams.Wrap_S = magic_enum::enum_cast<ETextureWrapModes>(std::string(content["TextureParams"]["Wrap_S"])).value();
-    //     TextureParams.Wrap_T = magic_enum::enum_cast<ETextureWrapModes>(std::string(content["TextureParams"]["Wrap_T"])).value();
-    //     TextureParams.Mag_Filter = magic_enum::enum_cast<ETextureFilters>(std::string(content["TextureParams"]["MagFilter"])).value();
-    //     TextureParams.Min_Filter = magic_enum::enum_cast<ETextureFilters>(std::string(content["TextureParams"]["MinFilter"])).value();
-
-    // }
-
-    // void UTexture::DeserializeImageData(FArchive& Ar)
-    // {
-    //     nlohmann::json& json = Ar.json;
-    //     nlohmann::json& content = json["Content"];
-    //     nlohmann::json& image = content["ImageData"];
-    //     uint32 BufferOffset = image["Data"]["BufferOffset"];
-    //     uint64 DataSize = image["DataSize"];
-    //     ImageData->AllocateSpace();
-    //     std::copy(
-    //         Ar.InBuffer.get()+BufferOffset, 
-    //         Ar.InBuffer.get()+glm::min(DataSize, ImageData->GetDataSize()), 
-    //         ImageData->GetData());
-    // }
 
 }

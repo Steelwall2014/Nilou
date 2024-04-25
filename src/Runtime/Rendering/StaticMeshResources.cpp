@@ -1,3 +1,4 @@
+#include <regex>
 #include <set>
 
 #include "StaticMeshResources.h"
@@ -202,10 +203,35 @@ namespace nilou {
         return VertexBuffers.Positions.GetNumVertices();
     }
 
-    // int32 FStaticMeshLODResources::GetNumTexCoords() const
-    // {
-    //     return VertexBuffers.TexCoords[0].GetNumVertices();
-    // }
+    FMeshSectionInfo FMeshSectionInfoMap::Get(int32 LODIndex, int32 SectionIndex) const
+    {
+        uint32 key = LODIndex << 16 | SectionIndex;
+        auto Found = Map.find(key);
+        if (Found != Map.end())
+        {
+            return Found->second;
+        }
+        return FMeshSectionInfo{SectionIndex};
+    }
+
+    void FMeshSectionInfoMap::Set(int32 LODIndex, int32 SectionIndex, FMeshSectionInfo Info)
+    {
+        uint32 key = LODIndex << 16 | SectionIndex;
+        Map[key] = Info;
+    }
+
+    int32 FMeshSectionInfoMap::GetSectionNumber(int32 LODIndex) const
+    {
+	    int32 SectionCount = 0;
+        for (auto &Pair : Map)
+        {
+            if (((Pair.first & 0xffff0000) >> 16) == LODIndex)
+            {
+                SectionCount++;
+            }
+        }
+        return SectionCount;
+    }
 
     void UStaticMesh::ReleaseResources()
     {
@@ -225,22 +251,101 @@ namespace nilou {
         }
     }
 
+    void UStaticMesh::Build(const FMeshDescription& MeshDesc)
+    {
+        // release old resources
+        if (RenderData != nullptr)
+        {
+            delete RenderData;
+            RenderData = nullptr;
+        }
+        SectionInfoMap.Clear();
+        LocalBoundingBox = FBoundingBox();
+        // TODO: multiple LODs
+        NumLODs = 1;
+        RenderData = new FStaticMeshRenderData;
+        FStaticMeshLODResources* Resource = new FStaticMeshLODResources();
+        RenderData->LODResources.push_back(Resource);
+        for (int prim_index = 0; prim_index < MeshDesc.Primitives.size(); prim_index++)
+        {
+            auto& primitive = MeshDesc.Primitives[prim_index];
+            FStaticVertexFactory::FDataType Data;
+            FStaticMeshSection* Section = new FStaticMeshSection;
+            Section->MaterialIndex = primitive.MaterialIndex;
+
+            // Currently the model must have positions, normals, tangents and texcoords
+            // TODO: compute normals and tangents if they are not provided.
+            Ncheck(primitive.Positions.size() > 0);
+            Ncheck(primitive.Normals.size() > 0);
+            Ncheck(primitive.Tangents.size() > 0);
+            Ncheck(primitive.TexCoords[0].size() > 0);
+
+            // copy index buffer and vertex buffer data
+            Section->IndexBuffer.Init(primitive.Indices);
+            Section->MaterialIndex = primitive.MaterialIndex;
+            Section->VertexBuffers.Positions.Init(primitive.Positions);
+            Section->VertexBuffers.Positions.BindToVertexFactoryData(Data.PositionComponent);
+            Section->VertexBuffers.Normals.Init(primitive.Normals);
+            Section->VertexBuffers.Normals.BindToVertexFactoryData(Data.NormalComponent);
+            Section->VertexBuffers.Tangents.Init(primitive.Tangents);
+            Section->VertexBuffers.Tangents.BindToVertexFactoryData(Data.TangentComponent);
+            Section->VertexBuffers.Colors.Init(primitive.Colors);
+            Section->VertexBuffers.Colors.BindToVertexFactoryData(Data.ColorComponent);
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+            {
+                Section->VertexBuffers.TexCoords[i].Init(primitive.TexCoords[i]);
+                Section->VertexBuffers.TexCoords[i].BindToVertexFactoryData(Data.TexCoordComponent[i]);
+            }
+            Section->VertexFactory.SetData(Data);
+            Resource->Sections.push_back(Section);
+
+            // compute bounding box
+            for (int vid = 0; vid < primitive.Positions.size(); vid++)
+            {
+                LocalBoundingBox.Min = glm::min(LocalBoundingBox.Min, dvec3(primitive.Positions[vid]));
+                LocalBoundingBox.Max = glm::max(LocalBoundingBox.Max, dvec3(primitive.Positions[vid]));
+            }
+
+            // set section info
+            FMeshSectionInfo Info;
+            Info.MaterialIndex = primitive.MaterialIndex;
+            Info.bCastShadow = true;
+            // copy section data for serialization
+            FStaticMeshSectionData& SectionData = Info.SectionData;
+            SectionData.IndexBuffer = FVertexIndexBufferData(Section->IndexBuffer);
+            SectionData.Positions = FVertexIndexBufferData(Section->VertexBuffers.Positions);
+            SectionData.Normals = FVertexIndexBufferData(Section->VertexBuffers.Normals);
+            SectionData.Tangents = FVertexIndexBufferData(Section->VertexBuffers.Tangents);
+            SectionData.Colors = FVertexIndexBufferData(Section->VertexBuffers.Colors);
+            for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
+            {
+                SectionData.TexCoords.push_back(FVertexIndexBufferData(Section->VertexBuffers.TexCoords[i]));
+            }
+            SectionInfoMap.Set(0, prim_index, Info);
+        }
+        RenderData->InitResources();
+    }
+
+    void UStaticMesh::PostSerialize(FArchive& Ar)
+    {
+
+    }
+
     void UStaticMesh::PostDeserialize(FArchive& Ar)
     {
-        for (auto &lod_resource : LODResourcesData)
+        RenderData = new FStaticMeshRenderData;
+        for (int LODIndex = 0; LODIndex < NumLODs; LODIndex++)
         {
-            auto LODResouce = new FStaticMeshLODResources();
-            for (auto &section : lod_resource.Sections)
+            FStaticMeshLODResources* Resource = new FStaticMeshLODResources();
+            int NumSections = SectionInfoMap.GetSectionNumber(LODIndex);
+            for (int SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
             {
-                auto Section = new FStaticMeshSection();
-                Section->MaterialIndex = section.MaterialIndex;
-                Section->bCastShadow = section.bCastShadow;
-                {
-                    int Stride = section.IndexBuffer.Stride;
-                    int NumIndices = section.IndexBuffer.Data.BufferSize / Stride;
-                    Section->IndexBuffer.Init(section.IndexBuffer.Data.Buffer.get(), NumIndices, Stride);
-                }
-                FStaticVertexFactory::FDataType VFData;
+                FMeshSectionInfo Info = SectionInfoMap.Get(LODIndex, SectionIndex);
+                FStaticMeshSectionData& SectionData = Info.SectionData;
+                FStaticMeshSection* Section = new FStaticMeshSection;
+                Section->MaterialIndex = Info.MaterialIndex;
+                Section->IndexBuffer.Init(SectionData.IndexBuffer.Data.Buffer.get(), SectionData.IndexBuffer.Stride, SectionData.IndexBuffer.Data.BufferSize / SectionData.IndexBuffer.Stride);
+                FStaticVertexFactory::FDataType Data;
                 auto load_data = 
                     [](FVertexIndexBufferData& BufferData, FVertexStreamComponent& Component, auto& Buffer) 
                     {
@@ -252,162 +357,20 @@ namespace nilou {
                             Buffer.BindToVertexFactoryData(Component);
                         }
                     };
-                load_data(section.Positions, VFData.PositionComponent, Section->VertexBuffers.Positions);
-                load_data(section.Normals, VFData.NormalComponent, Section->VertexBuffers.Normals);
-                load_data(section.Colors, VFData.ColorComponent, Section->VertexBuffers.Colors);
-                load_data(section.Tangents, VFData.TangentComponent, Section->VertexBuffers.Tangents);
-                for (int i = 0; i < section.TexCoords.size(); i++)
+                load_data(SectionData.Positions, Data.PositionComponent, Section->VertexBuffers.Positions);
+                load_data(SectionData.Normals, Data.NormalComponent, Section->VertexBuffers.Normals);
+                load_data(SectionData.Colors, Data.ColorComponent, Section->VertexBuffers.Colors);
+                load_data(SectionData.Tangents, Data.TangentComponent, Section->VertexBuffers.Tangents);
+                for (int i = 0; i < SectionData.TexCoords.size(); i++)
                 {
-                    load_data(section.TexCoords[i], VFData.TexCoordComponent[i], Section->VertexBuffers.TexCoords[i]);
+                    load_data(SectionData.TexCoords[i], Data.TexCoordComponent[i], Section->VertexBuffers.TexCoords[i]);
                 }
-                Section->VertexFactory.SetData(VFData);
-                LODResouce->Sections.push_back(Section);
+                Section->VertexFactory.SetData(Data);
+                Resource->Sections.push_back(Section);
             }
-            RenderData->LODResources.push_back(LODResouce);
-        }    
+            RenderData->LODResources.push_back(Resource);
+        }
         RenderData->InitResources();  
     }
-
-    // void UStaticMesh::Serialize(FArchive &Ar)
-    // {
-    //     nlohmann::json &json = Ar.json;
-    //     json["ClassName"] = "UStaticMesh";
-    //     nlohmann::json &content = json["Content"];
-    //     content["Name"] = Name;
-    //     TStaticSerializer<FBoundingBox>::Serialize(LocalBoundingBox, content["LocalBoundingBox"], Ar.OutBuffers);
-    //     TStaticSerializer<FStaticMeshRenderData>::Serialize(*RenderData, content["RenderData"], Ar.OutBuffers);
-    //     for (int i = 0; i < MaterialSlots.size(); i++)
-    //     {
-    //         if (!MaterialSlots[i]->SerializationPath.empty())
-    //         {
-    //             content["MaterialSlots"][i] = MaterialSlots[i]->SerializationPath.generic_string();
-    //         }
-    //     }
-    // }
-
-    // static void FStaticMeshRenderDataDeserialize(FStaticMeshRenderData &Object, nlohmann::json &json, void* Buffer)
-    // {
-        
-    //     nlohmann::json &content = json["Content"];
-
-    //     nlohmann::json &lod_resources = content["LODResources"];
-
-    //     for (auto &lod_resource : lod_resources)
-    //     {
-    //         auto LODResouce = new FStaticMeshLODResources();
-    //         for (auto &section : lod_resource["Sections"])
-    //         {
-    //             auto Section = new FStaticMeshSection();
-
-    //             if (section.contains("IndexBuffer"))
-    //             {
-    //                 int NumIndices = section["IndexBuffer"]["NumIndices"];
-    //                 int Stride = section["IndexBuffer"]["Stride"];
-    //                 int BufferOffset = section["IndexBuffer"]["Data"]["BufferOffset"];
-    //                 // std::string Data = SerializeHelper::Base64Decode(section["IndexBuffer"]["Data"]);
-    //                 Section->IndexBuffer.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, NumIndices, Stride);
-    //             }
-    //             FStaticVertexFactory::FDataType VFData;
-    //             if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Positions"))
-    //             {
-    //                 int NumVertices = section["VertexBuffers"]["Positions"]["NumVertices"];
-    //                 int Stride = section["VertexBuffers"]["Positions"]["Stride"];
-    //                 int BufferOffset = section["VertexBuffers"]["Positions"]["Data"]["BufferOffset"];
-    //                 // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Positions"]["Data"]);
-    //                 Section->VertexBuffers.Positions.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
-    //                 Section->VertexBuffers.Positions.BindToVertexFactoryData(VFData.PositionComponent);
-    //             }
-    //             if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Normals"))
-    //             {
-    //                 int NumVertices = section["VertexBuffers"]["Normals"]["NumVertices"];
-    //                 int Stride = section["VertexBuffers"]["Normals"]["Stride"];
-    //                 int BufferOffset = section["VertexBuffers"]["Normals"]["Data"]["BufferOffset"];
-    //                 // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Normals"]["Data"]);
-    //                 Section->VertexBuffers.Normals.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
-    //                 Section->VertexBuffers.Normals.BindToVertexFactoryData(VFData.NormalComponent);
-    //             }
-    //             if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Tangents"))
-    //             {
-    //                 int NumVertices = section["VertexBuffers"]["Tangents"]["NumVertices"];
-    //                 int Stride = section["VertexBuffers"]["Tangents"]["Stride"];
-    //                 int BufferOffset = section["VertexBuffers"]["Tangents"]["Data"]["BufferOffset"];
-    //                 // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Tangents"]["Data"]);
-    //                 Section->VertexBuffers.Tangents.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
-    //                 Section->VertexBuffers.Tangents.BindToVertexFactoryData(VFData.TangentComponent);
-    //             }
-    //             if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Colors"))
-    //             {
-    //                 int NumVertices = section["VertexBuffers"]["Colors"]["NumVertices"];
-    //                 int Stride = section["VertexBuffers"]["Colors"]["Stride"];
-    //                 int BufferOffset = section["VertexBuffers"]["Colors"]["Data"]["BufferOffset"];
-    //                 // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["Colors"]["Data"]);
-    //                 Section->VertexBuffers.Colors.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
-    //                 Section->VertexBuffers.Colors.BindToVertexFactoryData(VFData.ColorComponent);
-    //             }
-    //             if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("TexCoords"))
-    //             {
-    //                 for (int i = 0; i < section["VertexBuffers"]["TexCoords"].size(); i++)
-    //                 {
-    //                     int NumVertices = section["VertexBuffers"]["TexCoords"][i]["NumVertices"];
-    //                     int Stride = section["VertexBuffers"]["TexCoords"][i]["Stride"];
-    //                     int BufferOffset = section["VertexBuffers"]["TexCoords"][i]["Data"]["BufferOffset"];
-    //                     // std::string Data = SerializeHelper::Base64Decode(section["VertexBuffers"]["TexCoords"][i]["Data"]);
-    //                     Section->VertexBuffers.TexCoords[i].Init(static_cast<unsigned char*>(Buffer)+BufferOffset, Stride, NumVertices);
-    //                     Section->VertexBuffers.TexCoords[i].BindToVertexFactoryData(VFData.TexCoordComponent[i]);
-    //                 }
-    //             }
-    //             Section->VertexFactory.SetData(VFData);
-    //             LODResouce->Sections.push_back(Section);
-    //         }
-    //         Object.LODResources.push_back(LODResouce);
-    //     }
-    // }
-
-    // void UStaticMesh::MDeserialize(FArchive &Ar)
-    // {
-    //     nlohmann::json &json = Ar.Node;
-    //     nlohmann::json &content = json["Content"];
-    //     Name = content["Name"];
-    //     {
-    //         FArchive local_Ar(content["LocalBoundingBox"]["Content"], Ar);
-    //         TStaticSerializer<FBoundingBox>::Deserialize(LocalBoundingBox, local_Ar);
-    //     }
-    //     {
-    //         FStaticMeshRenderDataDeserialize(*RenderData, content["RenderData"], Ar.InBuffer.get());
-    //     }
-    //     RenderData->InitResources();
-    //     for (int i = 0; i < content["MaterialSlots"].size(); i++)
-    //     {
-    //         fs::path material_path = content["MaterialSlots"][i].get<std::string>();
-    //         UMaterial *Material = GetContentManager()->GetMaterialByPath(material_path);
-    //         MaterialSlots.push_back(Material);
-    //     }
-    //     for (auto LODResource : RenderData->LODResources)
-    //     {
-    //         auto& LODResourceData = LODResourcesData.emplace_back();
-    //         for (auto Section : LODResource->Sections)
-    //         {
-    //             auto& SectionData = LODResourceData.Sections.emplace_back();
-    //             SectionData.bCastShadow = Section->bCastShadow;
-    //             SectionData.MaterialIndex = Section->MaterialIndex;
-    //             SectionData.IndexBuffer.Stride = Section->IndexBuffer.Stride;
-    //             SectionData.IndexBuffer.Data.BufferSize = Section->IndexBuffer.NumIndices * Section->IndexBuffer.Stride;
-    //             SectionData.IndexBuffer.Data.Buffer = std::make_shared<unsigned char[]>(SectionData.IndexBuffer.Data.BufferSize);
-    //             std::memcpy(SectionData.IndexBuffer.Data.Buffer.get(), Section->IndexBuffer.GetIndiceData(), SectionData.IndexBuffer.Data.BufferSize);
-                
-    //             auto copy_data = [](FVertexIndexBufferData& Dest, auto& Src) {
-    //                 Dest.Stride = Src.GetStride();
-    //                 Dest.Data.BufferSize = Src.GetStride() * Src.GetNumVertices();
-    //                 Dest.Data.Buffer = std::make_shared<unsigned char[]>(Dest.Data.BufferSize);
-    //                 std::memcpy(Dest.Data.Buffer.get(), Src.GetVertexData(), Dest.Data.BufferSize);
-    //             };
-    //             copy_data(SectionData.Colors, Section->VertexBuffers.Colors);
-    //             copy_data(SectionData.Normals, Section->VertexBuffers.Normals);
-    //             copy_data(SectionData.Positions, Section->VertexBuffers.Positions);
-    //             copy_data(SectionData.Tangents, Section->VertexBuffers.Tangents);
-    //             copy_data(SectionData.TexCoords.emplace_back(), Section->VertexBuffers.TexCoords[0]);
-    //         }
-    //     }
-    // }
     
 }

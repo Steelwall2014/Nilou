@@ -514,7 +514,6 @@ namespace nilou {
 
         virtual ~FDynamicUniformBuffer()
         {
-            FUniformBuffer::~FUniformBuffer();
             delete Data; 
         }
 

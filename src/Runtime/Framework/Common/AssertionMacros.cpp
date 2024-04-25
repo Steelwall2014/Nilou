@@ -7,6 +7,9 @@ namespace AssertionMacros {
         if (!check_passed)
         {
             std::cout << "File: " << file << " Line: " << line << " Info: " << info << std::endl;
+#ifdef NILOU_DEBUG
+            throw std::runtime_error("Ncheck failed");
+#endif
         }
     }
 }

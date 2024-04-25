@@ -16,15 +16,16 @@ namespace nilou {
     public: 
         GENERATED_BODY()
 
-        /**
-         * @brief The path of the file which contains this object.
-         * The path is used for serialization, relative to FPath::ContentDir().
-         * Note: If it's empty, then the object will not be written to disk while serializing.
-         * It will be automatically filled before deserializing.
-         */
-        std::filesystem::path SerializationPath;
+        FContentEntry* ContentEntry;
 
-        class FContentEntry* ContentEntry;
+        NPROPERTY()
+        std::string Name;
+
+        std::string GetVirtualPath() const { return ContentEntry->VirtualPath; }
+
+        std::filesystem::path GetAbsolutePath() const { return ContentEntry->AbsolutePath; }
+
+        void MarkAssetDirty() { ContentEntry->bIsDirty = true; }
     };
 
     template<typename T>
@@ -51,7 +52,7 @@ public:
             if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
             {
                 auto asset = std::static_pointer_cast<nilou::NAsset>(Object);
-                Ar.Node = asset->SerializationPath.generic_string();
+                Ar.Node = asset->GetPath();
             }
             else 
             {
@@ -65,7 +66,7 @@ public:
         {
             if (Ar.Node.is_string())
             {
-                std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+                std::string path = Ar.Node.get<std::string>();
                 Object = std::static_pointer_cast<T>(nilou::GetContentManager()->GetContentByPath(path)->shared_from_this());
             }
         }
@@ -93,7 +94,7 @@ public:
             if constexpr (nilou::TIsDerivedFrom<T, nilou::NAsset>::Value)
             {
                 auto asset = static_cast<nilou::NAsset*>(Object);
-                Ar.Node = asset->SerializationPath.generic_string();
+                Ar.Node = asset->GetVirtualPath();
             }
             else 
             {
@@ -107,7 +108,7 @@ public:
         {
             if (Ar.Node.is_string())
             {
-                std::filesystem::path path = std::filesystem::path(Ar.Node.get<std::string>());
+                std::string path = Ar.Node.get<std::string>();
                 Object = static_cast<T*>(nilou::GetContentManager()->GetContentByPath(path));
             }
         }

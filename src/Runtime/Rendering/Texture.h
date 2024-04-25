@@ -421,9 +421,6 @@ namespace nilou {
         GENERATED_BODY()
     public:
 
-        NPROPERTY()
-		std::string Name;
-
         /**
          * We can update the texture by manipulating this ImageData, 
          * or read the texture data from the GPU.

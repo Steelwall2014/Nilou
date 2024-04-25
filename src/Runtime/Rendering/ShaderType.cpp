@@ -37,8 +37,7 @@ namespace nilou {
     {
         if (VirtualFilePath != "" && bSourceCodeReaded == false)
         {
-            bool a = VirtualFilePath == "/Shaders/VirtualHeightfieldMesh/VHM_create_nodelist.comp";
-            FileAbsolutePath = fs::path(GetShaderAbsolutePathFromVirtualPath(VirtualFilePath));
+            FileAbsolutePath = FPath::VirtualPathToAbsPath(VirtualFilePath);
             std::string RawSourceCode = GetAssetLoader()->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
             NILOU_LOG(Info, "Parsing {}", FileAbsolutePath.generic_string());
             PreprocessedCode = FShaderParser(RawSourceCode, FileAbsolutePath.parent_path()).Parse();

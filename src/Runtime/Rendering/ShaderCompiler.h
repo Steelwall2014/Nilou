@@ -9,8 +9,8 @@
 #include "ShaderMap.h"
 
 namespace nilou {
-    void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory);
-    std::string GetShaderAbsolutePathFromVirtualPath(const std::string &VirtualFilePath);
+    // void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory);
+    // std::string GetShaderAbsolutePathFromVirtualPath(const std::string &VirtualFilePath);
 
     class FDynamicRHI;
     class FVertexFactoryPermutationParameters;
@@ -22,36 +22,23 @@ namespace nilou {
     public:
         static void CompileGlobalShaders(FDynamicRHI *DynamicRHI);
 
-        static void CompileMaterialShader(class FMaterial *Material, 
+        static void CompileMaterialShader(FMaterialShaderMap* ShaderMap, 
             const std::string &MaterialParsedResult, FDynamicRHI *DynamicRHI);
 
     private:
         static void CompileVertexMaterialShader(
             FDynamicRHI *DynamicRHI,
-            FMaterial *Material, 
             const std::string &MaterialParsedResult,
             const FVertexFactoryPermutationParameters &VertexFactoryParams,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
         static void CompilePixelMaterialShader(
             FDynamicRHI *DynamicRHI,
-            FMaterial *Material, 
             const std::string &MaterialParsedResult,
             const FShaderPermutationParameters &ShaderParams,
             TShaderMap<FShaderPermutationParameters> &OutShaderMap);
         static void CompileGlobalShader(
             FDynamicRHI *DynamicRHI, 
-            const FShaderPermutationParameters &ShaderParams);
-
-        /** Helper function for compiling material shaders */
-        static void IterateOnMaterials(
-            FDynamicRHI *DynamicRHI, 
-            const FShaderPermutationParameters &ShaderParams);
-
-        /** Helper function for compiling vertex material shaders */
-        static void IterateOnVertexFactories(
-            FDynamicRHI *DynamicRHI, 
-            FMaterial *Material,
             const FShaderPermutationParameters &ShaderParams);
 
     };

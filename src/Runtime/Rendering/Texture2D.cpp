@@ -29,6 +29,8 @@ namespace nilou {
         if (NumMips > Image->GetNumMips())
             RHICmdList->RHIGenerateMipmap(Texture2DRHI);
 
+        RHIGetError();
+
         TextureRHI = Texture2DRHI;
         SamplerRHI.Texture = TextureRHI.get();
     }

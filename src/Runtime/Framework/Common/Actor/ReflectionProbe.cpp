@@ -49,7 +49,6 @@ namespace nilou {
         ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture.get();
 
         DebugMat = std::make_shared<UMaterial>();
-        DebugMat->Name = "Cube map";
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
         FRasterizerStateInitializer RasterizerState;
         RasterizerState.CullMode = ERasterizerCullMode::CM_None;

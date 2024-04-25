@@ -27,7 +27,7 @@ namespace nilou {
         
     }
 
-    void FStaticMeshIndexBuffer::Init(void *InData, uint32 InNumIndices, uint32 InStride)
+    void FStaticMeshIndexBuffer::Init(void *InData, uint32 InStride, uint32 InNumIndices)
     {
         Stride = InStride;
         NumIndices = InNumIndices;

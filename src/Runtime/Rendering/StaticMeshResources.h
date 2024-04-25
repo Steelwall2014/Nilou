@@ -151,7 +151,8 @@ namespace nilou {
             }
         }
     };
-    
+
+    // Used for serialization
     struct NSTRUCT FVertexIndexBufferData
     {
         GENERATED_STRUCT_BODY()
@@ -161,15 +162,30 @@ namespace nilou {
 
         NPROPERTY()
         uint32 Stride;
+
+        FVertexIndexBufferData() : Stride(0) { }
+        template<typename T>
+        explicit FVertexIndexBufferData(const FStaticMeshVertexBuffer<T> &InBuffer)
+        {
+            Stride = InBuffer.GetStride();
+            Data.BufferSize = InBuffer.GetStride() * InBuffer.GetNumVertices();
+            Data.Buffer = std::make_shared<uint8[]>(Data.BufferSize);
+            std::memcpy(Data.Buffer.get(), InBuffer.GetVertexData(), Data.BufferSize);
+        }
+        explicit FVertexIndexBufferData(const FStaticMeshIndexBuffer &InBuffer)
+        {
+            Stride = InBuffer.GetStride();
+            Data.BufferSize = InBuffer.GetStride() * InBuffer.GetNumIndices();
+            Data.Buffer = std::make_shared<uint8[]>(Data.BufferSize);
+            std::memcpy(Data.Buffer.get(), InBuffer.GetIndiceData(), Data.BufferSize);
+        }
     };
 
+    // Used for serialization
     struct NSTRUCT FStaticMeshSectionData
     {
 
         GENERATED_STRUCT_BODY()
-
-        NPROPERTY()
-        int32 MaterialIndex;
 
         NPROPERTY()
         FVertexIndexBufferData Positions;
@@ -189,17 +205,65 @@ namespace nilou {
         NPROPERTY()
         FVertexIndexBufferData IndexBuffer;
 
-        NPROPERTY()
-        bool bCastShadow;
-
     };
 
-    struct NSTRUCT FStaticMeshLODResourcesData
+    /**
+     * Per-section settings.
+     * Based on UE4's FMeshSectionInfo
+     */
+    struct NSTRUCT FMeshSectionInfo
     {
         GENERATED_STRUCT_BODY()
 
         NPROPERTY()
-        std::vector<FStaticMeshSectionData> Sections;
+        int32 MaterialIndex;
+
+        NPROPERTY()
+        bool bCastShadow;
+
+        NPROPERTY()
+        FStaticMeshSectionData SectionData;
+    };
+
+    /**
+     * Map containing per-section settings for each section of each LOD.
+     * Based on UE4's FMeshSectionInfoMap
+     */
+    struct NSTRUCT FMeshSectionInfoMap
+    {
+        GENERATED_STRUCT_BODY()
+
+	    /** Maps an LOD+Section to the material it should render with. */
+        NPROPERTY()
+        std::map<uint32, FMeshSectionInfo> Map;
+
+        /** Clears all entries in the map resetting everything to default. */
+        void Clear() { Map.clear(); }
+
+        /** Gets per-section settings for the specified LOD + section. */
+        FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
+
+        /** Sets per-section settings for the specified LOD + section. */
+        void Set(int32 LODIndex, int32 SectionIndex, FMeshSectionInfo Info);
+
+	    /** Get the number of section for a LOD. */
+        int32 GetSectionNumber(int32 LODIndex) const;
+    };
+
+    // A much simpler version of UE4's FMeshDescription based on GLTF format
+    struct FMeshDescription
+    {
+        struct Primitive
+        {
+            std::vector<vec3> Positions;
+            std::vector<vec3> Normals;
+            std::vector<vec4> Tangents;
+            std::vector<vec4> Colors;
+            std::vector<vec2> TexCoords[MAX_STATIC_TEXCOORDS];
+            std::vector<uint32> Indices;
+            int32 MaterialIndex;
+        };
+        std::vector<Primitive> Primitives;
     };
 
     class NCLASS UStaticMesh : public NAsset
@@ -207,11 +271,9 @@ namespace nilou {
         GENERATED_BODY()
     public:
         UStaticMesh() 
-            : RenderData(new FStaticMeshRenderData())
+            : NumLODs(0)
+            , RenderData(nullptr)
         { }
-
-        NPROPERTY()
-        std::string Name;
 
         NPROPERTY()
         std::vector<UMaterial *> MaterialSlots;
@@ -220,10 +282,16 @@ namespace nilou {
         FBoundingBox LocalBoundingBox;
 
         NPROPERTY()
-        std::vector<FStaticMeshLODResourcesData> LODResourcesData;
+        FMeshSectionInfoMap SectionInfoMap;
+
+        NPROPERTY()
+        int32 NumLODs;
 
         FStaticMeshRenderData* RenderData;
 
+        void Build(const FMeshDescription& MeshDesc);
+
+        virtual void PostSerialize(FArchive& Ar) override;
         virtual void PostDeserialize(FArchive& Ar) override;
 
         virtual ~UStaticMesh() { ReleaseResources(); }

@@ -63,6 +63,8 @@ namespace nilou {
 
         void BindToVertexFactoryData(FVertexStreamComponent &OutStreamComponent, uint32 Offset = 0)
         {
+            if (Stride == 0 || NumVertices == 0)
+                return;
             if constexpr (std::is_same<VertexType, vec2>::value)
             {
                 OutStreamComponent = FVertexStreamComponent(

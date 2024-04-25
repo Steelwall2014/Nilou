@@ -335,6 +335,7 @@ namespace nilou {
                 break;
             }
             error_msg += " | "s + file + " ("s + std::to_string(line) + ")"s;
+            NILOU_LOG(Error, "OpenGL Error: {}", error_msg)
         }
 #endif // NILOU_DEBUG
     }
@@ -1245,7 +1246,6 @@ namespace nilou {
 
         if (!pixel->Success())
         {
-            NILOU_LOG(Info, "{}", code)
             return nullptr;
         }
 

@@ -39,7 +39,7 @@ namespace nilou {
         void EnqueueRenderCommand(Lambda &&lambda)
         {
             std::lock_guard<std::mutex> lock(mutex);
-            RenderCommands.emplace(lambda, STR::Str());
+            RenderCommands.emplace(std::forward<Lambda>(lambda), STR::Str());
         }
 
         static FRenderingThread *RenderingThread;

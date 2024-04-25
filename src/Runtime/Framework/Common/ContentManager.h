@@ -8,6 +8,7 @@
 #include <functional>
 // #include "ShaderMap.h"
 // #include "UniformBuffer.h"
+#include <reflection/Class.h>
 #include "Common/Path.h"
 #include "Templates/TypeTraits.h"
 
@@ -17,26 +18,27 @@ namespace nilou {
     class FContentEntry
     {
     public:
-        bool bIsDirty;
+        friend class FContentManager;
+        bool bIsDirty = false;
         bool bIsDirectory;
-        bool bNeedFlush = true;
         std::string Name;
         /**
          * The absolute path of the directory entry
          */
         std::filesystem::path AbsolutePath;
         /**
-         * The path relative to root entry
+         * The path relative to root entry but starts with '/'
+         * TODO: Use std::string to represent all virtual paths and std::filesystem::path to represent all absolute paths
          */
-        std::filesystem::path RelativePath;
+        std::string VirtualPath;
+        FContentEntry* Parent = nullptr;
         std::unordered_map<std::string, std::unique_ptr<FContentEntry>> Children;
         std::unique_ptr<class NAsset> Object;
 
+    private:
         static std::unique_ptr<FContentEntry> Build(const std::filesystem::path &DirectoryPath, const std::filesystem::path &ContentBasePath);
-
-        static NAsset *Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth);
-
-        static void Serialize(FContentEntry *Entry);
+        static FContentEntry *Search(FContentEntry *Entry, const std::vector<std::string> &tokens, int depth);
+        static void Serialize(FContentEntry *Entry, bool bRecursive=false);
         static void Deserialize(FContentEntry *Entry, std::vector<FContentEntry*> &OutEntries);
     };
 
@@ -54,7 +56,7 @@ namespace nilou {
          * 
          * @return The object pointer. User need to cast it manually.
          */
-        NAsset *GetContentByPath(const std::filesystem::path &InPath);
+        NAsset *GetContentByPath(const std::string &InPath);
 
         /**
          * Get the material by path
@@ -62,7 +64,7 @@ namespace nilou {
          * 
          * @return The material pointer. 
          */
-        class UMaterial *GetMaterialByPath(const std::filesystem::path &InPath);
+        class UMaterial *GetMaterialByPath(const std::string &InPath);
 
         /**
          * Get the texture by path
@@ -70,7 +72,7 @@ namespace nilou {
          * 
          * @return The texture pointer. 
          */
-        class UTexture *GetTextureByPath(const std::filesystem::path &InPath);
+        class UTexture *GetTextureByPath(const std::string &InPath);
 
         /**
          * Get the staic mesh by path
@@ -78,7 +80,7 @@ namespace nilou {
          * 
          * @return The staic mesh pointer. 
          */
-        class UStaticMesh *GetStaticMeshByPath(const std::filesystem::path &InPath);
+        class UStaticMesh *GetStaticMeshByPath(const std::string &InPath);
 
         /**
          * @brief Create a defualt content (e.g. UTexture, UMaterial) at given path
@@ -92,61 +94,43 @@ namespace nilou {
          * 
          */
         template<typename T>
-        T *CreateFile(const std::filesystem::path &Path, bool bNeedFlush=true)
+        T *CreateAsset(const std::string& Name, const std::string &VirtualDirectory)
         {
-            static_assert(TIsDerivedFrom<T, NAsset>::Value, "");
-            std::filesystem::path InPath = Path;
-            InPath.replace_extension(".nasset");
-            FContentEntry *entry = CreateDirectoryInternal(InPath.parent_path(), bNeedFlush);
-            if (entry)
-            {
-                std::string filename = InPath.filename().generic_string();
-                if (entry->Children.find(filename) == entry->Children.end())
-                {
-                    auto Entry = std::make_unique<FContentEntry>();
-                    Entry->AbsolutePath = entry->AbsolutePath / InPath.filename();
-                    Entry->RelativePath = FPath::RelativePath(FPath::ContentDir().generic_string(), Entry->AbsolutePath.generic_string());
-                    Entry->Name = InPath.filename().generic_string();
-                    Entry->bIsDirectory = false;
-                    Entry->bIsDirty = true;
-                    Entry->bNeedFlush = bNeedFlush;
-                    auto Object = std::make_unique<T>();
-                    Object->SerializationPath = InPath;
-                    T *raw_p = dynamic_cast<T*>(Object.get());
-                    Entry->Object = std::move(Object);
-                    entry->Children[filename] = std::move(Entry);
-                    return raw_p;
-                }
-            }
-            return nullptr;
+            return static_cast<T*>(CreateAsset(Name, VirtualDirectory, T::StaticClass()));
         }
+
+        NAsset* CreateAsset(const std::string& Name, const std::string &VirtualDirectory, const NClass* Class);
+
+        bool RenameAsset(const std::string &AssetPathToRename, const std::string &NewName);
+        bool RenameAsset(NAsset* AssetToRename, const std::string &NewName);
+
+        bool SaveAsset(const std::string &AssetPathToSave);
+        bool SaveAsset(NAsset* AssetToSave);
 
         /**
          * Create directory at given path
          * @param InPath The path relative to FPath::ContentDir()
          * 
          */
-        bool CreateDirectory(const std::filesystem::path &InPath, bool bNeedFlush=true);
+        bool CreateDirectory(const std::filesystem::path &InPath);
 
         void Flush();
 
         void ReleaseRenderResources();
 
-        void ForEachContent(std::function<void(NAsset*)> &&Func);
+        void ForEachContent(const std::function<void(NAsset*)> &Func);
 
-        void ForEachEntry(std::function<void(FContentEntry*)> &&Func);
+        void ForEachEntry(const std::function<void(FContentEntry*)> &Func);
 
     private:
 
 
         std::filesystem::path ContentBasePath;
-        std::unique_ptr<FContentEntry> ContentEntry;
+        std::unique_ptr<FContentEntry> RootEntry;
 
-        FContentEntry *CreateDirectoryInternal(const std::filesystem::path &InPath, bool bNeedFlush);
+        FContentEntry *CreateDirectoryInternal(const std::filesystem::path &InPath);
 
-        void ForEachContentInternal(FContentEntry* Entry, std::function<void(NAsset*)> &&Func);
-
-        void ForEachEntryInternal(FContentEntry* Entry, std::function<void(FContentEntry*)> &&Func);
+        FContentEntry* GetEntryByPath(const std::string &InPath);
     };
 
     FContentManager *GetContentManager();

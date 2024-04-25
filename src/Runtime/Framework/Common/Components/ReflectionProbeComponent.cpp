@@ -46,7 +46,7 @@ namespace nilou {
         }
 
         
-        // UTexture2D* lut = GetContentManager()->CreateFile<UTexture2D>("/Textures/my_lut.nasset");
+        // UTexture2D* lut = GetContentManager()->CreateAsset<UTexture2D>("/Textures/my_lut.nasset");
         // lut->Name = "IBL_BRDF_LUT";
         // lut->ImageData = std::make_shared<FImage2D>(512, 512, EPixelFormat::PF_R16G16F);
         // lut->TextureParams.Wrap_R = ETextureWrapModes::TW_Clamp;

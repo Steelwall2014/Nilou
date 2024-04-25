@@ -13,5 +13,6 @@ namespace nilou {
         static std::filesystem::path MaterialDir();
         static std::filesystem::path ContentDir();
         static std::string RelativePath(const std::string &from, const std::string &to);
+        static std::filesystem::path VirtualPathToAbsPath(const std::string &VirtualPath);
     };
 }

@@ -323,7 +323,7 @@ namespace nilou {
 
             RHICmdList->RHIDispatch(group_num, group_num, 1);
 
-            Material->SetParameterValue("FOceanFastFourierTransformParameters", FFTParameters.get());
+            // Material->SetParameterValue("FOceanFastFourierTransformParameters", FFTParameters.get());
 
 
         }

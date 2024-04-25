@@ -15,7 +15,7 @@ namespace nilou {
         // const FMaterialType &MaterialType,
         // const FVertexFactoryType &VertexFactoryType,
         const FVertexFactoryPermutationParameters &VFPermutationParameters,
-        FMaterialRenderProxy *Material,
+        FMaterialRenderProxy *MaterialProxy,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
         RHIDepthStencilState* DepthStencilState,
@@ -30,13 +30,13 @@ namespace nilou {
     {
         FGraphicsPipelineStateInitializer Initializer;
 
-        FShaderInstance *VertexShader = Material->GetShader(VFPermutationParameters, PermutationParametersVS);
+        FShaderInstance *VertexShader = MaterialProxy->GetShader(VFPermutationParameters, PermutationParametersVS);
         Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
 
-        FShaderInstance *PixelShader = Material->GetShader(PermutationParametersPS);
+        FShaderInstance *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
-        OutMeshDrawCommand.StencilRef = Material->StencilRefValue;
+        OutMeshDrawCommand.StencilRef = MaterialProxy->StencilRefValue;
         Initializer.DepthStencilState = DepthStencilState;
 
         Initializer.RasterizerState = RasterizerState;
@@ -53,7 +53,7 @@ namespace nilou {
             RHIGetError();
             OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
 
-            Material->FillShaderBindings(InputBindings);
+            MaterialProxy->FillShaderBindings(InputBindings);
 
             for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
             {              
@@ -73,7 +73,7 @@ namespace nilou {
                             " |Pixel Shader: {}"
                             " |Pipeline Stage: {}"
                             " |\"{}\" Resource not provided",
-                            Material->Name,
+                            MaterialProxy->Material->Name,
                             VFPermutationParameters.Type->Name,
                             PermutationParametersVS.Type->Name,
                             PermutationParametersVS.Type->Name,
