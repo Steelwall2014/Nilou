@@ -1,64 +1,27 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "StaticMeshResources.h"
 #include "MeshBatch.h"
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "VertexFactory.h"
-#include <string>
-#include <utility>
-#include <vector>
+#include "RHICommandContext.h"
+
 namespace nilou {
 
     class FMeshDrawShaderBindings
     {
     public:
-        // FShaderParameterMapInfo ParameterMapInfo;
-        std::vector<std::pair<int, RHIUniformBuffer *>> UniformBufferBindings[EPipelineStage::PipelineStageNum];
-        std::vector<std::pair<int, FRHISampler *>> SamplerBindings[EPipelineStage::PipelineStageNum];
-        std::vector<std::pair<int, RHIBuffer *>> BufferBindings[EPipelineStage::PipelineStageNum];
-        // std::vector<std::pair<int, FUniformValue>> UniformBindings[EPipelineStage::PipelineStageNum];
 
-        bool SetShaderBinding(EPipelineStage Stage, const FRHIDescriptorSetLayoutBinding& Binding, FInputShaderBindings& InputBindings)
-        {
-            bool bResourceFound = false;
-            if (Binding.ParameterType == EShaderParameterType::SPT_UniformBuffer)
-            {          
-                if (RHIUniformBuffer *UniformBuffer = 
-                            InputBindings.GetElementShaderBinding<RHIUniformBuffer>(Binding.Name))
-                {
-                    UniformBufferBindings[Stage].push_back({Binding.BindingPoint, UniformBuffer});
-                    bResourceFound = true;
-                }
-                else if (RHIBuffer *Buffer = 
-                            InputBindings.GetElementShaderBinding<RHIBuffer>(Binding.Name))
-                {
-                    BufferBindings[Stage].push_back({Binding.BindingPoint, Buffer});
-                    bResourceFound = true;
-                }
-            }
-            else if (Binding.ParameterType == EShaderParameterType::SPT_Sampler)
-            {  
-                if (FRHISampler *Sampler = 
-                            InputBindings.GetElementShaderBinding<FRHISampler>(Binding.Name))
-                {
-                    SamplerBindings[Stage].push_back({Binding.BindingPoint, Sampler});
-                    bResourceFound = true;
-                }
-            }
-            // else if (Binding.ParameterType == EShaderParameterType::SPT_Float ||
-            //          Binding.ParameterType == EShaderParameterType::SPT_Int ||
-            //          Binding.ParameterType == EShaderParameterType::SPT_Uint)
-            // {
-            //     auto Value = InputBindings.GetUniformShaderBinding(Binding.Name);
-            //     if (Value.has_value())
-            //     {
-            //         UniformBindings[Stage].push_back({Binding.BindingPoint, Value.value()});
-            //         bResourceFound = true;
-            //     }
-            // }
-            return bResourceFound;
-        }
+        void SetDescriptorSet(uint32 SetIndex, RDGDescriptorSet* DescriptorSet) { DescriptorSets[SetIndex] = DescriptorSet; }
+
+        std::map<uint32, RDGDescriptorSet*> DescriptorSets;
+
+        void SetOnCommandList(RHICommandList& RHICmdList) const;
     };
 
 
@@ -76,34 +39,30 @@ namespace nilou {
         /**
         * Resource bindings
         */
-        FMeshDrawShaderBindings ShaderBindings;
+	    FMeshDrawShaderBindings ShaderBindings;
         std::vector<FVertexInputStream> VertexStreams;
-        
-        RHIBuffer* IndexBuffer;
+        RDGBuffer* IndexBuffer;
 
         /**
         * PSO
         */
         // FGraphicsMinimalPipelineStateId CachedPipelineId;
-        FRHIGraphicsPipelineState *PipelineState;
-
-        uint32 StencilRef;
+        FRHIPipelineState *PipelineState;
 
         /**
         * Draw command parameters
         */
-        // uint32 FirstIndex;
-        // uint32 NumPrimitives;
-        bool UseIndirect;
+        uint32 FirstIndex;
+        uint32 NumPrimitives;
+        uint32 NumInstances;
 
         union
         {
             struct 
             {
-                uint32 NumInstances;
                 uint32 BaseVertexIndex;
                 uint32 NumVertices;
-            } DirectArgs;
+            } VertexParams;
             
             struct  
             {
@@ -112,6 +71,8 @@ namespace nilou {
             } IndirectArgs;
         };
 
-        void SubmitDraw(class FDynamicRHI *RHICmdList);
+        uint8 StencilRef;
+
+        void SubmitDraw(RHICommandList& RHICmdList) const;
     };
 }

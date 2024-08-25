@@ -8,6 +8,7 @@
 #include "Common/Log.h"
 #include "Common/Asset/AssetLoader.h"
 // #include "Shadinclude.h"
+#include "ShaderPreprocess.h"
 
 namespace fs = std::filesystem;
 
@@ -33,18 +34,15 @@ namespace nilou {
     {
     }
 
-    void FShaderTypeBase::ReadSourceCode()
+    void FShaderTypeBase::UpdateCode()
     {
-        if (VirtualFilePath != "" && bSourceCodeReaded == false)
+        if (VirtualFilePath != "")
         {
+            NILOU_LOG(Info, "Preprocessing {}", FileAbsolutePath.generic_string());
             FileAbsolutePath = FPath::VirtualPathToAbsPath(VirtualFilePath);
             std::string RawSourceCode = GetAssetLoader()->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
-            NILOU_LOG(Info, "Parsing {}", FileAbsolutePath.generic_string());
-            PreprocessedCode = FShaderParser(RawSourceCode, FileAbsolutePath.parent_path()).Parse();
-
+            PreprocessedCode = shader_preprocess::PreprocessInclude(RawSourceCode, FileAbsolutePath.parent_path().generic_string(), {});
             HashedName = FHashedName(Name+FileAbsolutePath.generic_string());
-
-            bSourceCodeReaded = true;
         }
     }
 }

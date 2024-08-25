@@ -10,7 +10,7 @@ class TVulkanShader : public BaseType
 {
 public:
     friend class FVulkanDynamicRHI;
-    TVulkanShader(VkDevice InDevice) : Device(InDevice) { }
+    TVulkanShader(VkDevice InDevice, shaderc_compilation_result_t InShaderSpirv) : BaseType(InShaderSpirv), Device(InDevice) { }
 
     virtual bool Success() override
     {
@@ -19,10 +19,9 @@ public:
 
     virtual void ReleaseRHI() override
     {
+        BaseType::ReleaseRHI();
         if (Module != VK_NULL_HANDLE)
             vkDestroyShaderModule(Device, Module, nullptr);
-        if (ShadercResult != nullptr)
-            shaderc_result_release(ShadercResult);
     }
 
     ~TVulkanShader() { ReleaseRHI(); }
@@ -32,8 +31,6 @@ private:
     VkDevice Device;
 
     VkShaderModule Module;
-
-    shaderc_compilation_result* ShadercResult;
 };
 
 using VulkanVertexShader = TVulkanShader<RHIVertexShader>;

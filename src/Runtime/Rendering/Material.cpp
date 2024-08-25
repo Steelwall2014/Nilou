@@ -1,5 +1,6 @@
-#include <glslang/Public/ResourceLimits.h>
-#include <glslang/MachineIndependent/localintermediate.h>
+#include <fstream>
+#include <shaderc/shaderc.h>
+#include <spirv_reflect.h>
 #include "Common/Path.h"
 #include "Material.h"
 #include "Common/Asset/AssetLoader.h"
@@ -8,138 +9,31 @@
 #include "Common/Path.h"
 #include "Common/ContentManager.h"
 #include "RenderingThread.h"
-#include <fstream>
+#include "RenderGraph.h"
+#include "ShaderReflection.h"
+#include "ShaderPreprocess.h"
 
 namespace fs = std::filesystem;
+namespace sr = nilou::shader_reflection;
 
 namespace nilou {
 
-    const std::filesystem::path MATERIAL_STATIC_PARENT_DIR = FPath::MaterialDir();
+    const fs::path MATERIAL_STATIC_PARENT_DIR = FPath::MaterialDir();
 
-    static std::string GlslangTypeToString(const glslang::TType* Type)
+    /**
+    * Updates a parameter on the material instance from the game thread.
+    */
+    template <typename ParameterType>
+    void GameThread_UpdateMIParameter(const UMaterial* Material, const ParameterType& Parameter)
     {
-        if (Type->getBasicType() == glslang::TBasicType::EbtFloat)
-        {
-            if (Type->getVectorSize() == 1)
-                return "float";
-            else if (Type->getVectorSize() == 2)
-                return "vec2";
-            else if (Type->getVectorSize() == 3)
-                return "vec3";
-            else if (Type->getVectorSize() == 4)
-                return "vec4";
-        }
-
-        return "";
-    }
-
-
-    /** Begin FRenderResource Interface */
-    void FMaterialUniformBuffer::InitRHI()
-    {
-        if (Data != nullptr)
-        {
-            FRenderResource::InitRHI();
-            UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, Data.get());
-        }
-    }
-    void FMaterialUniformBuffer::ReleaseRHI()
-    {
-        UniformBufferRHI = nullptr;
-        FRenderResource::ReleaseRHI();
-    }
-    /** End FRenderResource Interface */
-
-    void FMaterialUniformBuffer::UpdateUniformBuffer()
-    {
-        if (UniformBufferRHI != nullptr && Data != nullptr)
-            FDynamicRHI::GetDynamicRHI()->RHIUpdateUniformBuffer(UniformBufferRHI, Data.get());
-    }
-
-    void FMaterialUniformBuffer::Serialize(FArchive& Ar)
-    {
-        nlohmann::json& json = Ar.Node;
-        for (auto& [Name, Field] : Fields)
-        {
-            nlohmann::json value_json; 
-            if (Field.Type == "float")
+        FMaterialRenderProxy* Proxy = Material->GetRenderProxy();
+        const FMaterialParameterInfo& ParameterInfo = Parameter.ParameterInfo;
+        typename ParameterType::ValueType Value = ParameterType::GetValue(Parameter);
+        ENQUEUE_RENDER_COMMAND(SetMIParameterValue)(
+            [Proxy, ParameterInfo, Value](RenderGraph&)
             {
-                value_json = _GetField<float>(Field.Offset);
-            }
-            else if (Field.Type == "vec2")
-            {
-                vec2 value = _GetField<vec2>(Field.Offset);
-                for (int i = 0; i < value.length(); i++)
-                    value_json.push_back(value[i]);
-            }
-            else if (Field.Type == "vec3")
-            {
-                vec3 value = _GetField<vec3>(Field.Offset);
-                for (int i = 0; i < value.length(); i++)
-                    value_json.push_back(value[i]);
-            }
-            else if (Field.Type == "vec4")
-            {
-                vec4 value = _GetField<vec4>(Field.Offset);
-                for (int i = 0; i < value.length(); i++)
-                    value_json.push_back(value[i]);
-            }
-            json["Fields"].push_back(std::map<std::string, nlohmann::json>{
-                {"Name", Field.Name},
-                {"Offset", Field.Offset},
-                {"Type", Field.Type},
-                {"Value", value_json}
+                Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
             });
-        }
-        
-    }
-
-    void FMaterialUniformBuffer::Deserialize(FArchive& Ar)
-    {
-        nlohmann::json& json = Ar.Node;
-        if (json.contains("Fields"))
-            Ncheck(json["Fields"].is_array());
-        for (auto& field : json["Fields"])
-        {
-            Field Field;
-            Field.Name = field["Name"];
-            Field.Type = field["Type"];
-            Ncheck(Field.Type == this->Fields[Field.Name].Type);
-            // DON'T SET THE METADATA HERE
-            // Because the metadata comes from the shader reflection, NOT the serialized data.
-            // We only need to set the value here.
-            // Fields[Field.Name] = Field;
-            if (Field.Type == "float")
-            {
-                float value;
-                value = field["Value"].get<float>();
-                SetScalarParameterValue(Field.Name, value);
-            }
-            else if (Field.Type == "vec2")
-            {
-                vec2 value;
-                value[0] = field["Value"][0].get<float>();
-                value[1] = field["Value"][1].get<float>();
-                SetVectorParameterValue(Field.Name, value);
-            }
-            else if (Field.Type == "vec3")
-            {
-                vec3 value;
-                value[0] = field["Value"][0].get<float>();
-                value[1] = field["Value"][1].get<float>();
-                value[2] = field["Value"][2].get<float>();
-                SetVectorParameterValue(Field.Name, value);
-            }
-            else if (Field.Type == "vec4")
-            {
-                vec4 value;
-                value[0] = field["Value"][0].get<float>();
-                value[1] = field["Value"][1].get<float>();
-                value[2] = field["Value"][2].get<float>();
-                value[3] = field["Value"][3].get<float>();
-                SetVectorParameterValue(Field.Name, value);
-            }
-        }
     }
 
     UMaterial *UMaterial::GetDefaultMaterial()
@@ -149,157 +43,26 @@ namespace nilou {
 
     UMaterial::UMaterial()
     {
-        MaterialShaderMap = std::make_shared<FMaterialShaderMap>();
-        MaterialRenderProxy = new FMaterialRenderProxy(this);
-        MaterialUniformBlock = new FMaterialUniformBuffer();
-        
-        MaterialRenderProxy->UniformBuffer = MaterialUniformBlock;
-        MaterialRenderProxy->ShaderMap = MaterialShaderMap.get();
+        MaterialRenderProxy = std::make_unique<FMaterialRenderProxy>(this);
     }
 
     UMaterial::~UMaterial()
     {
         ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
             [
-                ToDelete_proxy = MaterialRenderProxy,
-                ToDelete_uniform = MaterialUniformBlock] (FDynamicRHI*)
+                ToDelete_proxy = std::move(MaterialRenderProxy)] (RenderGraph&)
             {
-                delete ToDelete_proxy;
-                delete ToDelete_uniform;
             });
         MaterialRenderProxy = nullptr;
-        MaterialUniformBlock = nullptr;
-    }
-
-    static std::unique_ptr<glslang::TShader> CompileShader(const std::string& Code, EPipelineStage PipelineStage)
-    {
-        const char *code_c_str = Code.c_str();
-        glslang::EShClient client = glslang::EShClientOpenGL;
-        glslang::EShTargetClientVersion version = glslang::EShTargetOpenGL_450;
-        if (FDynamicRHI::StaticGetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-        {
-            client = glslang::EShClientVulkan;
-            version = glslang::EShTargetVulkan_1_3;
-        }
-        std::unique_ptr<glslang::TShader> ShaderGlsl;
-        switch (PipelineStage) 
-        {
-            case EPipelineStage::PS_Vertex:
-                ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangVertex);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangVertex,  client, 0);
-                break;
-            case EPipelineStage::PS_Pixel:
-                ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangFragment);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangFragment,  client, 0);
-                break;
-            case EPipelineStage::PS_Compute:
-                ShaderGlsl = std::make_unique<glslang::TShader>(EShLanguage::EShLangCompute);
-                ShaderGlsl->setEnvInput(glslang::EShSourceGlsl , EShLanguage::EShLangCompute,  client, 0);
-                break;
-        }
-        ShaderGlsl->setEnvClient(client, version);
-        ShaderGlsl->setEnvTarget(glslang::EShTargetNone, glslang::EShTargetLanguageVersion(0));
-        ShaderGlsl->setStrings(&code_c_str, 1);
-        std::string preprocess;
-        glslang::TShader::ForbidIncluder includer;
-        bool res = ShaderGlsl->preprocess(GetResources(), 460, EProfile::ECoreProfile, false, false, EShMsgDefault, &preprocess, includer);
-        res &= ShaderGlsl->parse(GetResources(), 460, false, EShMsgDefault);
-        if (!res)
-        {
-            std::string info = ShaderGlsl->getInfoLog();
-            std::string debuginfo = ShaderGlsl->getInfoDebugLog();
-            NILOU_LOG(Error, "Shader parse error: {}\n{}", 
-                info,
-                debuginfo);
-            NILOU_LOG(Error, "Shader code: \n{}", Code);
-            ShaderGlsl = nullptr;
-        }
-        return ShaderGlsl;
-    }
-
-    static std::unique_ptr<glslang::TProgram> BuildProgram(const std::string& VS, const std::string& FS)
-    {
-        auto VertexShader = CompileShader(VS, PS_Vertex);
-        auto PixelShader = CompileShader(FS, PS_Pixel);
-        std::unique_ptr<glslang::TProgram> ProgramGlsl = std::make_unique<glslang::TProgram>();
-        ProgramGlsl->addShader(VertexShader.get());
-        ProgramGlsl->addShader(PixelShader.get());
-        ProgramGlsl->link(EShMsgDefault);
-        ProgramGlsl->buildReflection();
-        return ProgramGlsl;
     }
 
     void UMaterial::UpdateCode(const std::string &InCode)
     {
         Code = InCode;
-        Ncheck(MaterialUniformBlock != nullptr);
-
-        // Build reflection, then we can set uniforms by name.
-        // This is only used for reflection, NOT the actual shader compilation.
-        std::string PreprocessResult = FShaderParser(InCode, MATERIAL_STATIC_PARENT_DIR).Parse();
-        std::string VertexShaderCode = "#version 460\nvoid main() { }";
-        std::string PixelShaderCode = 
-            "#version 460\n"
-            "layout (location = 0) out vec4 FragColor;\n" +  
-            PreprocessResult + 
-            R"(
-                void main()
-                {
-                    VS_Out vs_out;
-                    FragColor = MaterialGetBaseColor(vs_out) + 
-                                vec4(MaterialGetEmissive(vs_out), 0) + 
-                                vec4(MaterialGetWorldSpaceNormal(vs_out), 0) + 
-                                vec4(MaterialGetRoughness(vs_out)) + 
-                                vec4(MaterialGetMetallic(vs_out)) + 
-                                vec4(MaterialGetWorldSpaceOffset(vs_out), 0);
-                }
-            )";
-        auto ProgramGlsl = BuildProgram(VertexShaderCode, PixelShaderCode);
-
-        int NumUniformBlock = ProgramGlsl->getNumUniformBlocks();
-        std::map<std::string, FMaterialUniformBuffer::Field>& Fields = MaterialUniformBlock->Fields;
-        Fields.clear();
-        for (int i = 0; i < NumUniformBlock; i++)
-        {
-            const glslang::TObjectReflection &refl = ProgramGlsl->getUniformBlock(i);
-            if (refl.name == "MAT_UNIFORM_BLOCK")
-            {
-                MaterialUniformBlock->Size = refl.size;
-                MaterialUniformBlock->Data = std::make_unique<uint8[]>(refl.size);
-                const glslang::TTypeList* struct_refl = refl.getType()->getStruct();
-                if (struct_refl)
-                {
-                    for (auto& type : *struct_refl)
-                    {
-                        std::string name = type.type->getFieldName().c_str();
-                        Fields.insert({name, FMaterialUniformBuffer::Field{name}});
-                    }
-                }
-                break;
-            }
-        }
-
-        int uniform_num = ProgramGlsl->getNumUniformVariables();
-        for (int i = 0; i < uniform_num; i++)
-        {
-            std::string name = ProgramGlsl->getUniformName(i);
-            const glslang::TObjectReflection& refl = ProgramGlsl->getUniform(i);
-            if (Fields.contains(name))
-            {
-                FMaterialUniformBuffer::Field& Field = Fields[name];
-                Field.Name = name;
-                Field.Offset = refl.offset;
-                Field.Type = GlslangTypeToString(refl.getType());
-                if (Field.Type == "")
-                    NILOU_LOG(Error, "\"{}\" in material \"{}\" is invalid because its type is not supported", name, this->Name);
-            }
-        }
-
         ENQUEUE_RENDER_COMMAND(UMaterial_UpdateCode)(
-            [this, PreprocessResult](FDynamicRHI* RHICmdList)
+            [InCode, Proxy=GetRenderProxy()](RenderGraph&)
             {
-                MaterialUniformBlock->InitResource();
-                FShaderCompiler::CompileMaterialShader(MaterialShaderMap.get(), PreprocessResult, RHICmdList);
+                Proxy->RenderThread_UpdateShader(InCode);
             }
         );
     }
@@ -312,63 +75,136 @@ namespace nilou {
         UpdateCode(Code);
     }
 
-    void UMaterial::SetTextureParameterValue(const std::string &Name, UTexture *Texture)
-    {
-        Textures[Name] = Texture;
-        ENQUEUE_RENDER_COMMAND(Material_SetTextureParameterValue)(
-            [Texture, Name, this](FDynamicRHI*) 
-            {
-                GetRenderProxy()->Textures[Name] = Texture->GetResource();
-            });
-    }
-
     void UMaterial::SetScalarParameterValue(const std::string &Name, float Value)
     {
-        MaterialUniformBlock->SetScalarParameterValue(Name, Value);
-        ENQUEUE_RENDER_COMMAND(Material_SetScalarParameterValue)(
-            [Name, Value, this](FDynamicRHI*) 
-            {
-                MaterialUniformBlock->UpdateUniformBuffer();
-            });
+	    FMaterialParameterInfo ParameterInfo(Name);
+        FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(ScalarParameterValues, ParameterInfo);
+
+        bool bForceUpdate = false;
+        if(!ParameterValue)
+        {
+            // If there's no element for the named parameter in array yet, add one.
+            ParameterValue = &ScalarParameterValues.emplace_back();
+            ParameterValue->ParameterInfo = ParameterInfo;
+            bForceUpdate = true;
+        }
+        
+	    float ValueToSet = Value;
+        // Don't enqueue an update if it isn't needed
+        if (bForceUpdate || ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            // Update the material instance data in the rendering thread.
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
     }
 
-    void UMaterial::SetVectorParameterValue(const std::string &Name, const vec2 &Value)
+    void UMaterial::SetVectorParameterValue(const std::string &Name, const vec4& Value)
     {
-        MaterialUniformBlock->SetVectorParameterValue(Name, Value);
-        ENQUEUE_RENDER_COMMAND(Material_SetVectorParameterValue)(
-            [Name, Value, this](FDynamicRHI*) 
-            {
-                MaterialUniformBlock->UpdateUniformBuffer();
-            });
+	    FMaterialParameterInfo ParameterInfo(Name);
+        FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(VectorParameterValues, ParameterInfo);
+
+        bool bForceUpdate = false;
+        if(!ParameterValue)
+        {
+            ParameterValue = &VectorParameterValues.emplace_back();
+            ParameterValue->ParameterInfo = ParameterInfo;
+            bForceUpdate = true;
+        }
+        
+	    vec4 ValueToSet = Value;
+        if (bForceUpdate || ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
     }
 
-    void UMaterial::SetVectorParameterValue(const std::string &Name, const vec3 &Value)
+    void UMaterial::SetTextureParameterValue(const std::string &Name, UTexture* Value)
     {
-        MaterialUniformBlock->SetVectorParameterValue(Name, Value);
-        ENQUEUE_RENDER_COMMAND(Material_SetVectorParameterValue)(
-            [Name, Value, this](FDynamicRHI*) 
-            {
-                MaterialUniformBlock->UpdateUniformBuffer();
-            });
+	    FMaterialParameterInfo ParameterInfo(Name);
+        FTextureParameterValue* ParameterValue = GameThread_FindParameterByName(TextureParameterValues, ParameterInfo);
+
+        bool bForceUpdate = false;
+        if(!ParameterValue)
+        {
+            ParameterValue = &TextureParameterValues.emplace_back();
+            ParameterValue->ParameterInfo = ParameterInfo;
+            bForceUpdate = true;
+        }
+        
+	    UTexture* ValueToSet = Value;
+        if (bForceUpdate || ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
     }
 
-    void UMaterial::SetVectorParameterValue(const std::string &Name, const vec4 &Value)
+    bool UMaterial::SetScalarParameterValueByIndex(int32 ParameterIndex, float Value)
     {
-        MaterialUniformBlock->SetVectorParameterValue(Name, Value);
-        ENQUEUE_RENDER_COMMAND(Material_SetVectorParameterValue)(
-            [Name, Value, this](FDynamicRHI*) 
-            {
-                MaterialUniformBlock->UpdateUniformBuffer();
-            });
+        FScalarParameterValue* ParameterValue = GameThread_FindParameterByIndex(ScalarParameterValues, ParameterIndex);
+
+        if(!ParameterValue)
+        {
+            return false;
+        }
+        
+	    float ValueToSet = Value;
+        if (ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
+
+        return true;
+    }
+
+    bool UMaterial::SetVectorParameterValueByIndex(int32 ParameterIndex, const vec4& Value)
+    {
+        FVectorParameterValue* ParameterValue = GameThread_FindParameterByIndex(VectorParameterValues, ParameterIndex);
+
+        if(!ParameterValue)
+        {
+            return false;
+        }
+        
+	    vec4 ValueToSet = Value;
+        if (ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
+
+        return true;
+    }
+
+    bool UMaterial::SetTextureParameterValueByIndex(int32 ParameterIndex, UTexture* Value)
+    {
+        FTextureParameterValue* ParameterValue = GameThread_FindParameterByIndex(TextureParameterValues, ParameterIndex);
+
+        if(!ParameterValue)
+        {
+            return false;
+        }
+        
+	    UTexture* ValueToSet = Value;
+        if (ParameterValue->ParameterValue != ValueToSet)
+        {
+            ParameterValue->ParameterValue = ValueToSet;
+            GameThread_UpdateMIParameter(this, *ParameterValue);
+        }
+
+        return true;
     }
 
     void UMaterial::SetShadingModel(EShadingModel InShadingModel)
     {
         ShadingModel = InShadingModel;
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
-            [InShadingModel, this](FDynamicRHI*) 
+            [InShadingModel, Proxy=GetRenderProxy()](RenderGraph& Graph) 
             {
-                GetRenderProxy()->ShadingModel = InShadingModel;
+                Proxy->ShadingModel = InShadingModel;
             });
     }
 
@@ -376,9 +212,9 @@ namespace nilou {
     {
         BlendState = InBlendState;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [InBlendState, this](FDynamicRHI* RHICmdList) 
+            [InBlendState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
             {
-                GetRenderProxy()->BlendState = RHICmdList->RHICreateBlendState(InBlendState);
+                Proxy->BlendState = RHICreateBlendState(InBlendState);
             });
     }
 
@@ -386,9 +222,9 @@ namespace nilou {
     {
         DepthStencilState = InDepthStencilState;
         ENQUEUE_RENDER_COMMAND(Material_SetDepthStencilState)(
-            [InDepthStencilState, this](FDynamicRHI* RHICmdList) 
+            [InDepthStencilState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
             {
-                GetRenderProxy()->DepthStencilState = RHICmdList->RHICreateDepthStencilState(InDepthStencilState);
+                Proxy->DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
             });
     }
 
@@ -396,9 +232,9 @@ namespace nilou {
     {
         RasterizerState = InRasterizerState;
         ENQUEUE_RENDER_COMMAND(Material_SetRasterizerState)(
-            [InRasterizerState, this](FDynamicRHI* RHICmdList) 
+            [InRasterizerState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
             {
-                GetRenderProxy()->RasterizerState = RHICmdList->RHICreateRasterizerState(InRasterizerState);
+                Proxy->RasterizerState = RHICreateRasterizerState(InRasterizerState);
             });
     }
 
@@ -406,9 +242,9 @@ namespace nilou {
     {
         StencilRefValue = InStencilRefValue;
         ENQUEUE_RENDER_COMMAND(Material_SetStencilRefValue)(
-            [InStencilRefValue, this](FDynamicRHI*) 
+            [InStencilRefValue, Proxy=GetRenderProxy()](RenderGraph& Graph) 
             {
-                GetRenderProxy()->StencilRefValue = InStencilRefValue;
+                Proxy->StencilRefValue = InStencilRefValue;
             });
     }
 
@@ -419,79 +255,92 @@ namespace nilou {
 
         // Copy some properties
         MaterialInstance->Code = this->Code;
-        MaterialInstance->Textures = this->Textures;
+        MaterialInstance->ScalarParameterValues = this->ScalarParameterValues;
+        MaterialInstance->VectorParameterValues = this->VectorParameterValues;
+        MaterialInstance->TextureParameterValues = this->TextureParameterValues;
         MaterialInstance->ShadingModel = this->ShadingModel;
         MaterialInstance->StencilRefValue = this->StencilRefValue;
         MaterialInstance->BlendState = this->BlendState;
         MaterialInstance->DepthStencilState = this->DepthStencilState;
         MaterialInstance->RasterizerState = this->RasterizerState;
-        MaterialInstance->MaterialShaderMap = this->MaterialShaderMap;
-
-        // Copy the uniform buffer
-        auto NewUniformBuffer = MaterialInstance->MaterialUniformBlock;
-        NewUniformBuffer->Size = this->MaterialUniformBlock->Size;
-        NewUniformBuffer->Fields = this->MaterialUniformBlock->Fields;
-        NewUniformBuffer->Data = std::make_unique<uint8[]>(MaterialUniformBlock->Size);
-        memcpy(NewUniformBuffer->Data.get(), this->MaterialUniformBlock->Data.get(), this->MaterialUniformBlock->Size);
 
         // Copy the render proxy
-        auto NewRenderProxy = MaterialInstance->MaterialRenderProxy;
+        auto NewRenderProxy = MaterialInstance->MaterialRenderProxy.get();
         NewRenderProxy->ShaderMap = this->MaterialRenderProxy->ShaderMap;
-        NewRenderProxy->Textures = this->MaterialRenderProxy->Textures;
-        NewRenderProxy->UniformBuffer = this->MaterialRenderProxy->UniformBuffer;
+        for (auto& [SetIndex, Layout] : NewRenderProxy->ShaderMap->DescriptorSetLayout)
+        {
+            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreatePersistentDescriptorSet(Layout.get());
+        }
+        for (auto& [Key, Texture] : this->MaterialRenderProxy->Textures)
+        {
+            uint32 SetIndex = Key >> 32;
+            uint32 BindingIndex = Key & 0xFFFFFFFF;
+            NewRenderProxy->Textures[Key] = Texture;
+            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetSamplerState(), Texture->GetTextureRDG());
+        }
+        for (auto& [Key, Buffer] : this->MaterialRenderProxy->UniformBuffers)
+        {
+            uint32 SetIndex = Key >> 32;
+            uint32 BindingIndex = Key & 0xFFFFFFFF;
+            // Copy the uniform buffer instead of the refs.
+            RDGBufferRef NewUniformBuffer = RenderGraph::CreatePersistentBuffer(Buffer->Desc);
+            NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.Size, 0);
+            NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
+            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewUniformBuffer.get());
+        }
         NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
         NewRenderProxy->RasterizerState = this->MaterialRenderProxy->RasterizerState;
         NewRenderProxy->DepthStencilState = this->MaterialRenderProxy->DepthStencilState;
         NewRenderProxy->BlendState = this->MaterialRenderProxy->BlendState;
         NewRenderProxy->ShadingModel = this->MaterialRenderProxy->ShadingModel;
 
-        ENQUEUE_RENDER_COMMAND(UMaterial_CreateMaterialInstance)(
-            [NewUniformBuffer, NewRenderProxy](FDynamicRHI* RHICmdList) 
-            {
-                NewUniformBuffer->InitResource();
-                NewRenderProxy->UniformBuffer = NewUniformBuffer;
-            });
-
         return MaterialInstance;
     }
 
     void UMaterial::PostSerialize(FArchive& Ar)
     {
-        nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
-        FArchive local_Ar(json, Ar);
-        MaterialUniformBlock->Serialize(local_Ar);
+        // nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
+        // FArchive local_Ar(json, Ar);
+        // MaterialUniformBlock->Serialize(local_Ar);
     }
 
     void UMaterial::PostDeserialize(FArchive& Ar)
     {
         SetShaderFileVirtualPath(ShaderVirtualPath);
-        if (Ar.Node["Content"].contains("MaterialUniformBlock"))
-        {
-            // The deserialization of MaterialUniformBlock MUST be done after the shader compilation.
-            nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
-            FArchive local_Ar(json, Ar);
-            MaterialUniformBlock->Deserialize(local_Ar);
-        }
+        // if (Ar.Node["Content"].contains("MaterialUniformBlock"))
+        // {
+        //     // The deserialization of MaterialUniformBlock MUST be done after the shader compilation.
+        //     nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
+        //     FArchive local_Ar(json, Ar);
+        //     MaterialUniformBlock->Deserialize(local_Ar);
+        // }
         auto BlendState = this->BlendState;
         auto RasterizerState = this->RasterizerState;
         auto DepthStencilState = this->DepthStencilState;
         auto ShaderVirtualPath = this->ShaderVirtualPath;
         auto ShadingModel = this->ShadingModel;
-        auto Textures = this->Textures;
+        auto ScalarParameterValues = this->ScalarParameterValues;
+        auto VectorParameterValues = this->VectorParameterValues;
+        auto TextureParameterValues = this->TextureParameterValues;
+        auto Proxy = GetRenderProxy();
         ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
-            [=](FDynamicRHI* RHICmdList) 
+            [=](RenderGraph&) 
             {
-                MaterialUniformBlock->UpdateUniformBuffer();
-                GetRenderProxy()->UniformBuffer = MaterialUniformBlock;
-                GetRenderProxy()->BlendState = RHICmdList->RHICreateBlendState(BlendState);
-                GetRenderProxy()->RasterizerState = RHICmdList->RHICreateRasterizerState(RasterizerState);
-                GetRenderProxy()->DepthStencilState = RHICmdList->RHICreateDepthStencilState(DepthStencilState);
-                GetRenderProxy()->ShadingModel = ShadingModel;
-                for (auto &[Name, Texture] : Textures)
+                Proxy->BlendState = RHICreateBlendState(BlendState);
+                Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
+                Proxy->DepthStencilState = RHICreateDepthStencilState(DepthStencilState);
+                Proxy->ShadingModel = ShadingModel;
+                for (const FScalarParameterValue& Param : ScalarParameterValues)
                 {
-                    if (Texture->GetResource() == nullptr)
-                        Texture->UpdateResource();
-                    GetRenderProxy()->Textures[Name] = Texture->GetResource();
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
+                }
+                for (const FVectorParameterValue& Param : VectorParameterValues)
+                {
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
+                }
+                for (const FTextureParameterValue& Param : TextureParameterValues)
+                {
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
                 }
             });
     }
@@ -504,13 +353,81 @@ namespace nilou {
              InRasterizerState=InMaterial->RasterizerState,
              InDepthStencilState=InMaterial->DepthStencilState,
              InShadingModel=InMaterial->ShadingModel,
-             this](FDynamicRHI* RHICmdList) 
+             this](RenderGraph&) 
             {
-                BlendState = RHICmdList->RHICreateBlendState(InBlendState);
-                RasterizerState = RHICmdList->RHICreateRasterizerState(InRasterizerState);
-                DepthStencilState = RHICmdList->RHICreateDepthStencilState(InDepthStencilState);
+                ShaderMap = std::make_shared<FMaterialShaderMap>();
+                BlendState = RHICreateBlendState(InBlendState);
+                RasterizerState = RHICreateRasterizerState(InRasterizerState);
+                DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
                 ShadingModel = InShadingModel;
             });
+    }
+
+    void FMaterialRenderProxy::RenderThread_UpdateShader(const std::string& ShaderCode)
+    {
+        ShaderMap->RemoveAllShaders();
+        ShaderMap->DescriptorSetLayout.clear();
+        DescriptorSets.clear();
+        std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
+        FShaderCompiler::CompileMaterialShader(ShaderMap.get(), PreprocessResult);
+
+        // Build reflection, then we can set uniforms by name.
+        // This is only used for reflection, NOT the actual shader compilation.
+        std::string PixelShaderCode = 
+            "#version 460\n"
+            "layout (location = 0) out vec4 FragColor;\n" +  
+            PreprocessResult + 
+            "\nvoid main() { FragColor = vec4(0.0, 0.0, 0.0, 1.0); }";
+        sr::DescriptorSetLayouts DescriptorSetLayouts = sr::ReflectShader(PixelShaderCode);
+
+        for (auto& [SetIndex, Layout] : DescriptorSetLayouts)
+        {
+            Ncheckf(SetIndex != VERTEX_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_SHADER_SET_INDEX ({})", Material->Name, VERTEX_SHADER_SET_INDEX);
+            Ncheckf(SetIndex != PIXEL_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as PIXEL_SHADER_SET_INDEX ({})", Material->Name, PIXEL_SHADER_SET_INDEX);
+            Ncheckf(SetIndex != VERTEX_FACTORY_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_FACTORY_SET_INDEX ({})", Material->Name, VERTEX_FACTORY_SET_INDEX);
+            std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
+            for (auto& [BindingIndex, Binding] : Layout)
+            {
+                RHIDescriptorSetLayoutBinding BindingRHI;
+                BindingRHI.BindingIndex = BindingIndex;
+                BindingRHI.DescriptorType = Binding.DescriptorType;
+                BindingsRHI.push_back(BindingRHI);
+            }
+            RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
+            ShaderMap->DescriptorSetLayout[SetIndex] = RHIDescriptorSetLayoutRef(LayoutRHI);
+            DescriptorSets[SetIndex] = RenderGraph::CreatePersistentDescriptorSet(LayoutRHI);
+
+            for (auto& [BindingIndex, Binding] : Layout)
+            {
+                if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
+                {
+                    for (const sr::BlockVariable& Member : Binding.Block.Members)
+                    {
+                        FMaterialRenderProxy::ParameterPosition Position;
+                        Position.SetIndex = SetIndex;
+                        Position.BindingIndex = BindingIndex;
+                        Position.Offset = Member.Offset;
+                        ParameterNameToPosition[Member.Name] = Position;
+                    }
+                    uint32 Size = Binding.Block.Size;
+                    uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
+                    UniformBuffers[key] = RenderGraph::CreatePersistentBuffer({0, Size});
+                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key].get());
+                }
+                else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
+                {
+                    FMaterialRenderProxy::ParameterPosition Position;
+                    Position.SetIndex = SetIndex;
+                    Position.BindingIndex = BindingIndex;
+                    ParameterNameToPosition[Binding.Name] = Position;
+                }
+                else 
+                {
+                    Ncheckf(false, "Unsupported descriptor type");
+                }
+            }
+        }
+
     }
 
 }

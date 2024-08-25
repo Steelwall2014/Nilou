@@ -5,191 +5,140 @@
 #include "RenderGraphResources.h"
 #include "RHIResources.h"
 #include "Templates/TypeTraits.h"
+#include "RenderGraphDescriptorSet.h"
 
 namespace nilou {
 
 using PassHandle = int32;
 class FDynamicRHI;
+class RHICommandList;
 
-class FRDGPassNode;
-class FRDGResourceNode
+class RDGPassNode;
+class RDGResourceNode
 {
 public:
-    FRDGPassNode* InPassNode;
+    RDGPassNode* InPassNode;
 };
 
-class FRDGPassNode
+class RDGPassNode
 {
 public:
-    std::vector<FRDGResourceNode*> InResourceNodes;
-    std::vector<FRDGResourceNode*> OutResourceNodes;
-    std::vector<FRDGResourceNode*> InOutResourceNodes;
+    std::vector<RDGResourceNode*> InResourceNodes;
+    std::vector<RDGResourceNode*> OutResourceNodes;
 
     bool bCulled = true;
     bool bForceExecute = false;
 
 };
 
-template <typename TDesc, typename T>
-class TRDGAllocator
+enum class ERDGTextureUsage
 {
-
-public:
-
-    T* Alloc(const TDesc& Desc)
-    {
-        auto begin = Pool.equal_range(Desc).first;
-        if (begin != Pool.end())
-        {
-            T* obj = begin->second;
-            Pool.erase(begin);
-            return obj;
-        }
-        return new T(Desc);
-    }
-
-    void Release(const TDesc& Desc, T* Obj)
-    {
-        Pool.insert({Desc, Obj});
-    }
-
-    static TRDGAllocator& Get()
-    {
-        static TRDGAllocator Allocator;
-        return Allocator;
-    }
-
-private:
-
-	std::unordered_multimap<TDesc, T*> Pool;
-
+    None,
+    RenderTarget,
+    ShaderResource,
 };
 
-using FRDGTextureAllocator = TRDGAllocator<FRDGTextureDesc, FRDGTexture>;
-using FRDGBufferAllocator = TRDGAllocator<FRDGBufferDesc, FRDGBuffer>;
-using FRDGUniformBufferAllocator = TRDGAllocator<FRDGUniformBufferDesc, FRDGUniformBuffer>;
-
-template <typename TDesc, typename T>
-class TRDGResourceRegistry
+class RDGPassBuilder
 {
 public:
 
-    TRDGResourceRegistry() = default;
-    ~TRDGResourceRegistry()
-    {
-        auto& Allocator = TRDGAllocator<TDesc, T>::Get();
-        for (auto& [Desc, Obj] : TrackedResources)
-        {
-            Allocator.Release(Desc, Obj);
-        }
-    }
+    RDGPassBuilder();
 
-    void Add(const TDesc& Desc, T* Obj)
-    {
-        TrackedResources.push_back({Desc, Obj});
-    }
+    RDGPassBuilder& Read(RDGBuffer* Buffer) { return *this; }
 
-private:
+    RDGPassBuilder& Read(RDGTexture* Texture, ERDGTextureUsage TextureUsage) { return *this; }
 
-    std::vector<std::pair<TDesc, T*>> TrackedResources;
-};
+    RDGPassBuilder& Write(RDGBuffer* Buffer) { return *this; }
 
-using FRDGTextureRegistry = TRDGResourceRegistry<FRDGTextureDesc, FRDGTexture>;
-using FRDGBufferRegistry = TRDGResourceRegistry<FRDGBufferDesc, FRDGBuffer>;
-using FRDGUniformBufferRegistry = TRDGResourceRegistry<FRDGUniformBufferDesc, FRDGUniformBuffer>;class FRDGPassBuilder
-{
-public:
-
-    FRDGPassBuilder();
-
-    FRDGPassBuilder& Read(const std::string& ParamName, FRDGUniformBuffer* UniformBuffer) { return *this; }
-
-    FRDGPassBuilder& Read(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGPassBuilder& Read(const std::string& ParamName, FRDGTexture* Texture, const RHITextureParams& Sampler=RHITextureParams::DefaultParams) { return *this; }
-
-    FRDGPassBuilder& Write(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGPassBuilder& Write(const std::string& ParamName, FRDGTexture* Texture) { return *this; }
-
-    FRDGPassBuilder& Write(int32 Location, FRDGTexture* Texture) { return *this; }
+    RDGPassBuilder& Write(RDGTexture* Texture, ERDGTextureUsage TextureUsage) { return *this; }
 
 protected:
 
-    FRDGPassNode* Node;
-};
-
-class FRDGComputePassBuilder : public FRDGPassBuilder
-{
-public:
-
-    FRDGComputePassBuilder();
-
-    FRDGComputePassBuilder& Read(const std::string& ParamName, FRDGUniformBuffer* UniformBuffer) { return *this; }
-
-    FRDGComputePassBuilder& Read(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGComputePassBuilder& Read(const std::string& ParamName, FRDGTexture* Texture, const RHITextureParams& Sampler=RHITextureParams::DefaultParams) { return *this; }
-
-    FRDGComputePassBuilder& Write(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGComputePassBuilder& Write(const std::string& ParamName, FRDGTexture* Texture) { return *this; }
+    RDGPassNode* Node;
 
 };
 
-class FRDGGraphicsPassBuilder : public FRDGPassBuilder
+struct RDGPassDesc
 {
-public:
+    std::string Name;
 
-    FRDGGraphicsPassBuilder();
-
-    FRDGGraphicsPassBuilder& Read(const std::string& ParamName, FRDGUniformBuffer* UniformBuffer) { return *this; }
-
-    FRDGGraphicsPassBuilder& Read(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGGraphicsPassBuilder& Read(const std::string& ParamName, FRDGTexture* Texture, const RHITextureParams& Sampler=RHITextureParams::DefaultParams) { return *this; }
-
-    FRDGGraphicsPassBuilder& Write(const std::string& ParamName, FRDGBuffer* Buffer) { return *this; }
-
-    FRDGGraphicsPassBuilder& Write(const std::string& ParamName, FRDGTexture* Texture) { return *this; }
-
+    // If this pass should never be culled.
+    bool bNeverCull = false;
 };
 
-class FRDGPresentPassBuilder : public FRDGPassBuilder
+struct RDGGraphicsPassDesc : public RDGPassDesc
 {
-public:
+    // The descriptor sets used by this graphics pass. Note: The place of each set in the vector doesn't matter.
+    std::vector<RDGDescriptorSet*> DescriptorSets;
 
-    FRDGPresentPassBuilder();
-
-    FRDGPresentPassBuilder& Write(FRDGTexture* Texture) { return *this; }
-
+    // The render targets used by this graphics pass.
+    std::unordered_map<EFramebufferAttachment, RDGTexture*> RenderTargets;
 };
 
-class FRenderGraph
+struct RDGComputePassDesc : public RDGPassDesc
+{
+    // The descriptor sets used by this compute pass. Note: The place of each set in the vector doesn't matter.
+    std::vector<RDGDescriptorSet*> DescriptorSets;
+};
+
+struct RDGCopyPassDesc : public RDGPassDesc
+{
+    RDGBuffer* Source;
+    RDGTexture* Destination;
+};
+
+class RenderGraph
 {
 public:
 
-    friend class FRDGBuilder;
+    friend class RDGBuilder;
 
-    static FRDGTextureRef CreatePersistentTexture(const FRDGTextureDesc& TextureDesc);
+    static RDGTextureRef CreatePersistentTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
-    static FRDGBufferRef CreatePersistentBuffer(const FRDGBufferDesc& Desc);
+    static RDGBufferRef CreatePersistentBuffer(const std::string& Name, const RDGBufferDesc& Desc);
 
-    static FRDGUniformBufferRef CreatePersistentUniformBuffer(const FRDGUniformBufferDesc& Desc);
+    static RDGDescriptorSetRef CreatePersistentDescriptorSet(RHIDescriptorSetLayout* Layout);
 
-    static FRenderGraph* RDG;
+    RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
-    FRDGTexture* CreateTexture(const std::string& Name, const FRDGTextureDesc& TextureDesc);
+    RDGBuffer* CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc);
+    
+    template<class TUniformBufferType>
+    RDGBuffer* CreateUniformBuffer(const std::string& Name)
+    {
+        RDGBufferDesc Desc;
+        Desc.Stride = 0;
+        Desc.Size = sizeof(TUniformBufferType);
+        return CreateBuffer(Name, Desc);
+    }
 
-    FRDGBuffer* CreateBuffer(const FRDGBufferDesc& Desc);
+    RDGTextureSRV* CreateSRV(const RDGTextureSRVDesc& Desc);
+    RDGBufferSRV* CreateSRV(const RDGBufferSRVDesc& Desc);
 
-    FRDGUniformBuffer* CreateUniformBuffer(const FRDGUniformBufferDesc& Desc);
+    RDGTextureUAV* CreateUAV(const RDGTextureUAVDesc& Desc);
+    RDGBufferUAV* CreateUAV(const RDGBufferUAVDesc& Desc);
 
-    PassHandle AddComputePass(const std::function<void(FRDGComputePassBuilder&)>& Setup, const std::function<void(FDynamicRHI*)>& Executor);
+    RDGDescriptorSet* CreateDescriptorSet(RHIDescriptorSetLayout* Layout);
 
-    PassHandle AddGraphicsPass(const std::function<void(FRDGGraphicsPassBuilder&)>& Setup, const std::function<void(FDynamicRHI*)>& Executor);
+    template<class TShaderType>
+    RDGDescriptorSet* CreateDescriptorSet(int32 PermutationId, uint32 SetIndex)
+    {
+        return CreateDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
+    }
 
-    PassHandle AddPresentPass(const std::function<void(FRDGPresentPassBuilder&)>& Setup, const std::function<void(FDynamicRHI*)>& Executor);
+    // Add a graphics pass to the render graph
+    PassHandle AddGraphicsPass(
+        const RDGGraphicsPassDesc& PassDesc,
+        const std::function<void(RHICommandList&)>& Executor);
+
+    // Add a compute pass to the render graph
+    PassHandle AddComputePass(
+        const RDGComputePassDesc& PassDesc,
+        const std::function<void(RHICommandList&)>& Executor);
+
+    PassHandle AddCopyPass(
+        const RDGCopyPassDesc& PassDesc,
+        const std::function<void(RHICommandList&)>& Executor);
 
     void Start();
 
@@ -205,24 +154,17 @@ protected:
 
 private:
 
-    FRDGPassNode* PresentPass;
+    RDGPassNode* PresentPass;
 
-    std::vector<FRDGPassNode*> Passes;
+    std::vector<RDGPassNode*> Passes;
 
-    std::vector<FRDGResourceNode*> Resources;
+    std::vector<RDGResourceNode*> Resources;
 
-    FRDGTextureAllocator& TextureAllocator;
+    std::vector<RDGTextureRef> Textures;
+    std::vector<RDGBufferRef> Buffers;
 
-    FRDGTextureRegistry Textures{};
-
-    FRDGBufferAllocator& BufferAllocator;
-
-    FRDGBufferRegistry Buffers{};
-
-    FRDGUniformBufferAllocator& UniformBufferAllocator;
-
-    FRDGUniformBufferRegistry UniformBuffers{};
-
+    std::vector<RDGDescriptorSetRef> AllocatedDescriptorSets;
+    static std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> DescriptorSetPools;
 };
 
 }

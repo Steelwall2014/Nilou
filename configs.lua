@@ -18,8 +18,10 @@ Configs.INCLUDE_PATHS = {
     "./src/Runtime/RenderPass",
     "./src/Runtime/Geospatial",
     "./src/Runtime/Cesium3DTiles",
+    "./src/Runtime/RenderGraph",
     "./Assets/Shaders",
-    Configs.VULKAN_INCLUDE}
+    Configs.VULKAN_INCLUDE,
+    "E:/VulkanSDK/1.3.246.1/Source/SPIRV-Reflect"}
 
 function main()
     return Configs

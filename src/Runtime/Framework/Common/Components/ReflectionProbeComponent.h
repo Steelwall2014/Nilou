@@ -98,9 +98,9 @@ namespace nilou {
 
         dvec3 Location;
 
-        FRHISampler* IrradianceTexture;
+        RHISampler IrradianceTexture;
 
-        FRHISampler* PrefilteredTexture;
+        RHISampler PrefilteredTexture;
 
         bool bHasData = false;
 

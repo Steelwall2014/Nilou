@@ -6,16 +6,16 @@
 
 namespace nilou {
 
-    void FRendererModule::BeginRenderingViewFamily(FSceneViewFamily* ViewFamily)
+    void FRendererModule::BeginRenderingViewFamily(FSceneViewFamily& ViewFamily)
     {
-        FScene* Scene = ViewFamily->Scene;
+        FScene* Scene = ViewFamily.Scene;
         if (Scene)
         {
             UWorld *World = Scene->World;
             if (World)
                 World->SendAllEndOfFrameUpdates();
             Scene->IncrementFrameNumber();
-		    ViewFamily->FrameNumber = Scene->GetFrameNumber();
+		    ViewFamily.FrameNumber = Scene->GetFrameNumber();
         }
 
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);

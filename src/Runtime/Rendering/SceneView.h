@@ -46,6 +46,8 @@ namespace nilou {
         double OrthoWidth;
         double VerticalFieldOfView;
 
+        RDGBuffer* ViewUniformBuffer;
+
         FSceneView();
 
         FSceneView(
@@ -57,13 +59,13 @@ namespace nilou {
             dvec3 InPosition,
             dvec3 InForward,
             dvec3 InUp,
-            ivec2 InScreenResolution,
-            TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer);
+            ivec2 InScreenResolution/*,
+            TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer*/);
 
         // EViewType ViewType;
         
-        TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
-        std::vector<FMeshBatch> DynamicMeshBatches;
+        /*TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
+        std::vector<FMeshBatch> DynamicMeshBatches;*/
     };
 
     /**
@@ -76,13 +78,13 @@ namespace nilou {
 
         FSceneViewFamily(FViewport InViewport, class FScene* InScene);
 
-        FSceneViewFamily(const FSceneViewFamily* Other);
+        FSceneViewFamily(const FSceneViewFamily& Other);
 
         FViewport Viewport;
 
         FScene* Scene;
 
-        std::vector<FSceneView*> Views;
+        std::vector<FSceneView> Views;
 
         uint32 FrameNumber;
 

@@ -702,7 +702,7 @@ namespace dds {
 		outinfo->Width = header.dwWidth;
 		outinfo->Height = header.dwHeight;
 		outinfo->Depth = header.dwDepth;
-		outinfo->Format = EPixelFormat::PF_UNKNOWN;
+		outinfo->Format = EPixelFormat::PF_Unknown;
 		outinfo->MipLevels = (header.dwMipMapCount == 0 ? 1 : header.dwMipMapCount);
 		outinfo->Data = 0;
 		outinfo->Type = DDSImageType2D;

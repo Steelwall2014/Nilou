@@ -19,18 +19,14 @@ namespace nilou {
     }
 
     static void BuildMeshDrawCommand(
-        FDynamicRHI *RHICmdList,
         const FVertexFactoryPermutationParameters &VFPermutationParameters,
         FMaterialRenderProxy *MaterialProxy,
         const FShaderPermutationParameters &PermutationParametersVS,
         const FShaderPermutationParameters &PermutationParametersPS,
-        RHIDepthStencilState* DepthStencilState,
-        RHIRasterizerState* RasterizerState,
-        RHIBlendState* BlendState,
         FInputShaderBindings &InputBindings,
         FRHIVertexDeclaration* VertexDeclaration,
         const FMeshBatchElement &Element,
-        RHIFramebuffer* Framebuffer,
+        const RenderTargetLayout &RTLayout,
         FMeshDrawCommand &OutMeshDrawCommand
     )
     {
@@ -43,17 +39,17 @@ namespace nilou {
         FShaderInstance *PixelShader = GetGlobalShader(PermutationParametersPS);
         Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
 
-        OutMeshDrawCommand.StencilRef = MaterialProxy->StencilRefValue;
-        Initializer.DepthStencilState = DepthStencilState;
-        Initializer.RasterizerState = RasterizerState;
-        Initializer.BlendState = BlendState;
+        Initializer.DepthStencilState = MaterialProxy->DepthStencilState.get();
+        Initializer.RasterizerState = MaterialProxy->RasterizerState.get();
+        Initializer.BlendState = MaterialProxy->BlendState.get();
         Initializer.VertexDeclaration = VertexDeclaration;
-        Initializer.BuildRenderTargetFormats(Framebuffer);
+        Initializer.RTLayout = RTLayout;
 
         {
+            OutMeshDrawCommand.StencilRef = MaterialProxy->StencilRefValue;
             OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
-            OutMeshDrawCommand.PipelineState = RHICmdList->RHIGetOrCreatePipelineStateObject(Initializer);
-            OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRHI.get();
+            OutMeshDrawCommand.PipelineState = RHICreateGraphicsPipelineState(Initializer);
+            OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->GetRHI();
 
             MaterialProxy->FillShaderBindings(InputBindings);
        
@@ -196,7 +192,7 @@ namespace nilou {
         std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
     };
 
-    void FDefferedShadingSceneRenderer::RenderCSMShadowPass(FDynamicRHI *RHICmdList)
+    void FDefferedShadingSceneRenderer::RenderCSMShadowPass(RenderGraph& Graph)
     {
         static ShadowMapSplitIndexUBOs SplitIndexUBO;
         std::vector<int> FrustumsToBeUpdated = {0, 1, 2, 3};
@@ -229,9 +225,18 @@ namespace nilou {
         for (int i = 0; i < Scales.size(); i++)
             Scales[i] /= TotalScale;
 
+        // Mesh draw commands per light per view per light frustum
+        // This is ugly. try to fix it later.
+        std::map<int, std::map<int, std::map<int, FParallelMeshDrawCommands>>> MeshDrawCommands;
+
+        RenderTargetLayout RTLayout;
+        RTLayout.NumRenderTargetsEnabled = 1;
+        RTLayout.DepthStencilTargetFormat = PF_D24S8;
+
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightSceneProxy* LightSceneProxy = Lights[LightIndex].LightSceneProxy;
+            // Temporarily only support directional light
             if (LightSceneProxy->LightType != ELightType::LT_Directional)
                 continue;
             auto &Light = Lights[LightIndex];
@@ -239,7 +244,7 @@ namespace nilou {
 
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FShadowMapResource* ShadowMapResources = Light.ShadowMapResources[ViewIndex];
+                FShadowMapResource Resources = Light.ShadowMapResources[ViewIndex];
                 FViewInfo& ViewInfo = Views[ViewIndex];
                 std::vector<std::array<dvec3, 8>> CascadeFrustums;
                 
@@ -253,11 +258,11 @@ namespace nilou {
                 const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
                 double SplitFar = ShadowNearClip;
-                for (int SplitIndex : FrustumsToBeUpdated)
+                for (int FrustumIndex : FrustumsToBeUpdated)
                 {
                     std::array<dvec3, 8> CascadeFrustumVerts;
                     SplitNear = SplitFar;
-                    SplitFar = Scales[SplitIndex] * FrustumLength + SplitNear;
+                    SplitFar = Scales[FrustumIndex] * FrustumLength + SplitNear;
                     glm::dvec3 nearCenter = ViewInfo.Forward * SplitNear + ViewInfo.Position;
                     glm::dvec3 farCenter = ViewInfo.Forward * SplitFar + ViewInfo.Position;
                     glm::dvec3 TopNear = ViewInfo.Up * t * SplitNear;
@@ -314,10 +319,8 @@ namespace nilou {
 
                     // The collector used for shadow mapping
                     FMeshElementCollector LightCollector;
-                    std::vector<FMeshBatch> &MeshBatches = Light.ShadowMapMeshBatches[ViewIndex].MeshBatches[SplitIndex];
-                    MeshBatches.clear();
-                    FParallelMeshDrawCommands &DrawCommands = Light.ShadowMapMeshDrawCommands[ViewIndex].DrawCommands[SplitIndex];
-                    DrawCommands.Clear();
+                    std::vector<FMeshBatch> MeshBatches;
+                    FParallelMeshDrawCommands &DrawCommands = MeshDrawCommands[LightIndex][ViewIndex][FrustumIndex];
                     LightCollector.PerViewMeshBatches.resize(1);
                     double near, far;
                     far = DBL_MAX;
@@ -373,11 +376,11 @@ namespace nilou {
                         Sphere.Radius,
                         0.0, glm::abs(far-near));
 
-                    auto UniformBuffer = ShadowMapResources->ShadowMapUniformBuffer.Cast<FDirectionalShadowMappingBlock>();
-                    UniformBuffer->Data.Frustums[SplitIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
-                    UniformBuffer->Data.Frustums[SplitIndex].FrustumFar = SplitFar;
-                    UniformBuffer->Data.Frustums[SplitIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
-                    UniformBuffer->UpdateUniformBuffer();
+                    auto UniformBuffer = Resources.ShadowMapUniformBuffer;
+                    Resources.Frustums[FrustumIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
+                    Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
+                    Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
+                    Graph.AddUploadPass(UniformBuffer, Resources.Frustums.data(), sizeof(FShadowMappingParameters)*Resources.Frustums.size());
                 
                     for (FMeshBatch &Mesh : MeshBatches)
                     {
@@ -395,24 +398,20 @@ namespace nilou {
                         #endif
                         FInputShaderBindings InputBindings = Mesh.Element.Bindings;
                         InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
-                            UniformBuffer->GetRHI());
+                            UniformBuffer->Resolve());
                         InputBindings.SetElementShaderBinding("FShadowMapFrustumIndex", 
-                            SplitIndexUBO.UBOs[SplitIndex]->GetRHI());
+                            SplitIndexUBO.UBOs[FrustumIndex]->GetRHI());
                         InputBindings.SetElementShaderBinding("FViewShaderParameters", 
                             ViewInfo.ViewUniformBuffer->GetRHI());
                         BuildMeshDrawCommand(
-                            RHICmdList,
                             VertexFactoryParams,
                             Mesh.MaterialRenderProxy,
                             PermutationParametersVS,
                             PermutationParametersPS,
-                            Mesh.MaterialRenderProxy->DepthStencilState.get(),
-                            Mesh.MaterialRenderProxy->RasterizerState.get(),
-                            Mesh.MaterialRenderProxy->BlendState.get(),
                             InputBindings,
                             Mesh.Element.VertexFactory->GetVertexDeclaration(),
                             Mesh.Element,
-                            ShadowMapResources->ShadowMapTexture.GetFramebufferByIndex(SplitIndex),
+                            RTLayout,
                             MeshDrawCommand);
                         DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                     }
@@ -428,19 +427,28 @@ namespace nilou {
             auto &Light = Lights[LightIndex];
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FShadowMapResource* ShadowMapResource = Light.ShadowMapResources[ViewIndex];
-                auto &ShadowMapTexture = ShadowMapResource->ShadowMapTexture;
-                auto &ShadowMapUniformBuffer = ShadowMapResource->ShadowMapUniformBuffer;
-                auto &ShadowMapMeshBatch = Light.ShadowMapMeshBatches[ViewIndex];
-                auto &ShadowMapMeshDrawCommand = Light.ShadowMapMeshDrawCommands[ViewIndex];
+                FShadowMapResource Resource = Light.ShadowMapResources[ViewIndex];
+                // auto &ShadowMapTexture = ShadowMapResource->ShadowMapTexture;
+                // auto &ShadowMapUniformBuffer = ShadowMapResource->ShadowMapUniformBuffer;
+                // auto &ShadowMapMeshBatch = Light.ShadowMapMeshBatches[ViewIndex];
                 for (int FrustumIndex : FrustumsToBeUpdated)
                 {
-                    FRHIRenderPassInfo PassInfo(
-                        ShadowMapTexture.ShadowMapFramebuffers[FrustumIndex].get(), 
-                        ShadowMapTexture.DepthArray->GetSizeXYZ(), true, true, true);
-                    RHICmdList->RHIBeginRenderPass(PassInfo);
-                    ShadowMapMeshDrawCommand.DrawCommands[FrustumIndex].DispatchDraw(RHICmdList);
-                    RHICmdList->RHIEndRenderPass();
+                    FParallelMeshDrawCommands &MeshDrawCommand = MeshDrawCommands[LightIndex][ViewIndex][FrustumIndex];
+                    Graph.AddPass(
+                        [=](RDGPassBuilder& PassBuilder)
+                        {
+                            PassBuilder.RenderTarget(FA_Depth_Stencil_Attachment, Resource.DepthViews[FrustumIndex]);
+                        },
+                        [=](RHICommandList& RHICmdList)
+                        {
+                            // FRHIRenderPassInfo PassInfo(
+                            //     ShadowMapTexture.ShadowMapFramebuffers[FrustumIndex].get(), 
+                            //     ShadowMapTexture.DepthArray->GetSizeXYZ(), true, true, true);
+                            // RHICmdList->RHIBeginRenderPass(PassInfo);
+                            MeshDrawCommand.DispatchDraw(RHICmdList);
+                            // RHICmdList->RHIEndRenderPass();
+                        }
+                    );
                 }
             }
         }

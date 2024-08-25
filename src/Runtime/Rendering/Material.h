@@ -19,6 +19,7 @@
 #include "ShaderParameter.h"
 #include "Common/ContentManager.h"
 
+// The nlohmann::json here is used as a placeholder for any type of material parameter value 
 namespace nilou {
 
     enum class EShadingModel : uint32
@@ -31,86 +32,81 @@ namespace nilou {
         SM_ShadingModelNum
     };
 
-    
-    class FMaterialUniformBuffer : public FUniformBuffer
+    /** Defines the domain of a material. */
+    enum EMaterialDomain : int
     {
-    public:
-        friend class UMaterial;
+        /** The material's attributes describe a 3d surface. */
+        MD_Surface,
+        /** The material's attributes describe a deferred decal, and will be mapped onto the decal's frustum. */
+        MD_DeferredDecal,
+        /** The material's attributes describe a light's distribution. */
+        MD_LightFunction,
+        /** The material's attributes describe a 3d volume. */
+        MD_Volume,
+        /** The material will be used in a custom post process pass. */
+        MD_PostProcess,
+        /** The material will be used for UMG or Slate UI */
+        MD_UI,
+        /** The material will be used for runtime virtual texture (Deprecated). */
+        MD_RuntimeVirtualTexture,
 
-        FMaterialUniformBuffer() { }
+        MD_MAX
+    };
 
-        struct Field
-        {
-            std::string Name;
-            std::string Type;   // only "float","vec2","vec3","vec4" are supported
-            uint32 Offset;
-        };
+    struct NSTRUCT FMaterialParameterInfo
+    {
+        GENERATED_STRUCT_BODY()
 
-        void SetScalarParameterValue(const std::string& Name, float Value)
-        {
-            auto Found = Fields.find(Name);
-            if (Found != Fields.end())
-            {
-                float* ptr = (float*)(Data.get() + Found->second.Offset);
-                *ptr = Value;
-            }
-        }
+        NPROPERTY()
+        std::string Name;
 
-        template<typename T>
-        void SetVectorParameterValue(const std::string& Name, const T& Value)
-        {
-            static_assert(
-                std::is_same_v<T, vec2> || 
-                std::is_same_v<T, vec3> || 
-                std::is_same_v<T, vec4>, "FMaterialUniformBuffer::SetVectorParameterValue T must be vec2,vec3 or vec4");
-            auto Found = Fields.find(Name);
-            if (Found != Fields.end())
-            {
-                T* ptr = (T*)(Data.get() + Found->second.Offset);
-                *ptr = Value;
-            }
-        }
+        bool operator==(const FMaterialParameterInfo& Other) const = default;
 
-        template<typename T>
-        T GetField(const std::string& Name)
-        {
-            auto Found = Fields.find(Name);
-            if (Found != Fields.end())
-            {
-                return _GetField<T>(Found->second.Offset);
-            }
-            return T();
-        }
+        FMaterialParameterInfo() { }
 
-        /** Begin FRenderResource Interface */
-        virtual void InitRHI() override;
-        virtual void ReleaseRHI() override;
-        /** End FRenderResource Interface */
+        FMaterialParameterInfo(const std::string& InName) : Name(InName) { }
+    };
 
-        void UpdateUniformBuffer();
+    struct NSTRUCT FScalarParameterValue
+    {
+        GENERATED_STRUCT_BODY()
 
-        void Serialize(FArchive& Ar);
-        void Deserialize(FArchive& Ar);
+        using ValueType = float;
+        static ValueType GetValue(const FScalarParameterValue& Parameter) { return Parameter.ParameterValue; }
 
-    protected:
+        NPROPERTY()
+        FMaterialParameterInfo ParameterInfo;
 
-        std::unique_ptr<uint8[]> Data = nullptr;
-        uint32 Size = 0;
-        EUniformBufferUsage Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
-        std::map<std::string, Field> Fields;
+        NPROPERTY()
+        float ParameterValue;
+    };
 
+    struct NSTRUCT FVectorParameterValue
+    {
+        GENERATED_STRUCT_BODY()
 
-        template<typename T>
-        T _GetField(int32 Offset) 
-        { 
-            static_assert(
-                std::is_same_v<T, float> || 
-                std::is_same_v<T, vec2> || 
-                std::is_same_v<T, vec3> || 
-                std::is_same_v<T, vec4>, "FMaterialUniformBuffer::GetField T must be float,vec2,vec3 or vec4");
-            T out = *(T*)(Data.get() + Offset);
-            return out;
-        }
+        using ValueType = vec4;
+        static ValueType GetValue(const FVectorParameterValue& Parameter) { return Parameter.ParameterValue; }
+
+        NPROPERTY()
+        FMaterialParameterInfo ParameterInfo;
+
+        NPROPERTY()
+        vec4 ParameterValue;
+    };
+
+    struct NSTRUCT FTextureParameterValue
+    {
+        GENERATED_STRUCT_BODY()
+
+        using ValueType = UTexture*;
+        static ValueType GetValue(const FTextureParameterValue& Parameter) { return Parameter.ParameterValue; }
+
+        NPROPERTY()
+        FMaterialParameterInfo ParameterInfo;
+
+        NPROPERTY()
+        UTexture* ParameterValue;
     };
 
     class NCLASS UMaterial : public NAsset
@@ -130,7 +126,16 @@ namespace nilou {
         std::string ShaderVirtualPath;
 
         NPROPERTY()
-        std::map<std::string, UTexture *> Textures;
+        EMaterialDomain MaterialDomain = MD_Surface;
+
+        NPROPERTY()
+        std::vector<FScalarParameterValue> ScalarParameterValues;
+
+        NPROPERTY()
+        std::vector<FVectorParameterValue> VectorParameterValues;
+
+        NPROPERTY()
+        std::vector<FTextureParameterValue> TextureParameterValues;
 
         NPROPERTY()
         FRasterizerStateInitializer RasterizerState;
@@ -149,15 +154,17 @@ namespace nilou {
 
         void UpdateCode(const std::string &InCode);
 
-        void SetTextureParameterValue(const std::string &Name, UTexture *Texture);
-
-        void SetScalarParameterValue(const std::string &Name, float Value);
-
-        void SetVectorParameterValue(const std::string& Name, const vec2& Value);
-
-        void SetVectorParameterValue(const std::string& Name, const vec3& Value);
+        void SetScalarParameterValue(const std::string& Name, float Value);
 
         void SetVectorParameterValue(const std::string& Name, const vec4& Value);
+
+        void SetTextureParameterValue(const std::string& Name, UTexture *Texture);
+
+        bool SetScalarParameterValueByIndex(int32 ParameterIndex, float Value);
+
+        bool SetVectorParameterValueByIndex(int32 ParameterIndex, const vec4& Value);
+
+        bool SetTextureParameterValueByIndex(int32 ParameterIndex, UTexture *Texture);
 
         void SetShadingModel(EShadingModel InShadingModel);
 
@@ -171,7 +178,7 @@ namespace nilou {
         
         FMaterialRenderProxy* GetRenderProxy() const
         {
-            return MaterialRenderProxy;
+            return MaterialRenderProxy.get();
         }
 
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
@@ -191,16 +198,8 @@ namespace nilou {
     protected:
 
         std::string Code;
-
-        // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances
-        std::shared_ptr<FMaterialShaderMap> MaterialShaderMap = nullptr;
         // While FMaterialRenderProxy contains uniform buffers, so it is UNIQUE for each material/material instance
-        // However, std::function requires the functor to be copyable, so we use naked pointer here.
-        // So, be careful when you use this pointer, it may be invalid if the material is destroyed.
-        FMaterialRenderProxy* MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
-        // Same as above
-        FMaterialUniformBuffer* MaterialUniformBlock = nullptr;
-        
+        std::unique_ptr<FMaterialRenderProxy> MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
     };
 
     class NCLASS UMaterialInstance : public UMaterial
@@ -208,7 +207,12 @@ namespace nilou {
         GENERATED_BODY()
     public:
         UMaterialInstance() { }
+
+        NPROPERTY()
+        UMaterial* Parent;
     };
+
+    #define UNIFORMBUFFER_KEY(SetIndex, BindingIndex) (((uint64)(SetIndex) << 32) | (BindingIndex))
 
     class FMaterialRenderProxy
     {
@@ -228,19 +232,22 @@ namespace nilou {
             return ShaderMap->GetShader(ShaderParameter);
         }
 
-        void FillShaderBindings(FInputShaderBindings &OutBindings)
-        { 
-            for (auto &[Name, Texture] : Textures)
-                OutBindings.SetElementShaderBinding(Name, Texture->GetSamplerRHI());
-            if (UniformBuffer)
-                OutBindings.SetElementShaderBinding("MAT_UNIFORM_BLOCK", UniformBuffer->GetRHI());
-        }
+        // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances
+        std::shared_ptr<FMaterialShaderMap> ShaderMap = nullptr;
 
-        FMaterialShaderMap* ShaderMap;
+        std::map<uint64, FTextureResource*> Textures;
 
-        std::map<std::string, FTextureResource *> Textures;
+        std::map<uint64, RDGBufferRef> UniformBuffers;
 
-        FMaterialUniformBuffer* UniformBuffer = nullptr;
+        struct ParameterPosition
+        {
+            uint32 SetIndex;
+            uint32 BindingIndex;
+            uint32 Offset;
+        };
+        std::map<std::string, ParameterPosition> ParameterNameToPosition;
+
+        std::map<uint32, RDGDescriptorSetRef> DescriptorSets;
 
         uint8 StencilRefValue = 0;
 
@@ -254,6 +261,67 @@ namespace nilou {
 
         UMaterial* Material;
 
+        void RenderThread_UpdateShader(const std::string& ShaderCode);
+
+        /**
+         * Updates a named parameter on the render thread.
+         */
+        template <typename ValueType>
+        void RenderThread_UpdateParameter(const FMaterialParameterInfo& ParameterInfo, const ValueType& Value)
+        {
+            auto Found = ParameterNameToPosition.find(ParameterInfo.Name);
+            if (Found != ParameterNameToPosition.end())
+            {
+                ParameterPosition Position = Found->second;
+                uint64 Key = UNIFORMBUFFER_KEY(Position.SetIndex, Position.BindingIndex);
+                if constexpr (std::is_same_v<ValueType, UTexture*>)
+                {
+                    if (DescriptorSets.count(Position.SetIndex) != 0)
+                    {
+                        Textures[Key] = Value->GetResource();
+                        DescriptorSets[Position.SetIndex]->SetSampler(Position.BindingIndex, Textures[Key]->GetSamplerState(), Textures[Key]->GetTextureRDG());
+                    }
+                }
+                else 
+                {
+                    if (UniformBuffers.count(Key) != 0)
+                        UniformBuffers[Key]->SetData(Value, Position.Offset);
+                }
+            }
+        }
+
     };
 
+    /** Finds a parameter by name from the game thread. */
+    template <typename ParameterType>
+    ParameterType* GameThread_FindParameterByName(std::vector<ParameterType>& Parameters, const FMaterialParameterInfo& ParameterInfo)
+    {
+        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.Num(); ParameterIndex++)
+        {
+            ParameterType* Parameter = &Parameters[ParameterIndex];
+            if (Parameter->ParameterInfo == ParameterInfo)
+            {
+                return Parameter;
+            }
+        }
+        return nullptr;
+    }
+
+    /** Finds a parameter by index from the game thread. */
+    template <typename ParameterType>
+    ParameterType* GameThread_FindParameterByIndex(std::vector<ParameterType>& Parameters, int32 Index)
+    {
+        if (0 <= Index && Index < Parameters.size())
+        {
+            return &Parameters[Index];
+        }
+
+        return nullptr;
+    }
+
 }
+
+// TStaticSerializer的用法是这样的：
+// 有时候我们需要序列化一个类，这个类可能是来自库的，我们不能修改它的代码，
+// 那我们可以把模板的特化写在头文件里，特化的实现写在cpp文件里，
+// header tool生成的代码能看得到TStaticSerializer。

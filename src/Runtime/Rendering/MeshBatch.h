@@ -7,9 +7,12 @@
 
 namespace nilou {
 
+    class FPrimitiveSceneProxy;
+
     struct FMeshBatchElement
     {
-        FInputShaderBindings Bindings;
+
+        RHIBuffer* PrimitiveUniformBuffer;
 
 	    const class FVertexFactory* VertexFactory;
 
@@ -39,7 +42,7 @@ namespace nilou {
 
     struct FMeshBatch
     {
-        FMeshBatchElement Element;
+        std::vector<FMeshBatchElement> Elements;
 
 	    class FMaterialRenderProxy* MaterialRenderProxy;
 
@@ -57,26 +60,34 @@ namespace nilou {
             //, bWireframe(false)
             , bSelectable(true)
             , bEnableReflectionProbe(true)
+            /** At least have one element */
+            , Elements(1)
         { }
     };
 
     class FMeshElementCollector
     {
     public:
-        FMeshElementCollector() { }
+        FMeshElementCollector(
+            std::vector<std::vector<FMeshBatch>>& InPerViewMeshBatches, 
+            std::vector<FViewElementPDI>& InPerViewPDI,
+            FPrimitiveSceneProxy* InPrimitiveSceneProxy) 
+            : PerViewMeshBatches(InPerViewMeshBatches)
+            , PerViewPDI(InPerViewPDI)
+            , PrimitiveSceneProxy(InPrimitiveSceneProxy)
+        { 
 
-        void AddMesh(int32 ViewIndex, const FMeshBatch &MeshBatch)
-        {
-            PerViewMeshBatches[ViewIndex].push_back(MeshBatch);
         }
 
-        void AddBatchedLine(int32 ViewIndex, const FBatchedLine &MeshBatch)
-        {
-            PerViewPDI[ViewIndex]->DrawLine(MeshBatch);
-        }
+        void AddMesh(int32 ViewIndex, FMeshBatch &MeshBatch);
 
-        std::vector<std::vector<FMeshBatch>> PerViewMeshBatches;
-        std::vector<FViewElementPDI*> PerViewPDI;
+        void AddBatchedLine(int32 ViewIndex, const FBatchedLine &MeshBatch);
+
+        std::vector<std::vector<FMeshBatch>>& PerViewMeshBatches;
+        std::vector<FViewElementPDI>& PerViewPDI;
+
+	    /** Current primitive being gathered. */
+        FPrimitiveSceneProxy* PrimitiveSceneProxy;
     };
 
 }

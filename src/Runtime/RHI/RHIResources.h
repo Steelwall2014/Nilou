@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <reflection/Class.h>
+#include <shaderc/shaderc.h>
 
 // #include <glm/glm.hpp>
 #include "Common/Maths.h"
@@ -12,6 +13,7 @@
 #include "RHIDefinitions.h"
 #include "ShaderParameter.h"
 #include "RHI.h"
+#include "ShaderReflection.h"
 
 namespace glslang {
 class TShader;
@@ -59,8 +61,10 @@ namespace nilou {
 	class RHIShader : public RHIResource
 	{
 	public:
-		RHIShader(ERHIResourceType InResourceType) : RHIResource(InResourceType) {}
-		glslang::TShader* ShaderGlsl = nullptr;
+		RHIShader(ERHIResourceType InResourceType) 
+			: RHIResource(InResourceType)
+		{ }
+		shader_reflection::DescriptorSetLayouts Reflection;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -111,7 +115,7 @@ namespace nilou {
 	};
 	using RHIBlendStateRef = std::shared_ptr<RHIBlendState>;
 
-	class RHIBuffer : RHIResource
+	class RHIBuffer : public RHIResource
 	{
 	public:
 		/**
@@ -154,7 +158,6 @@ namespace nilou {
 	protected:
 		uint32 Size;
 		EUniformBufferUsage Usage;
-		class FUniformBufferStructDeclaration *Declaration;
 	};
 	using RHIUniformBufferRef = std::shared_ptr<RHIUniformBuffer>;
 	
@@ -217,6 +220,18 @@ namespace nilou {
 	using RHITexture3DRef = std::shared_ptr<RHITexture3D>;
 	using RHITextureCubeRef = std::shared_ptr<RHITextureCube>;
 
+	class RHIShaderResourceView : public RHIResource
+	{
+	public:
+		RHIShaderResourceView() : RHIResource(ERHIResourceType::RRT_ShaderResourceView) { }
+	};
+
+	class RHIUnorderedAccessView : public RHIResource
+	{
+	public:
+		RHIUnorderedAccessView() : RHIResource(ERHIResourceType::RRT_UnorderedAccessView) { }
+	};
+
 	class RHIFramebuffer : public RHIResource 
 	{
 	public:
@@ -234,13 +249,21 @@ namespace nilou {
 	};
 	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
 
+	struct RenderTargetLayout
+	{
+		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_Unknown };
+		uint32 NumRenderTargetsEnabled = 0;
+		EPixelFormat DepthStencilTargetFormat = PF_Unknown;
+
+		bool operator==(const RenderTargetLayout &Other) const = default;
+	};
+
 	class FGraphicsPipelineStateInitializer
 	{
 	public: 
 		FGraphicsPipelineStateInitializer()
 			: VertexShader(nullptr)
 			, PixelShader(nullptr)
-			, ComputeShader(nullptr)
 			, DepthStencilState(nullptr)
 			, RasterizerState(nullptr)
 			, BlendState(nullptr)
@@ -250,7 +273,6 @@ namespace nilou {
 
 		RHIVertexShader *VertexShader;
 		RHIPixelShader *PixelShader;
-		RHIComputeShader *ComputeShader;
 
 		EPrimitiveMode PrimitiveMode;
 
@@ -260,80 +282,106 @@ namespace nilou {
 
 		FRHIVertexDeclaration* VertexDeclaration;
 
-		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_UNKNOWN };
-		uint32 NumRenderTargetsEnabled = 0;
+		RenderTargetLayout RTLayout;
 
-		EPixelFormat DepthStencilTargetFormat = PF_UNKNOWN;
-
-		bool operator==(const FGraphicsPipelineStateInitializer &Other) const;
-
-		void BuildRenderTargetFormats(RHIFramebuffer* Framebuffer);
+		bool operator==(const FGraphicsPipelineStateInitializer &Other) const = default;
 	};
 
-	class FRHIDescriptorSetLayoutBinding
+	using EDescriptorType = shader_reflection::EDescriptorType;
+
+	struct RHIDescriptorSetLayoutBinding
+	{
+		uint32 BindingIndex;
+		EDescriptorType DescriptorType;
+		uint32 DescriptorCount = 1;		// For now, only support 1
+	};
+
+	class RHIDescriptorSetLayout : public RHIResource
 	{
 	public:
-		std::string Name;
-		int32 BindingPoint;
-		EShaderParameterType ParameterType;
-		// int32 DiscriptorCount;
+		friend class std::hash<RHIDescriptorSetLayout>;
+		RHIDescriptorSetLayout() : RHIResource(RRT_DescriptorSetLayout) {}
+		void GenerateHash();
+		RHIDescriptorSetLayoutBinding* GetBindingIndexByName(const std::string &Name)
+		{
+			auto Found = NameToBindingIndex.find(Name);
+			if (Found != NameToBindingIndex.end())
+			{
+				return &Bindings[Found->second];
+			}
+			return nullptr;
+		}
+		uint32 GetNumTypesUsed(EDescriptorType Type);
+
+	protected:
+		std::vector<RHIDescriptorSetLayoutBinding> Bindings;
+		std::map<std::string, int> NameToBindingIndex;
+		uint32 Hash;
 	};
-	// TODO: 这个玩意是我在还没怎么接触vulkan的时候弄出来的，其实不应该叫这个名字，会混淆，以后改掉
-	class FRHIDescriptorSet
+	using RHIDescriptorSetLayoutRef = std::shared_ptr<RHIDescriptorSetLayout>;
+
+	constexpr uint32 VERTEX_SHADER_SET_INDEX = 0;
+	constexpr uint32 PIXEL_SHADER_SET_INDEX = 1;
+	constexpr uint32 VERTEX_FACTORY_SET_INDEX = 2;
+	constexpr uint32 MATERIAL_SET_INDEX = 3;
+
+	class RHIPipelineLayout : public RHIResource
 	{
 	public:
-		std::map<std::string, FRHIDescriptorSetLayoutBinding> Bindings;
+	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
+		struct UniformPosition
+		{
+			uint32 SetIndex;
+			uint32 BindingIndex;
+			uint32 Offset;
+		};
+		std::map<uint32, std::map<uint32, uint32>> UniformBuffersSize;
+		std::map<std::string, UniformPosition> UniformPositions;
 	};
+	using RHIPipelineLayoutRef = std::shared_ptr<RHIPipelineLayout>;
 
-	class FRHIPipelineLayout : public RHIResource
-	{
-	public:
-	 	FRHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
-		FRHIDescriptorSet DescriptorSets[EPipelineStage::PipelineStageNum];
-	};
-	using FRHIPipelineLayoutRef = std::shared_ptr<FRHIPipelineLayout>;
-
-	class FRHIGraphicsPipelineState : public RHIResource
+	class FRHIPipelineState : public RHIResource
 	{
 	public: 
-		FRHIGraphicsPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
-			: RHIResource(RRT_GraphicsPipelineState)
+		FRHIPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
+			: RHIResource(RRT_PipelineState)
 			, Initializer(InInitializer) {}
+
+		RHIPipelineLayout* GetPipelineLayout() const
+		{
+			return PipelineLayout.get();
+		}
 
 		FGraphicsPipelineStateInitializer Initializer;
 
-		FRHIPipelineLayoutRef PipelineLayout;
+		// TODO: 可以改成unique_ptr？
+		RHIPipelineLayoutRef PipelineLayout;
 
-		int GetBaseIndexByName(EPipelineStage PipelineStage, const std::string &Name);
 	};
-	using FRHIGraphicsPipelineStateRef = std::shared_ptr<FRHIGraphicsPipelineState>;
+	using FRHIPipelineStateRef = std::shared_ptr<FRHIPipelineState>;
 
 	struct RHISamplerState : public RHIResource
 	{
-		RHISamplerState() : RHIResource(ERHIResourceType::RRT_SamplerState) {}
-		ETextureFilters Mag_Filter=TF_Linear;
-		ETextureFilters Min_Filter=TF_Linear_Mipmap_Linear;
-		ETextureWrapModes Wrap_S=TW_Repeat; 
-		ETextureWrapModes Wrap_T=TW_Repeat; 
-		ETextureWrapModes Wrap_R=TW_Repeat;
+		RHISamplerState(const FSamplerStateInitializer& InInitializer) 
+			: RHIResource(ERHIResourceType::RRT_SamplerState) 
+			, Initializer(InInitializer) {}
+		FSamplerStateInitializer Initializer;
 	};
 	using RHISamplerStateRef = std::shared_ptr<RHISamplerState>;
 
-	class FRHISampler
+	class RHISampler
 	{
 	public:
-		FRHISampler();
-		FRHISampler(RHITexture* Texture);
-		FRHISampler(RHITexture* Texture, RHISamplerState* InSamplerState) 
+		RHISampler();
+		RHISampler(RHITexture* Texture);
+		RHISampler(RHITexture* Texture, RHISamplerState* InSamplerState) 
 			: SamplerState(InSamplerState)
 			, Texture(Texture) 
 		{}
-		FRHISampler(RHITextureRef Texture) : FRHISampler(Texture.get()) {}
-		FRHISampler(RHITextureRef Texture, RHISamplerState* InSamplerState) : FRHISampler(Texture.get(), InSamplerState) {}
 		RHISamplerState* SamplerState;
 		RHITexture* Texture;
 	};
-	using FRHISamplerRef = std::shared_ptr<FRHISampler>;
+	using RHISamplerRef = std::shared_ptr<RHISampler>;
 
 	class FRHIRenderPassInfo
 	{
@@ -395,6 +443,49 @@ namespace nilou {
         uint32 	num_groups_y;
         uint32 	num_groups_z;
     };
+
+    class RHIDescriptorSet : public RHIResource
+    {
+    public:
+
+		RHIDescriptorSet() : RHIResource(RRT_DescriptorSet) {}
+
+        virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
+
+        virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
+
+        virtual void SetSampler(uint32 BindingIndex, RHISampler Sampler) { }
+
+        virtual void SetStorageImage(uint32 BindingIndex, RHITexture* Image) { }
+
+		class RHIDescriptorPool* GetPool() const;
+
+    };
+	using RHIDescriptorSetRef = std::shared_ptr<RHIDescriptorSet>;
+
+	struct RHIDescriptorPoolSize
+	{
+		EDescriptorType Type;
+		uint32 DescriptorCount;
+	};
+	class RHIDescriptorPool : public RHIResource
+	{
+	public:
+		RHIDescriptorPool(RHIDescriptorSetLayout* InLayout)
+			: RHIResource(RRT_DescriptorPool)
+			, Layout(InLayout)
+		{ }
+
+		RHIDescriptorSetLayout* Layout;
+
+		virtual RHIDescriptorSet* Allocate() { return nullptr;}
+		virtual void Release(RHIDescriptorSet* DescriptorSet) { }
+
+		bool CanAllocate() { return false; }
+	};
+	using RHIDescriptorPoolRef = std::shared_ptr<RHIDescriptorPool>;
+
+
 }
 
 namespace std {
@@ -405,4 +496,13 @@ struct hash<nilou::FGraphicsPipelineStateInitializer>
 	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept;
 };
 
-}
+template<>
+struct hash<nilou::RHIDescriptorSetLayout>
+{
+	size_t operator()(const nilou::RHIDescriptorSetLayout &_Keyval) const noexcept
+	{
+		return _Keyval.Hash;
+	}
+};
+
+} // namespace std

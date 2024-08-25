@@ -202,38 +202,6 @@ RHITextureCubeRef FVulkanDynamicRHI::RHICreateTextureCube(
     return Texture;
 }
 
-RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const RHITextureParams& Params)
-{
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = TranslateFilterModeToVkFilter(Params.Mag_Filter);
-    samplerInfo.minFilter = TranslateFilterModeToVkFilter(Params.Min_Filter);;
-    samplerInfo.addressModeU = TranslateWrapMode(Params.Wrap_S);
-    samplerInfo.addressModeV = TranslateWrapMode(Params.Wrap_T);
-    samplerInfo.addressModeW = TranslateWrapMode(Params.Wrap_R);
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = GpuProps.limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = TranslateFilterModeToVkMipmapMode(Params.Min_Filter);
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = FLT_MAX;
-    samplerInfo.mipLodBias = 0.0f;
-
-    uint32 CRC = FCrc::MemCrc32(&samplerInfo, sizeof(samplerInfo));
-    auto Found = SamplerMap.find(CRC);
-    if (Found != SamplerMap.end())
-        return Found->second;
-
-    VulkanSamplerStateRef RHI = std::make_shared<VulkanSamplerState>(device);
-    vkCreateSampler(device, &samplerInfo, nullptr, &RHI->Handle);
-    SamplerMap[CRC] = RHI;
-    return RHI;
-}
-
 RHITextureRef FVulkanDynamicRHI::RHICreateTextureInternal(
     const std::string &name, EPixelFormat Format, 
     int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags)

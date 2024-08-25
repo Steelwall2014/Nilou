@@ -1,80 +1,134 @@
 #include "RenderGraph.h"
+#include "DynamicRHI.h"
 
 namespace nilou {
 
-std::vector<FRDGTexture*> PendingFreeTextures;
-std::vector<FRDGBuffer*> PendingFreeBuffers;
-std::vector<FRDGUniformBuffer*> PendingFreeUniformBuffers;
-
-FRDGTextureRef FRenderGraph::CreatePersistentTexture(const FRDGTextureDesc& TextureDesc)
+RDGTextureRef RenderGraph::CreatePersistentTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
-    FRDGTextureRef Texture(new FRDGTexture(TextureDesc), 
-        [](FRDGTexture* Obj) {
-            PendingFreeTextures.push_back(Obj);
-        });
-    Texture->bIsPersistent = true;
-    return Texture;
-}
-
-FRDGBufferRef FRenderGraph::CreatePersistentBuffer(const FRDGBufferDesc& BufferDesc)
-{
-    FRDGBufferRef Buffer(new FRDGBuffer(BufferDesc), 
-        [](FRDGBuffer* Obj) {
-            PendingFreeBuffers.push_back(Obj);
-        });
-    Buffer->bIsPersistent = true;
-    return Buffer;
-}
-
-FRDGUniformBufferRef FRenderGraph::CreatePersistentUniformBuffer(const FRDGUniformBufferDesc& BufferDesc)
-{
-    FRDGUniformBufferRef Buffer(new FRDGUniformBuffer(BufferDesc), 
-        [](FRDGUniformBuffer* Obj) {
-            PendingFreeUniformBuffers.push_back(Obj);
-        });
-    Buffer->bIsPersistent = true;
-    return Buffer;
-}
-
-FRDGTexture* FRenderGraph::CreateTexture(const std::string& Name, const FRDGTextureDesc& TextureDesc)
-{
-    FRDGTexture* Texture = TextureAllocator.Alloc(TextureDesc);
-    Textures.Add(TextureDesc, Texture);
-    Texture->Node = Resources.emplace_back();
+    std::shared_ptr<RDGTexture> Texture = std::make_shared<RDGTexture>(Desc);
     Texture->Name = Name;
+    Texture->bIsPersistent = true;
+    switch (Desc.TextureType)
+    {
+    case ETextureDimension::Texture2D:
+        Texture->ResourceRHI = RHICreateTexture2D(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.TexCreateFlags);
+        break;
+    case ETextureDimension::Texture2DArray:
+        Texture->ResourceRHI = RHICreateTexture2DArray(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.ArraySize, Desc.TexCreateFlags);
+        break;
+    case ETextureDimension::Texture3D:
+        Texture->ResourceRHI = RHICreateTexture3D(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.SizeZ, Desc.TexCreateFlags);
+        break;
+    case ETextureDimension::TextureCube:
+        Texture->ResourceRHI = RHICreateTextureCube(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.TexCreateFlags);
+        break;
+    default:
+        Ncheckf(false, "Invalid texture type");
+    };
     return Texture;
 }
 
-FRDGBuffer* FRenderGraph::CreateBuffer(const FRDGBufferDesc& Desc)
+RDGBufferRef RenderGraph::CreatePersistentBuffer(const std::string& Name, const RDGBufferDesc& BufferDesc)
 {
-    FRDGBuffer* Buffer = BufferAllocator.Alloc(Desc);
-    Buffers.Add(Desc, Buffer);
-    Buffer->Node = Resources.emplace_back();
+    std::shared_ptr<RDGBuffer> Buffer = std::make_shared<RDGBuffer>(BufferDesc);
+    Buffer->Name = Name;
+    Buffer->bIsPersistent = true;
+    Buffer->ResourceRHI = RHICreateBuffer(BufferDesc.Stride, BufferDesc.Size, EBufferUsageFlags::None, nullptr);
     return Buffer;
 }
 
-FRDGUniformBuffer* FRenderGraph::CreateUniformBuffer(const FRDGUniformBufferDesc& Desc)
+RDGDescriptorSetRef RenderGraph::CreatePersistentDescriptorSet(RHIDescriptorSetLayout* Layout)
 {
-    FRDGUniformBuffer* Buffer = UniformBufferAllocator.Alloc(Desc);
-    UniformBuffers.Add(Desc, Buffer);
-    Buffer->Node = Resources.emplace_back();
-    return Buffer;
+    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
+    {
+        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
+    }
+
+    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
+    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+    return DescriptorSet;
 }
 
-void FRenderGraph::Cull()
+RDGTexture* RenderGraph::CreateTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
-    for (FRDGPassNode* Pass : Passes)
+    std::shared_ptr<RDGTexture> Texture = std::make_shared<RDGTexture>(Desc);
+    Texture->Name = Name;
+    Textures.push_back(Texture);
+    return Texture.get();
+}
+
+// RDGTextureView* RenderGraph::CreateTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& ViewDesc)
+// {
+//     RDGTextureDesc Desc;
+//     Desc.SizeX = Texture->Desc.SizeX >> ViewDesc.LevelCount;
+//     Desc.SizeY = Texture->Desc.SizeY >> ViewDesc.LevelCount;
+//     Desc.SizeZ = Texture->Desc.SizeZ >> ViewDesc.LevelCount;
+//     Desc.ArraySize = ViewDesc.LayerCount;
+//     Desc.NumMips = ViewDesc.LevelCount;
+//     Desc.Format = ViewDesc.Format;
+//     Desc.TexCreateFlags = Texture->Desc.TexCreateFlags;
+//     Desc.TextureType = ViewDesc.ViewType;
+
+//     std::shared_ptr<RDGTextureView> TextureView = std::make_shared<RDGTextureView>(Desc, Texture, ViewDesc);
+//     RDGTextureView* TextureViewPtr = TextureView.get();
+//     Textures.push_back(TextureView);
+
+//     return TextureViewPtr;
+// }
+
+RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc)
+{
+    std::shared_ptr<RDGBuffer> Buffer = std::make_shared<RDGBuffer>(Desc);
+    Buffer->Name = Name;
+    Buffers.push_back(Buffer);
+    return Buffer.get();
+}
+
+RDGTextureSRV* RenderGraph::CreateSRV(const RDGTextureSRVDesc& Desc)
+{
+    
+}
+RDGBufferSRV* RenderGraph::CreateSRV(const RDGBufferSRVDesc& Desc)
+{
+    
+}
+
+RDGTextureUAV* RenderGraph::CreateUAV(const RDGTextureUAVDesc& Desc)
+{
+    
+}
+RDGBufferUAV* RenderGraph::CreateUAV(const RDGBufferUAVDesc& Desc)
+{
+    
+}
+
+RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layout)
+{
+    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
+    {
+        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
+    }
+
+    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
+    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+    AllocatedDescriptorSets.push_back(DescriptorSet);
+    return DescriptorSet.get();
+}
+
+void RenderGraph::Cull()
+{
+    for (RDGPassNode* Pass : Passes)
         Pass->bCulled = true;
-    std::map<FRDGPassNode*, int> indegrees;
-    std::queue<FRDGPassNode*> q;
-    std::vector<FRDGPassNode*> Passes_0indegree;
+    std::map<RDGPassNode*, int> indegrees;
+    std::queue<RDGPassNode*> q;
+    std::vector<RDGPassNode*> Passes_0indegree;
     q.push(PresentPass);
     while (!q.empty())
     {
-        FRDGPassNode* node = q.front(); q.pop();
+        RDGPassNode* node = q.front(); q.pop();
         node->bCulled = false;
         indegrees[node] = 0;
-        for (FRDGResourceNode* InResourceNode : node->InResourceNodes)
+        for (RDGResourceNode* InResourceNode : node->InResourceNodes)
         {
             if (InResourceNode->InPassNode)
             {

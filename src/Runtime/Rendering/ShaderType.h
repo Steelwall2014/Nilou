@@ -12,6 +12,8 @@
 
 namespace nilou {
 
+    class RHIDescriptorSetLayout;
+
     std::vector<class FShaderType *> &GetAllShaderTypes();
 
     std::vector<class FVertexFactoryType *> &GetAllVertexFactoryTypes();
@@ -55,34 +57,54 @@ namespace nilou {
     //     std::string SourceCodeBody;
     // };
 
-    struct FShaderTypeBase
+    class FShaderTypeBase
     {
+    public:
+        friend class FShaderCompiler;
         std::string Name;
         std::string VirtualFilePath;
-        // std::string SourceCodeBody;
         std::filesystem::path FileAbsolutePath;
         FHashedName HashedName;
-        // std::set<FShaderParameterCode> ShaderParameterCodes;
-        // FShaderCodeInitializer CodeInitializer;
         std::string PreprocessedCode;
         int32 PermutationCount;
         
         FShaderTypeBase() { }
 
-        /** 
-        Some preprocess operations will be done in the constructor, 
-        like change the relative include path to absolute path and discard the #version line
-        */
         FShaderTypeBase(const std::string &InClassName, const std::string &InFileName, int32 InPermutationCount);
 
-        void ReadSourceCode();
+        void UpdateCode();
 
         FHashedName GetHashedFileName() const
         {
             return HashedName;
         }
-    private:
-        bool bSourceCodeReaded = false;
+
+        RHIDescriptorSetLayout* GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) const
+        {
+            if (DescriptorSetLayouts.size() <= PermutationId)
+            {
+                return nullptr;
+            }
+            auto &DescriptorSetLayoutMap = DescriptorSetLayouts[PermutationId];
+            auto It = DescriptorSetLayoutMap.find(SetIndex);
+            if (It != DescriptorSetLayoutMap.end())
+            {
+                return It->second;
+            }
+            return nullptr;
+        }
+
+        // Descriptor set layouts of every set index for each permutation
+        // For FMaterialShader and FVertexFactory, the map only contains one element, 
+        // and its key can only be VERTEX_SHADER_SET_INDEX, PIXEL_SHADER_SET_INDEX or VERTEX_FACTORY_SET_INDEX.
+        // For FGlobalShader, the map contains all set indices.
+        std::vector<std::map<uint32, RHIDescriptorSetLayout*>> DescriptorSetLayouts;  
+
+        // Different permutation may share the same descriptor set layout.
+        // So we need to keep track of the unique descriptor set layouts.
+        // This will be filled in FShaderCompiler::CompileMaterialShader and FShaderCompiler::CompileGlobalShaders.
+        std::map<uint32, std::shared_ptr<RHIDescriptorSetLayout>> UniqueDescriptorSetLayouts;
+
     };
 
     struct FShaderPermutationParameters

@@ -37,27 +37,27 @@ namespace nilou {
 		* Set state
 		*/
 		virtual void RHISetViewport(int32 Width, int32 Height) override;
-		virtual FRHIGraphicsPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override;
-		virtual void RHISetGraphicsPipelineState(FRHIGraphicsPipelineState *NewState) override;
-		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
-		virtual bool RHISetShaderUniformBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
-		virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const FRHISampler &SamplerRHI) override;
-		virtual bool RHISetShaderSampler(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const FRHISampler &SamplerRHI) override;
-		virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
-		virtual bool RHISetShaderImage(FRHIGraphicsPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
+		virtual FRHIPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override;
+		virtual void RHISetGraphicsPipelineState(FRHIPipelineState *NewState) override;
+		virtual bool RHISetShaderUniformBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
+		virtual bool RHISetShaderUniformBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
+		virtual bool RHISetShaderSampler(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const RHISampler &SamplerRHI) override;
+		virtual bool RHISetShaderSampler(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const RHISampler &SamplerRHI) override;
+		virtual bool RHISetShaderImage(FRHIPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
+		virtual bool RHISetShaderImage(FRHIPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
 		virtual void RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset) override;
 	
 		/**
 		* Binding buffers
 		*/
-		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
-		virtual void RHIBindComputeBuffer(FRHIGraphicsPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
+		virtual void RHIBindComputeBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
+		virtual void RHIBindComputeBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
 		virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
 
 		/**
 		* Create/Update data
 		*/
-		virtual FRHIGraphicsPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer);
+		virtual FRHIPipelineState *RHIGetOrCreatePipelineStateObject(const FGraphicsPipelineStateInitializer &Initializer);
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
 		virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
@@ -86,7 +86,6 @@ namespace nilou {
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
-		virtual RHISamplerStateRef RHICreateSamplerState(const RHITextureParams& Params) override;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
@@ -115,7 +114,7 @@ namespace nilou {
 			int32 Width, int32 Height,
 			int32 MipmapLevel, void* Data) override;
 
-		virtual FRHIVertexDeclarationRef RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements) override;
+		virtual FRHIVertexDeclaration* RHICreateVertexDeclaration(const FVertexDeclarationElementList& Elements) override;
 
 		/**
 		* Render pass
@@ -176,7 +175,7 @@ namespace nilou {
 			uint32 Offset;
 			OpenGLBuffer* Buffer;
 		};
-		StreamSource CurrentStreamSources[MaxVertexElementCount];
+		StreamSource CurrentStreamSources[MAX_VERTEX_ELEMENTS];
 		OpenGLVertexDeclaration* CurrentVertexDeclaration;
 
 		class TextureUnitManager

@@ -150,9 +150,9 @@ namespace nilou {
         CameraRollInput = 0;
     }
 
-    FSceneView* ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
+    FSceneView ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
     {
-        FSceneView* SceneView = new FSceneView(
+        FSceneView SceneView = FSceneView(
             CameraComponent->ProjectionMode,
             CameraComponent->VerticalFieldOfView, 
             CameraComponent->OrthoWidth,
@@ -161,16 +161,7 @@ namespace nilou {
             CameraComponent->GetComponentLocation(), 
             CameraComponent->GetForwardVector(), 
             CameraComponent->GetUpVector(), 
-            ivec2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height),
-            CameraComponent->ViewUniformBuffer);
-            
-        auto ViewUniformBuffer = CameraComponent->ViewUniformBuffer;
-
-        ENQUEUE_RENDER_COMMAND(ACameraActor_CalcSceneView)(
-            [ViewUniformBuffer](FDynamicRHI*) 
-            {
-                ViewUniformBuffer->UpdateUniformBuffer();
-            });
+            ivec2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height));
 
         return SceneView;
     }

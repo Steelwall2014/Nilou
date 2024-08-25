@@ -19,9 +19,9 @@ namespace nilou {
 
         ViewUniformBuffer = CreateUniformBuffer<FViewShaderParameters>();
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
-            [this](FDynamicRHI*)
+            [this](RenderGraph& Graph)
             {
-                ViewUniformBuffer->InitResource();
+                ViewUniformBuffer->InitResource(Graph);
             });
     }
 

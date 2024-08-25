@@ -16,22 +16,37 @@ FRHIGraphicsPipelineState* FPipelineStateCache::FindCachedGraphicsPSO(const FGra
     return GraphicsPipelineCache[Initializer].get();
 }
 
-FRHIVertexDeclaration* FPipelineStateCache::GetOrCreateVertexDeclaration(const FVertexDeclarationElementList& Elements)
+void FPipelineStateCache::CacheComputePSO(RHIComputeShader* ComputeShader, FRHIComputePipelineStateRef CacheState)
 {
-	uint32 Key = FCrc::MemCrc32(Elements.data(), Elements.size() * sizeof(FVertexElement));
-    auto Found = VertexDeclarationCache.find(Key);
-    if (Found != VertexDeclarationCache.end())
-    {
-        return Found->second.get();
-    }
-    
-	FRHIVertexDeclarationRef NewDeclaration = FDynamicRHI::GetDynamicRHI()->RHICreateVertexDeclaration(Elements);
-    VertexDeclarationCache.insert({Key, NewDeclaration});
-    return NewDeclaration.get();
+    ComputePipelineCache[ComputeShader] = CacheState;
+}
+
+FRHIComputePipelineState* FPipelineStateCache::FindCachedComputePSO(RHIComputeShader* ComputeShader)
+{
+    if (!ComputePipelineCache.contains(ComputeShader))
+        return nullptr;
+    return ComputePipelineCache[ComputeShader].get();
+}
+
+void FPipelineStateCache::CacheVertexDeclaration(const FVertexDeclarationElementList& ElementList, FRHIVertexDeclarationRef VertexDeclaration)
+{
+    uint32 Key = FCrc::MemCrc32(ElementList.data(), ElementList.size() * sizeof(FVertexElement));
+    VertexDeclarationCache[Key] = VertexDeclaration;
+}
+
+FRHIVertexDeclaration* FPipelineStateCache::FindVertexDeclaration(const FVertexDeclarationElementList& Elements)
+{
+    uint32 Key = FCrc::MemCrc32(Elements.data(), Elements.size() * sizeof(FVertexElement));
+    if (!VertexDeclarationCache.contains(Key))
+        return nullptr;
+    return VertexDeclarationCache[Key].get();
 }
 
 std::unordered_map<FGraphicsPipelineStateInitializer, FRHIGraphicsPipelineStateRef> 
 FPipelineStateCache::GraphicsPipelineCache{};
+
+std::unordered_map<RHIComputeShader*, FRHIComputePipelineStateRef> 
+FPipelineStateCache::ComputePipelineCache{};
 
 std::unordered_map<uint32, FRHIVertexDeclarationRef> 
 FPipelineStateCache::VertexDeclarationCache{};

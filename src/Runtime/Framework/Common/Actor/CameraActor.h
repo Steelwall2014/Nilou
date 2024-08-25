@@ -13,7 +13,7 @@ namespace nilou {
 		
 		void SetMoveSpeed(double Speed) { MovementSpeed = Speed; }
 
-		FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily);
+		FSceneView CalcSceneView(FSceneViewFamily* ViewFamily);
 
 		UCameraComponent* GetCameraComponent() const { return CameraComponent.get(); }
 

@@ -38,7 +38,10 @@ namespace nilou {
 
     class FFourierTransformOceanVertexFactory : public FStaticVertexFactory
     {
+    public:
         DECLARE_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory)
+
+        
     };
     IMPLEMENT_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory, "/Shaders/VertexFactories/FourierTransformOceanVertexFactory.glsl")
 
@@ -67,7 +70,7 @@ namespace nilou {
             PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FFourierTransformOceanSceneProxy::PreRenderCallback);
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
@@ -76,17 +79,18 @@ namespace nilou {
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material->GetRenderProxy();
-                    Mesh.Element.IndexBuffer = &IndexBuffer;
-                    Mesh.Element.VertexFactory = &VertexFactory;
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
-                    Mesh.Element.Bindings.SetElementShaderBinding("NodeListBuffer", NodeListBufferRHI.get());
-                    Mesh.Element.Bindings.SetElementShaderBinding("LODParamsBuffer", LODParamsBufferRHI.get());
-                    Mesh.Element.Bindings.SetElementShaderBinding("DisplaceTexture", &DisplaceSampler);
-                    Mesh.Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
-                    Mesh.Element.Bindings.SetElementShaderBinding("PerlinNoise", PerlinNoiseSampler);
+                    FMeshBatchElement &Element = Mesh.Elements[0];
+                    Element.IndexBuffer = &IndexBuffer;
+                    Element.VertexFactory = &VertexFactory;
+                    Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
+                    Element.Bindings.SetElementShaderBinding("NodeListBuffer", NodeListBufferRHI.get());
+                    Element.Bindings.SetElementShaderBinding("LODParamsBuffer", LODParamsBufferRHI.get());
+                    Element.Bindings.SetElementShaderBinding("DisplaceTexture", &DisplaceSampler);
+                    Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
+                    Element.Bindings.SetElementShaderBinding("PerlinNoise", PerlinNoiseSampler);
 
-                    Mesh.Element.NumInstances = RenderingNodesThisFrame.size();
-                    Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
+                    Element.NumInstances = RenderingNodesThisFrame.size();
+                    Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
 
                     Collector.AddMesh(ViewIndex, Mesh);
 

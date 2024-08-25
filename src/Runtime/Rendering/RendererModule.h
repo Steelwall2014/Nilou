@@ -1,10 +1,12 @@
 #pragma once
 namespace nilou {
 
+    class FSceneViewFamily;
+
     class FRendererModule
     {
     public:
-        void BeginRenderingViewFamily(class FSceneViewFamily* ViewFamily);
+        void BeginRenderingViewFamily(FSceneViewFamily& ViewFamily);
     };
 
     FRendererModule* GetRendererModule();

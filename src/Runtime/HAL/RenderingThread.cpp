@@ -7,12 +7,18 @@
 #include "BaseApplication.h"
 #include "Common/ContentManager.h"
 #include "Material.h"
+#include "RenderGraph.h"
 
 namespace nilou {
 
     std::thread::id GRenderThreadId;
     
     FRenderingThread *FRenderingThread::RenderingThread = nullptr;
+
+    void EnqueueUniqueRenderCommandType::DoTask()
+    {
+        lambda(FRenderingThread::GetRenderGraph());
+    }
 
     bool FRenderingThread::Init()
     {
@@ -22,7 +28,7 @@ namespace nilou {
         GetAppication()->Initialize_RenderThread();
         FDynamicRHI::GetDynamicRHI()->Initialize();
         // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
-        FShaderCompiler::CompileGlobalShaders(FDynamicRHI::GetDynamicRHI());
+        FShaderCompiler::CompileGlobalShaders();
         GetContentManager()->Init();
         return true;
     }
@@ -46,6 +52,29 @@ namespace nilou {
         return 0;
     }
 
+    void FRenderingThread::NotifyStartOfFrame()
+    {
+        FRenderingThread* _this = RenderingThread;
+        if (_this->GraphExucuting)
+        {
+            _this->GraphExucuting->Compile();
+            _this->GraphExucuting->Execute();
+        }
+    }
+
+    void FRenderingThread::NotifyEndOfFrame()
+    {
+        FrameCount++;
+        FRenderingThread* _this = RenderingThread;
+        if (_this->GraphExucuting)
+        {
+            delete _this->GraphExucuting;
+            _this->GraphExucuting = nullptr;
+        }
+        _this->GraphExucuting = _this->GraphRecording;
+        _this->GraphRecording = new RenderGraph();
+    }
+
     void FRenderingThread::Exit()
     {
         // Some release works may be done in the for loop.
@@ -64,8 +93,8 @@ namespace nilou {
             if (Resource)
                 Resource->ReleaseResource();
         }
-        FSceneRenderer::ShadowMapResourcesPool.ReleaseAll();
-        FSceneRenderer::SceneTexturesPool.ReleaseAll();
+        // FSceneRenderer::ShadowMapResourcesPool.ReleaseAll();
+        // FSceneRenderer::SceneTexturesPool.ReleaseAll();
         GetAppication()->Finalize_RenderThread();
         FDynamicRHI::GetDynamicRHI()->Finalize();
     }

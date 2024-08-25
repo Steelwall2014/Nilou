@@ -222,7 +222,7 @@ namespace nilou {
         GLenum InternalFormat;
         GLenum Type;
         switch (PixelFormat) {
-            case EPixelFormat::PF_UNKNOWN:      Format = 0;         InternalFormat = 0;                 Type = 0; break;
+            case EPixelFormat::PF_Unknown:      Format = 0;         InternalFormat = 0;                 Type = 0; break;
             case EPixelFormat::PF_R8:           Format = GL_RED;    InternalFormat = GL_R8;             Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_R8UI:         Format = GL_RED_INTEGER;InternalFormat = GL_R8UI;       Type = GL_UNSIGNED_BYTE; break;
             case EPixelFormat::PF_R8G8:         Format = GL_RG;     InternalFormat = GL_RG8;            Type = GL_UNSIGNED_BYTE; break;
@@ -519,10 +519,13 @@ namespace nilou {
     //     return true;
     // }
 
-    FRHIVertexDeclarationRef FOpenGLDynamicRHI::RHICreateVertexDeclaration(const std::vector<FVertexElement>& Elements)
+    FRHIVertexDeclaration* FOpenGLDynamicRHI::RHICreateVertexDeclaration(const FVertexDeclarationElementList& ElementList)
     {
+        FRHIVertexDeclaration* CacheDeclaration = FPipelineStateCache::FindVertexDeclaration(ElementList);
+        if (CacheDeclaration)
+            return CacheDeclaration;
         OpenGLVertexDeclarationRef Declaration = std::make_shared<OpenGLVertexDeclaration>();
-        for (auto& Element : Elements)
+        for (auto& Element : ElementList)
         {
             OpenGLVertexDeclaration::Element OutElement;
             OutElement.AttributeIndex = Element.AttributeIndex;
@@ -536,7 +539,8 @@ namespace nilou {
             OutElement.bShouldConvertToFloat = bShouldConvertToFloat;
             Declaration->Elements.push_back(OutElement);
         }
-        return Declaration;
+        FPipelineStateCache::CacheVertexDeclaration(ElementList, Declaration);
+        return Declaration.get();
     }
 
 	// void FOpenGLDynamicRHI::RHISetVertexBuffer(const FRHIVertexInput *VertexInput)
@@ -1885,10 +1889,10 @@ namespace nilou {
             magic_enum::enum_for_each<ETextureDimension>([](ETextureDimension TextureType) {
                 magic_enum::enum_for_each<EPixelFormat>([TextureType](EPixelFormat PixelFormat) {
                     
-                    if (PixelFormat == PF_PixelFormatNum)
+                    if (PixelFormat == PF_MAX)
                         return;
                     ivec3 &PageSize = FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat];
-                    if (PixelFormat == PF_UNKNOWN)
+                    if (PixelFormat == PF_Unknown)
                     {
                         PageSize = ivec3(1);
                         return;

@@ -7,21 +7,18 @@
 #include "Common/Log.h"
 
 namespace nilou {
+    class RenderGraph;
 
     class EnqueueUniqueRenderCommandType
     {
     public:
-        using Lambda = std::function<void(FDynamicRHI*)>;
+        using Lambda = std::function<void(RenderGraph&)>;
         EnqueueUniqueRenderCommandType(Lambda &&InLambda, const char *InTraceBackString) 
             : lambda(std::forward<Lambda>(InLambda)) 
             , TraceBackString(InTraceBackString)
         { }
 
-        void DoTask()
-        {
-            NILOU_LOG(Info, "Enqueued render command: {}", TraceBackString)
-            lambda(FDynamicRHI::GetDynamicRHI());
-        }
+        void DoTask();
 
     private:
         Lambda lambda;
@@ -44,12 +41,17 @@ namespace nilou {
 
         static FRenderingThread *RenderingThread;
         static uint32 GetFrameCount() { return FRenderingThread::FrameCount; }
-        static uint32 FrameCount;
+        static void NotifyEndOfFrame();
+        static void NotifyStartOfFrame();
+        static RenderGraph& GetRenderGraph() { return *RenderingThread->GraphRecording; }
 
     private:
 
         std::mutex mutex;
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
+        RenderGraph* GraphExucuting;
+        RenderGraph* GraphRecording;
+        static uint32 FrameCount;
 
     };
 

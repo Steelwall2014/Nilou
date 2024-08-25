@@ -38,7 +38,8 @@
 #define DECLARE_SHADER_TYPE() \
     public: \
         static FShaderType StaticType; \
-        virtual FShaderType* GetType() const override;
+        virtual FShaderType* GetType() const override; \
+		static RHIDescriptorSetLayout* GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) { return StaticType.GetDescriptorSetLayout(PermutationId, SetIndex); }
 
 #define DECLARE_GLOBAL_SHADER(ShaderClass) \
 	class ShaderClass : public FGlobalShader\
@@ -69,18 +70,3 @@
 		TShaderFrequencyAssertHelper<ShaderFrequency, TIsDerivedFrom<ShaderClass, FMaterialShader>::Value>(); \
 		return &StaticType; \
 	}
-
-#define DECLARE_MATERIAL_TYPE() \
-    public: \
-        static FMaterialType StaticType; \
-        virtual FMaterialType* GetType() const override; \
-
-#define IMPLEMENT_MATERIAL_TYPE(MaterialClass, ShaderFilename) \
-	FMaterialType MaterialClass::StaticType( \
-		#MaterialClass, \
-		ShaderFilename, \
-		MaterialClass::ShouldCompilePermutation, \
-		MaterialClass::ModifyCompilationEnvironment, \
-		MaterialClass::FPermutationDomain::PermutationCount \
-		); \
-	FMaterialType* MaterialClass::GetType() const { return &StaticType; }

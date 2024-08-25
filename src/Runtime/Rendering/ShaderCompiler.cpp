@@ -19,6 +19,7 @@
 // #include "Shadinclude.h"
 #include "VertexFactory.h"
 #include "Common/Log.h"
+#include "Common/Crc.h"
 
 #ifdef NILOU_DEBUG
 #include <fstream>
@@ -87,9 +88,9 @@ namespace nilou {
     std::string ConcateShaderCodeAndParameters(
         /*std::set<FShaderParameterInfo> &OutShaderParameters, */
         std::array<const std::string*, N> PreprocessResults, 
-        const FShaderCompilerEnvironment &Environment,
-        FDynamicRHI *DynamicRHI)
+        const FShaderCompilerEnvironment &Environment)
     {
+        FDynamicRHI* DynamicRHI = FDynamicRHI::GetDynamicRHI();
         std::stringstream stream;
         stream << "#version 460\n";
         stream << "#define RHI_OPENGL (0)\n";
@@ -109,8 +110,32 @@ namespace nilou {
         return stream.str();
     }
 
+    static void AddLayoutToShaderType(FShaderTypeBase* ShaderType, int32 PermutationId, int32 SetIndex, const shader_reflection::DescriptorSetLayouts& Layouts)
+    {
+        std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
+        for (auto& [BindingIndex, Binding] : Layouts[SetIndex])
+        {
+            RHIDescriptorSetLayoutBinding BindingRHI;
+            BindingRHI.BindingIndex = BindingIndex;
+            BindingRHI.DescriptorType = Binding.DescriptorType;
+            BindingRHI.DescriptorCount = 1; // For now, only support 1
+            if (BindingIndex >= BindingsRHI.size())
+                BindingsRHI.resize(BindingIndex + 1, RHIDescriptorSetLayoutBinding{});
+            BindingsRHI[BindingIndex] = BindingRHI;
+        }
+        // Find or create the layout RHI.
+        auto& UniqueLayouts = ShaderType->UniqueDescriptorSetLayouts;
+        uint32 Hash = FCrc::MemCrc32(BindingsRHI.data(), sizeof(RHIDescriptorSetLayoutBinding) * BindingsRHI.size());
+        if (UniqueLayouts.count(Hash) == 0)
+        {
+            RHIDescriptorSetLayoutRef LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
+            UniqueLayouts[Hash] = LayoutRHI;
+        }
+        // Link permutation id and set index to the layout
+        ShaderType->DescriptorSetLayouts[PermutationId][SetIndex] = UniqueLayouts[Hash].get();
+    }
+
     void FShaderCompiler::CompileGlobalShader(
-        FDynamicRHI *DynamicRHI, 
         const FShaderPermutationParameters &ShaderParameter)
     {
         FShaderType *ShaderType = ShaderParameter.Type;
@@ -119,7 +144,7 @@ namespace nilou {
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
         std::string code = ConcateShaderCodeAndParameters<1>(
-            {&ShaderType->PreprocessedCode}, Environment, DynamicRHI);
+            {&ShaderType->PreprocessedCode}, Environment);
 
         EPipelineStage PipelineStage;
         switch (ShaderType->ShaderFrequency) 
@@ -136,12 +161,13 @@ namespace nilou {
         }
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, PipelineStage, ShaderType->ShaderMetaType);
-        ShaderInstance->InitResource();
+        ShaderInstance->InitRHI();
+        for (auto& [SetIndex, Layout] : ShaderInstance->DescriptorSetLayouts)
+            AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, SetIndex, ShaderInstance->DescriptorSetLayouts);
         AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(
-        FDynamicRHI *DynamicRHI,
         const std::string &MaterialPreprocessedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
@@ -150,7 +176,7 @@ namespace nilou {
         FVertexFactoryType *VertexFactoryType = VertexFactoryParams.Type;
         FShaderType *ShaderType = ShaderParameter.Type;
 
-        VertexFactoryType->ReadSourceCode();
+        VertexFactoryType->UpdateCode();
 
         // Material Vertex Shader
         FShaderCompilerEnvironment Environment;
@@ -159,15 +185,16 @@ namespace nilou {
 
         std::string code = ConcateShaderCodeAndParameters<3>(
             {&MaterialPreprocessedResult, &VertexFactoryType->PreprocessedCode, &ShaderType->PreprocessedCode}, 
-            Environment, DynamicRHI);
+            Environment);
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, EPipelineStage::PS_Vertex, ShaderType->ShaderMetaType);
-        ShaderInstance->InitResource();
+        ShaderInstance->InitRHI();
+        AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, VERTEX_SHADER_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
+        AddLayoutToShaderType(VertexFactoryType, VertexFactoryParams.PermutationId, VERTEX_FACTORY_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
     void FShaderCompiler::CompilePixelMaterialShader(
-        FDynamicRHI *DynamicRHI, 
         const std::string& MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
@@ -179,10 +206,11 @@ namespace nilou {
 
         std::string code = ConcateShaderCodeAndParameters<2>(
             {&MaterialParsedResult, &ShaderType->PreprocessedCode}, 
-            Environment, DynamicRHI);
+            Environment);
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, EPipelineStage::PS_Pixel, ShaderType->ShaderMetaType);
-        ShaderInstance->InitResource();
+        ShaderInstance->InitRHI();
+        AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, PIXEL_SHADER_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
 
@@ -196,7 +224,9 @@ namespace nilou {
                 continue;
             if (!filter(ShaderType))
                 continue;
-            ShaderType->ReadSourceCode();
+            ShaderType->UpdateCode();
+            ShaderType->DescriptorSetLayouts.clear();
+            ShaderType->DescriptorSetLayouts.resize(ShaderType->PermutationCount);
             for (int32 PermutationId = 0; PermutationId < ShaderType->PermutationCount; PermutationId++)
             {
                 FShaderPermutationParameters ShaderParameter(ShaderType, PermutationId);
@@ -224,20 +254,20 @@ namespace nilou {
             [](FShaderType *ShaderType) { return ShaderType->ShaderMetaType == EShaderMetaType::SMT_Material; });
     }
 
-    void FShaderCompiler::CompileGlobalShaders(FDynamicRHI *DynamicRHI)
+    void FShaderCompiler::CompileGlobalShaders()
     {
         ForEachGlobalShader(
-            [DynamicRHI](const FShaderPermutationParameters &ShaderParameter) 
+            [](const FShaderPermutationParameters &ShaderParameter) 
             {
-                CompileGlobalShader(DynamicRHI, ShaderParameter);
+                CompileGlobalShader(ShaderParameter);
             });
     }
     
     void FShaderCompiler::CompileMaterialShader(FMaterialShaderMap* ShaderMap,
-        const std::string &MaterialParsedResult, FDynamicRHI *DynamicRHI)
+        const std::string &MaterialParsedResult)
     {
         ForEachMaterialShader(
-            [ShaderMap, &MaterialParsedResult, DynamicRHI](const FShaderPermutationParameters &ShaderParameter) {   
+            [ShaderMap, &MaterialParsedResult](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
@@ -247,14 +277,14 @@ namespace nilou {
                     {
                         if (VertexFactoryType->Name == "FVertexFactory")    // It's the base class so skip it
                             continue;
-                        VertexFactoryType->ReadSourceCode();
+                        VertexFactoryType->UpdateCode();
                         for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
                         {
                             FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
                             if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
                                 continue;
                             CompileVertexMaterialShader(
-                                DynamicRHI, MaterialParsedResult, VFParameters, ShaderParameter, 
+                                MaterialParsedResult, VFParameters, ShaderParameter, 
                                 ShaderMap->VertexShaderMap);
                         }
                     }
@@ -262,7 +292,7 @@ namespace nilou {
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
                     CompilePixelMaterialShader(
-                        DynamicRHI, MaterialParsedResult, ShaderParameter, 
+                        MaterialParsedResult, ShaderParameter, 
                         ShaderMap->PixelShaderMap);
                 }
             });

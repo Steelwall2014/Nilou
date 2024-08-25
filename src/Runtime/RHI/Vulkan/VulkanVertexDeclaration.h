@@ -7,7 +7,9 @@ namespace nilou {
 class VulkanVertexDeclaration : public FRHIVertexDeclaration
 {
 public:
-    FVertexDeclarationElementList Elements;
+    VkPipelineVertexInputStateCreateInfo VertexInputInfo{};
+    std::vector<VkVertexInputBindingDescription> BindingDescriptions;
+    std::vector<VkVertexInputAttributeDescription> AttributeDescriptions;
 };
 using VulkanVertexDeclarationRef = std::shared_ptr<VulkanVertexDeclaration>;
 

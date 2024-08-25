@@ -7,8 +7,8 @@ namespace nilou {
     {
 	public:
 
-        FTextureRenderTargetResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTextureResource(InName, InTextureParams, InNumMips)
+        FTextureRenderTargetResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTextureResource(InName, InSamplerState, InNumMips)
         { }
         
         virtual class FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return nullptr; }
@@ -22,13 +22,13 @@ namespace nilou {
     {
 	public:
 
-        FTextureRenderTarget2DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
+        FTextureRenderTarget2DResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTextureRenderTargetResource(InName, InSamplerState, InNumMips)
         { 
             TextureType = ETextureDimension::Texture2D;
         }
 		
-        virtual void InitRHI() override;
+        virtual void InitRHI(RenderGraph&) override;
 
         virtual void ReleaseRHI() override 
         { 
@@ -44,13 +44,13 @@ namespace nilou {
     {
 	public:
 
-        FTextureRenderTargetCubeResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTextureRenderTargetResource(InName, InTextureParams, InNumMips)
+        FTextureRenderTargetCubeResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTextureRenderTargetResource(InName, InSamplerState, InNumMips)
         { 
             TextureType = ETextureDimension::TextureCube;
         }
 		
-        virtual void InitRHI() override;
+        virtual void InitRHI(RenderGraph&) override;
 
         virtual void ReleaseRHI() override 
         { 

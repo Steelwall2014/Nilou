@@ -10,17 +10,13 @@
 #include "Texture2DArray.h"
 #include "TextureCube.h"
 #include "VirtualTexture2D.h"
+#include "RenderGraph.h"
 
 namespace nilou {
-		
-    void FTexture::InitRHI()
-    {
-        FRenderResource::InitRHI();
-    }
 
     void FTexture::ReleaseRHI()
     {
-        TextureRHI = nullptr;
+        TextureRDG = nullptr;
     }
 
     void FTexture::SetData(FImage* InImage)
@@ -46,7 +42,7 @@ namespace nilou {
         std::condition_variable cv;
         bool pixels_readed = false;
         ENQUEUE_RENDER_COMMAND(UTexture_ReadPixelsSync)(
-            [this, &cv, &pixels_readed](FDynamicRHI* RHICmdList)
+            [this, &cv, &pixels_readed](RHICommandListImmediate& RHICmdList)
             {
                 ReadPixelsRenderThread(RHICmdList);
                 cv.notify_one();

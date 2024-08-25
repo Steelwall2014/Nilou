@@ -1,0 +1,86 @@
+#include "RenderGraphDescriptorSet.h"
+#include "DynamicRHI.h"
+
+namespace nilou {
+
+constexpr int MAX_NUM_DESCRIPTORSETS_PER_POOL = 1024;
+
+RDGDescriptorSet::~RDGDescriptorSet()
+{
+    if (Pool)
+    {
+        Pool->Release(this);
+    }
+}
+
+// RDGDescriptorPool::RDGDescriptorPool(RHIDescriptorSetLayout* InLayout, uint32 InMaxNumDescriptorSets)
+// {
+//     PoolRHI = RHICreateDescriptorPool(InLayout, InMaxNumDescriptorSets);
+//     for (int i = 0; i < InMaxNumDescriptorSets; i++)
+//     {
+//         RDGDescriptorSetRef DescriptorSetRDG = std::make_shared<RDGDescriptorSet>();
+//         DescriptorSetRDG->DescriptorSetRHI = RHIAllocateDescriptorSet(PoolRHI.get());
+//         DescriptorSets.push_back(DescriptorSetRDG);
+//         VacantDescriptorSets.push_back(DescriptorSetRDG.get());
+//     }
+// }
+
+// RDGDescriptorSet* RDGDescriptorPool::Allocate()
+// {
+//     if (VacantDescriptorSets.size() == 0)
+//     {
+//         return nullptr;
+//     }
+
+//     RDGDescriptorSet* AllocatedDescriptorSet = VacantDescriptorSets.front();
+//     VacantDescriptorSets.pop_front();
+//     AllocatedDescriptorSets.push_back(AllocatedDescriptorSet);
+//     return AllocatedDescriptorSet;
+// }
+
+RDGDescriptorSetPool::RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
+    : Layout(InLayout)
+{
+
+}
+
+RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
+{
+    if (VacantPools.size() == 0)
+    {
+        RHIDescriptorPoolRef Pool = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
+        PoolsRHI.push_back(Pool);
+        VacantPools.push_back(Pool.get());
+    }
+
+    RHIDescriptorPool* VacantPool = VacantPools.back();
+    RHIDescriptorSet* Set = VacantPool->Allocate();
+
+    if (!VacantPool->CanAllocate())
+    {
+        VacantPools.pop_back();
+        PoolIterators[VacantPool] = FullPools.insert(FullPools.end(), VacantPool);
+    }
+
+    RDGDescriptorSetRef SetRDG = std::make_shared<RDGDescriptorSet>();
+    SetRDG->DescriptorSetRHI = Set;
+
+    return SetRDG;
+}
+
+void RDGDescriptorSetPool::Release(RDGDescriptorSet* Set)
+{
+    RHIDescriptorSet* SetRHI = Set->DescriptorSetRHI;
+    RHIDescriptorPool* PoolRHI = SetRHI->GetPool();
+    PoolRHI->Release(SetRHI);
+
+    if (PoolIterators.find(PoolRHI) != PoolIterators.end())
+    {
+        FullPools.erase(PoolIterators[PoolRHI]);
+        PoolIterators.erase(PoolRHI);
+        VacantPools.push_back(PoolRHI);
+    }
+    
+}
+
+} // namespace nilou

@@ -15,6 +15,7 @@
 #include "RenderResource.h"
 #include "Common/Maths.h"
 #include "DynamicRHI.h"
+#include "RenderGraph.h"
 
     
 /** Alignment of the shader parameters struct is required to be 16-byte boundaries. */
@@ -48,41 +49,31 @@ namespace nilou {
     // IMPLEMENT_ALIGNED_TYPE(16);
     // #undef IMPLEMENT_ALIGNED_TYPE
 
-    enum class EUniformBufferMemberType
+    /** The base type of a value in a shader parameter structure. */
+    enum EUniformBufferBaseType : uint8
     {
-        UBMT_Null,
-        // UBMT_bool,
-        UBMT_int,
-        UBMT_uint,
-        UBMT_float,
-        UBMT_vec2,
-        UBMT_vec3,
-        UBMT_vec4,
-        UBMT_dvec2,
-        UBMT_dvec3,
-        UBMT_dvec4,
-        UBMT_bvec2,
-        UBMT_bvec3,
-        UBMT_bvec4,
-        UBMT_ivec2,
-        UBMT_ivec3,
-        UBMT_ivec4,
-        UBMT_uvec2,
-        UBMT_uvec3,
-        UBMT_uvec4,
-        UBMT_mat2,
-        UBMT_mat3,
-        UBMT_mat4,
-        UBMT_dmat2,
-        UBMT_dmat3,
-        UBMT_dmat4,
-        UBMT_struct
+        UBMT_INVALID,
+
+        // Invalid type when trying to use bool, to have explicit error message to programmer on why
+        // they shouldn't use bool in shader parameter structures.
+        UBMT_BOOL,
+
+        // Parameter types.
+        UBMT_INT32,
+        UBMT_UINT32,
+        UBMT_FLOAT32,
+        UBMT_FLOAT64,
+
+        // Nested structure.
+        UBMT_NESTED_STRUCT,
+
+        EUniformBufferBaseType_Num,
     };
 
     template<typename TypeParameter>
     struct TShaderParameterTypeInfo
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_Null;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_INVALID;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
@@ -95,7 +86,7 @@ namespace nilou {
     // template<>
     // struct TShaderParameterTypeInfo<bool>
     // {
-    //     static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_bool;
+    //     static constexpr EUniformBufferBaseType BaseType = EUniformBufferBaseType::UBMT_bool;
     //     static constexpr int32 NumRows = 1;
     //     static constexpr int32 NumColumns = 1;
     //     static constexpr int32 NumElements = 0;
@@ -107,7 +98,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<uint32>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_uint;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
@@ -119,7 +110,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<int32>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_int;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
@@ -131,7 +122,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<float>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_float;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
@@ -143,7 +134,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<vec2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_vec2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -155,7 +146,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<vec3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_vec3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -167,7 +158,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<vec4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_vec4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -179,7 +170,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dvec2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -191,7 +182,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dvec3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -203,7 +194,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dvec4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dvec4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -213,45 +204,9 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<bvec2>
-    {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_bvec2;
-        static constexpr int32 NumRows = 1;
-        static constexpr int32 NumColumns = 2;
-        static constexpr int32 NumElements = 0;
-        static constexpr int32 Alignment = 8;
-	
-	    // using TAlignedType = TAlignedTypedef<bvec2, Alignment>;
-    };
-
-    template<>
-    struct TShaderParameterTypeInfo<bvec3>
-    {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_bvec3;
-        static constexpr int32 NumRows = 1;
-        static constexpr int32 NumColumns = 3;
-        static constexpr int32 NumElements = 0;
-        static constexpr int32 Alignment = 16;
-	
-	    // using TAlignedType = TAlignedTypedef<bvec3, Alignment>;
-    };
-
-    template<>
-    struct TShaderParameterTypeInfo<bvec4>
-    {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_bvec4;
-        static constexpr int32 NumRows = 1;
-        static constexpr int32 NumColumns = 4;
-        static constexpr int32 NumElements = 0;
-        static constexpr int32 Alignment = 16;
-	
-	    // using TAlignedType = TAlignedTypedef<bvec4, Alignment>;
-    };
-
-    template<>
     struct TShaderParameterTypeInfo<ivec2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_ivec2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -263,7 +218,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<ivec3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_ivec3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -275,7 +230,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<ivec4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_ivec4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -287,7 +242,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<uvec2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_uvec2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -299,7 +254,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<uvec3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_uvec3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -311,7 +266,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<uvec4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_uvec4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -323,7 +278,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<mat2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_mat2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 2;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -335,7 +290,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<mat3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_mat3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 3;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -347,7 +302,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<mat4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_mat4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 4;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -359,7 +314,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dmat2>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat2;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 2;
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
@@ -371,7 +326,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dmat3>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat3;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 3;
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
@@ -383,7 +338,7 @@ namespace nilou {
     template<>
     struct TShaderParameterTypeInfo<dmat4>
     {
-        static constexpr EUniformBufferMemberType BaseType = EUniformBufferMemberType::UBMT_dmat4;
+        static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 4;
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
@@ -395,7 +350,7 @@ namespace nilou {
     template<typename T, size_t InNumElements>
     struct TShaderParameterTypeInfo<T[InNumElements]>
     {
-        static constexpr EUniformBufferMemberType BaseType = TShaderParameterTypeInfo<T>::BaseType;
+        static constexpr EUniformBufferBaseType BaseType = TShaderParameterTypeInfo<T>::BaseType;
         static constexpr int32 NumRows = TShaderParameterTypeInfo<T>::NumRows;
         static constexpr int32 NumColumns = TShaderParameterTypeInfo<T>::NumColumns;
         static constexpr int32 NumElements = InNumElements;
@@ -428,20 +383,16 @@ namespace nilou {
     class FUniformBuffer : public FRenderResource
     {
     public:
-        FUniformBuffer() : UniformBufferRHI(nullptr) { }
-        inline RHIUniformBuffer *GetRHI() const { return UniformBufferRHI.get();}
-
-        inline EUniformBufferUsage GetUsage()
-        {
-            return Usage;
-        }
-        inline void SetUsage(EUniformBufferUsage InUsage)
-        {
-            Usage = InUsage;
-        }
+        FUniformBuffer(EUniformBufferUsage InUsage) : UniformBufferRDG(nullptr), Usage(InUsage) { }
+        RDGBuffer* GetRDG() const { return UniformBufferRDG; }
+        RHIBuffer* GetRHI() const { return UniformBufferRDG->Resolve(); }
 
     protected:
-        RHIUniformBufferRef UniformBufferRHI;
+
+        void InitRHI_impl(RenderGraph& Graph);
+        void UploadData_impl(RenderGraph& Graph, const void* Data, uint32 DataSize);
+
+        RDGBuffer* UniformBufferRDG;
         uint32 Size;
         EUniformBufferUsage Usage;
     };
@@ -450,28 +401,36 @@ namespace nilou {
     class TUniformBuffer : public FUniformBuffer
     {
     public:
-        TUniformBuffer()
+        TUniformBuffer(EUniformBufferUsage InUsage)
+            : FUniformBuffer(InUsage)
         { 
             Size = sizeof(UniformBufferStruct);
-            Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
         }
 
         /** Begin FRenderResource Interface */
-        virtual void InitRHI() override
+        virtual void InitRHI(RenderGraph& Graph) override
         {
-            FRenderResource::InitRHI();
-            UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, &Data);
+            // FRenderResource::InitRHI(Graph);
+            // UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, &Data);
+            FRenderResource::InitRHI(Graph);
+            InitRHI_impl(Graph);
+            UploadData_impl(Graph, &Data, sizeof(UniformBufferStruct));
         }
         virtual void ReleaseRHI() override
         {
-            UniformBufferRHI = nullptr;
+            // UniformBufferRHI = nullptr;
             FRenderResource::ReleaseRHI();
         }
         /** End FRenderResource Interface */
 
+        void UpdateUniformBuffer(RenderGraph& Graph)
+        {
+            UploadData_impl(Graph, &Data, sizeof(UniformBufferStruct));
+        }
+
         void UpdateUniformBuffer()
         {
-            FDynamicRHI::GetDynamicRHI()->RHIUpdateUniformBuffer(UniformBufferRHI, &Data);
+            
         }
 
         UniformBufferStruct Data;
@@ -486,43 +445,4 @@ namespace nilou {
         return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
     }
 
-    class FDynamicUniformBuffer : public FUniformBuffer
-    {
-    public:
-        FDynamicUniformBuffer() { }
-        FDynamicUniformBuffer(const std::string& InStructName);
-        FDynamicUniformBuffer(const FDynamicUniformBuffer& Other);
-
-        template<typename T>
-        T* GetData() { return reinterpret_cast<T*>(Data); }
-
-        void UpdateDataType(std::string_view InStructName);
-
-        void SetScalarParameterValue(std::string_view Name, float Value);
-
-        std::string GetStructName() const { return StructName; }
-
-        /** Begin FRenderResource Interface */
-        virtual void InitRHI() override;
-        virtual void ReleaseRHI() override;
-        /** End FRenderResource Interface */
-
-        void UpdateUniformBuffer();
-
-        void Serialize(FArchive& Ar);
-        void Deserialize(FArchive& Ar);
-
-        virtual ~FDynamicUniformBuffer()
-        {
-            delete Data; 
-        }
-
-    protected:
-        std::string StructName;
-        void* Data = nullptr;
-        uint32 Size = 0;
-        EUniformBufferUsage Usage = EUniformBufferUsage::UniformBuffer_MultiFrame;
-    };
-
-    using FDynamicUniformBufferRef = std::shared_ptr<FDynamicUniformBuffer>;
 }

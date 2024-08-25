@@ -45,7 +45,7 @@ namespace nilou {
             BeginInitResource(&IndexBuffer);
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
 		    {
@@ -54,10 +54,10 @@ namespace nilou {
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material->GetRenderProxy();
-                    Mesh.Element.VertexFactory = &VertexFactory;
-                    Mesh.Element.IndexBuffer = &IndexBuffer;
-                    Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
+                    FMeshBatchElement &Element = Mesh.Elements[0];
+                    Element.VertexFactory = &VertexFactory;
+                    Element.IndexBuffer = &IndexBuffer;
+                    Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
             }

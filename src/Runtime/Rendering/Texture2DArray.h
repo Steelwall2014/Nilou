@@ -13,7 +13,7 @@ namespace nilou {
             TextureType = ETextureDimension::Texture2DArray;
         }
 
-        virtual void InitRHI() override;
+        virtual void InitRHI(RenderGraph&) override;
 
 	    virtual FTexture2DArrayResource* GetTexture2DArrayResource() override { return this; }
 	    virtual const FTexture2DArrayResource* GetTexture2DArrayResource() const override { return this; }

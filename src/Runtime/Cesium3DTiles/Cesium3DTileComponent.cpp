@@ -29,7 +29,7 @@ namespace nilou {
             PrimitiveUniformBuffer->Data.ModelToLocal = Component->ModelToLocal;
         }
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
         {
 
             for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -44,11 +44,11 @@ namespace nilou {
                             const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex];
                             FMeshBatch Mesh;
                             Mesh.CastShadow = Section.bCastShadow;
-                            Mesh.Element.VertexFactory = &Section.VertexFactory;
-                            Mesh.Element.IndexBuffer = &Section.IndexBuffer;
-                            Mesh.Element.NumVertices = Section.GetNumVertices();
+                            FMeshBatchElement &Element = Mesh.Elements[0];
+                            Element.VertexFactory = &Section.VertexFactory;
+                            Element.IndexBuffer = &Section.IndexBuffer;
+                            Element.NumVertices = Section.GetNumVertices();
                             Mesh.MaterialRenderProxy = StaticMesh->MaterialSlots[Section.MaterialIndex]->GetRenderProxy();
-                            Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
                             Collector.AddMesh(ViewIndex, Mesh);
                         }
                     }

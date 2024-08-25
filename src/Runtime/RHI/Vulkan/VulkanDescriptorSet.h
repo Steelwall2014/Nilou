@@ -6,12 +6,63 @@
 #include <memory>
 #include "Platform.h"
 #include "Common/Crc.h"
+#include "RHIResources.h"
 
 #define VK_DESCRIPTOR_TYPE_BEGIN_RANGE VK_DESCRIPTOR_TYPE_SAMPLER
 #define VK_DESCRIPTOR_TYPE_END_RANGE VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
 
 namespace nilou {
 
+class VulkanDescriptorSetLayout : public RHIDescriptorSetLayout
+{
+public:
+	VkDescriptorSetLayout Handle;
+};
+
+class VulkanDescriptorPool : public RHIDescriptorPool
+{
+public:
+	VulkanDescriptorPool(RHIDescriptorSetLayout* InLayout) : RHIDescriptorPool(InLayout) { }
+	VkDescriptorPool Handle;
+};
+
+class VulkanDescriptorSet : public RHIDescriptorSet
+{
+public:
+
+    friend class VulkanCommandList;
+
+    virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
+
+    virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
+
+    virtual void SetSampler(uint32 BindingIndex, RHISampler Sampler) override;
+
+    virtual void SetStorageImage(uint32 BindingIndex, RHITexture* Image) override;
+
+    VkDescriptorSet Handle;
+    VkDescriptorSetLayout LayoutHandle;
+
+private:
+
+    struct VulkanDescriptorSetWriter
+    {
+        VkDescriptorBufferInfo BufferInfo{};
+        VkDescriptorImageInfo ImageInfo{};
+        VkWriteDescriptorSet WriteDescriptor;
+    };
+
+    std::unordered_map<uint8, VulkanDescriptorSetWriter> Writers;
+
+};
+
+inline VulkanDescriptorSet* ResourceCast(RHIDescriptorSet* DescriptorSet)
+{
+    return static_cast<VulkanDescriptorSet*>(DescriptorSet);
+}
+
+
+// all below DEPRECATED
 class FVulkanDescriptorSetsLayout
 {
 

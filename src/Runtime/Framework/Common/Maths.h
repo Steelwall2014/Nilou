@@ -262,5 +262,28 @@ namespace nilou {
                     relativeEpsilonToAbsolute(left, right, relativeEpsilon)) ==
                     vecType<bool, P>(true);
         }
+
+        /** Divides two integers and rounds up */
+        template <class T>
+        static constexpr T DivideAndRoundUp(T Dividend, T Divisor)
+        {
+            return (Dividend + Divisor - 1) / Divisor;
+        }
+
+        /** Divides two integers and rounds down */
+        template <class T>
+        static constexpr T DivideAndRoundDown(T Dividend, T Divisor)
+        {
+            return Dividend / Divisor;
+        }
+
+        /** Divides two integers and rounds to nearest */
+        template <class T>
+        static constexpr T DivideAndRoundNearest(T Dividend, T Divisor)
+        {
+            return (Dividend >= 0)
+                ? (Dividend + Divisor / 2) / Divisor
+                : (Dividend - Divisor / 2 + 1) / Divisor;
+        }
     };
 }

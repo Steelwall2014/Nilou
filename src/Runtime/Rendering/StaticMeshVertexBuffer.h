@@ -3,6 +3,7 @@
 #include <vector>
 #include "DynamicRHI.h"
 #include "RenderResource.h"
+#include "RenderGraph.h"
 
 namespace nilou {
 
@@ -13,14 +14,11 @@ namespace nilou {
 
         FStaticMeshVertexBuffer()
             : Data(nullptr)
-            , Stride(0)
-            , NumVertices(0)
         { }
 
         virtual ~FStaticMeshVertexBuffer()
         {
             CleanUp();
-            FVertexBuffer::~FVertexBuffer();
         }
 
         void Init(uint32 InNumVertices);
@@ -31,9 +29,7 @@ namespace nilou {
 
         void CleanUp();
 
-        virtual void InitRHI() override;
-
-        RHIBufferRef CreateRHIBuffer_RenderThread();
+        virtual void InitRHI(RenderGraph& Graph) override;
 
         inline uint32 GetStride() const
         {
@@ -95,10 +91,6 @@ namespace nilou {
 
         uint8 *Data;
 
-        uint32 Stride;
-
-        uint32 NumVertices;
-
         // bool bNeedsCPUAccess = true;
 
     };
@@ -147,17 +139,14 @@ namespace nilou {
     }
 
     template<class VertexType>
-    void FStaticMeshVertexBuffer<VertexType>::InitRHI()
+    void FStaticMeshVertexBuffer<VertexType>::InitRHI(RenderGraph& Graph)
     {
-        FRenderResource::InitRHI();
-        VertexBufferRHI = CreateRHIBuffer_RenderThread();
-    }
-
-    template<class VertexType>
-    RHIBufferRef FStaticMeshVertexBuffer<VertexType>::CreateRHIBuffer_RenderThread()
-    {
-        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumVertices * Stride, 
-            EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Data);
+        FRenderResource::InitRHI(Graph);
+        RDGBufferDesc Desc;
+        Desc.Size = Stride * NumVertices;
+        Desc.Stride = Stride;
+        VertexBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+        Graph.AddUploadPass(VertexBufferRDG, Data, Desc.Size);
     }
 
 }

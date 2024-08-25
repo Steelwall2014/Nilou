@@ -10,7 +10,11 @@ namespace nilou {
         std::vector<FVertexInputStream> Out;
         for (int StreamIndex = 0; StreamIndex < Streams.size(); StreamIndex++)
         {
-            Out.emplace_back(StreamIndex, Streams[StreamIndex].Offset, Streams[StreamIndex].VertexBuffer->VertexBufferRHI.get());
+            FVertexInputStream VertexStream;
+            VertexStream.StreamIndex = StreamIndex;
+            VertexStream.Offset = Streams[StreamIndex].Offset;
+            VertexStream.VertexBuffer = Streams[StreamIndex].VertexBuffer->VertexBufferRDG.get();
+            Out.push_back(VertexStream);
         }
         return Out;
     }

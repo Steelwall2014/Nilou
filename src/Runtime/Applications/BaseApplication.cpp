@@ -46,6 +46,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
             [this](FDynamicRHI* RHICmdList) 
             {
+                FRenderingThread::NotifyStartOfFrame();
                 RHICmdList->RHIBeginFrame();
             });
         GameViewportClient->Tick(DeltaTime);
@@ -61,7 +62,7 @@ namespace nilou {
             {
                 this->Tick_RenderThread();
                 RHICmdList->RHIEndFrame();
-                FRenderingThread::FrameCount++;
+                FRenderingThread::NotifyEndOfFrame();
                 fence.notify_one();
             });
         fence.wait(lock);

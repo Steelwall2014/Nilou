@@ -25,18 +25,9 @@ namespace nilou {
             AttributeIndex(InAttributeIndex),
             Stride(InStride)
         {}
-
-        void operator=(const FVertexElement& Other)
-        {
-			StreamIndex = Other.StreamIndex;
-            Offset = Other.Offset;
-            Type = Other.Type;
-            AttributeIndex = Other.AttributeIndex;
-            Stride = Other.Stride;
-        }
     };
 
-    using FVertexDeclarationElementList = std::vector<FVertexElement>;
+    using FVertexDeclarationElementList = std::array<FVertexElement, MAX_VERTEX_ELEMENTS>;
 
     class FVertexStreamComponent
     {
@@ -66,7 +57,7 @@ namespace nilou {
     {
         uint32 StreamIndex : 4;
         uint32 Offset : 28;
-        class RHIBuffer* VertexBuffer;
+        class RDGBuffer* VertexBuffer;
 
         FVertexInputStream() :
             StreamIndex(0),
@@ -74,7 +65,7 @@ namespace nilou {
             VertexBuffer(nullptr)
         {}
 
-        FVertexInputStream(uint32 InStreamIndex, uint32 InOffset, RHIBuffer* InVertexBuffer)
+        FVertexInputStream(uint32 InStreamIndex, uint32 InOffset, RDGBuffer* InVertexBuffer)
             : StreamIndex(InStreamIndex), Offset(InOffset), VertexBuffer(InVertexBuffer)
         {
         }
@@ -428,5 +419,69 @@ namespace nilou {
 	// 		}
 	// 	}
 	// };
+
+	struct NSTRUCT FSamplerStateInitializer
+	{
+		GENERATED_STRUCT_BODY()
+
+		FSamplerStateInitializer() {}
+		FSamplerStateInitializer(
+			ESamplerFilter InFilter,
+			ESamplerAddressMode InAddressU = AM_Wrap,
+			ESamplerAddressMode InAddressV = AM_Wrap,
+			ESamplerAddressMode InAddressW = AM_Wrap,
+			float InMipBias = 0,
+			int32 InMaxAnisotropy = 0,
+			float InMinMipLevel = 0,
+			float InMaxMipLevel = FLT_MAX,
+			uint32 InBorderColor = 0,
+			/** Only supported in D3D11 */
+			ESamplerCompareFunction InSamplerComparisonFunction = SCF_Never
+			)
+		:	Filter(InFilter)
+		,	AddressU(InAddressU)
+		,	AddressV(InAddressV)
+		,	AddressW(InAddressW)
+		,	MipBias(InMipBias)
+		,	MinMipLevel(InMinMipLevel)
+		,	MaxMipLevel(InMaxMipLevel)
+		,	MaxAnisotropy(InMaxAnisotropy)
+		,	BorderColor(InBorderColor)
+		,	SamplerComparisonFunction(InSamplerComparisonFunction)
+		{
+		}
+
+		NPROPERTY()
+		ESamplerFilter Filter = SF_Point;
+
+		NPROPERTY()
+		ESamplerAddressMode AddressU = AM_Wrap;
+
+		NPROPERTY()
+		ESamplerAddressMode AddressV = AM_Wrap;
+
+		NPROPERTY()
+		ESamplerAddressMode AddressW = AM_Wrap;
+
+		NPROPERTY()
+		float MipBias = 0.0f;
+
+		/** Smallest mip map level that will be used, where 0 is the highest resolution mip level. */
+		NPROPERTY()
+		float MinMipLevel = 0.0f;
+
+		/** Largest mip map level that will be used, where 0 is the highest resolution mip level. */
+		NPROPERTY()
+		float MaxMipLevel = FLT_MAX;
+		
+		NPROPERTY()
+		int32 MaxAnisotropy = 0;
+		
+		NPROPERTY()
+		uint32 BorderColor = 0;
+
+		NPROPERTY()
+		ESamplerCompareFunction SamplerComparisonFunction = SCF_Never;
+	};
 
 }

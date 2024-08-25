@@ -1,4 +1,5 @@
 #include "VulkanDescriptorSet.h"
+#include "VulkanDynamicRHI.h"
 
 namespace nilou {
 
@@ -147,6 +148,64 @@ void FVulkanDescriptorPoolsManager::ReleasePoolSet(FVulkanDescriptorPoolSetConta
 {
 	PoolSetContainer->Reset();
 	PoolSetContainer->SetUsed(false);
+}
+
+RHIDescriptorSetLayoutRef FVulkanDynamicRHI::CreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+{
+    std::vector<VkDescriptorSetLayoutBinding> VulkanBindings(Bindings.size());
+    for (int i = 0; i < Bindings.size(); i++)
+    {
+        const RHIDescriptorSetLayoutBinding& Binding = Bindings[i];
+        VkDescriptorSetLayoutBinding& VulkanBinding = VulkanBindings[i];
+        VulkanBinding.binding = Binding.BindingIndex;
+        VulkanBinding.descriptorCount = Binding.DescriptorCount;
+        VulkanBinding.descriptorType = static_cast<VkDescriptorType>(Binding.DescriptorType);
+        VulkanBinding.stageFlags = VK_SHADER_STAGE_ALL;
+        VulkanBinding.pImmutableSamplers = nullptr;
+    }
+    std::shared_ptr<VulkanDescriptorSetLayout> VulkanLayout = std::make_shared<VulkanDescriptorSetLayout>();
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
+    layoutInfo.pBindings = VulkanBindings.data();
+    VkResult res = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &VulkanLayout->Handle);
+    if (res != VK_SUCCESS)
+    {
+        NILOU_LOG(Error, "vkCreateDescriptorSetLayout failed!");
+        return nullptr;
+    }
+    return VulkanLayout;
+}
+
+RHIDescriptorPoolRef FVulkanDynamicRHI::CreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)
+{
+	std::vector<VkDescriptorPoolSize> Types;
+	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex <= VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
+	{
+		EDescriptorType DescriptorType = static_cast<EDescriptorType>(TypeIndex);
+		uint32 NumTypesUsed = Layout->GetNumTypesUsed(DescriptorType);
+		if (NumTypesUsed > 0)
+		{
+			VkDescriptorPoolSize& Type = Types.emplace_back();
+			Type.type = static_cast<VkDescriptorType>(TypeIndex);
+			Type.descriptorCount = NumTypesUsed * PoolSize;
+		}
+	}
+
+	VkDescriptorPoolCreateInfo PoolInfo{};
+	PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	PoolInfo.poolSizeCount = Types.size();
+	PoolInfo.pPoolSizes = Types.data();
+	PoolInfo.maxSets = PoolSize;
+
+	std::shared_ptr<VulkanDescriptorPool> VulkanPool = std::make_shared<VulkanDescriptorPool>(Layout);
+	VkResult res = vkCreateDescriptorPool(device, &PoolInfo, nullptr, &VulkanPool->Handle);
+    if (res != VK_SUCCESS)
+    {
+        NILOU_LOG(Error, "vkCreateDescriptorPool failed!");
+        return nullptr;
+    }
+	return VulkanPool;
 }
 
 }

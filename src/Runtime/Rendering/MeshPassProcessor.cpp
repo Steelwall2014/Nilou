@@ -1,3 +1,4 @@
+#include <set>
 #include "MeshPassProcessor.h"
 #include "DynamicRHI.h"
 #include "Material.h"
@@ -5,7 +6,7 @@
 #include "RHIResources.h"
 #include "Shader.h"
 #include "ShaderMap.h"
-#include <set>
+#include "RHICommandList.h"
 
 namespace nilou {
 
@@ -13,73 +14,45 @@ namespace nilou {
         : IndexBuffer(nullptr)
         , PipelineState(nullptr)
         , StencilRef(0)
-        , UseIndirect(false)
     {
 
     }
 
-    void FMeshDrawCommand::SubmitDraw(FDynamicRHI *RHICmdList)
+    void FMeshDrawCommand::SubmitDraw(RHICommandList& RHICmdList) const
     {
         RHIGetError();
-        RHICmdList->RHISetGraphicsPipelineState(PipelineState);
+        RHICmdList.BindPipeline(PipelineState, EPipelineBindPoint::Graphics);
 
         for (auto& Stream : VertexStreams)
         {
-            RHICmdList->RHISetStreamSource(Stream.StreamIndex, Stream.VertexBuffer, Stream.Offset);
+            RHICmdList.BindVertexBuffer(Stream.StreamIndex, Stream.VertexBuffer->GetRHI(), Stream.Offset);
         }
         RHIGetError();
-        FRHIGraphicsPipelineState *PSO = PipelineState;
-        RHIGetError();
-        for (int PipelineStage = 0; PipelineStage < EPipelineStage::PipelineStageNum; PipelineStage++)
-        {
-            for (auto &[BindingPoint, UniformBufferRHI] : ShaderBindings.UniformBufferBindings[PipelineStage])
-            {
-                RHICmdList->RHISetShaderUniformBuffer(PSO, (EPipelineStage)PipelineStage, BindingPoint, UniformBufferRHI);
-                RHIGetError();
-            }
-            for (auto &[BindingPoint, Sampler] : ShaderBindings.SamplerBindings[PipelineStage])
-            {
-                RHICmdList->RHISetShaderSampler(PSO, (EPipelineStage)PipelineStage, BindingPoint, *Sampler);
-                RHIGetError();
-            }
-            for (auto &[BindingPoint, Buffer] : ShaderBindings.BufferBindings[PipelineStage])
-            {
-                RHICmdList->RHIBindComputeBuffer(PSO, (EPipelineStage)PipelineStage, BindingPoint, Buffer);
-                RHIGetError();
-            }
-            // for (auto &[BindingPoint, UniformValue] : ShaderBindings.UniformBindings[PipelineStage])
-            // {
-            //     int index = UniformValue.Value.index();
-            //     if (index == 0)
-            //     {
-            //         int32 value = std::get<int32>(UniformValue.Value);
-            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-            //     }
-            //     else if (index == 1)
-            //     {
-            //         float value = std::get<float>(UniformValue.Value);
-            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-            //     }
-            //     else if (index == 2)
-            //     {
-            //         uint32 value = std::get<uint32>(UniformValue.Value);
-            //         RHICmdList->RHISetShaderUniformValue(PSO, (EPipelineStage)PipelineStage, BindingPoint, value);
-            //     }
-            //     RHIGetError();
-            // }
-        }
 
-        if (UseIndirect)
+        std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
+        for (auto& [SetIndex, DescriptorSet] : ShaderBindings.DescriptorSets)
         {
-            RHICmdList->RHIDrawIndexedIndirect(IndexBuffer, IndirectArgs.Buffer, IndirectArgs.Offset);
+            DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();
+        }
+        RHICmdList.BindDescriptorSets(PipelineState->PipelineLayout.get(), DescriptorSetsRHI, EPipelineBindPoint::Graphics);
+
+        if (IndirectArgs.Buffer)
+        {
+            RHICmdList.BindIndexBuffer(IndexBuffer->GetRHI(), 0);
+            RHICmdList.DrawIndexedIndirect(IndirectArgs.Buffer, IndirectArgs.Offset);
             RHIGetError();
         }
         else 
         {
             if (IndexBuffer)
-                RHICmdList->RHIDrawIndexed(IndexBuffer, DirectArgs.NumInstances);
+            {
+                RHICmdList.BindIndexBuffer(IndexBuffer->GetRHI(), 0);
+                RHICmdList.DrawIndexed(IndexBuffer->GetRHI()->GetCount(), NumInstances, 0, 0, 0);
+            }
             else 
-                RHICmdList->RHIDrawArrays(DirectArgs.BaseVertexIndex, DirectArgs.NumVertices, DirectArgs.NumInstances);
+            {
+                RHICmdList.DrawArrays(VertexParams.NumVertices, NumInstances, VertexParams.BaseVertexIndex, 0);
+            }
             RHIGetError();
         }
     }

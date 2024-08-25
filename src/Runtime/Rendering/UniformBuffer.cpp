@@ -1,91 +1,52 @@
 #include <memory>
-#include <UDRefl/UDRefl.hpp>
 #include "DynamicRHI.h"
 #include "RHIDefinitions.h"
 #include "UniformBuffer.h"
+#include "RHICommandList.h"
 
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
 namespace nilou {
 
-    FDynamicUniformBuffer::FDynamicUniformBuffer(const std::string& InStructName)
+    void FUniformBuffer::InitRHI_impl(RenderGraph& Graph)
     {
-        UpdateDataType(InStructName);
-    }
-
-    FDynamicUniformBuffer::FDynamicUniformBuffer(const FDynamicUniformBuffer& Other)
-    {
-        UpdateDataType(Other.StructName);
-        memcpy(Data, Other.Data, Size);
-    }
-
-    void FDynamicUniformBuffer::SetScalarParameterValue(std::string_view ParamName, float Value)
-    {
-        ObjectView Obj{Type(StructName), Data};
-        Obj.Var(Name(ParamName)) = Value;
-    }
-
-    void FDynamicUniformBuffer::UpdateDataType(std::string_view InStructName)
-    {
-        if (!InStructName.empty())
+        RDGBufferDesc Desc;
+        Desc.Size = Size;
+        Desc.Stride = 0;
+        if (Usage == UniformBuffer_MultiFrame)
         {
-            StructName = InStructName;
-            Type type = Type(StructName);
-            TypeInfo* info = Mngr.GetTypeInfo(type);
-            ObjectView Obj = Mngr.New(type);
-            Data = Obj.GetPtr();
-            Size = info->size;
+            UniformBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+        }
+        else 
+        {
+            UniformBufferRDG = Graph.CreateBuffer(Desc);
         }
     }
 
-    /** Begin FRenderResource Interface */
-    void FDynamicUniformBuffer::InitRHI()
+    void FUniformBuffer::UploadData_impl(RenderGraph& Graph, const void* Data, uint32 DataSize)
     {
-        if (StructName != "")
-        {
-            FRenderResource::InitRHI();
-            UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, Data);
-        }
-    }
-    void FDynamicUniformBuffer::ReleaseRHI()
-    {
-        UniformBufferRHI = nullptr;
-        FRenderResource::ReleaseRHI();
-    }
-    /** End FRenderResource Interface */
-
-    void FDynamicUniformBuffer::UpdateUniformBuffer()
-    {
-        FDynamicRHI::GetDynamicRHI()->RHIUpdateUniformBuffer(UniformBufferRHI, Data);
-    }
-
-    void FDynamicUniformBuffer::Serialize(FArchive& Ar)
-    {
-        nlohmann::json& json = Ar.Node;
-        json["StructName"] = StructName;
-        FArchive local_Ar(json["Data"], Ar);
-        ObjectView Obj(Type(StructName), Data);
-        Obj.Invoke("Serialize", TempArgsView{ local_Ar });
-    }
-
-    void FDynamicUniformBuffer::Deserialize(FArchive& Ar)
-    {
-        nlohmann::json& json = Ar.Node;
-        if (json.contains("StructName"))
-        { 
-            StructName = json["StructName"].get<std::string>();
-            Type type = Type(StructName);
-            TypeInfo* info = Mngr.GetTypeInfo(type);
-            ObjectView Obj = Mngr.New(type);
-            Data = Obj.GetPtr();
-            Size = info->size;
-            if (json.contains("Data"))
+        DataSize = std::min(DataSize, Size);
+        StagingBuffer* StagingBuffer = Graph.AcquireStagingBuffer(DataSize);
+        Graph.AddPass(
+            [=](RDGPassBuilder& PassBuilder)
             {
-                FArchive local_Ar(json["Data"], Ar);
-                Obj.Invoke("Deserialize", TempArgsView{ local_Ar });
-            }
-        }
+                FDynamicRHI* DynamicRHI = FDynamicRHI::GetDynamicRHI();
+                void* Dst = DynamicRHI->MapMemory(StagingBuffer->BufferRHI.get(), 0, DataSize);
+                    std::memcpy(Dst, Data, DataSize);
+                DynamicRHI->UnmapMemory(StagingBuffer->BufferRHI.get());
+
+                PassBuilder.TransferDestination(UniformBufferRDG);
+            },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHIBuffer* SrcBuffer = StagingBuffer->BufferRHI.get();
+                RHIBuffer* DstBuffer = UniformBufferRDG->Resolve();
+                if (SrcBuffer && DstBuffer)
+                {
+                    RHICmdList.CopyBuffer(SrcBuffer, DstBuffer, 0, 0, DataSize);
+                }
+            });
     }
 
 }

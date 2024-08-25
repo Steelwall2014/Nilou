@@ -38,9 +38,7 @@ namespace nilou {
 
         void CleanUp();
 
-        virtual void InitRHI() override;
-
-        RHIBufferRef CreateRHIBuffer_RenderThread();
+        virtual void InitRHI(RenderGraph&) override;
 
         inline uint32 GetNumIndices() const
         {

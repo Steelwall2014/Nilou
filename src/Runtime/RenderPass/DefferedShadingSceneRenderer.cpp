@@ -2,6 +2,7 @@
 #include "BaseApplication.h"
 #include "Common/Log.h"
 #include "UniformBuffer.h"
+#include "RHICommandList.h"
 
 #include "DefferedShadingSceneRenderer.h"
 // #include "Common/Components/LightSceneProxy.h"
@@ -29,7 +30,7 @@ namespace nilou {
 
     FDefferedShadingSceneRenderer *Renderer = nullptr;
 
-    FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FSceneViewFamily* ViewFamily)
+    FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FSceneViewFamily& ViewFamily)
     {
         return new FDefferedShadingSceneRenderer(ViewFamily);
     }
@@ -42,173 +43,88 @@ namespace nilou {
     {
         MeshCommands.clear();
     }
-    void FParallelMeshDrawCommands::DispatchDraw(FDynamicRHI *RHICmdList)
+    void FParallelMeshDrawCommands::DispatchDraw(RHICommandList& RHICmdList) const
     {
         for (int i = 0; i < MeshCommands.size(); i++)
         {
-            auto &&MeshDrawCommand = MeshCommands[i];
+            const FMeshDrawCommand& MeshDrawCommand = MeshCommands[i];
             MeshDrawCommand.SubmitDraw(RHICmdList);
         }
     }
 
-    FSceneTextures::FSceneTextures(const SceneTextureCreateInfo &CreateInfo)
-    {
-        Viewport = CreateInfo.OutputResolution;
-        SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    // FSceneTextures::FSceneTextures(const SceneTextureCreateInfo &CreateInfo)
+    // {
+    //     Viewport = CreateInfo.OutputResolution;
+    //     SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "FSceneTextures DepthStencil", EPixelFormat::PF_D24S8, 1, 
-            Viewport.x, Viewport.y, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
+    //     DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "FSceneTextures DepthStencil", EPixelFormat::PF_D24S8, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
 
-        LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-            {FA_Color_Attachment0, SceneColor},
-            {FA_Depth_Stencil_Attachment, DepthStencil}
-        });
-    }
+    //     LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+    //         {FA_Color_Attachment0, SceneColor},
+    //         {FA_Depth_Stencil_Attachment, DepthStencil}
+    //     });
 
-    FSceneTexturesDeffered::FSceneTexturesDeffered(const SceneTextureCreateInfo &CreateInfo)
-        : FSceneTextures(CreateInfo)
-    {
+    //     BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    //     RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16A16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    //     WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "WorldSpaceNormal", EPixelFormat::PF_R16G16B16A16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "WorldSpaceNormal", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    //     MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    //     Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "Emissive", EPixelFormat::PF_R16G16B16A16F, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "Emissive", EPixelFormat::PF_R16G16B16A16F, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
+    //     ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
+    //         "ShadingModel", EPixelFormat::PF_R8UI, 1, 
+    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
 
-        ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-            "ShadingModel", EPixelFormat::PF_R8UI, 1, 
-            Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-        GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-            {FA_Color_Attachment0, BaseColor},
-            {FA_Color_Attachment1, RelativeWorldSpacePosition},
-            {FA_Color_Attachment2, WorldSpaceNormal},
-            {FA_Color_Attachment3, MetallicRoughness},
-            {FA_Color_Attachment4, Emissive},
-            {FA_Color_Attachment5, ShadingModel},
-            {FA_Depth_Stencil_Attachment, DepthStencil}
-        });
+    //     GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+    //         {FA_Color_Attachment0, BaseColor},
+    //         {FA_Color_Attachment1, RelativeWorldSpacePosition},
+    //         {FA_Color_Attachment2, WorldSpaceNormal},
+    //         {FA_Color_Attachment3, MetallicRoughness},
+    //         {FA_Color_Attachment4, Emissive},
+    //         {FA_Color_Attachment5, ShadingModel},
+    //         {FA_Depth_Stencil_Attachment, DepthStencil}
+    //     });
         
-        PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-            {FA_Depth_Stencil_Attachment, DepthStencil}
-        });
-    }
-
-    FShadowMapTexture::FShadowMapTexture(const ShadowMapResourceCreateInfo& CreateInfo)
-    {
-        int32 ShadowMapArraySize;
-        switch (CreateInfo.LightType) 
-        {
-        case ELightType::LT_Directional:
-            ShadowMapArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
-            break;
-        case ELightType::LT_Point:
-            ShadowMapArraySize = 6;
-            break;
-        case ELightType::LT_Spot:
-            ShadowMapArraySize = 1;
-            break;
-        default:
-            return;
-        }
-        DepthArray = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2DArray(
-            "FShadowMapTexture DepthArray", EPixelFormat::PF_D32FS8, 1, 
-            CreateInfo.ShadowMapResolution.x, 
-            CreateInfo.ShadowMapResolution.y, 
-            ShadowMapArraySize, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
-        
-        for (int i = 0; i < ShadowMapArraySize; i++)
-        {
-            RHITexture2DRef DepthView = FDynamicRHI::GetDynamicRHI()->RHICreateTextureView2D(
-                DepthArray.get(), DepthArray->GetFormat(), 0, 1, i);
-            DepthViews.push_back(DepthView);
-            ShadowMapFramebuffers.push_back(FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-                {FA_Depth_Stencil_Attachment, DepthView}
-            }));
-        }
-    }
-
-    FShadowMapUniformBuffer::FShadowMapUniformBuffer(const ShadowMapResourceCreateInfo& CreateInfo)
-    {
-        switch (CreateInfo.LightType) 
-        {
-        case ELightType::LT_Directional:
-            UniformBuffer = CreateUniformBuffer<FDirectionalShadowMappingBlock>();
-            FrustumCount = CASCADED_SHADOWMAP_SPLIT_COUNT;
-            break;
-        case ELightType::LT_Point:
-            UniformBuffer = CreateUniformBuffer<FPointShadowMappingBlock>();
-            FrustumCount = 6;
-            break;
-        case ELightType::LT_Spot:
-            UniformBuffer = CreateUniformBuffer<FSpotShadowMappingBlock>();
-            FrustumCount = 1;
-            break;
-        }
-        UniformBuffer->InitResource();
-    }
-
-    FShadowMapResource::FShadowMapResource(const ShadowMapResourceCreateInfo& CreateInfo)
-        : ShadowMapTexture(CreateInfo)
-        , ShadowMapUniformBuffer(CreateInfo)
-    { }
+    //     PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
+    //         {FA_Depth_Stencil_Attachment, DepthStencil}
+    //     });
+    // }
 
     FSceneRenderer::FScreenQuadPositionVertexBuffer FSceneRenderer::PositionVertexBuffer;
     FSceneRenderer::FScreenQuadUVVertexBuffer FSceneRenderer::UVVertexBuffer;
     FRHIVertexDeclaration* FSceneRenderer::ScreenQuadVertexDeclaration;
 
-    FSceneRenderer::TResourcesPool<
-        FShadowMapResource, 
-        ShadowMapResourceCreateInfo> FSceneRenderer::ShadowMapResourcesPool;
+    // FSceneRenderer::TResourcesPool<
+    //     FShadowMapResource, 
+    //     ShadowMapResourceCreateInfo> FSceneRenderer::ShadowMapResourcesPool;
 
-    FSceneRenderer::TResourcesPool<
-    FSceneTexturesDeffered, 
-    SceneTextureCreateInfo> FSceneRenderer::SceneTexturesPool;
+    // FSceneRenderer::TResourcesPool<
+    // FSceneTexturesDeffered, 
+    // SceneTextureCreateInfo> FSceneRenderer::SceneTexturesPool;
 
-    FSceneRenderer::FSceneRenderer(FSceneViewFamily* InViewFamily)
-        : Scene(InViewFamily->Scene)
+    FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
+        : Scene(InViewFamily.Scene)
         , ViewFamily(InViewFamily)
-    {
-        Views.reserve(InViewFamily->Views.size());
-        // MeshCollector.PerViewPDI.resize(InViewFamily->Views.size());
-        // MeshCollector.PerViewMeshBatches.resize(InViewFamily->Views.size());
-        for(int32 ViewIndex = 0; ViewIndex < InViewFamily->Views.size(); ViewIndex++)
-        {
-		    FViewInfo& ViewInfo = Views.emplace_back(InViewFamily->Views[ViewIndex]);
-
-            // MeshCollector.PerViewPDI[ViewIndex] = &ViewInfo.PDI;
-            // MeshCollector.PerViewMeshBatches[ViewIndex] = &ViewInfo.DynamicMeshBatches;
-
-            ViewFamily.Views[ViewIndex] = &Views[ViewIndex];
-        }
-    }
-
-    FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FSceneViewFamily* ViewFamily)
-        : FSceneRenderer(ViewFamily)
+        , Views(InViewFamily.Views)
     {
 
-    }
-
-
-    void FDefferedShadingSceneRenderer::InitViews(FScene *Scene)
-    {
         if (!PositionVertexBuffer.IsInitialized())
         {
             PositionVertexBuffer.InitResource();
@@ -225,7 +141,7 @@ namespace nilou {
             PositionVertexElement.Stride = sizeof(float) * 4;
             PositionVertexElement.Type = EVertexElementType::VET_Float4;
             PositionVertexInputStream.StreamIndex = 0;
-            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRHI.get();
+            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRDG.get();
             PositionVertexInputStream.Offset = 0;
                         
             UVVertexElement.AttributeIndex = 1;
@@ -234,82 +150,151 @@ namespace nilou {
             UVVertexElement.Stride = sizeof(float) * 2;
             UVVertexElement.Type = EVertexElementType::VET_Float2;
             UVVertexInputStream.StreamIndex = 1;
-            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRHI.get();
+            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRDG.get();
             UVVertexInputStream.Offset = 0;
 
-            ScreenQuadVertexDeclaration = FPipelineStateCache::GetOrCreateVertexDeclaration({PositionVertexElement, UVVertexElement});
+            ScreenQuadVertexDeclaration = RHICreateVertexDeclaration({PositionVertexElement, UVVertexElement});
         }
-        
+    }
 
+    FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FSceneViewFamily& ViewFamily)
+        : FSceneRenderer(ViewFamily)
+    {
+
+    }
+
+
+    void FDefferedShadingSceneRenderer::InitViews(RenderGraph& Graph)
+    {
+        // Initialize lights
+        // Lights are relavant to views, for example directional lights.
         Lights.reserve(Scene->AddedLightSceneInfos.size());
-        int NumViews = Views.size();
         for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
-            Lights.emplace_back(Proxy, NumViews, LightSceneInfo->LightUniformBufferRHI);
+            FLightInfo LightInfo;
+            LightInfo.LightType = Proxy->LightType;
+            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer.get();
+            int NumRelevantViews = 1;
+            if (Proxy->LightType == ELightType::LT_Directional)
+                NumRelevantViews = Views.size();
+            for (int ViewIndex = 0; ViewIndex < NumRelevantViews; ViewIndex++)
+            {
+                FShadowMapResource Resource;
+                RDGBufferDesc BufferDesc;
+                RDGTextureDesc TextureDesc;
+                TextureDesc.SizeX = 1024;
+                TextureDesc.SizeY = 1024;
+                TextureDesc.NumMips = 1;
+                TextureDesc.Format = EPixelFormat::PF_D24S8;
+                TextureDesc.TextureType = ETextureDimension::Texture2DArray;
+                if (Proxy->LightType == ELightType::LT_Directional)
+                {
+                    BufferDesc.Size = sizeof(FDirectionalShadowMappingBlock);
+                    TextureDesc.ArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
+                }
+                else if (Proxy->LightType == ELightType::LT_Point)
+                {
+                    BufferDesc.Size = sizeof(FPointShadowMappingBlock);
+                    TextureDesc.ArraySize = 6;
+                }
+                else if (Proxy->LightType == ELightType::LT_Spot)
+                {
+                    BufferDesc.Size = sizeof(FSpotShadowMappingBlock);
+                    TextureDesc.ArraySize = 1;
+                }
+                Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", BufferDesc);
+                for (int i = 0; i < TextureDesc.ArraySize; i++)
+                {
+                    RDGTextureViewDesc TextureViewDesc;
+                    TextureViewDesc.Format = EPixelFormat::PF_D24S8;
+                    TextureViewDesc.BaseMipLevel = 0;
+                    TextureViewDesc.LevelCount = 1;
+                    TextureViewDesc.BaseArrayLayer = i;
+                    TextureViewDesc.LayerCount = 1;
+                    TextureViewDesc.ViewType = ETextureDimension::Texture2D;
+                    RDGTexture* DepthArrayView = Graph.CreateTextureView("", Resource.DepthArray, TextureViewDesc);
+                    Resource.DepthViews.push_back(DepthArrayView);
+                }
+                LightInfo.ShadowMapResources.push_back(Resource);
+            }
+            Lights.push_back(LightInfo);
         }
 
-        
+        // Initalize views
+        int NumViews = Views.size();
+        ViewSceneTextures.resize(NumViews);
+        ViewMeshBatches.resize(NumViews);
+        ViewPDIs.resize(NumViews);
         for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-		    FViewInfo& ViewInfo = Views[ViewIndex];
-            SceneTextureCreateInfo CreateInfo{ViewInfo.ScreenResolution};
-            ViewInfo.SceneTextures = SceneTexturesPool.Alloc(CreateInfo);
+		    FSceneView& View = Views[ViewIndex];
+            
+            View.ViewUniformBuffer = Graph.CreateBuffer(fmt::format("ViewUniformBuffer {}", ViewIndex), {0, sizeof(FViewShaderParameters)});
+            FViewShaderParameters ViewUniformBufferData;
+            const dmat4& WorldToView = View.ViewMatrix;
+            const mat4& ViewToClip = View.ProjectionMatrix;
+            mat4 RelativeWorldToView = WorldToView;
+            RelativeWorldToView[3][0] = 0;
+            RelativeWorldToView[3][1] = 0;
+            RelativeWorldToView[3][2] = 0;
+            ViewUniformBufferData.RelWorldToView = RelativeWorldToView;
+            ViewUniformBufferData.ViewToClip = ViewToClip;
+            ViewUniformBufferData.RelWorldToClip = ViewToClip * RelativeWorldToView;
+            ViewUniformBufferData.ClipToView = glm::inverse(ViewToClip);
+            ViewUniformBufferData.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+            ViewUniformBufferData.AbsWorldToClip = ViewToClip * mat4(WorldToView);
+
+            ViewUniformBufferData.CameraPosition = View.Position;
+            ViewUniformBufferData.CameraDirection = View.Forward;
+            ViewUniformBufferData.CameraResolution = View.ScreenResolution;
+            ViewUniformBufferData.CameraNearClipDist = View.NearClipDistance;
+            ViewUniformBufferData.CameraFarClipDist = View.FarClipDistance;
+            ViewUniformBufferData.CameraVerticalFieldOfView = View.VerticalFieldOfView;
+
+            for (int i = 0; i < 6; i++)
+                ViewUniformBufferData.FrustumPlanes[i] = dvec4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
+
+            View.ViewUniformBuffer->SetData(ViewUniformBufferData, 0);
+
+            FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
+            RDGTextureDesc Desc;
+            Desc.SizeX = View.ScreenResolution.x;
+            Desc.SizeY = View.ScreenResolution.y;
+            Desc.SizeZ = 1;
+            Desc.ArraySize = 1;
+            Desc.NumMips = 1;
+            Desc.TextureType = ETextureDimension::Texture2D;
+
+            Desc.Format = EPixelFormat::PF_R16G16B16A16F;
+            SceneTextures.SceneColor                    = Graph.CreateTexture(fmt::format("SceneColor {}", ViewIndex), Desc);
+            SceneTextures.BaseColor                     = Graph.CreateTexture(fmt::format("BaseColor {}", ViewIndex), Desc);
+            SceneTextures.RelativeWorldSpacePosition    = Graph.CreateTexture(fmt::format("RelativeWorldSpacePosition {}", ViewIndex), Desc);
+            SceneTextures.WorldSpaceNormal              = Graph.CreateTexture(fmt::format("WorldSpaceNormal {}", ViewIndex), Desc);
+            SceneTextures.Emissive                      = Graph.CreateTexture(fmt::format("Emissive {}", ViewIndex), Desc);
+
+            Desc.Format = EPixelFormat::PF_D24S8;
+            SceneTextures.DepthStencil                  = Graph.CreateTexture(fmt::format("DepthStencil {}", ViewIndex), Desc);
+
+            Desc.Format = EPixelFormat::PF_R16G16F;
+            SceneTextures.MetallicRoughness             = Graph.CreateTexture(fmt::format("MetallicRoughness {}", ViewIndex), Desc);
+
+            Desc.Format = EPixelFormat::PF_R8UI;
+            SceneTextures.ShadingModel                  = Graph.CreateTexture(fmt::format("ShadingModel {}", ViewIndex), Desc);
+
         }
 
-        static std::vector<FShadowMapResource*> Resources;
-        for (int32 LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
-        {
-            FLightInfo& Light = Lights[LightIndex];
-            ShadowMapResourceCreateInfo CreateInfo{Light.LightSceneProxy->ShadowMapResolution, Light.LightSceneProxy->LightType};
-
-            /** 
-             * The number of views being used in shadow mapping.
-             * For directional lights, it's the numbder of views.
-             * For point/spot lights, it's 1;
-             */
-            int NumViews = Light.ShadowMapResources.size();
-            for (int ViewIndex = 0; ViewIndex < NumViews; ViewIndex++)
-            {
-                Light.ShadowMapResources[ViewIndex] = ShadowMapResourcesPool.Alloc(CreateInfo);
-            }
-            LightIndex++;
-        }
-
-        // Compute Visibility
-        ComputeViewVisibility(Scene, ViewFamily.Views);
+        // Compute Visibility and collect mesh batches
+        ComputeViewVisibility();
     }
 
-    struct BasePassUniformBlockManager
-    {
-        static TUniformBufferRef<BasePassPixelShaderUniformBlock> Get()
-        {
-            if (count == UniformBlocks.size())
-            {
-                auto ubo = CreateUniformBuffer<BasePassPixelShaderUniformBlock>();
-                ubo->InitResource();
-                UniformBlocks.push_back(ubo);
-            }
-            return UniformBlocks[count++];
-        }
-        static void ReleaseAll()
-        {
-            count = 0;
-        }
-        static std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>> UniformBlocks;
-        static int32 count;
-    };
-    std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>> BasePassUniformBlockManager::UniformBlocks = std::vector<TUniformBufferRef<BasePassPixelShaderUniformBlock>>();
-    int32 BasePassUniformBlockManager::count = 0;
-
-    void FDefferedShadingSceneRenderer::ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews)
+    void FDefferedShadingSceneRenderer::ComputeViewVisibility()
     {
         static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
-        std::vector<int> Index(SceneViews.size(), 0);
+        std::vector<int> Index(Views.size(), 0);
         NILOU_LOG(Info, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
-        BasePassUniformBlockManager::ReleaseAll();
 
-        for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
+        for (FPrimitiveSceneInfo* PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
             if (!ViewFamily.ShowOnlyComponents.empty() && !ViewFamily.ShowOnlyComponents.contains(PrimitiveInfo->Primitive))
                 continue;
@@ -317,136 +302,23 @@ namespace nilou {
                 continue;
 
             uint32 ViewBits = 0;
-            FMeshElementCollector MeshCollector;
-            MeshCollector.PerViewPDI.resize(Views.size());
-            MeshCollector.PerViewMeshBatches.resize(Views.size());
+            FMeshElementCollector MeshCollector(ViewMeshBatches, ViewPDIs, PrimitiveInfo->SceneProxy);
             for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FViewInfo& ViewInfo = Views[ViewIndex];
-                MeshCollector.PerViewPDI[ViewIndex] = &ViewInfo.PDI;
-                bool bFrustumCulled = SceneViews[ViewIndex]->ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds());
+                FSceneView& View = Views[ViewIndex];
+                // It's a very simple frustum culling...
+                // TODO: BVH etc.
+                bool bFrustumCulled = View.ViewFrustum.IsBoxOutSideFrustum(PrimitiveInfo->SceneProxy->GetBounds());
                 if (!bFrustumCulled)
                     ViewBits |= (1 << ViewIndex);
             }
 
-            PrimitiveInfo->SceneProxy->GetDynamicMeshElements(SceneViews, ViewBits, MeshCollector);
-            
-            for (int ViewIndex = 0; ViewIndex < SceneViews.size(); ViewIndex++)
-            {
-                FViewInfo& ViewInfo = Views[ViewIndex];
-                for (FMeshBatch& Mesh : MeshCollector.PerViewMeshBatches[ViewIndex])
-                {
-                    AReflectionProbe* DefaultProbe = GetAppication()->GetWorld()->SkyboxReflectionProbe;
-                    FReflectionProbeSceneProxy* SkyBoxProbeProxy = nullptr;
-                    if (DefaultProbe && DefaultProbe->ReflectionProbeComponent)
-                        SkyBoxProbeProxy = DefaultProbe->ReflectionProbeComponent->SceneProxy;
-                    Mesh.Element.Bindings.SetElementShaderBinding(
-                        "FViewShaderParameters", 
-                        ViewInfo.ViewUniformBuffer->GetRHI());
-
-                    std::vector<std::pair<FReflectionProbeSceneProxy*, float>> ReflectionProbes;
-                    switch (PrimitiveInfo->SceneProxy->ReflectionProbeBlendMode)
-                    {
-                    case RPBM_Off:
-                    {
-                        if (SkyBoxProbeProxy)
-                            ReflectionProbes.push_back({SkyBoxProbeProxy, 1.0});
-                        break;
-                    }
-                    case RPBM_BlendProbes:
-                    {   
-                        for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
-                        {
-                            ReflectionProbes.push_back({ReflectionProbe->SceneProxy, factor});
-                        }
-                        break;
-                    }
-                    case RPBM_BlendProbesAndSkybox:
-                    {
-                        if (!PrimitiveInfo->ReflectionProbeFactors.empty())
-                        {
-                            for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
-                            {
-                                ReflectionProbes.push_back({ReflectionProbe->SceneProxy, factor});
-                            }
-                        }
-                        if (SkyBoxProbeProxy)
-                        {
-                            ReflectionProbes.push_back({SkyBoxProbeProxy, 1.0});
-                        }
-                        break;
-                    }
-                    case RPBM_Simple:
-                    {
-                        // use skybox as fallback
-                        FReflectionProbeSceneProxy* MaxFactorProxy = SkyBoxProbeProxy;
-                        float MaxFactor = -1;
-                        for (auto [ReflectionProbe, factor] : PrimitiveInfo->ReflectionProbeFactors)
-                        {
-                            if (factor > MaxFactor)
-                            {
-                                MaxFactor = factor;
-                                MaxFactorProxy = ReflectionProbe->SceneProxy;
-                            }
-                        }
-                        ReflectionProbes.push_back({MaxFactorProxy, 1.0});
-                        break;
-                    }
-                    }
-                    if (!ReflectionProbes.empty())
-                    {
-                        for (auto [ReflectionProbe, factor] : ReflectionProbes)
-                        {
-                            FMeshBatch NewMesh = Mesh;
-                            auto UniformBlock = BasePassUniformBlockManager::Get();
-                            UniformBlock->Data.MaterialShadingModel = (uint32)Mesh.MaterialRenderProxy->ShadingModel;
-                            UniformBlock->Data.PrefilterEnvTextureNumMips = static_cast<uint32>(ReflectionProbe->PrefilteredTexture->Texture->GetNumMips());
-                            UniformBlock->Data.ReflectionProbeFactor = factor;
-                            UniformBlock->UpdateUniformBuffer();
-
-                            NewMesh.Element.Bindings.SetElementShaderBinding(
-                                "PIXEL_UNIFORM_BLOCK", 
-                                UniformBlock->GetRHI());
-                            if (ReflectionProbe->bHasData)
-                            {
-                                NewMesh.Element.Bindings.SetElementShaderBinding(
-                                    "IrradianceTexture", 
-                                    ReflectionProbe->IrradianceTexture);
-                                NewMesh.Element.Bindings.SetElementShaderBinding(
-                                    "PrefilteredTexture", 
-                                    ReflectionProbe->PrefilteredTexture);
-                                NewMesh.Element.Bindings.SetElementShaderBinding(
-                                    "IBL_BRDF_LUT", 
-                                    IBL_BRDF_LUT->GetResource()->GetSamplerRHI());
-                                NewMesh.bEnableReflectionProbe = true;
-                            }
-                            else 
-                            {
-                                NewMesh.bEnableReflectionProbe = false;
-                            }
-                            
-                            Views[ViewIndex].DynamicMeshBatches.push_back(NewMesh);
-                        }
-                    }
-                    else 
-                    {
-                        auto UniformBlock = BasePassUniformBlockManager::Get();
-                        UniformBlock->Data.MaterialShadingModel = (uint32)Mesh.MaterialRenderProxy->ShadingModel;
-                        UniformBlock->Data.PrefilterEnvTextureNumMips = 1;
-                        UniformBlock->Data.ReflectionProbeFactor = 0;
-                        UniformBlock->UpdateUniformBuffer();
-                        Mesh.Element.Bindings.SetElementShaderBinding(
-                            "PIXEL_UNIFORM_BLOCK", 
-                            UniformBlock->GetRHI());
-                        Mesh.bEnableReflectionProbe = false;
-                        Views[ViewIndex].DynamicMeshBatches.push_back(Mesh);
-                    }
-                }
-            }
+            MeshCollector.PrimitiveSceneProxy = PrimitiveInfo->SceneProxy;
+            PrimitiveInfo->SceneProxy->GetDynamicMeshElements(Views, ViewBits, MeshCollector);
         }
     }
 
-    void FDefferedShadingSceneRenderer::Render()
+    void FDefferedShadingSceneRenderer::Render(RenderGraph& Graph)
     {
         FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
@@ -454,24 +326,24 @@ namespace nilou {
 
         UpdateReflectionProbeFactors();
 
-        InitViews(Scene);
+        InitViews(Graph);
 
-        RenderPreZPass(RHICmdList);
+        RenderPreZPass(Graph);
 
-        RenderCSMShadowPass(RHICmdList);
+        RenderCSMShadowPass(Graph);
 
-        RenderBasePass(RHICmdList);
+        RenderBasePass(Graph);
 
-        RenderLightingPass(RHICmdList);
+        RenderLightingPass(Graph);
 
-        RenderViewElementPass(RHICmdList);
+        RenderViewElementPass(Graph);
 
-        RenderToScreen(RHICmdList);
+        RenderToScreen(Graph);
 
         GetAppication()->GetPostRenderDelegate().Broadcast(RHICmdList, Scene);
 
-        ShadowMapResourcesPool.FreeAll();
-        SceneTexturesPool.FreeAll();
+        // ShadowMapResourcesPool.FreeAll();
+        // SceneTexturesPool.FreeAll();
     }
 
     float IntersectVolume(const FBoundingBox& box1, const FBoundingBox& box2)
@@ -522,121 +394,111 @@ namespace nilou {
         }
     }
     
-    void FDefferedShadingSceneRenderer::RenderToScreen(FDynamicRHI *RHICmdList)
+    void FDefferedShadingSceneRenderer::RenderToScreen(RenderGraph& Graph)
     {
         static auto UniformBlock = CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>();
         UniformBlock->InitResource();
         FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport.RenderTarget;
-        std::vector<RHIFramebuffer*> RenderTargetFramebuffers;
-        if (RenderTarget && RenderTarget->TextureType == ETextureDimension::TextureCube)
-        {
-            FTextureRenderTargetCubeResource* RenderTargetCube = RenderTarget->GetTextureRenderTargetCubeResource();
-            for (int i = 0; i < 6; i++)
-            {
-                RenderTargetFramebuffers.push_back(RenderTargetCube->RenderTargetFramebuffers[i].get());
-            }
-        }
-        else if (RenderTarget && RenderTarget->TextureType == ETextureDimension::Texture2D)
-        {
-            FTextureRenderTarget2DResource* RenderTarget2D = RenderTarget->GetTextureRenderTarget2DResource();
-            RenderTargetFramebuffers.push_back(RenderTarget2D->RenderTargetFramebuffer.get());
-        }
+        RenderTargetLayout RTLayout;
+        RTLayout.NumRenderTargetsEnabled = 1;
+        RTLayout.RenderTargetFormats[FA_Color_Attachment0] = RenderTarget->GetFormat();
+
+        // default sampler state of this pass
+        RHISamplerState* SamplerStateRHI = TStaticSamplerState<>::GetRHI();
+
+        // construct PSO initializer and create PSO
+        FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
+        FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
+        FShaderInstance *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
+        FShaderInstance *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
+        FGraphicsPipelineStateInitializer PSOInitializer;
+        PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
+        PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
+        PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
+        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
+        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+        PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
+        PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
+        PSOInitializer.RTLayout = RTLayout;
+        FRHIPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewInfo& ViewInfo = Views[ViewIndex];
-            FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
-            RHIFramebuffer* OutputRenderTarget = RHICmdList->GetRenderToScreenFramebuffer();
-            if (ViewIndex < RenderTargetFramebuffers.size())
-                OutputRenderTarget = RenderTargetFramebuffers[ViewIndex];
+            FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
+            std::unordered_map<EFramebufferAttachment, RDGTexture*> RenderTargets = { 
+                {FA_Color_Attachment0, SceneTextures.SceneColor} 
+            };
 
-            FRHIRenderPassInfo PassInfo(OutputRenderTarget, ViewInfo.ScreenResolution, true, true, true);
-            RHICmdList->RHIBeginRenderPass(PassInfo);
+            RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet<FRenderToScreenPixelShader>(0, 0);
+            RDGBuffer* UniformBlock = Graph.CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>("FRenderToScreenPixelShader UniformBlock");
+            auto UniformBlockData = UniformBlock->GetData<FRenderToScreenPixelShader::UniformBlock>();
+            if (ViewFamily.bIsSceneCapture)
             {
-                
-                FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
-                
-                FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
-
-                FShaderInstance *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
-                FShaderInstance *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
-                
-                FGraphicsPipelineStateInitializer PSOInitializer;
-
-                PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
-                PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
-
-                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
-
-                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
-                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
-                PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
-
-                PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
-
-                PSOInitializer.BuildRenderTargetFormats(OutputRenderTarget);
-
-                FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
-                
-                RHIGetError();
-                RHICmdList->RHISetGraphicsPipelineState(PSO);
-                RHIGetError();
-
-                RHICmdList->RHISetStreamSource(0, PositionVertexBuffer.VertexBufferRHI.get(), 0);
-                RHICmdList->RHISetStreamSource(1, UVVertexBuffer.VertexBufferRHI.get(), 0);
-
-                if (ViewFamily.bIsSceneCapture)
+                if (ViewFamily.CaptureSource == SCS_SceneDepth)
                 {
-                    if (ViewFamily.CaptureSource == SCS_SceneDepth)
-                    {
-                        UniformBlock->Data.GammaCorrection = 1.f;
-                        UniformBlock->Data.bEnableToneMapping = 0;
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "SceneColor", 
-                            FRHISampler(SceneTextures->DepthStencil));
-                    }
-                    else if (ViewFamily.CaptureSource == SCS_LinearColor)
-                    {
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "SceneColor", 
-                            FRHISampler(SceneTextures->SceneColor));
-                        UniformBlock->Data.GammaCorrection = 1.f;
-                        UniformBlock->Data.bEnableToneMapping = 0;
-                    }
-                    else if (ViewFamily.CaptureSource == SCS_GammaColor)
-                    {
-                        RHICmdList->RHISetShaderSampler(
-                            PSO, EPipelineStage::PS_Pixel, 
-                            "SceneColor", 
-                            FRHISampler(SceneTextures->SceneColor));
-                        UniformBlock->Data.GammaCorrection = ViewFamily.GammaCorrection;
-                        UniformBlock->Data.bEnableToneMapping = 1;
-                    }
-                    else 
-                    {
-                        NILOU_LOG(Error, "Unknown scene capture source");
-                    }
+                    UniformBlockData->GammaCorrection = 1.f;
+                    UniformBlockData->bEnableToneMapping = 0;
+                    DescriptorSetPS->SetSampler(
+                        "SceneColor", SamplerStateRHI, 
+                        SceneTextures.DepthStencil);
+                }
+                else if (ViewFamily.CaptureSource == SCS_LinearColor)
+                {
+                    UniformBlockData->GammaCorrection = 1.f;
+                    UniformBlockData->bEnableToneMapping = 0;
+                    DescriptorSetPS->SetSampler(
+                        "SceneColor", SamplerStateRHI, 
+                        SceneTextures.SceneColor);
+                }
+                else if (ViewFamily.CaptureSource == SCS_GammaColor)
+                {
+                    UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
+                    UniformBlockData->bEnableToneMapping = 1;
+                    DescriptorSetPS->SetSampler(
+                        "SceneColor", SamplerStateRHI, 
+                        SceneTextures.SceneColor);
                 }
                 else 
                 {
-                    RHICmdList->RHISetShaderSampler(
-                        PSO, EPipelineStage::PS_Pixel, 
-                        "SceneColor", 
-                        FRHISampler(SceneTextures->SceneColor));
-                    UniformBlock->Data.GammaCorrection = ViewFamily.GammaCorrection;
-                    UniformBlock->Data.bEnableToneMapping = ViewFamily.bEnableToneMapping;
+                    Ncheckf(false, "Unknown scene capture source");
                 }
-                UniformBlock->UpdateUniformBuffer();
-                RHICmdList->RHISetShaderUniformBuffer(
-                    PSO, EPipelineStage::PS_Pixel, 
-                    "PIXEL_UNIFORM_BLOCK", 
-                    UniformBlock->GetRHI());
-
-                RHICmdList->RHIDrawArrays(0, 4);
             }
-            RHICmdList->RHIEndRenderPass();
+            else 
+            {
+                UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
+                UniformBlockData->bEnableToneMapping = ViewFamily.bEnableToneMapping;
+                DescriptorSetPS->SetSampler(
+                    "SceneColor", SamplerStateRHI, 
+                    SceneTextures.SceneColor);
+            }
+            DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBlock);
+            RDGGraphicsPassDesc PassDesc{};
+            PassDesc.DescriptorSets = { DescriptorSetPS };
+            PassDesc.RenderTargets = RenderTargets;
+            Graph.AddGraphicsPass(
+                PassDesc,
+                [=](RHICommandList& RHICmdList)
+                {
+                    // FRHIRenderPassInfo PassInfo(OutputRenderTarget, ViewInfo.ScreenResolution, true, true, true);
+                    // RHICmdList->RHIBeginRenderPass(PassInfo);
+                    {
+                        RHIGetError();
+                        RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Graphics);
+                        RHIGetError();
+
+                        RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->GetRHI(), 0);
+                        RHICmdList.BindVertexBuffer(1, UVVertexBuffer.VertexBufferRDG->GetRHI(), 0);
+
+                        RHICmdList.BindDescriptorSets(
+                            PSO->GetPipelineLayout(), 
+                            { {0, DescriptorSetPS->GetRHI()} }, 
+                            EPipelineBindPoint::Graphics);
+
+                        RHICmdList.DrawArrays(4, 1, 0, 0);
+                    }
+                    // RHICmdList.RHIEndRenderPass();
+                }
+            );
         }
 
 

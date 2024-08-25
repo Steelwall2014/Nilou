@@ -11,6 +11,7 @@
 #include "RHIResources.h"
 #include "RenderResource.h"
 #include "RenderingThread.h"
+#include "RenderGraphResources.h"
 namespace nilou {
 
     enum class EImageType
@@ -63,13 +64,11 @@ namespace nilou {
             , Height(InHeight)
             , Depth(InDepth)
             , PixelFormat(InPixelFormat)
-            , NumMips(InNumMips)
             , ImageType(InImageType)
         {
             Channel = TranslatePixelFormatToChannel(PixelFormat);
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
             Data.BufferSize = BytePerPixel * Width * Height * Depth;
-            Data.BufferSize = Data.BufferSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
         }
 
         uint32 GetWidth() const { return Width; }
@@ -82,11 +81,9 @@ namespace nilou {
 
         uint32 GetNumLayers() const { return Depth; }
 
-        uint32 GetNumMips() const { return NumMips; }
-
         uint64 GetDataSize() const { return Data.BufferSize; }
 
-        uint64 GetActualDataSize() const { return ActualDataSize; }
+        uint64 GetAllocatedDataSize() const { return AllocatedDataSize; }
 
         uint8* GetData() { return Data.Buffer.get(); }
 
@@ -97,30 +94,26 @@ namespace nilou {
         void AllocateSpace()
         {
             Data.Buffer = std::make_shared<unsigned char[]>(Data.BufferSize);
-            ActualDataSize = Data.BufferSize;
+            AllocatedDataSize = Data.BufferSize;
         }
 
         void ConservativeAllocateSpace()
         {
             auto NewData = std::make_shared<unsigned char[]>(Data.BufferSize);
-            std::copy(Data.Buffer.get(), Data.Buffer.get()+glm::min((uint64)Data.BufferSize, ActualDataSize), NewData.get());
+            std::copy(Data.Buffer.get(), Data.Buffer.get()+glm::min((uint64)Data.BufferSize, AllocatedDataSize), NewData.get());
             Data.Buffer = NewData;
-            ActualDataSize = Data.BufferSize;
+            AllocatedDataSize = Data.BufferSize;
         }
 
-        void* GetPointer(int Row, int Column, int Layer, int MipIndex=0)
+        void* GetPointer(int Row, int Column, int Layer)
         {
             if (Data.Buffer == nullptr)
                 return nullptr;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
-            uint64 MipmapOffset = BytePerPixel * Width * Height * Channel * Depth;
-            MipmapOffset = MipmapOffset * (1.0 - pow(0.25, MipIndex)) / (1.0 - 0.25);
             uint64 LayerOffset = Width * Height * Channel * Layer;
-            int mip_width = Width >> MipIndex;
-            int mip_height = Height >> MipIndex;
-            if (Row >= mip_height || Column >= mip_width || Layer >= Depth)
+            if (Row >= Height || Column >= Width || Layer >= Depth)
                 return nullptr;
-            uint64 offset = (Row * mip_width + Column) * BytePerPixel + LayerOffset + MipmapOffset;
+            uint64 offset = (Row * Width + Column) * BytePerPixel + LayerOffset;
             if (offset >= Data.BufferSize)
                 return nullptr;
             return Data.Buffer.get() + offset;
@@ -132,10 +125,8 @@ namespace nilou {
          * If parameter NewNumMips is not greater than zero, then the mipmap level 
          * will not be resized. Ditto for NewChannel.
          */
-        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1, int32 NewNumMips=-1)
+        void Resize(uint32 NewWidth, uint32 NewHeight, uint32 NewDepth, uint32 NewChannel=-1)
         {
-            if (NewNumMips > 0)
-                NumMips = NewNumMips;
             if (NewChannel > 0)
                 Channel = NewChannel;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
@@ -143,7 +134,6 @@ namespace nilou {
             Height = NewHeight;
             Depth = NewDepth;
             Data.BufferSize = BytePerPixel * Width * Height * Channel * Depth;
-            Data.BufferSize = Data.BufferSize * (1.0 - pow(0.25, NumMips)) / (1.0 - 0.25);
         }
 
         NPROPERTY()
@@ -159,9 +149,6 @@ namespace nilou {
         uint32 Depth = 0;
 
         NPROPERTY()
-        uint32 NumMips = 0;
-
-        NPROPERTY()
         FBinaryBuffer Data;
 
         NPROPERTY()
@@ -170,7 +157,7 @@ namespace nilou {
         NPROPERTY()
         EImageType ImageType;
 
-        uint64 ActualDataSize = 0;
+        uint64 AllocatedDataSize = 0;
 	};
 
     // class FImage2D : public FImage
@@ -314,9 +301,11 @@ namespace nilou {
     class FTexture : public FRenderResource
     {
 	public:
-        RHITextureRef TextureRHI;
+        RDGTextureRef TextureRDG;
 
-        FRHISampler SamplerRHI;
+        RHISamplerStateRef SamplerStateRHI;
+
+        RHISampler SamplerRHI;
 
         std::string Name;
 
@@ -330,7 +319,6 @@ namespace nilou {
 
         virtual ~FTexture() { ReleaseResource(); }
 		
-        virtual void InitRHI() override;
         virtual void ReleaseRHI() override;
 
         /**
@@ -341,51 +329,68 @@ namespace nilou {
          */
         void SetData(FImage* InImage);
 
-        FRHISampler *GetSamplerRHI()
+        RHISampler GetSamplerRHI()
         {
-            return &SamplerRHI;
+            return SamplerRHI;
         }
 
-        void SetSamplerParams(const RHITextureParams &InTextureParams)
+        void SetSamplerState(const FSamplerStateInitializer &InSamplerState)
         {
-            SamplerRHI.SamplerState = GetSamplerStateRHI(InTextureParams);
+            SamplerStateRHI = RHICreateSamplerState(InSamplerState);
+            SamplerRHI.SamplerState = SamplerStateRHI.get();
         }
 
         /** Returns the width of the texture in pixels. */
         uint32 GetSizeX() const
         {
-            if (TextureRHI)
-                return TextureRHI->GetSizeXYZ().x;
+            if (TextureRDG)
+                return TextureRDG->Desc.SizeX;
             return 0;
         }
         /** Returns the height of the texture in pixels. */
         uint32 GetSizeY() const
         {
-            if (TextureRHI)
-                return TextureRHI->GetSizeXYZ().y;
+            if (TextureRDG)
+                return TextureRDG->Desc.SizeY;
             return 0;
         }
         /** Returns the depth of the texture in pixels. */
         uint32 GetSizeZ() const
         {
-            if (TextureRHI)
-                return TextureRHI->GetSizeXYZ().z;
+            if (TextureRDG)
+                return TextureRDG->Desc.SizeZ;
             return 0;
+        }
+        uint32 GetNumLayers() const
+        {
+            if (TextureRDG)
+                return TextureRDG->Desc.ArraySize;
+            return 0;
+        }
+
+        RDGTexture* GetTextureRDG() const
+        {
+            return TextureRDG.get();
+        }
+
+        RHISamplerState* GetSamplerState() const
+        {
+            return SamplerStateRHI.get();
+        }
+
+        EPixelFormat GetFormat() const
+        {
+            return TextureRDG->Desc.Format;
         }
 
     protected:
 
-		FTexture(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
+		FTexture(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
             : NumMips(InNumMips)
             , Name(InName)
         { 
-            SamplerRHI.SamplerState = GetSamplerStateRHI(InTextureParams);
+            SetSamplerState(InSamplerState);
             SamplerRHI.Texture = nullptr;
-        }
-
-        RHISamplerState* GetSamplerStateRHI(const RHITextureParams& InTextureParams)
-        {
-            return FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(InTextureParams).get();
         }
 
         FImage* Image;
@@ -396,8 +401,8 @@ namespace nilou {
     {
     public:
 
-        FTextureResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTexture(InName, InTextureParams, InNumMips)
+        FTextureResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTexture(InName, InSamplerState, InNumMips)
         { }
 
 	    // Dynamic cast methods.
@@ -452,11 +457,11 @@ namespace nilou {
         FImage ImageData;
 
         /**
-         * Modify the values of TextureParams and then call UpdateResource() 
+         * Modify the values of SamplerState and then call UpdateResource() 
          * to update sampler parameters
          */
         NPROPERTY()
-        RHITextureParams TextureParams;
+        FSamplerStateInitializer SamplerState;
 
         /**
          * Modify the values of NumMips and then call UpdateResource() 
@@ -510,10 +515,6 @@ namespace nilou {
                 return TextureResource->GetSizeZ();
             return 0;
         }
-        uint32 GetImageNumMips()
-        {
-            return ImageData.GetNumMips();
-        }
 
         /**
          * Implemented by subclasses to create a new resource for the texture.
@@ -562,7 +563,7 @@ namespace nilou {
          * Implemented by subclasses to read pixels from GPU.
          * The readed pixels will be stored in ImageData
          */
-        virtual void ReadPixelsRenderThread(FDynamicRHI* RHICmdList) { }
+        virtual void ReadPixelsRenderThread(class RHICommandListImmediate& RHICmdList) { }
 
         /**
          * Read pixels from GPU. It will block the thread calling it.

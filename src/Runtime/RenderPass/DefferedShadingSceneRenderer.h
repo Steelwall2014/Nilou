@@ -29,210 +29,29 @@ namespace nilou {
     public:
         void AddMeshDrawCommand(const FMeshDrawCommand &MeshDrawCommand);
         void Clear();
-        void DispatchDraw(FDynamicRHI *RHICmdList);
+        void DispatchDraw(RHICommandList& RHICmdList) const;
     private:
         std::vector<FMeshDrawCommand> MeshCommands;
     };
 
-    class FShadowMapMeshDrawCommands
-    {
-    public:
-        FShadowMapMeshDrawCommands(int LightFrustumSize)
-        {
-            for (int i = 0; i < LightFrustumSize; i++)
-                DrawCommands.push_back(FParallelMeshDrawCommands());
-        }
-        std::vector<FParallelMeshDrawCommands> DrawCommands;
-    };
-
-    class FShadowMapMeshBatches
-    {
-    public:
-        FShadowMapMeshBatches(int LightFrustumSize)
-        {
-            for (int i = 0; i < LightFrustumSize; i++)
-                MeshBatches.push_back(std::vector<FMeshBatch>());
-        }
-        std::vector<std::vector<FMeshBatch>> MeshBatches;
-    };
-
-    struct SceneTextureCreateInfo
-    {
-        ivec2 OutputResolution=ivec2(1920, 1080);
-        bool operator<(const SceneTextureCreateInfo& Other) const
-        {
-            return std::make_pair(OutputResolution.x, OutputResolution.y) < 
-                   std::make_pair(Other.OutputResolution.x, Other.OutputResolution.y);
-        }
-    };
-
-    class FSceneTextures
-    {
-    public:
-        FSceneTextures(const SceneTextureCreateInfo &CreateInfo);
-        virtual ~FSceneTextures()
-        {
-            SceneColor = nullptr;
-            DepthStencil = nullptr;
-            LightPassFramebuffer = nullptr;
-        }
-        ivec2 Viewport;
-        RHITexture2DRef SceneColor;
-        RHITexture2DRef DepthStencil;
-        RHIFramebufferRef LightPassFramebuffer;
-    };
-
-    class FSceneTexturesDeffered : public FSceneTextures
-    {
-    public:
-        FSceneTexturesDeffered(const SceneTextureCreateInfo &CreateInfo);
-        virtual ~FSceneTexturesDeffered()
-        {
-            PreZPassFramebuffer = nullptr;
-            GeometryPassFramebuffer = nullptr;
-            BaseColor = nullptr;
-            RelativeWorldSpacePosition = nullptr;
-            WorldSpaceNormal = nullptr;
-            MetallicRoughness = nullptr;
-            Emissive = nullptr;
-            ShadingModel = nullptr;
-        }
-        RHIFramebufferRef PreZPassFramebuffer;
-        RHIFramebufferRef GeometryPassFramebuffer;
-        RHITexture2DRef BaseColor;
-        RHITexture2DRef RelativeWorldSpacePosition;
-        RHITexture2DRef WorldSpaceNormal;
-        RHITexture2DRef MetallicRoughness;
-        RHITexture2DRef Emissive;
-        RHITexture2DRef ShadingModel;
-    };
-
-
-    struct ShadowMapResourceCreateInfo
-    {
-        ivec2 ShadowMapResolution=ivec2(2048, 2048);
-        ELightType LightType;
-        bool operator<(const ShadowMapResourceCreateInfo& Other) const
-        {
-            return std::make_tuple(ShadowMapResolution.x, ShadowMapResolution.y, LightType) < 
-                   std::make_tuple(Other.ShadowMapResolution.x, Other.ShadowMapResolution.y, Other.LightType);
-        }
-    };
-
-    class FShadowMapTexture
-    {
-    public:
-        FShadowMapTexture(const ShadowMapResourceCreateInfo &CreateInfo);
-        ~FShadowMapTexture()
-        {
-            ShadowMapFramebuffers.clear();
-            DepthViews.clear();
-            DepthArray = nullptr;
-        }
-        RHIFramebuffer* GetFramebufferByIndex(int32 FrustumIndex) const { return ShadowMapFramebuffers[FrustumIndex].get(); }
-        std::vector<RHIFramebufferRef> ShadowMapFramebuffers;
-        std::vector<RHITexture2DRef> DepthViews;
-        RHITexture2DArrayRef DepthArray;
-    };
-
-    class FShadowMapUniformBuffer
-    {
-    public:
-
-        FShadowMapUniformBuffer(const ShadowMapResourceCreateInfo &CreateInfo);
-
-        ~FShadowMapUniformBuffer()
-        {
-            UniformBuffer = nullptr;
-        }
-
-        template<typename T>
-        TUniformBuffer<T> *Cast()
-        {
-            return reinterpret_cast<TUniformBuffer<T>*>(UniformBuffer.get());
-        }
-
-        std::shared_ptr<FUniformBuffer> UniformBuffer;
-
-        int FrustumCount;
-    };
-    
     class FShadowMapResource
     {
     public:
-        FShadowMapResource(const ShadowMapResourceCreateInfo& CreateInfo);
-        FShadowMapTexture ShadowMapTexture;
-        FShadowMapUniformBuffer ShadowMapUniformBuffer;
-    };
-
-
-    class FViewInfo : public FSceneView
-    {
-    public:
-
-        FViewInfo()
-        { }
-
-        FViewInfo(const FSceneView* View)
-            : FSceneView(*View)
-        { }
-
-        FParallelMeshDrawCommands MeshDrawCommands;
-
-        FViewElementPDI PDI;
-
-        FSceneTextures* SceneTextures;
-
+        std::vector<RDGTexture*> DepthViews;
+        RDGTexture* DepthArray;
+        RDGBuffer* ShadowMapUniformBuffer;
+        std::vector<FShadowMappingParameters> Frustums;
     };
 
     class FLightInfo
     {
     public:
 
-        FLightInfo()
-        { }
+        std::vector<FShadowMapResource> ShadowMapResources;
 
-        FLightInfo(FLightSceneProxy* InLightSceneProxy, int32 NumViews, TUniformBufferRef<FLightShaderParameters> InLightUniformBuffer)
-            : LightSceneProxy(InLightSceneProxy)
-            , LightUniformBuffer(InLightUniformBuffer)
-        { 
-            int32 LightFrustumSize;
-            switch (InLightSceneProxy->LightType) 
-            {
-            case ELightType::LT_Directional:
-                LightFrustumSize = CASCADED_SHADOWMAP_SPLIT_COUNT;
-                /** 
-                 * The number of shadow maps for directional lights is 
-                 * relevant to the number of views, so NumViews is required. 
-                 */
-                break;
-            case ELightType::LT_Point:
-                LightFrustumSize = 6;
-                NumViews = 1;
-                break;
-            case ELightType::LT_Spot:
-                LightFrustumSize = 1;
-                NumViews = 1;
-                break;
-                /** 
-                 * The number of shadow maps for spot/point lights is 
-                 * irrelevant to the number of views, so NumViews is 1. 
-                 */
-            default:
-                return;
-            }
-            ShadowMapMeshDrawCommands = std::vector<FShadowMapMeshDrawCommands>(NumViews, FShadowMapMeshDrawCommands(LightFrustumSize));
-            ShadowMapMeshBatches = std::vector<FShadowMapMeshBatches>(NumViews, FShadowMapMeshBatches(LightFrustumSize));
-            ShadowMapResources = std::vector<FShadowMapResource*>(NumViews);
-        }
+        RDGBuffer* LightUniformBuffer;
 
-        std::vector<FShadowMapMeshDrawCommands> ShadowMapMeshDrawCommands;
-
-        std::vector<FShadowMapMeshBatches> ShadowMapMeshBatches;
-
-        std::vector<FShadowMapResource*> ShadowMapResources;
-
-        TUniformBufferRef<FLightShaderParameters> LightUniformBuffer;
+        ELightType LightType;
 
         FLightSceneProxy* LightSceneProxy;
 
@@ -242,23 +61,28 @@ namespace nilou {
     {
     public:
 
-        FSceneRenderer(FSceneViewFamily* InViewFamily);
+        FSceneRenderer(FSceneViewFamily& InViewFamily);
 
         /** The scene being rendered. */
         FScene* Scene;
 
         /** The view family being rendered.  This references the Views array. */
-        FSceneViewFamily ViewFamily;
+        FSceneViewFamily& ViewFamily;
 
         /** The views being rendered. */
-        std::vector<FViewInfo> Views;
+        std::vector<FSceneView>& Views;
+        std::vector<FViewElementPDI> ViewPDIs;
+        std::vector<std::vector<FMeshBatch>> ViewMeshBatches;
+        std::vector<FParallelMeshDrawCommands> ViewMeshDrawCommands;
 
         /** The lights being rendered. */
         std::vector<FLightInfo> Lights;
 
-        virtual void Render() = 0;
+        std::vector<FParallelMeshDrawCommands> MeshDrawCommands;
 
-        static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily* ViewFamily);
+        virtual void Render(RenderGraph& Graph) = 0;
+
+        static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily& ViewFamily);
 
         class FScreenQuadPositionVertexBuffer : public FVertexBuffer
         {
@@ -270,11 +94,7 @@ namespace nilou {
                 Vertices[2] = vec4(1, 1, 0, 1);
                 Vertices[3] = vec4(1, -1, 0, 1);
             }
-            virtual void InitRHI() override
-            {
-                FVertexBuffer::InitRHI();
-                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(vec4), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
-            }
+
         private:
             vec4 Vertices[4];
         };
@@ -289,11 +109,7 @@ namespace nilou {
                 Vertices[2] = vec2(1, 1);
                 Vertices[3] = vec2(1, 0);
             }
-            virtual void InitRHI() override
-            {
-                FVertexBuffer::InitRHI();
-                VertexBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(sizeof(vec2), sizeof(Vertices), EBufferUsageFlags::VertexBuffer | EBufferUsageFlags::Static, Vertices);
-            }
+ 
         private:
             vec2 Vertices[4];
         };
@@ -302,68 +118,68 @@ namespace nilou {
         static FScreenQuadUVVertexBuffer UVVertexBuffer;
         static FRHIVertexDeclaration* ScreenQuadVertexDeclaration;
 
-        template <typename TResource, typename TCreateInfo>
-        class TResourcesPool
-        {
-        public:
+        // template <typename TResource, typename TCreateInfo>
+        // class TResourcesPool
+        // {
+        // public:
 
-            /** Allocate a resource with given CreateInfo */
-            TResource* Alloc(const TCreateInfo& CreateInfo)
-            {
-                auto iter = FreeResourcesMap.find(CreateInfo);
-                TResource* Resource;
-                if (iter != FreeResourcesMap.end() && !iter->second.empty())
-                {
-                    auto& stk = iter->second;
-                    Resource = stk.back(); stk.pop_back();
-                    OccupiedResourcesMap[Resource] = CreateInfo;
-                    // FreeResourcesMap.erase(iter);
-                }
-                else 
-                {
-                    Resource = new TResource(CreateInfo);
-                    OccupiedResourcesMap[Resource] = CreateInfo;
-                }
-                return Resource;
-            }
+        //     /** Allocate a resource with given CreateInfo */
+        //     TResource* Alloc(const TCreateInfo& CreateInfo)
+        //     {
+        //         auto iter = FreeResourcesMap.find(CreateInfo);
+        //         TResource* Resource;
+        //         if (iter != FreeResourcesMap.end() && !iter->second.empty())
+        //         {
+        //             auto& stk = iter->second;
+        //             Resource = stk.back(); stk.pop_back();
+        //             OccupiedResourcesMap[Resource] = CreateInfo;
+        //             // FreeResourcesMap.erase(iter);
+        //         }
+        //         else 
+        //         {
+        //             Resource = new TResource(CreateInfo);
+        //             OccupiedResourcesMap[Resource] = CreateInfo;
+        //         }
+        //         return Resource;
+        //     }
 
-            void FreeAll()
-            {
-                for (auto &[Resource, CreateInfo] : OccupiedResourcesMap)
-                    Free(Resource);
-            }
+        //     void FreeAll()
+        //     {
+        //         for (auto &[Resource, CreateInfo] : OccupiedResourcesMap)
+        //             Free(Resource);
+        //     }
 
-            /** Return the given resource to the pool */
-            void Free(TResource* Resource)
-            {
-                const TCreateInfo& CreateInfo = OccupiedResourcesMap[Resource];
-                FreeResourcesMap[CreateInfo].push_back(Resource);
-                // FreeResourcesMap.insert({CreateInfo, Resource});
-                OccupiedResourcesMap.erase(Resource);
-            }
+        //     /** Return the given resource to the pool */
+        //     void Free(TResource* Resource)
+        //     {
+        //         const TCreateInfo& CreateInfo = OccupiedResourcesMap[Resource];
+        //         FreeResourcesMap[CreateInfo].push_back(Resource);
+        //         // FreeResourcesMap.insert({CreateInfo, Resource});
+        //         OccupiedResourcesMap.erase(Resource);
+        //     }
 
-            /** Release all resources */
-            void ReleaseAll()
-            {
-                assert(OccupiedResourcesMap.size() == 0);
-                for (auto& [CreateInfo, stk] : FreeResourcesMap)
-                {
-                    for (auto& res : stk)
-                    {
-                        delete res;
-                    }
-                }
-                FreeResourcesMap.clear();
-            }
+        //     /** Release all resources */
+        //     void ReleaseAll()
+        //     {
+        //         assert(OccupiedResourcesMap.size() == 0);
+        //         for (auto& [CreateInfo, stk] : FreeResourcesMap)
+        //         {
+        //             for (auto& res : stk)
+        //             {
+        //                 delete res;
+        //             }
+        //         }
+        //         FreeResourcesMap.clear();
+        //     }
 
-        private:
-            std::map<TResource*, TCreateInfo> OccupiedResourcesMap;
-            std::map<TCreateInfo, std::vector<TResource*>> FreeResourcesMap;
-        };
+        // private:
+        //     std::map<TResource*, TCreateInfo> OccupiedResourcesMap;
+        //     std::map<TCreateInfo, std::vector<TResource*>> FreeResourcesMap;
+        // };
 
-        static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;
+        // static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;
 
-        static TResourcesPool<FSceneTexturesDeffered, SceneTextureCreateInfo> SceneTexturesPool;
+        // static TResourcesPool<FSceneTexturesDeffered, SceneTextureCreateInfo> SceneTexturesPool;
 
     };
 
@@ -371,29 +187,45 @@ namespace nilou {
     {
     public:
 
-        FDefferedShadingSceneRenderer(FSceneViewFamily* ViewFamily);
+        struct FSceneTextures
+        {
+            ivec2 Viewport;
+            RDGTexture* SceneColor;
+            RDGTexture* DepthStencil;
 
-        virtual void Render() override;
+            RDGTexture* BaseColor;
+            RDGTexture* RelativeWorldSpacePosition;
+            RDGTexture* WorldSpaceNormal;
+            RDGTexture* MetallicRoughness;
+            RDGTexture* Emissive;
+            RDGTexture* ShadingModel;
+        };
+
+        FDefferedShadingSceneRenderer(FSceneViewFamily& ViewFamily);
+
+        virtual void Render(RenderGraph& Graph) override;
 
     private:
 
-        void InitViews(FScene *Scene);
+        std::vector<FSceneTextures> ViewSceneTextures;
 
-        void ComputeViewVisibility(FScene *Scene, const std::vector<FSceneView*> &SceneViews);
+        void InitViews(RenderGraph& Graph);
+
+        void ComputeViewVisibility();
         
-        void RenderPreZPass(FDynamicRHI *RHICmdList);
+        void RenderPreZPass(RenderGraph& Graph);
         
-        void RenderCSMShadowPass(FDynamicRHI *RHICmdList);
+        void RenderCSMShadowPass(RenderGraph& Graph);
 
-        void RenderBasePass(FDynamicRHI *RHICmdList);
+        void RenderBasePass(RenderGraph& Graph);
 
-        void RenderIndirectLightingPass(FDynamicRHI *RHICmdList);
+        void RenderIndirectLightingPass(RenderGraph& Graph);
 
-        void RenderLightingPass(FDynamicRHI *RHICmdList);
+        void RenderLightingPass(RenderGraph& Graph);
 
-        void RenderViewElementPass(FDynamicRHI *RHICmdList);
+        void RenderViewElementPass(RenderGraph& Graph);
 
-        void RenderToScreen(FDynamicRHI *RHICmdList);
+        void RenderToScreen(RenderGraph& Graph);
 
         void UpdateReflectionProbeFactors();
 

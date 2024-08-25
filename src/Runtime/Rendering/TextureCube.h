@@ -13,7 +13,7 @@ namespace nilou {
             TextureType = ETextureDimension::TextureCube;
         }
 
-        virtual void InitRHI() override;
+        virtual void InitRHI(RenderGraph&) override;
 
 	    virtual FTextureCubeResource* GetTextureCubeResource() override { return this; }
 	    virtual const FTextureCubeResource* GetTextureCubeResource() const override { return this; }

@@ -126,11 +126,10 @@ namespace nilou {
             GetComponentLocation(), 
             GetForwardVector(), 
             GetUpVector(),
-            ivec2(Viewport.Width, Viewport.Height), 
-            ViewUniformBuffer);  
-        ViewFamily.Views.push_back(&SceneView);   
+            ivec2(Viewport.Width, Viewport.Height));  
+        ViewFamily.Views.push_back(SceneView);   
 
-        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(&ViewFamily);
+        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_UpdateSceneCaptureContents)(
             [SceneRenderer](FDynamicRHI*) 
@@ -253,23 +252,21 @@ namespace nilou {
             };
         }
 
-        std::vector<FSceneView> SceneViews;
-        SceneViews.reserve(ViewUniformBuffers.size());
+        std::vector<FSceneView>& SceneViews = ViewFamily.Views;
         for (int i = 0; i < ViewUniformBuffers.size(); i++)
         {
-            SceneViews.emplace_back(
+            FSceneView View(
                 ECameraProjectionMode::Perspective,
                 glm::radians(90.0), 0,
                 0.1, 30000, 
                 Position, 
                 ForwardVectors[i], 
                 UpVectors[i],
-                ivec2(Viewport.Width, Viewport.Height), 
-                ViewUniformBuffers[i]);  
-            ViewFamily.Views.push_back(&SceneViews[i]); 
+                ivec2(Viewport.Width, Viewport.Height));
+            SceneViews.push_back(View);
         }  
 
-        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(&ViewFamily);
+        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_UpdateSceneCaptureContents)(
             [SceneRenderer](FDynamicRHI*) 

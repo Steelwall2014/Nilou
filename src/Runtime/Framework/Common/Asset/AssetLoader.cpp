@@ -34,7 +34,7 @@ namespace nilou {
 
     EPixelFormat TranslateToEPixelFormat(int channel, int bits, int pixel_type)
     {
-        EPixelFormat PixelFormat = EPixelFormat::PF_UNKNOWN;
+        EPixelFormat PixelFormat = EPixelFormat::PF_Unknown;
         if (channel == 1)
         {
             switch (pixel_type)

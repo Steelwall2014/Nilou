@@ -1,8 +1,11 @@
 #include "Texture2D.h"
+#include "RenderGraph.h"
+#include "RHICommandList.h"
+#include "GenerateMips.h"
 
 namespace nilou {
 
-    void FTexture2DResource::InitRHI()
+    void FTexture2DResource::InitRHI(RenderGraph& Graph)
     {
         if (Image && Image->GetImageType() != EImageType::IT_Image2D)
         {
@@ -15,39 +18,69 @@ namespace nilou {
 
         RHIGetError();
 
-        FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-        FTextureResource::InitRHI();
-        auto Texture2DRHI = RHICmdList->RHICreateTexture2D(
-            Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight(), TexCreate_CPUWritable | TexCreate_UAV);
-        for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
-        {
-            RHICmdList->RHIUpdateTexture2D(Texture2DRHI.get(), 
-                0, 0, Image->GetWidth(), Image->GetHeight(), 
-                MipIndex, Image->GetPointer(0, 0, 0, MipIndex));
-        }
-        if (NumMips > Image->GetNumMips())
-            RHICmdList->RHIGenerateMipmap(Texture2DRHI);
+        RDGTextureDesc Desc{};
+        Desc.Format = Image->GetPixelFormat();
+        Desc.SizeX = Image->GetWidth();
+        Desc.SizeY = Image->GetHeight();
+        Desc.NumMips = NumMips;
+        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
+
+        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
+            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
+            RDGBufferDesc(Image->GetDataSize()));
+
+        RDGCopyPassDesc PassDesc{};
+        PassDesc.Source = StagingBuffer;
+        PassDesc.Destination = TextureRDG.get();
+        PassDesc.bNeverCull = true;
+        Graph.AddCopyPass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
+            {
+                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
+                void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
+                    std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
+                RHIUnmapMemory(StagingBufferRHI);
+
+                RHITexture* TextureRHI = TextureRDG->GetRHI();
+                RHICmdList.CopyBufferToImage(StagingBufferRHI, TextureRHI, 
+                    0,                      // mipmap level
+                    0, 0, 0,                // x, y, z offset
+                    Image->GetWidth(),      // width
+                    Image->GetHeight(),     // height
+                    1,                      // depth
+                    0);                     // array layer
+            });
+        
+        FGenerateMips::Execute(Graph, TextureRDG.get(), SamplerStateRHI.get());
 
         RHIGetError();
-
-        TextureRHI = Texture2DRHI;
-        SamplerRHI.Texture = TextureRHI.get();
     }
 
     FTextureResource* UTexture2D::CreateResource()
     {
-        FTexture2DResource* Resource = new FTexture2DResource(Name, TextureParams, NumMips);
+        FTexture2DResource* Resource = new FTexture2DResource(Name, SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }
 
-    void UTexture2D::ReadPixelsRenderThread(FDynamicRHI* RHICmdList)
+    void UTexture2D::ReadPixelsRenderThread(RHICommandListImmediate& RHICmdList)
     {
-        uint8* data = RHICmdList->RHIReadImagePixel(std::static_pointer_cast<RHITexture2D>(GetResource()->TextureRHI));
+        // TODO: Texture layout
+        RHIBufferRef StagingBuffer = RHICreateBuffer(0, ImageData.GetDataSize(), EBufferUsageFlags::None, nullptr);
+        RHITexture* TextureRHI = GetResource()->TextureRDG->GetRHI();
+        RHICmdList.CopyImageToBuffer(TextureRHI, StagingBuffer.get(), 
+                    0,                      // mipmap level
+                    0, 0, 0,                // x, y, z offset
+                    ImageData.GetWidth(),   // width
+                    ImageData.GetHeight(),  // height
+                    1,                      // depth
+                    0);                     // array layer
         ImageData.AllocateSpace();
-        std::copy(data, data+ImageData.GetDataSize(), ImageData.GetData());
-        delete[] data;
+        void* data = RHIMapMemory(StagingBuffer.get(), 0, ImageData.GetDataSize());
+            std::memcpy(data, ImageData.GetData(), ImageData.GetDataSize());
+        RHIUnmapMemory(StagingBuffer.get());
+        RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
     }
 
     // void UTexture2D::Serialize(FArchive& Ar)

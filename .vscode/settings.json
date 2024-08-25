@@ -36,5 +36,6 @@
             "-rhi", "opengl"
         ]
     },
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "editor.inlayHints.enabled": "off",
 }

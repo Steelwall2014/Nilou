@@ -12,9 +12,8 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>(device);
+        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>(device, result);
         VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
         return VulkanShader;
     }
 
@@ -29,9 +28,8 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>(device);
+        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>(device, result);
         VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
         return VulkanShader;
     }
 
@@ -46,9 +44,8 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>(device);
+        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>(device, result);
         VulkanShader->Module = Module;
-        VulkanShader->ShadercResult = result;
         return VulkanShader;
     }
 
@@ -65,9 +62,9 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
     if (status != shaderc_compilation_status_success) {
         const char* msg = shaderc_result_get_error_message(result);
-        NILOU_LOG(Error, "Shader compilation error! Error message: {}", msg);
+        NILOU_LOG(Error, "Shader compilation error! Error message: {}. The code is written to {}", msg, "ShaderCompilationErrors.txt");
         std::ofstream out{"ShaderCompilationErrors.txt", std::ios::app};
-        out << code << std::endl;
+        out << msg << "\n\n" << code << std::endl;
         return {};
     }
 

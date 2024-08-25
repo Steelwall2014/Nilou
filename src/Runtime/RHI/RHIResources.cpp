@@ -7,23 +7,10 @@
 
 namespace nilou {
 
-    int FRHIGraphicsPipelineState::GetBaseIndexByName(EPipelineStage PipelineStage, const std::string &Name)
-    {
-        FRHIDescriptorSet &DescriptorSet = PipelineLayout->DescriptorSets[PipelineStage];
-        auto iter = DescriptorSet.Bindings.find(Name);
-        if (iter != DescriptorSet.Bindings.end())
-            return iter->second.BindingPoint;
-        else
-        {
-            NILOU_LOG(Error, "Shader Parameter {} Not found", Name.c_str())
-            return -1;
-        }
-    }
-
     uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat)
     {
         switch (PixelFormat) {
-		    case EPixelFormat::PF_UNKNOWN: return 0;
+		    case EPixelFormat::PF_Unknown: return 0;
 		    case EPixelFormat::PF_R8: return 1;
 		    case EPixelFormat::PF_R8UI: return 1;
 		    case EPixelFormat::PF_R8G8: return 2;
@@ -60,7 +47,7 @@ namespace nilou {
     uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat)
     {
         switch (PixelFormat) {
-		    case EPixelFormat::PF_UNKNOWN: return 0;
+		    case EPixelFormat::PF_Unknown: return 0;
 		    case EPixelFormat::PF_R8: return 1;
 		    case EPixelFormat::PF_R8UI: return 1;
 		    case EPixelFormat::PF_R8G8: return 2;
@@ -94,52 +81,10 @@ namespace nilou {
         }
     }
 
-	bool FGraphicsPipelineStateInitializer::operator==(const FGraphicsPipelineStateInitializer &Other) const
+	void RHIDescriptorSetLayout::GenerateHash()
 	{
-		return 	RenderTargetFormats == Other.RenderTargetFormats && 
-				NumRenderTargetsEnabled == Other.NumRenderTargetsEnabled && 
-				DepthStencilTargetFormat == Other.DepthStencilTargetFormat &&
-				VertexShader == Other.VertexShader &&
-				PixelShader == Other.PixelShader &&
-				ComputeShader == Other.ComputeShader && 
-				PrimitiveMode == Other.PrimitiveMode && 
-				DepthStencilState == Other.DepthStencilState && 
-				RasterizerState == Other.RasterizerState && 
-				BlendState == Other.BlendState && 
-				VertexDeclaration == Other.VertexDeclaration;
+		Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
 	}
-	
-	void FGraphicsPipelineStateInitializer::BuildRenderTargetFormats(RHIFramebuffer* Framebuffer)
-	{
-		NumRenderTargetsEnabled = 0;
-		if (Framebuffer)
-		{
-			for (auto [Attachment, Texture] : Framebuffer->Attachments)
-			{
-				if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
-				{
-					DepthStencilTargetFormat = Texture->GetFormat();
-				}
-				else 
-				{
-					uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
-					RenderTargetFormats[index] = Texture->GetFormat();
-					NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
-				}
-			}
-		}
-	}
-	
-	FRHISampler::FRHISampler()
-		: SamplerState(TStaticSamplerState<>::CreateRHI())
-		, Texture(nullptr) 
-	{ }
-
-	
-	FRHISampler::FRHISampler(RHITexture* Texture)
-		: SamplerState(TStaticSamplerState<>::CreateRHI())
-		, Texture(Texture) 
-	{ }
 
 }
 

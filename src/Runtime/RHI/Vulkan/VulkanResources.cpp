@@ -234,9 +234,9 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStat
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info)
 {
     std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
-    RenderTargetFormats.fill(PF_UNKNOWN);
+    RenderTargetFormats.fill(PF_Unknown);
     uint32 NumRenderTargetsEnabled = 0;
-    EPixelFormat DepthStencilTargetFormat = PF_UNKNOWN;
+    EPixelFormat DepthStencilTargetFormat = PF_Unknown;
     for (auto [Attachment, Texture] : Info.Framebuffer->Attachments)
     {
         if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
@@ -282,7 +282,7 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
 	for (uint32 Index = 0; Index < NumRenderTargetsEnabled; ++Index)
     {
 		EPixelFormat Format = RenderTargetFormats[Index];
-		if (Format != EPixelFormat::PF_UNKNOWN)
+		if (Format != EPixelFormat::PF_Unknown)
 		{
 			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
 			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -302,7 +302,7 @@ void FVulkanRenderTargetLayout::InitWithAttachments(
             Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
 		}
     }
-    if (DepthStencilTargetFormat != EPixelFormat::PF_UNKNOWN)
+    if (DepthStencilTargetFormat != EPixelFormat::PF_Unknown)
     {
         bHasDepthAttachment = true;
         EPixelFormat Format = DepthStencilTargetFormat;
@@ -368,7 +368,7 @@ VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
 {
     switch (Format) 
     {
-    case EPixelFormat::PF_UNKNOWN:
+    case EPixelFormat::PF_Unknown:
         return VK_FORMAT_UNDEFINED;
     case EPixelFormat::PF_R8:
         return VK_FORMAT_R8_UNORM;

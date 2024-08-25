@@ -37,25 +37,16 @@ namespace nilou {
         FSceneViewFamily ViewFamily(InViewport, Scene.get());
         ViewFamily.GammaCorrection = 2.2;
         ViewFamily.bEnableToneMapping = true;
-        std::vector<FSceneView*> &Views = ViewFamily.Views;
+        std::vector<FSceneView> &Views = ViewFamily.Views;
         std::vector<ACameraActor*> CameraActors;
         World->GetAllActorsOfClass(CameraActors);
 
         for (ACameraActor* LocalPlayer : CameraActors)
         {
-            FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily);
-            if (View)
-            {
-                Views.push_back(View);
-                // We only take the first view
-                break;
-            }
+            FSceneView View = LocalPlayer->CalcSceneView(&ViewFamily);
+            Views.push_back(View);
         }
-        GetRendererModule()->BeginRenderingViewFamily(&ViewFamily);
-        for (FSceneView* View : ViewFamily.Views)
-        {
-            delete View;
-        }
+        GetRendererModule()->BeginRenderingViewFamily(ViewFamily);
     }
 
 }

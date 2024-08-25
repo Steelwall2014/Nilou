@@ -1,8 +1,21 @@
+set_xmakever("2.9.1")
+set_project("Nilou")
+
+engine_version = "0.1.0"
+add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
+
 includes("configs.lua")
 local Configs = GetConfigs()
 add_rules("mode.release", "mode.debug")
-add_rules("plugin.vsxmake.autoupdate")
-set_runtimes("MD")
+if (is_os("windows")) then 
+    add_defines("_CRT_SECURE_NO_WARNINGS")
+    if (is_mode("release")) then
+        set_runtimes("MD")
+    elseif (is_mode("debug")) then
+        set_runtimes("MDd")
+    end
+end
+-- TODO use xmake package manager
 add_requires("vcpkg::gdal", {configs = {shared = true}})
 add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
@@ -140,7 +153,7 @@ BuildProject({
     projectType = "binary",
     macros = {"FMT_USE_NONTYPE_TEMPLATE_ARGS=0"},
     depends = {"crossguid", "glad", "base64"},
-    files = {"src/Runtime/**.cpp|UnitTests/**.cpp"},
+    files = {"src/Runtime/**.cpp|UnitTests/**.cpp", "E:/VulkanSDK/1.3.246.1/Source/SPIRV-Reflect/spirv_reflect.c"},
     debugLink = {"lib/debug/*"},
     releaseLink = {"lib/release/*"},
     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", Configs.VULKAN_LIBRARY},
@@ -155,6 +168,8 @@ BuildProject({
 target("ExecuteHeaderTool")
     set_kind("phony")
     before_build("ExecuteHeaderTool")
+
+includes("src/misc/xmake.lua")
 
 -- BuildProject({
 --     projectName = "GLTFImporter",

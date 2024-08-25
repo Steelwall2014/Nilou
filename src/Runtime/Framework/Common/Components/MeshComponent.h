@@ -36,7 +36,7 @@ namespace nilou {
     public:
         FStaticMeshSceneProxy(UStaticMeshComponent *Component);
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView*> &Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override;
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override;
         // virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView) override;
 
     private:

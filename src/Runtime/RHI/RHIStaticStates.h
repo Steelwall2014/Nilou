@@ -23,7 +23,7 @@ namespace nilou {
 			}
 
 			// FRenderResource interface.
-			virtual void InitRHI() override
+			virtual void InitRHI(RenderGraph&) override
 			{
 				StateRHI = InitializerType::CreateRHI();
 			}
@@ -262,32 +262,33 @@ namespace nilou {
 		}
 	};
 
-	template<
-		ETextureFilters Mag_Filter=TF_Linear,
-		ETextureFilters Min_Filter=TF_Linear_Mipmap_Linear,
-		ETextureWrapModes Wrap_S=TW_Repeat, 
-		ETextureWrapModes Wrap_T=TW_Repeat, 
-		ETextureWrapModes Wrap_R=TW_Repeat
-		>
-	class TStaticSamplerState : TStaticStateRHI<
+	template<ESamplerFilter Filter=SF_Point,
+		ESamplerAddressMode AddressU=AM_Clamp,
+		ESamplerAddressMode AddressV=AM_Clamp,
+		ESamplerAddressMode AddressW=AM_Clamp, 
+		int32 MipBias = 0,
+		int32 MaxAnisotropy = 1,
+		uint32 BorderColor = 0,
+		/** Only supported in D3D11 */
+		ESamplerCompareFunction SamplerComparisonFunction=SCF_Never>
+	class TStaticSamplerState : public TStaticStateRHI<
 		TStaticSamplerState<
-			Mag_Filter,
-			Min_Filter,
-			Wrap_S,
-			Wrap_T,
-			Wrap_R
-			>,
-		RHISamplerStateRef,
-		RHISamplerState*
-		>
+			Filter,
+			AddressU,
+			AddressV,
+			AddressW,
+			MipBias,
+			MaxAnisotropy,
+			BorderColor,
+			SamplerComparisonFunction>,
+			RHISamplerStateRef, 
+			RHISamplerState*>
 	{
 	public:
-		static RHISamplerState* CreateRHI()
+		static RHISamplerStateRef CreateRHI()
 		{
-			static RHISamplerState* RHI = FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(
-				{Mag_Filter, Min_Filter, Wrap_S, Wrap_T, Wrap_R}
-			).get();
-			return RHI;
+			FSamplerStateInitializerRHI Initializer( Filter, AddressU, AddressV, AddressW, MipBias, MaxAnisotropy, 0, FLT_MAX, BorderColor, SamplerComparisonFunction );
+			return RHICreateSamplerState(Initializer);
 		}
 	};
 }

@@ -7,13 +7,13 @@ namespace nilou {
     {
     public:
 
-        FTexture2DResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTextureResource(InName, InTextureParams, InNumMips)
+        FTexture2DResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTextureResource(InName, InSamplerState, InNumMips)
         { 
             TextureType = ETextureDimension::Texture2D;
         }
 
-        virtual void InitRHI() override;
+        virtual void InitRHI(RenderGraph&) override;
 
 	    virtual FTexture2DResource* GetTexture2DResource() override { return this; }
 	    virtual const FTexture2DResource* GetTexture2DResource() const override { return this; }
@@ -30,7 +30,7 @@ namespace nilou {
 
         virtual FTextureResource* CreateResource() override;
 
-        virtual void ReadPixelsRenderThread(FDynamicRHI* RHICmdList) override;
+        virtual void ReadPixelsRenderThread(RHICommandListImmediate& RHICmdList) override;
 
     protected:
 

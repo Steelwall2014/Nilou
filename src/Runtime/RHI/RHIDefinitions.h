@@ -1,17 +1,15 @@
 #pragma once
 #include "Platform.h"
 #include "Common/EnumClassFlags.h"
-
-// #define _GM nilou::FDynamicRHI::GetDynamicRHI()
-// #define DEPTH_BUFFER_BIT 0x00000100
-// #define STENCIL_BUFFER_BIT 0x00000400
-// #define COLOR_BUFFER_BIT 0x00004000
+#include "PixelFormat.h"
 
 namespace nilou {
 	
 	enum { MAX_TEXCOORDS = 1, MAX_STATIC_TEXCOORDS = 1 };
 
 	constexpr int MAX_SIMULTANEOUS_RENDERTARGETS = 8;
+	
+	constexpr int MAX_VERTEX_ELEMENTS = 17;
 	
     enum class EDataAccessFlag : uint8
 	{
@@ -216,7 +214,7 @@ namespace nilou {
 	{
 		return static_cast<EVertexElementTypeFlags>(static_cast<int>(a) | static_cast<int>(b));
 	}
-	enum class EVertexElementType : uint32
+	enum EVertexElementType : uint8
 	{
 		VET_None,
 		VET_Float1,
@@ -297,6 +295,37 @@ namespace nilou {
 	};
 	static_assert(EBlendFactor_Num <= (1 << EBlendFactor_NumBits), "EBlendFactor_Num will not fit on EBlendFactor_NumBits");
 	
+	enum ESamplerFilter
+	{
+		SF_Point,
+		SF_Bilinear,
+		SF_Trilinear,
+		SF_AnisotropicPoint,
+		SF_AnisotropicLinear,
+
+		ESamplerFilter_Num,
+		ESamplerFilter_NumBits = 3,
+	};
+	static_assert(ESamplerFilter_Num <= (1 << ESamplerFilter_NumBits), "ESamplerFilter_Num will not fit on ESamplerFilter_NumBits");
+
+	enum ESamplerAddressMode
+	{
+		AM_Wrap,
+		AM_Clamp,
+		AM_Mirror,
+		/** Not supported on all platforms */
+		AM_Border,
+
+		ESamplerAddressMode_Num,
+		ESamplerAddressMode_NumBits = 2,
+	};
+	static_assert(ESamplerAddressMode_Num <= (1 << ESamplerAddressMode_NumBits), "ESamplerAddressMode_Num will not fit on ESamplerAddressMode_NumBits");
+
+	enum ESamplerCompareFunction
+	{
+		SCF_Never,
+		SCF_Less
+	};
 	enum EColorWriteMask
 	{
 		CW_RED   = 0x01,
@@ -372,45 +401,6 @@ namespace nilou {
 		FA_Depth_Stencil_Attachment
 	};
 
-    
-	enum EPixelFormat : uint8
-	{
-		PF_UNKNOWN = 0,
-		PF_R8,
-		PF_R8UI,
-		PF_R8G8,
-		PF_R8G8B8,
-		PF_R8G8B8_sRGB,
-		PF_B8G8R8,
-		PF_B8G8R8_sRGB,
-		PF_R8G8B8A8,
-		PF_R8G8B8A8_sRGB,
-		PF_B8G8R8A8,
-		PF_B8G8R8A8_sRGB,
-
-		PF_D24S8,
-		PF_D32F,
-		PF_D32FS8,
-
-		PF_DXT1,
-		PF_DXT1_sRGB,
-		PF_DXT5,
-		PF_DXT5_sRGB,
-
-		PF_R16F,
-		PF_R16G16F,
-		PF_R16G16B16F,
-		PF_R16G16B16A16F,
-		PF_R32F,
-		PF_R32G32F,
-		PF_R32G32B32F,
-		PF_R32G32B32A32F,
-
-		PF_PixelFormatNum
-	};
-	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
-	uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat);
-
 	enum ETextureFilters : uint8
 	{
 		TF_Linear = 0,
@@ -481,8 +471,10 @@ namespace nilou {
 		RRT_RayTracingShader,
 		RRT_ComputeShader,
 		RRT_PipelineLayout,
-		RRT_GraphicsPipelineState,
-		RRT_ComputePipelineState,
+		RRT_PipelineState,
+		RRT_DescriptorSetLayout,
+		RRT_DescriptorSet,
+		RRT_DescriptorPool,
 		RRT_RayTracingPipelineState,
 		RRT_BoundShaderState,
 		RRT_Framebuffer,
@@ -520,11 +512,6 @@ namespace nilou {
 		PS_Compute,
 
 		PipelineStageNum
-	};
-	
-	enum
-	{
-		MaxVertexElementCount = 17,
 	};
 
 	enum class ETextureCreateFlags : uint64

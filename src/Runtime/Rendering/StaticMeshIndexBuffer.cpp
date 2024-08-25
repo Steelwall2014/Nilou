@@ -1,6 +1,7 @@
 #include "StaticMeshIndexBuffer.h"
 #include "DynamicRHI.h"
 #include "RHIDefinitions.h"
+#include "RenderGraph.h"
 
 namespace nilou {
 
@@ -66,15 +67,13 @@ namespace nilou {
         }
     }
 
-    void FStaticMeshIndexBuffer::InitRHI()
+    void FStaticMeshIndexBuffer::InitRHI(RenderGraph& Graph)
     {
-        FRenderResource::InitRHI();
-        IndexBufferRHI = CreateRHIBuffer_RenderThread();
-    }
-
-    RHIBufferRef FStaticMeshIndexBuffer::CreateRHIBuffer_RenderThread()
-    {
-        return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, NumIndices * Stride, 
-            EBufferUsageFlags::IndexBuffer | EBufferUsageFlags::Static, Data);
+        FRenderResource::InitRHI(Graph);
+        RDGBufferDesc Desc;
+        Desc.Size = Stride * NumIndices;
+        Desc.Stride = Stride;
+        IndexBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+        Graph.AddUploadPass(IndexBufferRDG.get(), Data, Desc.Size);
     }
 }

@@ -23,19 +23,19 @@ struct FVulkanRenderPass
     }
 };
 
-class VulkanGraphicsPipelineState : public FRHIGraphicsPipelineState
+class VulkanPipelineState : public FRHIPipelineState
 {
 public:
-    VulkanGraphicsPipelineState(VkDevice InDevice, const FGraphicsPipelineStateInitializer& InInInitializer)
+    VulkanPipelineState(VkDevice InDevice, const FGraphicsPipelineStateInitializer& InInInitializer)
         : Device(InDevice)
-        , FRHIGraphicsPipelineState(InInInitializer)
+        , FRHIPipelineState(InInInitializer)
     { }
     VkDevice Device{};
     VkPipeline VulkanPipeline{};
     FVulkanRenderPass* RenderPass{};
-    ~VulkanGraphicsPipelineState();
+    ~VulkanPipelineState();
 };
-using VulkanGraphicsPipelineStateRef = std::shared_ptr<VulkanGraphicsPipelineState>;
+using VulkanPipelineStateRef = std::shared_ptr<VulkanPipelineState>;
 
 class VulkanDepthStencilState : public RHIDepthStencilState
 {
@@ -64,7 +64,9 @@ using VulkanBlendStateRef = std::shared_ptr<VulkanBlendState>;
 class VulkanSamplerState : public RHISamplerState
 {
 public:
-    VulkanSamplerState(VkDevice InDevice) : Device(InDevice) { }
+    VulkanSamplerState(const FSamplerStateInitializer& InInitializer, VkDevice InDevice) 
+        : Device(InDevice) 
+        , RHISamplerState(InInitializer) { }
     ~VulkanSamplerState()
     {
         vkDestroySampler(Device, Handle, nullptr);
@@ -73,6 +75,11 @@ public:
     VkSampler Handle{};
 };
 using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
+
+inline VulkanSamplerState* ResourceCast(RHISamplerState* Sampler)
+{
+    return static_cast<VulkanSamplerState*>(Sampler);
+}
 
 struct FVulkanRenderTargetLayout
 {

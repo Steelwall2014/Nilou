@@ -136,13 +136,18 @@ class VulkanBuffer : public RHIBuffer
 public:
     VulkanBuffer(FVulkanDynamicRHI* Context, uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
         : RHIBuffer(InStride, InSize, InUsage)
-        , MultiBuffer(Context, InSize, InUsage, 0)
+        // , MultiBuffer(Context, InSize, InUsage, 0)
     { 
     }
-    VulkanMultiBuffer MultiBuffer;
-    VkBuffer GetHandle() const { return MultiBuffer.Buffers[MultiBuffer.DynamicBufferIndex]; }
-    void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
-    void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
+    /** DEPRECATED */
+    // VulkanMultiBuffer MultiBuffer;
+    // VkBuffer GetHandle() const { return MultiBuffer.Buffers[MultiBuffer.DynamicBufferIndex]; }
+    // void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
+    // void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
+    /** DEPRECATED */
+
+    VkBuffer Handle{};
+    VkDeviceMemory Memory{};
 };
 using VulkanBufferRef = std::shared_ptr<VulkanBuffer>;
 
@@ -159,5 +164,10 @@ public:
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
 using VulkanUniformBufferRef = std::shared_ptr<VulkanUniformBuffer>;
+
+inline VulkanBuffer* ResourceCast(RHIBuffer* Buffer)
+{
+    return static_cast<VulkanBuffer*>(Buffer);
+}
 
 }

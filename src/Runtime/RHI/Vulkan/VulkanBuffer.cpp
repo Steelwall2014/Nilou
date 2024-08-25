@@ -540,4 +540,24 @@ void FVulkanDynamicRHI::RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferR
     CommandBufferManager->SubmitUploadCmdBuffer();
 }
 
+void* FVulkanDynamicRHI::MapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
+{
+    VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+    FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+    void* MappedPointer = nullptr;
+    vkMapMemory(VulkanRHI->device, vkBuffer->Memory, Offset, Size, 0, &MappedPointer);
+    return MappedPointer;
+}
+
+void FVulkanDynamicRHI::UnmapMemory(RHIBuffer* buffer)
+{
+    VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+    FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+    vkUnmapMemory(VulkanRHI->device, vkBuffer->Memory);
+}
+
+RHIDescriptorSetRef FVulkanDynamicRHI::CreateDescriptorSet(const RHIDescriptorSetLayout& layout)
+{
+}
+
 }
