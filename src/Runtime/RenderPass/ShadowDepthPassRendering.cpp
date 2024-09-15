@@ -192,7 +192,7 @@ namespace nilou {
         std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
     };
 
-    void FDefferedShadingSceneRenderer::RenderCSMShadowPass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderCSMShadowPass(RenderGraph& Graph)
     {
         static ShadowMapSplitIndexUBOs SplitIndexUBO;
         std::vector<int> FrustumsToBeUpdated = {0, 1, 2, 3};

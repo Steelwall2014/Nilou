@@ -1,3 +1,4 @@
+#pragma once
 #include "RenderResource.h"
 #include "DynamicRHI.h"
 

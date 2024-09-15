@@ -1,7 +1,7 @@
 #include "SceneCaptureComponent.h"
 #include "Common/Actor/Actor.h"
 #include "TextureRenderTarget.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 
 namespace nilou {
 

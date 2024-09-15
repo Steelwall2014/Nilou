@@ -1,7 +1,7 @@
 #pragma once
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 
 namespace nilou {
     DECLARE_GLOBAL_SHADER(FLightingPassVS)

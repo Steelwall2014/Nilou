@@ -2,7 +2,7 @@
 #include "Common/ContentManager.h"
 #include "TextureCube.h"
 #include "TextureRenderTarget.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 #include "Texture2D.h"
 
 

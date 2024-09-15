@@ -2,7 +2,7 @@
 #include "Common/World.h"
 #include "RendererModule.h"
 #include "SceneView.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 
 namespace nilou {
 

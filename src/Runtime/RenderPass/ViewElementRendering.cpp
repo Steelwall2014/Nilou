@@ -1,6 +1,6 @@
 #include "ViewElementRendering.h"
 
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 #include "RHIStaticStates.h"
 
 
@@ -8,7 +8,7 @@ namespace nilou {
     IMPLEMENT_SHADER_TYPE(FViewElementVS, "/Shaders/GlobalShaders/ViewElementVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
     IMPLEMENT_SHADER_TYPE(FViewElementPS, "/Shaders/GlobalShaders/ViewElementPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
-    void FDefferedShadingSceneRenderer::RenderViewElementPass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderViewElementPass(RenderGraph& Graph)
     {
         // TODO: Implement this function
         

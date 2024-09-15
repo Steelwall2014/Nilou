@@ -1,7 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 #include "OpenGL/OpenGLDynamicRHI.h"
 #include "RenderingThread.h"
 #include "BaseApplication.h"

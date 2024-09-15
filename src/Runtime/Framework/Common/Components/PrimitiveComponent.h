@@ -66,7 +66,7 @@ namespace nilou {
     class FPrimitiveSceneProxy
     {
         friend class FScene;
-        friend class FDefferedShadingSceneRenderer;
+        friend class FDeferredShadingSceneRenderer;
     public:
         
         FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName = "");

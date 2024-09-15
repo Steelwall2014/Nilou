@@ -16,6 +16,7 @@ namespace nilou {
     }
 
     void FDefferedShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     {
         static FRHIVertexDeclaration* ScreenQuadVertexDeclaration = nullptr;
         if (!ScreenQuadVertexDeclaration)

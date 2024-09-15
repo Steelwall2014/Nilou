@@ -179,11 +179,11 @@ namespace nilou {
 
         // static TResourcesPool<FShadowMapResource, ShadowMapResourceCreateInfo> ShadowMapResourcesPool;
 
-        // static TResourcesPool<FSceneTexturesDeffered, SceneTextureCreateInfo> SceneTexturesPool;
+        // static TResourcesPool<FSceneTexturesDeferred, SceneTextureCreateInfo> SceneTexturesPool;
 
     };
 
-    class FDefferedShadingSceneRenderer : public FSceneRenderer
+    class FDeferredShadingSceneRenderer : public FSceneRenderer
     {
     public:
 
@@ -199,9 +199,19 @@ namespace nilou {
             RDGTexture* MetallicRoughness;
             RDGTexture* Emissive;
             RDGTexture* ShadingModel;
+
+            RDGTextureSRV* SceneColorSRV;
+            RDGTextureSRV* DepthStencilSRV;
+
+            RDGTextureSRV* BaseColorSRV;
+            RDGTextureSRV* RelativeWorldSpacePositionSRV;
+            RDGTextureSRV* WorldSpaceNormalSRV;
+            RDGTextureSRV* MetallicRoughnessSRV;
+            RDGTextureSRV* EmissiveSRV;
+            RDGTextureSRV* ShadingModelSRV;
         };
 
-        FDefferedShadingSceneRenderer(FSceneViewFamily& ViewFamily);
+        FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily);
 
         virtual void Render(RenderGraph& Graph) override;
 
@@ -237,5 +247,5 @@ namespace nilou {
         SHADER_PARAMETER(float, ReflectionProbeFactor)
     END_UNIFORM_BUFFER_STRUCT()
 
-    extern FDefferedShadingSceneRenderer *Renderer;
+    extern FDeferredShadingSceneRenderer *Renderer;
 }

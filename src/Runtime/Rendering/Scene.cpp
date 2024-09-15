@@ -4,7 +4,7 @@
 #include "DynamicRHI.h"
 #include "Scene.h"
 #include "BaseApplication.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 // #include "Common/Components/PrimitiveSceneProxy.h"
 // #include "Common/Components/LightSceneProxy.h"
 

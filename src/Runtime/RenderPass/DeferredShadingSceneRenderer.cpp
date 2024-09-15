@@ -4,7 +4,7 @@
 #include "UniformBuffer.h"
 #include "RHICommandList.h"
 
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 // #include "Common/Components/LightSceneProxy.h"
 // #include "Common/Components/PrimitiveSceneProxy.h"
 #include "DynamicRHI.h"
@@ -28,11 +28,11 @@ namespace nilou {
     IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
     IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
 
-    FDefferedShadingSceneRenderer *Renderer = nullptr;
+    FDeferredShadingSceneRenderer *Renderer = nullptr;
 
     FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FSceneViewFamily& ViewFamily)
     {
-        return new FDefferedShadingSceneRenderer(ViewFamily);
+        return new FDeferredShadingSceneRenderer(ViewFamily);
     }
 
     void FParallelMeshDrawCommands::AddMeshDrawCommand(const FMeshDrawCommand &MeshDrawCommand)
@@ -116,7 +116,7 @@ namespace nilou {
     //     ShadowMapResourceCreateInfo> FSceneRenderer::ShadowMapResourcesPool;
 
     // FSceneRenderer::TResourcesPool<
-    // FSceneTexturesDeffered, 
+    // FSceneTexturesDeferred, 
     // SceneTextureCreateInfo> FSceneRenderer::SceneTexturesPool;
 
     FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
@@ -157,14 +157,14 @@ namespace nilou {
         }
     }
 
-    FDefferedShadingSceneRenderer::FDefferedShadingSceneRenderer(FSceneViewFamily& ViewFamily)
+    FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily)
         : FSceneRenderer(ViewFamily)
     {
 
     }
 
 
-    void FDefferedShadingSceneRenderer::InitViews(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::InitViews(RenderGraph& Graph)
     {
         // Initialize lights
         // Lights are relavant to views, for example directional lights.
@@ -282,13 +282,22 @@ namespace nilou {
             Desc.Format = EPixelFormat::PF_R8UI;
             SceneTextures.ShadingModel                  = Graph.CreateTexture(fmt::format("ShadingModel {}", ViewIndex), Desc);
 
+            SceneTextures.SceneColorSRV                 = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.SceneColor));
+            SceneTextures.BaseColorSRV                  = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.BaseColor));
+            SceneTextures.RelativeWorldSpacePositionSRV = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.RelativeWorldSpacePosition));
+            SceneTextures.WorldSpaceNormalSRV           = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.WorldSpaceNormal));
+            SceneTextures.EmissiveSRV                   = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.Emissive));
+            SceneTextures.DepthStencilSRV               = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.DepthStencil));
+            SceneTextures.MetallicRoughnessSRV          = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.MetallicRoughness));
+            SceneTextures.ShadingModelSRV               = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.ShadingModel));
+
         }
 
         // Compute Visibility and collect mesh batches
         ComputeViewVisibility();
     }
 
-    void FDefferedShadingSceneRenderer::ComputeViewVisibility()
+    void FDeferredShadingSceneRenderer::ComputeViewVisibility()
     {
         static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
         std::vector<int> Index(Views.size(), 0);
@@ -318,7 +327,7 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::Render(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::Render(RenderGraph& Graph)
     {
         FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
 
@@ -369,7 +378,7 @@ namespace nilou {
         return xIntersection * yIntersection * zIntersection;
     }
 
-    void FDefferedShadingSceneRenderer::UpdateReflectionProbeFactors()
+    void FDeferredShadingSceneRenderer::UpdateReflectionProbeFactors()
     {
         for (auto Primitive : Scene->AddedPrimitiveSceneInfos)
         {
@@ -394,14 +403,12 @@ namespace nilou {
         }
     }
     
-    void FDefferedShadingSceneRenderer::RenderToScreen(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderToScreen(RenderGraph& Graph)
     {
-        static auto UniformBlock = CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>();
-        UniformBlock->InitResource();
-        FTextureRenderTargetResource* RenderTarget = ViewFamily.Viewport.RenderTarget;
-        RenderTargetLayout RTLayout;
+        FTextureRenderTargetResource* RenderTargetResource = ViewFamily.Viewport.RenderTarget;
+        RHIRenderTargetLayout RTLayout;
         RTLayout.NumRenderTargetsEnabled = 1;
-        RTLayout.RenderTargetFormats[FA_Color_Attachment0] = RenderTarget->GetFormat();
+        RTLayout.RenderTargetFormats[0] = RenderTargetResource->GetTextureRDG()->Desc.Format;
 
         // default sampler state of this pass
         RHISamplerState* SamplerStateRHI = TStaticSamplerState<>::GetRHI();
@@ -425,9 +432,6 @@ namespace nilou {
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
-            std::unordered_map<EFramebufferAttachment, RDGTexture*> RenderTargets = { 
-                {FA_Color_Attachment0, SceneTextures.SceneColor} 
-            };
 
             RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet<FRenderToScreenPixelShader>(0, 0);
             RDGBuffer* UniformBlock = Graph.CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>("FRenderToScreenPixelShader UniformBlock");
@@ -439,16 +443,16 @@ namespace nilou {
                     UniformBlockData->GammaCorrection = 1.f;
                     UniformBlockData->bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
-                        "SceneColor", SamplerStateRHI, 
-                        SceneTextures.DepthStencil);
+                        "SceneColor", 
+                        Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.DepthStencil)), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_LinearColor)
                 {
                     UniformBlockData->GammaCorrection = 1.f;
                     UniformBlockData->bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
-                        "SceneColor", SamplerStateRHI, 
-                        SceneTextures.SceneColor);
+                        "SceneColor", 
+                        Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.SceneColor)), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_GammaColor)
                 {
@@ -505,12 +509,12 @@ namespace nilou {
         
     }
 
-    // FSceneTextures* FDefferedShadingSceneRenderer::CreateSceneTextures(const SceneTextureCreateInfo &CreateInfo)
+    // FSceneTextures* FDeferredShadingSceneRenderer::CreateSceneTextures(const SceneTextureCreateInfo &CreateInfo)
     // {
-    //     return new FSceneTexturesDeffered(CreateInfo);
+    //     return new FSceneTexturesDeferred(CreateInfo);
     // }
 
-    // FShadowMapResources* FDefferedShadingSceneRenderer::CreateLightRenderResources(const ShadowMapResourcesCreateInfo &CreateInfo)
+    // FShadowMapResources* FDeferredShadingSceneRenderer::CreateLightRenderResources(const ShadowMapResourcesCreateInfo &CreateInfo)
     // {
     //     return new FShadowMapResources(CreateInfo);
     // }

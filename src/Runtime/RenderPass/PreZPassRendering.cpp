@@ -1,7 +1,7 @@
 #include "PreZPassRendering.h"
 #include "Common/Log.h"
 #include "Material.h"
-#include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 #include "RHICommandList.h"
 
 namespace nilou {
@@ -84,7 +84,7 @@ namespace nilou {
         }
     }
 
-    void FDefferedShadingSceneRenderer::RenderPreZPass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderPreZPass(RenderGraph& Graph)
     {
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)

@@ -170,7 +170,7 @@ namespace nilou {
     class FLightSceneProxy
     {
         friend class FScene;
-        friend class FDefferedShadingSceneRenderer;
+        friend class FDeferredShadingSceneRenderer;
     public:
         FLightSceneProxy(ULightComponent *InComponent);
 

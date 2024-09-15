@@ -2,6 +2,7 @@
 #include "Common/Log.h"
 #include "Material.h"
 #include "DefferedShadingSceneRenderer.h"
+#include "DeferredShadingSceneRenderer.h"
 #include "RHICommandList.h"
 
 
@@ -58,6 +59,7 @@ namespace nilou {
     }
 
     void FDefferedShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
     {    
         std::vector<std::vector<RDGDescriptorSet*>> DescriptorSetsPerView(Views.size());
         std::vector<std::unordered_map<EFramebufferAttachment, RDGTexture*>> RenderTargetsPerView(Views.size());
