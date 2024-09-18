@@ -15,7 +15,6 @@ namespace nilou {
             });
     }
 
-    void FDefferedShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     void FDeferredShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     {
         static FRHIVertexDeclaration* ScreenQuadVertexDeclaration = nullptr;
@@ -29,165 +28,85 @@ namespace nilou {
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
-            FViewInfo& ViewInfo = Views[ViewIndex];
-            FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
-            // Build the render target layout of base pass
-            RenderTargetLayout RTLayout;
-            RTLayout.NumRenderTargetsEnabled = 2;
-            RTLayout.RenderTargetFormats[FA_Color_Attachment0] = SceneTextures.SceneColor->Desc.Format;
-            RTLayout.DepthStencilTargetFormat = SceneTextures.DepthStencil->Desc.Format;
+            FSceneView& View = Views[ViewIndex];
+            FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
 
-            Graph.AddPass(
-                [=](RDGPassBuilder& PassBuilder) 
-                {
-                    PassBuilder.RenderTarget(FA_Color_Attachment0, SceneTextures.SceneColor)
-                               .RenderTarget(FA_Depth_Stencil_Attachment, SceneTextures.DepthStencil);
-                },
-                [=](RHICommandList& RHICmdList)
-                {
-                    // FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution, true);
-                    // RHICmdList.RHIBeginRenderPass(PassInfo);
+            RDGFramebuffer RenderTargets;
+            RenderTargets.SetAttachment(FA_Color_Attachment0, SceneTextures.SceneColor->GetDefaultView());
+            RenderTargets.SetAttachment(FA_Depth_Stencil_Attachment, SceneTextures.DepthStencil->GetDefaultView());
+            const RHIRenderTargetLayout& RTLayout = RenderTargets.GetRenderTargetLayout();
 
-                    for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+            for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+            {
+                FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
+                
+                FShadowMapResource ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
+                int FrustumCount = ShadowMapResource.DepthViews.size();
+                FLightingPassPS::FPermutationDomain PermutationVector;
+                PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
+                FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
+
+                FShaderInstance *LightPassVS = GetGlobalShader(PermutationParametersVS);
+                FShaderInstance *LightPassPS = GetGlobalShader(PermutationParametersPS);
+                
+                FGraphicsPipelineStateInitializer PSOInitializer;
+
+                PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
+                PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
+
+                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
+
+                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
+                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
+                PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI().get();
+
+                PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
+
+                PSOInitializer.RTLayout = RTLayout;
+
+                FRHIPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
+
+                RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FLightingPassPS>(0, 0);
+                DescriptorSet->SetSampler("BaseColor", SceneTextures.BaseColor->GetDefaultView());
+                DescriptorSet->SetSampler("RelativeWorldSpacePosition", SceneTextures.RelativeWorldSpacePosition->GetDefaultView());
+                DescriptorSet->SetSampler("WorldSpaceNormal", SceneTextures.WorldSpaceNormal->GetDefaultView());
+                DescriptorSet->SetSampler("MetallicRoughness", SceneTextures.MetallicRoughness->GetDefaultView());
+                DescriptorSet->SetSampler("Emissive", SceneTextures.Emissive->GetDefaultView());
+                DescriptorSet->SetSampler("ShadingModel", SceneTextures.ShadingModel->GetDefaultView(), TStaticSamplerState<SF_Point>::GetRHI());
+
+                if (Scene->SkyAtmosphere)
+                {
+                    DescriptorSet->SetSampler("TransmittanceLUT", Scene->SkyAtmosphere->GetTransmittanceLUT());
+                    DescriptorSet->SetSampler("ScatteringRayleighLUT", Scene->SkyAtmosphere->GetMultiScatteringLUT());
+                    DescriptorSet->SetSampler("ScatteringMieLUT", Scene->SkyAtmosphere->GetSingleScatteringMieLUT());
+                    DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", Scene->SkyAtmosphere->GetAtmosphereParametersBlock());
+                }
+
+                DescriptorSet->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+                DescriptorSet->SetUniformBuffer("FLightUniformBlock", Lights[LightIndex].LightUniformBuffer);
+                DescriptorSet->SetUniformBuffer("FShadowMappingBlock", ShadowMapResource.ShadowMapUniformBuffer);
+                DescriptorSet->SetSampler("ShadowMaps", ShadowMapResource.DepthArray->GetDefaultView());
+
+                RDGGraphicsPassDesc PassDesc;
+                PassDesc.Name = "LightingPass of light " + std::to_string(LightIndex);
+                PassDesc.RenderTargets = RenderTargets;
+                PassDesc.DescriptorSets.push_back(DescriptorSet);
+                Graph.AddGraphicsPass(
+                    PassDesc, 
+                    [=](RHICommandList& RHICmdList)
                     {
-                        FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
-                        
-                        FShadowMapResource ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
-                        int FrustumCount = ShadowMapResource.DepthViews.size();
-                        FLightingPassPS::FPermutationDomain PermutationVector;
-                        PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
-                        FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
-
-                        FShaderInstance *LightPassVS = GetGlobalShader(PermutationParametersVS);
-                        FShaderInstance *LightPassPS = GetGlobalShader(PermutationParametersPS);
-                        
-                        FGraphicsPipelineStateInitializer PSOInitializer;
-
-                        PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
-                        PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
-
-                        PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
-
-                        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
-                        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
-                        PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI().get();
-
-                        PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
-
-                        PSOInitializer.RTLayout = RTLayout;
-
-                        FRHIPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
-                        
                         RHIGetError();
                         RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Graphics);
                         RHIGetError();
 
-                        RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->Resolve(), 0);
-                        RHICmdList.BindVertexBuffer(1, UVVertexBuffer.VertexBufferRDG->Resolve(), 0);
+                        RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->GetRHI(), 0);
+                        RHICmdList.BindVertexBuffer(1, UVVertexBuffer.VertexBufferRDG->GetRHI(), 0);
 
-                        PipelineDescriptorSets DescriptorSet{PSO};
-
-                        DescriptorSet.SetSampler("BaseColor", FRHISampler(SceneTextures.BaseColor->Resolve()));
-                        DescriptorSet.SetSampler("RelativeWorldSpacePosition", FRHISampler(SceneTextures.RelativeWorldSpacePosition->Resolve()));
-                        DescriptorSet.SetSampler("WorldSpaceNormal", FRHISampler(SceneTextures.WorldSpaceNormal->Resolve()));
-                        DescriptorSet.SetSampler("MetallicRoughness", FRHISampler(SceneTextures.MetallicRoughness->Resolve()));
-                        DescriptorSet.SetSampler("Emissive", FRHISampler(SceneTextures.Emissive->Resolve()));
-                        DescriptorSet.SetSampler("ShadingModel", FRHISampler(SceneTextures.ShadingModel->Resolve()));
-
-                        if (Scene->SkyAtmosphere)
-                        {
-                            DescriptorSet.SetSampler("TransmittanceLUT", FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
-                            DescriptorSet.SetSampler("ScatteringRayleighLUT", FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
-                            DescriptorSet.SetSampler("ScatteringMieLUT", FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
-                            DescriptorSet.SetUniformBuffer("AtmosphereParametersBlock", Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
-                        }
-
-                        DescriptorSet.SetUniformBuffer("FViewShaderParameters", ViewInfo.ViewUniformBuffer->GetRHI());
-                        DescriptorSet.SetUniformBuffer("FLightUniformBlock", Lights[LightIndex].LightUniformBuffer->Resolve());
-                        DescriptorSet.SetUniformBuffer("FShadowMappingBlock", ShadowMapResource.ShadowMapUniformBuffer->Resolve());
-                        DescriptorSet.SetSampler("ShadowMaps", FRHISampler(ShadowMapResource.DepthArray->Resolve()));
-
-                        RHICmdList.BindDescriptorSets(PSO->PipelineLayout.get(), DescriptorSet, EPipelineBindPoint::Graphics);
-                        // auto &Light = Lights[LightIndex];
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "BaseColor", 
-                        //     FRHISampler(SceneTextures->BaseColor));
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "RelativeWorldSpacePosition", 
-                        //     FRHISampler(SceneTextures->RelativeWorldSpacePosition));
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "WorldSpaceNormal", 
-                        //     FRHISampler(SceneTextures->WorldSpaceNormal));
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "MetallicRoughness", 
-                        //     FRHISampler(SceneTextures->MetallicRoughness));
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "Emissive", 
-                        //     FRHISampler(SceneTextures->Emissive));
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "ShadingModel", 
-                        //     FRHISampler(SceneTextures->ShadingModel, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI()));
-
-                        // if (Scene->SkyAtmosphere)
-                        // {
-                        //     RHICmdList->RHISetShaderSampler(
-                        //         PSO, EPipelineStage::PS_Pixel, 
-                        //         "TransmittanceLUT", 
-                        //         FRHISampler(Scene->SkyAtmosphere->GetTransmittanceLUT()));
-                        //     RHIGetError();
-
-                        //     RHICmdList->RHISetShaderSampler(
-                        //         PSO, EPipelineStage::PS_Pixel, 
-                        //         "ScatteringRayleighLUT", 
-                        //         FRHISampler(Scene->SkyAtmosphere->GetMultiScatteringLUT()));
-                        //     RHIGetError();
-
-                        //     RHICmdList->RHISetShaderSampler(
-                        //         PSO, EPipelineStage::PS_Pixel, 
-                        //         "ScatteringMieLUT", 
-                        //         FRHISampler(Scene->SkyAtmosphere->GetSingleScatteringMieLUT()));
-                        //     RHIGetError();
-
-                        //     RHICmdList->RHISetShaderUniformBuffer(
-                        //         PSO, EPipelineStage::PS_Pixel, 
-                        //         "AtmosphereParametersBlock", 
-                        //         Scene->SkyAtmosphere->GetAtmosphereParametersBlock()->GetRHI());
-                        // }
-
-                        // RHIGetError();
-                        // RHICmdList->RHISetShaderUniformBuffer(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "FViewShaderParameters", 
-                        //     ViewInfo.ViewUniformBuffer->GetRHI());
-                        // RHIGetError();
-
-                        // RHICmdList->RHISetShaderUniformBuffer(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "FLightUniformBlock", 
-                        //     Light.LightUniformBuffer->GetRHI());
-
-                        // RHICmdList->RHISetShaderUniformBuffer(
-                        //     PSO, EPipelineStage::PS_Pixel,
-                        //     "FShadowMappingBlock", 
-                        //     ShadowMapResource->ShadowMapUniformBuffer.UniformBuffer->GetRHI());
-                        // RHITextureParams shadowMapSamplerParams(ETextureFilters::TF_Nearest, ETextureFilters::TF_Nearest);
-                        // RHICmdList->RHISetShaderSampler(
-                        //     PSO, EPipelineStage::PS_Pixel, 
-                        //     "ShadowMaps", 
-                        //     FRHISampler(ShadowMapResource->ShadowMapTexture.DepthArray, TStaticSamplerState<TF_Nearest, TF_Nearest>::CreateRHI()));
+                        RHICmdList.BindDescriptorSets(PSO->PipelineLayout.get(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
 
                         RHICmdList.DrawArrays(4, 1, 0, 0);
-                    }
-                    
-                    RHICmdList.EndRenderPass();
-                }
-            );
+                    });
+            }
 
         }
     }

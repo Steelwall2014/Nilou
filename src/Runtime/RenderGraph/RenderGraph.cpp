@@ -25,6 +25,7 @@ RDGTextureRef RenderGraph::CreatePersistentTexture(const std::string& Name, cons
     default:
         Ncheckf(false, "Invalid texture type");
     };
+    Texture->DefaultView = CreatePersistentTextureViewInternal(RDGTextureViewDesc::Create(Texture.get()));
     return Texture;
 }
 
@@ -84,24 +85,6 @@ RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDes
     return Buffer.get();
 }
 
-RDGTextureSRV* RenderGraph::CreateSRV(const RDGTextureSRVDesc& Desc)
-{
-    
-}
-RDGBufferSRV* RenderGraph::CreateSRV(const RDGBufferSRVDesc& Desc)
-{
-    
-}
-
-RDGTextureUAV* RenderGraph::CreateUAV(const RDGTextureUAVDesc& Desc)
-{
-    
-}
-RDGBufferUAV* RenderGraph::CreateUAV(const RDGBufferUAVDesc& Desc)
-{
-    
-}
-
 RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layout)
 {
     if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
@@ -111,7 +94,7 @@ RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layou
 
     RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
     RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
-    AllocatedDescriptorSets.push_back(DescriptorSet);
+    DescriptorSets.push_back(DescriptorSet);
     return DescriptorSet.get();
 }
 

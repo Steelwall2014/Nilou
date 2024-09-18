@@ -213,7 +213,8 @@ namespace nilou {
                     TextureViewDesc.BaseArrayLayer = i;
                     TextureViewDesc.LayerCount = 1;
                     TextureViewDesc.ViewType = ETextureDimension::Texture2D;
-                    RDGTexture* DepthArrayView = Graph.CreateTextureView("", Resource.DepthArray, TextureViewDesc);
+                    TextureViewDesc.Texture = Resource.DepthArray;
+                    RDGTextureView* DepthArrayView = Graph.CreateTextureView(TextureViewDesc);
                     Resource.DepthViews.push_back(DepthArrayView);
                 }
                 LightInfo.ShadowMapResources.push_back(Resource);
@@ -282,25 +283,20 @@ namespace nilou {
             Desc.Format = EPixelFormat::PF_R8UI;
             SceneTextures.ShadingModel                  = Graph.CreateTexture(fmt::format("ShadingModel {}", ViewIndex), Desc);
 
-            SceneTextures.SceneColorSRV                 = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.SceneColor));
-            SceneTextures.BaseColorSRV                  = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.BaseColor));
-            SceneTextures.RelativeWorldSpacePositionSRV = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.RelativeWorldSpacePosition));
-            SceneTextures.WorldSpaceNormalSRV           = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.WorldSpaceNormal));
-            SceneTextures.EmissiveSRV                   = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.Emissive));
-            SceneTextures.DepthStencilSRV               = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.DepthStencil));
-            SceneTextures.MetallicRoughnessSRV          = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.MetallicRoughness));
-            SceneTextures.ShadingModelSRV               = Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.ShadingModel));
-
         }
 
         // Compute Visibility and collect mesh batches
-        ComputeViewVisibility();
+        ComputeViewVisibility(ViewFamily, ViewMeshBatches, ViewPDIs);
     }
 
-    void FDeferredShadingSceneRenderer::ComputeViewVisibility()
+    void FDeferredShadingSceneRenderer::ComputeViewVisibility(
+        FSceneViewFamily& ViewFamily, 
+        std::vector<std::vector<FMeshBatch>>& OutViewMeshBatches, 
+        std::vector<FViewElementPDI>& OutViewPDIs)
     {
-        static UTexture* IBL_BRDF_LUT = GetContentManager()->GetTextureByPath("/Textures/IBL_BRDF_LUT.nasset");
-        std::vector<int> Index(Views.size(), 0);
+        std::vector<FSceneView>& Views = ViewFamily.Views;
+        OutViewMeshBatches.resize(Views.size());
+        OutViewPDIs.resize(Views.size());
         NILOU_LOG(Info, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
 
         for (FPrimitiveSceneInfo* PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
@@ -311,7 +307,7 @@ namespace nilou {
                 continue;
 
             uint32 ViewBits = 0;
-            FMeshElementCollector MeshCollector(ViewMeshBatches, ViewPDIs, PrimitiveInfo->SceneProxy);
+            FMeshElementCollector MeshCollector(OutViewMeshBatches, OutViewPDIs, PrimitiveInfo->SceneProxy);
             for(int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
                 FSceneView& View = Views[ViewIndex];
@@ -321,8 +317,6 @@ namespace nilou {
                 if (!bFrustumCulled)
                     ViewBits |= (1 << ViewIndex);
             }
-
-            MeshCollector.PrimitiveSceneProxy = PrimitiveInfo->SceneProxy;
             PrimitiveInfo->SceneProxy->GetDynamicMeshElements(Views, ViewBits, MeshCollector);
         }
     }
@@ -444,7 +438,7 @@ namespace nilou {
                     UniformBlockData->bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
                         "SceneColor", 
-                        Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.DepthStencil)), SamplerStateRHI);
+                        SceneTextures.DepthStencil->GetDefaultView(), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_LinearColor)
                 {
@@ -452,15 +446,15 @@ namespace nilou {
                     UniformBlockData->bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
                         "SceneColor", 
-                        Graph.CreateSRV(RDGTextureSRVDesc(SceneTextures.SceneColor)), SamplerStateRHI);
+                        SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_GammaColor)
                 {
                     UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
                     UniformBlockData->bEnableToneMapping = 1;
                     DescriptorSetPS->SetSampler(
-                        "SceneColor", SamplerStateRHI, 
-                        SceneTextures.SceneColor);
+                        "SceneColor", 
+                        SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
                 }
                 else 
                 {
@@ -472,10 +466,12 @@ namespace nilou {
                 UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
                 UniformBlockData->bEnableToneMapping = ViewFamily.bEnableToneMapping;
                 DescriptorSetPS->SetSampler(
-                    "SceneColor", SamplerStateRHI, 
-                    SceneTextures.SceneColor);
+                    "SceneColor", 
+                    SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
             }
             DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBlock);
+            RDGFramebuffer RenderTargets;
+            RenderTargets.SetAttachment(FA_Color_Attachment0, RenderTargetResource->GetTextureRDG()->GetDefaultView());
             RDGGraphicsPassDesc PassDesc{};
             PassDesc.DescriptorSets = { DescriptorSetPS };
             PassDesc.RenderTargets = RenderTargets;

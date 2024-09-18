@@ -13,6 +13,59 @@ RDGDescriptorSet::~RDGDescriptorSet()
     }
 }
 
+void RDGDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
+{
+	DescriptorBufferInfo BufferInfo;
+	BufferInfo.Buffer = Buffer;
+	BufferInfo.Offset = 0;
+	BufferInfo.Range = Buffer->Desc.Size;
+	WriteDescriptorSet WriteDescriptor;
+	WriteDescriptor.DstBinding = BindingIndex;
+	WriteDescriptor.DstArrayElement = 0;
+	WriteDescriptor.DescriptorType = EDescriptorType::UniformBuffer;
+	WriteDescriptor.BufferInfo = BufferInfo;
+	WriterInfos[BindingIndex] = WriteDescriptor;
+}
+
+void RDGDescriptorSet::SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState)
+{
+	DescriptorImageInfo ImageInfo;
+	ImageInfo.SamplerState = SamplerState;
+	ImageInfo.Texture = Texture;
+	WriteDescriptorSet WriteDescriptor;
+	WriteDescriptor.DstBinding = BindingIndex;
+	WriteDescriptor.DstArrayElement = 0;
+	WriteDescriptor.DescriptorType = EDescriptorType::CombinedImageSampler;
+	WriteDescriptor.ImageInfo = ImageInfo;
+	WriterInfos[BindingIndex] = WriteDescriptor;
+}
+
+void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
+{
+	DescriptorBufferInfo BufferInfo;
+	BufferInfo.Buffer = Buffer;
+	BufferInfo.Offset = 0;
+	BufferInfo.Range = Buffer->Desc.Size;
+	WriteDescriptorSet WriteDescriptor;
+	WriteDescriptor.DstBinding = BindingIndex;
+	WriteDescriptor.DstArrayElement = 0;
+	WriteDescriptor.DescriptorType = EDescriptorType::StorageBuffer;
+	WriteDescriptor.BufferInfo = BufferInfo;
+	WriterInfos[BindingIndex] = WriteDescriptor;
+}
+
+void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Image)
+{
+	DescriptorImageInfo ImageInfo;
+	ImageInfo.Texture = Image;
+	WriteDescriptorSet WriteDescriptor;
+	WriteDescriptor.DstBinding = BindingIndex;
+	WriteDescriptor.DstArrayElement = 0;
+	WriteDescriptor.DescriptorType = EDescriptorType::StorageImage;
+	WriteDescriptor.ImageInfo = ImageInfo;
+	WriterInfos[BindingIndex] = WriteDescriptor;
+}
+
 // RDGDescriptorPool::RDGDescriptorPool(RHIDescriptorSetLayout* InLayout, uint32 InMaxNumDescriptorSets)
 // {
 //     PoolRHI = RHICreateDescriptorPool(InLayout, InMaxNumDescriptorSets);

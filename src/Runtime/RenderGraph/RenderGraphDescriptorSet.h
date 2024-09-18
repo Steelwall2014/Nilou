@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderGraphResources.h"
 #include "RHIResources.h"
+#include "RHIStaticStates.h"
 
 namespace nilou {
 
@@ -12,19 +13,15 @@ public:
 
     ~RDGDescriptorSet();
 
-    void SetUniformBuffer(const std::string& Name, RDGBufferSRV* Buffer);
-    void SetSampler(const std::string& Name, RHISamplerState* SamplerState, RDGTextureSRV* Texture);
-    void SetStorageBuffer(const std::string& Name, RDGBufferSRV* Buffer);
-    void SetStorageBuffer(const std::string& Name, RDGBufferUAV* Buffer);
-    void SetStorageImage(const std::string& Name, RDGTextureSRV* Image);
-    void SetStorageImage(const std::string& Name, RDGTextureUAV* Image);
+    void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
+    void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
+    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
+    void SetStorageImage(const std::string& Name, RDGTextureView* Image);
 
-    void SetUniformBuffer(uint32 BindingIndex, RDGBufferSRV* Buffer);
-    void SetSampler(uint32 BindingIndex, RHISamplerState* SamplerState, RDGTextureSRV* Texture);
-    void SetStorageBuffer(uint32 BindingIndex, RDGBufferSRV* Buffer);
-    void SetStorageBuffer(uint32 BindingIndex, RDGBufferUAV* Buffer);
-    void SetStorageImage(uint32 BindingIndex, RDGTextureSRV* Image);
-    void SetStorageImage(uint32 BindingIndex, RDGTextureUAV* Image);
+    void SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
+    void SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
+    void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
+    void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image);
 
     RHIDescriptorSet* GetRHI() const;
 
@@ -38,7 +35,7 @@ public:
     struct DescriptorImageInfo
     {
         RHISamplerState* SamplerState;
-        RDGTexture* Texture;
+        RDGTextureView* Texture;
     };
 
     struct WriteDescriptorSet
@@ -99,12 +96,6 @@ public:
 
     std::map<RHIDescriptorPool*, std::list<RHIDescriptorPool*>::iterator> PoolIterators;
 
-};
-
-class RDGDescriptorSetManager
-{
-public:
-    RHIDescriptorSet* Allocate(RHIDescriptorSetLayout* Layout);
 };
 
 }

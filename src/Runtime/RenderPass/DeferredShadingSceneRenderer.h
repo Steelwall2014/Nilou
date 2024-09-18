@@ -37,7 +37,7 @@ namespace nilou {
     class FShadowMapResource
     {
     public:
-        std::vector<RDGTexture*> DepthViews;
+        std::vector<RDGTextureView*> DepthViews;
         RDGTexture* DepthArray;
         RDGBuffer* ShadowMapUniformBuffer;
         std::vector<FShadowMappingParameters> Frustums;
@@ -199,16 +199,6 @@ namespace nilou {
             RDGTexture* MetallicRoughness;
             RDGTexture* Emissive;
             RDGTexture* ShadingModel;
-
-            RDGTextureSRV* SceneColorSRV;
-            RDGTextureSRV* DepthStencilSRV;
-
-            RDGTextureSRV* BaseColorSRV;
-            RDGTextureSRV* RelativeWorldSpacePositionSRV;
-            RDGTextureSRV* WorldSpaceNormalSRV;
-            RDGTextureSRV* MetallicRoughnessSRV;
-            RDGTextureSRV* EmissiveSRV;
-            RDGTextureSRV* ShadingModelSRV;
         };
 
         FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily);
@@ -221,7 +211,7 @@ namespace nilou {
 
         void InitViews(RenderGraph& Graph);
 
-        void ComputeViewVisibility();
+        void ComputeViewVisibility(FSceneViewFamily& ViewFamily, std::vector<std::vector<FMeshBatch>>& OutViewMeshBatches, std::vector<FViewElementPDI>& OutViewPDIs);
         
         void RenderPreZPass(RenderGraph& Graph);
         

@@ -7,6 +7,10 @@ constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 2.0f;
 
 constexpr double CASCADED_SHADOWMAP_MAX_DISTANCE = 800.0;
 
+constexpr double SHADOWMAP_FAR_CLIP = 10000.0;
+
+constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
+
 namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
@@ -16,85 +20,6 @@ namespace nilou {
     {
         FPermutationDomain Domain(Parameter.PermutationId);
         Domain.ModifyCompilationEnvironment(Environment);
-    }
-
-    static void BuildMeshDrawCommand(
-        const FVertexFactoryPermutationParameters &VFPermutationParameters,
-        FMaterialRenderProxy *MaterialProxy,
-        const FShaderPermutationParameters &PermutationParametersVS,
-        const FShaderPermutationParameters &PermutationParametersPS,
-        FInputShaderBindings &InputBindings,
-        FRHIVertexDeclaration* VertexDeclaration,
-        const FMeshBatchElement &Element,
-        const RenderTargetLayout &RTLayout,
-        FMeshDrawCommand &OutMeshDrawCommand
-    )
-    {
-        
-        FGraphicsPipelineStateInitializer Initializer;
-
-        FShaderInstance *VertexShader = MaterialProxy->GetShader(VFPermutationParameters, PermutationParametersVS);
-        Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
-
-        FShaderInstance *PixelShader = GetGlobalShader(PermutationParametersPS);
-        Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
-
-        Initializer.DepthStencilState = MaterialProxy->DepthStencilState.get();
-        Initializer.RasterizerState = MaterialProxy->RasterizerState.get();
-        Initializer.BlendState = MaterialProxy->BlendState.get();
-        Initializer.VertexDeclaration = VertexDeclaration;
-        Initializer.RTLayout = RTLayout;
-
-        {
-            OutMeshDrawCommand.StencilRef = MaterialProxy->StencilRefValue;
-            OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
-            OutMeshDrawCommand.PipelineState = RHICreateGraphicsPipelineState(Initializer);
-            OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->GetRHI();
-
-            MaterialProxy->FillShaderBindings(InputBindings);
-       
-            auto &StageUniformBufferBindings = OutMeshDrawCommand.ShaderBindings.UniformBufferBindings[PS_Vertex]; // alias
-            auto &StageSamplerBindings = OutMeshDrawCommand.ShaderBindings.SamplerBindings[PS_Vertex]; // alias
-            FRHIDescriptorSet &DescriptorSets = OutMeshDrawCommand.PipelineState->PipelineLayout->DescriptorSets[PS_Vertex];
-            
-            for (auto [Name,Binding] : DescriptorSets.Bindings)
-            {
-                bool bResourceFound = OutMeshDrawCommand.ShaderBindings.SetShaderBinding(
-                    static_cast<EPipelineStage>(PS_Vertex), Binding, InputBindings);
-
-                if (!bResourceFound)
-                {
-                        NILOU_LOG(Warning, 
-                            "Material: {}"
-                            " |Vertex Factory: {}"
-                            " |Vertex Shader: {}"
-                            " |Pixel Shader: {}"
-                            " |Pipeline Stage: {}"
-                            " |\"{}\" Resource not provided",
-                            MaterialProxy->Material->Name,
-                            VFPermutationParameters.Type->Name,
-                            PermutationParametersVS.Type->Name,
-                            PermutationParametersVS.Type->Name,
-                            magic_enum::enum_name(PS_Vertex),
-                            Binding.Name);
-                }
-
-            }
-
-            if (Element.NumVertices == 0)
-            {
-                OutMeshDrawCommand.IndirectArgs.Buffer = Element.IndirectArgsBuffer;
-                OutMeshDrawCommand.IndirectArgs.Offset = Element.IndirectArgsOffset;
-                OutMeshDrawCommand.UseIndirect = true;
-            }
-            else
-            {
-                OutMeshDrawCommand.DirectArgs.BaseVertexIndex = Element.FirstIndex;
-                OutMeshDrawCommand.DirectArgs.NumInstances = Element.NumInstances;
-                OutMeshDrawCommand.DirectArgs.NumVertices = Element.NumVertices;
-                OutMeshDrawCommand.UseIndirect = false;
-            }
-        }
     }
 
     void ComputeShadowCullingVolume(std::array<dvec3, 8> CascadeFrustumVerts, const vec3& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
@@ -177,24 +102,8 @@ namespace nilou {
         ConvexVolumeOut = FConvexVolume(Planes);
     }
 
-    struct ShadowMapSplitIndexUBOs
-    {
-        ShadowMapSplitIndexUBOs()
-        {
-            for (int i = 0; i < CASCADED_SHADOWMAP_SPLIT_COUNT; i++)
-            {
-                UBOs[i] = CreateUniformBuffer<FShadowMapFrustumIndex>();
-                UBOs[i]->SetUsage(EUniformBufferUsage::UniformBuffer_MultiFrame);
-                UBOs[i]->Data.FrustumIndex = i;
-                UBOs[i]->InitResource();
-            }
-        }
-        std::array<TUniformBufferRef<FShadowMapFrustumIndex>, CASCADED_SHADOWMAP_SPLIT_COUNT> UBOs;
-    };
-
     void FDeferredShadingSceneRenderer::RenderCSMShadowPass(RenderGraph& Graph)
     {
-        static ShadowMapSplitIndexUBOs SplitIndexUBO;
         std::vector<int> FrustumsToBeUpdated = {0, 1, 2, 3};
         // The last 4 cascade levels are not updated every frame;
         static int FrustumRoundRobinIndex = -1;
@@ -225,11 +134,7 @@ namespace nilou {
         for (int i = 0; i < Scales.size(); i++)
             Scales[i] /= TotalScale;
 
-        // Mesh draw commands per light per view per light frustum
-        // This is ugly. try to fix it later.
-        std::map<int, std::map<int, std::map<int, FParallelMeshDrawCommands>>> MeshDrawCommands;
-
-        RenderTargetLayout RTLayout;
+        RHIRenderTargetLayout RTLayout;
         RTLayout.NumRenderTargetsEnabled = 1;
         RTLayout.DepthStencilTargetFormat = PF_D24S8;
 
@@ -245,16 +150,31 @@ namespace nilou {
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
                 FShadowMapResource Resources = Light.ShadowMapResources[ViewIndex];
-                FViewInfo& ViewInfo = Views[ViewIndex];
+                FSceneView& View = Views[ViewIndex];
                 std::vector<std::array<dvec3, 8>> CascadeFrustums;
-                
-                const double ShadowFarClip = glm::clamp(ViewInfo.FarClipDistance, ViewInfo.NearClipDistance, CASCADED_SHADOWMAP_MAX_DISTANCE);
-                const double ShadowNearClip = glm::clamp(ViewInfo.NearClipDistance, 0.0, ShadowFarClip);
-                const double t = glm::tan(0.5 * ViewInfo.VerticalFieldOfView);
+
+                FViewport ShadowViewport;
+                ShadowViewport.Width = LightSceneProxy->ShadowMapResolution.x;
+                ShadowViewport.Height = LightSceneProxy->ShadowMapResolution.y;
+                FSceneViewFamily ShadowViewFamily(ShadowViewport, Scene);
+
+                RDGBuffer* UniformBuffer = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(fmt::format("Light {} DirectionalShadowMappingBlock", LightIndex));
+                RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FShadowDepthVS>(0, VERTEX_SHADER_SET_INDEX);
+                DescriptorSet_VS->SetUniformBuffer("FShadowMappingBlock", UniformBuffer);
+                DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+                // TODO: Push constant
+                // DescriptorSet_VS->SetUniformBuffer("FShadowMapFrustumIndex");
+
+                std::vector<std::vector<FMeshBatch>> ShadowMeshBatches;
+                std::vector<FViewElementPDI> ShadowPDIs;
+
+                const double ShadowFarClip = glm::clamp(View.FarClipDistance, View.NearClipDistance, CASCADED_SHADOWMAP_MAX_DISTANCE);
+                const double ShadowNearClip = glm::clamp(View.NearClipDistance, 0.0, ShadowFarClip);
+                const double t = glm::tan(0.5 * View.VerticalFieldOfView);
                 const double b = -t;
-                const double r = t * ViewInfo.AspectRatio;
+                const double r = t * View.AspectRatio;
                 const double l = -r;
-                const glm::dvec3 Right = glm::cross(ViewInfo.Forward, ViewInfo.Up);
+                const glm::dvec3 Right = glm::cross(View.Forward, View.Up);
                 const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
                 double SplitFar = ShadowNearClip;
@@ -263,10 +183,10 @@ namespace nilou {
                     std::array<dvec3, 8> CascadeFrustumVerts;
                     SplitNear = SplitFar;
                     SplitFar = Scales[FrustumIndex] * FrustumLength + SplitNear;
-                    glm::dvec3 nearCenter = ViewInfo.Forward * SplitNear + ViewInfo.Position;
-                    glm::dvec3 farCenter = ViewInfo.Forward * SplitFar + ViewInfo.Position;
-                    glm::dvec3 TopNear = ViewInfo.Up * t * SplitNear;
-                    glm::dvec3 TopFar = ViewInfo.Up * t * SplitFar;
+                    glm::dvec3 nearCenter = View.Forward * SplitNear + View.Position;
+                    glm::dvec3 farCenter = View.Forward * SplitFar + View.Position;
+                    glm::dvec3 TopNear = View.Up * t * SplitNear;
+                    glm::dvec3 TopFar = View.Up * t * SplitFar;
                     glm::dvec3 RightNear = Right * r * SplitNear;
                     glm::dvec3 RightFar = Right * r * SplitFar;
                     CascadeFrustumVerts[0] = nearCenter + TopNear + RightNear;
@@ -283,7 +203,7 @@ namespace nilou {
                     const double SplitFrustumLength = SplitFar-SplitNear;
                     const double OptimalOffset = (DiagonalSq_Far - DiagonalSq_Near + SplitFrustumLength*SplitFrustumLength) / (2.0 * SplitFrustumLength);
                     const double CenterZ = glm::clamp(SplitNear+OptimalOffset, SplitNear, SplitFar);
-                    dvec3 Center = ViewInfo.Forward * CenterZ + ViewInfo.Position;
+                    dvec3 Center = View.Forward * CenterZ + View.Position;
                     double Radius = glm::max(glm::distance(Center, CascadeFrustumVerts[0]), glm::distance(Center, CascadeFrustumVerts[4]));
                     FBoundingSphere Sphere(Center, Radius);
                     FConvexVolume ConvexVolume;
@@ -316,38 +236,7 @@ namespace nilou {
                                                         0.0, 2*Radius);
                     LightSceneView.ViewFrustum = FViewFrustum(ViewMatrix, LightSceneView.ProjectionMatrix);
                     LightSceneView.ScreenResolution = ivec2(LightSceneProxy->ShadowMapResolution.x, LightSceneProxy->ShadowMapResolution.y);
-
-                    // The collector used for shadow mapping
-                    FMeshElementCollector LightCollector;
-                    std::vector<FMeshBatch> MeshBatches;
-                    FParallelMeshDrawCommands &DrawCommands = MeshDrawCommands[LightIndex][ViewIndex][FrustumIndex];
-                    LightCollector.PerViewMeshBatches.resize(1);
-                    double near, far;
-                    far = DBL_MAX;
-                    near = -DBL_MAX;
-                    for (auto &&PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
-                    {
-                        if (!PrimitiveInfo->SceneProxy->bCastShadow)
-                            continue;
-                        const FBoundingBox Box = PrimitiveInfo->SceneProxy->GetBounds();
-                        const FBoundingBox ViewSpaceBox = Box.TransformBy(FTransform(ViewMatrix));
-                        bool bCulled = ViewSpaceBox.Max.x < -Radius || 
-                                       ViewSpaceBox.Min.x > Radius ||
-                                       ViewSpaceBox.Max.y < -Radius ||
-                                       ViewSpaceBox.Min.x > Radius;
-                        if (!bCulled)
-                        {
-                            near = glm::max(near, ViewSpaceBox.Max.z);
-                            far = glm::min(far, ViewSpaceBox.Min.z);
-                            PrimitiveInfo->SceneProxy->GetDynamicMeshElements({&LightSceneView}, 0x1, LightCollector);
-                        }
-                    }
-                    for (auto&& Mesh : LightCollector.PerViewMeshBatches[0])
-                        MeshBatches.push_back(Mesh);
-                    if (near == -DBL_MAX) near = Radius;
-                    if (far == DBL_MAX) far = -Radius;
-                    // near = Radius;
-                    // far = -Radius;
+                    ShadowViewFamily.Views.push_back(LightSceneView);
 
                     // {   // To remove jittering
                     //     float cascadeAABBSize = Sphere.Radius * 2.0f;
@@ -363,7 +252,7 @@ namespace nilou {
                     //     Center = glm::inverse(view_matrix) * LightSpaceCenter;
                     // }
 
-                    dvec3 Position = Center - Direction * (near);
+                    dvec3 Position = Center - Direction * SHADOWMAP_FAR_CLIP;
                     ViewMatrix = glm::lookAt(
                         Position, 
                         Center, 
@@ -374,84 +263,64 @@ namespace nilou {
                         Sphere.Radius,
                         -Sphere.Radius,
                         Sphere.Radius,
-                        0.0, glm::abs(far-near));
+                        0.0, glm::abs(SHADOWMAP_FAR_CLIP-SHADOWMAP_NEAR_CLIP));
 
-                    auto UniformBuffer = Resources.ShadowMapUniformBuffer;
                     Resources.Frustums[FrustumIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
-                    Graph.AddUploadPass(UniformBuffer, Resources.Frustums.data(), sizeof(FShadowMappingParameters)*Resources.Frustums.size());
-                
-                    for (FMeshBatch &Mesh : MeshBatches)
+                }
+                UniformBuffer->SetData(Resources.Frustums.data());
+
+                ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
+
+                for (int ShadowViewIndex = 0; ShadowViewIndex < ShadowMeshBatches.size(); ShadowViewIndex++)
+                {
+                    FParallelMeshDrawCommands DrawCommands;
+                    for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
                         if (!Mesh.CastShadow)   
                             continue;
-                        FVertexFactoryPermutationParameters VertexFactoryParams(Mesh.Element.VertexFactory->GetType(), Mesh.Element.VertexFactory->GetPermutationId());
-                        FShadowDepthVS::FPermutationDomain PermutationVector;
-                        PermutationVector.Set<FShadowDepthVS::FDimensionFrustumCount>(CASCADED_SHADOWMAP_SPLIT_COUNT);
-                        FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
-                        FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
-                        FMeshDrawCommand MeshDrawCommand;
-                        #ifdef NILOU_DEBUG
-                        MeshDrawCommand.DebugVertexFactory = Mesh.Element.VertexFactory;
-                        MeshDrawCommand.DebugMaterial = Mesh.MaterialRenderProxy;
-                        #endif
-                        FInputShaderBindings InputBindings = Mesh.Element.Bindings;
-                        InputBindings.SetElementShaderBinding("FShadowMappingBlock", 
-                            UniformBuffer->Resolve());
-                        InputBindings.SetElementShaderBinding("FShadowMapFrustumIndex", 
-                            SplitIndexUBO.UBOs[FrustumIndex]->GetRHI());
-                        InputBindings.SetElementShaderBinding("FViewShaderParameters", 
-                            ViewInfo.ViewUniformBuffer->GetRHI());
-                        BuildMeshDrawCommand(
-                            VertexFactoryParams,
-                            Mesh.MaterialRenderProxy,
-                            PermutationParametersVS,
-                            PermutationParametersPS,
-                            InputBindings,
-                            Mesh.Element.VertexFactory->GetVertexDeclaration(),
-                            Mesh.Element,
-                            RTLayout,
-                            MeshDrawCommand);
-                        DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
-                    }
-                }
-            }
-        }
-
-        for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
-        {
-            if (Lights[LightIndex].LightSceneProxy->LightType != ELightType::LT_Directional)
-                continue;
-
-            auto &Light = Lights[LightIndex];
-            for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-            {
-                FShadowMapResource Resource = Light.ShadowMapResources[ViewIndex];
-                // auto &ShadowMapTexture = ShadowMapResource->ShadowMapTexture;
-                // auto &ShadowMapUniformBuffer = ShadowMapResource->ShadowMapUniformBuffer;
-                // auto &ShadowMapMeshBatch = Light.ShadowMapMeshBatches[ViewIndex];
-                for (int FrustumIndex : FrustumsToBeUpdated)
-                {
-                    FParallelMeshDrawCommands &MeshDrawCommand = MeshDrawCommands[LightIndex][ViewIndex][FrustumIndex];
-                    Graph.AddPass(
-                        [=](RDGPassBuilder& PassBuilder)
+                        for (FMeshBatchElement& Element : Mesh.Elements)
                         {
-                            PassBuilder.RenderTarget(FA_Depth_Stencil_Attachment, Resource.DepthViews[FrustumIndex]);
-                        },
+                            FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
+                            FShadowDepthVS::FPermutationDomain PermutationVector;
+                            PermutationVector.Set<FShadowDepthVS::FDimensionFrustumCount>(CASCADED_SHADOWMAP_SPLIT_COUNT);
+                            FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
+                            FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
+
+                            FMeshDrawCommand MeshDrawCommand;
+                            MeshDrawCommand.ShaderBindings.SetDescriptorSet(VERTEX_SHADER_SET_INDEX, DescriptorSet_VS);
+
+                            BuildMeshDrawCommand(
+                                VertexFactoryParams,
+                                Mesh.MaterialRenderProxy,
+                                PermutationParametersVS,
+                                PermutationParametersPS,
+                                Element.VertexFactory->GetVertexDeclaration(),
+                                Element,
+                                RTLayout,
+                                MeshDrawCommand);
+
+                            DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
+                        }
+                    }
+                    RDGFramebuffer Framebuffer;
+                    Framebuffer.SetAttachment(FA_Depth_Stencil_Attachment, Resources.DepthViews[ShadowViewIndex]);
+                    RDGGraphicsPassDesc PassDesc;
+                    PassDesc.Name = "ShadowDepthPass";
+                    PassDesc.RenderTargets = Framebuffer;
+                    PassDesc.DescriptorSets = { DescriptorSet_VS };
+                    Graph.AddGraphicsPass(
+                        PassDesc,
                         [=](RHICommandList& RHICmdList)
                         {
-                            // FRHIRenderPassInfo PassInfo(
-                            //     ShadowMapTexture.ShadowMapFramebuffers[FrustumIndex].get(), 
-                            //     ShadowMapTexture.DepthArray->GetSizeXYZ(), true, true, true);
-                            // RHICmdList->RHIBeginRenderPass(PassInfo);
-                            MeshDrawCommand.DispatchDraw(RHICmdList);
-                            // RHICmdList->RHIEndRenderPass();
+                            DrawCommands.DispatchDraw(RHICmdList);
                         }
                     );
                 }
+
             }
-        }
+        }        
     }
 
 }

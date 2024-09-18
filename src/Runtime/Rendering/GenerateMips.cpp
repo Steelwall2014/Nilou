@@ -35,12 +35,16 @@ void FGenerateMips::Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerS
         Data->TexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FGenerateMipsCS>(0, 0);
-        DescriptorSet->SetSampler("MipInSRV", Sampler, Graph.CreateSRV(RDGTextureSRVDesc::CreateForMipLevel(Texture, MipLevel - 1)));
-        DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateUAV(RDGTextureUAVDesc(Texture, MipLevel)));
-        DescriptorSet->SetUniformBuffer("GenerateMipsCB", Graph.CreateSRV(RDGBufferSRVDesc(GenerateMipsCB, PF_R32G32F)));
+        DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView(RDGTextureViewDesc::CreateForMipLevel(Texture, MipLevel - 1)), Sampler);
+        DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView(RDGTextureViewDesc::CreateForMipLevel(Texture, MipLevel)));
+        DescriptorSet->SetUniformBuffer("GenerateMipsCB", GenerateMipsCB);
 
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = fmt::format("GenerateMips for texture {} mipmap {}", Texture->Name, MipLevel);
+        PassDesc.DescriptorSets = { DescriptorSet };
+        
         Graph.AddComputePass(
-            { DescriptorSet },
+            PassDesc,
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);

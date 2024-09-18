@@ -162,11 +162,11 @@ public: \
 public: \
     inline void Set##MemberName(const MemberType &NewValue) \
     { \
-		AtmosphereParameters->Data.ATMOSPHERE.MemberName = NewValue; \
+		AtmosphereParameters->GetData<ShaderAtmosphereParametersBlock>()->ATMOSPHERE.MemberName = NewValue; \
     } \
     inline MemberType Get##MemberName() const \
     { \
-        return AtmosphereParameters->Data.ATMOSPHERE.MemberName; \
+        return AtmosphereParameters->GetData<ShaderAtmosphereParametersBlock>()->ATMOSPHERE.MemberName; \
     }
 
     class FSkyAtmosphereSceneProxy
@@ -189,21 +189,21 @@ public: \
 		SKY_PROXY_DECLARE_FUNCTION(vec3, GroundAlbedo)
 		SKY_PROXY_DECLARE_FUNCTION(float, Mu_s_Min)
 
-		inline RHITexture2D *GetTransmittanceLUT() const { return TransmittanceLUT.get(); }
-		inline RHITexture3D *GetMultiScatteringLUT() const { return MultiScatteringLUT.get(); }
-		inline RHITexture3D *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT.get(); }
-		inline TUniformBuffer<ShaderAtmosphereParametersBlock> *GetAtmosphereParametersBlock() const { return AtmosphereParameters.get(); }
+		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
+		inline RDGTextureView *GetMultiScatteringLUT() const { return MultiScatteringLUT->GetDefaultView(); }
+		inline RDGTextureView *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT->GetDefaultView(); }
+		inline RDGBuffer *GetAtmosphereParametersBlock() const { return AtmosphereParameters.get(); }
 
 
 	protected:
-		TUniformBufferRef<ShaderAtmosphereParametersBlock> AtmosphereParameters;
-		TUniformBufferRef<ScatteringOrderBlock> ScatteringOrderParameter;
-		RHITexture2DRef TransmittanceLUT;
-		RHITexture2DRef IrradianceLUT;
-		RHITexture3DRef DeltaScatteringRayleighLUT;
-		RHITexture3DRef SingleScatteringMieLUT;
-		RHITexture3DRef MultiScatteringLUT;
-		RHITexture3DRef ScatteringDensityLUT;
+		RDGBufferRef AtmosphereParameters;
+		RDGBufferRef ScatteringOrderParameter;
+		RDGTextureRef TransmittanceLUT;
+		RDGTextureRef IrradianceLUT;
+		RDGTextureRef DeltaScatteringRayleighLUT;
+		RDGTextureRef SingleScatteringMieLUT;
+		RDGTextureRef MultiScatteringLUT;
+		RDGTextureRef ScatteringDensityLUT;
 
 		void DispatchPrecompute();
 

@@ -249,13 +249,13 @@ namespace nilou {
 	};
 	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
 
-	struct RenderTargetLayout
+	struct RHIRenderTargetLayout
 	{
 		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_Unknown };
 		uint32 NumRenderTargetsEnabled = 0;
 		EPixelFormat DepthStencilTargetFormat = PF_Unknown;
 
-		bool operator==(const RenderTargetLayout &Other) const = default;
+		bool operator==(const RHIRenderTargetLayout &Other) const = default;
 	};
 
 	class FGraphicsPipelineStateInitializer
@@ -282,7 +282,7 @@ namespace nilou {
 
 		FRHIVertexDeclaration* VertexDeclaration;
 
-		RenderTargetLayout RTLayout;
+		RHIRenderTargetLayout RTLayout;
 
 		bool operator==(const FGraphicsPipelineStateInitializer &Other) const = default;
 	};

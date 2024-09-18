@@ -19,13 +19,5 @@ namespace nilou {
             Domain.ModifyCompilationEnvironment(Environment);
         }
 	};
-    // class FBasePassMeshPassProcessor : public FMeshPassProcessor
-    // {
-    // public: 
-    //     virtual void BuildMeshDrawCommands(
-    //         const FSceneView &View, 
-    //         const std::vector<FMeshBatch> &MeshBatches, 
-    //         std::vector<FMeshDrawCommand> &OutMeshDrawCommands);
-    // };
 
 }

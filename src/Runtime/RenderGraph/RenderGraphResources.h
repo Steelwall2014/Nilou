@@ -120,19 +120,33 @@ struct RDGTextureDesc
 
     bool operator==(const RDGTextureDesc& Other) const = default;
 };
-class RDGTexture : public RDGViewableResource
+class RDGTexture : public RDGResource
 {
 public:
+    friend class RenderGraph;
+    
     RDGTexture(const RDGTextureDesc& InDesc): Desc(InDesc) { }
 
     RHITexture* GetRHI() const { return static_cast<RHITexture*>(ResourceRHI.get()); }
 
+    class RDGTextureView* GetDefaultView() const { return DefaultView; }
+
     const RDGTextureDesc Desc;
+
+    virtual ~RDGTexture()
+    {
+        if (bIsPersistent)
+        {
+            delete DefaultView;
+        }
+    }
+
+private:
+
+    RDGTextureView* DefaultView;
 };
 using RDGTextureRef = std::shared_ptr<RDGTexture>;
-
-/** Texture Shader Resource View */
-struct RDGTextureSRVDesc
+struct RDGTextureViewDesc
 {
     EPixelFormat Format; 
     uint32 BaseMipLevel;
@@ -142,9 +156,9 @@ struct RDGTextureSRVDesc
     ETextureDimension ViewType;
     RDGTexture* Texture;
 
-    RDGTextureSRVDesc() = default;
+    RDGTextureViewDesc() = default;
 
-    RDGTextureSRVDesc(RDGTexture* InTexture)
+    RDGTextureViewDesc(RDGTexture* InTexture)
     {
         Texture = InTexture;
         Format = InTexture->Desc.Format;
@@ -155,69 +169,34 @@ struct RDGTextureSRVDesc
         ViewType = InTexture->Desc.TextureType;
     }
 
-    static RDGTextureSRVDesc Create(RDGTexture* InTexture)
+    static RDGTextureViewDesc Create(RDGTexture* InTexture)
     {
-        return RDGTextureSRVDesc(InTexture);
+        return RDGTextureViewDesc(InTexture);
     }
 
-    static RDGTextureSRVDesc CreateForMipLevel(RDGTexture* InTexture, uint32 MipLevel)
+    static RDGTextureViewDesc CreateForMipLevel(RDGTexture* InTexture, uint32 MipLevel)
     {
-        RDGTextureSRVDesc Desc = RDGTextureSRVDesc::Create(InTexture);
+        RDGTextureViewDesc Desc = RDGTextureViewDesc::Create(InTexture);
         Desc.BaseMipLevel = MipLevel;
         Desc.LevelCount = 1;
         return Desc;
     }
 
-    bool operator==(const RDGTextureSRVDesc& Other) const = default;
+    bool operator==(const RDGTextureViewDesc& Other) const = default;
 };
-class RDGTextureSRV : public RDGShaderResourceView
+class RDGTextureView : public RDGResource
 {
 public:
-    RDGTextureSRV(std::string InName, const RDGTextureSRVDesc& InDesc) 
-        : RDGShaderResourceView(InName, ERDGViewType::TextureSRV)
-        , Desc(InDesc) 
+    RDGTextureView(std::string InName, const RDGTextureViewDesc& InDesc) 
+        : RDGResource(InName)
+        , Desc(InDesc)
     { }
 
-    const RDGTextureSRVDesc Desc;
-
-    RDGTexture* GetParent() const { return Desc.Texture; }
-
-};
-
-/** Texture Unordered Access View */
-struct RDGTextureUAVDesc
-{
-    EPixelFormat Format; 
-    uint32 BaseMipLevel;
-    uint32 BaseArrayLayer;
-    uint32 LayerCount;
-    RDGTexture* Texture;
-
-    RDGTextureUAVDesc() = default;
-
-    explicit RDGTextureUAVDesc(RDGTexture* InTexture, uint8 InMipLevel, EPixelFormat InFormat = PF_Unknown, uint16 InBaseArrayLayer = 0, uint16 InLayerCount = 0)
-    {
-        Texture = InTexture;
-        BaseMipLevel = InMipLevel;
-        Format = InFormat != PF_Unknown ? InFormat : InTexture->Desc.Format;
-        BaseArrayLayer = InBaseArrayLayer;
-        LayerCount = InLayerCount;
-    }
-
-    bool operator==(const RDGTextureUAVDesc& Other) const = default;
-};
-class RDGTextureUAV : public RDGUnorderedAccessView
-{
-public:
-    RDGTextureUAV(std::string InName, const RDGTextureSRVDesc& InDesc) 
-        : RDGUnorderedAccessView(InName, ERDGViewType::TextureUAV)
-        , Desc(InDesc) 
-    { }
-
-    const RDGTextureSRVDesc Desc;
+    const RDGTextureViewDesc Desc;
 
     RDGTexture* GetParent() const { return Desc.Texture; }
 };
+using RDGTextureViewRef = std::shared_ptr<RDGTextureView>;
 
 /************ Buffer *************/
 struct RDGBufferDesc
@@ -241,6 +220,11 @@ public:
         AllocatedSize = InDesc.Size;
     }
     RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.get()); }
+
+    void SetData(const void* InData)
+    {
+        SetData(InData, Desc.Size, 0);
+    }
 
     template<typename T>
     void SetData(const T& InData, uint32 Offset)
@@ -274,66 +258,19 @@ public:
 };
 using RDGBufferRef = std::shared_ptr<RDGBuffer>;
 
-/** Buffer Shader Resource View */
-struct RDGBufferSRVDesc
-{
-	explicit RDGBufferSRVDesc() = default;
-
-	explicit RDGBufferSRVDesc(RDGBuffer* InBuffer, EPixelFormat InFormat)
-		: Format(InFormat)
-        , Buffer(InBuffer)
-	{
-		if (InFormat != PF_Unknown)
-		{
-			BytesPerElement = GPixelFormats[Format].BlockBytes;
-		}
-	}
-	/** Number of bytes per element. */
-	uint32 BytesPerElement = 1;
-
-	/** Encoding format for the element. */
-	EPixelFormat Format = PF_Unknown;
-
-    RDGBuffer* Buffer = nullptr;
-};
-class RDGBufferSRV : public RDGShaderResourceView
+class RDGFramebuffer
 {
 public:
-    RDGBufferSRV(std::string InName, const RDGBufferSRVDesc& InDesc) 
-        : RDGShaderResourceView(InName, ERDGViewType::BufferSRV)
-        , Desc(InDesc) 
-    { }
 
-    const RDGBufferSRVDesc Desc;
+    void SetAttachment(EFramebufferAttachment Attachment, RDGTextureView* Texture);
 
-    RDGBuffer* GetParent() const { return static_cast<RDGBuffer*>(Desc.Buffer); }
-};
+    const RHIRenderTargetLayout& GetRenderTargetLayout() const { return RTLayout; }
 
-/** Buffer Unordered Access View */
-struct RDGBufferUAVDesc
-{
-    explicit RDGBufferUAVDesc() = default;
+private:
 
-    explicit RDGBufferUAVDesc(EPixelFormat InFormat)
-        : Format(InFormat)
-    { }
+    RHIRenderTargetLayout RTLayout;
 
-    /** Encoding format for the element. */
-    EPixelFormat Format = PF_Unknown;
-
-    RDGBuffer* Buffer = nullptr;
-};
-class RDGBufferUAV : public RDGUnorderedAccessView
-{
-public:
-    RDGBufferUAV(std::string InName, const RDGBufferUAVDesc& InDesc) 
-        : RDGUnorderedAccessView(InName, ERDGViewType::BufferUAV)
-        , Desc(InDesc) 
-    { }
-
-    const RDGBufferUAVDesc Desc;
-
-    RDGBuffer* GetParent() const { return static_cast<RDGBuffer*>(Desc.Buffer); }
+    std::unordered_map<EFramebufferAttachment, RDGTextureView*> Attachments;
 };
 
 }

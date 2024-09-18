@@ -72,7 +72,7 @@ struct RDGGraphicsPassDesc : public RDGPassDesc
     std::vector<RDGDescriptorSet*> DescriptorSets;
 
     // The render targets used by this graphics pass.
-    std::unordered_map<EFramebufferAttachment, RDGTexture*> RenderTargets;
+    RDGFramebuffer RenderTargets;
 };
 
 struct RDGComputePassDesc : public RDGPassDesc
@@ -95,11 +95,15 @@ public:
 
     static RDGTextureRef CreatePersistentTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
+    static RDGTextureViewRef CreatePersistentTextureView(const RDGTextureViewDesc& TextureViewDesc);
+
     static RDGBufferRef CreatePersistentBuffer(const std::string& Name, const RDGBufferDesc& Desc);
 
     static RDGDescriptorSetRef CreatePersistentDescriptorSet(RHIDescriptorSetLayout* Layout);
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
+
+    RDGTextureView* CreateTextureView(const RDGTextureViewDesc& TextureViewDesc);
 
     RDGBuffer* CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
@@ -112,12 +116,6 @@ public:
         return CreateBuffer(Name, Desc);
     }
 
-    RDGTextureSRV* CreateSRV(const RDGTextureSRVDesc& Desc);
-    RDGBufferSRV* CreateSRV(const RDGBufferSRVDesc& Desc);
-
-    RDGTextureUAV* CreateUAV(const RDGTextureUAVDesc& Desc);
-    RDGBufferUAV* CreateUAV(const RDGBufferUAVDesc& Desc);
-
     RDGDescriptorSet* CreateDescriptorSet(RHIDescriptorSetLayout* Layout);
 
     template<class TShaderType>
@@ -125,6 +123,8 @@ public:
     {
         return CreateDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
     }
+
+
 
     // Add a graphics pass to the render graph
     PassHandle AddGraphicsPass(
@@ -152,6 +152,8 @@ public:
 
 protected:
 
+    static RDGTextureView* CreatePersistentTextureViewInternal(const RDGTextureViewDesc& TextureViewDesc);
+
 private:
 
     RDGPassNode* PresentPass;
@@ -159,11 +161,14 @@ private:
     std::vector<RDGPassNode*> Passes;
 
     std::vector<RDGResourceNode*> Resources;
+    
+    std::vector<RDGFramebuffer> Framebuffers;
 
+    // Resources whose lifetime is managed by the render graph
     std::vector<RDGTextureRef> Textures;
     std::vector<RDGBufferRef> Buffers;
+    std::vector<RDGDescriptorSetRef> DescriptorSets;
 
-    std::vector<RDGDescriptorSetRef> AllocatedDescriptorSets;
     static std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> DescriptorSetPools;
 };
 

@@ -5,12 +5,16 @@
 #include "SceneView.h"
 #include <vector>
 namespace nilou {
-    // class FMeshPassProcessor 
-    // {
-    // public: 
-    //     virtual void BuildMeshDrawCommands(
-    //         const FSceneView &View, 
-    //         const std::vector<FMeshBatch> &MeshBatches, 
-    //         std::vector<FMeshDrawCommand> &OutMeshDrawCommands) = 0;
-    // };
+
+void BuildMeshDrawCommand(
+    const FVertexFactoryPermutationParameters &VFPermutationParameters,
+    FMaterialRenderProxy *MaterialProxy,
+    const FShaderPermutationParameters &PermutationParametersVS,
+    const FShaderPermutationParameters &PermutationParametersPS,
+    FRHIVertexDeclaration* VertexDeclaration,
+    const FMeshBatchElement &Element,
+    const RHIRenderTargetLayout &RTLayout,
+    FMeshDrawCommand &OutMeshDrawCommand
+);
+
 }

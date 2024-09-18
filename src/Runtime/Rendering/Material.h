@@ -279,7 +279,10 @@ namespace nilou {
                     if (DescriptorSets.count(Position.SetIndex) != 0)
                     {
                         Textures[Key] = Value->GetResource();
-                        DescriptorSets[Position.SetIndex]->SetSampler(Position.BindingIndex, Textures[Key]->GetSamplerState(), Textures[Key]->GetTextureRDG());
+                        DescriptorSets[Position.SetIndex]->SetSampler(
+                            Position.BindingIndex, 
+                            Textures[Key]->GetTextureRDG()->GetDefaultView(), 
+                            Textures[Key]->GetSamplerState());
                     }
                 }
                 else 

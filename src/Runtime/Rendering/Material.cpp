@@ -276,17 +276,18 @@ namespace nilou {
             uint32 SetIndex = Key >> 32;
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             NewRenderProxy->Textures[Key] = Texture;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetSamplerState(), Texture->GetTextureRDG());
+            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetTextureSRV(), Texture->GetSamplerState());
         }
         for (auto& [Key, Buffer] : this->MaterialRenderProxy->UniformBuffers)
         {
             uint32 SetIndex = Key >> 32;
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             // Copy the uniform buffer instead of the refs.
-            RDGBufferRef NewUniformBuffer = RenderGraph::CreatePersistentBuffer(Buffer->Desc);
+            RDGBufferRef NewUniformBuffer = RenderGraph::CreatePersistentBuffer(Buffer->Name, Buffer->Desc);
             NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.Size, 0);
             NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewUniformBuffer.get());
+            NewRenderProxy->UniformBufferSRVs[Key] = RenderGraph::CreatePersistentSRV(RDGBufferSRVDesc(NewUniformBuffer.get()));
+            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBufferSRVs[Key].get());
         }
         NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
         NewRenderProxy->RasterizerState = this->MaterialRenderProxy->RasterizerState;
@@ -411,8 +412,10 @@ namespace nilou {
                     }
                     uint32 Size = Binding.Block.Size;
                     uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
-                    UniformBuffers[key] = RenderGraph::CreatePersistentBuffer({0, Size});
-                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key].get());
+                    std::string BufferName = fmt::format("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
+                    UniformBuffers[key] = RenderGraph::CreatePersistentBuffer(BufferName, RDGBufferDesc(Size));
+                    UniformBufferSRVs[key] = RenderGraph::CreatePersistentSRV(RDGBufferSRVDesc(UniformBuffers[key].get()));
+                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBufferSRVs[key].get());
                 }
                 else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
                 {

@@ -2,6 +2,7 @@
 #include "Shader.h"
 #include "Templates/ObjectMacros.h"
 #include "DeferredShadingSceneRenderer.h"
+#include "RenderPass.h"
 
 namespace nilou {
     // DECLARE_MATERIAL_SHADER(FShadowDepthVS)
