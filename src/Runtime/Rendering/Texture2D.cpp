@@ -22,6 +22,7 @@ namespace nilou {
         Desc.Format = Image->GetPixelFormat();
         Desc.SizeX = Image->GetWidth();
         Desc.SizeY = Image->GetHeight();
+        Desc.TextureType = ETextureDimension::Texture2D;
         Desc.NumMips = NumMips;
         TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
 

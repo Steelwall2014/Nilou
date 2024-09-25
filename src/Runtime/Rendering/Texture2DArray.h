@@ -7,8 +7,8 @@ namespace nilou {
     {
     public:
 
-        FTexture2DArrayResource(const std::string& InName, const RHITextureParams& InTextureParams, int32 InNumMips=1)
-            : FTextureResource(InName, InTextureParams, InNumMips)
+        FTexture2DArrayResource(const std::string& InName, const FSamplerStateInitializer& InSamplerState, int32 InNumMips=1)
+            : FTextureResource(InName, InSamplerState, InNumMips)
         { 
             TextureType = ETextureDimension::Texture2DArray;
         }

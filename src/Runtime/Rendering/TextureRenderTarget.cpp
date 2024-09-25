@@ -54,7 +54,7 @@ namespace nilou {
         RHIGetError();
     }
 
-    void FTextureRenderTargetCubeResource::InitRHI()
+    void FTextureRenderTargetCubeResource::InitRHI(RenderGraph& Graph)
     {
         if (Image && Image->GetImageType() != EImageType::IT_ImageCube)
         {
@@ -67,37 +67,42 @@ namespace nilou {
 
         RHIGetError();
 
-        FTextureRenderTargetResource::InitRHI();
-        void* data_pointers[6];
-        for (int i = 0; i < 6; i++)
-            data_pointers[i] = Image->GetPointer(0, 0, i);
+        RDGTextureDesc Desc{};
+        Desc.Format = Image->GetPixelFormat();
+        Desc.SizeX = Image->GetWidth();
+        Desc.SizeY = Image->GetHeight();
+        Desc.TextureType = ETextureDimension::TextureCube;
+        Desc.NumMips = NumMips;
+        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
 
-        FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-        auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
-            Name, Image->GetPixelFormat(), NumMips, 
-            Image->GetWidth(), Image->GetHeight(), TexCreate_RenderTargetable | TexCreate_UAV);
-        TextureRHI = TextureCubeRHI;
-        SamplerRHI.Texture = TextureRHI.get();
-        
-        for (int i = 0; i < 6; i++)
-        {
-            for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
+        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
+            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
+            RDGBufferDesc(Image->GetDataSize()));
+
+        RDGCopyPassDesc PassDesc{};
+        PassDesc.Source = StagingBuffer;
+        PassDesc.Destination = TextureRDG.get();
+        PassDesc.bNeverCull = true;
+        Graph.AddCopyPass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
             {
-                RHICmdList->RHIUpdateTextureCube(TextureCubeRHI.get(), 
-                    0, 0, i, 
-                    Image->GetWidth(), Image->GetHeight(), MipIndex, 
-                    Image->GetPointer(0, 0, i, MipIndex));
-            }
+                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
+                void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
+                    std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
+                RHIUnmapMemory(StagingBufferRHI);
 
-            RenderTargetTextureViews[i] = RHICmdList->RHICreateTextureView2D(
-                TextureRHI.get(), TextureRHI->GetFormat(), 
-                0, 1, i);
-        
-            RenderTargetFramebuffers[i] = RHICmdList->RHICreateFramebuffer({{FA_Color_Attachment0, RenderTargetTextureViews[i]}});
-        }
+                RHITexture* TextureRHI = TextureRDG->GetRHI();
+                RHICmdList.CopyBufferToImage(StagingBufferRHI, TextureRHI, 
+                    0,                      // mipmap level
+                    0, 0, 0,                // x, y, z offset
+                    Image->GetWidth(),      // width
+                    Image->GetHeight(),     // height
+                    1,                      // depth
+                    6);                     // array layer
+            });
 
         RHIGetError();
-    
     }
 
     FTextureRenderTargetResource* UTextureRenderTarget::GetRenderTargetResource()
@@ -128,7 +133,7 @@ namespace nilou {
 
     FTextureResource* UTextureRenderTarget2D::CreateResource()
     {
-        FTextureRenderTarget2DResource* Resource = new FTextureRenderTarget2DResource(Name, TextureParams, NumMips);
+        FTextureRenderTarget2DResource* Resource = new FTextureRenderTarget2DResource(Name, SamplerState, NumMips);
         Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;
@@ -156,7 +161,7 @@ namespace nilou {
 
     FTextureResource* UTextureRenderTargetCube::CreateResource()
     {
-        FTextureRenderTargetCubeResource* Resource = new FTextureRenderTargetCubeResource(Name, TextureParams, NumMips);
+        FTextureRenderTargetCubeResource* Resource = new FTextureRenderTargetCubeResource(Name, SamplerState, NumMips);
         Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;

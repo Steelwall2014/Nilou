@@ -1,8 +1,11 @@
 #include "TextureCube.h"
+#include "RenderGraph.h"
+#include "RHICommandList.h"
+#include "GenerateMips.h"
 
 namespace nilou {
 
-    void FTextureCubeResource::InitRHI()
+    void FTextureCubeResource::InitRHI(RenderGraph& Graph)
     {
         if (Image && Image->GetImageType() != EImageType::IT_ImageCube)
         {
@@ -14,35 +17,50 @@ namespace nilou {
         }
 
         RHIGetError();
-        void* data_pointers[6];
-        for (int i = 0; i < 6; i++)
-            data_pointers[i] = Image->GetPointer(0, 0, i);
-        FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
 
-        FTextureResource::InitRHI();
-        auto TextureCubeRHI = RHICmdList->RHICreateTextureCube(
-            Name, Image->GetPixelFormat(), 
-            NumMips, Image->GetWidth(), Image->GetHeight(), TexCreate_CPUWritable | TexCreate_UAV);
-        TextureRHI = TextureCubeRHI;
-        
-        for (int i = 0; i < 6; i++)
-        {
-            for (int MipIndex = 0; MipIndex < Image->GetNumMips(); MipIndex++)
+        RDGTextureDesc Desc{};
+        Desc.Format = Image->GetPixelFormat();
+        Desc.SizeX = Image->GetWidth();
+        Desc.SizeY = Image->GetHeight();
+        Desc.TextureType = ETextureDimension::TextureCube;
+        Desc.NumMips = NumMips;
+        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
+
+        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
+            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
+            RDGBufferDesc(Image->GetDataSize()));
+
+        RDGCopyPassDesc PassDesc{};
+        PassDesc.Source = StagingBuffer;
+        PassDesc.Destination = TextureRDG.get();
+        PassDesc.bNeverCull = true;
+        Graph.AddCopyPass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
             {
-                RHICmdList->RHIUpdateTextureCube(TextureCubeRHI.get(), 
-                    0, 0, i, 
-                    Image->GetWidth(), Image->GetHeight(), MipIndex, 
-                    Image->GetPointer(0, 0, i, MipIndex));
-            }
-        }
-        SamplerRHI.Texture = TextureRHI.get();
+                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
+                void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
+                    std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
+                RHIUnmapMemory(StagingBufferRHI);
+
+                RHITexture* TextureRHI = TextureRDG->GetRHI();
+                RHICmdList.CopyBufferToImage(StagingBufferRHI, TextureRHI, 
+                    0,                      // mipmap level
+                    0, 0, 0,                // x, y, z offset
+                    Image->GetWidth(),      // width
+                    Image->GetHeight(),     // height
+                    1,                      // depth
+                    6);                     // array layer
+            });
+        
+        FGenerateMips::Execute(Graph, TextureRDG.get(), SamplerStateRHI.get());
 
         RHIGetError();
     }
 
     FTextureResource* UTextureCube::CreateResource()
     {
-        FTextureCubeResource* Resource = new FTextureCubeResource(Name, TextureParams, NumMips);
+        FTextureCubeResource* Resource = new FTextureCubeResource(Name, SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

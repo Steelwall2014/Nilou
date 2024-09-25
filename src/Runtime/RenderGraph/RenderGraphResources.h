@@ -109,11 +109,11 @@ protected:
 /************ Texture *************/
 struct RDGTextureDesc
 {
-    uint32 SizeX;
-    uint32 SizeY;
-    uint32 SizeZ;
-    uint32 ArraySize;
-    uint32 NumMips;
+    uint32 SizeX = 1;
+    uint32 SizeY = 1;
+    uint32 SizeZ = 1;
+    uint32 ArraySize = 1;
+    uint32 NumMips = 1;
     EPixelFormat Format;
     ETextureDimension TextureType;
     ETextureCreateFlags TexCreateFlags;
