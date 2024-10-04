@@ -428,10 +428,7 @@ namespace nilou {
             UploadData_impl(Graph, &Data, sizeof(UniformBufferStruct));
         }
 
-        void UpdateUniformBuffer()
-        {
-            
-        }
+        void UpdateUniformBuffer();
 
         UniformBufferStruct Data;
     };

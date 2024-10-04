@@ -54,7 +54,7 @@ namespace nilou {
                 TexCoords[i].BindToVertexFactoryData(Data.TexCoordComponent[i]);
             Colors.BindToVertexFactoryData(Data.ColorComponent);
             VertexFactory->SetData(Data);
-            VertexFactory->InitVertexFactory();
+            BeginInitResource(VertexFactory);
         }
     }
 
@@ -63,37 +63,32 @@ namespace nilou {
         Data = InData;
     }
 
-    void FStaticVertexFactory::InitVertexFactory()
+    void FStaticVertexFactory::InitRHI(RenderGraph& Graph)
     {
-        Elements.clear();
         if (Data.PositionComponent.VertexBuffer != nullptr)
         {
-            Elements.push_back(AccessStreamComponent(Data.PositionComponent, 0, Streams));
+            Elements[0] = AccessStreamComponent(Data.PositionComponent, 0, Streams);
         }
         if (Data.NormalComponent.VertexBuffer != nullptr)
         {
-            Elements.push_back(AccessStreamComponent(Data.NormalComponent, 1, Streams));
+            Elements[1] = AccessStreamComponent(Data.NormalComponent, 1, Streams);
         }
         if (Data.TangentComponent.VertexBuffer != nullptr)
         {
-            Elements.push_back(AccessStreamComponent(Data.TangentComponent, 2, Streams));
+            Elements[2] = AccessStreamComponent(Data.TangentComponent, 2, Streams);
         }
         if (Data.ColorComponent.VertexBuffer != nullptr)
         {
-            Elements.push_back(AccessStreamComponent(Data.ColorComponent, 3, Streams));
+            Elements[3] = AccessStreamComponent(Data.ColorComponent, 3, Streams);
         }
         for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
         {
             if (Data.TexCoordComponent[i].VertexBuffer != nullptr)
             {
-                Elements.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams));
+                Elements[4+i] = AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams);
             }
         }
-        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
-            [this](FDynamicRHI* RHICmdList) 
-            {
-                Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration(Elements);
-            });
+        Declaration = RHICreateVertexDeclaration(Elements);
     }
 
     // FRHIVertexInputList* FStaticVertexFactory::GetVertexInputList() const
@@ -167,7 +162,7 @@ namespace nilou {
             }
             if (Section->IndexBuffer.GetIndiceData() != nullptr)
                 BeginInitResource(&Section->IndexBuffer);
-            Section->VertexFactory.InitVertexFactory();
+            BeginInitResource(&Section->VertexFactory);
         }
         bIsInitialized = true;
     }

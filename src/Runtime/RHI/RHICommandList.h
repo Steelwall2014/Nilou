@@ -39,6 +39,9 @@ namespace nilou {
     {
     public:
 
+        virtual void BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+
         /* Perform actions commands */
         virtual void BeginRenderPass(FRHIRenderPassInfo& Info) = 0;
         virtual void EndRenderPass() = 0;

@@ -23,7 +23,8 @@
 #define DECLARE_VERTEX_FACTORY_TYPE(FactoryClass) \
     public: \
         static FVertexFactoryType StaticType; \
-        virtual FVertexFactoryType* GetType() const override;
+        virtual FVertexFactoryType* GetType() const override; \
+		static RHIDescriptorSetLayout* GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) { return StaticType.GetDescriptorSetLayout(PermutationId, SetIndex); }
 
 #define IMPLEMENT_VERTEX_FACTORY_TYPE(FactoryClass, ShaderFilename) \
 	FVertexFactoryType FactoryClass::StaticType( \

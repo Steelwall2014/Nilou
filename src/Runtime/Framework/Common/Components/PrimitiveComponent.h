@@ -75,7 +75,7 @@ namespace nilou {
     
         virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
 
-        virtual void CreateRenderThreadResources();
+        virtual void CreateRenderThreadResources(RenderGraph& Graph);
 
         virtual void DestroyRenderThreadResources();
 

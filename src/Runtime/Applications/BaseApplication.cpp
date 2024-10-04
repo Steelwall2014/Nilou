@@ -1,5 +1,5 @@
 #include "BaseApplication.h"
-#include "DynamicRHI.h"
+#include "RHICommandList.h"
 #include "Common/Path.h"
 #include "Common/Crc.h"
 
@@ -44,10 +44,10 @@ namespace nilou {
     void BaseApplication::Tick(double DeltaTime)
     {
         ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
-            [this](FDynamicRHI* RHICmdList) 
+            [this](RHICommandListImmediate& RHICmdList) 
             {
                 FRenderingThread::NotifyStartOfFrame();
-                RHICmdList->RHIBeginFrame();
+                RHICmdList.BeginFrame();
             });
         GameViewportClient->Tick(DeltaTime);
         static FViewport Viewport;
@@ -58,10 +58,10 @@ namespace nilou {
         std::unique_lock<std::mutex> lock(m);
         std::condition_variable fence;
         ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
-            [this, &fence](FDynamicRHI* RHICmdList) 
+            [this, &fence](RHICommandListImmediate& RHICmdList) 
             {
                 this->Tick_RenderThread();
-                RHICmdList->RHIEndFrame();
+                RHICmdList.EndFrame();
                 FRenderingThread::NotifyEndOfFrame();
                 fence.notify_one();
             });

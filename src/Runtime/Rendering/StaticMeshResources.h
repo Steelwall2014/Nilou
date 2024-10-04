@@ -46,7 +46,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual void InitVertexFactory() override;
+        virtual void InitRHI(RenderGraph&) override;
 
         virtual int32 GetPermutationId() const override;
 

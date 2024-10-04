@@ -3,6 +3,7 @@
 
 #include "Platform.h"
 #include "RHIResources.h"
+#include "Templates/TypeTraits.h"
 
 namespace nilou {
 
@@ -221,17 +222,6 @@ public:
     }
     RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.get()); }
 
-    void SetData(const void* InData)
-    {
-        SetData(InData, Desc.Size, 0);
-    }
-
-    template<typename T>
-    void SetData(const T& InData, uint32 Offset)
-    {
-        SetData(&InData, sizeof(InData), Offset);
-    }
-
     void SetData(const void* InData, uint32 Size, uint32 Offset)
     {
         Ncheckf(Offset+Size <= AllocatedSize, "Data size is too large, expected %d, got %d", AllocatedSize, Offset+Size);
@@ -246,10 +236,13 @@ public:
     }
 
     template<typename T>
-    T* GetData()
+    const T* GetData() const
     {
+        Ncheckf(sizeof(T) <= AllocatedSize, "Data size is too large");
         return reinterpret_cast<T*>(Data.get());
     }
+
+    void Flush();
 
     const RDGBufferDesc Desc;
     std::unique_ptr<uint8[]> Data = nullptr;
@@ -257,6 +250,33 @@ public:
     bool bDirty = false;
 };
 using RDGBufferRef = std::shared_ptr<RDGBuffer>;
+
+template <typename T>
+class TRDGUniformBuffer : public RDGBuffer
+{
+public:
+    using DataType = T;
+    template <auto MemberPointer, typename InFieldType = typename MemberPointerTraits<decltype(MemberPointer)>::Value>
+    void SetData(const InFieldType& Value)
+    {
+        using InDataType = typename MemberPointerTraits<decltype(MemberPointer)>::Object;
+        static_assert(std::is_member_pointer_v<decltype(MemberPointer)>);
+        static_assert(std::is_trivially_copyable_v<InDataType>);
+        static_assert(std::is_trivially_copyable_v<InFieldType>);
+        static_assert(std::is_same_v<InDataType, T>);
+        if (Data)
+        {
+            DataType& data = *reinterpret_cast<DataType*>(Data.get());
+            if (memcmp(&(data.*MemberPointer), &Value, sizeof(InFieldType)) != 0)
+            {
+                data.*MemberPointer = Value;
+                bDirty = true;
+            }
+        }
+    }
+};
+template <typename T>
+using TRDGUniformBufferRef = std::shared_ptr<TRDGUniformBuffer<T>>;
 
 class RDGFramebuffer
 {

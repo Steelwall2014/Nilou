@@ -5,6 +5,22 @@
 
 namespace nilou {
 
+    UTexture2D* UTexture2D::CreateTransient(std::string Name, int32 InSizeX, int32 InSizeY, EPixelFormat InFormat)
+    {
+        UTexture2D* Texture = nullptr;
+        if (InSizeX > 0 && InSizeY > 0)
+        {
+            Texture = new UTexture2D();
+            Texture->Name = Name;
+            Texture->ImageData = FImage(InSizeX, InSizeY, InFormat, EImageType::IT_Image2D);
+        }
+        else
+        {
+            NILOU_LOG(Error, "Invalid parameters specified for UTexture2D::CreateTransient()");
+        }
+        return Texture;
+    }
+
     void FTexture2DResource::InitRHI(RenderGraph& Graph)
     {
         if (Image && Image->GetImageType() != EImageType::IT_Image2D)

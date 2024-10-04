@@ -60,8 +60,6 @@ namespace nilou {
             //, bWireframe(false)
             , bSelectable(true)
             , bEnableReflectionProbe(true)
-            /** At least have one element */
-            , Elements(1)
         { }
     };
 

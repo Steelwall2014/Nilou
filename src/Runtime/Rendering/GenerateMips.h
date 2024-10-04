@@ -7,7 +7,7 @@ namespace nilou {
 class FGenerateMips
 {
 public:
-    static void Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerState* Sampler);
+    static void Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerState* Sampler=TStaticSamplerState<SF_Bilinear>::GetRHI());
 };
 
 }

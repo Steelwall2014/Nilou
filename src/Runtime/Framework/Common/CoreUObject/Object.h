@@ -36,7 +36,15 @@ namespace nilou {
             return obj.AsPtr<T>();
         return nullptr;
     }
-    
+
+    template <class T>
+    T* Cast(NObject* Object)
+    {
+        if (Object && Object->IsA(T::StaticClass()))
+            return static_cast<T*>(Object);
+        return nullptr;
+    }
+
     class FContentManager *GetContentManager();
 }
 

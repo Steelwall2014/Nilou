@@ -4,6 +4,7 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <array>
 
 #include "UniformBuffer.h"
 #include "RHIResources.h"
@@ -17,7 +18,7 @@
 
 namespace nilou {
 
-    class FVertexFactory
+    class FVertexFactory : public FRenderResource
     {
     /*==============FVertexFactoryType Interface============*/
     public: 
@@ -36,14 +37,14 @@ namespace nilou {
         static void ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) { }
     
         std::vector<FVertexInputStream> GetVertexInputStreams() const;
-        std::vector<FVertexElement> GetVertexElements() const { return Elements; }
+        std::array<FVertexElement, MAX_VERTEX_ELEMENTS> GetVertexElements() const { return Elements; }
         FRHIVertexDeclaration* GetVertexDeclaration() const { return Declaration; }
 
         const std::string &GetName() const { return Name; }
 
         virtual int32 GetPermutationId() const { return 0; }
 
-        virtual void InitVertexFactory() = 0;
+        virtual RDGDescriptorSet* GetDescriptorSet() { return DescriptorSet.get(); }
 
         struct FVertexStream
         {
@@ -86,9 +87,11 @@ namespace nilou {
 
         std::vector<FVertexStream> Streams;
 
-        std::vector<FVertexElement> Elements;
+        std::array<FVertexElement, MAX_VERTEX_ELEMENTS> Elements;
 
         FRHIVertexDeclaration* Declaration;
+
+        std::shared_ptr<RDGDescriptorSet> DescriptorSet = nullptr;
     };
 
 

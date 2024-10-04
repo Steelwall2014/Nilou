@@ -1,10 +1,8 @@
 #include "FourierTransformOcean.h"
 #include "RenderingThread.h"
-#include "BaseApplication.h"
-#include "DynamicMeshResources.h"
-#include "PrimitiveUtils.h"
-#include "StaticMeshResources.h"
-#include "Common/Actor/CameraActor.h"
+#include "RHICommandList.h"
+#include "GenerateMips.h"
+#include "Texture2D.h"
 
 namespace nilou {
 
@@ -36,485 +34,228 @@ namespace nilou {
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
     IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", EShaderFrequency::SF_Compute, Global);
 
-    class FFourierTransformOceanVertexFactory : public FStaticVertexFactory
+    static void CreateGaussianRandom(RenderGraph& Graph, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutGaussianRandomRT)
     {
-    public:
-        DECLARE_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory)
+        int32 group_num = OutGaussianRandomRT->Desc.SizeX / 32;
+        FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
+        FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
+        FRHIPipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
 
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanGaussionSpectrumShader>(0, 0);
+        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView());
+
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = "CreateGaussionSpectrum";
+        PassDesc.DescriptorSets = { DescriptorSet };
+        Graph.AddComputePass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(group_num, group_num, 1);
+            }
+        );
+    }
+
+    static std::tuple<RDGTexture*, RDGTexture*, RDGTexture*> CreateDisplacementSpectrum(RenderGraph& Graph, RDGTexture* GaussianRandomRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters)
+    {
+        int32 group_num = GaussianRandomRT->Desc.SizeX / 32;
+        RDGTexture* HeightSpectrumRT = Graph.CreateTexture("FastFourierTransform HeightSpectrumRT", GaussianRandomRT->Desc);
+        RDGTexture* DisplaceXSpectrumRT = Graph.CreateTexture("FastFourierTransform DisplaceXSpectrumRT", GaussianRandomRT->Desc);
+        RDGTexture* DisplaceYSpectrumRT = Graph.CreateTexture("FastFourierTransform DisplaceYSpectrumRT", GaussianRandomRT->Desc);
+
+        FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
+        FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
+        FRHIPipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
         
-    };
-    IMPLEMENT_VERTEX_FACTORY_TYPE(FFourierTransformOceanVertexFactory, "/Shaders/VertexFactories/FourierTransformOceanVertexFactory.glsl")
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementSpectrumShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
 
-    class FFourierTransformOceanSceneProxy : public FPrimitiveSceneProxy
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = "CreateDisplacementSpectrum";
+        PassDesc.DescriptorSets = { DescriptorSet };
+        Graph.AddComputePass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(group_num, group_num, 1);
+            }
+        );
+
+        return { HeightSpectrumRT, DisplaceXSpectrumRT, DisplaceYSpectrumRT };
+    }
+
+    static RDGTexture* FastFourierTransform(RenderGraph& Graph, uint32 Ns, RDGTexture* InputRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, bool bHorizontalPass)
     {
-    
-    public:
+        int32 group_num = InputRT->Desc.SizeX / 32;
+        FOceanFastFourierTransformShader::FPermutationDomain PermutationVector;
+        if (bHorizontalPass)
+            PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(true);
+        else
+            PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(false);
+        FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
+        FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
+        FRHIPipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI());
 
-        FFourierTransformOceanSceneProxy(UFourierTransformOceanComponent* Component)
-            : FPrimitiveSceneProxy(Component)
-            , NumQuadsPerNode(Component->NumQuadsPerNode)
-            , NodeCount(Component->NodeCount)
-            , WindDirection(Component->WindDirection)
-            , WindSpeed(Component->WindSpeed)
-            , FFTPow(Component->FFTPow)
-            , Amplitude(Component->Amplitude)
-            , DisplacementTextureSize(Component->DisplacementTextureSize)
-            , InitialTime(clock())
-            , LODParams(Component->LODParams)
-        {
-            if (Component->Material)
-                Material = Component->Material.get();
-            else
-                Material = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
-            PerlinNoiseSampler = &GetContentManager()->GetTextureByPath("/Textures/PerlinNoiseTexture.nasset")->GetResource()->SamplerRHI;
-            PreRenderHandle = GetAppication()->GetPreRenderDelegate().Add(this, &FFourierTransformOceanSceneProxy::PreRenderCallback);
-        }
+        TRDGUniformBuffer<FOceanFFTButterflyBlock>* ButterflyBlock = Graph.CreateUniformBuffer<FOceanFFTButterflyBlock>("FOceanFFTButterflyBlock");
+        ButterflyBlock->SetData<&FOceanFFTButterflyBlock::Ns>(Ns);
 
-        virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override
-        {
-            for (int32 ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
-		    {
-                if (VisibilityMap & (1 << ViewIndex))
-                {
-                    FMeshBatch Mesh;
-                    Mesh.CastShadow = bCastShadow;
-                    Mesh.MaterialRenderProxy = Material->GetRenderProxy();
-                    FMeshBatchElement &Element = Mesh.Elements[0];
-                    Element.IndexBuffer = &IndexBuffer;
-                    Element.VertexFactory = &VertexFactory;
-                    Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
-                    Element.Bindings.SetElementShaderBinding("NodeListBuffer", NodeListBufferRHI.get());
-                    Element.Bindings.SetElementShaderBinding("LODParamsBuffer", LODParamsBufferRHI.get());
-                    Element.Bindings.SetElementShaderBinding("DisplaceTexture", &DisplaceSampler);
-                    Element.Bindings.SetElementShaderBinding("NormalTexture", &NormalSampler);
-                    Element.Bindings.SetElementShaderBinding("PerlinNoise", PerlinNoiseSampler);
+        RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanFastFourierTransformShader>(PermutationVector.ToDimensionValueId(), 0);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        DescriptorSet->SetStorageBuffer("FOceanFFTButterflyBlock", ButterflyBlock);
+        DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView());
 
-                    Element.NumInstances = RenderingNodesThisFrame.size();
-                    Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-
-                    Collector.AddMesh(ViewIndex, Mesh);
-
-                }
-            }
-
-        }
-
-        void AddRenderingNodeList(const std::vector<uvec4>& RenderingNodes)
-        {
-            std::lock_guard<std::mutex> lock(MutexNodeListQueue);
-            NodeListQueue.push(RenderingNodes);
-        }
-
-        void PreRenderCallback(FDynamicRHI* RHICmdList, FScene* Scene)
-        {
-            std::unique_lock<std::mutex> lock(MutexNodeListQueue);
-            if (!NodeListQueue.empty())
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = "FastFourierTransform";
+        PassDesc.DescriptorSets = { DescriptorSet };
+        Graph.AddComputePass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
             {
-                RenderingNodesThisFrame = NodeListQueue.front(); NodeListQueue.pop();
-                if (NodeListBufferRHI)
-                {
-                    RHICmdList->RHIUpdateBuffer(
-                        NodeListBufferRHI.get(), 
-                        0, RenderingNodesThisFrame.size()*sizeof(uvec4), 
-                        RenderingNodesThisFrame.data());
-                }
+                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
-            lock.unlock();
-            auto CurrentTime = clock();
-            FFTParameters->Data.Time = float(CurrentTime - InitialTime) / 1000.f + 1000.f;
-            FFTParameters->UpdateUniformBuffer();
-            RHIGetError();
-            CreateDisplacementSpectrum();
-            for (int m = 1; m <= FFTPow; m++)
+        );
+
+        return OutputRT;
+    }
+
+    static void CreateDisplacement(RenderGraph& Graph, RDGTexture* HeightSpectrumRT, RDGTexture* DisplaceXSpectrumRT, RDGTexture* DisplaceYSpectrumRT, RDGTexture* OutDisplaceRT)
+    {
+        int32 group_num = HeightSpectrumRT->Desc.SizeX / 32;
+        FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
+        FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
+        FRHIPipelineState* PSO = RHICreateComputePipelineState(DisplacementShader->GetComputeShaderRHI());
+
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementShader>(0, 0);
+        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceRT", OutDisplaceRT->GetDefaultView());
+
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = "CreateDisplacement";
+        PassDesc.DescriptorSets = { DescriptorSet };
+        Graph.AddComputePass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
             {
-                unsigned int Ns = pow(2, m - 1);
-                RHIGetError();
-                FastFourierTransform(Ns, HeightSpectrumRT, true);
-                FastFourierTransform(Ns, DisplaceXSpectrumRT, true);
-                FastFourierTransform(Ns, DisplaceYSpectrumRT, true);
+                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
-            for (int m = 1; m <= FFTPow; m++)
+        );
+
+        FGenerateMips::Execute(Graph, OutDisplaceRT);
+    }
+
+    static void CreateNormalFoam(RenderGraph& Graph, RDGTexture* DisplaceRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutNormalRT, RDGTexture* OutFoamRT)
+    {
+        int32 group_num = DisplaceRT->Desc.SizeX / 32;
+        FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
+        FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
+        FRHIPipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
+
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanNormalFoamShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView());
+
+        RDGComputePassDesc PassDesc;
+        PassDesc.Name = "CreateNormalFoam";
+        PassDesc.DescriptorSets = { DescriptorSet };
+        Graph.AddComputePass(
+            PassDesc,
+            [=](RHICommandList& RHICmdList)
             {
-                unsigned int Ns = pow(2, m - 1);
-                RHIGetError();
-                FastFourierTransform(Ns, HeightSpectrumRT, false);
-                FastFourierTransform(Ns, DisplaceXSpectrumRT, false);
-                FastFourierTransform(Ns, DisplaceYSpectrumRT, false);
+                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
-            RHIGetError();
-            CreateDisplacement();
-            RHIGetError();
-            CreateNormalFoam();
-        }
+        );
 
-        void CreateDisplacementSpectrum()
+        FGenerateMips::Execute(Graph, OutNormalRT);
+    }
+
+    static void UpdateHeightField_RenderThread(
+        RenderGraph& Graph, int32 FFTPow, RDGTexture* GaussianRandomRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters,
+        RDGTexture* OutDisplaceRT, RDGTexture* OutNormalRT, RDGTexture* OutFoamRT)
+    {
+        auto [HeightSpectrumRT, DisplaceXSpectrumRT, DisplaceYSpectrumRT] = CreateDisplacementSpectrum(Graph, GaussianRandomRT, FFTParameters);
+        
+        for (int m = 1; m <= FFTPow; m++)
         {
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
-            FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementSpectrumShader->GetComputeShaderRHI());
-
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FOceanFastFourierTransformParameters", FFTParameters->GetRHI());
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute,
-                "GaussianRandomRT", GaussianRandomRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute,
-                "HeightSpectrumRT", HeightSpectrumRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute,
-                "DisplaceXSpectrumRT", DisplaceXSpectrumRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute,
-                "DisplaceYSpectrumRT", DisplaceYSpectrumRT.get(), EDataAccessFlag::DA_WriteOnly);
-            
-            RHICmdList->RHIDispatch(group_num, group_num, 1);
-
+            unsigned int Ns = pow(2, m - 1);
+            HeightSpectrumRT = FastFourierTransform(Graph, Ns, HeightSpectrumRT, FFTParameters, true);
+            DisplaceXSpectrumRT = FastFourierTransform(Graph, Ns, DisplaceXSpectrumRT, FFTParameters, true);
+            DisplaceYSpectrumRT = FastFourierTransform(Graph, Ns, DisplaceYSpectrumRT, FFTParameters, true);
         }
-
-        void FastFourierTransform(uint32 Ns, RHITexture2DRef& InputRT, bool bHorizontalPass)
+        for (int m = 1; m <= FFTPow; m++)
         {
-            FOceanFastFourierTransformShader::FPermutationDomain PermutationVector;
-            if (bHorizontalPass)
-                PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(true);
-            else
-                PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(false);
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
-            FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(FFTShader->GetComputeShaderRHI());
-
-            ButterflyBlock->Data.Ns = Ns;
-            ButterflyBlock->UpdateUniformBuffer();
-
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FOceanFastFourierTransformParameters", FFTParameters->GetRHI());
-
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FOceanFFTButterflyBlock", ButterflyBlock->GetRHI());
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "InputRT", InputRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "OutputRT", IntermediateRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHIDispatch(group_num, group_num, 1);
-
-            std::swap(InputRT, IntermediateRT);
-
+            unsigned int Ns = pow(2, m - 1);
+            HeightSpectrumRT = FastFourierTransform(Graph, Ns, HeightSpectrumRT, FFTParameters, false);
+            DisplaceXSpectrumRT = FastFourierTransform(Graph, Ns, DisplaceXSpectrumRT, FFTParameters, false);
+            DisplaceYSpectrumRT = FastFourierTransform(Graph, Ns, DisplaceYSpectrumRT, FFTParameters, false);
         }
-
-        void CreateDisplacement()
-        {
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
-            FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(DisplacementShader->GetComputeShaderRHI());
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "HeightSpectrumRT", HeightSpectrumRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "DisplaceXSpectrumRT", DisplaceXSpectrumRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "DisplaceYSpectrumRT", DisplaceYSpectrumRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "DisplaceRT", DisplaceRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHIDispatch(group_num, group_num, 1);
-            RHICmdList->RHIGenerateMipmap(DisplaceRT);
-
-        }
-
-        void CreateNormalFoam()
-        {
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
-            FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(NormalFoamShader->GetComputeShaderRHI());
-
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FOceanFastFourierTransformParameters", FFTParameters->GetRHI());
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "DisplaceRT", DisplaceRT.get(), EDataAccessFlag::DA_ReadOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "NormalRT", NormalRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute, 
-                "FoamRT", FoamRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHIDispatch(group_num, group_num, 1);
-            RHICmdList->RHIGenerateMipmap(NormalRT);
-        }
-
-        virtual void CreateRenderThreadResources() override
-        {
-            FPrimitiveSceneProxy::CreateRenderThreadResources();
-            FDynamicRHI* RHICmdList = FDynamicRHI::GetDynamicRHI();
-            
-            std::vector<FDynamicMeshVertex> OutVerts;
-            std::vector<uint32> OutIndices;
-            BuildFlatSurfaceVerts(uvec2(NumQuadsPerNode+3), OutVerts, OutIndices);
-            IndexBuffer.Init(OutIndices);
-            BeginInitResource(&IndexBuffer);
-            VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
-            LODParamsBufferRHI = RHICmdList->RHICreateShaderStorageBuffer(
-                LODParams.size() * sizeof(UFourierTransformOceanComponent::OceanLODParam),
-                LODParams.data());
-            NodeListBufferRHI = RHICmdList->RHICreateShaderStorageBuffer(
-                MAX_RENDERING_NODES * sizeof(uvec4), nullptr);
-
-
-            N = glm::pow(2, FFTPow);
-            group_num = N / 32;     // 这里的32是写死在glsl中的"local_size"
-            GaussianRandomRT = RHICmdList->RHICreateTexture2D("GaussianRandomRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
-            HeightSpectrumRT = RHICmdList->RHICreateTexture2D("HeightSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
-            DisplaceXSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceXSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
-            DisplaceYSpectrumRT = RHICmdList->RHICreateTexture2D("DisplaceYSpectrumRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
-            IntermediateRT = RHICmdList->RHICreateTexture2D("IntermediateRT", EPixelFormat::PF_R16G16F, 1, N, N, TexCreate_UAV);
-            DisplaceRT = RHICmdList->RHICreateTexture2D("DisplaceRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, TexCreate_UAV);
-            NormalRT = RHICmdList->RHICreateTexture2D("NormalRT", EPixelFormat::PF_R16G16B16A16F, FFTPow, N, N, TexCreate_UAV);
-            FoamRT = RHICmdList->RHICreateTexture2D("FoamRT", EPixelFormat::PF_R16F, FFTPow, N, N, TexCreate_UAV);
-
-            DisplaceSampler = FRHISampler(DisplaceRT.get());
-            NormalSampler = FRHISampler(NormalRT.get());
-            
-            FFTParameters = CreateUniformBuffer<FOceanFastFourierTransformParameters>();
-            FFTParameters->Data.DisplacementTextureSize = DisplacementTextureSize;
-            FFTParameters->Data.Amplitude = Amplitude;
-            FFTParameters->Data.N = N;
-            FFTParameters->Data.WindDirection = WindDirection;
-            FFTParameters->Data.WindSpeed = WindSpeed;
-            FFTParameters->InitResource();
-
-            ButterflyBlock = CreateUniformBuffer<FOceanFFTButterflyBlock>();
-            ButterflyBlock->InitResource();
-            
-            FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
-            FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = RHICmdList->RHISetComputeShader(GaussionSpectrumShader->GetComputeShaderRHI());
-
-            RHICmdList->RHISetShaderUniformBuffer(
-                PSO, EPipelineStage::PS_Compute, 
-                "FOceanFastFourierTransformParameters", FFTParameters->GetRHI());
-
-            RHICmdList->RHISetShaderImage(
-                PSO, EPipelineStage::PS_Compute,
-                "GaussianRandomRT", GaussianRandomRT.get(), EDataAccessFlag::DA_WriteOnly);
-
-            RHICmdList->RHIDispatch(group_num, group_num, 1);
-
-            // Material->SetParameterValue("FOceanFastFourierTransformParameters", FFTParameters.get());
-
-
-        }
-
-        virtual void DestroyRenderThreadResources() override
-        {
-            GetAppication()->GetPreRenderDelegate().Remove(PreRenderHandle);
-            VertexBuffers.ReleaseResource();
-            IndexBuffer.ReleaseResource();
-            FFTParameters->ReleaseResource();
-            ButterflyBlock->ReleaseResource();
-            FPrimitiveSceneProxy::DestroyRenderThreadResources();
-        }
-
-	    UMaterial* Material = nullptr;
-
-        uint32 NumQuadsPerNode;
-
-        uint32 NodeCount;
-
-		vec2 WindDirection;
-
-        float WindSpeed;
-
-        uint32 FFTPow;
-
-        float Amplitude;
-
-        float DisplacementTextureSize;
-
-        uint32 group_num;
-
-        uint32 N;    // N = pow(2, FFTPow)
-
-        clock_t InitialTime;
-
-        FStaticMeshVertexBuffers VertexBuffers;
-        FStaticMeshIndexBuffer IndexBuffer;
-        FFourierTransformOceanVertexFactory VertexFactory;
-
-		RHITexture2DRef GaussianRandomRT;          // 高斯随机数
-		RHITexture2DRef HeightSpectrumRT;          // 高度频谱
-		RHITexture2DRef DisplaceXSpectrumRT;       // X偏移频谱
-		RHITexture2DRef DisplaceYSpectrumRT;       // Y偏移频谱
-		RHITexture2DRef DisplaceRT;                // 偏移纹理
-		RHITexture2DRef IntermediateRT;            // 临时储存输出纹理
-		RHITexture2DRef NormalRT;                  // 法线
-		RHITexture2DRef FoamRT;					   // 白沫
-
-        FRHISampler DisplaceSampler;
-        FRHISampler NormalSampler;
-        FRHISampler FoamSampler;
-
-		FRHISampler* PerlinNoiseSampler;
-
-        TUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters;
-        TUniformBufferRef<FOceanFFTButterflyBlock> ButterflyBlock;
-
-        std::vector<uvec4> RenderingNodesThisFrame;
-
-        RHIBufferRef NodeListBufferRHI;
-        RHIBufferRef LODParamsBufferRHI;
-
-        std::vector<UFourierTransformOceanComponent::OceanLODParam> LODParams;
-
-    private:
-
-        FDelegateHandle PreRenderHandle;
-
-        std::queue<std::vector<uvec4>> NodeListQueue;
-        std::mutex MutexNodeListQueue;
-
-    };
+        CreateDisplacement(Graph, HeightSpectrumRT, DisplaceXSpectrumRT, DisplaceYSpectrumRT, OutDisplaceRT);
+        CreateNormalFoam(Graph, OutDisplaceRT, FFTParameters, OutNormalRT, OutFoamRT);
+    }
 
     UFourierTransformOceanComponent::UFourierTransformOceanComponent()
-        : Material(GetContentManager()->GetMaterialByPath("/Materials/OceanMaterial.nasset")->CreateMaterialInstance())
     {
-        uint32 temp_NodeCount = NodeCount;
-        while (temp_NodeCount % 2 == 0)
-        {
-            LodCount++;
-            temp_NodeCount /= 2;
-        }
-        LODParams.resize(LodCount);
-        vec2 Lod0NodeMeterSize = vec2(NumQuadsPerNode);
-        vec2 LandscapeMeterSize = Lod0NodeMeterSize * vec2(NodeCount); 
-        for (int lod = 0; lod < LodCount; lod++)
-        {
-            OceanLODParam param;
-            param.NodeMeterSize = Lod0NodeMeterSize * vec2(glm::pow(2, lod));
-            param.NodeSideNum = NodeCount / uvec2(glm::pow(2, lod));
-            LODParams[lod] = param;
-        }
+        int32 N = glm::pow(2, FFTPow);
+        GaussianRandomTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("GaussianRandomRT", N, N, EPixelFormat::PF_R16G16F));
+        DisplaceTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("DisplaceTexture", N, N, EPixelFormat::PF_R16G16F));
+        NormalTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("NormalTexture", N, N, EPixelFormat::PF_R16G16F));
+        FoamTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("FoamTexture", N, N, EPixelFormat::PF_R16G16F));
+        PerlinNoise = Cast<UTexture2D>(GetContentManager()->GetTextureByPath("/Textures/PerlinNoiseTexture.nasset"));
+
+        InitialTime = clock();
+
+        ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
+            [this](RenderGraph& Graph, RHICommandListImmediate& RHICmdList)
+            {
+                FFTParameters = RenderGraph::CreatePersistentUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
+            });
     }
 
     void UFourierTransformOceanComponent::TickComponent(double DeltaTime)
     {
-        UWorld* World = GetWorld();
-        if (World && World->GetFirstCameraActor())
-        {
-            UCameraComponent* CameraComponent = World->GetFirstCameraActor()->GetCameraComponent();
-            FViewFrustum Frustum = FViewFrustum(
-                CameraComponent->GetComponentLocation(), 
-                CameraComponent->GetForwardVector(), 
-                CameraComponent->GetUpVector(), 
-                CameraComponent->GetAspectRatio(), 
-                CameraComponent->VerticalFieldOfView, 
-                CameraComponent->NearClipDistance, 
-                CameraComponent->FarClipDistance);
-            std::vector<uvec4> NodeListFinal = CreateNodeList(Frustum, CameraComponent->GetComponentLocation());
-            FFourierTransformOceanSceneProxy* Proxy = (FFourierTransformOceanSceneProxy*)SceneProxy;
-            if (Proxy)
-            {
-                Proxy->AddRenderingNodeList(NodeListFinal);
-            }
-        }
+        UpdateHeightField();
     }
 
-    std::vector<uvec4> UFourierTransformOceanComponent::CreateNodeList(const FViewFrustum &Frustum, const dvec3& CameraPosition)
+    void UFourierTransformOceanComponent::UpdateHeightField()
     {
-        std::vector<uvec2> NodeIDs_TempA;
-        std::vector<uvec2> NodeIDs_TempB;
-        std::vector<uvec4> NodeListFinal;
-        std::mutex MutexNodeListB;
-        std::mutex MutexNodeListFinal;
-        for (int i = 0; i < LODParams[LodCount-1].NodeSideNum.x; i++)
-        {
-            for (int j = 0; j < LODParams[LodCount-1].NodeSideNum.y; j++)
+        ENQUEUE_RENDER_COMMAND(AddRenderingNodeList)(
+            [FFTPow=this->FFTPow,
+             GaussianRandomRT=this->GaussianRandomTexture->GetResource()->GetTextureRDG(),
+             FFTParameters=this->FFTParameters,
+             DisplaceRT=this->DisplaceTexture->GetResource()->GetTextureRDG(),
+             NormalRT=this->NormalTexture->GetResource()->GetTextureRDG(),
+             FoamRT=this->FoamTexture->GetResource()->GetTextureRDG(),
+             WindDirection=this->WindDirection,
+             N=glm::pow(2, FFTPow),
+             WindSpeed=this->WindSpeed,
+             Amplitude=this->Amplitude,
+             Time=(clock()-this->InitialTime)/1000.f]
+            (RenderGraph& Graph, RHICommandListImmediate& RHICmdList)
             {
-                NodeIDs_TempA.push_back(uvec2(i, j));
+                FFTParameters->SetData<&FOceanFastFourierTransformParameters::WindDirection>(WindDirection);
+                FFTParameters->SetData<&FOceanFastFourierTransformParameters::N>(N);
+                FFTParameters->SetData<&FOceanFastFourierTransformParameters::WindSpeed>(WindSpeed);
+                FFTParameters->SetData<&FOceanFastFourierTransformParameters::Amplitude>(Amplitude);
+                FFTParameters->SetData<&FOceanFastFourierTransformParameters::Time>(Time);
+                
+                UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
-        }
-        for (int lod = LodCount - 1; lod >= 0; lod--)
-        {
-            for (int i = 0; i < NodeIDs_TempA.size(); i++)
-            {
-                uvec2 nodeLoc = NodeIDs_TempA[i];
-                pool.push_task(
-                [&MutexNodeListB, &MutexNodeListFinal, &NodeListFinal, &Frustum, nodeLoc, lod, CameraPosition, this, &NodeIDs_TempB](){
-
-                    vec2 node_size = vec2(LODParams[lod].NodeMeterSize.x, LODParams[lod].NodeMeterSize.y);
-                    vec2 node_offset = vec2(nodeLoc) * node_size;
-                    vec2 MinMax_uv = (vec2(nodeLoc) + vec2(0.5)) / vec2(LODParams[lod].NodeSideNum.x, LODParams[lod].NodeSideNum.y);
-                    float estimated_wave_height = Amplitude / (0.45f * 1e-3f);
-                    dmat3 HalfAxes = dmat3(
-                        GetComponentToWorld().TransformVector(dvec3(node_size.x*0.5, 0, 0)), 
-                        GetComponentToWorld().TransformVector(dvec3(0, node_size.y*0.5, 0)), 
-                        GetComponentToWorld().TransformVector(dvec3(0, 0, estimated_wave_height*0.5)));
-                    dvec3 BoxCenter = GetComponentToWorld().TransformPosition(dvec3(node_offset+node_size/2.f, estimated_wave_height*0.5));
-                    bool bFrustumCulled = Frustum.IsBoxOutSideFrustumFast(BoxCenter, HalfAxes);
-                    if (bFrustumCulled)
-                        return;
-
-                    if (lod > 0 && !MeetScreenSize(CameraPosition, nodeLoc, LODParams[lod])) 
-                    {
-                        std::lock_guard<std::mutex> lock(MutexNodeListB);
-                        NodeIDs_TempB.push_back(nodeLoc * (unsigned int)2);
-                        NodeIDs_TempB.push_back(nodeLoc * (unsigned int)2 + uvec2(1, 0));
-                        NodeIDs_TempB.push_back(nodeLoc * (unsigned int)2 + uvec2(0, 1));
-                        NodeIDs_TempB.push_back(nodeLoc * (unsigned int)2 + uvec2(1, 1));
-                    }
-                    else 
-                    {
-                        std::lock_guard<std::mutex> lock(MutexNodeListFinal);
-                        NodeListFinal.push_back(uvec4(nodeLoc, lod, 0));
-                    }
-                });
-            }
-            pool.wait_for_tasks();
-            std::swap(NodeIDs_TempA, NodeIDs_TempB);
-            NodeIDs_TempB.clear();
-        }
-        return NodeListFinal;
-
-    }
-
-    FBoundingBox UFourierTransformOceanComponent::CalcBounds(const FTransform& LocalToWorld) const
-    {
-        // Ocean surface size (in world unit)
-        float SurfaceSize = NumQuadsPerNode * NodeCount;
-        float estimated_wave_height = Amplitude / (0.45f * 1e-3f);
-        return FBoundingBox(vec3(0), vec3(SurfaceSize, SurfaceSize, estimated_wave_height)).TransformBy(LocalToWorld);
-    }
-
-    FPrimitiveSceneProxy* UFourierTransformOceanComponent::CreateSceneProxy()
-    {
-        return new FFourierTransformOceanSceneProxy(this);
+        );
     }
 
 }

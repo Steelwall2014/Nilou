@@ -98,8 +98,23 @@ public:
     static RDGTextureViewRef CreatePersistentTextureView(const RDGTextureViewDesc& TextureViewDesc);
 
     static RDGBufferRef CreatePersistentBuffer(const std::string& Name, const RDGBufferDesc& Desc);
+    
+    template<class T>
+    static TRDGUniformBufferRef<T> CreatePersistentUniformBuffer(const std::string& Name)
+    {
+        RDGBufferDesc Desc;
+        Desc.Stride = 0;
+        Desc.Size = sizeof(T);
+        return CreatePersistentBuffer(Name, Desc);
+    }
 
     static RDGDescriptorSetRef CreatePersistentDescriptorSet(RHIDescriptorSetLayout* Layout);
+
+    template<class TShaderType>
+    static RDGDescriptorSetRef CreatePersistentDescriptorSet(int32 PermutationId, uint32 SetIndex)
+    {
+        return CreatePersistentDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
+    }
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
@@ -107,12 +122,12 @@ public:
 
     RDGBuffer* CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
-    template<class TUniformBufferType>
-    RDGBuffer* CreateUniformBuffer(const std::string& Name)
+    template<class T>
+    TRDGUniformBuffer<T>* CreateUniformBuffer(const std::string& Name)
     {
         RDGBufferDesc Desc;
         Desc.Stride = 0;
-        Desc.Size = sizeof(TUniformBufferType);
+        Desc.Size = sizeof(T);
         return CreateBuffer(Name, Desc);
     }
 
