@@ -2,8 +2,9 @@
 
 namespace nilou {
     class FVulkanCmdBuffer;
+    class FVulkanQueue;
 
-    class VulkanCommandList : public RHICommandListImmediate
+    class VulkanCommandList : public RHICommandList
     {
     public:
 
@@ -38,10 +39,12 @@ namespace nilou {
             const std::vector<RHIImageMemoryBarrier>& ImageMemoryBarriers, 
             const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) override;
 
+        virtual void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
+
     private:
 
         FVulkanCmdBuffer* CmdBuffer;
-
+        FVulkanQueue* Queue;
 
     };
 

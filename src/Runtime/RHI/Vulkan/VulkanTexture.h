@@ -9,7 +9,7 @@ namespace nilou {
 class VulkanTexture : public RHITexture
 {
 public:
-    VkImage Image{};
+    VkImage Handle{};
     VkImageView ImageView{};
     VkDeviceMemory Memory{};
     uint8 BaseMipLevel{};
@@ -39,7 +39,6 @@ public:
         ETextureDimension InTextureType
     );
     ~VulkanTexture();
-    VkImage GetImage() const { return Image; }
     FVulkanImageLayout GetImageLayout() const;
     VkImageView GetImageView() const { return ImageView; }
     void SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range);

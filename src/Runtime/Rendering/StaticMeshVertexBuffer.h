@@ -145,7 +145,7 @@ namespace nilou {
         RDGBufferDesc Desc;
         Desc.Size = Stride * NumVertices;
         Desc.Stride = Stride;
-        VertexBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+        VertexBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
         Graph.AddUploadPass(VertexBufferRDG, Data, Desc.Size);
     }
 

@@ -5,7 +5,6 @@
 #include <map>
 #include <vector>
 #include <reflection/Class.h>
-#include <shaderc/shaderc.h>
 
 // #include <glm/glm.hpp>
 #include "Common/Maths.h"
@@ -14,10 +13,10 @@
 #include "ShaderParameter.h"
 #include "RHI.h"
 #include "ShaderReflection.h"
+#include "Templates/TypeHash.h"
+#include "Templates/RefCounting.h"
 
-namespace glslang {
-class TShader;
-}
+// TODO: Use intrusive shared pointers
 
 namespace nilou {
 
@@ -49,7 +48,7 @@ namespace nilou {
 		{}
 		static RHITextureParams DefaultParams;
 	};
-	class RHIResource
+	class RHIResource : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
 	{
 	public:
 		RHIResource(ERHIResourceType InResourceType) : ResourceType(InResourceType) {}
@@ -68,28 +67,28 @@ namespace nilou {
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
-	using RHIShaderRef = std::shared_ptr<RHIShader>;
+	using RHIShaderRef = TRefCountPtr<RHIShader>;
 	
 	class RHIVertexShader : public RHIShader 
 	{
 	public:
 		RHIVertexShader() : RHIShader(ERHIResourceType::RRT_VertexShader) {}
 	};
-	using RHIVertexShaderRef = std::shared_ptr<RHIVertexShader>;
+	using RHIVertexShaderRef = TRefCountPtr<RHIVertexShader>;
 	
 	class RHIPixelShader : public RHIShader 
 	{
 	public:
 		RHIPixelShader() : RHIShader(ERHIResourceType::RRT_PixelShader) {}
 	};
-	using RHIPixelShaderRef = std::shared_ptr<RHIPixelShader>;
+	using RHIPixelShaderRef = TRefCountPtr<RHIPixelShader>;
 	
 	class RHIComputeShader : public RHIShader 
 	{
 	public:
 		RHIComputeShader() : RHIShader(ERHIResourceType::RRT_ComputeShader) {}
 	};
-	using RHIComputeShaderRef = std::shared_ptr<RHIComputeShader>;
+	using RHIComputeShaderRef = TRefCountPtr<RHIComputeShader>;
 
 	class RHIRasterizerState : public RHIResource
 	{
@@ -97,7 +96,7 @@ namespace nilou {
 		RHIRasterizerState() :RHIResource(ERHIResourceType::RRT_RasterizerState) { }
 		FRasterizerStateInitializer Initializer;
 	};
-	using RHIRasterizerStateRef = std::shared_ptr<RHIRasterizerState>;
+	using RHIRasterizerStateRef = TRefCountPtr<RHIRasterizerState>;
 
 	class RHIDepthStencilState : public RHIResource
 	{
@@ -105,7 +104,7 @@ namespace nilou {
 		RHIDepthStencilState() :RHIResource(ERHIResourceType::RRT_DepthStencilState) { }
 		FDepthStencilStateInitializer Initializer;
 	};
-	using RHIDepthStencilStateRef = std::shared_ptr<RHIDepthStencilState>;
+	using RHIDepthStencilStateRef = TRefCountPtr<RHIDepthStencilState>;
 
 	class RHIBlendState : public RHIResource
 	{
@@ -113,8 +112,20 @@ namespace nilou {
 		RHIBlendState() :RHIResource(ERHIResourceType::RRT_BlendState) { }
 		FBlendStateInitializer Initializer;
 	};
-	using RHIBlendStateRef = std::shared_ptr<RHIBlendState>;
+	using RHIBlendStateRef = TRefCountPtr<RHIBlendState>;
 
+	struct RHIBufferDesc
+	{
+		uint32 Size;
+		uint32 Stride;
+		// EBufferUsageFlags Usage;
+
+		RHIBufferDesc() = default;
+		RHIBufferDesc(uint32 InSize, uint32 InStride=0) : Size(InSize), Stride(InStride) { }
+
+		bool operator==(const RHIBufferDesc& Other) const = default;
+	};
+	using FRHIBufferCreateInfo = RHIBufferDesc;
 	class RHIBuffer : public RHIResource
 	{
 	public:
@@ -138,7 +149,7 @@ namespace nilou {
 		uint32 Size;
 		EBufferUsageFlags Usage;
 	};
-	using RHIBufferRef = std::shared_ptr<RHIBuffer>;
+	using RHIBufferRef = TRefCountPtr<RHIBuffer>;
 
 	class RHIUniformBuffer : RHIResource
 	{
@@ -159,8 +170,36 @@ namespace nilou {
 		uint32 Size;
 		EUniformBufferUsage Usage;
 	};
-	using RHIUniformBufferRef = std::shared_ptr<RHIUniformBuffer>;
+	using RHIUniformBufferRef = TRefCountPtr<RHIUniformBuffer>;
 	
+	struct RHITextureDesc
+	{
+		uint32 SizeX = 1;
+		uint32 SizeY = 1;
+		uint32 SizeZ = 1;
+		uint32 ArraySize = 1;
+		uint32 NumMips = 1;
+		EPixelFormat Format;
+		ETextureDimension TextureType;
+		ETextureCreateFlags Flags;
+
+		bool operator==(const RHITextureDesc& Other) const = default;
+	};
+	using FRHITextureCreateInfo = RHITextureDesc;
+	
+	inline uint32 GetTypeHash(const RHITextureDesc& Desc)
+	{
+		uint32 Hash = GetTypeHash(Desc.SizeX);
+		Hash = HashCombine(Hash, GetTypeHash(Desc.SizeY));
+		Hash = HashCombine(Hash, GetTypeHash(Desc.SizeZ));
+		Hash = HashCombine(Hash, GetTypeHash(Desc.ArraySize));
+		Hash = HashCombine(Hash, GetTypeHash(Desc.NumMips));
+		Hash = HashCombine(Hash, GetTypeHash(Desc.Format));
+		Hash = HashCombine(Hash, GetTypeHash(static_cast<int32>(Desc.TextureType)));
+		Hash = HashCombine(Hash, GetTypeHash(static_cast<uint64>(Desc.Flags)));
+		return Hash;
+	}
+
 	class RHITexture : public RHIResource 
 	{
 	public:
@@ -208,28 +247,44 @@ namespace nilou {
 		uint32 SizeZ;
 
 	};
-	using RHITextureRef = std::shared_ptr<RHITexture>;
+	using RHITextureRef = TRefCountPtr<RHITexture>;
 
 	// Deprecated typenames
 	using RHITexture2D = RHITexture;
 	using RHITexture2DArray = RHITexture;
 	using RHITexture3D = RHITexture;
 	using RHITextureCube = RHITexture;
-	using RHITexture2DRef = std::shared_ptr<RHITexture2D>;
-	using RHITexture2DArrayRef = std::shared_ptr<RHITexture2DArray>;
-	using RHITexture3DRef = std::shared_ptr<RHITexture3D>;
-	using RHITextureCubeRef = std::shared_ptr<RHITextureCube>;
+	using RHITexture2DRef = TRefCountPtr<RHITexture2D>;
+	using RHITexture2DArrayRef = TRefCountPtr<RHITexture2DArray>;
+	using RHITexture3DRef = TRefCountPtr<RHITexture3D>;
+	using RHITextureCubeRef = TRefCountPtr<RHITextureCube>;
 
-	class RHIShaderResourceView : public RHIResource
+	class RHITextureView : public RHIResource
 	{
 	public:
-		RHIShaderResourceView() : RHIResource(ERHIResourceType::RRT_ShaderResourceView) { }
+		RHITextureView() : RHIResource(ERHIResourceType::RRT_TextureView) { }
 	};
 
-	class RHIUnorderedAccessView : public RHIResource
+	struct RHITextureViewDesc
+	{
+		EPixelFormat Format; 
+		uint32 BaseMipLevel;
+		uint32 LevelCount;
+		uint32 BaseArrayLayer;
+		uint32 LayerCount;
+		ETextureDimension ViewType;
+		RHITexture* Texture;
+
+		bool operator==(const RHITextureViewDesc& Other) const = default;
+	};
+	class RHITextureViewCache
 	{
 	public:
-		RHIUnorderedAccessView() : RHIResource(ERHIResourceType::RRT_UnorderedAccessView) { }
+		// Finds a texture view matching the descriptor in the cache or creates a new one and updates the cache.
+		RHITextureView* GetOrCreateView(class RHICommandList& RHICmdList, RHITexture* Texture, const RHITextureViewDesc& CreateInfo);
+
+	private:
+		std::vector<std::pair<RHITextureViewDesc, RHITextureView*>> Views;
 	};
 
 	class RHIFramebuffer : public RHIResource 
@@ -240,14 +295,14 @@ namespace nilou {
 		virtual ~RHIFramebuffer() { }
 		std::map<EFramebufferAttachment, RHITexture2DRef> Attachments;
 	};
-	using RHIFramebufferRef = std::shared_ptr<RHIFramebuffer>;
+	using RHIFramebufferRef = TRefCountPtr<RHIFramebuffer>;
 
 	class FRHIVertexDeclaration : public RHIResource
 	{
 	public:
 		FRHIVertexDeclaration() : RHIResource(ERHIResourceType::RRT_VertexDeclaration) { }
 	};
-	using FRHIVertexDeclarationRef = std::shared_ptr<FRHIVertexDeclaration>;
+	using FRHIVertexDeclarationRef = TRefCountPtr<FRHIVertexDeclaration>;
 
 	struct RHIRenderTargetLayout
 	{
@@ -318,7 +373,7 @@ namespace nilou {
 		std::map<std::string, int> NameToBindingIndex;
 		uint32 Hash;
 	};
-	using RHIDescriptorSetLayoutRef = std::shared_ptr<RHIDescriptorSetLayout>;
+	using RHIDescriptorSetLayoutRef = TRefCountPtr<RHIDescriptorSetLayout>;
 
 	constexpr uint32 VERTEX_SHADER_SET_INDEX = 0;
 	constexpr uint32 PIXEL_SHADER_SET_INDEX = 1;
@@ -338,7 +393,7 @@ namespace nilou {
 		std::map<uint32, std::map<uint32, uint32>> UniformBuffersSize;
 		std::map<std::string, UniformPosition> UniformPositions;
 	};
-	using RHIPipelineLayoutRef = std::shared_ptr<RHIPipelineLayout>;
+	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 
 	class FRHIPipelineState : public RHIResource
 	{
@@ -349,16 +404,15 @@ namespace nilou {
 
 		RHIPipelineLayout* GetPipelineLayout() const
 		{
-			return PipelineLayout.get();
+			return PipelineLayout.GetReference();
 		}
 
 		FGraphicsPipelineStateInitializer Initializer;
 
-		// TODO: 可以改成unique_ptr？
 		RHIPipelineLayoutRef PipelineLayout;
 
 	};
-	using FRHIPipelineStateRef = std::shared_ptr<FRHIPipelineState>;
+	using FRHIPipelineStateRef = TRefCountPtr<FRHIPipelineState>;
 
 	struct RHISamplerState : public RHIResource
 	{
@@ -367,7 +421,7 @@ namespace nilou {
 			, Initializer(InInitializer) {}
 		FSamplerStateInitializer Initializer;
 	};
-	using RHISamplerStateRef = std::shared_ptr<RHISamplerState>;
+	using RHISamplerStateRef = TRefCountPtr<RHISamplerState>;
 
 	class RHISampler
 	{
@@ -381,7 +435,7 @@ namespace nilou {
 		RHISamplerState* SamplerState;
 		RHITexture* Texture;
 	};
-	using RHISamplerRef = std::shared_ptr<RHISampler>;
+	using RHISamplerRef = TRefCountPtr<RHISampler>;
 
 	class FRHIRenderPassInfo
 	{
@@ -421,7 +475,7 @@ namespace nilou {
 	public:
 		FRHIRenderQuery() : RHIResource(RRT_RenderQuery) {}
 	};
-	using FRHIRenderQueryRef = std::shared_ptr<FRHIRenderQuery>;
+	using FRHIRenderQueryRef = TRefCountPtr<FRHIRenderQuery>;
 
     struct DrawArraysIndirectCommand
     {
@@ -461,7 +515,7 @@ namespace nilou {
 		class RHIDescriptorPool* GetPool() const;
 
     };
-	using RHIDescriptorSetRef = std::shared_ptr<RHIDescriptorSet>;
+	using RHIDescriptorSetRef = TRefCountPtr<RHIDescriptorSet>;
 
 	struct RHIDescriptorPoolSize
 	{
@@ -483,7 +537,7 @@ namespace nilou {
 
 		bool CanAllocate() { return false; }
 	};
-	using RHIDescriptorPoolRef = std::shared_ptr<RHIDescriptorPool>;
+	using RHIDescriptorPoolRef = TRefCountPtr<RHIDescriptorPool>;
 
 
 }
@@ -502,6 +556,15 @@ struct hash<nilou::RHIDescriptorSetLayout>
 	size_t operator()(const nilou::RHIDescriptorSetLayout &_Keyval) const noexcept
 	{
 		return _Keyval.Hash;
+	}
+};
+
+template<>
+struct hash<nilou::RHITextureDesc>
+{
+	size_t operator()(const nilou::RHITextureDesc &_Keyval) const noexcept
+	{
+		return GetTypeHash(_Keyval);
 	}
 };
 

@@ -55,7 +55,7 @@ namespace nilou {
         {
             RDGBufferDesc Desc;
             Desc.Size = sizeof(FLightShaderParameters);
-            LightUniformBuffer = RenderGraph::CreatePersistentBuffer(Desc);
+            LightUniformBuffer = RenderGraph::CreateExternalBuffer(Desc);
         }
 
         ~FLightSceneInfo()

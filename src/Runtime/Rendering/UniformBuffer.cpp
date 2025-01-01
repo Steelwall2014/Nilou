@@ -16,7 +16,7 @@ namespace nilou {
         Desc.Stride = 0;
         if (Usage == UniformBuffer_MultiFrame)
         {
-            UniformBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+            UniformBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
         }
         else 
         {

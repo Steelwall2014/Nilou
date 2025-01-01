@@ -3,20 +3,9 @@
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RHICommandContext.h"
+#include "RHITransition.h"
 
 namespace nilou {
-
-    class RHIMemoryBarrier
-    {
-    };
-
-    class RHIImageMemoryBarrier
-    {
-    };
-
-    class RHIBufferMemoryBarrier
-    {
-    };
 
     enum class EPipelineBindPoint
     {
@@ -75,8 +64,10 @@ namespace nilou {
         /* Perform synchronization commands */
         virtual void PipelineBarrier(
             const std::vector<RHIMemoryBarrier>& MemoryBarriers, 
-            const std::vector<RHIImageMemoryBarrier>& ImageMemoryBarriers, 
-            const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) = 0;
+            const std::vector<RHIImageMemoryBarrier>& ImageBarriers, 
+            const std::vector<RHIBufferMemoryBarrier>& BufferBarriers) = 0;
+        
+        virtual void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
 
         RHICommandContext& GetContext() 
         {
@@ -94,26 +85,6 @@ namespace nilou {
         RHICommandContext* GraphicsContext;
         RHICommandContext* ComputeContext;
 
-    };
-
-    class RHICommandListImmediate : public RHICommandList
-    {
-    public:
-        //
-        // Executes commands recorded in the immediate RHI command list, and resets the command list to a default constructed state.
-        //
-        // This is the main function for submitting work from the render thread to the RHI thread. Work is also submitted to the GPU
-        // as soon as possible. Does not wait for command completion on either the RHI thread or the GPU.
-        //
-        // Used internally. Do not call directly. Use FRHICommandListImmediate::ImmediateFlush() to submit GPU work.
-        //
-        void ExecuteAndReset();
-        
-        //
-        // Dispatches work to the RHI thread and the GPU.
-        // Also optionally waits for its completion on the RHI thread. Does not wait for the GPU.
-        //
-        virtual void ImmediateFlush(EImmediateFlushType FlushType);
     };
 
 }

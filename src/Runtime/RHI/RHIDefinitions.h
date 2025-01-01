@@ -175,6 +175,18 @@ namespace nilou {
 		**/
 		RayTracingScratch = (1 << 19) | UnorderedAccess,
 
+		/** The buffer is a placeholder for streaming, and does not contain an underlying GPU resource. */
+		NullResource = 1 << 20,
+
+		/** Buffer can be used as uniform buffer on platforms that do support uniform buffer objects. */
+		UniformBuffer = 1 << 21,
+
+		/**
+		* EXPERIMENTAL: Allow the buffer to be created as a reserved (AKA tiled/sparse/virtual) resource internally, without physical memory backing.
+		* May not be used with Dynamic and other buffer flags that prevent the resource from being allocated in local GPU memory.
+		*/
+		ReservedResource = 1 << 22,
+
 		// Helper bit-masks
 		AnyDynamic = (Dynamic | Volatile),
 	};
@@ -487,6 +499,7 @@ namespace nilou {
 		RRT_Texture3D,
 		RRT_TextureCube,
 		RRT_TextureReference,
+		RRT_TextureView,
 		RRT_TimestampCalibrationQuery,
 		RRT_GPUFence,
 		RRT_RenderQuery,
@@ -635,6 +648,28 @@ namespace nilou {
 #define TexCreate_External               		 ETextureCreateFlags::External
 #define TexCreate_MultiGPUGraphIgnore            ETextureCreateFlags::MultiGPUGraphIgnore
 
+// Keep the same with VkAccessFlagBits
+enum class ERHIAccess : uint32
+{
+	None = 0,
+	IndirectCommandRead = 0x00000001,
+	IndexRead = 0x00000002,
+	VertexAttributeRead = 0x00000004,
+	UniformRead = 0x00000008,
+	// InputAttachmentRead = 0x00000010,	// Used with subpass, not supported currently
+	ShaderResourceRead = 0x00000020,
+	ShaderResourceWrite = 0x00000040,
+	ColorAttachmentRead = 0x00000080,
+	ColorAttachmentWrite = 0x00000100,
+	DepthStencilAttachmentRead = 0x00000200,
+	DepthStencilAttachmentWrite = 0x00000400,
+	TransferRead = 0x00000800,
+	TransferWrite = 0x00001000,
+	HostRead = 0x00002000,
+	HostWrite = 0x00004000,
+	Max = 0x7FFFFFFF,
+};
+#if 0	// Steelwall2014: ERHIAccess is too complicated in Unreal Engine, so simplify it...
 enum class ERHIAccess : uint32
 {
 	// Used when the previous state of a resource is not known,
@@ -684,7 +719,7 @@ enum class ERHIAccess : uint32
 	UAVMask = UAVCompute | UAVGraphics,
 
 	// A mask of all bits representing read-only states which cannot be combined with other write states.
-	ReadOnlyExclusiveMask = CPURead | Present | IndirectArgs | VertexOrIndexBuffer | SRVGraphics | SRVCompute | CopySrc | ResolveSrc | BVHRead,
+	ReadOnlyExclusiveMask = CPURead | Present | IndirectArgs | VertexOrIndexBuffer | SRVGraphics | SRVCompute | CopySrc | ResolveSrc | BVHRead | ShadingRateSource,
 
 	// A mask of all bits representing read-only states on the compute pipe which cannot be combined with other write states.
 	ReadOnlyExclusiveComputeMask = CPURead | IndirectArgs | SRVCompute | CopySrc | BVHRead,
@@ -704,5 +739,61 @@ enum class ERHIAccess : uint32
 	// A mask of all bits representing writable states which may also include readable states.
 	WritableMask = WriteOnlyMask | UAVMask | BVHWrite
 };
+#endif
 ENUM_CLASS_FLAGS(ERHIAccess)
+
+enum class ERHIPipeline : uint8
+{
+	Graphics = 0,
+	AsyncCompute = 1,
+	Copy = 2,
+
+	Num = 3,
+};
+
+inline constexpr uint32 GetRHIPipelineCount()
+{
+	return uint32(ERHIPipeline::Num);
+}
+
+// Keep the same with VkPipelineStageFlags
+enum class EPipelineStageFlags : uint32
+{
+	None = 0,
+	TopOfPipe = 0x00000001,
+	DrawIndirect = 0x00000002,
+	VertexInput = 0x00000004,
+	VertexShader = 0x00000008,
+	TessellationControlShader = 0x00000010,
+	TessellationEvaluationShader = 0x00000020,
+	GeometryShader = 0x00000040,
+	FragmentShader = 0x00000080,
+	EarlyFragmentTests = 0x00000100,
+	LateFragmentTests = 0x00000200,
+	ColorAttachmentOutput = 0x00000400,
+	ComputeShader = 0x00000800,
+	Transfer = 0x00001000,
+	BottomOfPipe = 0x00002000,
+	Host = 0x00004000,
+	AllGraphics = 0x00008000,
+	AllCommands = 0x00010000,
+	Max = 0x7FFFFFFF,
+};
+ENUM_CLASS_FLAGS(EPipelineStageFlags)
+
+// Keep the same with VkImageLayout
+enum class ETextureLayout : uint32
+{
+	Undefined = 0,
+	General = 1,
+	ColorAttachmentOptimal = 2,
+	DepthStencilAttachmentOptimal = 3,
+	DepthStencilReadOnlyOptimal = 4,
+	ShaderReadOnlyOptimal = 5,
+	TransferSrcOptimal = 6,
+	TransferDstOptimal = 7,
+	Preinitialized = 8,
+	Max = 0x7FFFFFFF,
+};
+
 }

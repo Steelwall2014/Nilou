@@ -25,7 +25,7 @@ namespace nilou {
         Desc.SizeZ = Image->GetDepth();
         Desc.TextureType = ETextureDimension::Texture3D;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
         RDGBuffer* StagingBuffer = Graph.CreateBuffer(
             fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 

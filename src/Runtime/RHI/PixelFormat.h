@@ -40,6 +40,10 @@ namespace nilou {
 	};
 	uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat);
 	uint8 TranslatePixelFormatToChannel(EPixelFormat PixelFormat);
+	inline bool IsStencilFormat(EPixelFormat PixelFormat)
+	{
+		return PixelFormat == PF_D24S8 || PixelFormat == PF_D32FS8;
+	}
 
 	struct FPixelFormatInfo
 	{

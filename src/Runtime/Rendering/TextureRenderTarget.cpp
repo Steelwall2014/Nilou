@@ -22,7 +22,7 @@ namespace nilou {
         Desc.SizeX = Image->GetWidth();
         Desc.SizeY = Image->GetHeight();
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
         RDGBuffer* StagingBuffer = Graph.CreateBuffer(
             fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
@@ -73,7 +73,7 @@ namespace nilou {
         Desc.SizeY = Image->GetHeight();
         Desc.TextureType = ETextureDimension::TextureCube;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreatePersistentTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
         RDGBuffer* StagingBuffer = Graph.CreateBuffer(
             fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 

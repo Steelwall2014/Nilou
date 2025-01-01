@@ -10,18 +10,19 @@ class RDGDescriptorSet : public RDGResource
 public:
 
     friend class RDGDescriptorSetPool;
+    friend class RenderGraph;
 
     ~RDGDescriptorSet();
 
     void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
     void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
-    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
-    void SetStorageImage(const std::string& Name, RDGTextureView* Image);
+    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer, ERHIAccess Access);
+    void SetStorageImage(const std::string& Name, RDGTextureView* Image, ERHIAccess Access);
 
     void SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
     void SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
-    void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
-    void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image);
+    void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, ERHIAccess Access);
+    void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access);
 
     RHIDescriptorSet* GetRHI() const;
 
@@ -45,6 +46,7 @@ public:
         EDescriptorType DescriptorType;
         DescriptorImageInfo ImageInfo;
         DescriptorBufferInfo BufferInfo;
+        ERHIAccess Access;
     };
 
     std::map<uint32, WriteDescriptorSet> WriterInfos;

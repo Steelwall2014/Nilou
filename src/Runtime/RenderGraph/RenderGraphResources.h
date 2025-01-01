@@ -4,149 +4,227 @@
 #include "Platform.h"
 #include "RHIResources.h"
 #include "Templates/TypeTraits.h"
+#include "RenderGraphDefinitions.h"
+#include "RenderGraphTextureSubresource.h"
 
 namespace nilou {
+
+/** Used for tracking the state of an individual subresource during execution. */
+class RDGSubresourceState
+{
+public:
+
+	/** The last used access on the pass. */
+	ERHIAccess Access = ERHIAccess::None;
+
+	/** The last pass in this state. */
+	FRDGPassHandle Pass;
+
+};
+
+class FRDGPooledBuffer : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
+{
+public:
+    friend class FRDGBufferPool;
+	FRDGPooledBuffer(RHIBufferRef InBuffer, const RDGBufferDesc& InDesc, uint32 InNumAllocatedElements, const std::string& InName)
+		: Desc(InDesc)
+		, Buffer(InBuffer)
+		, Name(InName)
+		, NumAllocatedElements(InNumAllocatedElements)
+	{
+
+	}
+
+    RHIBuffer* GetRHI() const { return Buffer.GetReference(); }
+
+	FORCEINLINE uint32 GetSize() const
+	{
+		return Desc.GetSize();
+	}
+
+private:
+    const RDGBufferDesc Desc;
+    RHIBufferRef Buffer;
+
+	RDGBufferDesc GetAlignedDesc() const
+	{
+		RDGBufferDesc AlignedDesc = Desc;
+		AlignedDesc.NumElements = NumAllocatedElements;
+		return AlignedDesc;
+	}
+
+	// Used internally by FRDGBuilder::QueueCommitReservedBuffer(),
+	// which is expected to be the only way to resize physical memory for FRDGPooledBuffer
+	void SetCommittedSize(uint64 InCommittedSizeInBytes)
+	{
+		if (InCommittedSizeInBytes == UINT64_MAX)
+		{
+			InCommittedSizeInBytes = GetSize();
+		}
+
+		Ncheckf(EnumHasAllFlags(Desc.Usage, EBufferUsageFlags::ReservedResource), "CommitReservedResource() may only be used on reserved buffers");
+		Ncheckf(InCommittedSizeInBytes <= GetSize(), "Attempting to commit more memory than was reserved for this buffer during creation");
+
+		CommittedSizeInBytes = InCommittedSizeInBytes;
+	}
+
+    std::string Name;
+
+	// Size of the GPU physical memory committed to a reserved buffer.
+	// May be UINT64_MAX for regular (non-reserved) buffers or when the entire resource is committed.
+	uint64 CommittedSizeInBytes = UINT64_MAX;
+
+	const uint32 NumAllocatedElements;
+	uint32 LastUsedFrame = 0;
+};
+using FRDGPooledBufferRef = TRefCountPtr<FRDGPooledBuffer>;
+
+class FRDGPooledTexture : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
+{
+public:
+    friend class FRDGTexturePool;
+    FRDGPooledTexture(RHITextureRef InTexture, const RDGTextureDesc& InDesc, const std::string& InName)
+        : Desc(InDesc)
+        , Texture(InTexture)
+        , Name(InName)
+    { }
+
+    uint32 ComputeMemorySize() const;
+
+    RHITexture* GetRHI() const { return Texture.GetReference(); }
+    
+private:
+    const RDGTextureDesc Desc;
+    RHITextureRef Texture;
+
+    std::string Name;
+    uint32 UnusedForNFrames = 0;
+};
+using FRDGPooledTextureRef = TRefCountPtr<FRDGPooledTexture>;
+
+/** Used for tracking pass producer / consumer edges in the graph for culling and pipe fencing. */
+struct FRDGProducerState
+{
+	FRDGPass* Pass = nullptr;
+	ERHIAccess Access = ERHIAccess::None;
+};
 
 class RDGResource
 {
 public:
-    RDGResource() = default;
-    RDGResource(std::string InName) : Name(InName) { }
+    friend class FRDGPass;
+    friend class RenderGraph;
+    
+    RDGResource(std::string InName, ERDGResourceType InResourceType) : Name(InName), Type(InResourceType) { }
 	RDGResource(const RDGResource&) = delete;
-	virtual ~RDGResource() = default;
 
-    RHIResource* GetRHI() const { return ResourceRHI.get(); }
+	bool IsCulled() const
+	{
+		return ReferenceCount == 0;
+	}
+
+	bool IsCullRoot() const
+	{
+		return bExternal || bExtracted;
+	}
 
     std::string Name;
     
     bool bIsPersistent = false;
 
-protected:
-
-    std::shared_ptr<RHIResource> ResourceRHI = nullptr;
-
-private:
-
-    friend class RenderGraph;
-    friend class RDGBuilder;
-    class RDGResourceNode* Node = nullptr;
-};
-
-/** The set of concrete parent resource types. */
-enum class ERDGViewableResourceType : uint8
-{
-	Texture,
-	Buffer,
-	MAX
-};
-
-/** The set of concrete view types. */
-enum class ERDGViewType : uint8
-{
-	TextureUAV,
-	TextureSRV,
-	BufferUAV,
-	BufferSRV,
-	MAX
-};
-
-inline ERDGViewableResourceType GetParentType(ERDGViewType ViewType)
-{
-	switch (ViewType)
-	{
-	case ERDGViewType::TextureUAV:
-	case ERDGViewType::TextureSRV:
-		return ERDGViewableResourceType::Texture;
-	case ERDGViewType::BufferUAV:
-	case ERDGViewType::BufferSRV:
-		return ERDGViewableResourceType::Buffer;
-	}
-    Ncheckf(false, "Invalid view type");
-	return ERDGViewableResourceType::MAX;
-}
-
-class RDGViewableResource : public RDGResource
-{
-public:
-    ERDGViewableResourceType Type;
-};
-
-class RDGView : public RDGResource
-{
-public:
-    ERDGViewType Type;
-
-    virtual RDGViewableResource* GetParent() const = 0;
-
-    ERDGViewableResourceType GetParentType() const
-    {
-        return nilou::GetParentType(Type);
-    }
+    ERDGResourceType Type;
 
 protected:
-    RDGView(std::string InName, ERDGViewType InType) 
-        : RDGResource(InName)
-        , Type(InType) 
-    { }
-};
 
-class RDGShaderResourceView : public RDGView
-{
-protected:
-    RDGShaderResourceView(std::string InName, ERDGViewType InType) 
-        : RDGView(InName, InType) 
-    { }
-};
+    TRefCountPtr<RHIResource> ResourceRHI = nullptr;
 
-class RDGUnorderedAccessView : public RDGView
-{
-protected:
-    RDGUnorderedAccessView(std::string InName, ERDGViewType InType) 
-        : RDGView(InName, InType) 
-    { }
-};
+	/** Whether this is an externally registered resource. */
+	bool bExternal = false;
 
+	/** Whether this is an extracted resource. */
+	bool bExtracted = false;
+
+	/** Whether any sub-resource has been used for write by a pass. */
+	bool bProduced = false;
+
+	/** Whether this resource is allocated through the transient resource allocator. */
+	bool bTransient = false;
+
+	/** If false, the resource needs to be collected. */
+	bool bCollectForAllocate = true;
+
+	FRDGPassHandle FirstPass;
+	FRDGPassHandle LastPass;
+	FRDGPassHandle MinAcquirePass;
+	FRDGPassHandle MinDiscardPass;
+
+	/** Number of references in passes and deferred queries. */
+	uint16 ReferenceCount = 0;
+
+	/** Scratch index allocated for the resource in the pass being setup. */
+	uint16 PassStateIndex = 0;
+
+	static const uint16 DeallocatedReferenceCount = ~0;
+
+};
 
 /************ Texture *************/
-struct RDGTextureDesc
-{
-    uint32 SizeX = 1;
-    uint32 SizeY = 1;
-    uint32 SizeZ = 1;
-    uint32 ArraySize = 1;
-    uint32 NumMips = 1;
-    EPixelFormat Format;
-    ETextureDimension TextureType;
-    ETextureCreateFlags TexCreateFlags;
-
-    bool operator==(const RDGTextureDesc& Other) const = default;
-};
+using RDGTextureDesc = RHITextureDesc;
 class RDGTexture : public RDGResource
 {
 public:
     friend class RenderGraph;
     
-    RDGTexture(const RDGTextureDesc& InDesc): Desc(InDesc) { }
+    RDGTexture(std::string InName, const RDGTextureDesc& InDesc);
 
-    RHITexture* GetRHI() const { return static_cast<RHITexture*>(ResourceRHI.get()); }
+    RHITexture* GetRHI() const { return static_cast<RHITexture*>(ResourceRHI.GetReference()); }
 
     class RDGTextureView* GetDefaultView() const { return DefaultView; }
 
-    const RDGTextureDesc Desc;
+	FRDGTextureSubresourceLayout GetSubresourceLayout() const
+	{
+		return Layout;
+	}
 
-    virtual ~RDGTexture()
-    {
-        if (bIsPersistent)
-        {
-            delete DefaultView;
-        }
-    }
+	FRDGTextureSubresourceRange GetSubresourceRange() const
+	{
+		return WholeRange;
+	}
+
+	uint16 GetSubresourceCount() const
+	{
+		return SubresourceCount;
+	}
+
+	FRDGTextureSubresource GetSubresource(uint32 SubresourceIndex) const
+	{
+		return Layout.GetSubresource(SubresourceIndex);
+	}
+
+    const RDGTextureDesc Desc;
 
 private:
 
     RDGTextureView* DefaultView;
+    
+	/** The layout used to facilitate subresource transitions. */
+	FRDGTextureSubresourceLayout Layout;
+	FRDGTextureSubresourceRange  WholeRange;
+	const uint16 SubresourceCount;
+
+	/** Tracks pass producers for each subresource as the graph is built. */
+	std::vector<FRDGProducerState> LastProducers;
+
+    // Steelwall2014: not null if the texture is created from RenderGraph::CreateTexture
+    class FRHITransientTexture* TransientTexture;
+    // Steelwall2014: not null if the texture is created from RenderGraph::CreateExternalTexture
+    FRDGPooledTextureRef PooledTexture;
+
+    std::vector<RDGSubresourceState> State;
+
 };
 using RDGTextureRef = std::shared_ptr<RDGTexture>;
+
 struct RDGTextureViewDesc
 {
     EPixelFormat Format; 
@@ -189,38 +267,32 @@ class RDGTextureView : public RDGResource
 {
 public:
     RDGTextureView(std::string InName, const RDGTextureViewDesc& InDesc) 
-        : RDGResource(InName)
+        : RDGResource(InName, ERDGResourceType::TextureView)
         , Desc(InDesc)
     { }
 
     const RDGTextureViewDesc Desc;
 
     RDGTexture* GetParent() const { return Desc.Texture; }
+
+    const FRDGTextureSubresourceRange& GetSubresourceRange() const { return SubresourceRange; }
+
+    FRDGTextureSubresourceRange SubresourceRange;
 };
 using RDGTextureViewRef = std::shared_ptr<RDGTextureView>;
 
 /************ Buffer *************/
-struct RDGBufferDesc
-{
-    uint32 Size;
-    uint32 Stride;
-    // EBufferUsageFlags Usage;
-
-    RDGBufferDesc() = default;
-    RDGBufferDesc(uint32 InSize, uint32 InStride=0) : Size(InSize), Stride(InStride) { }
-
-    bool operator==(const RDGBufferDesc& Other) const = default;
-};
-class RDGBuffer : public RDGViewableResource
+class RDGBuffer : public RDGResource
 {
 public:
-    RDGBuffer(const RDGBufferDesc& InDesc) 
-        : Desc(InDesc) 
+    RDGBuffer(std::string InName, const RDGBufferDesc& InDesc) 
+        : RDGResource(InName, ERDGResourceType::Buffer)
+        , Desc(InDesc) 
     { 
-        Data = std::make_unique<uint8[]>(InDesc.Size);
-        AllocatedSize = InDesc.Size;
+        Data = std::make_unique<uint8[]>(InDesc.GetSize());
+        AllocatedSize = InDesc.GetSize();
     }
-    RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.get()); }
+    RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.GetReference()); }
 
     void SetData(const void* InData, uint32 Size, uint32 Offset)
     {
@@ -248,6 +320,13 @@ public:
     std::unique_ptr<uint8[]> Data = nullptr;
     uint32 AllocatedSize = 0;
     bool bDirty = false;
+
+    // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
+    class FRHITransientBuffer* TransientBuffer;
+    // Steelwall2014: not null if the buffer is created from RenderGraph::CreateExternalBuffer
+    FRDGPooledBufferRef PooledBuffer;
+
+    RDGSubresourceState State;
 };
 using RDGBufferRef = std::shared_ptr<RDGBuffer>;
 
@@ -292,27 +371,5 @@ private:
 
     std::unordered_map<EFramebufferAttachment, RDGTextureView*> Attachments;
 };
-
-}
-
-namespace std {
-
-template<>
-struct hash<nilou::RDGTextureDesc>
-{
-	size_t operator()(const nilou::RDGTextureDesc &_Keyval) const noexcept;
-};
-
-template<>
-struct hash<nilou::RDGBufferDesc>
-{
-	size_t operator()(const nilou::RDGBufferDesc &_Keyval) const noexcept;
-};
-
-// template<>
-// struct hash<nilou::RDGUniformBufferDesc>
-// {
-// 	size_t operator()(const nilou::RDGUniformBufferDesc &_Keyval) const noexcept;
-// };
 
 }

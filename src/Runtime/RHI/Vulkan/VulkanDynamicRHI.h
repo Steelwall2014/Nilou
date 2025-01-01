@@ -9,6 +9,16 @@
 #include "DynamicRHI.h"
 #include "VulkanResources.h"
 
+#define VK_CHECK_RESULT(f)																				\
+{																										\
+	VkResult res = (f);																					\
+	if (res != VK_SUCCESS)																				\
+	{																									\
+        NILOU_LOG(Fatal, "VkResult is \"{}\" in {} at line {}", FVulkanDynamicRHI::ErrorString(res), __FILE__, __LINE__); \
+		assert(res == VK_SUCCESS);																		\
+	}																									\
+}
+
 namespace nilou {
 
 class FVulkanCommandBufferManager;
@@ -148,6 +158,7 @@ public:
     virtual void UnmapMemory(RHIBuffer* buffer) override;
 	virtual RHIDescriptorSetLayoutRef CreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
     virtual RHIDescriptorPoolRef CreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
+    virtual RHISemaphoreRef RHICreateSemaphore() override;
 
     virtual RHIFramebuffer* GetRenderToScreenFramebuffer() override;
 
@@ -164,6 +175,8 @@ public:
 	std::unique_ptr<FVulkanQueue> ComputeQueue;
 	std::unique_ptr<FVulkanQueue> TransferQueue;
 	std::unique_ptr<FVulkanQueue> PresentQueue;
+
+    static std::string ErrorString(VkResult Result);
     
 private:
 

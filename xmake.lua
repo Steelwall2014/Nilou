@@ -16,7 +16,7 @@ if (is_os("windows")) then
     end
 end
 -- TODO use xmake package manager
-add_requires("vcpkg::gdal", {configs = {shared = true}})
+-- add_requires("vcpkg::gdal", {configs = {shared = true}})
 add_requires("vcpkg::glfw3")
 add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
 add_requires("vcpkg::draco")

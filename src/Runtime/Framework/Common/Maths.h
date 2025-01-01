@@ -7,6 +7,7 @@
 #include <glm/gtc/epsilon.hpp>
 
 #include <reflection/Class.h>
+#include "Platform.h"
 
 #define SMALL_NUMBER		(1.e-8f)
 #define KINDA_SMALL_NUMBER	(1.e-4f)
@@ -119,7 +120,7 @@ namespace nilou {
     const double HALF_PI = glm::half_pi<double>();
     const double INV_PI = glm::one_over_pi<double>();
 
-    class Math
+    class FMath
     {
     public:
         /**
@@ -176,7 +177,7 @@ namespace nilou {
             const vecType<T, P>& right,
             double relativeEpsilon) noexcept 
         {
-            return Math::equalsEpsilon(left, right, relativeEpsilon, relativeEpsilon);
+            return FMath::equalsEpsilon(left, right, relativeEpsilon, relativeEpsilon);
         }
 
         /**
@@ -285,5 +286,166 @@ namespace nilou {
                 ? (Dividend + Divisor / 2) / Divisor
                 : (Dividend - Divisor / 2 + 1) / Divisor;
         }
+
+        static uint32 FloorLog2(uint32 Value)
+        {
+            // Use BSR to return the log2 of the integer
+            // return 0 if value is 0
+            unsigned long BitIndex;
+            return _BitScanReverse(&BitIndex, Value) ? BitIndex : 0;
+        }
+        static uint8 CountLeadingZeros8(uint8 Value)
+        {
+            unsigned long BitIndex;
+            _BitScanReverse(&BitIndex, uint32(Value)*2 + 1);
+            return uint8(8 - BitIndex);
+        }
+
+        static uint32 CountTrailingZeros(uint32 Value)
+        {
+            // return 32 if value was 0
+            unsigned long BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
+            return _BitScanForward( &BitIndex, Value ) ? BitIndex : 32;
+        }
+
+        static uint32 CeilLogTwo( uint32 Arg )
+        {
+            // if Arg is 0, change it to 1 so that we return 0
+            Arg = Arg ? Arg : 1;
+            return 32 - CountLeadingZeros(Arg - 1);
+        }
+
+        static uint32 RoundUpToPowerOfTwo(uint32 Arg)
+        {
+            return 1 << CeilLogTwo(Arg);
+        }
+
+        static uint64 RoundUpToPowerOfTwo64(uint64 Arg)
+        {
+            return uint64(1) << CeilLogTwo64(Arg);
+        }
+
+        static uint64 FloorLog2_64(uint64 Value)
+        {
+            unsigned long BitIndex;
+            return _BitScanReverse64(&BitIndex, Value) ? BitIndex : 0;
+        }
+
+        static uint64 CeilLogTwo64(uint64 Arg)
+        {
+            // if Arg is 0, change it to 1 so that we return 0
+            Arg = Arg ? Arg : 1;
+            return 64 - CountLeadingZeros64(Arg - 1);
+        }
+
+        static uint64 CountLeadingZeros64(uint64 Value)
+        {
+            //https://godbolt.org/z/Ejh5G4vPK	
+            // return 64 if value if was 0
+            unsigned long BitIndex;
+            if ( ! _BitScanReverse64(&BitIndex, Value) ) BitIndex = -1;
+            return 63 - BitIndex;
+        }
+
+        static uint64 CountTrailingZeros64(uint64 Value)
+        {
+            // return 64 if Value is 0
+            unsigned long BitIndex;	// 0-based, where the LSB is 0 and MSB is 63
+            return _BitScanForward64( &BitIndex, Value ) ? BitIndex : 64;
+        }
+
+        static uint32 CountLeadingZeros(uint32 Value)
+        {
+            // return 32 if value is zero
+            unsigned long BitIndex;
+            _BitScanReverse64(&BitIndex, uint64(Value)*2 + 1);
+            return 32 - BitIndex;
+        }
+
     };
+
+    class FColor;
+
+    /**
+     * Enum for the different kinds of gamma spaces we expect to need to convert from/to.
+     */
+    enum class EGammaSpace : uint8
+    {
+        /** No gamma correction is applied to this space, the incoming colors are assumed to already be in linear space. */
+        Linear,
+        /** A simplified sRGB gamma correction is applied, pow(1/2.2). */
+        Pow22,
+        /** Use the standard sRGB conversion. */
+        sRGB,
+
+        Invalid
+    };
+
+    /**
+     * A linear, 32-bit/component floating point RGBA color.
+     */
+    struct FLinearColor
+    {
+        float R,G,B,A;
+
+        /** Static lookup table used for FColor -> FLinearColor conversion. Pow(2.2) */
+        static float Pow22OneOver255Table[256];
+
+        /** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
+        static float sRGBToLinearTable[256];
+
+        FLinearColor() : R(0), G(0), B(0), A(0) {}
+        FLinearColor(float InR, float InG, float InB, float InA = 1.f) : R(InR), G(InG), B(InB), A(InA) {}
+
+        /**
+         * Converts an FColor which is assumed to be in sRGB space, into linear color space.
+         * @param Color The sRGB color that needs to be converted into linear space.
+         * to get direct conversion use ReinterpretAsLinear
+         */
+        constexpr FORCEINLINE FLinearColor(const FColor& Color);
+
+        // Common colors.	
+        static const FLinearColor White;
+        static const FLinearColor Gray;
+        static const FLinearColor Black;
+        static const FLinearColor Transparent;
+        static const FLinearColor Red;
+        static const FLinearColor Green;
+        static const FLinearColor Blue;
+        static const FLinearColor Yellow;
+    };
+
+    class FColor
+    {
+    public:
+	    uint8 B,G,R,A;
+        FColor() : B(0), G(0), R(0), A(0) {}
+        FColor(uint8 InR, uint8 InG, uint8 InB, uint8 InA = 255) : B(InB), G(InG), R(InR), A(InA) {}
+
+        /** Some pre-inited colors, useful for debug code */
+        static const FColor White;
+        static const FColor Black;
+        static const FColor Transparent;
+        static const FColor Red;
+        static const FColor Green;
+        static const FColor Blue;
+        static const FColor Yellow;
+        static const FColor Cyan;
+        static const FColor Magenta;
+        static const FColor Orange;
+        static const FColor Purple;
+        static const FColor Turquoise;
+        static const FColor Silver;
+        static const FColor Emerald;
+    };
+
+    constexpr FORCEINLINE FLinearColor::FLinearColor(const FColor& Color)
+        : R(sRGBToLinearTable[Color.R])
+        , G(sRGBToLinearTable[Color.G])
+        , B(sRGBToLinearTable[Color.B])
+        , A(static_cast<float>(Color.A) * (1.0f / 255.0f))
+    {
+    }
+
+
 }

@@ -73,7 +73,7 @@ namespace nilou {
         RDGBufferDesc Desc;
         Desc.Size = Stride * NumIndices;
         Desc.Stride = Stride;
-        IndexBufferRDG = RenderGraph::CreatePersistentBuffer(Desc);
+        IndexBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
         Graph.AddUploadPass(IndexBufferRDG.get(), Data, Desc.Size);
     }
 }

@@ -8,6 +8,7 @@
 
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
+#include "RHITransition.h"
 #include "RHI.h"
 
 namespace glslang {
@@ -80,6 +81,7 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) = 0;
+		virtual RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo) = 0;
 		
 		virtual RHITexture2DRef RHICreateTexture2D(
 			const std::string &name, EPixelFormat Format, 
@@ -96,6 +98,7 @@ namespace nilou {
 		virtual RHITexture2DRef RHICreateSparseTexture2D(
 			const std::string &name, EPixelFormat Format, 
 			int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) = 0;
+		virtual RHITextureRef RHICreateTexture(const FRHITextureCreateInfo& CreateInfo, const std::string& Name) = 0;
 
 		virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) = 0;
 		virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) = 0;
@@ -156,18 +159,20 @@ namespace nilou {
 		// The direction of each axis is the same as UV's.
 		static ivec3 RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat);
 
-		virtual RHIFramebuffer* GetRenderToScreenFramebuffer() { return RenderToScreenFramebuffer.get(); }
+		virtual RHIFramebuffer* GetRenderToScreenFramebuffer() { return RenderToScreenFramebuffer.GetReference(); }
 	
 		virtual void* MapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size) = 0;
 		virtual void UnmapMemory(RHIBuffer* buffer) = 0;
 		virtual RHIDescriptorSetLayoutRef CreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) = 0;
 		virtual RHIDescriptorPoolRef CreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) = 0;
 		virtual RHIDescriptorSet* AllocateDescriptorSet(RHIDescriptorPool* Pool) = 0;
+		virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) = 0;
+		virtual RHISemaphoreRef RHICreateSemaphore() = 0;
 
 	protected:
 		static FDynamicRHI *DynamicRHI;
 		static ivec3 SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
-    	// std::unordered_map<uint32, RHISamplerStateRef> SamplerMap;
+    	// std::unordered_map<uint32, RHISamplerStateRef SamplerMap;
 		RHIFramebufferRef RenderToScreenFramebuffer{};
     	// void ReflectShader(RHIDescriptorSetsLayout& DescriptorSetsLayout, shaderc_compilation_result_t compile_result);
 	};
@@ -272,10 +277,11 @@ namespace nilou {
 		FDynamicRHI::GetDynamicRHI()->UnmapMemory(buffer);
 	}
 
-	inline RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+	inline RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 	{
 		RHIDescriptorSetLayoutRef Layout = FDynamicRHI::GetDynamicRHI()->CreateDescriptorSetLayout(Bindings);
 		// TODO: cache
+		return Layout;
 	}
 
 	inline RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)
@@ -286,5 +292,25 @@ namespace nilou {
 	inline RHIDescriptorSet* RHIAllocateDescriptorSet(RHIDescriptorPool* Pool)
 	{
 		return FDynamicRHI::GetDynamicRHI()->AllocateDescriptorSet(Pool);
+	}
+
+	inline RHITextureRef RHICreateTexture(const FRHITextureCreateInfo& CreateInfo, const std::string& Name)
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHICreateTexture(CreateInfo, Name);
+	}
+
+	inline RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& Name)
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(CreateInfo);
+	}
+
+	inline uint32 RHIComputeMemorySize(RHITexture* TextureRHI)
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHIComputeMemorySize(TextureRHI);
+	}
+
+	inline RHISemaphoreRef RHICreateSemaphore()
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHICreateSemaphore();
 	}
 }

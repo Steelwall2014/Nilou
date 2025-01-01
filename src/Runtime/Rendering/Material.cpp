@@ -269,25 +269,24 @@ namespace nilou {
         NewRenderProxy->ShaderMap = this->MaterialRenderProxy->ShaderMap;
         for (auto& [SetIndex, Layout] : NewRenderProxy->ShaderMap->DescriptorSetLayout)
         {
-            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreatePersistentDescriptorSet(Layout.get());
+            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(Layout.GetReference());
         }
         for (auto& [Key, Texture] : this->MaterialRenderProxy->Textures)
         {
             uint32 SetIndex = Key >> 32;
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             NewRenderProxy->Textures[Key] = Texture;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetTextureSRV(), Texture->GetSamplerState());
+            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetTextureRDG()->GetDefaultView(), Texture->GetSamplerState());
         }
         for (auto& [Key, Buffer] : this->MaterialRenderProxy->UniformBuffers)
         {
             uint32 SetIndex = Key >> 32;
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             // Copy the uniform buffer instead of the refs.
-            RDGBufferRef NewUniformBuffer = RenderGraph::CreatePersistentBuffer(Buffer->Name, Buffer->Desc);
-            NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.Size, 0);
+            RDGBufferRef NewUniformBuffer = RenderGraph::CreateExternalBuffer(Buffer->Name, Buffer->Desc);
+            NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.GetSize(), 0);
             NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
-            NewRenderProxy->UniformBufferSRVs[Key] = RenderGraph::CreatePersistentSRV(RDGBufferSRVDesc(NewUniformBuffer.get()));
-            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBufferSRVs[Key].get());
+            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBuffers[Key].get());
         }
         NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
         NewRenderProxy->RasterizerState = this->MaterialRenderProxy->RasterizerState;
@@ -366,6 +365,8 @@ namespace nilou {
 
     void FMaterialRenderProxy::RenderThread_UpdateShader(const std::string& ShaderCode)
     {
+        Ncheck(IsInRenderingThread());
+
         ShaderMap->RemoveAllShaders();
         ShaderMap->DescriptorSetLayout.clear();
         DescriptorSets.clear();
@@ -396,7 +397,7 @@ namespace nilou {
             }
             RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
             ShaderMap->DescriptorSetLayout[SetIndex] = RHIDescriptorSetLayoutRef(LayoutRHI);
-            DescriptorSets[SetIndex] = RenderGraph::CreatePersistentDescriptorSet(LayoutRHI);
+            DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(LayoutRHI);
 
             for (auto& [BindingIndex, Binding] : Layout)
             {
@@ -413,9 +414,8 @@ namespace nilou {
                     uint32 Size = Binding.Block.Size;
                     uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
                     std::string BufferName = fmt::format("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
-                    UniformBuffers[key] = RenderGraph::CreatePersistentBuffer(BufferName, RDGBufferDesc(Size));
-                    UniformBufferSRVs[key] = RenderGraph::CreatePersistentSRV(RDGBufferSRVDesc(UniformBuffers[key].get()));
-                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBufferSRVs[key].get());
+                    UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
+                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key].get());
                 }
                 else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
                 {
@@ -423,6 +423,8 @@ namespace nilou {
                     Position.SetIndex = SetIndex;
                     Position.BindingIndex = BindingIndex;
                     ParameterNameToPosition[Binding.Name] = Position;
+                    // Textures should not be create by the Material like UniformBuffers,
+                    // Instead, they should be pass as input by UMaterial::SetTextureParameterValue.
                 }
                 else 
                 {

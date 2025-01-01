@@ -222,7 +222,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
             [this](RenderGraph& Graph, RHICommandListImmediate& RHICmdList)
             {
-                FFTParameters = RenderGraph::CreatePersistentUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
+                FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
             });
     }
 

@@ -3,7 +3,9 @@
 #include <iosfwd>
 #include <string_view>
 #include <iostream>
+#if __cplusplus < 202002L
 #include <fmt/format.h>
+#endif
 #include "AssertionMacros.h"
 
 namespace nilou {
@@ -44,9 +46,15 @@ namespace nilou {
         LL_Fatal
     };
 
+#if __cplusplus >= 202002L
+    #define NILOU_LOG_FORMAT(t, ...) std::format(t, __VA_ARGS__)
+#else
+    #define NILOU_LOG_FORMAT(t, ...) fmt::format(t, __VA_ARGS__)
+#endif
+
     #define NILOU_LOG(Level, info, ...) \
         { \
-            std::string str = fmt::format(info, __VA_ARGS__); \
+            std::string str = NILOU_LOG_FORMAT(info, __VA_ARGS__); \
             if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Info) \
             { \
                 std::cout << "[INFO] " << str << std::endl; \

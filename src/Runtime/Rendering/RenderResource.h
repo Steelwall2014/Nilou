@@ -7,11 +7,20 @@
 namespace nilou {
     class RenderGraph;
     class RDGBuffer;
+    class RHICommandListImmediate;
     using RDGBufferRef = std::shared_ptr<RDGBuffer>;
 
     class FRenderResource
     {
     public:
+
+        enum class EInitPhase : uint8
+        {
+            Pre,
+            Default,
+            MAX
+        };
+
         // used to create non-persistent resources
         virtual void InitRHI(RenderGraph&) { bRHIInitialized = true; }
         // used to create persistent resources
@@ -27,6 +36,8 @@ namespace nilou {
         bool IsInitialized() { return bRHIInitialized; }
         void UpdateRHI();
         static std::vector<FRenderResource*>& GetResourceList();
+
+        RHICommandListImmediate& FRenderResource::GetImmediateCommandList();
 
     private:
         int32 ListIndex = -1;
@@ -66,4 +77,68 @@ namespace nilou {
     void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line);
 
     std::vector<int32>& GetFreeIndicesList();
+
+    /** Used to declare a render resource that is initialized/released by static initialization/destruction. */
+    template<class ResourceType, FRenderResource::EInitPhase InInitPhase = FRenderResource::EInitPhase::Default>
+    class TGlobalResource : public ResourceType
+    {
+    public:
+        /** Default constructor. */
+        TGlobalResource()
+        {
+            InitGlobalResource();
+        }
+
+        /** Initialization constructor: 1 parameter. */
+        template<typename... Args>
+        explicit TGlobalResource(Args... InArgs)
+            : ResourceType(InArgs...)
+        {
+            InitGlobalResource();
+        }
+
+        /** Destructor. */
+        virtual ~TGlobalResource()
+        {
+            ReleaseGlobalResource();
+        }
+
+    private:
+
+        /**
+         * Initialize the global resource.
+         */
+        void InitGlobalResource()
+        {
+            ResourceType::SetInitPhase(InInitPhase);
+
+            if (IsInRenderingThread())
+            {
+                // If the resource is constructed in the rendering thread, directly initialize it.
+                ((ResourceType*)this)->InitResource(FRenderResource::GetImmediateCommandList());
+            }
+            else
+            {
+                // If the resource is constructed outside of the rendering thread, enqueue a command to initialize it.
+                BeginInitResource((ResourceType*)this);
+            }
+        }
+
+        /**
+         * Release the global resource.
+         */
+        void ReleaseGlobalResource()
+        {
+            // This should be called in the rendering thread, or at shutdown when the rendering thread has exited.
+            // However, it may also be called at shutdown after an error, when the rendering thread is still running.
+            // To avoid a second error in that case we don't assert.
+    #if 0
+            check(IsInRenderingThread());
+    #endif
+
+            // Cleanup the resource.
+            ((ResourceType*)this)->ReleaseResource();
+        }
+    };
+
 }
