@@ -78,12 +78,12 @@ namespace nilou {
 
         dvec3 OriginOffset;
 
-        void UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList);
+        void UpdateSceneCaptureContents_RenderThread(FScene* Scene);
 
         std::vector<RHITextureCubeRef> PrefilteredTextureMips;
 
-        TUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
-        TUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
+        TRDGUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
+        TRDGUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
 
     };
 

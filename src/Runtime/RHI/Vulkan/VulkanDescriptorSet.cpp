@@ -150,7 +150,7 @@ void FVulkanDescriptorPoolsManager::ReleasePoolSet(FVulkanDescriptorPoolSetConta
 	PoolSetContainer->SetUsed(false);
 }
 
-RHIDescriptorSetLayoutRef FVulkanDynamicRHI::CreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 {
     std::vector<VkDescriptorSetLayoutBinding> VulkanBindings(Bindings.size());
     for (int i = 0; i < Bindings.size(); i++)
@@ -163,7 +163,7 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::CreateDescriptorSetLayout(const std
         VulkanBinding.stageFlags = VK_SHADER_STAGE_ALL;
         VulkanBinding.pImmutableSamplers = nullptr;
     }
-    std::shared_ptr<VulkanDescriptorSetLayout> VulkanLayout = std::make_shared<VulkanDescriptorSetLayout>();
+    TRefCountPtr<VulkanDescriptorSetLayout> VulkanLayout = new VulkanDescriptorSetLayout();
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
@@ -177,13 +177,13 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::CreateDescriptorSetLayout(const std
     return VulkanLayout;
 }
 
-RHIDescriptorPoolRef FVulkanDynamicRHI::CreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)
+RHIDescriptorPoolRef FVulkanDynamicRHI::RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)
 {
 	std::vector<VkDescriptorPoolSize> Types;
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex <= VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
 	{
 		EDescriptorType DescriptorType = static_cast<EDescriptorType>(TypeIndex);
-		uint32 NumTypesUsed = Layout->GetNumTypesUsed(DescriptorType);
+		uint32 NumTypesUsed = Layout->GetNumTypeUsed(DescriptorType);
 		if (NumTypesUsed > 0)
 		{
 			VkDescriptorPoolSize& Type = Types.emplace_back();
@@ -198,7 +198,7 @@ RHIDescriptorPoolRef FVulkanDynamicRHI::CreateDescriptorPool(RHIDescriptorSetLay
 	PoolInfo.pPoolSizes = Types.data();
 	PoolInfo.maxSets = PoolSize;
 
-	std::shared_ptr<VulkanDescriptorPool> VulkanPool = std::make_shared<VulkanDescriptorPool>(Layout);
+	TRefCountPtr<VulkanDescriptorPool> VulkanPool = new VulkanDescriptorPool(Layout);
 	VkResult res = vkCreateDescriptorPool(device, &PoolInfo, nullptr, &VulkanPool->Handle);
     if (res != VK_SUCCESS)
     {

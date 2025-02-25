@@ -1,3 +1,4 @@
+#if NILOU_ENABLE_3DTILES
 #include <regex>
 
 #include "Cesium3DTileset.h"
@@ -76,18 +77,18 @@ namespace nilou {
             Texture->Name = TextureName;
             Texture->ImageData = image;
             
-            RHITextureParams& TextureParams = Texture->TextureParams;
-            if (gltf_texture.sampler != -1)
-            {
-                tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
+            // RHITextureParams& TextureParams = Texture->TextureParams;
+            // if (gltf_texture.sampler != -1)
+            // {
+            //     tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
 
-                if (sampler.minFilter != -1)
-                    TextureParams.Min_Filter = GLTFFilterToETextureFilters(sampler.minFilter);
-                if (sampler.magFilter != -1)
-                    TextureParams.Mag_Filter = GLTFFilterToETextureFilters(sampler.magFilter);
-                TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
-                TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
-            }
+            //     if (sampler.minFilter != -1)
+            //         TextureParams.Min_Filter = GLTFFilterToETextureFilters(sampler.minFilter);
+            //     if (sampler.magFilter != -1)
+            //         TextureParams.Mag_Filter = GLTFFilterToETextureFilters(sampler.magFilter);
+            //     TextureParams.Wrap_S = GLTFFilterToETextureWrapModes(sampler.wrapS);
+            //     TextureParams.Wrap_T = GLTFFilterToETextureWrapModes(sampler.wrapT);
+            // }
             Texture->UpdateResource();
             OutTextures.push_back(Texture);
         }
@@ -301,7 +302,7 @@ namespace nilou {
         std::vector<std::shared_ptr<class UTexture>> TexturesToDelete = Textures;
         TUniformBufferRef<FGLTFMaterialBlock> UniformBufferToDelete = UniformBuffer;
         ENQUEUE_RENDER_COMMAND(GLTFParseResult_Deconstructor)(
-            [StaticMeshesToDelete, MaterialsToDelete, TexturesToDelete, UniformBufferToDelete](FDynamicRHI*)
+            [StaticMeshesToDelete, MaterialsToDelete, TexturesToDelete, UniformBufferToDelete](RHICommandList&)
             {
                 for (int i = 0; i < MaterialsToDelete.size(); i++)
                     MaterialsToDelete[i]->ReleaseResources();
@@ -395,7 +396,7 @@ namespace nilou {
         }
         RenderComponentsThisFrame.clear();
 
-        // NILOU_LOG(Info, "Component count: {}", OwnedComponents.size())
+        // NILOU_LOG(Display, "Component count: {}", OwnedComponents.size())
 
         UpdateInternal(Tileset->Root.get(), ViewStates);
 
@@ -420,7 +421,7 @@ namespace nilou {
                         std::unique_lock<std::mutex> rhi_lock(rhi_mutex);
                         std::condition_variable cv;
                         ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_LoadContent)(
-                            [&Result, this, &RHIInitialized, &cv](FDynamicRHI*) 
+                            [&Result, this, &RHIInitialized, &cv](RHICommandList&) 
                             {
                                 Result->InitResource();
                                 RHIInitialized = true;
@@ -555,3 +556,4 @@ namespace nilou {
         return largestSSE <= MaximumScreenSpaceError;
     }
 }
+#endif

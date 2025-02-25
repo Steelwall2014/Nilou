@@ -53,7 +53,7 @@ public:
     VkPipelineLayout Handle;
     ~VulkanPipelineLayout();
 };
-using VulkanPipelineLayoutRef = std::shared_ptr<VulkanPipelineLayout>;
+using VulkanPipelineLayoutRef = TRefCountPtr<VulkanPipelineLayout>;
 
 inline VulkanPipelineLayout* ResourceCast(RHIPipelineLayout* PipelineLayout)
 {

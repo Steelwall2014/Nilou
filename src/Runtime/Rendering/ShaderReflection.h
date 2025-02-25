@@ -72,7 +72,7 @@ enum class EImageFormat
 constexpr uint32 MAX_ARRAY_DIMS = 32;
 
 // keep the same with spirv-reflect
-enum class EDescriptorType
+enum class EDescriptorType : uint32
 {
     Sampler                     =  0,        // = VK_DESCRIPTOR_TYPE_SAMPLER
     CombinedImageSampler        =  1,        // = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
@@ -85,7 +85,7 @@ enum class EDescriptorType
     UniformBufferDynamic        =  8,        // = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
     StorageBufferDynamic        =  9,        // = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
     InputAttachment             = 10,        // = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-    AccelerationStructure       = 1000150000 // = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+    Max                         = 0x7FFFFFFF
 };
 
 struct NumericTraits

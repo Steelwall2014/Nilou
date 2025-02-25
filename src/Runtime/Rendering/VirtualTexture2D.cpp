@@ -2,6 +2,7 @@
 
 #include "VirtualTexture2D.h"
 #include "Common/Path.h"
+#if NILOU_ENABLE_VIRTUAL_TEXTURE
 
 namespace nilou {
 		
@@ -284,3 +285,4 @@ namespace nilou {
     }
 
 }
+#endif

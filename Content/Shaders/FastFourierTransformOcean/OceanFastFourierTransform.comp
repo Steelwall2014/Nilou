@@ -6,7 +6,7 @@ layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout (rg16f, binding = 0) uniform image2D InputRT;
 layout (rg16f, binding = 1) uniform image2D OutputRT;
 
-layout (std140, binding = 2) uniform FOceanFFTButterflyBlock {
+layout (push_constant) uniform FOceanFFTButterflyBlock {
     uint Ns;
 };
 #include "OceanFastFourierTransformParameters.glsl"

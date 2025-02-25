@@ -9,16 +9,18 @@ namespace nilou {
 
     void FShaderInstance::InitRHI()
     {
-        switch (PipelineStage) 
+        switch (ShaderStage) 
         {
-            case EPipelineStage::PS_Vertex:
+            case EShaderStage::Vertex:
                 ShaderRHI = RHICreateVertexShader(Code);
                 break;
-            case EPipelineStage::PS_Pixel:
+            case EShaderStage::Pixel:
                 ShaderRHI = RHICreatePixelShader(Code);
                 break;
-            case EPipelineStage::PS_Compute:
+            case EShaderStage::Compute:
                 ShaderRHI = RHICreateComputeShader(Code);
+                break;
+            default:
                 break;
         }
         if (ShaderRHI)

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "RHIResources.h"
-#include "glm/glm.hpp"
 #include <vector>
+#include "Thread.h"
+#include "RenderingThread.h"
+#include "RHIResources.h"
+#include "RenderGraphResources.h"
 
 namespace nilou {
     class RenderGraph;
     class RDGBuffer;
-    class RHICommandListImmediate;
-    using RDGBufferRef = std::shared_ptr<RDGBuffer>;
 
     class FRenderResource
     {
@@ -36,8 +36,6 @@ namespace nilou {
         bool IsInitialized() { return bRHIInitialized; }
         void UpdateRHI();
         static std::vector<FRenderResource*>& GetResourceList();
-
-        RHICommandListImmediate& FRenderResource::GetImmediateCommandList();
 
     private:
         int32 ListIndex = -1;
@@ -110,12 +108,10 @@ namespace nilou {
          */
         void InitGlobalResource()
         {
-            ResourceType::SetInitPhase(InInitPhase);
-
             if (IsInRenderingThread())
             {
                 // If the resource is constructed in the rendering thread, directly initialize it.
-                ((ResourceType*)this)->InitResource(FRenderResource::GetImmediateCommandList());
+                ((ResourceType*)this)->InitResource(FRenderingThread::GetRenderGraph());
             }
             else
             {

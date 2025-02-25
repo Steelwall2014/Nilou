@@ -103,9 +103,6 @@ namespace nilou {
 
     FSkyAtmosphereSceneProxy::FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent)
     {
-        AtmosphereParameters = CreateUniformBuffer<ShaderAtmosphereParametersBlock>();
-        ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
-
 		FROM_COMPONENNT_TO_PROXY(SolarIrradiance)
 		FROM_COMPONENNT_TO_PROXY(SunAngularRadius)
 		FROM_COMPONENNT_TO_PROXY(BottomRadius)
@@ -121,35 +118,32 @@ namespace nilou {
 		FROM_COMPONENNT_TO_PROXY(GroundAlbedo)
 		FROM_COMPONENNT_TO_PROXY(Mu_s_Min)
 
-        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](FDynamicRHI *DynamicRHI) {
-            BeginInitResource(AtmosphereParameters.get());
+        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RHICommandList&) {
 
-            ScatteringOrderParameter = CreateUniformBuffer<ScatteringOrderBlock>();
+            AtmosphereParameters = RenderGraph::CreateExternalUniformBuffer<ShaderAtmosphereParametersBlock>("");
 
-            TransmittanceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-                "SkyAtmosphere TransmittanceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, TexCreate_UAV);
+            RDGTextureDesc Desc;
+            Desc.TextureType = ETextureDimension::Texture2D;
+            Desc.Format = EPixelFormat::PF_R32G32B32A32F;
+            Desc.NumMips = 1;
+            Desc.SizeX = TRANSMITTANCE_TEXTURE_WIDTH;
+            Desc.SizeY = TRANSMITTANCE_TEXTURE_HEIGHT;
+            Desc.Flags = TexCreate_UAV;
+            TransmittanceLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere TransmittanceLUT", Desc);
 
-            IrradianceLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-                "SkyAtmosphere IrradianceLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, TexCreate_UAV);
+            Desc.SizeX = IRRADIANCE_TEXTURE_WIDTH;
+            Desc.SizeY = IRRADIANCE_TEXTURE_HEIGHT;
+            IrradianceLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere IrradianceLUT", Desc);
 
-            DeltaScatteringRayleighLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
-                "SkyAtmosphere SingleScatteringRayleighLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, TexCreate_UAV);
+            Desc.TextureType = ETextureDimension::Texture3D;
+            Desc.SizeX = SCATTERING_TEXTURE_WIDTH;
+            Desc.SizeY = SCATTERING_TEXTURE_HEIGHT;
+            Desc.SizeZ = SCATTERING_TEXTURE_DEPTH;
+            DeltaScatteringRayleighLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere SingleScatteringRayleighLUT", Desc);
+            SingleScatteringMieLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere SingleScatteringMieLUT", Desc);
+            MultiScatteringLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere MultiScatteringLUT", Desc);
+            ScatteringDensityLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere ScatteringDensityLUT", Desc);
 
-            SingleScatteringMieLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
-                "SkyAtmosphere SingleScatteringMieLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, TexCreate_UAV);
-
-            MultiScatteringLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
-                "SkyAtmosphere MultiScatteringLUT", EPixelFormat::PF_R32G32B32A32F, 1, 
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, TexCreate_UAV);
-
-            ScatteringDensityLUT = FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(
-                "SkyAtmosphere ScatteringDensityLUT", EPixelFormat::PF_R32G32B32A32F, 1,
-                SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH, TexCreate_UAV);
-            BeginInitResource(ScatteringOrderParameter.get());
             DispatchPrecompute();
         });
     }
@@ -163,87 +157,150 @@ namespace nilou {
         DispatchScatteringPass();
         for (int scattering_order = 2; scattering_order <= NUM_SCATTERING_ORDERS; ++scattering_order) 
         {
-            ScatteringOrderParameter->Data.ScatteringOrder = scattering_order;
-            ScatteringOrderParameter->UpdateUniformBuffer();
-            DispatchScatteringDensityPass();
-            DispatchIndirectIrradiancePass();
+            DispatchScatteringDensityPass(scattering_order);
+            DispatchIndirectIrradiancePass(scattering_order);
             DispatchMultiScatteringPass();
         }
     }
     
     void FSkyAtmosphereSceneProxy::DispatchTransmittancePass()
     {
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
         FShaderInstance *TransmittanceShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(TransmittanceShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", TransmittanceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(TransmittanceShader->GetComputeShaderRHI());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereTransmittanceShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetStorageImage("TransmittanceLUT", TransmittanceLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        RDGPassDesc PassDesc{"DispatchTransmittancePass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
+            });
     }
 
     void FSkyAtmosphereSceneProxy::DispatchDirectIrradiancePass()
     {
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
         FShaderInstance *DirectIrradianceShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(DirectIrradianceShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(DirectIrradianceShader->GetComputeShaderRHI());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereDirectIrradianceShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetStorageImage("IrradianceLUT", IrradianceLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
+        RDGPassDesc PassDesc{"DispatchDirectIrradiancePass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
+            });
     }
 
     void FSkyAtmosphereSceneProxy::DispatchScatteringPass()
     {
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
         FShaderInstance *ScatteringShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", SingleScatteringMieLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringShader->GetComputeShaderRHI());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereScatteringShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
+        DescriptorSet->SetStorageImage("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetStorageImage("SingleScatteringMieLUT", SingleScatteringMieLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetStorageImage("MultiScatteringLUT", MultiScatteringLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        RDGPassDesc PassDesc{"DispatchScatteringPass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+            });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchScatteringDensityPass()
+    void FSkyAtmosphereSceneProxy::DispatchScatteringDensityPass(int32 scattering_order)
     {
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
         FShaderInstance *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(ScatteringDensityShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", ScatteringDensityLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", FRHISampler(IrradianceLUT));
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringDensityShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereScatteringDensityShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetStorageImage("ScatteringDensityLUT", ScatteringDensityLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
+        DescriptorSet->SetSampler("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView());
+        DescriptorSet->SetSampler("SingleScatteringMieLUT", SingleScatteringMieLUT->GetDefaultView());
+        DescriptorSet->SetSampler("IrradianceLUT", IrradianceLUT->GetDefaultView());
+        RDGPassDesc PassDesc{"DispatchScatteringDensityPass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &scattering_order);
+                RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+            });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchIndirectIrradiancePass()
+    void FSkyAtmosphereSceneProxy::DispatchIndirectIrradiancePass(int32 scattering_order)
     {
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
         FShaderInstance *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(IndirectIrradianceShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "ScatteringOrderBlock", ScatteringOrderParameter->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "IrradianceLUT", IrradianceLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringRayleighLUT", FRHISampler(DeltaScatteringRayleighLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "SingleScatteringMieLUT", FRHISampler(SingleScatteringMieLUT));
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(IndirectIrradianceShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereIndirectIrradianceShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetStorageImage("IrradianceLUT", IrradianceLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetSampler("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView());
+        DescriptorSet->SetSampler("SingleScatteringMieLUT", SingleScatteringMieLUT->GetDefaultView());
+        RDGPassDesc PassDesc{"DispatchIndirectIrradiancePass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &scattering_order);
+                RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+            });
     }
 
     void FSkyAtmosphereSceneProxy::DispatchMultiScatteringPass()
     {
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
-        FShaderInstance *MultiScatteringShader = GetGlobalShader(PermutationParameters);
-        FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(MultiScatteringShader->GetComputeShaderRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(PSO, EPipelineStage::PS_Compute, "AtmosphereParametersBlock", AtmosphereParameters->GetRHI());
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "DeltaScatteringLUT", DeltaScatteringRayleighLUT.get(), EDataAccessFlag::DA_WriteOnly);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(PSO, EPipelineStage::PS_Compute, "MultiScatteringLUT", MultiScatteringLUT.get(), EDataAccessFlag::DA_ReadWrite);
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "TransmittanceLUT", FRHISampler(TransmittanceLUT));
-        FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(PSO, EPipelineStage::PS_Compute, "ScatteringDensityLUT", FRHISampler(ScatteringDensityLUT));
-        FDynamicRHI::GetDynamicRHI()->RHIDispatch(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+        FShaderInstance *MultiScatteringShader = GetGlobalShader<FAtmosphereMultiScatteringShader>();
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(MultiScatteringShader->GetComputeShaderRHI());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FAtmosphereMultiScatteringShader>(0, 0);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetStorageImage("DeltaScatteringLUT", DeltaScatteringRayleighLUT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetStorageImage("MultiScatteringLUT", MultiScatteringLUT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
+        DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
+        DescriptorSet->SetSampler("ScatteringDensityLUT", ScatteringDensityLUT->GetDefaultView());
+        RDGPassDesc PassDesc{"DispatchIndirectIrradiancePass"};
+        Graph.AddComputePass(
+            PassDesc,
+            { DescriptorSet },
+            [=](RHICommandList& RHICmdList)
+            {
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+            });
     }
 
 }

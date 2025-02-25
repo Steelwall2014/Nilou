@@ -1,5 +1,5 @@
 #define GLFW_INCLUDE_VULKAN
-#include <glad/glad.h>
+#include <glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -405,7 +405,7 @@ namespace nilou {
     void GLFWApplication::EnableCursor()
     {
         ENQUEUE_RENDER_COMMAND(GLFWApplication_EnableCursor)(
-            [this](class RHICommandListImmediate&) 
+            [this](RHICommandList& RHICmdList) 
             {
                 CursorEnabled = !CursorEnabled;
                 if (CursorEnabled)

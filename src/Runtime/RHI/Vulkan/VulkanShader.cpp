@@ -12,7 +12,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>(device, result);
+        VulkanVertexShaderRef VulkanShader = new VulkanVertexShader(device);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -28,7 +28,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>(device, result);
+        VulkanPixelShaderRef VulkanShader = new VulkanPixelShader(device);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -44,7 +44,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>(device, result);
+        VulkanComputeShaderRef VulkanShader = new VulkanComputeShader(device);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -73,9 +73,7 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     createInfo.codeSize = shaderc_result_get_length(result);
     createInfo.pCode = reinterpret_cast<const uint32*>(shaderc_result_get_bytes(result));
     VkShaderModule Module{};
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &Module) != VK_SUCCESS) {
-        return {};
-    }
+    VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, nullptr, &Module));
 
     return { Module, result };
 

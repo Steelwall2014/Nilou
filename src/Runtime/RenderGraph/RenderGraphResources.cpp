@@ -1,6 +1,7 @@
 #include "RenderGraphResources.h"
 #include "Common/Crc.h"
 #include "DynamicRHI.h"
+#include "Common/Containers/Array.h"
 #include "RenderingThread.h"
 
 namespace nilou {
@@ -21,27 +22,31 @@ void RDGBuffer::Flush()
 	if (RHIBuffer* BufferRHI = GetRHI())
 	{
 		void* data = RHIMapMemory(BufferRHI, 0, Desc.GetSize());
-			memcpy(data, Data.get(), Desc.GetSize());
+			memcpy(data, Buffer.get(), Desc.GetSize());
 		RHIUnmapMemory(BufferRHI);
 		bDirty = false;
 	}
 }
 
-void RDGFramebuffer::SetAttachment(EFramebufferAttachment Attachment, RDGTextureView* Texture)
+RHIRenderTargetLayout RDGRenderTargets::GetRenderTargetLayout() const
 {
-	if (Attachments.find(Attachment) == Attachments.end())
+	RHIRenderTargetLayout RTLayout;
+	for (auto [i, ColorAttachment] : Enumerate(ColorAttachments))
 	{
-		RTLayout.NumRenderTargetsEnabled += 1;
+		if (ColorAttachment.TextureView != nullptr)
+		{
+			RTLayout.ColorAttachments[i].Format = ColorAttachment.TextureView->Desc.Format;
+			RTLayout.ColorAttachments[i].LoadAction = ColorAttachment.LoadAction;
+			RTLayout.ColorAttachments[i].StoreAction = ColorAttachment.StoreAction;
+		}
 	}
-	Attachments[Attachment] = Texture;
-	if (Attachment == FA_Depth_Stencil_Attachment)
+	if (DepthStencilAttachment.TextureView != nullptr)
 	{
-		RTLayout.DepthStencilTargetFormat = Texture->Desc.Format;
+		RTLayout.DepthStencilAttachment.Format = DepthStencilAttachment.TextureView->Desc.Format;
+		RTLayout.DepthStencilAttachment.LoadAction = DepthStencilAttachment.LoadAction;
+		RTLayout.DepthStencilAttachment.StoreAction = DepthStencilAttachment.StoreAction;
 	}
-	else
-	{
-		RTLayout.RenderTargetFormats[Attachment] = Texture->Desc.Format;
-	}
+	return RTLayout;
 }
 
 uint32 FRDGPooledTexture::ComputeMemorySize() const

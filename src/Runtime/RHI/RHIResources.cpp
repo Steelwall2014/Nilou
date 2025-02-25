@@ -7,6 +7,21 @@
 
 namespace nilou {
 
+	RHITextureView* FRHITextureViewCache::GetOrCreateView(RHITexture* Texture, const FRHITextureViewCreateInfo& InCreateInfo)
+	{
+		for (auto& [Desc, View] : TextureViews)
+		{
+			if (Desc == InCreateInfo)
+			{
+				return View;
+			}
+		}
+
+		RHITextureViewRef TextureView = RHICreateTextureView(Texture, InCreateInfo, Texture->GetName() + "_View");
+		TextureViews.push_back({InCreateInfo, TextureView});
+		return TextureView;
+	}
+
     uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat)
     {
         switch (PixelFormat) {

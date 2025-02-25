@@ -15,7 +15,7 @@ public:
 	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::Page);
 
 private:
-	void ReleaseRHI() override;
+	void ReleaseRHI() override NILOU_NOT_IMPLEMENTED
 
 	mutable std::recursive_mutex Mutex;
 
@@ -52,7 +52,7 @@ public:
 	 */
 	void TickPoolElements();
 	/** Free renderer resources */
-	void ReleaseRHI();
+	void ReleaseRHI() NILOU_NOT_IMPLEMENTED
 
 	/** Allows to remove a resource so it cannot be shared and gets released immediately instead a/some frame[s] later. */
 	void FreeUnusedResource(FRDGPooledTextureRef& In);
@@ -90,8 +90,8 @@ public:
 	IRHITransientResourceAllocator* Get() { return Allocator; }
 
 private:
-    virtual void InitRHI(RenderGraph&) override;
-    virtual void ReleaseRHI() override;
+    virtual void InitRHI(RenderGraph&) override { }
+    virtual void ReleaseRHI() override { }
 
 	IRHITransientResourceAllocator* Allocator = nullptr;
 };

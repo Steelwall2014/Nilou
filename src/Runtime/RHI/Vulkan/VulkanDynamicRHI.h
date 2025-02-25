@@ -8,14 +8,14 @@
 
 #include "DynamicRHI.h"
 #include "VulkanResources.h"
+#include "Common/Containers/Array.h"
 
 #define VK_CHECK_RESULT(f)																				\
 {																										\
-	VkResult res = (f);																					\
-	if (res != VK_SUCCESS)																				\
+	VkResult _res = (f);																				\
+	if (_res != VK_SUCCESS)																				\
 	{																									\
-        NILOU_LOG(Fatal, "VkResult is \"{}\" in {} at line {}", FVulkanDynamicRHI::ErrorString(res), __FILE__, __LINE__); \
-		assert(res == VK_SUCCESS);																		\
+        NILOU_LOG(Fatal, "VkResult is \"{}\" in {} at line {}", FVulkanDynamicRHI::ErrorString(_res), __FILE__, __LINE__); \
 	}																									\
 }
 
@@ -35,41 +35,18 @@ namespace nilou {
 class FVulkanDynamicRHI : public FDynamicRHI
 {
 public:
+    static FVulkanDynamicRHI *GetDynamicRHI() { return static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI()); }
     FVulkanDynamicRHI(const GfxConfiguration& Config);
     virtual int Initialize() override;
     virtual void Finalize() override;
     virtual void GetError(const char *file, int line) override;
-    virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Vulkan; }
-
-    virtual void RHIBeginFrame() override;
-    virtual void RHIEndFrame() override;
-
-    /**
-    * Set state
-    */
-    virtual void RHISetViewport(int32 Width, int32 Height) override;
-    virtual FRHIPipelineState *RHISetComputeShader(RHIComputeShader *ComputeShader) override;
-    virtual void RHISetGraphicsPipelineState(FRHIPipelineState *NewState) override;
-    virtual bool RHISetShaderUniformBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIUniformBuffer *) override;
-    virtual bool RHISetShaderUniformBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIUniformBuffer *) override;
-    virtual bool RHISetShaderSampler(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, const RHISampler &SamplerRHI) override;
-    virtual bool RHISetShaderSampler(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, const RHISampler &SamplerRHI) override;
-    virtual bool RHISetShaderImage(FRHIPipelineState *BoundPipelineState, EPipelineStage PipelineStage, const std::string &ParameterName, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
-    virtual bool RHISetShaderImage(FRHIPipelineState *BoundPipelineState, EPipelineStage PipelineStage, int BaseIndex, RHITexture *, EDataAccessFlag AccessFlag = EDataAccessFlag::DA_ReadOnly) override;
-    virtual void RHISetStreamSource(uint32 StreamIndex, RHIBuffer* Buffer, uint32 Offset) override;
-    
-    /**
-    * Binding buffers
-    */
-    virtual void RHIBindComputeBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, const std::string &ParameterName, RHIBuffer* buffer) override;
-    virtual void RHIBindComputeBuffer(FRHIPipelineState *, EPipelineStage PipelineStage, int BaseIndex, RHIBuffer* buffer) override;
-    virtual void RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data) override;
+    virtual EGraphicsAPI GetCurrentGraphicsAPI() override { return EGraphicsAPI::Vulkan; }
 
     /**
     * Create/Update data
     */
-    virtual FRHIPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer) override;
-    virtual FRHIPipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader) override;
+    virtual RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) override;
+    virtual RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) override;
     virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
     virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
     virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
@@ -84,83 +61,36 @@ public:
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
             int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
     
-    virtual RHITexture2DRef RHICreateTexture2D(
-        const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
-    virtual RHITexture2DArrayRef RHICreateTexture2DArray(
-        const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
-    virtual RHITexture3DRef RHICreateTexture3D(
-        const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
-    virtual RHITextureCubeRef RHICreateTextureCube(
-        const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
-    virtual RHITexture2DRef RHICreateSparseTexture2D(
-        const std::string &name, EPixelFormat Format, 
-        int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override { return nullptr; }
+    // virtual RHITexture2DRef RHICreateTexture2D(
+    //     const std::string &name, EPixelFormat Format, 
+    //     int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
+    // virtual RHITexture2DArrayRef RHICreateTexture2DArray(
+    //     const std::string &name, EPixelFormat Format, 
+    //     int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
+    // virtual RHITexture3DRef RHICreateTexture3D(
+    //     const std::string &name, EPixelFormat Format, 
+    //     int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags) override;
+    // virtual RHITextureCubeRef RHICreateTextureCube(
+    //     const std::string &name, EPixelFormat Format, 
+    //     int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override;
+    // virtual RHITexture2DRef RHICreateSparseTexture2D(
+    //     const std::string &name, EPixelFormat Format, 
+    //     int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags) override { return nullptr; }
+    virtual RHITextureRef RHICreateTexture(const FRHITextureCreateInfo& CreateInfo, const std::string& Name) override;
 
-    virtual RHIFramebufferRef RHICreateFramebuffer(std::map<EFramebufferAttachment, RHITexture2DRef> Attachments) override;
-    virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
-    virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
-    virtual RHITexture2DRef RHICreateTextureView2D(
-        RHITexture* OriginTexture, EPixelFormat Format, uint32 MinLevel, uint32 NumLevels, uint32 LayerIndex
-    ) override;
-    virtual RHITextureCubeRef RHICreateTextureViewCube(
-        RHITexture* OriginTexture, EPixelFormat Format, uint32 MinMipLevel, uint32 NumMipLevels
-    ) override;
-
-    virtual void RHIUpdateTexture2D(RHITexture2D* Texture, 
-        int32 Xoffset, int32 Yoffset, 
-        int32 Width, int32 Height, 
-        int32 MipmapLevel, void* Data) override;
-    virtual void RHIUpdateTexture3D(RHITexture3D* Texture, 
-        int32 Xoffset, int32 Yoffset, int32 Zoffset,
-        int32 Width, int32 Height, int32 Depth, 
-        int32 MipmapLevel, void* Data) override;
-    virtual void RHIUpdateTexture2DArray(RHITexture2DArray* Texture, 
-        int32 Xoffset, int32 Yoffset, int32 LayerIndex,
-        int32 Width, int32 Height,
-        int32 MipmapLevel, void* Data) override;
-    virtual void RHIUpdateTextureCube(RHITextureCube* Texture, 
-        int32 Xoffset, int32 Yoffset, int32 LayerIndex,
-        int32 Width, int32 Height,
-        int32 MipmapLevel, void* Data) override;
-
+    // virtual RHIFramebufferRef RHICreateFramebuffer(const std::array<RHITextureView*, MaxSimultaneousRenderTargets>& InAttachments, RHITextureView* InDepthStencilAttachment) override;
+    // virtual void RHIUpdateUniformBuffer(RHIUniformBufferRef, void *Data) override;
+    // virtual void RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void *Data) override;
+    virtual RHITextureViewRef RHICreateTextureView(RHITexture* Texture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name) override;
     virtual FRHIVertexDeclaration* RHICreateVertexDeclaration(const FVertexDeclarationElementList& Elements) override;
 
-    /**
-    * Render pass
-    */
-    virtual void RHIBeginRenderPass(const FRHIRenderPassInfo &InInfo) override;
-    virtual void RHIDrawArrays(uint32 First, uint32 Count, int32 InstanceCount = 1) override;
-    virtual void RHIDrawIndexed(RHIBuffer *IndexBuffer, int32 InstanceCount = 1) override;
-    virtual void RHIDrawIndexedIndirect(RHIBuffer *IndexBuffer, RHIBuffer *IndirectBuffer, uint32 IndirectOffset = 0) override;
-    virtual void RHIDispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
-    virtual void RHIDispatchIndirect(RHIBuffer *indirectArgs, uint32 IndirectOffset = 1) override;
-    virtual void RHIEndRenderPass() override;
-
-    /**
-    * Utils
-    */
-    virtual void RHIGenerateMipmap(RHITextureRef texture) override;
-    virtual void *RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode) override;
-    virtual void RHIUnlockBuffer(RHIBuffer* buffer) override;
-    virtual unsigned char *RHIReadImagePixel(RHITexture2DRef texture) override { return nullptr; }
-    virtual void RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size) override;
-    virtual void RHIImageMemoryBarrier() override { }
-    virtual void RHIStorageMemoryBarrier() override { }
-    virtual void RHIClearBuffer(uint32 flagbits) override { }
-    virtual void RHISparseTextureUnloadTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel) override { }
-    virtual void RHISparseTextureUpdateTile(RHITexture* Texture, uint32 TileX, uint32 TileY, uint32 MipmapLevel, void* Data) override { }
-
-    virtual void* MapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size) override;
-    virtual void UnmapMemory(RHIBuffer* buffer) override;
-	virtual RHIDescriptorSetLayoutRef CreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
-    virtual RHIDescriptorPoolRef CreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
+    virtual void* RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size) override;
+    virtual void RHIUnmapMemory(RHIBuffer* buffer) override;
+	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
+    virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
-
-    virtual RHIFramebuffer* GetRenderToScreenFramebuffer() override;
+    virtual std::unique_ptr<RHICommandList> RHICreateCommandList() override;
+    virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) override;
 
     FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager.get(); }
     VkDevice device{};
@@ -185,9 +115,9 @@ private:
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);
-    FRHIPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
-    FRHIPipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader);
-    std::shared_ptr<class VulkanPipelineLayout> RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders);
+    RHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges);
+    RHIComputePipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges);
+    RHIPipelineLayoutRef RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders, const std::vector<RHIPushConstantRange>& PushConstantRanges);
     void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
     void RHIUpdateTextureInternal(
         RHITexture* Texture, void* Data, int32 MipmapLevel, 
@@ -203,16 +133,15 @@ private:
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
     std::unique_ptr<class FVulkanSwapChain> SwapChain;
-    std::vector<std::shared_ptr<VulkanTexture>> swapChainImages;
+    std::vector<RHITextureRef> swapChainImages;
+    std::vector<RHITextureViewRef> swapChainImageViews;
     EPixelFormat swapChainImageFormat;
     EPixelFormat depthImageFormat;
     VkExtent2D swapChainExtent{};
-    std::vector<VkImageView> swapChainImageViews;
-    std::shared_ptr<VulkanTexture> DepthImage;
-    std::vector<std::shared_ptr<class VulkanFramebuffer>> swapChainFramebuffers;
+    RHITextureRef DepthImage;
+    RHITextureViewRef DepthImageView;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
-    // std::unique_ptr<class FVulkanCommonPipelineDescriptorState> CurrentDescriptorState;
-    VulkanPipelineLayout* CurrentPipelineLayout;
     uint64 CurrentStreamSourceOffsets[MAX_VERTEX_ELEMENTS] = { 0 };
     VkBuffer CurrentStreamSourceBuffers[MAX_VERTEX_ELEMENTS] = { nullptr };
     std::vector<VkFence> FrameFences;
@@ -220,7 +149,6 @@ private:
     std::vector<VkSemaphore> RenderFinishedSemaphores;
     uint32 CurrentSwapChainImageIndex = 0;
     std::shared_ptr<FVulkanSemaphore> CurrentImageAcquiredSemaphore;
-    VulkanFramebuffer* CurrentFramebuffer;
 
     FVulkanRenderPass* RenderToScreenPass{};
     

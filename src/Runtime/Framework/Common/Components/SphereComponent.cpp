@@ -36,10 +36,9 @@ namespace nilou {
                         Mesh.MaterialRenderProxy = Material->GetRenderProxy();
                     else
                         Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial()->GetRenderProxy();
-                    Mesh.Element.VertexFactory = &VertexFactory;
-                    Mesh.Element.IndexBuffer = &IndexBuffer;
-                    Mesh.Element.NumVertices = VertexBuffers.Positions.GetNumVertices();
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
+                    Mesh.Elements[0].VertexFactory = &VertexFactory;
+                    Mesh.Elements[0].IndexBuffer = &IndexBuffer;
+                    Mesh.Elements[0].NumVertices = VertexBuffers.Positions.GetNumVertices();
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
             }

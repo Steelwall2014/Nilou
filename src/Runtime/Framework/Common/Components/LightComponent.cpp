@@ -52,7 +52,7 @@ namespace nilou {
     void ULightComponent::SendRenderTransform()
     {
         ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderTransform)(
-            [this](FDynamicRHI*) 
+            [this](RHICommandList&) 
             {
                 SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
             });
@@ -63,7 +63,7 @@ namespace nilou {
     void ULightComponent::SendRenderDynamicData()
     {
         ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderDynamicData)(
-            [this](FDynamicRHI*) 
+            [this](RHICommandList&) 
             {
                 SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
                 SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);

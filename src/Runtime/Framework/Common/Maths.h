@@ -415,9 +415,8 @@ namespace nilou {
         static const FLinearColor Yellow;
     };
 
-    class FColor
+    struct FColor
     {
-    public:
 	    uint8 B,G,R,A;
         FColor() : B(0), G(0), R(0), A(0) {}
         FColor(uint8 InR, uint8 InG, uint8 InB, uint8 InA = 255) : B(InB), G(InG), R(InR), A(InA) {}

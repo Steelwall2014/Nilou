@@ -256,7 +256,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//! Internal Allocator API
-	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override;
+	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override NILOU_NOT_IMPLEMENTED
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI texture.
@@ -265,14 +265,8 @@ public:
 	// Returns the create info struct used when creating this texture.
 	const FRHITextureCreateInfo& GetCreateInfo() const { return CreateInfo; }
 
-	// Finds a UAV matching the descriptor in the cache or creates a new one and updates the cache.
-	RHITextureView* GetOrCreateView(RHICommandList& RHICmdList, const RHITextureViewDesc& InCreateInfo) { return ViewCache.GetOrCreateView(RHICmdList, GetRHI(), InCreateInfo); }
-
 	// The create info describing the texture.
 	const FRHITextureCreateInfo CreateInfo;
-
-	// The persistent view cache containing all views created for this texture.
-	RHITextureViewCache ViewCache;
 };
 
 class FRHITransientBuffer final : public FRHITransientResource
@@ -291,7 +285,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//! Internal Allocator API
-	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override;
+	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override NILOU_NOT_IMPLEMENTED
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI buffer.

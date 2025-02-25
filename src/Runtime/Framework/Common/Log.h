@@ -3,10 +3,15 @@
 #include <iosfwd>
 #include <string_view>
 #include <iostream>
-#if __cplusplus < 202002L
+#include <cassert>
+#if __cplusplus >= 202002L
+#include <format>
+#else
 #include <fmt/format.h>
 #endif
-#include "AssertionMacros.h"
+
+#define PREPROCESSOR_JOIN(x, y) PREPROCESSOR_JOIN_INNER(x, y)
+#define PREPROCESSOR_JOIN_INNER(x, y) x##y
 
 namespace nilou {
 
@@ -38,40 +43,59 @@ namespace nilou {
         return os << std::wstring_view(strPt);
     }
 
-    enum class ELogLevel
-    {
-        LL_Info,
-        LL_Warning,
-        LL_Error,
-        LL_Fatal
-    };
-
 #if __cplusplus >= 202002L
-    #define NILOU_LOG_FORMAT(t, ...) std::format(t, __VA_ARGS__)
+        #define NFormat(...) std::format(__VA_ARGS__)
 #else
-    #define NILOU_LOG_FORMAT(t, ...) fmt::format(t, __VA_ARGS__)
+        #define NFormat(...) fmt::format(__VA_ARGS__)
 #endif
 
-    #define NILOU_LOG(Level, info, ...) \
-        { \
-            std::string str = NILOU_LOG_FORMAT(info, __VA_ARGS__); \
-            if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Info) \
-            { \
-                std::cout << "[INFO] " << str << std::endl; \
-            } \
-            else if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Warning) \
-            { \
-                std::cout << "[WARNING] " << str << std::endl; \
-            } \
-            else if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Error) \
-            { \
-                std::cout << "[ERROR] " << str << std::endl; \
-            } \
-            else if constexpr (ELogLevel::LL_##Level == ELogLevel::LL_Fatal) \
-            { \
-                std::cout << "[FATAL] " << str << std::endl; \
-            } \
-        } \
+    enum class ELogVerbosity
+    {
+        Fatal,
+        Error,
+        Warning,
+        Display,
+    };
 
+    #define NILOU_LOG_EXPAND_IS_FATAL(Verbosity, ActiveBlock, InactiveBlock) NILOU_LOG_EXPAND_IS_FATAL_##Verbosity(ActiveBlock, InactiveBlock)
+
+    #define NILOU_LOG_EXPAND_IS_FATAL_Fatal(ActiveBlock, InactiveBlock) ActiveBlock
+    #define NILOU_LOG_EXPAND_IS_FATAL_Error(ActiveBlock, InactiveBlock) InactiveBlock
+    #define NILOU_LOG_EXPAND_IS_FATAL_Warning(ActiveBlock, InactiveBlock) InactiveBlock
+    #define NILOU_LOG_EXPAND_IS_FATAL_Display(ActiveBlock, InactiveBlock) InactiveBlock
+
+    inline void Logf_Internal(ELogVerbosity Verbosity, const std::string& Message)
+    {
+        std::cout << Message;
+    }
+
+    #define NILOU_LOG(Verbosity, Format, ...) \
+        { \
+            auto NILOU_LOG_lambda = [](auto&&... args) { \
+                Logf_Internal(nilou::ELogVerbosity::Verbosity, NFormat(#Verbosity": |{}:{}|"Format"\n", std::forward<decltype(args)>(args)...)); \
+                NILOU_LOG_EXPAND_IS_FATAL(Verbosity, \
+                    { \
+                        __debugbreak(); \
+                        assert(false); \
+                    },\
+                    {} \
+                ); \
+            }; \
+            NILOU_LOG_lambda(__FILE__, __LINE__, __VA_ARGS__); \
+        }
+
+#define Ncheck(expr) \
+    if (!(expr)) \
+    { \
+        NILOU_LOG(Fatal, "Check failed {}", #expr); \
+    }
+
+#define Ncheckf(expr, format, ...) \
+    if (!(expr)) \
+    { \
+        NILOU_LOG(Fatal, format, __VA_ARGS__); \
+    }
+
+#define NILOU_NOT_IMPLEMENTED { Ncheckf(false, "Not implemented"); }
 
 }

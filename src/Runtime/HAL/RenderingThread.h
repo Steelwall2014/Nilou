@@ -3,6 +3,7 @@
 
 #include "Thread.h"
 #include "DynamicRHI.h"
+#include "RHICommandList.h"
 
 #include "Common/Log.h"
 
@@ -12,7 +13,7 @@ namespace nilou {
     class EnqueueUniqueRenderCommandType
     {
     public:
-        using Lambda = std::function<void(RenderGraph&)>;
+        using Lambda = std::function<void(RHICommandList&)>;
         EnqueueUniqueRenderCommandType(Lambda &&InLambda, const char *InTraceBackString) 
             : lambda(std::forward<Lambda>(InLambda)) 
             , TraceBackString(InTraceBackString)
@@ -60,7 +61,8 @@ namespace nilou {
     {
         if (IsInRenderingThread())
         {
-            lambda(FDynamicRHI::GetDynamicRHI());
+            std::unique_ptr<RHICommandList> RHICmdList = RHICreateCommandList();
+            lambda(*RHICmdList);
         }
         else
         {

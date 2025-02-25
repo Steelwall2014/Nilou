@@ -385,7 +385,7 @@ namespace nilou {
     public:
         FUniformBuffer(EUniformBufferUsage InUsage) : UniformBufferRDG(nullptr), Usage(InUsage) { }
         RDGBuffer* GetRDG() const { return UniformBufferRDG; }
-        RHIBuffer* GetRHI() const { return UniformBufferRDG->Resolve(); }
+        RHIBuffer* GetRHI() const { return UniformBufferRDG->GetRHI(); }
 
     protected:
 
@@ -436,10 +436,10 @@ namespace nilou {
     template<class UniformBufferStruct>
     using TUniformBufferRef = std::shared_ptr<TUniformBuffer<UniformBufferStruct>>;
 
-    template<class UniformBufferStruct>
-    inline TUniformBufferRef<UniformBufferStruct> CreateUniformBuffer()
-    {
-        return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
-    }
+    // template<class UniformBufferStruct>
+    // inline TUniformBufferRef<UniformBufferStruct> CreateUniformBuffer()
+    // {
+    //     return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
+    // }
 
 }

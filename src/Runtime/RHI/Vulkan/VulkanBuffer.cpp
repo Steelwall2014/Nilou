@@ -457,17 +457,13 @@ void VulkanMultiBuffer::Unlock(FVulkanDynamicRHI* Context)
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
 {
-    VulkanBufferRef Buffer = std::make_shared<VulkanBuffer>(this, Stride, Size, InUsage);
-    if (Data)
-        RHIUpdateBuffer(Buffer.get(), 0, Size, Data);
+    VulkanBufferRef Buffer = new VulkanBuffer(this, Stride, Size, InUsage);
     return Buffer;
 }
 
 RHIUniformBufferRef FVulkanDynamicRHI::RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data)
 {
-    VulkanUniformBufferRef Buffer = std::make_shared<VulkanUniformBuffer>(this, Size, InUsage);
-    if (Data)
-        RHIUpdateUniformBuffer(Buffer, Data);
+    VulkanUniformBufferRef Buffer = new VulkanUniformBuffer(this, Size, InUsage);
     return Buffer;
 
 }
@@ -490,57 +486,57 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
     return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DrawIndirect | EBufferUsageFlags::Dynamic, &command);
 }
 
-void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
-{
-    VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
-    return vkBuffer->Lock(this, LockMode, Size, Offset);
-}
+// void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
+// {
+//     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+//     return vkBuffer->Lock(this, LockMode, Size, Offset);
+// }
 
-void FVulkanDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
-{
-    VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
-    vkBuffer->Unlock(this);
-}
+// void FVulkanDynamicRHI::RHIUnlockBuffer(RHIBuffer* buffer)
+// {
+//     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+//     vkBuffer->Unlock(this);
+// }
 
-void FVulkanDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data)
-{
-    void* Dst = RHILockBuffer(buffer, 0, size, RLM_WriteOnly);
-        std::memcpy(Dst, data, size);
-    RHIUnlockBuffer(buffer);
-}
+// void FVulkanDynamicRHI::RHIBindBufferData(RHIBuffer* buffer, unsigned int size, void *data)
+// {
+//     void* Dst = RHILockBuffer(buffer, 0, size, RLM_WriteOnly);
+//         std::memcpy(Dst, data, size);
+//     RHIUnlockBuffer(buffer);
+// }
 
-void FVulkanDynamicRHI::RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void* Data)
-{
-    void* Dst = RHILockBuffer(Buffer, Offset, Size, RLM_WriteOnly);
-        std::memcpy(Dst, Data, Size);
-    RHIUnlockBuffer(Buffer);
-}
+// void FVulkanDynamicRHI::RHIUpdateBuffer(RHIBuffer* Buffer, uint32 Offset, uint32 Size, void* Data)
+// {
+//     void* Dst = RHILockBuffer(Buffer, Offset, Size, RLM_WriteOnly);
+//         std::memcpy(Dst, Data, Size);
+//     RHIUnlockBuffer(Buffer);
+// }
 
-void FVulkanDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef Buffer, void* Data)
-{
-    VulkanUniformBuffer* vkBuffer = static_cast<VulkanUniformBuffer*>(Buffer.get());
-    int32 Size = Buffer->GetSize();
-    void* Dst = vkBuffer->Lock(this, RLM_WriteOnly, Size, 0);
-        std::memcpy(Dst, Data, Size);
-    vkBuffer->Unlock(this);
-}
+// void FVulkanDynamicRHI::RHIUpdateUniformBuffer(RHIUniformBufferRef Buffer, void* Data)
+// {
+//     VulkanUniformBuffer* vkBuffer = static_cast<VulkanUniformBuffer*>(Buffer.get());
+//     int32 Size = Buffer->GetSize();
+//     void* Dst = vkBuffer->Lock(this, RLM_WriteOnly, Size, 0);
+//         std::memcpy(Dst, Data, Size);
+//     vkBuffer->Unlock(this);
+// }
 
-void FVulkanDynamicRHI::RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size)
-{
-    FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
-    VulkanBuffer* vkReadBuffer = static_cast<VulkanBuffer*>(readBuffer.get());
-    VulkanBuffer* vkWriteBuffer = static_cast<VulkanBuffer*>(writeBuffer.get());
-    VkBufferCopy Region{};
-    Region.size = size;
-    Region.srcOffset = readOffset;
-    Region.dstOffset = writeOffset;
-    vkCmdCopyBuffer(CmdBuffer->GetHandle(), vkReadBuffer->GetHandle(), vkWriteBuffer->GetHandle(), 1, &Region);
-    VkMemoryBarrier BarrierAfter = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT };
-    vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
-    CommandBufferManager->SubmitUploadCmdBuffer();
-}
+// void FVulkanDynamicRHI::RHICopyBufferSubData(RHIBufferRef readBuffer, RHIBufferRef writeBuffer, int32 readOffset, int32 writeOffset, int32 size)
+// {
+//     FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetUploadCmdBuffer();
+//     VulkanBuffer* vkReadBuffer = static_cast<VulkanBuffer*>(readBuffer.get());
+//     VulkanBuffer* vkWriteBuffer = static_cast<VulkanBuffer*>(writeBuffer.get());
+//     VkBufferCopy Region{};
+//     Region.size = size;
+//     Region.srcOffset = readOffset;
+//     Region.dstOffset = writeOffset;
+//     vkCmdCopyBuffer(CmdBuffer->GetHandle(), vkReadBuffer->GetHandle(), vkWriteBuffer->GetHandle(), 1, &Region);
+//     VkMemoryBarrier BarrierAfter = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT };
+//     vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
+//     CommandBufferManager->SubmitUploadCmdBuffer();
+// }
 
-void* FVulkanDynamicRHI::MapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
+void* FVulkanDynamicRHI::RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
     FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
@@ -549,15 +545,11 @@ void* FVulkanDynamicRHI::MapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size
     return MappedPointer;
 }
 
-void FVulkanDynamicRHI::UnmapMemory(RHIBuffer* buffer)
+void FVulkanDynamicRHI::RHIUnmapMemory(RHIBuffer* buffer)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
     FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
     vkUnmapMemory(VulkanRHI->device, vkBuffer->Memory);
-}
-
-RHIDescriptorSetRef FVulkanDynamicRHI::CreateDescriptorSet(const RHIDescriptorSetLayout& layout)
-{
 }
 
 }

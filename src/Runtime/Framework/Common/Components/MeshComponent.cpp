@@ -56,11 +56,10 @@ namespace nilou {
                     const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex];
                     FMeshBatch Mesh;
                     Mesh.CastShadow = Section.bCastShadow;
-                    Mesh.Element.VertexFactory = &Section.VertexFactory;
-                    Mesh.Element.IndexBuffer = &Section.IndexBuffer;
-                    Mesh.Element.NumVertices = Section.GetNumVertices();
+                    Mesh.Elements[0].VertexFactory = &Section.VertexFactory;
+                    Mesh.Elements[0].IndexBuffer = &Section.IndexBuffer;
+                    Mesh.Elements[0].NumVertices = Section.GetNumVertices();
                     Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex]->GetRenderProxy();
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
 			}

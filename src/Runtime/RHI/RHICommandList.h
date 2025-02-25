@@ -27,6 +27,10 @@ namespace nilou {
     class RHICommandList
     {
     public:
+        RHICommandList() = delete;
+        RHICommandList& operator=(const RHICommandList&) = delete;
+        RHICommandList& operator=(RHICommandList&&) = default;
+        virtual ~RHICommandList() { }
 
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
@@ -54,12 +58,13 @@ namespace nilou {
         /* Set state commands */
         virtual void SetViewport(int32 Width, int32 Height) = 0;
         virtual void SetScissor(int32 Width, int32 Height) = 0;
-        virtual void BindPipeline(FRHIPipelineState *NewPipelineState, EPipelineBindPoint PipelineBindPoint) = 0;
+        virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) = 0;
+        virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) = 0;
         // TODO: 测试一下到底用map还是unordered_map
         virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) = 0;
         virtual void BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset) = 0;
         virtual void BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset) = 0;
-        virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EPipelineBindPoint PipelineBindPoint, uint32 Offset, uint32 Size, const void* Data) = 0;
+        virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data) = 0;
 
         /* Perform synchronization commands */
         virtual void PipelineBarrier(

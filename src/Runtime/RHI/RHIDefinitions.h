@@ -7,7 +7,7 @@ namespace nilou {
 	
 	enum { MAX_TEXCOORDS = 1, MAX_STATIC_TEXCOORDS = 1 };
 
-	constexpr int MAX_SIMULTANEOUS_RENDERTARGETS = 8;
+	constexpr int32 MaxSimultaneousRenderTargets = 8;
 	
 	constexpr int MAX_VERTEX_ELEMENTS = 17;
 	
@@ -103,7 +103,7 @@ namespace nilou {
 	// 	static uint32 const AnyDynamic = (Dynamic | Volatile);
 	// };
 
-	enum class EBufferUsageFlags
+	enum class EBufferUsageFlags : uint32
 	{
 		None                    = 0,
 
@@ -517,15 +517,16 @@ namespace nilou {
 		RRT_Num
 	};
 
-	enum EPipelineStage
+	// keep the same with VkShaderStageFlagBits
+	enum class EShaderStage : uint32
 	{
-		PS_Vertex = 0,
-		PS_Pixel,
-		// PS_Geometry,
-		PS_Compute,
-
-		PipelineStageNum
+		Vertex = 0x00000001,
+		Pixel = 0x00000010,
+		Compute = 0x00000020,
+		AllGraphics = 0x0000001F,
+		All = 0x7FFFFFFF,
 	};
+	ENUM_CLASS_FLAGS(EShaderStage)
 
 	enum class ETextureCreateFlags : uint64
 	{
@@ -659,6 +660,7 @@ enum class ERHIAccess : uint32
 	// InputAttachmentRead = 0x00000010,	// Used with subpass, not supported currently
 	ShaderResourceRead = 0x00000020,
 	ShaderResourceWrite = 0x00000040,
+	ShaderResourceReadWrite = ShaderResourceRead | ShaderResourceWrite,
 	ColorAttachmentRead = 0x00000080,
 	ColorAttachmentWrite = 0x00000100,
 	DepthStencilAttachmentRead = 0x00000200,
@@ -795,5 +797,33 @@ enum class ETextureLayout : uint32
 	Preinitialized = 8,
 	Max = 0x7FFFFFFF,
 };
+
+// Keep the same with VkAttachmentLoadOp
+enum class ERenderTargetLoadAction : uint8
+{
+	// Existing contents are preserved.
+	Load = 0,
+
+	// The render target is cleared to the fast clear value specified on the resource.
+	Clear = 1,
+
+	// Untouched contents of the render target are undefined. Any existing content is not preserved.
+	NoAction = 2,
+
+	Num,
+};
+
+// Keep the same with VkAttachmentStoreOp
+enum class ERenderTargetStoreAction : uint8
+{
+	// Contents of the render target emitted during the pass are stored back to memory.
+	Store = 0,
+
+	// Contents of the render target emitted during the pass are not stored back to memory.
+	NoAction = 1,
+
+	Num,
+};
+
 
 }

@@ -15,6 +15,18 @@ END_UNIFORM_BUFFER_STRUCT()
 
 constexpr int GroupSize = 8;
 
+RDGTextureViewDesc CreateDescForMipmap(RDGTexture* Texture, int MipmapIndex)
+{
+    RDGTextureViewDesc Desc;
+    Desc.ViewType = Texture->Desc.TextureType;
+    Desc.Format = Texture->Desc.Format;
+    Desc.BaseArrayLayer = 0;
+    Desc.LayerCount = Texture->Desc.ArraySize;
+    Desc.BaseMipLevel = MipmapIndex;
+    Desc.LevelCount = 1;
+    return Desc;
+}
+
 void FGenerateMips::Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerState* Sampler)
 {
     Ncheck(Texture);
@@ -23,34 +35,32 @@ void FGenerateMips::Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerS
     const RDGTextureDesc& Desc = Texture->Desc;
 
     FShaderInstance* Shader = GetGlobalShader<FGenerateMipsCS>();
-    FRHIPipelineState* PSO = RHICreateComputePipelineState(Shader->GetComputeShaderRHI());
+    RHIComputePipelineState* PSO = RHICreateComputePipelineState(Shader->GetComputeShaderRHI());
 
     for (int MipLevel = 1; MipLevel < Desc.NumMips; MipLevel++)
     {
         int TextureSizeX = std::max(Desc.SizeX >> MipLevel, 1u);
         int TextureSizeY = std::max(Desc.SizeY >> MipLevel, 1u);
 
-        RDGBuffer* GenerateMipsCB = Graph.CreateUniformBuffer<FGenerateMipsCB>(fmt::format("GenerateMipsCB{} for texture {}", MipLevel, Texture->Name));
-        FGenerateMipsCB* Data = GenerateMipsCB->GetData<FGenerateMipsCB>();
-        Data->TexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
+        TRDGUniformBuffer<FGenerateMipsCB>* GenerateMipsCB = Graph.CreateUniformBuffer<FGenerateMipsCB>(NFormat("GenerateMipsCB{} for texture {}", MipLevel, Texture->Name));
+        FGenerateMipsCB& Data = GenerateMipsCB->GetData();
+        Data.TexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FGenerateMipsCS>(0, 0);
-        DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView(RDGTextureViewDesc::CreateForMipLevel(Texture, MipLevel - 1)), Sampler);
-        DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView(RDGTextureViewDesc::CreateForMipLevel(Texture, MipLevel)));
+        DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1)), Sampler);
+        DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel)), ERHIAccess::ShaderResourceWrite);
         DescriptorSet->SetUniformBuffer("GenerateMipsCB", GenerateMipsCB);
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = fmt::format("GenerateMips for texture {} mipmap {}", Texture->Name, MipLevel);
-        PassDesc.DescriptorSets = { DescriptorSet };
-        
+        RDGPassDesc PassDesc{NFormat("GenerateMips for texture {} mipmap {}", Texture->Name, MipLevel)};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
                 RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
-                int32 group_count_x = Math::DivideAndRoundUp(TextureSizeX, GroupSize);
-                int32 group_count_y = Math::DivideAndRoundUp(TextureSizeY, GroupSize);
+                int32 group_count_x = FMath::DivideAndRoundUp(TextureSizeX, GroupSize);
+                int32 group_count_y = FMath::DivideAndRoundUp(TextureSizeY, GroupSize);
                 RHICmdList.DispatchCompute(group_count_x, group_count_y, 1);
             }
         );

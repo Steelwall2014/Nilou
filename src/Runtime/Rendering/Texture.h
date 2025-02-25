@@ -199,7 +199,7 @@ namespace nilou {
         void SetSamplerState(const FSamplerStateInitializer &InSamplerState)
         {
             SamplerStateRHI = RHICreateSamplerState(InSamplerState);
-            SamplerRHI.SamplerState = SamplerStateRHI.get();
+            SamplerRHI.SamplerState = SamplerStateRHI;
         }
 
         /** Returns the width of the texture in pixels. */
@@ -232,12 +232,12 @@ namespace nilou {
 
         RDGTexture* GetTextureRDG() const
         {
-            return TextureRDG.get();
+            return TextureRDG;
         }
 
         RHISamplerState* GetSamplerState() const
         {
-            return SamplerStateRHI.get();
+            return SamplerStateRHI;
         }
 
         EPixelFormat GetFormat() const
@@ -349,7 +349,7 @@ namespace nilou {
          * Create a new UVirtualTexture object from this texture
          * Note: the content of this texture will be MOVED to the newly created virtual texture
          */
-        std::shared_ptr<class UVirtualTexture> MakeVirtualTexture();
+        // std::shared_ptr<class UVirtualTexture> MakeVirtualTexture();
 
         ETextureDimension GetTextureType() const
         {
@@ -387,7 +387,7 @@ namespace nilou {
         {
             TextureResource = InResource;
             ENQUEUE_RENDER_COMMAND(UTexture_SetResource)(
-                [this, InResource](FDynamicRHI*) {
+                [this, InResource](RHICommandList&) {
                     TextureResourceRenderThread = InResource;
                 });
         }
@@ -414,7 +414,7 @@ namespace nilou {
             {
                 FTextureResource* ToDelete = TextureResource;
                 ENQUEUE_RENDER_COMMAND(UTexture_ReleaseResource)(
-                    [ToDelete](FDynamicRHI*) {
+                    [ToDelete](RHICommandList&) {
                         ToDelete->ReleaseResource();
                         delete ToDelete;
                     });
@@ -425,7 +425,7 @@ namespace nilou {
          * Implemented by subclasses to read pixels from GPU.
          * The readed pixels will be stored in ImageData
          */
-        virtual void ReadPixelsRenderThread(class RHICommandListImmediate& RHICmdList) { }
+        virtual void ReadPixelsRenderThread(RHICommandList& RHICmdList) { }
 
         /**
          * Read pixels from GPU. It will block the thread calling it.

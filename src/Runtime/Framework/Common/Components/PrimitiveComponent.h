@@ -75,7 +75,7 @@ namespace nilou {
     
         virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
 
-        virtual void CreateRenderThreadResources(RenderGraph& Graph);
+        virtual void CreateRenderThreadResources();
 
         virtual void DestroyRenderThreadResources();
 
@@ -105,7 +105,7 @@ namespace nilou {
         FPrimitiveSceneInfo *PrimitiveSceneInfo;
         FScene *Scene;
 
-        TUniformBufferRef<FPrimitiveShaderParameters> PrimitiveUniformBuffer;
+        TRDGUniformBufferRef<FPrimitiveShaderParameters> PrimitiveUniformBuffer;
 
         EReflectionProbeBlendMode ReflectionProbeBlendMode;
 

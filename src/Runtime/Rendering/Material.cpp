@@ -30,7 +30,7 @@ namespace nilou {
         const FMaterialParameterInfo& ParameterInfo = Parameter.ParameterInfo;
         typename ParameterType::ValueType Value = ParameterType::GetValue(Parameter);
         ENQUEUE_RENDER_COMMAND(SetMIParameterValue)(
-            [Proxy, ParameterInfo, Value](RenderGraph&)
+            [Proxy, ParameterInfo, Value](RHICommandList&)
             {
                 Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
             });
@@ -43,15 +43,15 @@ namespace nilou {
 
     UMaterial::UMaterial()
     {
-        MaterialRenderProxy = std::make_unique<FMaterialRenderProxy>(this);
+        MaterialRenderProxy = new FMaterialRenderProxy(this);
     }
 
     UMaterial::~UMaterial()
     {
         ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
-            [
-                ToDelete_proxy = std::move(MaterialRenderProxy)] (RenderGraph&)
+            [ToDelete_proxy = std::move(MaterialRenderProxy)] (RHICommandList&)
             {
+                delete ToDelete_proxy;
             });
         MaterialRenderProxy = nullptr;
     }
@@ -60,7 +60,7 @@ namespace nilou {
     {
         Code = InCode;
         ENQUEUE_RENDER_COMMAND(UMaterial_UpdateCode)(
-            [InCode, Proxy=GetRenderProxy()](RenderGraph&)
+            [InCode, Proxy=GetRenderProxy()](RHICommandList&)
             {
                 Proxy->RenderThread_UpdateShader(InCode);
             }
@@ -202,7 +202,7 @@ namespace nilou {
     {
         ShadingModel = InShadingModel;
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
-            [InShadingModel, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InShadingModel, Proxy=GetRenderProxy()](RHICommandList&) 
             {
                 Proxy->ShadingModel = InShadingModel;
             });
@@ -212,7 +212,7 @@ namespace nilou {
     {
         BlendState = InBlendState;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [InBlendState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InBlendState, Proxy=GetRenderProxy()](RHICommandList&) 
             {
                 Proxy->BlendState = RHICreateBlendState(InBlendState);
             });
@@ -222,7 +222,7 @@ namespace nilou {
     {
         DepthStencilState = InDepthStencilState;
         ENQUEUE_RENDER_COMMAND(Material_SetDepthStencilState)(
-            [InDepthStencilState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InDepthStencilState, Proxy=GetRenderProxy()](RHICommandList&) 
             {
                 Proxy->DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
             });
@@ -232,7 +232,7 @@ namespace nilou {
     {
         RasterizerState = InRasterizerState;
         ENQUEUE_RENDER_COMMAND(Material_SetRasterizerState)(
-            [InRasterizerState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InRasterizerState, Proxy=GetRenderProxy()](RHICommandList&) 
             {
                 Proxy->RasterizerState = RHICreateRasterizerState(InRasterizerState);
             });
@@ -242,7 +242,7 @@ namespace nilou {
     {
         StencilRefValue = InStencilRefValue;
         ENQUEUE_RENDER_COMMAND(Material_SetStencilRefValue)(
-            [InStencilRefValue, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InStencilRefValue, Proxy=GetRenderProxy()](RHICommandList&) 
             {
                 Proxy->StencilRefValue = InStencilRefValue;
             });
@@ -265,7 +265,7 @@ namespace nilou {
         MaterialInstance->RasterizerState = this->RasterizerState;
 
         // Copy the render proxy
-        auto NewRenderProxy = MaterialInstance->MaterialRenderProxy.get();
+        auto NewRenderProxy = MaterialInstance->MaterialRenderProxy;
         NewRenderProxy->ShaderMap = this->MaterialRenderProxy->ShaderMap;
         for (auto& [SetIndex, Layout] : NewRenderProxy->ShaderMap->DescriptorSetLayout)
         {
@@ -284,9 +284,9 @@ namespace nilou {
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             // Copy the uniform buffer instead of the refs.
             RDGBufferRef NewUniformBuffer = RenderGraph::CreateExternalBuffer(Buffer->Name, Buffer->Desc);
-            NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.GetSize(), 0);
+            NewUniformBuffer->SetData(Buffer->Buffer.get(), Buffer->Desc.GetSize(), 0);
             NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBuffers[Key].get());
+            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBuffers[Key]);
         }
         NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
         NewRenderProxy->RasterizerState = this->MaterialRenderProxy->RasterizerState;
@@ -324,7 +324,7 @@ namespace nilou {
         auto TextureParameterValues = this->TextureParameterValues;
         auto Proxy = GetRenderProxy();
         ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
-            [=](RenderGraph&) 
+            [=](RHICommandList&) 
             {
                 Proxy->BlendState = RHICreateBlendState(BlendState);
                 Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
@@ -353,7 +353,7 @@ namespace nilou {
              InRasterizerState=InMaterial->RasterizerState,
              InDepthStencilState=InMaterial->DepthStencilState,
              InShadingModel=InMaterial->ShadingModel,
-             this](RenderGraph&) 
+             this](RHICommandList&) 
             {
                 ShaderMap = std::make_shared<FMaterialShaderMap>();
                 BlendState = RHICreateBlendState(InBlendState);
@@ -413,9 +413,9 @@ namespace nilou {
                     }
                     uint32 Size = Binding.Block.Size;
                     uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
-                    std::string BufferName = fmt::format("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
+                    std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
                     UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
-                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key].get());
+                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key]);
                 }
                 else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
                 {

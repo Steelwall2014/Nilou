@@ -9,7 +9,7 @@ namespace nilou {
     FPlane::FPlane(const glm::dvec3& normal, double distance)
         : Normal(normal), Distance(distance) 
     {
-        if (!Math::equalsEpsilon(glm::length(normal), 1.0, 1e-6)) 
+        if (!FMath::equalsEpsilon(glm::length(normal), 1.0, 1e-6)) 
         {
             NILOU_LOG(Fatal, "normal must be normalized.");
             std::cout << normal << std::endl;;
@@ -41,7 +41,7 @@ namespace nilou {
 
     bool FPlane::Equals(const FPlane &Other, double epsilon)
     {
-        return Math::equalsEpsilon(Other.Normal, Normal, epsilon) && Math::equalsEpsilon(Other.Distance, Distance, epsilon);
+        return FMath::equalsEpsilon(Other.Normal, Normal, epsilon) && FMath::equalsEpsilon(Other.Distance, Distance, epsilon);
     }
 
     ECullingResult FOrientedBoundingBox::IntersectPlane(const FPlane& plane) const noexcept 

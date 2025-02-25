@@ -17,20 +17,19 @@ namespace nilou {
             std::vector<FMeshBatch>& MeshBatches = ViewMeshBatches[ViewIndex];
             FParallelMeshDrawCommands DrawCommands;
 
-            RDGFramebuffer Framebuffer;
-            Framebuffer.SetAttachment(FA_Depth_Stencil_Attachment, SceneTextures.DepthStencil->GetDefaultView());
-            const RHIRenderTargetLayout& RTLayout = Framebuffer.GetRenderTargetLayout();
+            RDGRenderTargets RenderTargets;
+            RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
-            std::vector<RDGDescriptorSet*> DescriptorSets;
+            std::set<RDGDescriptorSet*> DescriptorSets;
             RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FPreZPassVS>(0, VERTEX_SHADER_SET_INDEX);
             DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-            DescriptorSets.push_back(DescriptorSet_VS);
+            DescriptorSets.insert(DescriptorSet_VS);
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
                 for (auto& [SetIndex, DescriptorSet] : Mesh.MaterialRenderProxy->DescriptorSets)
                 {
-                    DescriptorSets.push_back(DescriptorSet.get());
+                    DescriptorSets.insert(DescriptorSet);
                 }
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
@@ -48,19 +47,19 @@ namespace nilou {
                         PermutationParametersPS,
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
-                        RTLayout,
+                        RenderTargets.GetRenderTargetLayout(),
                         MeshDrawCommand);
 
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                 }
             }
 
-            RDGGraphicsPassDesc PassDesc;
-            PassDesc.Name = "PreZPass";
-            PassDesc.RenderTargets = Framebuffer;
-            PassDesc.DescriptorSets = DescriptorSets;
+            RDGPassDesc PassDesc{NFormat("PreZPass {}", ViewIndex)};
+            PassDesc.bNeverCull = true;
             Graph.AddGraphicsPass(
                 PassDesc,
+                RenderTargets,
+                DescriptorSets,
                 [=](RHICommandList& RHICmdList)
                 {
                     DrawCommands.DispatchDraw(RHICmdList);

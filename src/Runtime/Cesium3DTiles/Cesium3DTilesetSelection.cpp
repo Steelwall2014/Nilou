@@ -1,3 +1,4 @@
+#if NILOU_ENABLE_3DTILES
 #include <regex>
 
 #include "Cesium3DTileComponent.h"
@@ -93,3 +94,4 @@ namespace nilou {
         return InternalTileset;
     }
 }
+#endif

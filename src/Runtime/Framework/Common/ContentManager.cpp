@@ -175,7 +175,7 @@ namespace nilou {
                 NAsset* asset = static_cast<NAsset*>(CreateDefaultObject(class_name));
                 if (asset == nullptr)
                 {
-                    NILOU_LOG(Info, "Failed to create object of class {}", class_name);
+                    NILOU_LOG(Display, "Failed to create object of class {}", class_name);
                     continue;
                 }
                 Entries[i]->Object = std::unique_ptr<NAsset>(asset);
@@ -349,7 +349,7 @@ namespace nilou {
     void FContentManager::ReleaseRenderResources()
     {
         ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
-            [this](FDynamicRHI*) {
+            [this](RHICommandList&) {
                 GlobalShaders.RemoveAllShaders();
                 ForEachContent(
                     [](NAsset* Obj) {

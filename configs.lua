@@ -1,27 +1,40 @@
 local Configs = {}
-Configs.PROJECT_DIR = "D:/Nilou"
-Configs.VULKAN_INCLUDE = "E:/VulkanSDK/1.3.246.1/Include"
-Configs.VULKAN_LIBRARY = {"E:/VulkanSDK/1.3.246.1/Lib/vulkan-1", 
-                          "E:/VulkanSDK/1.3.246.1/Lib/shaderc*",
-                          "E:/VulkanSDK/1.3.246.1/Lib/glslang"}
+Configs.PROJECT_DIR = "$(projectdir)"
+
+function find_vulkan_sdk()
+    local VulkanSDK = "$(env VK_SDK_PATH)"
+    if VulkanSDK == "" then
+        VulkanSDK = "$(env VULKAN_SDK)"
+    end
+    if VulkanSDK == "" then
+        error("Vulkan SDK path not found. Please set VK_SDK_PATH or VULKAN_SDK environment variable.")
+    end
+    return VulkanSDK
+end
+local VulkanSDK = find_vulkan_sdk()
+
+Configs.VULKAN_INCLUDE = VulkanSDK .. "\\Include"
+Configs.VULKAN_LIBRARY = {VulkanSDK .. "\\Lib\\vulkan-1", 
+                          VulkanSDK .. "\\Lib\\shaderc*",
+                          VulkanSDK .. "\\Lib\\glslang"}
 
 Configs.INCLUDE_PATHS = {
-    "./External/include", 
-    "./src/Runtime/Framework", 
-    "./src/Runtime/Applications", 
-    "./src/Runtime/RHI", 
-    "./src/Runtime/HAL", 
-    "./src/Runtime/Rendering", 
-    "./src/Runtime/GameStatics",
-    "./src/Runtime/Generated",
-    "./src/Runtime/Serialization",
-    "./src/Runtime/RenderPass",
-    "./src/Runtime/Geospatial",
-    "./src/Runtime/Cesium3DTiles",
-    "./src/Runtime/RenderGraph",
-    "./Assets/Shaders",
+    "$(projectdir)\\External\\include", 
+    "$(projectdir)\\src\\Runtime\\Framework", 
+    "$(projectdir)\\src\\Runtime\\Applications", 
+    "$(projectdir)\\src\\Runtime\\RHI", 
+    "$(projectdir)\\src\\Runtime\\HAL", 
+    "$(projectdir)\\src\\Runtime\\Rendering", 
+    "$(projectdir)\\src\\Runtime\\GameStatics",
+    "$(projectdir)\\src\\Runtime\\Generated",
+    "$(projectdir)\\src\\Runtime\\Serialization",
+    "$(projectdir)\\src\\Runtime\\RenderPass",
+    "$(projectdir)\\src\\Runtime\\Geospatial",
+    "$(projectdir)\\src\\Runtime\\Cesium3DTiles",
+    "$(projectdir)\\src\\Runtime\\RenderGraph",
+    "$(projectdir)\\Assets\\Shaders",
     Configs.VULKAN_INCLUDE,
-    "E:/VulkanSDK/1.3.246.1/Source/SPIRV-Reflect"}
+    VulkanSDK .. "\\Source\\SPIRV-Reflect"}
 
 function main()
     return Configs

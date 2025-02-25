@@ -20,19 +20,19 @@ void BuildMeshDrawCommand(
     Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
     FShaderInstance *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
     Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
-    Initializer.DepthStencilState = TStaticDepthStencilState<true, CF_Equal>::CreateRHI().get();
-    Initializer.RasterizerState = MaterialProxy->RasterizerState.get();
-    Initializer.BlendState = MaterialProxy->BlendState.get();
+    Initializer.DepthStencilState = TStaticDepthStencilState<true, CF_Equal>::CreateRHI();
+    Initializer.RasterizerState = MaterialProxy->RasterizerState;
+    Initializer.BlendState = MaterialProxy->BlendState;
     Initializer.VertexDeclaration = VertexDeclaration;
     Initializer.RTLayout = RTLayout;
 
     {
         for (auto& [SetIndex, DescriptorSet] : MaterialProxy->DescriptorSets)
         {
-            OutMeshDrawCommand.ShaderBindings.SetDescriptorSet(SetIndex, DescriptorSet.get());
+            OutMeshDrawCommand.ShaderBindings.SetDescriptorSet(SetIndex, DescriptorSet);
         }
         OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
-        OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRDG.get();
+        OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRDG;
         OutMeshDrawCommand.PipelineState = RHICreateGraphicsPipelineState(Initializer);
         OutMeshDrawCommand.NumInstances = Element.NumInstances;
         if (Element.IndirectArgsBuffer)

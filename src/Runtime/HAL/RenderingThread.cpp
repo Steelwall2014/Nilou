@@ -1,8 +1,8 @@
-#include <glad/glad.h>
+#include <glad.h>
 #include <GLFW/glfw3.h>
 
 #include "DeferredShadingSceneRenderer.h"
-#include "OpenGL/OpenGLDynamicRHI.h"
+// #include "OpenGL/OpenGLDynamicRHI.h"
 #include "RenderingThread.h"
 #include "BaseApplication.h"
 #include "Common/ContentManager.h"
@@ -17,7 +17,8 @@ namespace nilou {
 
     void EnqueueUniqueRenderCommandType::DoTask()
     {
-        lambda(FRenderingThread::GetRenderGraph());
+        std::unique_ptr<RHICommandList> RHICmdList = RHICreateCommandList();
+        lambda(*RHICmdList);
     }
 
     bool FRenderingThread::Init()

@@ -359,7 +359,7 @@ namespace nilou {
 		:	bUseIndependentRenderTargetBlendStates(NumRenderTargets > 1)
 		// ,	bUseAlphaToCoverage(bInUseAlphaToCoverage)
 		{
-			static_assert(NumRenderTargets <= MAX_SIMULTANEOUS_RENDERTARGETS, "Too many render target blend states.");
+			static_assert(NumRenderTargets <= MaxSimultaneousRenderTargets, "Too many render target blend states.");
 
 			for(uint32 RenderTargetIndex = 0;RenderTargetIndex < NumRenderTargets;++RenderTargetIndex)
 			{
@@ -368,7 +368,7 @@ namespace nilou {
 		}
 
 		NPROPERTY()
-		std::array<FRenderTarget, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargets;
+		std::array<FRenderTarget, MaxSimultaneousRenderTargets> RenderTargets;
 		
 		NPROPERTY()
 		bool bUseIndependentRenderTargetBlendStates;
@@ -385,7 +385,7 @@ namespace nilou {
 	// 		nlohmann::json &content = json["Content"];
 	// 		content["UseIndependentRenderTargetBlendStates"] = BlendState.bUseIndependentRenderTargetBlendStates;
 	// 		nlohmann::json &render_targets = content["RenderTargets"];
-	// 		for (int i = 0; i < MAX_SIMULTANEOUS_RENDERTARGETS; i++)
+	// 		for (int i = 0; i < MaxSimultaneousRenderTargets; i++)
 	// 		{
 	// 			nlohmann::json render_target;
 	// 			render_target["ColorBlendOp"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorBlendOp);
@@ -406,7 +406,7 @@ namespace nilou {
 	// 		BlendState.bUseIndependentRenderTargetBlendStates = content["UseIndependentRenderTargetBlendStates"];
 
 	// 		nlohmann::json render_targets = content["RenderTargets"];
-	// 		for (int i = 0; i < MAX_SIMULTANEOUS_RENDERTARGETS; i++)
+	// 		for (int i = 0; i < MaxSimultaneousRenderTargets; i++)
 	// 		{
 	// 			nlohmann::json render_target = render_targets[i];
 	// 			BlendState.RenderTargets[i].ColorBlendOp = magic_enum::enum_cast<EBlendOperation>(render_target["ColorBlendOp"].get<std::string>()).value();

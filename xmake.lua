@@ -7,26 +7,85 @@ add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
 includes("configs.lua")
 local Configs = GetConfigs()
 add_rules("mode.release", "mode.debug")
+set_runtimes("MD")
 if (is_os("windows")) then 
     add_defines("_CRT_SECURE_NO_WARNINGS")
-    if (is_mode("release")) then
-        set_runtimes("MD")
-    elseif (is_mode("debug")) then
-        set_runtimes("MDd")
-    end
 end
 -- TODO use xmake package manager
 -- add_requires("vcpkg::gdal", {configs = {shared = true}})
-add_requires("vcpkg::glfw3")
-add_requires("vcpkg::imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
-add_requires("vcpkg::draco")
-add_requires("vcpkg::magic-enum")
-add_requires("vcpkg::glslang")
-add_requires("vcpkg::fmt")
+-- add_requires("vcpkg::glfw3")
+add_requires("glfw")
+-- add_requires("imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
+add_requires("imgui", {configs = {glfw = true, opengl3 = true, vulkan = true}})
+-- add_requires("draco")
+add_requires("fmt")
+add_requires("spirv-reflect")
 -- add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
 
-add_defines([[PROJECT_DIR=R"($(projectdir))"]])
+target("Nilou")
+    set_languages("clatest")
+    set_languages("cxx20")
+    set_kind("binary")
+
+    before_build(function (target)
+        os.cp("$(projectdir)/External/bin/*", "$(buildir)/$(os)/$(arch)/$(mode)")
+        local includedirs = target:get("includedirs")
+        local src_dir = path.absolute("src")
+        local generated_dir = path.absolute("src/Runtime/Generated")
+        local include_dir = ""
+        for i, v in ipairs(includedirs) do
+            include_dir = include_dir .. string.format(" \"%s\"", path.absolute(v))
+        end
+        local exec = string.format("$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe \"%s\" \"%s\" %s", src_dir, generated_dir, include_dir)
+        print(exec)
+        os.exec(exec)
+    end)
+
+    add_packages(
+        "glfw",
+        "imgui",
+        -- "draco",
+        "fmt",
+        "spirv-reflect"
+    )
+
+    add_deps(
+        "crossguid",
+        "glad",
+        "base64",
+        "VulkanSDK",
+        "NilouHeaderTool"
+    )
+
+    add_defines([[PROJECT_DIR=R"($(projectdir))"]])
+    add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
+    add_includedirs(
+        "External/include", 
+        "src/Runtime/Framework", 
+        "src/Runtime/Applications", 
+        "src/Runtime/RHI", 
+        "src/Runtime/HAL", 
+        "src/Runtime/Rendering", 
+        "src/Runtime/GameStatics",
+        "src/Runtime/Generated",
+        "src/Runtime/Serialization",
+        "src/Runtime/RenderPass",
+        "src/Runtime/Geospatial",
+        "src/Runtime/Cesium3DTiles",
+        "src/Runtime/RenderGraph"
+    )
+    add_files("src/Runtime/**.cpp")
+    add_cxflags("/bigobj")
+
+    add_links(
+        "kernel32", 
+        "User32", 
+        "Gdi32", 
+        "Shell32", 
+        "Opengl32", 
+        "External/lib/*"
+    )
 
 function Execute(map, func)
     if map ~= nil then
@@ -42,19 +101,6 @@ function SetException(config)
             force = true
         })
     end
-end
-
-function BuildExternalProject(config) 
-    target(config.projectName)
-    Execute(config.macros, add_defines)
-    Execute(config.link, add_links)
-    set_optimize("fastest")
-    set_languages("clatest")
-    set_languages("cxx20")
-    set_kind("static")
-    add_includedirs("./External/include")
-    add_files("External/include/" .. config.projectName .. "/**.cpp")
-    add_files("External/include/" .. config.projectName .. "/**.c")
 end
 
 function BuildProject(config)
@@ -144,244 +190,26 @@ function copyFunc(target)
     os.cp("./External/shared/*.*", build_path)
 end
 
-BuildExternalProject({projectName = "crossguid", macros = {"GUID_WINDOWS"}, link = {"Ole32"}})
-BuildExternalProject({projectName = "base64"})
-BuildExternalProject({projectName = "glad"})
-
-BuildProject({
-    projectName = "Nilou",
-    projectType = "binary",
-    macros = {"FMT_USE_NONTYPE_TEMPLATE_ARGS=0"},
-    depends = {"crossguid", "glad", "base64"},
-    files = {"src/Runtime/**.cpp|UnitTests/**.cpp", "E:/VulkanSDK/1.3.246.1/Source/SPIRV-Reflect/spirv_reflect.c"},
-    debugLink = {"lib/debug/*"},
-    releaseLink = {"lib/release/*"},
-    link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", Configs.VULKAN_LIBRARY},
-    package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum", "vcpkg::glslang", "vcpkg::fmt"},
-    beforeBuildFunc = "Nilou",
-    includePaths = Configs.INCLUDE_PATHS,
-    -- afterBuildFunc = copyFunc,
-    enableException = true,
-    --unityBuildBatch = 8
-})
-
-target("ExecuteHeaderTool")
-    set_kind("phony")
-    before_build("ExecuteHeaderTool")
-
-includes("src/misc/xmake.lua")
-
 -- BuildProject({
---     projectName = "GLTFImporter",
+--     projectName = "Nilou",
 --     projectType = "binary",
---     macros = {},
---     depends = {"crossguid", "glad", "base64"},
---     files = {"src/GLTFImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
---     includePaths = IncludePaths,
+--     macros = {"FMT_USE_NONTYPE_TEMPLATE_ARGS=0"},
+--     depends = {"crossguid", "glad", "base64", "NilouHeaderTool"},
+--     files = {"src/Runtime/**.cpp|UnitTests/**.cpp", "E:/VulkanSDK/1.3.246.1/Source/SPIRV-Reflect/spirv_reflect.c"},
 --     debugLink = {"lib/debug/*"},
 --     releaseLink = {"lib/release/*"},
---     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
---     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
---     enableException = true,
--- })
-
--- BuildProject({
---     projectName = "TextureImporter",
---     projectType = "binary",
---     macros = {},
---     depends = {"crossguid", "glad", "base64"},
---     files = {"src/TextureImporter/**.cpp", "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
---     includePaths = IncludePaths,
---     debugLink = {"lib/debug/*"},
---     releaseLink = {"lib/release/*"},
---     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
---     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
---     enableException = true,
--- })
-
-
--- BuildProject({
---     projectName = "TestGlslang",
---     projectType = "binary",
---     depends = {"crossguid", "glad", "base64"},
---     files = {
---         "src/Runtime/UnitTests/TestGlslang/main.cpp",
---         "src/Runtime/**.cpp|UnitTests/**.cpp|START/main.cpp"},
---     includePaths = IncludePaths,
---     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
---     enableException = true,
---     package = {"vcpkg::gdal", "vcpkg::glfw3", "imgui", "vcpkg::draco", "vcpkg::magic-enum"},
--- })
-
-
--- BuildProject({
---     projectName = "TestUniformProject",
---     projectType = "binary",
---     macros = {},
---     depends = {"crossguid", "glad"},
---     files = {
---         "src/Runtime/Framework/Common/UniformBuffer.cpp", 
---         "src/Runtime/Rendering/RenderResource.cpp", 
---         "src/Runtime/Framework/Common/AssertionMacros.cpp",
---         "src/Runtime/UnitTests/TestUniformBuffer/main.cpp"},
---     includePaths = IncludePaths,
---     debugLink = {"lib/debug/*"},
---     releaseLink = {"lib/release/*"},
---     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32"},
---     beforeBuildFunc = ExecuteHeaderTool,
+--     link = {"kernel32", "User32", "Gdi32", "Shell32", "Opengl32", "./External/lib/*", Configs.VULKAN_LIBRARY},
+--     package = {"vcpkg::gdal", "glfw", "imgui", "vcpkg::draco", "magic_enum", "vcpkg::glslang", "fmt"},
+--     -- beforeBuildFunc = "Nilou",
+--     includePaths = Configs.INCLUDE_PATHS,
 --     -- afterBuildFunc = copyFunc,
 --     enableException = true,
 --     --unityBuildBatch = 8
 -- })
 
--- BuildProject({
---     projectName = "TestTransformProject",
---     projectType = "binary",
---     files = {
---         "src/Runtime/Framework/Common/Transform.cpp", 
---         "src/Runtime/UnitTests/TestTransform/main.cpp"},
---     includePaths = IncludePaths,
---     beforeBuildFunc = ExecuteHeaderTool,
---     enableException = true,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestPermutation",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestPermutation/main.cpp"},
---     enableException = true,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestVirtualPath",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestVirtualPath/main.cpp"},
---     enableException = true,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestShadInclude",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestShadInclude/main.cpp",
---         "./src/Runtime/GameStatics/**.cpp",},
---     includePaths = IncludePaths,
---     enableException = true,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestRegex",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestRegex/main.cpp"},
---     enableException = true,
---     includePaths = IncludePaths,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestShaderPreprocess",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestShaderPreprocess/main.cpp"},
---     enableException = true,
---     --unityBuildBatch = 8
--- })
-
--- BuildProject({
---     projectName = "TestMultithread",
---     projectType = "binary",
---     files = {
---         "src/Runtime/UnitTests/TestMultithread/main.cpp"},
---     enableException = true,
---     includePaths = IncludePaths,
---     link = {"./External/lib/async++"},
---     --unityBuildBatch = 8
--- })
-
--- target("NilouHeaderTool")
---     set_kind("binary")
---     add_files("NilouHeaderTool/src/NilouHeaderTool/*.cpp")
---     set_languages("clatest")
---     set_languages("cxx20")
---     add_includedirs("./NilouHeaderTool/External/include")
---     add_links("./NilouHeaderTool/External/lib/*")
---     after_build(copyFunc)
---     if is_mode("debug") then 
---         add_defines("NILOU_DEBUG")
---     end
---
--- If you want to known more usage about xmake, please see https://xmake.io
---
--- ## FAQ
---
--- You can enter the project directory firstly before building project.
---
---   $ cd projectdir
---
--- 1. How to build project?
---
---   $ xmake
---
--- 2. How to configure project?
---
---   $ xmake f -p [macosx|linux|iphoneos ..] -a [x86_64|i386|arm64 ..] -m [debug|release]
---
--- 3. Where is the build output directory?
---
---   The default output directory is `./build` and you can configure the output directory.
---
---   $ xmake f -o outputdir
---   $ xmake
---
--- 4. How to run and debug target after building project?
---
---   $ xmake run [targetname]
---   $ xmake run -d [targetname]
---
--- 5. How to install target to the system directory or other output directory?
---
---   $ xmake install
---   $ xmake install -o installdir
---
--- 6. Add some frequently-used compilation flags in xmake.lua
---
--- @code
---    -- add debug and release modes
---    add_rules("mode.debug", "mode.release")
---
---    -- add macro defination
---    add_defines("NDEBUG", "_GNU_SOURCE=1")
---
---    -- set warning all as error
---    set_warnings("all", "error")
---
---    -- set language: c99, c++11
---    set_languages("c99", "c++11")
---
---    -- set optimization: none, faster, fastest, smallest
---    set_optimize("fastest")
---
---    -- add include search directories
---    add_includedirs("/usr/include", "/usr/local/include")
---
---    -- add link libraries and search directories
---    add_links("tbox")
---    add_linkdirs("/usr/local/lib", "/usr/lib")
---
---    -- add system link libraries
---    add_syslinks("z", "pthread")
---
---    -- add compilation and link flags
---    add_cxflags("-stdnolib", "-fno-strict-aliasing")
---    add_ldflags("-L/usr/local/lib", "-lpthread", {force = true})
---
--- @endcode
---
-
+includes("src/misc/xmake.lua")
+includes("src/Programs/NilouHeaderTool/xmake.lua")
+includes("External/base64/xmake.lua")
+includes("External/crossguid/xmake.lua")
+includes("External/glad/xmake.lua")
+includes("External/vulkan/xmake.lua")

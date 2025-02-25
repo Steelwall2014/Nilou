@@ -134,10 +134,6 @@ namespace nilou {
         for (int i = 0; i < Scales.size(); i++)
             Scales[i] /= TotalScale;
 
-        RHIRenderTargetLayout RTLayout;
-        RTLayout.NumRenderTargetsEnabled = 1;
-        RTLayout.DepthStencilTargetFormat = PF_D24S8;
-
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightSceneProxy* LightSceneProxy = Lights[LightIndex].LightSceneProxy;
@@ -158,7 +154,7 @@ namespace nilou {
                 ShadowViewport.Height = LightSceneProxy->ShadowMapResolution.y;
                 FSceneViewFamily ShadowViewFamily(ShadowViewport, Scene);
 
-                RDGBuffer* UniformBuffer = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(fmt::format("Light {} DirectionalShadowMappingBlock", LightIndex));
+                RDGBuffer* UniformBuffer = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(NFormat("Light {} DirectionalShadowMappingBlock", LightIndex));
                 RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FShadowDepthVS>(0, VERTEX_SHADER_SET_INDEX);
                 DescriptorSet_VS->SetUniformBuffer("FShadowMappingBlock", UniformBuffer);
                 DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
@@ -269,13 +265,15 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                UniformBuffer->SetData(Resources.Frustums.data());
+                UniformBuffer->SetData(Resources.Frustums.data(), 0, Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
                 for (int ShadowViewIndex = 0; ShadowViewIndex < ShadowMeshBatches.size(); ShadowViewIndex++)
                 {
                     FParallelMeshDrawCommands DrawCommands;
+                    RDGRenderTargets RenderTargets;
+                    RenderTargets.DepthStencilAttachment = Resources.DepthViews[ShadowViewIndex];
                     for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
                         if (!Mesh.CastShadow)   
@@ -298,20 +296,18 @@ namespace nilou {
                                 PermutationParametersPS,
                                 Element.VertexFactory->GetVertexDeclaration(),
                                 Element,
-                                RTLayout,
+                                RenderTargets.GetRenderTargetLayout(),
                                 MeshDrawCommand);
 
                             DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                         }
                     }
-                    RDGFramebuffer Framebuffer;
-                    Framebuffer.SetAttachment(FA_Depth_Stencil_Attachment, Resources.DepthViews[ShadowViewIndex]);
-                    RDGGraphicsPassDesc PassDesc;
-                    PassDesc.Name = "ShadowDepthPass";
-                    PassDesc.RenderTargets = Framebuffer;
-                    PassDesc.DescriptorSets = { DescriptorSet_VS };
+                    RDGPassDesc PassDesc{NFormat("ShadowDepthPass of view {} of ShadowView {}", ViewIndex, ShadowViewIndex)};
+                    PassDesc.bNeverCull = true;
                     Graph.AddGraphicsPass(
                         PassDesc,
+                        RenderTargets,
+                        { DescriptorSet_VS },
                         [=](RHICommandList& RHICmdList)
                         {
                             DrawCommands.DispatchDraw(RHICmdList);

@@ -1,5 +1,5 @@
 #include "Crc.h"
-#include "AssertionMacros.h"
+#include "Log.h"
 #include "Templates/AlignmentTemplates.h"
 
 /** CRC 32 polynomial */

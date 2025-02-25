@@ -23,10 +23,10 @@ namespace nilou {
         USceneCaptureComponent::UpdateDeferredCaptures(Scene);
 
         ENQUEUE_RENDER_COMMAND(FRendererModule_BeginRenderingViewFamily)(
-            [Scene, SceneRenderer](FDynamicRHI* RHICmdList)
+            [Scene, SceneRenderer](RHICommandList& RHICmdList)
             {
                 Scene->UpdateRenderInfos();
-                SceneRenderer->Render();
+                SceneRenderer->Render(FRenderingThread::GetRenderGraph());
                 delete SceneRenderer;
             });
     }

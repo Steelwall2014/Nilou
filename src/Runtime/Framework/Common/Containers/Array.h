@@ -1,4 +1,6 @@
 #pragma once
+#include <utility>
+#include <iterator>
 #include "Platform.h"
 #include <reflection/Class.h>
 
@@ -69,4 +71,84 @@ namespace nilou {
         };
         TArrayStorageElementAligned Elements[NumElements];
     };
+
+	template <typename IteratorT>
+	struct EnumerateIterator
+	{
+	public:
+		using raw_reference = typename IteratorT::reference;
+		using IdxValPair = std::pair<const size_t, raw_reference>;
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = IdxValPair;
+		using difference_type = ptrdiff_t;
+		using pointer = IdxValPair*;
+		using reference = IdxValPair&;
+
+		explicit EnumerateIterator(IteratorT&& iterator) 
+			: mCurIdx{ 0 }
+			, mItr{ std::forward<IteratorT>(iterator) }
+		{ }
+
+		EnumerateIterator(IteratorT&& iterator, size_t startingCount)
+			: mCurIdx{ startingCount }
+			, mItr{ std::forward<IteratorT>(iterator) }
+		{ }
+
+		EnumerateIterator& operator++()
+		{
+			++mItr;
+			++mCurIdx;
+			return *this;
+		}
+
+		EnumerateIterator operator++(int)
+		{
+			auto temp{ *this };
+			operator++();
+			return temp;
+		}
+
+		bool operator==(const EnumerateIterator& enumItr) const
+		{
+			return (mCurIdx == enumItr.mCurIdx) && (mItr == enumItr.mItr);
+		}
+
+		bool operator!=(const EnumerateIterator& enumItr) const
+		{
+			return !(*this == enumItr);
+		}
+
+		IdxValPair operator*()
+		{
+			return IdxValPair(mCurIdx, *mItr);
+		}
+
+	private:
+		size_t mCurIdx;
+		IteratorT mItr;
+	};
+
+    template <typename T>
+    struct EnemerateWrapper { T& Range; };
+
+    template <typename T>
+    EnemerateWrapper<T> Enumerate(T&& Range)
+    {
+        return EnemerateWrapper<T>{ Range };
+    }
+
+}
+
+namespace std {
+    template <typename T>
+    auto begin(nilou::EnemerateWrapper<T> Wrapper)
+    {
+        return nilou::EnumerateIterator<decltype(std::begin(Wrapper.Range))>(std::begin(Wrapper.Range));
+    }
+
+    template <typename T>
+    auto end(nilou::EnemerateWrapper<T> Wrapper)
+    {
+        return nilou::EnumerateIterator<decltype(std::end(Wrapper.Range))>(std::end(Wrapper.Range));
+    }
 }

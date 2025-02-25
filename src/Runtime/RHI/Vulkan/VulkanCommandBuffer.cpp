@@ -76,43 +76,6 @@ void FVulkanCmdBuffer::End()
 	State = EState::HasEnded;
 }
 
-void FVulkanCmdBuffer::BeginRenderPass(const FRHIRenderPassInfo& InInfo, VkRenderPass RenderPass, VkFramebuffer Framebuffer)
-{
-
-	VkRenderPassBeginInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = RenderPass;
-	renderPassInfo.framebuffer = Framebuffer;
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = VkExtent2D{(uint32)InInfo.Viewport.x, (uint32)InInfo.Viewport.y};        
-	
-	FVulkanRenderTargetLayout RTLayout{InInfo};
-	int32 DepthStencilAttachment = -1;
-	if (RTLayout.bHasDepthAttachment)
-		DepthStencilAttachment = RTLayout.DepthStencilReference.attachment;
-
-	std::vector<VkClearValue> clearValues;
-	for (int i = 0; i < RTLayout.Desc.size(); i++)
-	{
-		if (i == DepthStencilAttachment && (InInfo.bClearDepthBuffer || InInfo.bClearStencilBuffer))
-		{
-			VkClearValue& clearValue = clearValues.emplace_back();
-			clearValue.depthStencil = {InInfo.ClearDepth, (uint32)InInfo.ClearStencil};
-		}
-		else if (InInfo.bClearColorBuffer)
-		{
-			VkClearValue& clearValue = clearValues.emplace_back();
-			clearValue.color = { {InInfo.ClearColor.r, InInfo.ClearColor.g, InInfo.ClearColor.b, InInfo.ClearColor.a} };
-		}
-	}
-
-	renderPassInfo.clearValueCount = static_cast<uint32>(clearValues.size());
-	renderPassInfo.pClearValues = clearValues.data();
-	
-	vkCmdBeginRenderPass(Handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	State = EState::IsInsideRenderPass;
-}
-
 FVulkanCommandBufferPool::~FVulkanCommandBufferPool()
 {
 	for (auto& CmdBuffer : CmdBuffers)

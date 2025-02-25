@@ -32,7 +32,7 @@ namespace nilou {
 
         virtual FTextureResource* CreateResource() override;
 
-        virtual void ReadPixelsRenderThread(RHICommandListImmediate& RHICmdList) override;
+        virtual void ReadPixelsRenderThread(RHICommandList& RHICmdList) override;
 
     protected:
 

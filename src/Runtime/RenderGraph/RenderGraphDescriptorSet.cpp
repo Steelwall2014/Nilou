@@ -18,7 +18,7 @@ void RDGDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
 	DescriptorBufferInfo BufferInfo;
 	BufferInfo.Buffer = Buffer;
 	BufferInfo.Offset = 0;
-	BufferInfo.Range = Buffer->Desc.Size;
+	BufferInfo.Range = Buffer->Desc.GetSize();
 	WriteDescriptorSet WriteDescriptor;
 	WriteDescriptor.DstBinding = BindingIndex;
 	WriteDescriptor.DstArrayElement = 0;
@@ -40,12 +40,12 @@ void RDGDescriptorSet::SetSampler(uint32 BindingIndex, RDGTextureView* Texture, 
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 
-void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
+void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, ERHIAccess Access)
 {
 	DescriptorBufferInfo BufferInfo;
 	BufferInfo.Buffer = Buffer;
 	BufferInfo.Offset = 0;
-	BufferInfo.Range = Buffer->Desc.Size;
+	BufferInfo.Range = Buffer->Desc.GetSize();
 	WriteDescriptorSet WriteDescriptor;
 	WriteDescriptor.DstBinding = BindingIndex;
 	WriteDescriptor.DstArrayElement = 0;
@@ -54,7 +54,7 @@ void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 
-void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Image)
+void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access)
 {
 	DescriptorImageInfo ImageInfo;
 	ImageInfo.Texture = Image;
@@ -99,39 +99,39 @@ RDGDescriptorSetPool::RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
 
 RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
 {
-    if (VacantPools.size() == 0)
+    if (VacantPoolsRHI.size() == 0)
     {
-        RHIDescriptorPoolRef Pool = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
-        PoolsRHI.push_back(Pool);
-        VacantPools.push_back(Pool.get());
+        RHIDescriptorPoolRef PoolRHI = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
+        PoolsRHI.push_back(PoolRHI);
+        VacantPoolsRHI.push_back(PoolRHI);
     }
 
-    RHIDescriptorPool* VacantPool = VacantPools.back();
-    RHIDescriptorSet* Set = VacantPool->Allocate();
+    RHIDescriptorPool* VacantPoolRHI = VacantPoolsRHI.back();
+    RHIDescriptorSet* DescriptorSetRHI = VacantPoolRHI->Allocate();
 
-    if (!VacantPool->CanAllocate())
+    if (!VacantPoolRHI->CanAllocate())
     {
-        VacantPools.pop_back();
-        PoolIterators[VacantPool] = FullPools.insert(FullPools.end(), VacantPool);
+        VacantPoolsRHI.pop_back();
+        FullPoolsRHI.insert(VacantPoolRHI);
     }
 
-    RDGDescriptorSetRef SetRDG = std::make_shared<RDGDescriptorSet>();
-    SetRDG->DescriptorSetRHI = Set;
+    RDGDescriptorSetRef DescriptorSetRDG = new RDGDescriptorSet("", Layout, DescriptorSetRHI);
+    DescriptorSetRDG->DescriptorSetRHI = DescriptorSetRHI;
 
-    return SetRDG;
+    return DescriptorSetRDG;
 }
 
-void RDGDescriptorSetPool::Release(RDGDescriptorSet* Set)
+void RDGDescriptorSetPool::Release(RDGDescriptorSet* DescriptorSet)
 {
-    RHIDescriptorSet* SetRHI = Set->DescriptorSetRHI;
-    RHIDescriptorPool* PoolRHI = SetRHI->GetPool();
-    PoolRHI->Release(SetRHI);
+    RHIDescriptorSet* DescriptorSetRHI = DescriptorSet->DescriptorSetRHI;
+    RHIDescriptorPool* PoolRHI = DescriptorSetRHI->GetPool();
+    PoolRHI->Free(DescriptorSetRHI);
 
-    if (PoolIterators.find(PoolRHI) != PoolIterators.end())
+	auto Found = FullPoolsRHI.find(PoolRHI);
+    if (Found != FullPoolsRHI.end())
     {
-        FullPools.erase(PoolIterators[PoolRHI]);
-        PoolIterators.erase(PoolRHI);
-        VacantPools.push_back(PoolRHI);
+        FullPoolsRHI.erase(Found);
+        VacantPoolsRHI.push_back(PoolRHI);
     }
     
 }

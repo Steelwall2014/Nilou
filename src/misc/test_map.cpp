@@ -2,41 +2,95 @@
 #include <map>
 #include <unordered_map>
 #include <iostream>
+#include <array>
 
-// Test the time of map and unordered_map
 
-void time_test_map(int num)
+template <typename IteratorT>
+struct EnumerateIterator
 {
-    std::map<int, int> m;
-    std::clock_t start = std::clock();
-    for (int i = 0; i < num; i++)
+public:
+    using raw_value_type = typename IteratorT::value_type;
+    using IdxValPair = std::pair<const size_t, raw_value_type&>;
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = IdxValPair;
+    using difference_type = ptrdiff_t;
+    using pointer = IdxValPair*;
+    using reference = IdxValPair&;
+
+    explicit EnumerateIterator(IteratorT&& iterator) 
+        : mCurIdx{ 0 }
+        , mItr{ std::forward<IteratorT>(iterator) }
+    { }
+
+    EnumerateIterator(IteratorT&& iterator, size_t startingCount)
+        : mCurIdx{ startingCount }
+        , mItr{ std::forward<IteratorT>(iterator) }
+    { }
+
+    EnumerateIterator& operator++()
     {
-        int key = rand() % 10;
-        int value = rand();
-        m[key] = value;
+        ++mItr;
+        ++mCurIdx;
+        return *this;
     }
-    std::clock_t end = std::clock();
-    std::cout << "map: " << end - start << "ms" << std::endl;
+
+    EnumerateIterator operator++(int)
+    {
+        auto temp{ *this };
+        operator++();
+        return temp;
+    }
+
+    bool operator==(const EnumerateIterator& enumItr) const
+    {
+        return (mCurIdx == enumItr.mCurIdx) && (mItr == enumItr.mItr);
+    }
+
+    bool operator!=(const EnumerateIterator& enumItr) const
+    {
+        return !(*this == enumItr);
+    }
+
+    IdxValPair operator*()
+    {
+        return IdxValPair(mCurIdx, *mItr);
+    }
+
+private:
+    size_t mCurIdx;
+    IteratorT mItr;
+};
+
+template <typename T>
+struct EnemerateWrapper { T& Range; };
+
+template <typename T>
+EnemerateWrapper<T> Enumerate(T&& Range)
+{
+    return EnemerateWrapper<T>{ Range };
 }
 
-void time_test_unordered_map(int num)
-{
-    std::unordered_map<int, int> m;
-    std::clock_t start = std::clock();
-    for (int i = 0; i < num; i++)
+
+namespace std {
+    template <typename T>
+    auto begin(EnemerateWrapper<T> Wrapper)
     {
-        int key = rand() % 10;
-        int value = rand();
-        m[key] = value;
+        return EnumerateIterator<decltype(std::begin(Wrapper.Range))>(std::begin(Wrapper.Range));
     }
-    std::clock_t end = std::clock();
-    std::cout << "unordered_map: " << end - start << "ms" << std::endl;
+
+    template <typename T>
+    auto end(EnemerateWrapper<T> Wrapper)
+    {
+        return EnumerateIterator<decltype(std::end(Wrapper.Range))>(std::end(Wrapper.Range));
+    }
 }
 
 int main()
 {
-    int num = 10000;
-    time_test_map(num);
-    time_test_unordered_map(num);
+    std::array<int, 8> a = { 0 };
+    for (auto [index, x] : Enumerate(a))
+    {
+        x = index;
+    }
     return 0;
 }

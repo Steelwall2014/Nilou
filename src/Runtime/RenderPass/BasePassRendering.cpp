@@ -18,15 +18,14 @@ namespace nilou {
             std::vector<FMeshBatch>& MeshBatches = ViewMeshBatches[ViewIndex];
             FParallelMeshDrawCommands DrawCommands;
 
-            RDGFramebuffer Framebuffer;
-            Framebuffer.SetAttachment(FA_Color_Attachment0, SceneTextures.BaseColor->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Color_Attachment1, SceneTextures.RelativeWorldSpacePosition->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Color_Attachment2, SceneTextures.WorldSpaceNormal->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Color_Attachment3, SceneTextures.MetallicRoughness->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Color_Attachment4, SceneTextures.Emissive->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Color_Attachment5, SceneTextures.ShadingModel->GetDefaultView());
-            Framebuffer.SetAttachment(FA_Depth_Stencil_Attachment, SceneTextures.DepthStencil->GetDefaultView());
-            const RHIRenderTargetLayout& RTLayout = Framebuffer.GetRenderTargetLayout();
+            RDGRenderTargets RenderTargets;
+            RenderTargets.ColorAttachments[0] = SceneTextures.BaseColor->GetDefaultView();
+            RenderTargets.ColorAttachments[1] = SceneTextures.RelativeWorldSpacePosition->GetDefaultView();
+            RenderTargets.ColorAttachments[2] = SceneTextures.WorldSpaceNormal->GetDefaultView();
+            RenderTargets.ColorAttachments[3] = SceneTextures.MetallicRoughness->GetDefaultView();
+            RenderTargets.ColorAttachments[4] = SceneTextures.Emissive->GetDefaultView();
+            RenderTargets.ColorAttachments[5] = SceneTextures.ShadingModel->GetDefaultView();
+            RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
             std::vector<RDGDescriptorSet*> DescriptorSets;
             RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FBasePassVS>(0, VERTEX_SHADER_SET_INDEX);
@@ -37,7 +36,7 @@ namespace nilou {
             {
                 for (auto& [SetIndex, DescriptorSet] : Mesh.MaterialRenderProxy->DescriptorSets)
                 {
-                    DescriptorSets.push_back(DescriptorSet.get());
+                    DescriptorSets.push_back(DescriptorSet);
                 }
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
@@ -55,7 +54,7 @@ namespace nilou {
                         PermutationParametersPS,
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
-                        RTLayout,
+                        RenderTargets.GetRenderTargetLayout(),
                         MeshDrawCommand);
 
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
@@ -64,12 +63,12 @@ namespace nilou {
                 
             }
 
-            RDGGraphicsPassDesc PassDesc;
-            PassDesc.Name = "BasePass";
-            PassDesc.RenderTargets = Framebuffer;
-            PassDesc.DescriptorSets = DescriptorSets;
+            RDGPassDesc PassDesc{NFormat("BasePass {}", ViewIndex)};
+            PassDesc.bNeverCull = true;
             Graph.AddGraphicsPass(
                 PassDesc,
+                RenderTargets,
+                {},
                 [=](RHICommandList& RHICmdList)
                 {
                     // FRHIRenderPassInfo PassInfo(SceneTextures->GeometryPassFramebuffer.get(), ViewInfo.ScreenResolution, true);

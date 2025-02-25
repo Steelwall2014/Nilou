@@ -1,8 +1,9 @@
 #include "PlatformMisc.h"
+#include "Common/Maths.h"
 
 namespace nilou {
 
-void FWindowsPlatformMisc::BeginNamedEvent(const struct FColor& Color, const std::string& Text)
+void FWindowsPlatformMisc::BeginNamedEvent(const FColor& Color, const std::string& Text)
 {
     // Not implemented
     // Steelwall2014: TODO: Implement this

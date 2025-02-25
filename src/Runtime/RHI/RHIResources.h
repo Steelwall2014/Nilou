@@ -118,7 +118,7 @@ namespace nilou {
 	{
 		uint32 Size;
 		uint32 Stride;
-		// EBufferUsageFlags Usage;
+		EBufferUsageFlags Usage = EBufferUsageFlags::None;
 
 		RHIBufferDesc() = default;
 		RHIBufferDesc(uint32 InSize, uint32 InStride=0) : Size(InSize), Stride(InStride) { }
@@ -126,6 +126,15 @@ namespace nilou {
 		bool operator==(const RHIBufferDesc& Other) const = default;
 	};
 	using FRHIBufferCreateInfo = RHIBufferDesc;
+	
+	inline uint32 GetTypeHash(const RHIBufferDesc& Desc)
+	{
+		uint32 Hash = GetTypeHash(Desc.Size);
+		Hash = HashCombine(Hash, GetTypeHash(Desc.Stride));
+		Hash = HashCombine(Hash, GetTypeHash((uint32)Desc.Usage));
+		return Hash;
+	}
+
 	class RHIBuffer : public RHIResource
 	{
 	public:
@@ -151,7 +160,7 @@ namespace nilou {
 	};
 	using RHIBufferRef = TRefCountPtr<RHIBuffer>;
 
-	class RHIUniformBuffer : RHIResource
+	class RHIUniformBuffer : public RHIResource
 	{
 	public:
 		/**
@@ -200,6 +209,29 @@ namespace nilou {
 		return Hash;
 	}
 
+	struct RHITextureViewDesc
+	{
+		EPixelFormat Format; 
+		uint32 BaseMipLevel;
+		uint32 LevelCount;
+		uint32 BaseArrayLayer;
+		uint32 LayerCount;
+		ETextureDimension ViewType;
+
+		bool operator==(const RHITextureViewDesc& Other) const = default;
+	};
+	using FRHITextureViewCreateInfo = RHITextureViewDesc;
+
+	class FRHITextureViewCache
+	{
+	public:
+		// Finds a UAV matching the descriptor in the cache or creates a new one and updates the cache.
+		class RHITextureView* GetOrCreateView(class RHITexture* Texture, const FRHITextureViewCreateInfo& CreateInfo);
+
+	private:
+		std::vector<std::pair<FRHITextureViewCreateInfo, TRefCountPtr<RHITextureView>>> TextureViews;
+	};
+
 	class RHITexture : public RHIResource 
 	{
 	public:
@@ -231,12 +263,15 @@ namespace nilou {
 		{
 			return TextureName;
 		}
-		std::string SetName(const std::string &InTextureName)
+		void SetName(const std::string &InTextureName)
 		{
 			TextureName = InTextureName;
 		}
 		ETextureDimension GetTextureType() const { return TextureType; };
 		uint32 GetNumLayers() const { return TextureType == ETextureDimension::Texture2DArray || TextureType == ETextureDimension::TextureCube ? GetSizeXYZ().z : 1; }
+
+		RHITextureView* GetOrCreateView(const FRHITextureViewCreateInfo& CreateInfo) { return ViewCache.GetOrCreateView(this, CreateInfo); }
+
 	protected:
 		uint32 NumMips;
 		EPixelFormat Format;
@@ -245,6 +280,8 @@ namespace nilou {
 		uint32 SizeX;
 		uint32 SizeY;
 		uint32 SizeZ;
+
+		FRHITextureViewCache ViewCache;
 
 	};
 	using RHITextureRef = TRefCountPtr<RHITexture>;
@@ -263,29 +300,14 @@ namespace nilou {
 	{
 	public:
 		RHITextureView() : RHIResource(ERHIResourceType::RRT_TextureView) { }
-	};
-
-	struct RHITextureViewDesc
-	{
-		EPixelFormat Format; 
-		uint32 BaseMipLevel;
-		uint32 LevelCount;
-		uint32 BaseArrayLayer;
-		uint32 LayerCount;
-		ETextureDimension ViewType;
+		RHITextureViewDesc Desc;
 		RHITexture* Texture;
 
-		bool operator==(const RHITextureViewDesc& Other) const = default;
+		int32 GetSizeX() const { return Texture->GetSizeX(); }
+		int32 GetSizeY() const { return Texture->GetSizeY(); }
+		int32 GetSizeZ() const { return Texture->GetSizeZ(); }
 	};
-	class RHITextureViewCache
-	{
-	public:
-		// Finds a texture view matching the descriptor in the cache or creates a new one and updates the cache.
-		RHITextureView* GetOrCreateView(class RHICommandList& RHICmdList, RHITexture* Texture, const RHITextureViewDesc& CreateInfo);
-
-	private:
-		std::vector<std::pair<RHITextureViewDesc, RHITextureView*>> Views;
-	};
+	using RHITextureViewRef = TRefCountPtr<RHITextureView>;
 
 	class RHIFramebuffer : public RHIResource 
 	{
@@ -293,7 +315,7 @@ namespace nilou {
 		RHIFramebuffer() : RHIResource(ERHIResourceType::RRT_Framebuffer) { }
 		virtual bool Check() = 0;
 		virtual ~RHIFramebuffer() { }
-		std::map<EFramebufferAttachment, RHITexture2DRef> Attachments;
+		std::array<RHITextureView*, MaxSimultaneousRenderTargets> Attachments;
 	};
 	using RHIFramebufferRef = TRefCountPtr<RHIFramebuffer>;
 
@@ -306,9 +328,15 @@ namespace nilou {
 
 	struct RHIRenderTargetLayout
 	{
-		std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats = { PF_Unknown };
-		uint32 NumRenderTargetsEnabled = 0;
-		EPixelFormat DepthStencilTargetFormat = PF_Unknown;
+		struct AttachmentDesc
+		{
+			EPixelFormat Format = PF_Unknown;
+			ERenderTargetLoadAction LoadAction = ERenderTargetLoadAction::Load;
+			ERenderTargetStoreAction StoreAction = ERenderTargetStoreAction::Store;
+			bool operator==(const AttachmentDesc &Other) const = default;
+		};
+		std::array<AttachmentDesc, MaxSimultaneousRenderTargets> ColorAttachments;
+		AttachmentDesc DepthStencilAttachment;
 
 		bool operator==(const RHIRenderTargetLayout &Other) const = default;
 	};
@@ -357,7 +385,7 @@ namespace nilou {
 		friend class std::hash<RHIDescriptorSetLayout>;
 		RHIDescriptorSetLayout() : RHIResource(RRT_DescriptorSetLayout) {}
 		void GenerateHash();
-		RHIDescriptorSetLayoutBinding* GetBindingIndexByName(const std::string &Name)
+		RHIDescriptorSetLayoutBinding* GetBindingByName(const std::string &Name)
 		{
 			auto Found = NameToBindingIndex.find(Name);
 			if (Found != NameToBindingIndex.end())
@@ -366,7 +394,15 @@ namespace nilou {
 			}
 			return nullptr;
 		}
-		uint32 GetNumTypesUsed(EDescriptorType Type);
+		uint32 GetNumTypeUsed(EDescriptorType Type) const
+		{
+			uint32 NumTypeUsed = 0;
+			for (auto& Binding : Bindings)
+			{
+				NumTypeUsed += Binding.DescriptorType == Type;
+			}
+			return NumTypeUsed;
+		}
 
 	protected:
 		std::vector<RHIDescriptorSetLayoutBinding> Bindings;
@@ -395,10 +431,10 @@ namespace nilou {
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 
-	class FRHIPipelineState : public RHIResource
+	class RHIGraphicsPipelineState : public RHIResource
 	{
 	public: 
-		FRHIPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
+		RHIGraphicsPipelineState(const FGraphicsPipelineStateInitializer& InInitializer) 
 			: RHIResource(RRT_PipelineState)
 			, Initializer(InInitializer) {}
 
@@ -412,7 +448,33 @@ namespace nilou {
 		RHIPipelineLayoutRef PipelineLayout;
 
 	};
-	using FRHIPipelineStateRef = TRefCountPtr<FRHIPipelineState>;
+	using RHIGraphicsPipelineStateRef = TRefCountPtr<RHIGraphicsPipelineState>;
+
+	class RHIComputePipelineState : public RHIResource
+	{
+	public: 
+		RHIComputePipelineState(RHIComputeShader* InComputeShader) 
+			: RHIResource(RRT_PipelineState)
+			, ComputeShader(InComputeShader) {}
+
+		RHIPipelineLayout* GetPipelineLayout() const
+		{
+			return PipelineLayout.GetReference();
+		}
+
+		RHIComputeShader* ComputeShader;
+
+		RHIPipelineLayoutRef PipelineLayout;
+
+	};
+	using RHIComputePipelineStateRef = TRefCountPtr<RHIComputePipelineState>;
+
+	struct RHIPushConstantRange
+	{
+		EShaderStage StageFlags;
+		uint32 Offset;
+		uint32 Size;
+	};
 
 	struct RHISamplerState : public RHIResource
 	{
@@ -426,48 +488,41 @@ namespace nilou {
 	class RHISampler
 	{
 	public:
-		RHISampler();
-		RHISampler(RHITexture* Texture);
-		RHISampler(RHITexture* Texture, RHISamplerState* InSamplerState) 
+		RHISampler(RHITexture* Texture=nullptr, RHISamplerState* InSamplerState=nullptr) 
 			: SamplerState(InSamplerState)
 			, Texture(Texture) 
 		{}
 		RHISamplerState* SamplerState;
 		RHITexture* Texture;
 	};
-	using RHISamplerRef = TRefCountPtr<RHISampler>;
 
 	class FRHIRenderPassInfo
 	{
 	public:
-		RHIFramebuffer *Framebuffer;
-		ivec2 Viewport;
-		bool bClearColorBuffer;
-		vec4 ClearColor;
-		bool bClearDepthBuffer;
-		float ClearDepth;
-		bool bClearStencilBuffer;
-		uint32 ClearStencil;
-		FRHIRenderPassInfo(
-			RHIFramebuffer *InFramebuffer, 
-			ivec2 InViewport,
-			bool bInClearColorBuffer=false, 
-			bool bInClearDepthBuffer=false, 
-			bool bInClearStencilBuffer=false, 
-			vec4 InClearColor=vec4(0.f, 0.f, 0.f, 1.0f), 
-			float InClearDepth=1.0f,
-			uint32 InClearStencil=0)
-			: Framebuffer(InFramebuffer)
-			, Viewport(InViewport)
-			, bClearColorBuffer(bInClearColorBuffer)
-			, bClearDepthBuffer(bInClearDepthBuffer)
-			, bClearStencilBuffer(bInClearStencilBuffer)
-			, ClearColor(InClearColor)
-			, ClearDepth(InClearDepth)
-			, ClearStencil(InClearStencil)
+		RHIRenderTargetLayout RTLayout;
+
+		std::array<RHITextureView*, MaxSimultaneousRenderTargets> ColorRenderTargets;
+		std::array<vec4, MaxSimultaneousRenderTargets> ClearColors = { vec4(0.0f) };
+
+		RHITextureView* DepthStencilRenderTarget;
+		float ClearDepth = 0.0f;
+		uint32 ClearStencil = 0u;
+
+		ivec2 Offset = ivec2(0);
+		uvec2 Extent = uvec2(0);
+
+		FRHIRenderPassInfo() { }
+		FRHIRenderPassInfo(RHITextureView* RenderTarget, 
+						   ERenderTargetLoadAction LoadAction=ERenderTargetLoadAction::Load, 
+						   ERenderTargetStoreAction StoreAction=ERenderTargetStoreAction::Store)
 		{
-			
+			ColorRenderTargets[0] = RenderTarget;
+			RTLayout.ColorAttachments[0].LoadAction = LoadAction;
+			RTLayout.ColorAttachments[0].StoreAction = StoreAction;
+			Extent = uvec2(RenderTarget->GetSizeX(), RenderTarget->GetSizeY());
 		}
+
+
 	};
 
 	class FRHIRenderQuery : public RHIResource
@@ -502,7 +557,7 @@ namespace nilou {
     {
     public:
 
-		RHIDescriptorSet() : RHIResource(RRT_DescriptorSet) {}
+		RHIDescriptorSet(class RHIDescriptorPool* InPool) : RHIResource(RRT_DescriptorSet), Pool(InPool) {}
 
         virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
 
@@ -512,8 +567,9 @@ namespace nilou {
 
         virtual void SetStorageImage(uint32 BindingIndex, RHITexture* Image) { }
 
-		class RHIDescriptorPool* GetPool() const;
+		RHIDescriptorPool* GetPool() const { return Pool; }
 
+		RHIDescriptorPool* Pool;
     };
 	using RHIDescriptorSetRef = TRefCountPtr<RHIDescriptorSet>;
 
@@ -533,7 +589,7 @@ namespace nilou {
 		RHIDescriptorSetLayout* Layout;
 
 		virtual RHIDescriptorSet* Allocate() { return nullptr;}
-		virtual void Release(RHIDescriptorSet* DescriptorSet) { }
+		virtual void Free(RHIDescriptorSet* DescriptorSet) { }
 
 		bool CanAllocate() { return false; }
 	};
@@ -563,6 +619,15 @@ template<>
 struct hash<nilou::RHITextureDesc>
 {
 	size_t operator()(const nilou::RHITextureDesc &_Keyval) const noexcept
+	{
+		return GetTypeHash(_Keyval);
+	}
+};
+
+template<>
+struct hash<nilou::RHIBufferDesc>
+{
+	size_t operator()(const nilou::RHIBufferDesc &_Keyval) const noexcept
 	{
 		return GetTypeHash(_Keyval);
 	}

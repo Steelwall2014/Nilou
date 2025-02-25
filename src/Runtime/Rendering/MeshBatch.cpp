@@ -13,7 +13,7 @@ namespace nilou {
                 MeshElement.PrimitiveUniformBuffer = PrimitiveSceneProxy->GetUniformBuffer();
             }
         }
-        PerViewMeshBatches[ViewIndex].AddMesh(MeshBatch);
+        PerViewMeshBatches[ViewIndex].push_back(MeshBatch);
     }
 
     void FMeshElementCollector::AddBatchedLine(int32 ViewIndex, const FBatchedLine &MeshBatch)

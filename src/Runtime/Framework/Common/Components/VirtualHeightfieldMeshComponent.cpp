@@ -1,3 +1,4 @@
+#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
 #include <half/half.hpp>
 #include "VirtualHeightfieldMeshComponent.h"
 #include "BaseApplication.h"
@@ -8,7 +9,7 @@
 #include "VirtualTexture2D.h"
 #include "PipelineStateCache.h"
 
-#include <glad/glad.h>
+#include <glad.h>
 
 namespace nilou {
     
@@ -676,3 +677,4 @@ namespace nilou {
 
 
 }
+#endif

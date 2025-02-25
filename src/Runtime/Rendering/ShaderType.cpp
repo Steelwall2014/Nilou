@@ -38,7 +38,7 @@ namespace nilou {
     {
         if (VirtualFilePath != "")
         {
-            NILOU_LOG(Info, "Preprocessing {}", FileAbsolutePath.generic_string());
+            NILOU_LOG(Display, "Preprocessing {}", FileAbsolutePath.generic_string());
             FileAbsolutePath = FPath::VirtualPathToAbsPath(VirtualFilePath);
             std::string RawSourceCode = GetAssetLoader()->SyncOpenAndReadText(FileAbsolutePath.generic_string().c_str());
             PreprocessedCode = shader_preprocess::PreprocessInclude(RawSourceCode, FileAbsolutePath.parent_path().generic_string(), {});

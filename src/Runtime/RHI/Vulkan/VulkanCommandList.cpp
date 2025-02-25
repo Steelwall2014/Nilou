@@ -1,3 +1,4 @@
+#include "VulkanDynamicRHI.h"
 #include "VulkanCommandList.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanBuffer.h"
@@ -7,6 +8,40 @@
 #include "VulkanQueue.h"
 
 namespace nilou {
+
+    void VulkanCommandList::BeginRenderPass(FRHIRenderPassInfo& Info)
+    {
+        FVulkanDynamicRHI* DynamicRHI = FVulkanDynamicRHI::GetDynamicRHI();
+        VkRenderPass RenderPass = DynamicRHI->RenderPassManager->GetOrCreateRenderPass(Info.RTLayout);
+        VkFramebuffer Framebuffer = DynamicRHI->RenderPassManager->GetOrCreateFramebuffer(RenderPass, Info.ColorRenderTargets, Info.DepthStencilRenderTarget);
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = RenderPass;
+        renderPassInfo.framebuffer = Framebuffer;
+        renderPassInfo.renderArea.offset = VkOffset2D{Info.Offset.x, Info.Offset.y};
+        renderPassInfo.renderArea.extent = VkExtent2D{Info.Extent.x, Info.Extent.y};        
+
+        std::vector<VkClearValue> clearValues;
+        for (auto [Index, ClearColor] : Enumerate(Info.ClearColors))
+        {
+            auto& RenderTarget = Info.ColorRenderTargets[Index];
+            auto& LoadAction = Info.RTLayout.ColorAttachments[Index].LoadAction;
+            if (RenderTarget)
+            {
+                VkClearValue clearColor{};
+                if (LoadAction == ERenderTargetLoadAction::Clear)
+                {
+                    clearColor.color = VkClearColorValue{ {ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a} };
+                }
+                clearValues.push_back(clearColor);
+            }
+        }
+        renderPassInfo.clearValueCount = clearValues.size();
+        renderPassInfo.pClearValues = clearValues.data();
+        
+        vkCmdBeginRenderPass(Handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
 
     static VkDescriptorType GetDescriptorType(EDescriptorType Type)
     {
@@ -96,14 +131,10 @@ namespace nilou {
         vkCmdBindIndexBuffer(CmdBuffer->GetHandle(), vkBuffer, Offset, VK_INDEX_TYPE_UINT32);
     }
 
-    void VulkanCommandList::PushConstants(RHIPipelineLayout* PipelineLayout, EPipelineBindPoint PipelineBindPoint, uint32 Offset, uint32 Size, const void* Data)
+    void VulkanCommandList::PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data)
     {
         VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(PipelineLayout);
-        VkShaderStageFlags stageFlags = VK_SHADER_STAGE_ALL;
-        if (PipelineBindPoint == EPipelineBindPoint::Compute)
-            stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        else
-            stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        VkShaderStageFlags stageFlags = (VkShaderStageFlags)StageFlags;
         vkCmdPushConstants(
             CmdBuffer->GetHandle(), 
             VulkanLayout->Handle, 

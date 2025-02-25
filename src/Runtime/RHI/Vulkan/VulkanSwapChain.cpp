@@ -1,7 +1,7 @@
 #include "VulkanSwapChain.h"
 #include "VulkanQueue.h"
 #include "Common/Log.h"
-#define DEBUG_HELPER NILOU_LOG(Info, "{} {}", __FILE__, __LINE__);
+#define DEBUG_HELPER NILOU_LOG(Display, "{} {}", __FILE__, __LINE__);
 // FVulkanSwapChain的构造函数看起来会导致一些堆损坏的bug，可能是在这之前某些数组越界了
 
 namespace nilou {

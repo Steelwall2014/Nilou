@@ -234,7 +234,7 @@ namespace nilou {
         {
             FStaticMeshRenderData* ToDelete = RenderData;
             ENQUEUE_RENDER_COMMAND(UStaticMesh_ReleaseResources)(
-                [ToDelete](FDynamicRHI*) {
+                [ToDelete](RHICommandList&) {
                     for (int i = 0; i < ToDelete->LODResources.size(); i++)
                     {
                         ToDelete->LODResources[i]->ReleaseResources();

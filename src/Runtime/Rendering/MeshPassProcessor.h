@@ -47,7 +47,7 @@ namespace nilou {
         * PSO
         */
         // FGraphicsMinimalPipelineStateId CachedPipelineId;
-        FRHIPipelineState *PipelineState;
+        RHIGraphicsPipelineState *PipelineState;
 
         /**
         * Draw command parameters

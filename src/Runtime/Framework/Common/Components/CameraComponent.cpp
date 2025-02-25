@@ -17,17 +17,20 @@ namespace nilou {
     {
         USceneComponent::OnRegister();
 
-        ViewUniformBuffer = CreateUniformBuffer<FViewShaderParameters>();
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
-            [this](RenderGraph& Graph)
+            [this](RHICommandList&)
             {
-                ViewUniformBuffer->InitResource(Graph);
+                ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("");
             });
     }
 
     void UCameraComponent::OnUnregister()
     {
-        ViewUniformBuffer = nullptr;
+        ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
+            [this](RHICommandList&)
+            {
+                ViewUniformBuffer = nullptr;
+            });
         USceneComponent::OnUnregister();
     }
 

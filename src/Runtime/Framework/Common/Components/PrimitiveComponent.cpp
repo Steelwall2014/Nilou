@@ -34,7 +34,7 @@ namespace nilou {
         if (SceneProxy)
         {
             ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
-                [this, LocalToWorld, Bound](FDynamicRHI*) 
+                [this, LocalToWorld, Bound](RHICommandList&) 
                 {
                     SceneProxy->SetTransform(LocalToWorld, Bound);
                 });
@@ -51,7 +51,6 @@ namespace nilou {
         Name = InName;
         bCastShadow = Primitive->GetCastShadow();
         Primitive->SceneProxy = this;
-        PrimitiveUniformBuffer = CreateUniformBuffer<FPrimitiveShaderParameters>();
         SetTransform(Primitive->GetRenderMatrix(), Primitive->GetBounds());
     }
 
@@ -59,7 +58,7 @@ namespace nilou {
     {
         Bounds = InBounds;
         LocalToWorld = InLocalToWorld;
-        PrimitiveUniformBuffer->Data.LocalToWorld = LocalToWorld;
+        PrimitiveUniformBuffer->GetData().LocalToWorld = LocalToWorld;
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(true);
     }
@@ -67,7 +66,7 @@ namespace nilou {
     void FPrimitiveSceneProxy::CreateRenderThreadResources()
     {
         assert(IsInRenderingThread());
-        PrimitiveUniformBuffer->InitResource();
+        PrimitiveUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FPrimitiveShaderParameters>("");
         if (PrimitiveSceneInfo)
             PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
     }
@@ -75,15 +74,15 @@ namespace nilou {
     void FPrimitiveSceneProxy::DestroyRenderThreadResources()
     {
         assert(IsInRenderingThread());
-        PrimitiveUniformBuffer->ReleaseResource();
+        PrimitiveUniformBuffer = nullptr;
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer()
     {
         ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_UpdateUniformBuffer)(
-            [this](FDynamicRHI *DynamicRHI)
+            [this](RHICommandList&)
             {
-                PrimitiveUniformBuffer->UpdateUniformBuffer();
+                // PrimitiveUniformBuffer->UpdateUniformBuffer();
             });
     }
 }

@@ -1,0 +1,8 @@
+target("crossguid")
+    set_optimize("fastest")
+    set_languages("cxx20")
+    set_kind("static")
+    add_defines("GUID_WINDOWS")
+    add_includedirs("./", {public = true})
+    add_files("guid.cpp")
+    add_links("Ole32")

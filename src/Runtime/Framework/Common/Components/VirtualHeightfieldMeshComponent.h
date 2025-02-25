@@ -1,4 +1,5 @@
 #pragma once
+#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
 #include "PrimitiveComponent.h"
 #include "Material.h"
 
@@ -22,7 +23,7 @@ namespace nilou {
 
 	    void SetData(const FDataType& InData);
 
-        virtual void InitVertexFactory() override;
+        void InitVertexFactory();
 
         static bool ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters);
 
@@ -142,3 +143,4 @@ namespace nilou {
     END_UNIFORM_BUFFER_STRUCT()
 
 }
+#endif

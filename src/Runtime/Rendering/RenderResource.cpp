@@ -91,7 +91,7 @@ namespace nilou {
     {
         if (!Resource->IsInitialized()) return;
         ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
-           [Resource, file, line](FDynamicRHI *DynamicRHI)
+           [Resource, file, line](RHICommandList&)
            {
                 const char *debug_file = file;
                 int debug_line = line;
@@ -113,12 +113,12 @@ namespace nilou {
 
     RHIBuffer* FVertexBuffer::GetRHI() const
     {
-        return VertexBufferRDG->Resolve();
+        return VertexBufferRDG->GetRHI();
     }
 
     RHIBuffer* FIndexBuffer::GetRHI() const
     {
-        return IndexBufferRDG->Resolve();
+        return IndexBufferRDG->GetRHI();
     }
 
 }

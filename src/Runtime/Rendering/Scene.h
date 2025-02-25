@@ -53,9 +53,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            RDGBufferDesc Desc;
-            Desc.Size = sizeof(FLightShaderParameters);
-            LightUniformBuffer = RenderGraph::CreateExternalBuffer(Desc);
+            LightUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FLightShaderParameters>("");
         }
 
         ~FLightSceneInfo()
@@ -66,7 +64,7 @@ namespace nilou {
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
-        RDGBufferRef LightUniformBuffer;
+        TRDGUniformBufferRef<FLightShaderParameters> LightUniformBuffer;
     };
 
     class FReflectionProbeSceneInfo

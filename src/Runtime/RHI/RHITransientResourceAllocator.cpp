@@ -33,11 +33,11 @@ public:
 	virtual void Release(RHICommandList& RHICmdList) { delete this; }
 
 private:
-    std::unordered_map<FRHITextureCreateInfo, std::vector<std::unique_ptr<FRHITransientTexture>>> TexturePool;
-    std::unordered_map<FRHIBufferCreateInfo, std::vector<std::unique_ptr<FRHITransientBuffer>>> BufferPool;
+    std::unordered_map<FRHITextureCreateInfo, std::vector<FRHITransientTexture*>> TexturePool;
+    std::unordered_map<FRHIBufferCreateInfo, std::vector<FRHITransientBuffer*>> BufferPool;
 
-	std::unordered_map<FRHITransientTexture*, std::unique_ptr<FRHITransientTexture>> AllocatedTextures;
-	std::unordered_map<FRHITransientBuffer*, std::unique_ptr<FRHITransientBuffer>> AllocatedBuffers;
+	std::unordered_set<FRHITransientTexture*> AllocatedTextures;
+	std::unordered_set<FRHITransientBuffer*> AllocatedBuffers;
 };
 
 bool RHITransientResourceAllocator::SupportsResourceType(ERHITransientResourceType InType) const
@@ -47,58 +47,54 @@ bool RHITransientResourceAllocator::SupportsResourceType(ERHITransientResourceTy
 
 FRHITransientTexture* RHITransientResourceAllocator::CreateTexture(const FRHITextureCreateInfo& InCreateInfo, const std::string& InDebugName, uint32 InPassIndex)
 {
-	std::vector<std::unique_ptr<FRHITransientTexture>>& Pool = TexturePool[InCreateInfo];
+	std::vector<FRHITransientTexture*>& Pool = TexturePool[InCreateInfo];
 	if (Pool.size() == 0)
 	{
-		RHITexture* TextureRHI = RHICreateTexture(InCreateInfo, InDebugName).release();
+		RHITexture* TextureRHI = RHICreateTexture(InCreateInfo, InDebugName);
 		FRHITransientTexture* Texture = new FRHITransientTexture(TextureRHI, 0, 0, 0, ERHITransientAllocationType::Heap, InCreateInfo);
-		AllocatedTextures.emplace(Texture);
+		AllocatedTextures.insert(Texture);
 		return Texture;
 	}
 	else 
 	{
-		std::unique_ptr<FRHITransientTexture> Texture = std::move(Pool.back()); Pool.pop_back();
-		FRHITransientTexture* TexturePtr = Texture.get();
-		AllocatedTextures.emplace(Texture);
-		return TexturePtr;
+		FRHITransientTexture* Texture = Pool.back(); Pool.pop_back();
+		AllocatedTextures.insert(Texture);
+		return Texture;
 	}
 }
 
 FRHITransientBuffer* RHITransientResourceAllocator::CreateBuffer(const FRHIBufferCreateInfo& InCreateInfo, const std::string& InDebugName, uint32 InPassIndex)
 {
-	std::vector<std::unique_ptr<FRHITransientBuffer>>& Pool = BufferPool[InCreateInfo];
+	std::vector<FRHITransientBuffer*>& Pool = BufferPool[InCreateInfo];
 	if (Pool.size() == 0)
 	{
-		RHIBuffer* BufferRHI = RHICreateBuffer(InCreateInfo, InDebugName).release();
+		RHIBuffer* BufferRHI = RHICreateBuffer(InCreateInfo, InDebugName);
 		FRHITransientBuffer* Buffer = new FRHITransientBuffer(BufferRHI, 0, 0, 0, ERHITransientAllocationType::Heap, InCreateInfo);
-		AllocatedBuffers.emplace(Buffer);
+		AllocatedBuffers.insert(Buffer);
 		return Buffer;
 	}
 	else
 	{
-		std::unique_ptr<FRHITransientBuffer> Buffer = std::move(Pool.back()); Pool.pop_back();
-		FRHITransientBuffer* BufferPtr = Buffer.get();
-		AllocatedBuffers.emplace(Buffer);
-		return BufferPtr;
+		FRHITransientBuffer* Buffer = Pool.back(); Pool.pop_back();
+		AllocatedBuffers.insert(Buffer);
+		return Buffer;
 	}
 }
 
 void RHITransientResourceAllocator::DeallocateMemory(FRHITransientTexture* InTexture, uint32 InPassIndex)
 {
-	auto Found = AllocatedTextures.find(InTexture);
-	Ncheck(Found != AllocatedTextures.end());
-	std::unique_ptr<FRHITransientTexture>& Texture = Found->second;
+	Ncheck(AllocatedTextures.find(InTexture) != AllocatedTextures.end());
+	AllocatedTextures.erase(InTexture);
 	const FRHITextureCreateInfo& CreateInfo = InTexture->GetCreateInfo();
-	TexturePool[CreateInfo].push_back(std::move(Texture));
+	TexturePool[CreateInfo].push_back(InTexture);
 }
 
 void RHITransientResourceAllocator::DeallocateMemory(FRHITransientBuffer* InBuffer, uint32 InPassIndex)
 {
-	auto Found = AllocatedBuffers.find(InBuffer);
-	Ncheck(Found != AllocatedBuffers.end());
-	std::unique_ptr<FRHITransientBuffer>& Buffer = Found->second;
+	Ncheck(AllocatedBuffers.find(InBuffer) != AllocatedBuffers.end());
+	AllocatedBuffers.erase(InBuffer);
 	const FRHIBufferCreateInfo& CreateInfo = InBuffer->GetCreateInfo();
-	BufferPool[CreateInfo].push_back(std::move(Buffer));
+	BufferPool[CreateInfo].push_back(InBuffer);
 }
 
 void RHITransientResourceAllocator::Flush(RHICommandList& RHICmdList, FRHITransientAllocationStats* OutStats)

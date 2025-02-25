@@ -3,6 +3,7 @@
 #include "DynamicRHI.h"
 
 namespace nilou {
+	
 	template<typename InitializerType,typename RHIRefType,typename RHIParamRefType>
 	class TStaticStateRHI
 	{
@@ -30,7 +31,7 @@ namespace nilou {
 			}
 			virtual void ReleaseRHI() override final
 			{
-				StateRHI.SafeRelease();
+				StateRHI = nullptr;
 			}
 			virtual void ReleaseResource() override final
 			{
@@ -46,21 +47,9 @@ namespace nilou {
 		static FStaticStateResource StaticResource;
 	};
 
-	
-	/*	bool bEnableDepthWrite;
-		ECompareFunction DepthTest;
-		bool bEnableFrontFaceStencil;
-		ECompareFunction FrontFaceStencilTest;
-		EStencilOp FrontFaceStencilFailStencilOp;
-		EStencilOp FrontFaceDepthFailStencilOp;
-		EStencilOp FrontFacePassStencilOp;
-		bool bEnableBackFaceStencil;
-		ECompareFunction BackFaceStencilTest;
-		EStencilOp BackFaceStencilFailStencilOp;
-		EStencilOp BackFaceDepthFailStencilOp;
-		EStencilOp BackFacePassStencilOp;
-		uint8 StencilReadMask;
-		uint8 StencilWriteMask;*/
+	template<typename InitializerType, typename RHIRefType, typename RHIParamRefType>
+	typename TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::FStaticStateResource TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::StaticResource = TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::FStaticStateResource();
+
 	template<
 		bool bEnableDepthWrite = true,
 		ECompareFunction DepthTest = CF_Less,
@@ -288,8 +277,9 @@ namespace nilou {
 	public:
 		static RHISamplerStateRef CreateRHI()
 		{
-			FSamplerStateInitializerRHI Initializer( Filter, AddressU, AddressV, AddressW, MipBias, MaxAnisotropy, 0, FLT_MAX, BorderColor, SamplerComparisonFunction );
+			FSamplerStateInitializer Initializer( Filter, AddressU, AddressV, AddressW, MipBias, MaxAnisotropy, 0, FLT_MAX, BorderColor, SamplerComparisonFunction );
 			return RHICreateSamplerState(Initializer);
 		}
 	};
+	
 }

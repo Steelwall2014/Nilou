@@ -27,15 +27,15 @@ namespace nilou {
         TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
         RDGBuffer* StagingBuffer = Graph.CreateBuffer(
-            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
+            NFormat("Texture \"{}\" InitRHI staging buffer", Name), 
             RDGBufferDesc(Image->GetDataSize()));
 
-        RDGCopyPassDesc PassDesc{};
-        PassDesc.Source = StagingBuffer;
-        PassDesc.Destination = TextureRDG.get();
+        RDGPassDesc PassDesc{"FTextureCubeResource::InitRHI"};
         PassDesc.bNeverCull = true;
         Graph.AddCopyPass(
             PassDesc,
+            StagingBuffer,
+            TextureRDG,
             [=](RHICommandList& RHICmdList)
             {
                 RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
@@ -53,7 +53,7 @@ namespace nilou {
                     6);                     // array layer
             });
         
-        FGenerateMips::Execute(Graph, TextureRDG.get(), SamplerStateRHI.get());
+        FGenerateMips::Execute(Graph, TextureRDG, SamplerStateRHI);
 
         RHIGetError();
     }

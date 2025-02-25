@@ -1,3 +1,4 @@
+#include <vulkan/vulkan.h>
 #include "RHICommandList.h"
 
 namespace nilou {
@@ -27,11 +28,12 @@ namespace nilou {
         /* Set state commands */
         virtual void SetViewport(int32 Width, int32 Height) override;
         virtual void SetScissor(int32 Width, int32 Height) override;
-        virtual void BindPipeline(FRHIPipelineState *NewPipelineState, EPipelineBindPoint PipelineBindPoint) override;
+        virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) override;
+        virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) override;
         virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;
         virtual void BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset) override;
         virtual void BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset) override;
-        virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EPipelineBindPoint PipelineBindPoint, uint32 Offset, uint32 Size, const void* Data) override;
+        virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data) override;
 
         /* Perform synchronization commands */
         virtual void PipelineBarrier(
@@ -45,6 +47,7 @@ namespace nilou {
 
         FVulkanCmdBuffer* CmdBuffer;
         FVulkanQueue* Queue;
+        VkCommandBuffer Handle;
 
     };
 

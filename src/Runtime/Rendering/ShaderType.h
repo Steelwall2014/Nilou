@@ -1,14 +1,13 @@
 #pragma once
 
 #include <filesystem>
-#include <set>
 #include <string>
 #include <functional>
 
 #include "HashedName.h"
 #include "ShaderParameter.h"
 #include "ShaderCompileEnvironment.h"
-#include "ShaderParser.h"
+#include "Templates/RefCounting.h"
 
 namespace nilou {
 
@@ -103,7 +102,7 @@ namespace nilou {
         // Different permutation may share the same descriptor set layout.
         // So we need to keep track of the unique descriptor set layouts.
         // This will be filled in FShaderCompiler::CompileMaterialShader and FShaderCompiler::CompileGlobalShaders.
-        std::map<uint32, std::shared_ptr<RHIDescriptorSetLayout>> UniqueDescriptorSetLayouts;
+        std::map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> UniqueDescriptorSetLayouts;
 
     };
 
@@ -132,7 +131,7 @@ namespace nilou {
             EShaderFrequency InShaderFrequency, 
             EShaderMetaType InShaderMetaType,
             std::function<bool(const FShaderPermutationParameters&)> InShouldCompilePermutation,
-            std::function<void(const const FShaderPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
+            std::function<void(const FShaderPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
             int32 InPermutationCount
         )
             : FShaderTypeBase(InShaderClassName, InShaderFileName, InPermutationCount)
@@ -145,9 +144,7 @@ namespace nilou {
         }
 
         std::function<bool(const FShaderPermutationParameters&)> ShouldCompilePermutation;
-        std::function<void(const const FShaderPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
-        //bool (*ShouldCompilePermutation)(const FShaderPermutationParameters&);
-        //void (*ModifyCompilationEnvironment)(const FShaderPermutationParameters&, FShaderCompilerEnvironment&);
+        std::function<void(const FShaderPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
     };
 
     
@@ -173,7 +170,7 @@ namespace nilou {
             const std::string &InFactoryName, 
             const std::string &InShaderFileName,
             std::function<bool(const FVertexFactoryPermutationParameters&)> InShouldCompilePermutation,
-            std::function<void(const const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
+            std::function<void(const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
             int32 InPermutationCount)
             : FShaderTypeBase(InFactoryName, InShaderFileName, InPermutationCount)
             , ShouldCompilePermutation(InShouldCompilePermutation)
@@ -182,6 +179,6 @@ namespace nilou {
             GetAllVertexFactoryTypes().push_back(this);
         }
         std::function<bool(const FVertexFactoryPermutationParameters&)> ShouldCompilePermutation;
-        std::function<void(const const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
+        std::function<void(const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
     };
 }

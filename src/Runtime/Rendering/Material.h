@@ -178,7 +178,7 @@ namespace nilou {
         
         FMaterialRenderProxy* GetRenderProxy() const
         {
-            return MaterialRenderProxy.get();
+            return MaterialRenderProxy;
         }
 
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
@@ -198,8 +198,7 @@ namespace nilou {
     protected:
 
         std::string Code;
-        // While FMaterialRenderProxy contains uniform buffers, so it is UNIQUE for each material/material instance
-        std::unique_ptr<FMaterialRenderProxy> MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
+        FMaterialRenderProxy* MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
     };
 
     class NCLASS UMaterialInstance : public UMaterial
@@ -276,7 +275,7 @@ namespace nilou {
                 uint64 Key = UNIFORMBUFFER_KEY(Position.SetIndex, Position.BindingIndex);
                 if constexpr (std::is_same_v<ValueType, UTexture*>)
                 {
-                    if (DescriptorSets.count(Position.SetIndex) != 0)
+                    if (DescriptorSets.find(Position.SetIndex) != DescriptorSets.end())
                     {
                         Textures[Key] = Value->GetResource();
                         DescriptorSets[Position.SetIndex]->SetSampler(
@@ -287,8 +286,10 @@ namespace nilou {
                 }
                 else 
                 {
-                    if (UniformBuffers.count(Key) != 0)
-                        UniformBuffers[Key]->SetData(Value, Position.Offset);
+                    if (UniformBuffers.find(Key) != UniformBuffers.end())
+                    {
+                        UniformBuffers[Key]->SetData(&Value, Position.Offset, sizeof(Value));
+                    }
                 }
             }
         }
@@ -299,7 +300,7 @@ namespace nilou {
     template <typename ParameterType>
     ParameterType* GameThread_FindParameterByName(std::vector<ParameterType>& Parameters, const FMaterialParameterInfo& ParameterInfo)
     {
-        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.Num(); ParameterIndex++)
+        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.size(); ParameterIndex++)
         {
             ParameterType* Parameter = &Parameters[ParameterIndex];
             if (Parameter->ParameterInfo == ParameterInfo)

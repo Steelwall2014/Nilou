@@ -149,7 +149,7 @@ public:
     VkBuffer Handle{};
     VkDeviceMemory Memory{};
 };
-using VulkanBufferRef = std::shared_ptr<VulkanBuffer>;
+using VulkanBufferRef = TRefCountPtr<VulkanBuffer>;
 
 class VulkanUniformBuffer : public RHIUniformBuffer
 {
@@ -163,11 +163,16 @@ public:
     void* Lock(class FVulkanDynamicRHI* Context, EResourceLockMode LockMode, uint32 LockSize, uint32 Offset) { return MultiBuffer.Lock(Context, LockMode, LockSize, Offset); }
     void Unlock(FVulkanDynamicRHI* Context) { MultiBuffer.Unlock(Context); }
 };
-using VulkanUniformBufferRef = std::shared_ptr<VulkanUniformBuffer>;
+using VulkanUniformBufferRef = TRefCountPtr<VulkanUniformBuffer>;
 
 inline VulkanBuffer* ResourceCast(RHIBuffer* Buffer)
 {
     return static_cast<VulkanBuffer*>(Buffer);
+}
+
+inline VulkanUniformBuffer* ResourceCast(RHIUniformBuffer* Buffer)
+{
+    return static_cast<VulkanUniformBuffer*>(Buffer);
 }
 
 }

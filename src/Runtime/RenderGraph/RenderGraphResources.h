@@ -109,7 +109,7 @@ struct FRDGProducerState
 	ERHIAccess Access = ERHIAccess::None;
 };
 
-class RDGResource
+class RDGResource : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
 {
 public:
     friend class FRDGPass;
@@ -170,6 +170,7 @@ protected:
 
 /************ Texture *************/
 using RDGTextureDesc = RHITextureDesc;
+
 class RDGTexture : public RDGResource
 {
 public:
@@ -179,7 +180,17 @@ public:
 
     RHITexture* GetRHI() const { return static_cast<RHITexture*>(ResourceRHI.GetReference()); }
 
-    class RDGTextureView* GetDefaultView() const { return DefaultView; }
+    class RDGTextureView* GetDefaultView() const 
+    { 
+        if (bIsPersistent)
+        {
+            return PooledDefaultView;
+        }
+        else 
+        {
+            return TransientDefaultView;
+        }
+    }
 
 	FRDGTextureSubresourceLayout GetSubresourceLayout() const
 	{
@@ -204,9 +215,10 @@ public:
     const RDGTextureDesc Desc;
 
 private:
-
-    RDGTextureView* DefaultView;
     
+    class RDGTextureView* TransientDefaultView;
+    TRefCountPtr<RDGTextureView> PooledDefaultView;
+
 	/** The layout used to facilitate subresource transitions. */
 	FRDGTextureSubresourceLayout Layout;
 	FRDGTextureSubresourceRange  WholeRange;
@@ -217,69 +229,44 @@ private:
 
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateTexture
     class FRHITransientTexture* TransientTexture;
+
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateExternalTexture
     FRDGPooledTextureRef PooledTexture;
 
-    std::vector<RDGSubresourceState> State;
+	/** The assigned view cache for this texture (sourced from transient / pooled texture). Never reset. */
+	class FRHITextureViewCache* ViewCache = nullptr;
+
+    std::vector<RDGSubresourceState> SubresourceStates;
 
 };
-using RDGTextureRef = std::shared_ptr<RDGTexture>;
+using RDGTextureRef = TRefCountPtr<RDGTexture>;
 
-struct RDGTextureViewDesc
-{
-    EPixelFormat Format; 
-    uint32 BaseMipLevel;
-    uint32 LevelCount;
-    uint32 BaseArrayLayer;
-    uint32 LayerCount;
-    ETextureDimension ViewType;
-    RDGTexture* Texture;
-
-    RDGTextureViewDesc() = default;
-
-    RDGTextureViewDesc(RDGTexture* InTexture)
-    {
-        Texture = InTexture;
-        Format = InTexture->Desc.Format;
-        BaseMipLevel = 0;
-        LevelCount = InTexture->Desc.NumMips;
-        BaseArrayLayer = 0;
-        LayerCount = InTexture->Desc.ArraySize;
-        ViewType = InTexture->Desc.TextureType;
-    }
-
-    static RDGTextureViewDesc Create(RDGTexture* InTexture)
-    {
-        return RDGTextureViewDesc(InTexture);
-    }
-
-    static RDGTextureViewDesc CreateForMipLevel(RDGTexture* InTexture, uint32 MipLevel)
-    {
-        RDGTextureViewDesc Desc = RDGTextureViewDesc::Create(InTexture);
-        Desc.BaseMipLevel = MipLevel;
-        Desc.LevelCount = 1;
-        return Desc;
-    }
-
-    bool operator==(const RDGTextureViewDesc& Other) const = default;
-};
+using RDGTextureViewDesc = RHITextureViewDesc;
 class RDGTextureView : public RDGResource
 {
 public:
-    RDGTextureView(std::string InName, const RDGTextureViewDesc& InDesc) 
+    RDGTextureView(std::string InName, RDGTexture* InTexture, const RDGTextureViewDesc& InDesc) 
         : RDGResource(InName, ERDGResourceType::TextureView)
+        , Texture(InTexture)
         , Desc(InDesc)
     { }
 
+    RDGTexture* Texture;
     const RDGTextureViewDesc Desc;
 
-    RDGTexture* GetParent() const { return Desc.Texture; }
+    RDGTexture* GetParent() const { return Texture; }
+
+    RHITextureView* GetRHI() const { return static_cast<RHITextureView*>(ResourceRHI.GetReference()); }
+
+    uint32 GetSizeX() const { return GetParent()->Desc.SizeX; }
+    uint32 GetSizeY() const { return GetParent()->Desc.SizeY; }
+    uint32 GetSizeZ() const { return GetParent()->Desc.SizeZ; }
 
     const FRDGTextureSubresourceRange& GetSubresourceRange() const { return SubresourceRange; }
 
     FRDGTextureSubresourceRange SubresourceRange;
 };
-using RDGTextureViewRef = std::shared_ptr<RDGTextureView>;
+using RDGTextureViewRef = TRefCountPtr<RDGTextureView>;
 
 /************ Buffer *************/
 class RDGBuffer : public RDGResource
@@ -289,37 +276,32 @@ public:
         : RDGResource(InName, ERDGResourceType::Buffer)
         , Desc(InDesc) 
     { 
-        Data = std::make_unique<uint8[]>(InDesc.GetSize());
-        AllocatedSize = InDesc.GetSize();
+        Buffer = std::make_unique<uint8[]>(InDesc.GetSize());
     }
     RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.GetReference()); }
 
-    void SetData(const void* InData, uint32 Size, uint32 Offset)
+    void SetData(const void* InData, uint32 Offset, uint32 Size)
     {
-        Ncheckf(Offset+Size <= AllocatedSize, "Data size is too large, expected %d, got %d", AllocatedSize, Offset+Size);
-        if (Data)
+        Ncheckf(Offset+Size <= Desc.GetSize(), "Data size is too large, expected %d, got %d", Desc.GetSize(), Offset+Size);
+        if (Buffer)
         {
-            if (memcmp(Data.get(), InData, Size) != 0)
-            {
-                memcpy(Data.get()+Offset, InData, Size);
-                bDirty = true;
-            }
+            memcpy(Buffer.get()+Offset, InData, Size);
+            bDirty = true;
         }
     }
 
     template<typename T>
-    const T* GetData() const
+    const T& GetData() const
     {
-        Ncheckf(sizeof(T) <= AllocatedSize, "Data size is too large");
-        return reinterpret_cast<T*>(Data.get());
+        Ncheckf(sizeof(T) <= Desc.GetSize(), "Data size is too large");
+        return *reinterpret_cast<T*>(Buffer.get());
     }
 
     void Flush();
 
     const RDGBufferDesc Desc;
-    std::unique_ptr<uint8[]> Data = nullptr;
-    uint32 AllocatedSize = 0;
-    bool bDirty = false;
+    std::unique_ptr<uint8[]> Buffer = nullptr;
+    bool bDirty;
 
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
     class FRHITransientBuffer* TransientBuffer;
@@ -328,48 +310,47 @@ public:
 
     RDGSubresourceState State;
 };
-using RDGBufferRef = std::shared_ptr<RDGBuffer>;
+using RDGBufferRef = TRefCountPtr<RDGBuffer>;
 
 template <typename T>
 class TRDGUniformBuffer : public RDGBuffer
 {
 public:
-    using DataType = T;
-    template <auto MemberPointer, typename InFieldType = typename MemberPointerTraits<decltype(MemberPointer)>::Value>
-    void SetData(const InFieldType& Value)
+    TRDGUniformBuffer(std::string InName, const RDGBufferDesc& InDesc) 
+        : RDGBuffer(InName, InDesc)
+    { 
+    }
+    T& GetData()
     {
-        using InDataType = typename MemberPointerTraits<decltype(MemberPointer)>::Object;
-        static_assert(std::is_member_pointer_v<decltype(MemberPointer)>);
-        static_assert(std::is_trivially_copyable_v<InDataType>);
-        static_assert(std::is_trivially_copyable_v<InFieldType>);
-        static_assert(std::is_same_v<InDataType, T>);
-        if (Data)
-        {
-            DataType& data = *reinterpret_cast<DataType*>(Data.get());
-            if (memcmp(&(data.*MemberPointer), &Value, sizeof(InFieldType)) != 0)
-            {
-                data.*MemberPointer = Value;
-                bDirty = true;
-            }
-        }
+        Ncheckf(sizeof(T) <= Desc.GetSize(), "Data size is too large");
+        return *reinterpret_cast<T*>(Buffer.get());
+    }
+    void SetData(const T& Value)
+    {
+        RDGBuffer::SetData(&Value, 0, sizeof(T));
     }
 };
 template <typename T>
-using TRDGUniformBufferRef = std::shared_ptr<TRDGUniformBuffer<T>>;
+using TRDGUniformBufferRef = TRefCountPtr<TRDGUniformBuffer<T>>;
 
-class RDGFramebuffer
+struct RDGRenderTargets
 {
-public:
+    struct FBindingPoint
+    {
+        FBindingPoint() = default;
+        FBindingPoint(RDGTextureView* InTextureView) : TextureView(InTextureView) {}
 
-    void SetAttachment(EFramebufferAttachment Attachment, RDGTextureView* Texture);
+        RDGTextureView* TextureView = nullptr;
+        ERenderTargetLoadAction LoadAction = ERenderTargetLoadAction::Load;
+        ERenderTargetStoreAction StoreAction = ERenderTargetStoreAction::Store;
+    };
+    FBindingPoint DepthStencilAttachment;
 
-    const RHIRenderTargetLayout& GetRenderTargetLayout() const { return RTLayout; }
+    std::array<FBindingPoint, MaxSimultaneousRenderTargets> ColorAttachments;
 
-private:
+    RHIFramebufferRef FramebufferRHI = nullptr;
 
-    RHIRenderTargetLayout RTLayout;
-
-    std::unordered_map<EFramebufferAttachment, RDGTextureView*> Attachments;
+    RHIRenderTargetLayout GetRenderTargetLayout() const;
 };
 
 }

@@ -4,7 +4,7 @@
 #include <UDRefl/UDRefl.hpp>
 #include <json/json.hpp>
 #include "Macros.h"
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum_utility.hpp>
 
 
 template<typename T>

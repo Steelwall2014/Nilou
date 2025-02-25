@@ -14,6 +14,7 @@ namespace nilou {
 		float constant_term;
         // DensityProfileLayer() = default;
         DensityProfileLayer &operator=(const DensityProfileLayer &) = default;
+        bool operator==(const DensityProfileLayer &Other) const = default; 
         bool operator!=(const DensityProfileLayer &Other) const = default; 
 	};
 
@@ -30,10 +31,8 @@ namespace nilou {
             layers[1] = layer2;
         }
         DensityProfile &operator=(const DensityProfile &Other) = default;
-        bool operator!=(const DensityProfile &Other) const
-        {
-            return layers != Other.layers;
-        }
+        bool operator==(const DensityProfile &Other) const = default; 
+        bool operator!=(const DensityProfile &Other) const = default; 
 	};
 
 #define SKY_DECLARE_FUNCTION(MemberType, MemberName) \
@@ -162,11 +161,11 @@ public: \
 public: \
     inline void Set##MemberName(const MemberType &NewValue) \
     { \
-		AtmosphereParameters->GetData<ShaderAtmosphereParametersBlock>()->ATMOSPHERE.MemberName = NewValue; \
+		AtmosphereParameters->GetData().ATMOSPHERE.MemberName = NewValue; \
     } \
     inline MemberType Get##MemberName() const \
     { \
-        return AtmosphereParameters->GetData<ShaderAtmosphereParametersBlock>()->ATMOSPHERE.MemberName; \
+        return AtmosphereParameters->GetData().ATMOSPHERE.MemberName; \
     }
 
     class FSkyAtmosphereSceneProxy
@@ -192,12 +191,11 @@ public: \
 		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
 		inline RDGTextureView *GetMultiScatteringLUT() const { return MultiScatteringLUT->GetDefaultView(); }
 		inline RDGTextureView *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT->GetDefaultView(); }
-		inline RDGBuffer *GetAtmosphereParametersBlock() const { return AtmosphereParameters.get(); }
+		inline RDGBuffer *GetAtmosphereParametersBlock() const { return AtmosphereParameters; }
 
 
 	protected:
-		RDGBufferRef AtmosphereParameters;
-		RDGBufferRef ScatteringOrderParameter;
+		TRDGUniformBufferRef<ShaderAtmosphereParametersBlock> AtmosphereParameters;
 		RDGTextureRef TransmittanceLUT;
 		RDGTextureRef IrradianceLUT;
 		RDGTextureRef DeltaScatteringRayleighLUT;
@@ -210,8 +208,8 @@ public: \
 		void DispatchTransmittancePass();
 		void DispatchDirectIrradiancePass();
 		void DispatchScatteringPass();
-		void DispatchScatteringDensityPass();
-		void DispatchIndirectIrradiancePass();
+		void DispatchScatteringDensityPass(int32 scattering_order);
+		void DispatchIndirectIrradiancePass(int32 scattering_order);
 		void DispatchMultiScatteringPass();
     };
 #undef SKY_PROXY_DECLARE_FUNCTION

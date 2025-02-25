@@ -106,8 +106,8 @@ namespace nilou {
 VulkanPipelineLayout::~VulkanPipelineLayout()
 {
 	vkDestroyPipelineLayout(Device, Handle, nullptr);
-	for (int i = 0; i < DescriptorSetsLayout->Handles.size(); i++)
-		vkDestroyDescriptorSetLayout(Device, DescriptorSetsLayout->Handles[i], nullptr);
+	for (int i = 0; i < SetLayoutHandles.size(); i++)
+		vkDestroyDescriptorSetLayout(Device, SetLayoutHandles[i], nullptr);
 }
 
 }

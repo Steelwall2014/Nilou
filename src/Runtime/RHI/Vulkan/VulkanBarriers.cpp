@@ -391,7 +391,7 @@ bool IsDepthOrStencilAspect(RHITexture* Texture)
 // 	}
 
 // 	VkImageMemoryBarrier2& ImgBarrier = ImageBarriers.emplace_back();
-// 	SetupImageBarrier(ImgBarrier, VulkanTexture->Image, ImgSrcStage, ImgDstStage, SrcAccessFlags, DstAccessFlags, SrcLayout, DstLayout, SubresourceRange);
+// 	SetupImageBarrier(ImgBarrier, VulkanTexture->GetHandle(), ImgSrcStage, ImgDstStage, SrcAccessFlags, DstAccessFlags, SrcLayout, DstLayout, SubresourceRange);
 
 // 	InOutLayout = DstLayout;
 // }
@@ -499,7 +499,7 @@ const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Textur
 {
     VulkanTexture* VulkanTexture = ResourceCast(Texture);
     Ncheck(!bWriteOnly);
-    const FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
+    const FVulkanImageLayout* Layout = Find(VulkanTexture->GetHandle());
     
     if (!Layout && Fallback)
     {
@@ -515,7 +515,7 @@ const FVulkanImageLayout* FVulkanLayoutManager::GetFullLayout(RHITexture* Textur
         return nullptr;
     }
 
-    auto insert = Layouts.insert({VulkanTexture->Image, FVulkanImageLayout(LayoutIfNotFound, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
+    auto insert = Layouts.insert({VulkanTexture->GetHandle(), FVulkanImageLayout(LayoutIfNotFound, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
     return &insert.first->second;
 }
 
@@ -523,13 +523,13 @@ void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, const FVulkanImage
 {
     Ncheck((Texture->GetNumMips() == NewLayout.NumMips) && (Texture->GetNumLayers() == NewLayout.NumLayers));
     VulkanTexture* VulkanTexture = ResourceCast(Texture);
-    SetFullLayout(VulkanTexture->Image, NewLayout);
+    SetFullLayout(VulkanTexture->GetHandle(), NewLayout);
 }
 
 void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLayout, bool bOnlyIfNotFound)
 {
     VulkanTexture* VulkanTexture = ResourceCast(Texture);
-    FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
+    FVulkanImageLayout* Layout = Find(VulkanTexture->GetHandle());
     if (Layout)
     {
         if (!bOnlyIfNotFound)
@@ -539,14 +539,14 @@ void FVulkanLayoutManager::SetFullLayout(RHITexture* Texture, VkImageLayout InLa
     }
     else
     {
-        Layouts.insert({VulkanTexture->Image, FVulkanImageLayout(InLayout, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
+        Layouts.insert({VulkanTexture->GetHandle(), FVulkanImageLayout(InLayout, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/)});
     }
 }
 
 void FVulkanLayoutManager::SetLayout(RHITexture* Texture, const VkImageSubresourceRange& InSubresourceRange, VkImageLayout InLayout)
 {
     VulkanTexture* VulkanTexture = ResourceCast(Texture);
-    FVulkanImageLayout* Layout = Find(VulkanTexture->Image);
+    FVulkanImageLayout* Layout = Find(VulkanTexture->GetHandle());
     if (Layout)
     {
         Layout->Set(InLayout, InSubresourceRange);
@@ -555,7 +555,7 @@ void FVulkanLayoutManager::SetLayout(RHITexture* Texture, const VkImageSubresour
     {
         FVulkanImageLayout NewLayout(VK_IMAGE_LAYOUT_UNDEFINED, Texture->GetNumMips(), Texture->GetNumLayers()/*, GetFullAspectMask(Texture->GetFormat())*/);
         NewLayout.Set(InLayout, InSubresourceRange);
-        Layouts.insert({VulkanTexture->Image, NewLayout});
+        Layouts.insert({VulkanTexture->GetHandle(), NewLayout});
     }
 }
 
@@ -566,11 +566,11 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Im
 		VkImageSubresourceRange NewRange = SubresourceRange;
 		NewRange.baseArrayLayer += Image->BaseArrayLayer;
 		NewRange.baseMipLevel += Image->BaseMipLevel;
-		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, SrcLayout, DstLayout, NewRange);
+		Barrier.AddImageLayoutTransition(Image->ParentTexture->GetHandle(), SrcLayout, DstLayout, NewRange);
 	}
 	else 
 	{
-		Barrier.AddImageLayoutTransition(Image->Image, SrcLayout, DstLayout, SubresourceRange);
+		Barrier.AddImageLayoutTransition(Image->GetHandle(), SrcLayout, DstLayout, SubresourceRange);
 	}
 	Image->SetImageLayout(DstLayout, SubresourceRange);
 }
@@ -581,7 +581,7 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Im
 	if (Image->IsImageView())
 	{
 		FVulkanImageLayout ParentSubresLayout = Image->ParentTexture->GetImageLayout().GetSubresLayout(Range);
-		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, Image->BaseMipLevel, Image->BaseArrayLayer, ParentSubresLayout, DstLayout);
+		Barrier.AddImageLayoutTransition(Image->ParentTexture->GetHandle(), AspectMask, Image->BaseMipLevel, Image->BaseArrayLayer, ParentSubresLayout, DstLayout);
 		Image->ParentTexture->SetImageLayout(DstLayout, Range);
 		#ifdef NILOU_DEBUG
 		Image->GetImageLayout();
@@ -589,7 +589,7 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Im
 	}
 	else 
 	{
-		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+		Barrier.AddImageLayoutTransition(Image->GetHandle(), AspectMask, SrcLayout, DstLayout);
 		Image->SetImageLayout(DstLayout, Range);
 	}
 }
@@ -600,11 +600,11 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Im
 // 	if (Image->IsImageView())
 // 	{
 // 		FVulkanImageLayout ParentSubresLayout = Image->ParentTexture->GetImageLayout().GetSubresLayout(Range);
-// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, ParentSubresLayout, DstLayout);
+// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->GetHandle(), AspectMask, ParentSubresLayout, DstLayout);
 // 	}
 // 	else 
 // 	{
-// 		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+// 		Barrier.AddImageLayoutTransition(Image->GetHandle(), AspectMask, SrcLayout, DstLayout);
 // 	}
 // 	Image->SetImageLayout(DstLayout, Range);
 // }
@@ -613,11 +613,11 @@ void FVulkanImageLayoutBarrierHelper::AddImageLayoutTransition(VulkanTexture* Im
 // {
 // 	if (Image->IsImageView())
 // 	{
-// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->Image, AspectMask, SrcLayout, DstLayout);
+// 		Barrier.AddImageLayoutTransition(Image->ParentTexture->GetHandle(), AspectMask, SrcLayout, DstLayout);
 // 	}
 // 	else 
 // 	{
-// 		Barrier.AddImageLayoutTransition(Image->Image, AspectMask, SrcLayout, DstLayout);
+// 		Barrier.AddImageLayoutTransition(Image->GetHandle(), AspectMask, SrcLayout, DstLayout);
 // 	}
 // 	Image->SetImageLayout(DstLayout, Range);
 // }

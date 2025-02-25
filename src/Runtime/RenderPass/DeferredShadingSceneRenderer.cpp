@@ -52,72 +52,9 @@ namespace nilou {
         }
     }
 
-    // FSceneTextures::FSceneTextures(const SceneTextureCreateInfo &CreateInfo)
-    // {
-    //     Viewport = CreateInfo.OutputResolution;
-    //     SceneColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "SceneColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     DepthStencil = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "FSceneTextures DepthStencil", EPixelFormat::PF_D24S8, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget);
-
-    //     LightPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-    //         {FA_Color_Attachment0, SceneColor},
-    //         {FA_Depth_Stencil_Attachment, DepthStencil}
-    //     });
-
-    //     BaseColor = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "BaseColor", EPixelFormat::PF_R16G16B16A16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     RelativeWorldSpacePosition = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "RelativeWorldSpacePosition", EPixelFormat::PF_R16G16B16A16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     WorldSpaceNormal = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "WorldSpaceNormal", EPixelFormat::PF_R16G16B16A16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     MetallicRoughness = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "MetallicRoughness", EPixelFormat::PF_R16G16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     Emissive = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "Emissive", EPixelFormat::PF_R16G16B16A16F, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     ShadingModel = FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(
-    //         "ShadingModel", EPixelFormat::PF_R8UI, 1, 
-    //         Viewport.x, Viewport.y, TexCreate_RenderTargetable | TexCreate_ResolveTargetable);
-
-    //     GeometryPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-    //         {FA_Color_Attachment0, BaseColor},
-    //         {FA_Color_Attachment1, RelativeWorldSpacePosition},
-    //         {FA_Color_Attachment2, WorldSpaceNormal},
-    //         {FA_Color_Attachment3, MetallicRoughness},
-    //         {FA_Color_Attachment4, Emissive},
-    //         {FA_Color_Attachment5, ShadingModel},
-    //         {FA_Depth_Stencil_Attachment, DepthStencil}
-    //     });
-        
-    //     PreZPassFramebuffer = FDynamicRHI::GetDynamicRHI()->RHICreateFramebuffer({
-    //         {FA_Depth_Stencil_Attachment, DepthStencil}
-    //     });
-    // }
-
     FSceneRenderer::FScreenQuadPositionVertexBuffer FSceneRenderer::PositionVertexBuffer;
     FSceneRenderer::FScreenQuadUVVertexBuffer FSceneRenderer::UVVertexBuffer;
     FRHIVertexDeclaration* FSceneRenderer::ScreenQuadVertexDeclaration;
-
-    // FSceneRenderer::TResourcesPool<
-    //     FShadowMapResource, 
-    //     ShadowMapResourceCreateInfo> FSceneRenderer::ShadowMapResourcesPool;
-
-    // FSceneRenderer::TResourcesPool<
-    // FSceneTexturesDeferred, 
-    // SceneTextureCreateInfo> FSceneRenderer::SceneTexturesPool;
 
     FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
         : Scene(InViewFamily.Scene)
@@ -141,7 +78,7 @@ namespace nilou {
             PositionVertexElement.Stride = sizeof(float) * 4;
             PositionVertexElement.Type = EVertexElementType::VET_Float4;
             PositionVertexInputStream.StreamIndex = 0;
-            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRDG.get();
+            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRDG;
             PositionVertexInputStream.Offset = 0;
                         
             UVVertexElement.AttributeIndex = 1;
@@ -150,7 +87,7 @@ namespace nilou {
             UVVertexElement.Stride = sizeof(float) * 2;
             UVVertexElement.Type = EVertexElementType::VET_Float2;
             UVVertexInputStream.StreamIndex = 1;
-            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRDG.get();
+            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRDG;
             UVVertexInputStream.Offset = 0;
 
             ScreenQuadVertexDeclaration = RHICreateVertexDeclaration({PositionVertexElement, UVVertexElement});
@@ -174,7 +111,7 @@ namespace nilou {
             FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
             FLightInfo LightInfo;
             LightInfo.LightType = Proxy->LightType;
-            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer.get();
+            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer;
             int NumRelevantViews = 1;
             if (Proxy->LightType == ELightType::LT_Directional)
                 NumRelevantViews = Views.size();
@@ -190,17 +127,17 @@ namespace nilou {
                 TextureDesc.TextureType = ETextureDimension::Texture2DArray;
                 if (Proxy->LightType == ELightType::LT_Directional)
                 {
-                    BufferDesc.Size = sizeof(FDirectionalShadowMappingBlock);
+                    BufferDesc.BytesPerElement = sizeof(FDirectionalShadowMappingBlock);
                     TextureDesc.ArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
                 }
                 else if (Proxy->LightType == ELightType::LT_Point)
                 {
-                    BufferDesc.Size = sizeof(FPointShadowMappingBlock);
+                    BufferDesc.BytesPerElement = sizeof(FPointShadowMappingBlock);
                     TextureDesc.ArraySize = 6;
                 }
                 else if (Proxy->LightType == ELightType::LT_Spot)
                 {
-                    BufferDesc.Size = sizeof(FSpotShadowMappingBlock);
+                    BufferDesc.BytesPerElement = sizeof(FSpotShadowMappingBlock);
                     TextureDesc.ArraySize = 1;
                 }
                 Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", BufferDesc);
@@ -213,8 +150,7 @@ namespace nilou {
                     TextureViewDesc.BaseArrayLayer = i;
                     TextureViewDesc.LayerCount = 1;
                     TextureViewDesc.ViewType = ETextureDimension::Texture2D;
-                    TextureViewDesc.Texture = Resource.DepthArray;
-                    RDGTextureView* DepthArrayView = Graph.CreateTextureView(TextureViewDesc);
+                    RDGTextureView* DepthArrayView = Graph.CreateTextureView("", Resource.DepthArray, TextureViewDesc);
                     Resource.DepthViews.push_back(DepthArrayView);
                 }
                 LightInfo.ShadowMapResources.push_back(Resource);
@@ -231,7 +167,7 @@ namespace nilou {
         {
 		    FSceneView& View = Views[ViewIndex];
             
-            View.ViewUniformBuffer = Graph.CreateBuffer(fmt::format("ViewUniformBuffer {}", ViewIndex), {0, sizeof(FViewShaderParameters)});
+            View.ViewUniformBuffer = Graph.CreateUniformBuffer<FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
             FViewShaderParameters ViewUniformBufferData;
             const dmat4& WorldToView = View.ViewMatrix;
             const mat4& ViewToClip = View.ProjectionMatrix;
@@ -256,7 +192,7 @@ namespace nilou {
             for (int i = 0; i < 6; i++)
                 ViewUniformBufferData.FrustumPlanes[i] = dvec4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
-            View.ViewUniformBuffer->SetData(ViewUniformBufferData, 0);
+            View.ViewUniformBuffer->SetData(ViewUniformBufferData);
 
             FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
             RDGTextureDesc Desc;
@@ -268,20 +204,20 @@ namespace nilou {
             Desc.TextureType = ETextureDimension::Texture2D;
 
             Desc.Format = EPixelFormat::PF_R16G16B16A16F;
-            SceneTextures.SceneColor                    = Graph.CreateTexture(fmt::format("SceneColor {}", ViewIndex), Desc);
-            SceneTextures.BaseColor                     = Graph.CreateTexture(fmt::format("BaseColor {}", ViewIndex), Desc);
-            SceneTextures.RelativeWorldSpacePosition    = Graph.CreateTexture(fmt::format("RelativeWorldSpacePosition {}", ViewIndex), Desc);
-            SceneTextures.WorldSpaceNormal              = Graph.CreateTexture(fmt::format("WorldSpaceNormal {}", ViewIndex), Desc);
-            SceneTextures.Emissive                      = Graph.CreateTexture(fmt::format("Emissive {}", ViewIndex), Desc);
+            SceneTextures.SceneColor                    = Graph.CreateTexture(NFormat("SceneColor {}", ViewIndex), Desc);
+            SceneTextures.BaseColor                     = Graph.CreateTexture(NFormat("BaseColor {}", ViewIndex), Desc);
+            SceneTextures.RelativeWorldSpacePosition    = Graph.CreateTexture(NFormat("RelativeWorldSpacePosition {}", ViewIndex), Desc);
+            SceneTextures.WorldSpaceNormal              = Graph.CreateTexture(NFormat("WorldSpaceNormal {}", ViewIndex), Desc);
+            SceneTextures.Emissive                      = Graph.CreateTexture(NFormat("Emissive {}", ViewIndex), Desc);
 
             Desc.Format = EPixelFormat::PF_D24S8;
-            SceneTextures.DepthStencil                  = Graph.CreateTexture(fmt::format("DepthStencil {}", ViewIndex), Desc);
+            SceneTextures.DepthStencil                  = Graph.CreateTexture(NFormat("DepthStencil {}", ViewIndex), Desc);
 
             Desc.Format = EPixelFormat::PF_R16G16F;
-            SceneTextures.MetallicRoughness             = Graph.CreateTexture(fmt::format("MetallicRoughness {}", ViewIndex), Desc);
+            SceneTextures.MetallicRoughness             = Graph.CreateTexture(NFormat("MetallicRoughness {}", ViewIndex), Desc);
 
             Desc.Format = EPixelFormat::PF_R8UI;
-            SceneTextures.ShadingModel                  = Graph.CreateTexture(fmt::format("ShadingModel {}", ViewIndex), Desc);
+            SceneTextures.ShadingModel                  = Graph.CreateTexture(NFormat("ShadingModel {}", ViewIndex), Desc);
 
         }
 
@@ -297,7 +233,7 @@ namespace nilou {
         std::vector<FSceneView>& Views = ViewFamily.Views;
         OutViewMeshBatches.resize(Views.size());
         OutViewPDIs.resize(Views.size());
-        NILOU_LOG(Info, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
+        NILOU_LOG(Display, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
 
         for (FPrimitiveSceneInfo* PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {
@@ -401,8 +337,7 @@ namespace nilou {
     {
         FTextureRenderTargetResource* RenderTargetResource = ViewFamily.Viewport.RenderTarget;
         RHIRenderTargetLayout RTLayout;
-        RTLayout.NumRenderTargetsEnabled = 1;
-        RTLayout.RenderTargetFormats[0] = RenderTargetResource->GetTextureRDG()->Desc.Format;
+        RTLayout.ColorAttachments[0].Format = RenderTargetResource->GetTextureRDG()->Desc.Format;
 
         // default sampler state of this pass
         RHISamplerState* SamplerStateRHI = TStaticSamplerState<>::GetRHI();
@@ -416,42 +351,41 @@ namespace nilou {
         PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
         PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
         PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
-        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI().get();
-        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI().get();
-        PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI().get();
+        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
+        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
+        PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI();
         PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
         PSOInitializer.RTLayout = RTLayout;
-        FRHIPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
+        RHIGraphicsPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
 
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
 
             RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet<FRenderToScreenPixelShader>(0, 0);
-            RDGBuffer* UniformBlock = Graph.CreateUniformBuffer<FRenderToScreenPixelShader::UniformBlock>("FRenderToScreenPixelShader UniformBlock");
-            auto UniformBlockData = UniformBlock->GetData<FRenderToScreenPixelShader::UniformBlock>();
+            FRenderToScreenParameters Parameters;
             if (ViewFamily.bIsSceneCapture)
             {
                 if (ViewFamily.CaptureSource == SCS_SceneDepth)
                 {
-                    UniformBlockData->GammaCorrection = 1.f;
-                    UniformBlockData->bEnableToneMapping = 0;
+                    Parameters.GammaCorrection = 1.f;
+                    Parameters.bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
                         "SceneColor", 
                         SceneTextures.DepthStencil->GetDefaultView(), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_LinearColor)
                 {
-                    UniformBlockData->GammaCorrection = 1.f;
-                    UniformBlockData->bEnableToneMapping = 0;
+                    Parameters.GammaCorrection = 1.f;
+                    Parameters.bEnableToneMapping = 0;
                     DescriptorSetPS->SetSampler(
                         "SceneColor", 
                         SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
                 }
                 else if (ViewFamily.CaptureSource == SCS_GammaColor)
                 {
-                    UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
-                    UniformBlockData->bEnableToneMapping = 1;
+                    Parameters.GammaCorrection = ViewFamily.GammaCorrection;
+                    Parameters.bEnableToneMapping = 1;
                     DescriptorSetPS->SetSampler(
                         "SceneColor", 
                         SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
@@ -463,27 +397,30 @@ namespace nilou {
             }
             else 
             {
-                UniformBlockData->GammaCorrection = ViewFamily.GammaCorrection;
-                UniformBlockData->bEnableToneMapping = ViewFamily.bEnableToneMapping;
+                Parameters.GammaCorrection = ViewFamily.GammaCorrection;
+                Parameters.bEnableToneMapping = ViewFamily.bEnableToneMapping;
                 DescriptorSetPS->SetSampler(
                     "SceneColor", 
                     SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
             }
-            DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBlock);
-            RDGFramebuffer RenderTargets;
-            RenderTargets.SetAttachment(FA_Color_Attachment0, RenderTargetResource->GetTextureRDG()->GetDefaultView());
-            RDGGraphicsPassDesc PassDesc{};
-            PassDesc.DescriptorSets = { DescriptorSetPS };
-            PassDesc.RenderTargets = RenderTargets;
+            auto UniformBuffer = Graph.CreateUniformBuffer<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
+            UniformBuffer->SetData(Parameters);
+            DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBuffer);
+            RDGRenderTargets RenderTargets;
+            RenderTargets.ColorAttachments[0] = RenderTargetResource->GetTextureRDG()->GetDefaultView();
+            RDGPassDesc PassDesc{NFormat("RenderToScreen {}", ViewIndex)};
+            PassDesc.bNeverCull = true;
             Graph.AddGraphicsPass(
                 PassDesc,
+                RenderTargets,
+                { DescriptorSetPS },
                 [=](RHICommandList& RHICmdList)
                 {
                     // FRHIRenderPassInfo PassInfo(OutputRenderTarget, ViewInfo.ScreenResolution, true, true, true);
                     // RHICmdList->RHIBeginRenderPass(PassInfo);
                     {
                         RHIGetError();
-                        RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Graphics);
+                        RHICmdList.BindGraphicsPipelineState(PSO);
                         RHIGetError();
 
                         RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->GetRHI(), 0);

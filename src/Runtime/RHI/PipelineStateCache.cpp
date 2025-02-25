@@ -4,28 +4,28 @@
 
 namespace nilou {
 
-void FPipelineStateCache::CacheGraphicsPSO(const FGraphicsPipelineStateInitializer& Initializer, FRHIGraphicsPipelineStateRef CacheState)
+void FPipelineStateCache::CacheGraphicsPSO(const FGraphicsPipelineStateInitializer& Initializer, RHIGraphicsPipelineStateRef CacheState)
 {
     GraphicsPipelineCache[Initializer] = CacheState;
 }
 
-FRHIGraphicsPipelineState* FPipelineStateCache::FindCachedGraphicsPSO(const FGraphicsPipelineStateInitializer& Initializer)
+RHIGraphicsPipelineState* FPipelineStateCache::FindCachedGraphicsPSO(const FGraphicsPipelineStateInitializer& Initializer)
 {
     if (!GraphicsPipelineCache.contains(Initializer))
         return nullptr;
-    return GraphicsPipelineCache[Initializer].get();
+    return GraphicsPipelineCache[Initializer];
 }
 
-void FPipelineStateCache::CacheComputePSO(RHIComputeShader* ComputeShader, FRHIComputePipelineStateRef CacheState)
+void FPipelineStateCache::CacheComputePSO(RHIComputeShader* ComputeShader, RHIComputePipelineStateRef CacheState)
 {
     ComputePipelineCache[ComputeShader] = CacheState;
 }
 
-FRHIComputePipelineState* FPipelineStateCache::FindCachedComputePSO(RHIComputeShader* ComputeShader)
+RHIComputePipelineState* FPipelineStateCache::FindCachedComputePSO(RHIComputeShader* ComputeShader)
 {
     if (!ComputePipelineCache.contains(ComputeShader))
         return nullptr;
-    return ComputePipelineCache[ComputeShader].get();
+    return ComputePipelineCache[ComputeShader];
 }
 
 void FPipelineStateCache::CacheVertexDeclaration(const FVertexDeclarationElementList& ElementList, FRHIVertexDeclarationRef VertexDeclaration)
@@ -39,13 +39,13 @@ FRHIVertexDeclaration* FPipelineStateCache::FindVertexDeclaration(const FVertexD
     uint32 Key = FCrc::MemCrc32(Elements.data(), Elements.size() * sizeof(FVertexElement));
     if (!VertexDeclarationCache.contains(Key))
         return nullptr;
-    return VertexDeclarationCache[Key].get();
+    return VertexDeclarationCache[Key];
 }
 
-std::unordered_map<FGraphicsPipelineStateInitializer, FRHIGraphicsPipelineStateRef> 
+std::unordered_map<FGraphicsPipelineStateInitializer, RHIGraphicsPipelineStateRef> 
 FPipelineStateCache::GraphicsPipelineCache{};
 
-std::unordered_map<RHIComputeShader*, FRHIComputePipelineStateRef> 
+std::unordered_map<RHIComputeShader*, RHIComputePipelineStateRef> 
 FPipelineStateCache::ComputePipelineCache{};
 
 std::unordered_map<uint32, FRHIVertexDeclarationRef> 
