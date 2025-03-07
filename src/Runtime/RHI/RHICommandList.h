@@ -24,13 +24,10 @@ namespace nilou {
 		FlushRHIThreadFlushResources = 3
     };
 
-    class RHICommandList
+    class RHICommandList : public RHIResource
     {
     public:
-        RHICommandList() = delete;
-        RHICommandList& operator=(const RHICommandList&) = delete;
-        RHICommandList& operator=(RHICommandList&&) = default;
-        virtual ~RHICommandList() { }
+        RHICommandList() : RHIResource(ERHIResourceType::RRT_CommandBuffer) { }
 
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
@@ -71,8 +68,6 @@ namespace nilou {
             const std::vector<RHIMemoryBarrier>& MemoryBarriers, 
             const std::vector<RHIImageMemoryBarrier>& ImageBarriers, 
             const std::vector<RHIBufferMemoryBarrier>& BufferBarriers) = 0;
-        
-        virtual void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
 
         RHICommandContext& GetContext() 
         {
@@ -90,6 +85,20 @@ namespace nilou {
         RHICommandContext* GraphicsContext;
         RHICommandContext* ComputeContext;
 
+    };
+
+    class RHICommandListExecutor
+    {
+    public:
+        RHICommandListExecutor();
+        ~RHICommandListExecutor();
+
+        void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal);
+        
+        RHICommandList& GetCommandList() { return *RHICmdList; }
+
+    private:
+        RHICommandList* RHICmdList;
     };
 
 }

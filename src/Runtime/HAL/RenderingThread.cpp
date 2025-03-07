@@ -17,7 +17,7 @@ namespace nilou {
 
     void EnqueueUniqueRenderCommandType::DoTask()
     {
-        std::unique_ptr<RHICommandList> RHICmdList = RHICreateCommandList();
+        RHICommandList* RHICmdList = RHICreateCommandList();
         lambda(*RHICmdList);
     }
 

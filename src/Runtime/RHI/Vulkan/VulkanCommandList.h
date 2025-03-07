@@ -41,14 +41,19 @@ namespace nilou {
             const std::vector<RHIImageMemoryBarrier>& ImageMemoryBarriers, 
             const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) override;
 
-        virtual void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
-
     private:
 
-        FVulkanCmdBuffer* CmdBuffer;
-        FVulkanQueue* Queue;
+        VkDevice Device;
         VkCommandBuffer Handle;
+        VkQueue Queue;
+
+        friend class FVulkanDynamicRHI;
 
     };
+
+    inline VulkanCommandList* ResourceCast(RHICommandList* RHICmdList)
+    {
+        return static_cast<VulkanCommandList*>(RHICmdList);
+    }
 
 }

@@ -406,8 +406,9 @@ void RenderGraph::Execute()
 			continue;
 		}
 		
-		std::unique_ptr<RHICommandList> RHICmdList = RHICreateCommandList();
-		ExecuteSerialPass(*RHICmdList, Pass);
+		RHICommandListExecutor Executor;
+		ExecuteSerialPass(Executor.GetCommandList(), Pass);
+		Executor.Submit(Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
 	}
 
 }
@@ -441,7 +442,6 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 		RHICmdList.BeginRenderPass(Info);
 	}
 	Pass->Execute(RHICmdList);
-	RHICmdList.Submit(Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
 }
 
 /******************** Collect Resources ********************/

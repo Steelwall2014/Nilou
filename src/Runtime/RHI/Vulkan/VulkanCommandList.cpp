@@ -89,9 +89,9 @@ namespace nilou {
             }  
         }  
         
-        vkUpdateDescriptorSets(CmdBuffer->Device, WriteVec.size(), WriteVec.data(), 0, nullptr);
+        vkUpdateDescriptorSets(Device, WriteVec.size(), WriteVec.data(), 0, nullptr);
         vkCmdBindDescriptorSets(
-            CmdBuffer->GetHandle(), BindPoint, 
+            Handle, BindPoint, 
             VulkanLayout->Handle, 0, DescriptorSetHandles.size(), DescriptorSetHandles.data(), 0, nullptr);
     }
 
@@ -115,20 +115,20 @@ namespace nilou {
         VulkanBuffer* vkBuffer = ResourceCast(SrcBuffer);
         VulkanTexture* vkTexture = static_cast<VulkanTexture*>(DstTexture);
         vkCmdCopyBufferToImage(
-            CmdBuffer->GetHandle(), vkBuffer->Handle, 
+            Handle, vkBuffer->Handle, 
             vkTexture->Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
     }
 
     void VulkanCommandList::BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset)
     {
         VkBuffer vkBuffer = ResourceCast(Buffer)->Handle;
-        vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), BindingPoint, 1, &vkBuffer, &Offset);
+        vkCmdBindVertexBuffers(Handle, BindingPoint, 1, &vkBuffer, &Offset);
     }
 
     void VulkanCommandList::BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset)
     {
         VkBuffer vkBuffer = ResourceCast(Buffer)->Handle;
-        vkCmdBindIndexBuffer(CmdBuffer->GetHandle(), vkBuffer, Offset, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(Handle, vkBuffer, Offset, VK_INDEX_TYPE_UINT32);
     }
 
     void VulkanCommandList::PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data)
@@ -136,7 +136,7 @@ namespace nilou {
         VulkanPipelineLayout* VulkanLayout = static_cast<VulkanPipelineLayout*>(PipelineLayout);
         VkShaderStageFlags stageFlags = (VkShaderStageFlags)StageFlags;
         vkCmdPushConstants(
-            CmdBuffer->GetHandle(), 
+            Handle, 
             VulkanLayout->Handle, 
             stageFlags, 
             Offset, 
@@ -261,11 +261,12 @@ namespace nilou {
         DependencyInfo.pBufferMemoryBarriers = VkBufferBarriers.data();
         DependencyInfo.imageMemoryBarrierCount = VkImageBarriers.size();
         DependencyInfo.pImageMemoryBarriers = VkImageBarriers.data();
-        vkCmdPipelineBarrier2(CmdBuffer->GetHandle(), &DependencyInfo);
+        vkCmdPipelineBarrier2(Handle, &DependencyInfo);
     }
 
-    void VulkanCommandList::Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)
+    void FVulkanDynamicRHI::RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)
     {
+        VulkanCommandList* VulkanCmdList = ResourceCast(RHICmdList);
         std::vector<VkSemaphoreSubmitInfo> WaitSemephores;
         std::vector<VkSemaphoreSubmitInfo> SignalSemephores;
         for (RHISemaphoreRef Semaphore : SemaphoresToWait)
@@ -289,13 +290,12 @@ namespace nilou {
         SubmitInfo.pWaitSemaphoreInfos = WaitSemephores.data();
         VkCommandBufferSubmitInfo CmdBufferInfo{};
         CmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-        CmdBufferInfo.commandBuffer = CmdBuffer->GetHandle();
+        CmdBufferInfo.commandBuffer = VulkanCmdList->Handle;
         SubmitInfo.commandBufferInfoCount = 1;
         SubmitInfo.pCommandBufferInfos = &CmdBufferInfo;
         SubmitInfo.signalSemaphoreInfoCount = SignalSemephores.size();
         SubmitInfo.pSignalSemaphoreInfos = SignalSemephores.data();
-        vkQueueSubmit2(Queue->Handle, 1, &SubmitInfo, VK_NULL_HANDLE);
+        vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VK_NULL_HANDLE);
     }
-
 
 }

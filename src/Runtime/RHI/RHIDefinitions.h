@@ -513,6 +513,7 @@ namespace nilou {
 		RRT_CustomPresent,
 		RRT_ShaderLibrary,
 		RRT_PipelineBinaryLibrary,
+		RRT_CommandBuffer,
 
 		RRT_Num
 	};

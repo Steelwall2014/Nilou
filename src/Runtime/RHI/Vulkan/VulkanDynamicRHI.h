@@ -86,11 +86,13 @@ public:
 
     virtual void* RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size) override;
     virtual void RHIUnmapMemory(RHIBuffer* buffer) override;
+    virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) override;
+
 	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
     virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
-    virtual std::unique_ptr<RHICommandList> RHICreateCommandList() override;
-    virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) override;
+    virtual RHICommandList* RHICreateCommandList() override { NILOU_NOT_IMPLEMENTED; return nullptr; }
+    virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) override;
 
     FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager.get(); }
     VkDevice device{};

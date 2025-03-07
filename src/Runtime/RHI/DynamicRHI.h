@@ -86,11 +86,13 @@ namespace nilou {
 	
 		virtual void* RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size) = 0;
 		virtual void RHIUnmapMemory(RHIBuffer* buffer) = 0;
+		virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) = 0;
+
 		virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) = 0;
 		virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) = 0;
-		virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) = 0;
 		virtual RHISemaphoreRef RHICreateSemaphore() = 0;
-    	virtual std::unique_ptr<RHICommandList> RHICreateCommandList() = 0;
+    	virtual RHICommandList* RHICreateCommandList() = 0;
+		virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
 
 	protected:
 		static FDynamicRHI *DynamicRHI;
@@ -237,8 +239,13 @@ namespace nilou {
 		return FDynamicRHI::GetDynamicRHI()->RHICreateSemaphore();
 	}
 
-	inline std::unique_ptr<RHICommandList> RHICreateCommandList()
+	inline RHICommandList* RHICreateCommandList()
 	{
 		return FDynamicRHI::GetDynamicRHI()->RHICreateCommandList();
+	}
+
+	inline void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)
+	{
+		FDynamicRHI::GetDynamicRHI()->RHISubmitCommandList(RHICmdList, SemaphoresToWait, SemaphoresToSignal);
 	}
 }

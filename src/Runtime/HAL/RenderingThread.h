@@ -61,7 +61,7 @@ namespace nilou {
     {
         if (IsInRenderingThread())
         {
-            std::unique_ptr<RHICommandList> RHICmdList = RHICreateCommandList();
+            RHICommandList* RHICmdList = RHICreateCommandList();
             lambda(*RHICmdList);
         }
         else
