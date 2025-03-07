@@ -48,7 +48,7 @@ namespace nilou {
         FScene *Scene = this;
 
         ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
-            [Scene, SkyAtmosphereSceneProxy](RHICommandList&)
+            [Scene, SkyAtmosphereSceneProxy](RenderGraph&)
             {
                 Scene->SkyAtmosphereStack.emplace_back(SkyAtmosphereSceneProxy);
                 Scene->SkyAtmosphere = SkyAtmosphereSceneProxy;
@@ -61,7 +61,7 @@ namespace nilou {
         FScene *Scene = this;
 
         ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
-            [Scene, SkyAtmosphereSceneProxy](RHICommandList&)
+            [Scene, SkyAtmosphereSceneProxy](RenderGraph&)
             {
                 safe_erase(Scene->SkyAtmosphereStack, SkyAtmosphereSceneProxy);
                 if (!Scene->SkyAtmosphereStack.empty())
@@ -83,7 +83,7 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddLight)(
-            [Scene, LightSceneInfo] (RHICommandList&) 
+            [Scene, LightSceneInfo] (RenderGraph&) 
             {
                 Scene->AddLightSceneInfo_RenderThread(LightSceneInfo);
             });
@@ -100,7 +100,7 @@ namespace nilou {
             
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(RemoveLight)(
-                [Scene, LightSceneInfo] (RHICommandList& DynamicRHI) 
+                [Scene, LightSceneInfo] (RenderGraph&) 
                 {
                     Scene->RemoveLightSceneInfo_RenderThread(LightSceneInfo);
                 });
@@ -122,7 +122,7 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RHICommandList& DynamicRHI) 
+            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RenderGraph&) 
             {
                 PrimitiveSceneProxy->CreateRenderThreadResources();
                 PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
@@ -141,7 +141,7 @@ namespace nilou {
 
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-                [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo] (RHICommandList& DynamicRHI) 
+                [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo] (RenderGraph&) 
                 {
                     PrimitiveSceneInfo->SceneProxy->DestroyRenderThreadResources();
                     Scene->RemovePrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
@@ -163,7 +163,7 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddReflectionProbe)(
-            [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo, Bounds] (RHICommandList& DynamicRHI) 
+            [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo, Bounds] (RenderGraph&) 
             {
                 Scene->AddReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
             });
@@ -180,7 +180,7 @@ namespace nilou {
 
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(RemoveReflectionProbe)(
-                [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo] (RHICommandList& DynamicRHI) 
+                [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo] (RenderGraph&) 
                 {
                     Scene->RemoveReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
                 });

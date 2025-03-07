@@ -22,7 +22,7 @@ namespace nilou {
     {
         UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation()+OriginOffset);
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_UpdateSceneCaptureContents)(
-            [Scene, this](RHICommandList&) 
+            [Scene, this](RenderGraph&) 
             {
                 UpdateSceneCaptureContents_RenderThread(Scene);
             });
@@ -33,7 +33,7 @@ namespace nilou {
         USceneCaptureComponentCube::OnRegister();
         
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_OnRegister)(
-            [this](RHICommandList& RHICmdList) 
+            [this](RenderGraph& Graph) 
             {
                 IrradianceShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<IrradianceEnvTextureShaderBlock>("");
                 PrefilterShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<PrefilteredEnvTextureShaderBlock>("");
@@ -63,7 +63,7 @@ namespace nilou {
     {
         
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_OnRegister)(
-            [this](RHICommandList& RHICmdList) 
+            [this](RenderGraph& Graph) 
             {
                 IrradianceShaderUniformBuffer = nullptr;
                 PrefilterShaderUniformBuffer = nullptr;
@@ -179,7 +179,7 @@ namespace nilou {
             dvec3 NewLocation = GetComponentLocation();
             auto Proxy = SceneProxy;
             ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderTransform)(
-                [NewLocation, Proxy](RHICommandList&) 
+                [NewLocation, Proxy](RenderGraph&) 
                 {
                     Proxy->Location = NewLocation;
                 });
@@ -195,7 +195,7 @@ namespace nilou {
             auto NewOffset = OriginOffset;
             auto Proxy = SceneProxy;
             ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderDynamicData)(
-                [NewExtent, NewOffset, Proxy](RHICommandList&) 
+                [NewExtent, NewOffset, Proxy](RenderGraph&) 
                 {
                     Proxy->Extent = NewExtent;
                     Proxy->OriginOffset = NewOffset;

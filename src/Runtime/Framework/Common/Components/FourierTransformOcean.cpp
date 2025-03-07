@@ -209,7 +209,7 @@ namespace nilou {
         InitialTime = clock();
 
         ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
-            [this](RHICommandList&)
+            [this](RenderGraph&)
             {
                 FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
             });
@@ -234,7 +234,7 @@ namespace nilou {
              WindSpeed=this->WindSpeed,
              Amplitude=this->Amplitude,
              Time=(clock()-this->InitialTime)/1000.f]
-            (RHICommandList&)
+            (RenderGraph&)
             {
                 FOceanFastFourierTransformParameters Parameters;
                 Parameters.WindDirection = WindDirection;

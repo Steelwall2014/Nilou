@@ -405,7 +405,7 @@ namespace nilou {
     void GLFWApplication::EnableCursor()
     {
         ENQUEUE_RENDER_COMMAND(GLFWApplication_EnableCursor)(
-            [this](RHICommandList& RHICmdList) 
+            [this](RenderGraph& Graph) 
             {
                 CursorEnabled = !CursorEnabled;
                 if (CursorEnabled)

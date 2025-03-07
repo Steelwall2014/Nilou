@@ -302,7 +302,7 @@ namespace nilou {
         std::vector<std::shared_ptr<class UTexture>> TexturesToDelete = Textures;
         TUniformBufferRef<FGLTFMaterialBlock> UniformBufferToDelete = UniformBuffer;
         ENQUEUE_RENDER_COMMAND(GLTFParseResult_Deconstructor)(
-            [StaticMeshesToDelete, MaterialsToDelete, TexturesToDelete, UniformBufferToDelete](RHICommandList&)
+            [StaticMeshesToDelete, MaterialsToDelete, TexturesToDelete, UniformBufferToDelete](RenderGraph&)
             {
                 for (int i = 0; i < MaterialsToDelete.size(); i++)
                     MaterialsToDelete[i]->ReleaseResources();
@@ -421,7 +421,7 @@ namespace nilou {
                         std::unique_lock<std::mutex> rhi_lock(rhi_mutex);
                         std::condition_variable cv;
                         ENQUEUE_RENDER_COMMAND(UCesium3DTilesetComponent_LoadContent)(
-                            [&Result, this, &RHIInitialized, &cv](RHICommandList&) 
+                            [&Result, this, &RHIInitialized, &cv](RenderGraph&) 
                             {
                                 Result->InitResource();
                                 RHIInitialized = true;

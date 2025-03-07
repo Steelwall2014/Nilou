@@ -23,7 +23,7 @@ namespace nilou {
         USceneCaptureComponent::UpdateDeferredCaptures(Scene);
 
         ENQUEUE_RENDER_COMMAND(FRendererModule_BeginRenderingViewFamily)(
-            [Scene, SceneRenderer](RHICommandList& RHICmdList)
+            [Scene, SceneRenderer](RenderGraph& Graph)
             {
                 Scene->UpdateRenderInfos();
                 SceneRenderer->Render(FRenderingThread::GetRenderGraph());

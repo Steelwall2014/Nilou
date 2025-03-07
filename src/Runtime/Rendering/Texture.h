@@ -387,7 +387,7 @@ namespace nilou {
         {
             TextureResource = InResource;
             ENQUEUE_RENDER_COMMAND(UTexture_SetResource)(
-                [this, InResource](RHICommandList&) {
+                [this, InResource](RenderGraph&) {
                     TextureResourceRenderThread = InResource;
                 });
         }
@@ -414,7 +414,7 @@ namespace nilou {
             {
                 FTextureResource* ToDelete = TextureResource;
                 ENQUEUE_RENDER_COMMAND(UTexture_ReleaseResource)(
-                    [ToDelete](RHICommandList&) {
+                    [ToDelete](RenderGraph&) {
                         ToDelete->ReleaseResource();
                         delete ToDelete;
                     });

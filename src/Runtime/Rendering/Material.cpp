@@ -30,7 +30,7 @@ namespace nilou {
         const FMaterialParameterInfo& ParameterInfo = Parameter.ParameterInfo;
         typename ParameterType::ValueType Value = ParameterType::GetValue(Parameter);
         ENQUEUE_RENDER_COMMAND(SetMIParameterValue)(
-            [Proxy, ParameterInfo, Value](RHICommandList&)
+            [Proxy, ParameterInfo, Value](RenderGraph&)
             {
                 Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
             });
@@ -49,7 +49,7 @@ namespace nilou {
     UMaterial::~UMaterial()
     {
         ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
-            [ToDelete_proxy = std::move(MaterialRenderProxy)] (RHICommandList&)
+            [ToDelete_proxy = std::move(MaterialRenderProxy)] (RenderGraph&)
             {
                 delete ToDelete_proxy;
             });
@@ -60,7 +60,7 @@ namespace nilou {
     {
         Code = InCode;
         ENQUEUE_RENDER_COMMAND(UMaterial_UpdateCode)(
-            [InCode, Proxy=GetRenderProxy()](RHICommandList&)
+            [InCode, Proxy=GetRenderProxy()](RenderGraph&)
             {
                 Proxy->RenderThread_UpdateShader(InCode);
             }
@@ -202,7 +202,7 @@ namespace nilou {
     {
         ShadingModel = InShadingModel;
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
-            [InShadingModel, Proxy=GetRenderProxy()](RHICommandList&) 
+            [InShadingModel, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->ShadingModel = InShadingModel;
             });
@@ -212,7 +212,7 @@ namespace nilou {
     {
         BlendState = InBlendState;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [InBlendState, Proxy=GetRenderProxy()](RHICommandList&) 
+            [InBlendState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->BlendState = RHICreateBlendState(InBlendState);
             });
@@ -222,7 +222,7 @@ namespace nilou {
     {
         DepthStencilState = InDepthStencilState;
         ENQUEUE_RENDER_COMMAND(Material_SetDepthStencilState)(
-            [InDepthStencilState, Proxy=GetRenderProxy()](RHICommandList&) 
+            [InDepthStencilState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
             });
@@ -232,7 +232,7 @@ namespace nilou {
     {
         RasterizerState = InRasterizerState;
         ENQUEUE_RENDER_COMMAND(Material_SetRasterizerState)(
-            [InRasterizerState, Proxy=GetRenderProxy()](RHICommandList&) 
+            [InRasterizerState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->RasterizerState = RHICreateRasterizerState(InRasterizerState);
             });
@@ -242,7 +242,7 @@ namespace nilou {
     {
         StencilRefValue = InStencilRefValue;
         ENQUEUE_RENDER_COMMAND(Material_SetStencilRefValue)(
-            [InStencilRefValue, Proxy=GetRenderProxy()](RHICommandList&) 
+            [InStencilRefValue, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->StencilRefValue = InStencilRefValue;
             });
@@ -324,7 +324,7 @@ namespace nilou {
         auto TextureParameterValues = this->TextureParameterValues;
         auto Proxy = GetRenderProxy();
         ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
-            [=](RHICommandList&) 
+            [=](RenderGraph&) 
             {
                 Proxy->BlendState = RHICreateBlendState(BlendState);
                 Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
@@ -353,7 +353,7 @@ namespace nilou {
              InRasterizerState=InMaterial->RasterizerState,
              InDepthStencilState=InMaterial->DepthStencilState,
              InShadingModel=InMaterial->ShadingModel,
-             this](RHICommandList&) 
+             this](RenderGraph&) 
             {
                 ShaderMap = std::make_shared<FMaterialShaderMap>();
                 BlendState = RHICreateBlendState(InBlendState);

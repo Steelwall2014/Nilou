@@ -118,7 +118,7 @@ namespace nilou {
 		FROM_COMPONENNT_TO_PROXY(GroundAlbedo)
 		FROM_COMPONENNT_TO_PROXY(Mu_s_Min)
 
-        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RHICommandList&) {
+        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph&) {
 
             AtmosphereParameters = RenderGraph::CreateExternalUniformBuffer<ShaderAtmosphereParametersBlock>("");
 

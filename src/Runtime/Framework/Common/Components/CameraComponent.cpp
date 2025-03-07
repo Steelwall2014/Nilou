@@ -18,7 +18,7 @@ namespace nilou {
         USceneComponent::OnRegister();
 
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
-            [this](RHICommandList&)
+            [this](RenderGraph&)
             {
                 ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("");
             });
@@ -27,7 +27,7 @@ namespace nilou {
     void UCameraComponent::OnUnregister()
     {
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
-            [this](RHICommandList&)
+            [this](RenderGraph&)
             {
                 ViewUniformBuffer = nullptr;
             });

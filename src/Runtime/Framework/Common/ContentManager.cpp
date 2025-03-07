@@ -349,7 +349,7 @@ namespace nilou {
     void FContentManager::ReleaseRenderResources()
     {
         ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
-            [this](RHICommandList&) {
+            [this](RenderGraph&) {
                 GlobalShaders.RemoveAllShaders();
                 ForEachContent(
                     [](NAsset* Obj) {

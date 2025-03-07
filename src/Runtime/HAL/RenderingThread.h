@@ -13,7 +13,7 @@ namespace nilou {
     class EnqueueUniqueRenderCommandType
     {
     public:
-        using Lambda = std::function<void(RHICommandList&)>;
+        using Lambda = std::function<void(RenderGraph&)>;
         EnqueueUniqueRenderCommandType(Lambda &&InLambda, const char *InTraceBackString) 
             : lambda(std::forward<Lambda>(InLambda)) 
             , TraceBackString(InTraceBackString)
@@ -61,8 +61,8 @@ namespace nilou {
     {
         if (IsInRenderingThread())
         {
-            RHICommandList* RHICmdList = RHICreateCommandList();
-            lambda(*RHICmdList);
+            RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+            lambda(Graph);
         }
         else
         {

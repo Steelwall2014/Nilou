@@ -132,7 +132,7 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_UpdateSceneCaptureContents)(
-            [SceneRenderer](RHICommandList&) 
+            [SceneRenderer](RenderGraph&) 
             {
                 // for (auto& View : SceneRenderer->Views)
                 // {
@@ -149,7 +149,7 @@ namespace nilou {
     void USceneCaptureComponent2D::OnRegister()
     {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnRegister)(
-            [this](RHICommandList&) 
+            [this](RenderGraph&) 
             {
                 ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("");
             });
@@ -158,7 +158,7 @@ namespace nilou {
     void USceneCaptureComponent2D::OnUnregister()
     {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnUnregister)(
-            [this](RHICommandList&) 
+            [this](RenderGraph&) 
             {
                 ViewUniformBuffer = nullptr;
             });
@@ -270,7 +270,7 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_UpdateSceneCaptureContents)(
-            [SceneRenderer](RHICommandList&) 
+            [SceneRenderer](RenderGraph&) 
             {
                 // for (FViewInfo& View : SceneRenderer->Views)
                 // {
@@ -288,7 +288,7 @@ namespace nilou {
     void USceneCaptureComponentCube::OnRegister()
     {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnRegister)(
-            [this](RHICommandList&) 
+            [this](RenderGraph&) 
             {
                 for (int i = 0; i < ViewUniformBuffers.size(); i++)
                 {
@@ -300,7 +300,7 @@ namespace nilou {
     void USceneCaptureComponentCube::OnUnregister()
     {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnUnregister)(
-            [this](RHICommandList&) 
+            [this](RenderGraph&) 
             {
                 for (int i = 0; i < ViewUniformBuffers.size(); i++)
                 {

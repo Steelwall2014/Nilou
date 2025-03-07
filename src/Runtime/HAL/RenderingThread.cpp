@@ -17,8 +17,8 @@ namespace nilou {
 
     void EnqueueUniqueRenderCommandType::DoTask()
     {
-        RHICommandList* RHICmdList = RHICreateCommandList();
-        lambda(*RHICmdList);
+        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+        lambda(Graph);
     }
 
     bool FRenderingThread::Init()

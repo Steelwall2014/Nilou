@@ -34,7 +34,7 @@ namespace nilou {
         if (SceneProxy)
         {
             ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
-                [this, LocalToWorld, Bound](RHICommandList&) 
+                [this, LocalToWorld, Bound](RenderGraph&) 
                 {
                     SceneProxy->SetTransform(LocalToWorld, Bound);
                 });
@@ -80,7 +80,7 @@ namespace nilou {
     void FPrimitiveSceneProxy::UpdateUniformBuffer()
     {
         ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_UpdateUniformBuffer)(
-            [this](RHICommandList&)
+            [this](RenderGraph&)
             {
                 // PrimitiveUniformBuffer->UpdateUniformBuffer();
             });

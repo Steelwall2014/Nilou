@@ -37,19 +37,19 @@ namespace nilou {
 
     void UTexture::ReadPixelsSync()
     {
-        std::mutex m;
-        std::unique_lock<std::mutex> lock(m);
-        std::condition_variable cv;
-        bool pixels_readed = false;
-        ENQUEUE_RENDER_COMMAND(UTexture_ReadPixelsSync)(
-            [this, &cv, &pixels_readed](RHICommandList& RHICmdList)
-            {
-                ReadPixelsRenderThread(RHICmdList);
-                cv.notify_one();
-                pixels_readed = true;
-            });
-        if (!pixels_readed)
-            cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
+        // std::mutex m;
+        // std::unique_lock<std::mutex> lock(m);
+        // std::condition_variable cv;
+        // bool pixels_readed = false;
+        // ENQUEUE_RENDER_COMMAND(UTexture_ReadPixelsSync)(
+        //     [this, &cv, &pixels_readed](RHICommandList& RHICmdList)
+        //     {
+        //         ReadPixelsRenderThread(RHICmdList);
+        //         cv.notify_one();
+        //         pixels_readed = true;
+        //     });
+        // if (!pixels_readed)
+        //     cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
     }
 
     void UTexture::PostDeserialize(FArchive& Ar)

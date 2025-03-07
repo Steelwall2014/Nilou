@@ -38,7 +38,7 @@ namespace nilou {
 
         //         PassBuilder.TransferDestination(UniformBufferRDG);
         //     },
-        //     [=](RHICommandList& RHICmdList)
+        //     [=](RenderGraph& Graph)
         //     {
         //         RHIBuffer* SrcBuffer = StagingBuffer->BufferRHI.get();
         //         RHIBuffer* DstBuffer = UniformBufferRDG->Resolve();
