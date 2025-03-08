@@ -3,7 +3,7 @@
 // #include <glm/glm.hpp>
 #include "Common/Transform.h"
 #include "SerializeHelper.h"
-#include <reflection/Class.h>
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
 

@@ -2,7 +2,7 @@
 #include <utility>
 #include <iterator>
 #include "Platform.h"
-#include <reflection/Class.h>
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
     template <typename InElementType, uint32 NumElements, uint32 Alignment = alignof(InElementType)>

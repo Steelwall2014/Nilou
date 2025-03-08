@@ -275,7 +275,7 @@ namespace nilou {
             , RenderData(nullptr)
         { }
 
-        // NPROPERTY()
+        NPROPERTY()
         std::vector<UMaterial *> MaterialSlots;
 
         NPROPERTY()

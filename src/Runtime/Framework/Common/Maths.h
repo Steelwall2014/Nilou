@@ -6,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/epsilon.hpp>
 
-#include <reflection/Class.h>
+#include "Common/CoreUObject/Class.h"
 #include "Platform.h"
 
 #define SMALL_NUMBER		(1.e-8f)

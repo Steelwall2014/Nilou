@@ -8,7 +8,7 @@
 #include <functional>
 // #include "ShaderMap.h"
 // #include "UniformBuffer.h"
-#include <reflection/Class.h>
+#include "Common/CoreUObject/Class.h"
 #include "Common/Path.h"
 #include "Templates/TypeTraits.h"
 

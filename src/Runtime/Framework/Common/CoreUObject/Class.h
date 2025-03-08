@@ -221,7 +221,17 @@ public:
 
 class NCLASS NObject : public std::enable_shared_from_this<NObject>
 {
-    GENERATED_BODY();
+
+private:
+    template<typename T> 
+    friend class ::TClassRegistry;
+    static std::unique_ptr<::NClass> StaticClass_;
+public:
+    virtual const ::NClass *GetClass() const;
+    static const ::NClass *StaticClass();
+    virtual void Serialize(FArchive& Ar);
+    virtual void Deserialize(FArchive& Ar);
+
 public:
     NFUNCTION()
     bool IsA(const NClass *Class)

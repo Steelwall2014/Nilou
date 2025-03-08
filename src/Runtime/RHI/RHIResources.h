@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include <reflection/Class.h>
+#include "Common/CoreUObject/Class.h"
 
 // #include <glm/glm.hpp>
 #include "Common/Maths.h"

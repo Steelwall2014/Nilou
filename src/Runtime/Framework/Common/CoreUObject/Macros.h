@@ -30,10 +30,10 @@
         friend class ::TClassRegistry; \
         static std::unique_ptr<::NClass> StaticClass_; \
     public: \
-        virtual const ::NClass *GetClass() const; \
+        virtual const ::NClass *GetClass() const override; \
         static const ::NClass *StaticClass(); \
-        virtual void Serialize(FArchive& Ar); \
-        virtual void Deserialize(FArchive& Ar);
+        virtual void Serialize(FArchive& Ar) override; \
+        virtual void Deserialize(FArchive& Ar) override;
 
 #define GENERATED_STRUCT_BODY() \
     private: \

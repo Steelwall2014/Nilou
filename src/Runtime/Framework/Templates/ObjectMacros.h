@@ -1,6 +1,6 @@
 #pragma once
 #include "TypeTraits.h"
-#include <reflection/Macros.h>
+#include "Common/CoreUObject/Macros.h"
 
 #define DEFINE_DYNAMIC_DATA(Type, Name) \
 	public: \
