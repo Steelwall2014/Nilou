@@ -53,7 +53,6 @@ namespace nilou {
 		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) = 0;
 		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) = 0;
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) = 0;
-		virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(

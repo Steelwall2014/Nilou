@@ -430,14 +430,14 @@ string GenerateTypeRegistry(const TypeMetaData& NClass)
     }
     return std::format(
 R"(
-std::unique_ptr<NClass> {0}::StaticClass_ = nullptr;
+std::unique_ptr<NClass> {0}::Z_StaticClass = nullptr;
 const NClass *{0}::GetClass() const 
 {{ 
     return {0}::StaticClass(); 
 }}
 const NClass *{0}::StaticClass()
 {{
-    return {0}::StaticClass_.get();
+    return {0}::Z_StaticClass.get();
 }}
 
 template<>
@@ -445,11 +445,11 @@ struct TClassRegistry<{0}>
 {{
     TClassRegistry(const std::string& InName)
     {{
-        {0}::StaticClass_ = std::make_unique<NClass>();
+        {0}::Z_StaticClass = std::make_unique<NClass>();
         Mngr.RegisterType<{0}>();
 {1}{2}{3}{4};
-        {0}::StaticClass_->Type = Type_of<{0}>;
-        {0}::StaticClass_->TypeInfo = Mngr.GetTypeInfo(Type_of<{0}>);
+        {0}::Z_StaticClass->Type = Type_of<{0}>;
+        {0}::Z_StaticClass->TypeInfo = Mngr.GetTypeInfo(Type_of<{0}>);
     }}
 
     static TClassRegistry<{0}> Dummy;

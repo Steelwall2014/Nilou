@@ -28,7 +28,7 @@
     private: \
         template<typename T>  \
         friend class ::TClassRegistry; \
-        static std::unique_ptr<::NClass> StaticClass_; \
+        static std::unique_ptr<::NClass> Z_StaticClass; \
     public: \
         virtual const ::NClass *GetClass() const override; \
         static const ::NClass *StaticClass(); \
@@ -39,7 +39,7 @@
     private: \
         template<typename T>  \
         friend class ::TClassRegistry; \
-        static std::unique_ptr<::NClass> StaticClass_; \
+        static std::unique_ptr<::NClass> Z_StaticClass; \
     public: \
         const ::NClass *GetClass() const; \
         static const ::NClass *StaticClass(); \

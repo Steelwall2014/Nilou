@@ -1,3 +1,4 @@
+#include "VulkanDevice.h"
 #include "VulkanDescriptorSet.h"
 #include "VulkanDynamicRHI.h"
 
@@ -168,7 +169,7 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const 
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
     layoutInfo.pBindings = VulkanBindings.data();
-    VkResult res = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &VulkanLayout->Handle);
+    VkResult res = vkCreateDescriptorSetLayout(Device->Handle, &layoutInfo, nullptr, &VulkanLayout->Handle);
     if (res != VK_SUCCESS)
     {
         NILOU_LOG(Error, "vkCreateDescriptorSetLayout failed!");
@@ -199,7 +200,7 @@ RHIDescriptorPoolRef FVulkanDynamicRHI::RHICreateDescriptorPool(RHIDescriptorSet
 	PoolInfo.maxSets = PoolSize;
 
 	TRefCountPtr<VulkanDescriptorPool> VulkanPool = new VulkanDescriptorPool(Layout);
-	VkResult res = vkCreateDescriptorPool(device, &PoolInfo, nullptr, &VulkanPool->Handle);
+	VkResult res = vkCreateDescriptorPool(Device->Handle, &PoolInfo, nullptr, &VulkanPool->Handle);
     if (res != VK_SUCCESS)
     {
         NILOU_LOG(Error, "vkCreateDescriptorPool failed!");

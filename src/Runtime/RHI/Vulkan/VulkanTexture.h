@@ -5,29 +5,22 @@
 
 namespace nilou {
 
+class VulkanDevice;
 
 class VulkanTexture : public RHITexture
 {
 public:
     VkImage Handle{};
-    VkImageView ImageView{};
     VkDeviceMemory Memory{};
     uint8 BaseMipLevel{};
     uint8 BaseArrayLayer{};
-    VulkanTexture* ParentTexture{};
     VkImageAspectFlags FullAspectFlags{};
-
-    #ifdef NILOU_DEBUG
-    FVulkanImageLayout DebugLayout;
-    #endif
+    VulkanDevice* Device;
 
     VulkanTexture(
-        VulkanTexture* InParentTexture,
         VkImage InImage,
-        VkImageView InImageView,
         VkDeviceMemory InMemory,
         VkImageAspectFlags InFullAspectFlag, 
-        const FVulkanImageLayout& InImageLayout,
         uint32 InSizeX,
         uint32 InSizeY,
         uint32 InSizeZ,
@@ -39,12 +32,6 @@ public:
         ETextureDimension InTextureType
     );
     ~VulkanTexture();
-    VkImage GetHandle() const { return Handle; }
-    FVulkanImageLayout GetImageLayout() const;
-    VkImageView GetImageView() const { return ImageView; }
-    void SetImageLayout(VkImageLayout Layout, const VkImageSubresourceRange& Range);
-    void SetFullImageLayout(VkImageLayout Layout);
-    bool IsImageView() const { return ParentTexture != nullptr; }
 
 };
 

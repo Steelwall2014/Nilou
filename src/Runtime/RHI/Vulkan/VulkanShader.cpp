@@ -1,3 +1,4 @@
+#include "VulkanDevice.h"
 #include "VulkanShader.h"
 #include "VulkanDynamicRHI.h"
 #include "Common/Log.h"
@@ -12,7 +13,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = new VulkanVertexShader(device);
+        VulkanVertexShaderRef VulkanShader = new VulkanVertexShader(Device->Handle);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -28,7 +29,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = new VulkanPixelShader(device);
+        VulkanPixelShaderRef VulkanShader = new VulkanPixelShader(Device->Handle);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -44,7 +45,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = new VulkanComputeShader(device);
+        VulkanComputeShaderRef VulkanShader = new VulkanComputeShader(Device->Handle);
         VulkanShader->Module = Module;
         return VulkanShader;
     }
@@ -73,7 +74,7 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     createInfo.codeSize = shaderc_result_get_length(result);
     createInfo.pCode = reinterpret_cast<const uint32*>(shaderc_result_get_bytes(result));
     VkShaderModule Module{};
-    VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, nullptr, &Module));
+    VK_CHECK_RESULT(vkCreateShaderModule(Device->Handle, &createInfo, nullptr, &Module));
 
     return { Module, result };
 

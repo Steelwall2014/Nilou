@@ -755,6 +755,8 @@ EPipelineStageFlags GetPipelineStage(ERHIAccess Access)
 		return EPipelineStageFlags::VertexInput;
 	case ERHIAccess::UniformRead:
 	case ERHIAccess::ShaderResourceRead:
+	case ERHIAccess::ShaderResourceWrite:
+	case ERHIAccess::ShaderResourceReadWrite:
 		return EPipelineStageFlags::FragmentShader;
 	case ERHIAccess::ColorAttachmentRead:
 	case ERHIAccess::ColorAttachmentWrite:

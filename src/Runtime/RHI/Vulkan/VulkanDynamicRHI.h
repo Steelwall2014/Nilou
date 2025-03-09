@@ -27,6 +27,7 @@ class FVulkanStagingManager;
 class FVulkanDescriptorPoolsManager;
 class FVulkanQueue;
 class VulkanTexture;
+class VulkanDevice;
 
 }
 
@@ -55,7 +56,6 @@ public:
     virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) override;
     virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) override;
     virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override;
-    virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 Size, EUniformBufferUsage InUsage, void *Data) override;
     virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
@@ -91,22 +91,13 @@ public:
 	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
     virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
-    virtual RHICommandList* RHICreateCommandList() override { NILOU_NOT_IMPLEMENTED; return nullptr; }
+    virtual RHICommandList* RHICreateCommandList() override;
     virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) override;
 
-    FVulkanCommandBufferManager* GetCommandBufferManager() const { return CommandBufferManager.get(); }
-    VkDevice device{};
+    VulkanDevice* Device = nullptr;
     VkPhysicalDeviceProperties GpuProps;
-    std::unique_ptr<FVulkanCommandBufferManager> CommandBufferManager;
-    std::unique_ptr<FVulkanMemoryManager> MemoryManager;
-    std::unique_ptr<FVulkanStagingManager> StagingManager;
     std::unique_ptr<FVulkanRenderPassManager> RenderPassManager;
     std::unique_ptr<FVulkanDescriptorPoolsManager> DescriptorPoolsManager;
-    
-	std::unique_ptr<FVulkanQueue> GfxQueue;
-	std::unique_ptr<FVulkanQueue> ComputeQueue;
-	std::unique_ptr<FVulkanQueue> TransferQueue;
-	std::unique_ptr<FVulkanQueue> PresentQueue;
 
     static std::string ErrorString(VkResult Result);
     

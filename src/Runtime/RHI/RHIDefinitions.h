@@ -654,6 +654,7 @@ namespace nilou {
 enum class ERHIAccess : uint32
 {
 	None = 0,
+	Present = 0,
 	IndirectCommandRead = 0x00000001,
 	IndexRead = 0x00000002,
 	VertexAttributeRead = 0x00000004,
@@ -796,6 +797,7 @@ enum class ETextureLayout : uint32
 	TransferSrcOptimal = 6,
 	TransferDstOptimal = 7,
 	Preinitialized = 8,
+    PresentSrc = 1000001002,
 	Max = 0x7FFFFFFF,
 };
 

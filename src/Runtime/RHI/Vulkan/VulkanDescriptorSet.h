@@ -30,8 +30,6 @@ class VulkanDescriptorSet : public RHIDescriptorSet
 {
 public:
 
-    friend class VulkanCommandList;
-
     virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
 
     virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
@@ -53,6 +51,8 @@ private:
     };
 
     std::unordered_map<uint8, VulkanDescriptorSetWriter> Writers;
+
+    friend class VulkanCommandBuffer;
 
 };
 

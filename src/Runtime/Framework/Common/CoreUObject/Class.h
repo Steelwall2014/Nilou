@@ -225,7 +225,7 @@ class NCLASS NObject : public std::enable_shared_from_this<NObject>
 private:
     template<typename T> 
     friend class ::TClassRegistry;
-    static std::unique_ptr<::NClass> StaticClass_;
+    static std::unique_ptr<::NClass> Z_StaticClass;
 public:
     virtual const ::NClass *GetClass() const;
     static const ::NClass *StaticClass();

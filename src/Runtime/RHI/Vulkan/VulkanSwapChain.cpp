@@ -78,7 +78,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevic
 
 }
 
-void FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue)
+void FVulkanSwapChain::Present(VulkanQueue* GfxQueue, VulkanQueue* PresentQueue)
 {
 	VkPresentInfoKHR Info{};
     Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

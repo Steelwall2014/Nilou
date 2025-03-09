@@ -7,7 +7,7 @@
 
 namespace nilou {
 
-class FVulkanQueue;
+class VulkanQueue;
 
 class FVulkanSwapChain
 {
@@ -21,7 +21,7 @@ public:
     VkSwapchainKHR Handle;
     std::vector<std::shared_ptr<FVulkanSemaphore>> ImageAcquiredSemaphore;
 
-    void Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue);
+    void Present(VulkanQueue* GfxQueue, VulkanQueue* PresentQueue);
 
 	int32 AcquireImageIndex(VkSemaphore* OutSemaphore);
 
