@@ -1,12 +1,39 @@
 #include "VulkanDynamicRHI.h"
+#include "VulkanDevice.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanPipelineState.h"
 #include "VulkanDescriptorSet.h"
 #include "VulkanQueue.h"
+#include "VulkanResources.h"
 
 namespace nilou {
+
+    VulkanCommandBuffer::VulkanCommandBuffer(VkDevice InDevice, VkQueue InQueue, VkCommandPool InPool)
+        : Device(InDevice)
+        , Queue(InQueue)
+        , Pool(InPool)
+    {
+        VkCommandBufferAllocateInfo AllocInfo{};
+        AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        AllocInfo.commandPool = Pool;
+        AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        AllocInfo.commandBufferCount = 1;
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(Device, &AllocInfo, &Handle));
+
+        VkFenceCreateInfo FenceInfo{};
+        FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        FenceInfo.flags = 0;
+        VK_CHECK_RESULT(vkCreateFence(InDevice, &FenceInfo, nullptr, &Fence));
+
+        State = EState::ReadyForBegin;
+    }
+
+    VulkanCommandBuffer::~VulkanCommandBuffer()
+    {
+        vkFreeCommandBuffers(Device, Pool, 1, &Handle);
+    }
 
     void VulkanCommandBuffer::BeginRenderPass(FRHIRenderPassInfo& Info)
     {
@@ -40,6 +67,45 @@ namespace nilou {
         renderPassInfo.pClearValues = clearValues.data();
         
         vkCmdBeginRenderPass(Handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        State = EState::IsInsideRenderPass;
+    }
+
+    void VulkanCommandBuffer::EndRenderPass()
+    {
+        State = EState::IsInsideBegin;
+    }
+
+    void VulkanCommandBuffer::DrawArrays(uint32 VertexCount, uint32 InstanceCount, uint32 FirstVertex, uint32 FirstInstance)
+    {
+        vkCmdDraw(Handle, VertexCount, InstanceCount, FirstVertex, FirstInstance);
+    }
+
+    void VulkanCommandBuffer::DrawIndexed(uint32 IndexCount, uint32 InstanceCount, uint32 FirstIndex, uint32 VertexOffset, uint32 FirstInstance)
+    {
+        vkCmdDrawIndexed(Handle, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance);
+    }
+
+    void VulkanCommandBuffer::DispatchCompute(uint32 NumGroupsX, uint32 NumGroupsY, uint32 NumGroupsZ)
+    {
+        vkCmdDispatch(Handle, NumGroupsX, NumGroupsY, NumGroupsZ);
+    }
+
+    void VulkanCommandBuffer::DrawIndirect(RHIBuffer* Buffer, uint32 Offset)
+    {
+        VulkanBuffer* VkBuffer = ResourceCast(Buffer);
+        vkCmdDrawIndirect(Handle, VkBuffer->Handle, Offset, 1, 0);
+    }
+
+    void VulkanCommandBuffer::DrawIndexedIndirect(RHIBuffer* Buffer, uint32 Offset)
+    {
+        VulkanBuffer* VkBuffer = ResourceCast(Buffer);
+        vkCmdDrawIndexedIndirect(Handle, VkBuffer->Handle, Offset, 1, 0);
+    }
+
+    void VulkanCommandBuffer::DispatchComputeIndirect(RHIBuffer* Buffer, uint32 Offset)
+    {
+        VulkanBuffer* VkBuffer = ResourceCast(Buffer);
+        vkCmdDispatchIndirect(Handle, VkBuffer->Handle, 0);
     }
 
     static VkDescriptorType GetDescriptorType(EDescriptorType Type)
@@ -59,6 +125,18 @@ namespace nilou {
         }
     }
 
+    void VulkanCommandBuffer::BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState)
+    {
+        VulkanGraphicsPipelineState* PSO = ResourceCast(NewPipelineState);
+        vkCmdBindPipeline(Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, PSO->Handle);
+    }
+    
+    void VulkanCommandBuffer::BindComputePipelineState(RHIComputePipelineState *NewPipelineState)
+    {
+        VulkanComputePipelineState* PSO = ResourceCast(NewPipelineState);
+        vkCmdBindPipeline(Handle, VK_PIPELINE_BIND_POINT_COMPUTE, PSO->Handle);
+    }
+
     void VulkanCommandBuffer::BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint)
     {
         VkPipelineBindPoint BindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -73,6 +151,8 @@ namespace nilou {
         case EPipelineBindPoint::RayTracing:
             BindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
             break;
+        default:
+            Ncheck(0);
         }
 
         VulkanPipelineLayout* VulkanLayout = ResourceCast(PipelineLayout);
@@ -94,6 +174,19 @@ namespace nilou {
             VulkanLayout->Handle, 0, DescriptorSetHandles.size(), DescriptorSetHandles.data(), 0, nullptr);
     }
 
+    void VulkanCommandBuffer::CopyBuffer(RHIBuffer* SrcBuffer, RHIBuffer* DstBuffer, uint32 SrcOffset, uint32 DstOffset, uint32 NumBytes)
+    {
+        VkBufferCopy Region{};
+        Region.srcOffset = SrcOffset;
+        Region.dstOffset = DstOffset;
+        Region.size = NumBytes;
+        VulkanBuffer* vkBufferSrc = ResourceCast(SrcBuffer);
+        VulkanBuffer* vkBufferDst = ResourceCast(DstBuffer);
+        vkCmdCopyBuffer(
+            Handle, vkBufferSrc->Handle, vkBufferDst->Handle, 
+            1, &Region);
+    }
+
     void VulkanCommandBuffer::CopyBufferToImage(
         RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
         int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
@@ -112,10 +205,10 @@ namespace nilou {
         Region.imageExtent.depth = Depth;
 
         VulkanBuffer* vkBuffer = ResourceCast(SrcBuffer);
-        VulkanTexture* vkTexture = static_cast<VulkanTexture*>(DstTexture);
+        VulkanTexture* vkTexture = ResourceCast(DstTexture);
         vkCmdCopyBufferToImage(
-            Handle, vkBuffer->Handle, 
-            vkTexture->Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+            Handle, vkBuffer->Handle, vkTexture->Handle, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
     }
 
     void VulkanCommandBuffer::BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset)
@@ -263,14 +356,97 @@ namespace nilou {
         vkCmdPipelineBarrier2(Handle, &DependencyInfo);
     }
 
-    RHICommandList* FVulkanDynamicRHI::RHICreateCommandList()
+    void VulkanCommandBuffer::RefreshState()
     {
-        return nullptr;
+        if (State == EState::Submitted)
+        {
+            VkResult result = vkGetFenceStatus(Device, Fence);
+            if (result == VK_SUCCESS) 
+            {
+                vkResetCommandBuffer(Handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+                State = EState::ReadyForBegin;
+            }
+        }
+    }
+
+    VulkanCommandBufferPool::VulkanCommandBufferPool(VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex)
+        : Device(InDevice)
+        , Queue(InQueue)
+    {
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = QueueFamilyIndex;
+        VK_CHECK_RESULT(vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle));
+    }
+
+    VulkanCommandBufferPool::~VulkanCommandBufferPool()
+    {
+        vkDestroyCommandPool(Device, Handle, nullptr);
+    }
+
+    VulkanCommandBuffer* VulkanCommandBufferPool::Allocate()
+    {
+        for (int i = FreeCmdBuffers.size()-1; i >= 0; i--)
+        {
+            TRefCountPtr<VulkanCommandBuffer> RHICmdList = FreeCmdBuffers[i];
+            CmdBuffers.push_back(FreeCmdBuffers[i]);
+            FreeCmdBuffers.pop_back();
+            return RHICmdList;
+        }
+
+        TRefCountPtr<VulkanCommandBuffer> RHICmdList = new VulkanCommandBuffer(Device, Queue, Handle);
+        CmdBuffers.push_back(RHICmdList);
+        return RHICmdList;
+    }
+
+    void VulkanCommandBufferPool::FreeUnusedCmdBuffers()
+    {
+        for (int i = CmdBuffers.size()-1; i >= 0; i--)
+        {
+            TRefCountPtr<VulkanCommandBuffer> RHICmdList = CmdBuffers[i];
+            RHICmdList->RefreshState();
+            if (RHICmdList->State == VulkanCommandBuffer::EState::ReadyForBegin)
+            {
+                std::swap(CmdBuffers[CmdBuffers.size()-1], CmdBuffers[i]);
+                CmdBuffers.resize(CmdBuffers.size()-1);
+                FreeCmdBuffers.push_back(RHICmdList);
+            }
+        }
+    }
+
+    RHICommandList* FVulkanDynamicRHI::RHICreateGfxCommandList()
+    {
+        return RHICreateCommandList(Device->GfxCmdBufferPool);
+    }
+
+    RHICommandList* FVulkanDynamicRHI::RHICreateComputeCommandList()
+    {
+        return RHICreateCommandList(Device->ComputeCmdBufferPool);
+    }
+
+    RHICommandList* FVulkanDynamicRHI::RHICreateTransferCommandList()
+    {
+        return RHICreateCommandList(Device->TransferCmdBufferPool);
+    }
+
+    RHICommandList* FVulkanDynamicRHI::RHICreateCommandList(VulkanCommandBufferPool* Pool)
+    {
+        VulkanCommandBuffer* VulkanCmdList = Pool->Allocate();
+        Ncheck(VulkanCmdList->State == VulkanCommandBuffer::EState::ReadyForBegin);
+        VkCommandBufferBeginInfo CmdBufBeginInfo{};
+        CmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        CmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        VK_CHECK_RESULT(vkBeginCommandBuffer(VulkanCmdList->Handle, &CmdBufBeginInfo));
+        VulkanCmdList->State = VulkanCommandBuffer::EState::IsInsideBegin;
+        return VulkanCmdList;
     }
 
     void FVulkanDynamicRHI::RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)
     {
         VulkanCommandBuffer* VulkanCmdList = ResourceCast(RHICmdList);
+        Ncheck(VulkanCmdList->IsOutsideRenderPass() && VulkanCmdList->HasBegun());
+        VK_CHECK_RESULT(vkEndCommandBuffer(VulkanCmdList->Handle));
         std::vector<VkSemaphoreSubmitInfo> WaitSemephores;
         std::vector<VkSemaphoreSubmitInfo> SignalSemephores;
         for (RHISemaphoreRef Semaphore : SemaphoresToWait)
@@ -299,7 +475,8 @@ namespace nilou {
         SubmitInfo.pCommandBufferInfos = &CmdBufferInfo;
         SubmitInfo.signalSemaphoreInfoCount = SignalSemephores.size();
         SubmitInfo.pSignalSemaphoreInfos = SignalSemephores.data();
-        vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VK_NULL_HANDLE);
+        vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VulkanCmdList->Fence);
+        VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
     }
 
 }

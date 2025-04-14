@@ -53,7 +53,7 @@ namespace nilou {
                     6);                     // array layer
             });
         
-        FGenerateMips::Execute(Graph, TextureRDG, SamplerStateRHI);
+        FGenerateMips::Execute(Graph, TextureRDG);
 
         RHIGetError();
     }

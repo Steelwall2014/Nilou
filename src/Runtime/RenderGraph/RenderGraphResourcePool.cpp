@@ -140,6 +140,6 @@ FRDGPooledTextureRef FRDGTexturePool::FindFreeElement(RDGTextureDesc Desc, const
     return Found;
 }
 
-TGlobalResource<FRDGTransientResourceAllocator, FRenderResource::EInitPhase::Pre> GRDGTransientResourceAllocator;
+FRDGTransientResourceAllocator GRDGTransientResourceAllocator;
 
 }

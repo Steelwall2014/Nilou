@@ -4,9 +4,13 @@
 
 namespace nilou {
 
+    class VulkanQueue;
+
     class VulkanCommandBuffer : public RHICommandList
     {
     public:
+        VulkanCommandBuffer(VkDevice Device, VkQueue Queue, VkCommandPool Pool);
+        ~VulkanCommandBuffer();
 
         /* Perform actions commands */
         virtual void BeginRenderPass(FRHIRenderPassInfo& Info) override;
@@ -22,11 +26,11 @@ namespace nilou {
             RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
             int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
             uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) override;
-        virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) override;
+        virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) override NILOU_NOT_IMPLEMENTED;
 
         /* Set state commands */
-        virtual void SetViewport(int32 Width, int32 Height) override;
-        virtual void SetScissor(int32 Width, int32 Height) override;
+        virtual void SetViewport(int32 Width, int32 Height) override NILOU_NOT_IMPLEMENTED;
+        virtual void SetScissor(int32 Width, int32 Height) override NILOU_NOT_IMPLEMENTED;
         virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) override;
         virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) override;
         virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;
@@ -45,20 +49,43 @@ namespace nilou {
             ReadyForBegin,
             IsInsideBegin,
             IsInsideRenderPass,
-            HasEnded,
             Submitted,
             NotAllocated,
-            NeedReset,
         };
         EState State;
+
+        void RefreshState();
+
+        inline bool IsInsideRenderPass() const
+        {
+            return State == EState::IsInsideRenderPass;
+        }
+    
+        inline bool IsOutsideRenderPass() const
+        {
+            return State == EState::IsInsideBegin;
+        }
+
+        inline bool HasBegun() const
+        {
+            return State == EState::IsInsideBegin || State == EState::IsInsideRenderPass;
+        }
+
+        inline bool IsSubmitted() const
+        {
+            return State == EState::Submitted;
+        }
 
     private:
 
         VkDevice Device;
         VkCommandBuffer Handle;
         VkQueue Queue;
+        VkCommandPool Pool;
+        VkFence Fence;
 
         friend class FVulkanDynamicRHI;
+        friend class VulkanCommandBufferPool;
 
     };
 
@@ -71,26 +98,20 @@ namespace nilou {
     {
     public:
 
-        VulkanCommandBufferPool(VkDevice InDevice, int32 QueueFamilyIndex)
-            : Device(InDevice)
-        {
-            VkCommandPoolCreateInfo poolInfo{};
-            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            poolInfo.queueFamilyIndex = QueueFamilyIndex;
-            vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle);
-        }
+        VulkanCommandBufferPool(VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
         ~VulkanCommandBufferPool();
+
+        VulkanCommandBuffer* Allocate();
+        void FreeUnusedCmdBuffers();
 
         VkCommandPool Handle{};
 
         VkDevice Device;
+        VkQueue Queue;
 
         std::vector<TRefCountPtr<VulkanCommandBuffer>> CmdBuffers;
         std::vector<TRefCountPtr<VulkanCommandBuffer>> FreeCmdBuffers;
 
-        VulkanCommandBuffer* Allocate();
-        void Release(VulkanCommandBuffer* VulkanCmdList);
     };
 
 }

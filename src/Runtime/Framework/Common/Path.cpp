@@ -8,6 +8,12 @@ namespace nilou {
         return ProjectDirectory;
     }
 
+    std::filesystem::path FPath::ProjectSavedDir()
+    {
+        static const std::filesystem::path ProjectSavedDirectory = FPath::ProjectDir() / "Saved";
+        return ProjectSavedDirectory;
+    }
+
     std::filesystem::path FPath::ShaderDir()
     {
         static const std::filesystem::path ShaderDirectory = FPath::ProjectDir() / "Content\\Shaders";
@@ -69,6 +75,11 @@ namespace nilou {
     std::filesystem::path FPath::VirtualPathToAbsPath(const std::string &VirtualPath)
     {
         return FPath::ContentDir() / VirtualPath.substr(1);
+    }
+
+    std::filesystem::path FPath::GetBaseFilename(const std::filesystem::path &InPath)
+    {
+        return InPath.filename();
     }
 
 }

@@ -345,6 +345,11 @@ namespace nilou {
             });
     }
 
+    struct MyStruct : TRefCountedObject<>
+    {
+        virtual ~MyStruct() { }
+    };
+
     FMaterialRenderProxy::FMaterialRenderProxy(UMaterial* InMaterial)
         : Material(InMaterial)
     {
@@ -380,56 +385,61 @@ namespace nilou {
             "layout (location = 0) out vec4 FragColor;\n" +  
             PreprocessResult + 
             "\nvoid main() { FragColor = vec4(0.0, 0.0, 0.0, 1.0); }";
-        sr::DescriptorSetLayouts DescriptorSetLayouts = sr::ReflectShader(PixelShaderCode);
-
-        for (auto& [SetIndex, Layout] : DescriptorSetLayouts)
+        sr::DescriptorSetLayouts DescriptorSetLayouts;
+        std::string ReflectMessage;
+        if (!sr::ReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, ReflectMessage))
         {
-            Ncheckf(SetIndex != VERTEX_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_SHADER_SET_INDEX ({})", Material->Name, VERTEX_SHADER_SET_INDEX);
-            Ncheckf(SetIndex != PIXEL_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as PIXEL_SHADER_SET_INDEX ({})", Material->Name, PIXEL_SHADER_SET_INDEX);
-            Ncheckf(SetIndex != VERTEX_FACTORY_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_FACTORY_SET_INDEX ({})", Material->Name, VERTEX_FACTORY_SET_INDEX);
-            std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
-            for (auto& [BindingIndex, Binding] : Layout)
             {
-                RHIDescriptorSetLayoutBinding BindingRHI;
-                BindingRHI.BindingIndex = BindingIndex;
-                BindingRHI.DescriptorType = Binding.DescriptorType;
-                BindingsRHI.push_back(BindingRHI);
+                std::ofstream out(Material->Name + ".glsl");
+                out << PixelShaderCode;
             }
-            RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
-            ShaderMap->DescriptorSetLayout[SetIndex] = RHIDescriptorSetLayoutRef(LayoutRHI);
-            DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(LayoutRHI);
+            NILOU_LOG(Fatal, "Error occured during material reflection of {} : \"{}\"", Material->Name, ReflectMessage);
+        }
 
-            for (auto& [BindingIndex, Binding] : Layout)
+        int32 SetIndex = MATERIAL_SET_INDEX;
+        sr::DescriptorSetLayout& Layout = DescriptorSetLayouts[SetIndex];
+        std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
+        for (auto& [BindingIndex, Binding] : DescriptorSetLayouts[MATERIAL_SET_INDEX])
+        {
+            RHIDescriptorSetLayoutBinding BindingRHI;
+            BindingRHI.BindingIndex = BindingIndex;
+            BindingRHI.DescriptorType = Binding.DescriptorType;
+            BindingsRHI.push_back(BindingRHI);
+        }
+        RHIDescriptorSetLayoutRef LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
+        ShaderMap->DescriptorSetLayout[SetIndex] = LayoutRHI;
+        DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(LayoutRHI);
+
+        for (auto& [BindingIndex, Binding] : Layout)
+        {
+            if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
             {
-                if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
-                {
-                    for (const sr::BlockVariable& Member : Binding.Block.Members)
-                    {
-                        FMaterialRenderProxy::ParameterPosition Position;
-                        Position.SetIndex = SetIndex;
-                        Position.BindingIndex = BindingIndex;
-                        Position.Offset = Member.Offset;
-                        ParameterNameToPosition[Member.Name] = Position;
-                    }
-                    uint32 Size = Binding.Block.Size;
-                    uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
-                    std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
-                    UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
-                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key]);
-                }
-                else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
+                for (const sr::BlockVariable& Member : Binding.Block.Members)
                 {
                     FMaterialRenderProxy::ParameterPosition Position;
                     Position.SetIndex = SetIndex;
                     Position.BindingIndex = BindingIndex;
-                    ParameterNameToPosition[Binding.Name] = Position;
-                    // Textures should not be create by the Material like UniformBuffers,
-                    // Instead, they should be pass as input by UMaterial::SetTextureParameterValue.
+                    Position.Offset = Member.Offset;
+                    ParameterNameToPosition[Member.Name] = Position;
                 }
-                else 
-                {
-                    Ncheckf(false, "Unsupported descriptor type");
-                }
+                uint32 Size = Binding.Block.Size;
+                uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
+                std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
+                UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
+                DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key]);
+            }
+            else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
+            {
+                FMaterialRenderProxy::ParameterPosition Position;
+                Position.SetIndex = SetIndex;
+                Position.BindingIndex = BindingIndex;
+                ParameterNameToPosition[Binding.Name] = Position;
+                // Textures should not be create by the Material like UniformBuffers,
+                // Instead, they should be pass as input by UMaterial::SetTextureParameterValue.
+            }
+            else 
+            {
+                Ncheckf(false, "Unsupported descriptor type");
             }
         }
 

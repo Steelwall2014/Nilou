@@ -50,7 +50,7 @@ namespace nilou {
 
         std::mutex mutex;
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
-        RenderGraph* GraphExucuting;
+        RenderGraph* GraphExecuting;
         RenderGraph* GraphRecording;
         static uint32 FrameCount;
 

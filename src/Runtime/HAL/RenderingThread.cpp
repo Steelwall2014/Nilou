@@ -1,8 +1,6 @@
 #include <glad.h>
 #include <GLFW/glfw3.h>
 
-#include "DeferredShadingSceneRenderer.h"
-// #include "OpenGL/OpenGLDynamicRHI.h"
 #include "RenderingThread.h"
 #include "BaseApplication.h"
 #include "Common/ContentManager.h"
@@ -30,6 +28,7 @@ namespace nilou {
         FDynamicRHI::GetDynamicRHI()->Initialize();
         // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders();
+        GraphRecording = new RenderGraph();
         GetContentManager()->Init();
         return true;
     }
@@ -56,24 +55,20 @@ namespace nilou {
     void FRenderingThread::NotifyStartOfFrame()
     {
         FRenderingThread* _this = RenderingThread;
-        if (_this->GraphExucuting)
+        _this->GraphExecuting = _this->GraphRecording;
+        _this->GraphRecording = new RenderGraph();
+        if (_this->GraphExecuting)
         {
-            _this->GraphExucuting->Compile();
-            _this->GraphExucuting->Execute();
+            _this->GraphExecuting->Compile();
+            _this->GraphExecuting->Execute();
         }
     }
 
     void FRenderingThread::NotifyEndOfFrame()
     {
-        FrameCount++;
         FRenderingThread* _this = RenderingThread;
-        if (_this->GraphExucuting)
-        {
-            delete _this->GraphExucuting;
-            _this->GraphExucuting = nullptr;
-        }
-        _this->GraphExucuting = _this->GraphRecording;
-        _this->GraphRecording = new RenderGraph();
+        delete _this->GraphExecuting;
+        FrameCount++;
     }
 
     void FRenderingThread::Exit()

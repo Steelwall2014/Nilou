@@ -23,6 +23,7 @@ public:
 
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
+    RenderGraph& operator=(RenderGraph&&) = default;
 
     static RDGTextureRef CreateExternalTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
@@ -75,7 +76,8 @@ public:
     template<class TShaderType>
     RDGDescriptorSet* CreateDescriptorSet(int32 PermutationId, uint32 SetIndex)
     {
-        RDGDescriptorSet* DescriptorSet = CreateDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
+        RHIDescriptorSetLayout* Layout = TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex);
+        RDGDescriptorSet* DescriptorSet = CreateDescriptorSet(Layout);
         DescriptorSet->SetIndex = SetIndex;
         return DescriptorSet;
     }

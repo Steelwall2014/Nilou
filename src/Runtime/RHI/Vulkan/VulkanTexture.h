@@ -57,6 +57,9 @@ inline VulkanTexture* ResourceCast(RHITexture* Texture)
 class VulkanTextureView : public RHITextureView
 {
 public:
+    VulkanTextureView(const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
+        : RHITextureView(InDesc, InTexture) 
+    { }
 
     VkImageView GetHandle() const { return Handle; }
 

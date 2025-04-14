@@ -10,6 +10,14 @@ namespace nilou {
 	public:
 		static RHIParamRefType GetRHI()
 		{
+			if (!StaticResource.IsInitialized())
+			{
+				ENQUEUE_RENDER_COMMAND(BeginInitResource)(
+					[](RenderGraph&)
+				    {
+						StaticResource.InitResource();
+				    });
+			}
 			return StaticResource.StateRHI;
 		};
 
@@ -19,23 +27,15 @@ namespace nilou {
 		{
 		public:
 			RHIRefType StateRHI;
-			FStaticStateResource()
-			{
-				BeginInitResource(this);
-			}
 
 			// FRenderResource interface.
-			virtual void InitRHI(RenderGraph&) override
+			virtual void InitRHI() override final
 			{
 				StateRHI = InitializerType::CreateRHI();
 			}
 			virtual void ReleaseRHI() override final
 			{
 				StateRHI = nullptr;
-			}
-			virtual void ReleaseResource() override final
-			{
-				FRenderResource::ReleaseResource();
 			}
 
 			~FStaticStateResource()
@@ -105,7 +105,7 @@ namespace nilou {
 				StencilReadMask,
 				StencilWriteMask);
 
-			static RHIDepthStencilStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateDepthStencilState(Initializer);
+			static RHIDepthStencilStateRef RHI = RHICreateDepthStencilState(Initializer);
 			return RHI;
 		}
 	};
@@ -135,7 +135,7 @@ namespace nilou {
 				CullMode
 			);
 
-			static RHIRasterizerStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateRasterizerState(Initializer);
+			static RHIRasterizerStateRef RHI = RHICreateRasterizerState(Initializer);
 			return RHI;
 		}
 	};
@@ -247,7 +247,7 @@ namespace nilou {
 			RenderTargetBlendStates[6] = FBlendStateInitializer::FRenderTarget(RT6ColorBlendOp,RT6ColorSrcBlend,RT6ColorDestBlend,RT6AlphaBlendOp,RT6AlphaSrcBlend,RT6AlphaDestBlend,RT6ColorWriteMask);
 			RenderTargetBlendStates[7] = FBlendStateInitializer::FRenderTarget(RT7ColorBlendOp,RT7ColorSrcBlend,RT7ColorDestBlend,RT7AlphaBlendOp,RT7AlphaSrcBlend,RT7AlphaDestBlend,RT7ColorWriteMask);
 
-			static RHIBlendStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateBlendState(FBlendStateInitializer(RenderTargetBlendStates/*, bUseAlphaToCoverage*/));
+			static RHIBlendStateRef RHI = RHICreateBlendState(FBlendStateInitializer(RenderTargetBlendStates/*, bUseAlphaToCoverage*/));
 			return RHI;
 		}
 	};

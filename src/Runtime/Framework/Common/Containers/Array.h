@@ -110,7 +110,7 @@ namespace nilou {
 
 		bool operator==(const EnumerateIterator& enumItr) const
 		{
-			return (mCurIdx == enumItr.mCurIdx) && (mItr == enumItr.mItr);
+			return mItr == enumItr.mItr;
 		}
 
 		bool operator!=(const EnumerateIterator& enumItr) const

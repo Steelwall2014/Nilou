@@ -1,6 +1,7 @@
 #include "VulkanDevice.h"
 #include "VulkanQueue.h"
 #include "VulkanMemory.h"
+#include "VulkanCommandBuffer.h"
 
 namespace nilou {
 
@@ -49,7 +50,7 @@ void FVulkanPhysicalDeviceFeatures::Query(VkPhysicalDevice PhysicalDevice, uint3
 VulkanDevice::VulkanDevice(FVulkanDynamicRHI* InRHI, VkPhysicalDevice InGpu)
     : Gpu(InGpu)
 {
-
+	InitGPU();
 }
 
 void VulkanDevice::InitGPU()
@@ -168,6 +169,10 @@ void VulkanDevice::InitGPU()
 	}
 	TransferQueue = new VulkanQueue(Handle, TransferQueueFamilyIndex);
 	PresentQueue = GfxQueue;
+
+	GfxCmdBufferPool = new VulkanCommandBufferPool(Handle, GfxQueue->Handle, GfxQueueFamilyIndex);
+	ComputeCmdBufferPool = new VulkanCommandBufferPool(Handle, ComputeQueue->Handle, ComputeQueueFamilyIndex);
+	TransferCmdBufferPool = new VulkanCommandBufferPool(Handle, TransferQueue->Handle, TransferQueueFamilyIndex);
 
 	MemoryManager = new FVulkanMemoryManager(Handle, Gpu);
 }

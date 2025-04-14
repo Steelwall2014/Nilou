@@ -175,7 +175,7 @@ namespace nilou {
                 NAsset* asset = static_cast<NAsset*>(CreateDefaultObject(class_name));
                 if (asset == nullptr)
                 {
-                    NILOU_LOG(Display, "Failed to create object of class {}", class_name);
+                    NILOU_LOG(Warning, "Failed to create object of class {}", class_name);
                     continue;
                 }
                 Entries[i]->Object = std::unique_ptr<NAsset>(asset);
@@ -187,15 +187,24 @@ namespace nilou {
         // TODO: dependency graph
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->PreDeserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->PreDeserialize(Archives[i]->Ar);
+            }
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->Deserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->Deserialize(Archives[i]->Ar);
+            }
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->PostDeserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->PostDeserialize(Archives[i]->Ar);
+            }
         }
     }
 

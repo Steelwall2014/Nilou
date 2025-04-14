@@ -7,7 +7,7 @@ layout (location = 3) out vec2 MetallicRoughness;
 layout (location = 4) out vec3 Emissive;
 layout (location = 5) out uint ShadingModel;
 
-layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
+layout(set=PIXEL_SHADER_SET_INDEX, binding=0, std140) uniform PIXEL_UNIFORM_BLOCK {
     uint MaterialShadingModel;
     uint PrefilterEnvTextureNumMips;
     float ReflectionProbeFactor;
@@ -20,11 +20,11 @@ layout(binding=16, std140) uniform PIXEL_UNIFORM_BLOCK {
 //#include "../Materials/ColoredMaterial_Mat.glsl"
 
 #if ENABLE_REFLECTION_PROBE
-layout (binding=17) uniform samplerCube IrradianceTexture;
+layout (set=PIXEL_SHADER_SET_INDEX, binding=1) uniform samplerCube IrradianceTexture;
 
-layout (binding=18) uniform samplerCube PrefilteredTexture;
+layout (set=PIXEL_SHADER_SET_INDEX, binding=2) uniform samplerCube PrefilteredTexture;
 
-layout (binding=19) uniform sampler2D IBL_BRDF_LUT;
+layout (set=PIXEL_SHADER_SET_INDEX, binding=3) uniform sampler2D IBL_BRDF_LUT;
 #endif
 
 //layout (std140) uniform FPrefilteredTextureBlock {

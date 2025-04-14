@@ -22,10 +22,10 @@ namespace nilou {
         };
 
         // used to create non-persistent resources
-        virtual void InitRHI(RenderGraph&) { bRHIInitialized = true; }
+        virtual void InitRHI(RenderGraph&) { }
         // used to create persistent resources
-        virtual void InitRHI() { bRHIInitialized = true; }
-        virtual void ReleaseRHI() { bRHIInitialized = false; }
+        virtual void InitRHI() { }
+        virtual void ReleaseRHI() { }
         
         // used to create non-persistent resources
         virtual void InitResource(RenderGraph&);
@@ -33,13 +33,12 @@ namespace nilou {
         virtual void InitResource();
         virtual void ReleaseResource();
         virtual ~FRenderResource() { ReleaseResource(); }
-        bool IsInitialized() { return bRHIInitialized; }
+        bool IsInitialized() { return ListIndex != INDEX_NONE; }
         void UpdateRHI();
         static std::vector<FRenderResource*>& GetResourceList();
 
     private:
-        int32 ListIndex = -1;
-        bool bRHIInitialized = false;
+        int32 ListIndex = INDEX_NONE;
     };
 
     class FVertexBuffer : public FRenderResource

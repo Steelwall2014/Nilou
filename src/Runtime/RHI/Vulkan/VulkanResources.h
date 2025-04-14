@@ -36,6 +36,10 @@ public:
     ~VulkanGraphicsPipelineState();
 };
 using VulkanGraphicsPipelineStateRef = TRefCountPtr<VulkanGraphicsPipelineState>;
+inline VulkanGraphicsPipelineState* ResourceCast(RHIGraphicsPipelineState* PSO)
+{
+    return static_cast<VulkanGraphicsPipelineState*>(PSO);
+}
 
 class VulkanComputePipelineState : public RHIComputePipelineState
 {
@@ -52,6 +56,10 @@ public:
     }
 };
 using VulkanComputePipelineStateRef = TRefCountPtr<VulkanComputePipelineState>;
+inline VulkanComputePipelineState* ResourceCast(RHIComputePipelineState* PSO)
+{
+    return static_cast<VulkanComputePipelineState*>(PSO);
+}
 
 class VulkanDepthStencilState : public RHIDepthStencilState
 {

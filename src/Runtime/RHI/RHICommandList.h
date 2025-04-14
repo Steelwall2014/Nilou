@@ -29,9 +29,6 @@ namespace nilou {
     public:
         RHICommandList() : RHIResource(ERHIResourceType::RRT_CommandBuffer) { }
 
-        virtual void BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-
         /* Perform actions commands */
         virtual void BeginRenderPass(FRHIRenderPassInfo& Info) = 0;
         virtual void EndRenderPass() = 0;
@@ -46,10 +43,10 @@ namespace nilou {
             RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
             int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
             uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) = 0;
-        virtual void CopyImageToBuffer(
-            RHITexture* SrcTexture, RHIBuffer* DstBuffer, 
-            int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
-            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) = 0;
+        // virtual void CopyImageToBuffer(
+        //     RHITexture* SrcTexture, RHIBuffer* DstBuffer, 
+        //     int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
+        //     uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) = 0;
         virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) = 0;
 
         /* Set state commands */
@@ -85,20 +82,6 @@ namespace nilou {
         RHICommandContext* GraphicsContext;
         RHICommandContext* ComputeContext;
 
-    };
-
-    class RHICommandListExecutor
-    {
-    public:
-        RHICommandListExecutor();
-        ~RHICommandListExecutor();
-
-        void Submit(const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal);
-        
-        RHICommandList& GetCommandList() { return *RHICmdList; }
-
-    private:
-        RHICommandList* RHICmdList;
     };
 
 }

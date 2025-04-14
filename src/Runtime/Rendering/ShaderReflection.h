@@ -2,6 +2,7 @@
 #include <map>
 #include <vector>
 #include "Platform.h"
+#include "RHIDefinitions.h"
 
 namespace nilou {
 
@@ -210,6 +211,11 @@ public:
         return SetLayouts.end();
     }
 
+    bool contains(int32 SetIndex) const
+    {
+        return SetLayouts.find(SetIndex) != SetLayouts.end();
+    }
+
     auto NumDescriptorSets() const
     {
         return SetLayouts.size();
@@ -219,7 +225,7 @@ private:
     std::map<uint32, DescriptorSetLayout> SetLayouts;
 };
 
-DescriptorSetLayouts ReflectShader(const std::string& ShaderCode);
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, DescriptorSetLayouts& OutLayouts, std::string& OutMessage);
 
 } // namespace shader_reflection
 

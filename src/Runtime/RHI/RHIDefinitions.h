@@ -828,5 +828,12 @@ enum class ERenderTargetStoreAction : uint8
 	Num,
 };
 
+enum class ECommandBufferType : uint8
+{
+	Graphics,
+	Compute,
+	Transfer,
+};
+
 
 }

@@ -25,9 +25,10 @@ class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
 class FVulkanStagingManager;
 class FVulkanDescriptorPoolsManager;
-class FVulkanQueue;
+class VulkanQueue;
 class VulkanTexture;
 class VulkanDevice;
+class VulkanCommandBufferPool;
 
 }
 
@@ -91,7 +92,9 @@ public:
 	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
     virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
-    virtual RHICommandList* RHICreateCommandList() override;
+    virtual RHICommandList* RHICreateGfxCommandList() override;
+    virtual RHICommandList* RHICreateComputeCommandList() override;
+    virtual RHICommandList* RHICreateTransferCommandList() override;
     virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) override;
 
     VulkanDevice* Device = nullptr;
@@ -118,6 +121,7 @@ private:
         int32 BaseArrayLayer);
     void TransitionImageLayout(RHITexture* Texture, VkImageLayout DstLayout);
     void TransitionImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
+    RHICommandList* RHICreateCommandList(VulkanCommandBufferPool* Pool);
 
     std::map<uint32, RHISamplerStateRef> SamplerMap;
 

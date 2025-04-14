@@ -261,7 +261,7 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     viewInfo.subresourceRange.baseArrayLayer = CreateInfo.BaseArrayLayer;
     viewInfo.subresourceRange.layerCount = CreateInfo.LayerCount;
     
-    TRefCountPtr<VulkanTextureView> TextureView = new VulkanTextureView();
+    TRefCountPtr<VulkanTextureView> TextureView = new VulkanTextureView(CreateInfo, InTexture);
     VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &TextureView->Handle));
 
     return TextureView;

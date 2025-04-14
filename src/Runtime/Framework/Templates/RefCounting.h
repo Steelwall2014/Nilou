@@ -20,34 +20,28 @@ class TRefCountedObject
 
 public:
 
-    TRefCountedObject()
-        : NumRefs(0)
-    {
-    }
-
+    TRefCountedObject(): NumRefs(0) {}
+	virtual ~TRefCountedObject() { Ncheck(!NumRefs); }
+	TRefCountedObject(const TRefCountedObject& Rhs) = delete;
+	TRefCountedObject& operator=(const TRefCountedObject& Rhs) = delete;
     uint32 AddRef()
     {
-        ++NumRefs;
-        return NumRefs;
+        return uint32(++NumRefs);
     }
-
     uint32 Release()
     {
-        --NumRefs;
-        if (NumRefs == 0)
+        uint32 Refs = uint32(--NumRefs);
+        if (Refs == 0)
         {
             delete this;
         }
-        return NumRefs;
+        return Refs;
     }
-
     uint32 GetRefCount() const
     {
-        return NumRefs;
+        return uint32(NumRefs);
     }
-
 private:
-
 	mutable RefCountType NumRefs = 0;
 };
 

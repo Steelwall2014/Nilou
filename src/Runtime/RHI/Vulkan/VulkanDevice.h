@@ -4,6 +4,7 @@
 namespace nilou {
 
 class VulkanQueue;
+class VulkanCommandBufferPool;
 
 class FVulkanPhysicalDeviceFeatures
 {
@@ -42,6 +43,10 @@ public:
 	VulkanQueue* ComputeQueue = nullptr;
 	VulkanQueue* TransferQueue = nullptr;
 	VulkanQueue* PresentQueue = nullptr;
+
+    VulkanCommandBufferPool* GfxCmdBufferPool = nullptr;
+    VulkanCommandBufferPool* ComputeCmdBufferPool = nullptr;
+    VulkanCommandBufferPool* TransferCmdBufferPool = nullptr;
 
     FVulkanMemoryManager* MemoryManager;
 

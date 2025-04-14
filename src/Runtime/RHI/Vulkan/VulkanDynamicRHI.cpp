@@ -323,20 +323,20 @@ int FVulkanDynamicRHI::Initialize()
             1, &Device->GfxQueue->FamilyIndex, TempSwapChainImages));
         swapChainImages.resize(TempSwapChainImages.size());
 
-        RHICommandList* RHICmdList = RHICreateCommandList();
-        RHIImageMemoryBarrier SwapChainImageBarrier{
-            DepthImage, 
-            ERHIAccess::Present, ERHIAccess::Present, 
-            EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
-            ETextureLayout::Undefined, ETextureLayout::PresentSrc,
-            RHITextureSubresource()};
+        // RHICommandList* RHICmdList = RHICreateCommandList(Device->TransferCmdBufferPool);
         for (int i = 0; i < swapChainImages.size(); i++)
         {
             auto Texture = new VulkanTexture(
                 TempSwapChainImages[i], VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
                 extent.width, extent.height, 1, 1, 
                 0, 0, swapChainImageFormat, "SwapChainImage"+std::to_string(i), ETextureDimension::Texture2D);
-            RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
+            // RHIImageMemoryBarrier SwapChainImageBarrier{
+            //     Texture, 
+            //     ERHIAccess::Present, ERHIAccess::Present, 
+            //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
+            //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
+            //     RHITextureSubresource()};
+            // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
             swapChainImages[i] = Texture;
         }
 
@@ -357,11 +357,17 @@ int FVulkanDynamicRHI::Initialize()
         CreateInfo.LayerCount = 1;
         DepthImageView = RHICreateTextureView(DepthImage, CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
         auto VkDepthImage = ResourceCast(DepthImage);
-        SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 1);
-        RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 2);
-        RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        this->RHISubmitCommandList(RHICmdList, {}, {});
+        // RHIImageMemoryBarrier SwapChainImageBarrier{
+        //     DepthImage, 
+        //     ERHIAccess::Present, ERHIAccess::Present, 
+        //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
+        //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
+        //     RHITextureSubresource()};
+        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 1);
+        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
+        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 2);
+        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
+        // this->RHISubmitCommandList(RHICmdList, {}, {});
     }
 
     /** Create image views */
@@ -773,6 +779,7 @@ RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateI
 {
     VulkanSamplerStateRef Sampler = new VulkanSamplerState(Initializer, Device->Handle);
     VkSamplerCreateInfo SamplerInfo{};
+    SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
 	SamplerInfo.magFilter = TranslateMinMagFilterMode(Initializer.Filter);
 	SamplerInfo.minFilter = TranslateMinMagFilterMode(Initializer.Filter);
@@ -796,7 +803,7 @@ RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateI
 	SamplerInfo.maxLod = Initializer.MaxMipLevel;
 	SamplerInfo.borderColor = Initializer.BorderColor == 0 ? VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK : VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     
-    Ncheck(vkCreateSampler(Device->Handle, &SamplerInfo, nullptr, &Sampler->Handle));
+    VK_CHECK_RESULT(vkCreateSampler(Device->Handle, &SamplerInfo, nullptr, &Sampler->Handle));
 
 	uint32 CRC = FCrc::MemCrc32(&SamplerInfo, sizeof(SamplerInfo));
     SamplerMap[CRC] = Sampler;
@@ -822,7 +829,7 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
     for (auto& Element : ElementList)
     {
         VkVertexInputBindingDescription& CurrBinding = Bindings[Element.StreamIndex];
-        if ((1 << Element.StreamIndex) & BindingMask != 0)
+        if (((1 << Element.StreamIndex) & BindingMask) != 0)
         {
             Ncheck(CurrBinding.binding == Element.StreamIndex);
             Ncheck(CurrBinding.inputRate == VK_VERTEX_INPUT_RATE_VERTEX);

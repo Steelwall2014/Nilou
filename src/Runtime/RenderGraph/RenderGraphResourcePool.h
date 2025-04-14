@@ -4,7 +4,7 @@
 
 namespace nilou {
 
-class FRDGBufferPool : public FRenderResource
+class FRDGBufferPool
 {
 public:
 	FRDGBufferPool() = default;
@@ -15,7 +15,6 @@ public:
 	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::Page);
 
 private:
-	void ReleaseRHI() override NILOU_NOT_IMPLEMENTED
 
 	mutable std::recursive_mutex Mutex;
 
@@ -29,7 +28,7 @@ private:
 };
 
 /** The global buffers for easy shading. */
-extern TGlobalResource<FRDGBufferPool> GRenderGraphBufferPool;
+extern FRDGBufferPool GRenderGraphBufferPool;
 
 
 // Steewall2014: In UE5, it's called "FRenderTargetPool". I guess it's for backward compatibility.
@@ -37,7 +36,7 @@ extern TGlobalResource<FRDGBufferPool> GRenderGraphBufferPool;
 /**
  * Encapsulates the render targets pools that allows easy sharing (mostly used on the render thread side)
  */
-class FRDGTexturePool : public FRenderResource
+class FRDGTexturePool
 {
 public:
 	FRDGTexturePool() = default;
@@ -82,20 +81,18 @@ private:
 };
 
 /** The global render targets for easy shading. */
-extern TGlobalResource<FRDGTexturePool> GRenderGraphTexturePool;
+extern FRDGTexturePool GRenderGraphTexturePool;
 
-class FRDGTransientResourceAllocator : public FRenderResource
+class FRDGTransientResourceAllocator
 {
 public:
 	IRHITransientResourceAllocator* Get() { return Allocator; }
 
 private:
-    virtual void InitRHI(RenderGraph&) override { }
-    virtual void ReleaseRHI() override { }
 
 	IRHITransientResourceAllocator* Allocator = nullptr;
 };
 
-extern TGlobalResource<FRDGTransientResourceAllocator, FRenderResource::EInitPhase::Pre> GRDGTransientResourceAllocator;
+extern FRDGTransientResourceAllocator GRDGTransientResourceAllocator;
 
 }

@@ -24,7 +24,17 @@ namespace nilou {
                 break;
         }
         if (ShaderRHI)
-            DescriptorSetLayouts = sr::ReflectShader(Code);
+        {
+            std::string ErrorMessage;
+            if (!sr::ReflectShader(Code, ShaderStage, DescriptorSetLayouts, ErrorMessage))
+            {
+                {
+                    std::ofstream out(ShaderName + ".glsl");
+                    out << Code;
+                }
+                NILOU_LOG(Fatal, "Error occured during shader reflection of {}: \"{}\"", ShaderName, ErrorMessage);
+            }
+        }
     }
 
     void FShaderInstance::ReleaseRHI()

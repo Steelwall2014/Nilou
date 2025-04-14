@@ -90,7 +90,9 @@ namespace nilou {
 		virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) = 0;
 		virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) = 0;
 		virtual RHISemaphoreRef RHICreateSemaphore() = 0;
-    	virtual RHICommandList* RHICreateCommandList() = 0;
+    	virtual RHICommandList* RHICreateGfxCommandList() = 0;
+    	virtual RHICommandList* RHICreateComputeCommandList() = 0;
+    	virtual RHICommandList* RHICreateTransferCommandList() = 0;
 		virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
 
 	protected:
@@ -238,9 +240,19 @@ namespace nilou {
 		return FDynamicRHI::GetDynamicRHI()->RHICreateSemaphore();
 	}
 
-	inline RHICommandList* RHICreateCommandList()
+	inline RHICommandList* RHICreateGfxCommandList()
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateCommandList();
+		return FDynamicRHI::GetDynamicRHI()->RHICreateGfxCommandList();
+	}
+
+	inline RHICommandList* RHICreateComputeCommandList()
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHICreateComputeCommandList();
+	}
+
+	inline RHICommandList* RHICreateTransferCommandList()
+	{
+		return FDynamicRHI::GetDynamicRHI()->RHICreateTransferCommandList();
 	}
 
 	inline void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)

@@ -1,4 +1,6 @@
 #version 460 core
+#include "../include/Common.glsl"
+
 layout(location = 0) in vec3 POSITION;
 layout(location = 1) in vec3 NORMAL;
 layout(location = 2) in vec4 TANGENT;
@@ -10,7 +12,7 @@ const vec4 COLOR = vec4(0);
 
 layout(location = 4) in vec2 TEXCOORD_0;
 
-layout (std140, binding=8) uniform FPrimitiveShaderParameters {
+layout (std140, set=VERTEX_FACTORY_SET_INDEX, binding=0) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 	dmat4 ModelToLocal;
 };

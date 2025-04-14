@@ -12,8 +12,8 @@
 namespace nilou {
 
 std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> RenderGraph::DescriptorSetPools;
-TGlobalResource<FRDGBufferPool> GRenderGraphBufferPool;
-TGlobalResource<FRDGTexturePool> GRenderGraphTexturePool;
+FRDGBufferPool GRenderGraphBufferPool;
+FRDGTexturePool GRenderGraphTexturePool;
 
 /** Enumerates all texture accesses and provides the access and subresource range info. This results in
  *  multiple invocations of the same resource, but with different access / subresource range.
@@ -406,9 +406,15 @@ void RenderGraph::Execute()
 			continue;
 		}
 		
-		RHICommandListExecutor Executor;
-		ExecuteSerialPass(Executor.GetCommandList(), Pass);
-		Executor.Submit(Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
+		RHICommandList* RHICmdList = nullptr;
+		if (Pass->Pipeline == ERHIPipeline::Graphics)
+			RHICmdList = RHICreateGfxCommandList();
+		else if (Pass->Pipeline == ERHIPipeline::AsyncCompute)
+			RHICmdList = RHICreateComputeCommandList();
+		else if (Pass->Pipeline == ERHIPipeline::Copy)
+			RHICmdList = RHICreateTransferCommandList();
+		ExecuteSerialPass(*RHICmdList, Pass);
+		RHISubmitCommandList(RHICmdList, Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
 	}
 
 }

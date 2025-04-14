@@ -299,7 +299,11 @@ namespace nilou {
 	class RHITextureView : public RHIResource
 	{
 	public:
-		RHITextureView() : RHIResource(ERHIResourceType::RRT_TextureView) { }
+		RHITextureView(const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
+			: RHIResource(ERHIResourceType::RRT_TextureView) 
+			, Desc(InDesc)
+			, Texture(InTexture)
+		{ }
 		RHITextureViewDesc Desc;
 		RHITexture* Texture;
 
