@@ -99,28 +99,26 @@ namespace nilou {
         return shader_profile;
     }
 
-    #define FROM_COMPONENNT_TO_PROXY(MemberName) Set##MemberName(InComponent->Get##MemberName());
-
     FSkyAtmosphereSceneProxy::FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent)
+        : SolarIrradiance(InComponent->GetSolarIrradiance())
+        , SunAngularRadius(InComponent->GetSunAngularRadius())
+        , BottomRadius(InComponent->GetBottomRadius())
+        , TopRadius(InComponent->GetTopRadius())
+        , RayleighDensity(TranslateDensityProfile(InComponent->GetRayleighDensity()))
+        , RayleighScattering(InComponent->GetRayleighScattering())
+        , MieDensity(TranslateDensityProfile(InComponent->GetMieDensity()))
+        , MieScattering(InComponent->GetMieScattering())
+        , MieExtinction(InComponent->GetMieExtinction())
+        , MiePhaseFunction_g(InComponent->GetMiePhaseFunction_g())
+        , AbsorptionDensity(TranslateDensityProfile(InComponent->GetAbsorptionDensity()))
+        , AbsorptionExtinction(InComponent->GetAbsorptionExtinction())
+        , GroundAlbedo(InComponent->GetGroundAlbedo())
+        , Mu_s_Min(InComponent->GetMu_s_Min())
     {
-		FROM_COMPONENNT_TO_PROXY(SolarIrradiance)
-		FROM_COMPONENNT_TO_PROXY(SunAngularRadius)
-		FROM_COMPONENNT_TO_PROXY(BottomRadius)
-		FROM_COMPONENNT_TO_PROXY(TopRadius)
-        SetRayleighDensity(TranslateDensityProfile(InComponent->GetRayleighDensity()));
-		FROM_COMPONENNT_TO_PROXY(RayleighScattering)
-        SetMieDensity(TranslateDensityProfile(InComponent->GetMieDensity()));
-		FROM_COMPONENNT_TO_PROXY(MieScattering)
-		FROM_COMPONENNT_TO_PROXY(MieExtinction)
-		FROM_COMPONENNT_TO_PROXY(MiePhaseFunction_g)
-        SetAbsorptionDensity(TranslateDensityProfile(InComponent->GetAbsorptionDensity()));
-		FROM_COMPONENNT_TO_PROXY(AbsorptionExtinction)
-		FROM_COMPONENNT_TO_PROXY(GroundAlbedo)
-		FROM_COMPONENNT_TO_PROXY(Mu_s_Min)
 
         ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph&) {
 
-            AtmosphereParameters = RenderGraph::CreateExternalUniformBuffer<ShaderAtmosphereParametersBlock>("");
+            AtmosphereParameters = RenderGraph::CreateExternalUniformBuffer<ShaderAtmosphereParametersBlock>("", nullptr);
 
             RDGTextureDesc Desc;
             Desc.TextureType = ETextureDimension::Texture2D;
@@ -147,8 +145,6 @@ namespace nilou {
             DispatchPrecompute();
         });
     }
-
-    #undef FROM_COMPONENNT_TO_PROXY
 
     void FSkyAtmosphereSceneProxy::DispatchPrecompute()
     {

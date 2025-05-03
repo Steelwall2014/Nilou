@@ -10,7 +10,7 @@ namespace nilou {
     public:
         AFFTOceanActor() 
         { 
-            OceanComponent = CreateComponent<UFourierTransformOceanComponent>(this);
+            OceanComponent = CreateComponent<UFourierTransformOceanComponent>(this, "OceanComponent");
         }
 
 

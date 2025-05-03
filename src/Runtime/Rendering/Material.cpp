@@ -33,6 +33,7 @@ namespace nilou {
             [Proxy, ParameterInfo, Value](RenderGraph&)
             {
                 Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
+                Proxy->RenderThread_UpdateUniformBuffer();
             });
     }
 
@@ -251,7 +252,7 @@ namespace nilou {
     UMaterialInstance* UMaterial::CreateMaterialInstance()
     {
         std::string parent_path = std::filesystem::path(GetVirtualPath()).parent_path().generic_string();
-        UMaterialInstance* MaterialInstance = GetContentManager()->CreateAsset<UMaterialInstance>(Name+"_Instance", parent_path);
+        UMaterialInstance* MaterialInstance = GetContentManager()->CreateAsset<UMaterialInstance>(GetName()+"_Instance", parent_path);
 
         // Copy some properties
         MaterialInstance->Code = this->Code;
@@ -284,8 +285,8 @@ namespace nilou {
             uint32 BindingIndex = Key & 0xFFFFFFFF;
             // Copy the uniform buffer instead of the refs.
             RDGBufferRef NewUniformBuffer = RenderGraph::CreateExternalBuffer(Buffer->Name, Buffer->Desc);
-            NewUniformBuffer->SetData(Buffer->Buffer.get(), Buffer->Desc.GetSize(), 0);
             NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
+            NewRenderProxy->UniformBuffersData[Key] = this->MaterialRenderProxy->UniformBuffersData[Key];
             NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBuffers[Key]);
         }
         NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
@@ -294,6 +295,11 @@ namespace nilou {
         NewRenderProxy->BlendState = this->MaterialRenderProxy->BlendState;
         NewRenderProxy->ShadingModel = this->MaterialRenderProxy->ShadingModel;
 
+        ENQUEUE_RENDER_COMMAND(MaterialInstance_UpdateUniformBuffer)(
+            [NewRenderProxy](RenderGraph&)
+            {
+                NewRenderProxy->RenderThread_UpdateUniformBuffer();
+            });
         return MaterialInstance;
     }
 
@@ -342,6 +348,7 @@ namespace nilou {
                 {
                     Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
                 }
+                Proxy->RenderThread_UpdateUniformBuffer();
             });
     }
 
@@ -390,10 +397,10 @@ namespace nilou {
         if (!sr::ReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, ReflectMessage))
         {
             {
-                std::ofstream out(Material->Name + ".glsl");
+                std::ofstream out(Material->GetName() + ".glsl");
                 out << PixelShaderCode;
             }
-            NILOU_LOG(Fatal, "Error occured during material reflection of {} : \"{}\"", Material->Name, ReflectMessage);
+            NILOU_LOG(Fatal, "Error occured during material reflection of {} : \"{}\"", Material->GetName(), ReflectMessage);
         }
 
         int32 SetIndex = MATERIAL_SET_INDEX;
@@ -424,8 +431,9 @@ namespace nilou {
                 }
                 uint32 Size = Binding.Block.Size;
                 uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
-                std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
+                std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->GetName(), SetIndex, BindingIndex);
                 UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
+                UniformBuffersData[key] = std::vector<uint8>(Size);
                 DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key]);
             }
             else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)

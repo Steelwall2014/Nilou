@@ -279,7 +279,7 @@ namespace nilou {
         std::vector<UMaterial *> MaterialSlots;
 
         NPROPERTY()
-        FBoundingBox LocalBoundingBox;
+        FBox LocalBoundingBox;
 
         NPROPERTY()
         FMeshSectionInfoMap SectionInfoMap;

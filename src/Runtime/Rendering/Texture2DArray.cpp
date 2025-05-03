@@ -61,7 +61,7 @@ namespace nilou {
 
     FTextureResource* UTexture2DArray::CreateResource()
     {
-        FTexture2DArrayResource* Resource = new FTexture2DArrayResource(Name, SamplerState, NumMips);
+        FTexture2DArrayResource* Resource = new FTexture2DArrayResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

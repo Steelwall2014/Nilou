@@ -265,7 +265,7 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                UniformBuffer->SetData(Resources.Frustums.data(), 0, Resources.Frustums.size() * sizeof(FShadowMappingParameters));
+                UniformBuffer->UpdateBufferImmediate(Resources.Frustums.data(), 0, Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 

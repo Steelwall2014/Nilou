@@ -45,7 +45,7 @@ constexpr T AlignArbitrary(T Val, uint64 Alignment)
 	return (T)((((uint64)Val + Alignment - 1) / Alignment) * Alignment);
 }
 
-RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
+RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 {
     VulkanBufferRef Buffer = new VulkanBuffer(Device, Stride, Size, InUsage);
     return Buffer;

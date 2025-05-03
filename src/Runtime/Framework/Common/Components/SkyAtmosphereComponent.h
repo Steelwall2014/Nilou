@@ -156,37 +156,25 @@ public: \
 		SHADER_PARAMETER(int, ScatteringOrder);
 	END_UNIFORM_BUFFER_STRUCT()
 
-	
-#define SKY_PROXY_DECLARE_FUNCTION(MemberType, MemberName) \
-public: \
-    inline void Set##MemberName(const MemberType &NewValue) \
-    { \
-		AtmosphereParameters->GetData().ATMOSPHERE.MemberName = NewValue; \
-    } \
-    inline MemberType Get##MemberName() const \
-    { \
-        return AtmosphereParameters->GetData().ATMOSPHERE.MemberName; \
-    }
-
     class FSkyAtmosphereSceneProxy
     {
     public:
 	    FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent);
 
-		SKY_PROXY_DECLARE_FUNCTION(vec3, SolarIrradiance)
-		SKY_PROXY_DECLARE_FUNCTION(float, SunAngularRadius)
-		SKY_PROXY_DECLARE_FUNCTION(float, BottomRadius)
-		SKY_PROXY_DECLARE_FUNCTION(float, TopRadius)
-		SKY_PROXY_DECLARE_FUNCTION(ShaderDensityProfile, RayleighDensity)
-		SKY_PROXY_DECLARE_FUNCTION(vec3, RayleighScattering)
-		SKY_PROXY_DECLARE_FUNCTION(ShaderDensityProfile, MieDensity)
-		SKY_PROXY_DECLARE_FUNCTION(vec3, MieScattering)
-		SKY_PROXY_DECLARE_FUNCTION(vec3, MieExtinction)
-		SKY_PROXY_DECLARE_FUNCTION(float, MiePhaseFunction_g)
-		SKY_PROXY_DECLARE_FUNCTION(ShaderDensityProfile, AbsorptionDensity)
-		SKY_PROXY_DECLARE_FUNCTION(vec3, AbsorptionExtinction)
-		SKY_PROXY_DECLARE_FUNCTION(vec3, GroundAlbedo)
-		SKY_PROXY_DECLARE_FUNCTION(float, Mu_s_Min)
+		vec3 SolarIrradiance;
+		float SunAngularRadius;
+		float BottomRadius;
+		float TopRadius;
+		ShaderDensityProfile RayleighDensity;
+		vec3 RayleighScattering;
+		ShaderDensityProfile MieDensity;
+		vec3 MieScattering;
+		vec3 MieExtinction;
+		float MiePhaseFunction_g;
+		ShaderDensityProfile AbsorptionDensity;
+		vec3 AbsorptionExtinction;
+		vec3 GroundAlbedo;
+		float Mu_s_Min;
 
 		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
 		inline RDGTextureView *GetMultiScatteringLUT() const { return MultiScatteringLUT->GetDefaultView(); }
@@ -212,6 +200,5 @@ public: \
 		void DispatchIndirectIrradiancePass(int32 scattering_order);
 		void DispatchMultiScatteringPass();
     };
-#undef SKY_PROXY_DECLARE_FUNCTION
 
 }

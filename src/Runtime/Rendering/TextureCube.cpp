@@ -60,7 +60,7 @@ namespace nilou {
 
     FTextureResource* UTextureCube::CreateResource()
     {
-        FTextureCubeResource* Resource = new FTextureCubeResource(Name, SamplerState, NumMips);
+        FTextureCubeResource* Resource = new FTextureCubeResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

@@ -38,6 +38,16 @@ using dmat4 = glm::dmat4;
 using quat = glm::quat;
 using dquat = glm::dquat;
 
+template<typename T> using TVector = glm::tvec3<T>;
+using FVector = TVector<double>;
+using FVector3f = TVector<float>;
+template<typename T> using TVector4 = glm::tvec4<T>;
+using FVector4 = TVector4<double>;
+using FVector4f = TVector4<float>;
+template<typename T> using TMatrix = glm::tmat4x4<T>;
+using FMatrix = TMatrix<double>;
+using FMatrix44f = TMatrix<float>;
+
 #define SERIALIZE_HELPER_VEC(Vec) \
     template<> \
     class TStaticSerializer<Vec> \
@@ -445,6 +455,7 @@ namespace nilou {
         , A(static_cast<float>(Color.A) * (1.0f / 255.0f))
     {
     }
+
 
 
 }

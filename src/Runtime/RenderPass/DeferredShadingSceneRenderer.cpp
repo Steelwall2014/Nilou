@@ -192,7 +192,7 @@ namespace nilou {
             for (int i = 0; i < 6; i++)
                 ViewUniformBufferData.FrustumPlanes[i] = dvec4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
-            View.ViewUniformBuffer->SetData(ViewUniformBufferData);
+            View.ViewUniformBuffer->UpdateUniformBufferImmediate(ViewUniformBufferData);
 
             FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
             RDGTextureDesc Desc;
@@ -285,21 +285,23 @@ namespace nilou {
         // SceneTexturesPool.FreeAll();
     }
 
-    float IntersectVolume(const FBoundingBox& box1, const FBoundingBox& box2)
+    float IntersectVolume(const FBoxSphereBounds& Bounds1, const FBoxSphereBounds& Bounds2)
     {
-        double xIntersection = std::max(0.0, std::min(box1.Max.x, box2.Max.x) - std::max(box1.Min.x, box2.Min.x));
+        FBox Box1 = Bounds1.GetBox();
+        FBox Box2 = Bounds2.GetBox();
+        double xIntersection = std::max(0.0, std::min(Box1.Max.x, Box2.Max.x) - std::max(Box1.Min.x, Box2.Min.x));
 
         if (xIntersection <= 0.0)
             return 0.0;
         
 
-        double yIntersection = std::max(0.0, std::min(box1.Max.y, box2.Max.y) - std::max(box1.Min.y, box2.Min.y));
+        double yIntersection = std::max(0.0, std::min(Box1.Max.y, Box2.Max.y) - std::max(Box1.Min.y, Box2.Min.y));
 
         if (yIntersection <= 0.0)
             return 0.0;
         
 
-        double zIntersection = std::max(0.0, std::min(box1.Max.z, box2.Max.z) - std::max(box1.Min.z, box2.Min.z));
+        double zIntersection = std::max(0.0, std::min(Box1.Max.z, Box2.Max.z) - std::max(Box1.Min.z, Box2.Min.z));
 
         if (zIntersection <= 0.0)
             return 0.0;
@@ -314,13 +316,13 @@ namespace nilou {
         {
             auto& ProbeFactors = Primitive->ReflectionProbeFactors;
             ProbeFactors.clear();
-            FBoundingBox PrimitiveExtent = Primitive->SceneProxy->Bounds;
+            FBoxSphereBounds PrimitiveExtent = Primitive->SceneProxy->Bounds;
             float total_volume = 0;
             for (auto ReflectionProbe : Scene->ReflectionProbes)
             {
                 dvec3 Min = ReflectionProbe->SceneProxy->Location - ReflectionProbe->SceneProxy->Extent/2.0;
                 dvec3 Max = ReflectionProbe->SceneProxy->Location + ReflectionProbe->SceneProxy->Extent/2.0;
-                FBoundingBox ReflectionProbeExtent(Min, Max);
+                FBoxSphereBounds ReflectionProbeExtent(FBox(Min, Max));
                 float volume = IntersectVolume(PrimitiveExtent, ReflectionProbeExtent);
                 if (volume != 0.f)
                 {
@@ -404,7 +406,7 @@ namespace nilou {
                     SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
             }
             auto UniformBuffer = Graph.CreateUniformBuffer<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
-            UniformBuffer->SetData(Parameters);
+            UniformBuffer->UpdateUniformBufferImmediate(Parameters);
             DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBuffer);
             RDGRenderTargets RenderTargets;
             RenderTargets.ColorAttachments[0] = RenderTargetResource->GetTextureRDG()->GetDefaultView();

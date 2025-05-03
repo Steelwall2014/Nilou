@@ -238,6 +238,8 @@ namespace nilou {
 
         std::map<uint64, RDGBufferRef> UniformBuffers;
 
+        std::map<uint64, std::vector<uint8>> UniformBuffersData;
+
         struct ParameterPosition
         {
             uint32 SetIndex;
@@ -286,10 +288,22 @@ namespace nilou {
                 }
                 else 
                 {
-                    if (UniformBuffers.find(Key) != UniformBuffers.end())
+                    if (UniformBuffersData.find(Key) != UniformBuffersData.end())
                     {
-                        UniformBuffers[Key]->SetData(&Value, Position.Offset, sizeof(Value));
+                        uint8* Data = UniformBuffersData[Key].data();
+                        std::memcpy(Data + Position.Offset, &Value, sizeof(Value));
                     }
+                }
+            }
+        }
+
+        void RenderThread_UpdateUniformBuffer()
+        {
+            for (const auto& [Key, Data] : UniformBuffersData)
+            {
+                if (UniformBuffers.find(Key) != UniformBuffers.end())
+                {
+                    UniformBuffers[Key]->UpdateBufferImmediate(Data.data(), 0, Data.size());
                 }
             }
         }

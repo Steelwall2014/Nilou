@@ -9,7 +9,7 @@ namespace nilou {
     public:
         ASkyAtmosphereActor() 
         { 
-            SkyAtmosphereComponent = CreateComponent<USkyAtmosphereComponent>(this); 
+            SkyAtmosphereComponent = CreateComponent<USkyAtmosphereComponent>(this, "SkyAtmosphereComponent"); 
             SkyAtmosphereComponent->AttachToComponent(GetRootComponent());
         }
 

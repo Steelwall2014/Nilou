@@ -81,23 +81,27 @@ namespace nilou {
             RelativeWorldToView[3][0] = 0;
             RelativeWorldToView[3][1] = 0;
             RelativeWorldToView[3][2] = 0;
-            ViewUniformBuffer->GetData().RelWorldToView = RelativeWorldToView;
-            ViewUniformBuffer->GetData().ViewToClip = ViewToClip;
-            ViewUniformBuffer->GetData().RelWorldToClip = ViewToClip * RelativeWorldToView;
-            ViewUniformBuffer->GetData().ClipToView = glm::inverse(ViewToClip);
-            ViewUniformBuffer->GetData().RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
-            ViewUniformBuffer->GetData().AbsWorldToClip = ViewToClip * mat4(WorldToView);
+            FViewShaderParameters Parameters;
+            Parameters.RelWorldToView = RelativeWorldToView;
+            Parameters.ViewToClip = ViewToClip;
+            Parameters.RelWorldToClip = ViewToClip * RelativeWorldToView;
+            Parameters.ClipToView = glm::inverse(ViewToClip);
+            Parameters.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+            Parameters.AbsWorldToClip = ViewToClip * mat4(WorldToView);
 
-            ViewUniformBuffer->GetData().CameraPosition = Position;
-            ViewUniformBuffer->GetData().CameraDirection = Forward;
-            ViewUniformBuffer->GetData().CameraResolution = ScreenResolution;
-            ViewUniformBuffer->GetData().CameraNearClipDist = NearClipDistance;
-            ViewUniformBuffer->GetData().CameraFarClipDist = FarClipDistance;
-            ViewUniformBuffer->GetData().CameraVerticalFieldOfView = VerticalFieldOfView;
+            Parameters.CameraPosition = Position;
+            Parameters.CameraDirection = Forward;
+            Parameters.CameraResolution = ScreenResolution;
+            Parameters.CameraNearClipDist = NearClipDistance;
+            Parameters.CameraFarClipDist = FarClipDistance;
+            Parameters.CameraVerticalFieldOfView = VerticalFieldOfView;
 
             for (int i = 0; i < 6; i++)
-                ViewUniformBuffer->GetData().FrustumPlanes[i] = dvec4(ViewFrustum.Planes[i].Normal, ViewFrustum.Planes[i].Distance);
+            {
+                Parameters.FrustumPlanes[i] = dvec4(ViewFrustum.Planes[i].Normal, ViewFrustum.Planes[i].Distance);
+            }
 
+            ViewUniformBuffer->UpdateUniformBufferImmediate(Parameters);
         }
     }
 

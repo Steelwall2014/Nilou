@@ -1,110 +1,12 @@
 #pragma once
 
 // #include <glm/glm.hpp>
-#include "Common/Transform.h"
+#include "Common/Math/BoxSphereBounds.h"
+#include "Common/Math/Transform.h"
 #include "SerializeHelper.h"
 #include "Common/CoreUObject/Class.h"
 
 namespace nilou {
-
-    enum class ECullingResult
-    {
-        CR_Outside = -1,
-        CR_Intersecting = 0,
-        CR_Inside = 1
-    };
-
-    /**
-    * @brief A plane in Hessian Normal Format.
-    */
-    class FPlane 
-    {
-    public:
-        /**
-        * @brief Constructs a new plane with a +Z normal and a distance of 0.0.
-        */
-        FPlane() noexcept;
-
-        /**
-        * @brief Constructs a new plane from a normal and a distance from the origin.
-        *
-        * The plane is defined by:
-        * ```
-        * ax + by + cz + d = 0
-        * ```
-        * where (a, b, c) is the plane's `normal`, d is the signed
-        * `distance` to the plane, and (x, y, z) is any point on
-        * the plane.
-        *
-        * @param normal The plane's normal (normalized).
-        * @param distance The shortest distance from the origin to the plane. The
-        * sign of `distance` determines which side of the plane the origin is on. If
-        * `distance` is positive, the origin is in the half-space in the direction of
-        * the normal; if negative, the origin is in the half-space opposite to the
-        * normal; if zero, the plane passes through the origin.
-        *
-        * @exception std::exception `normal` must be normalized.
-        */
-        FPlane(const glm::dvec3& normal, double distance);
-
-        /**
-        * @brief Construct a new plane from a point in the plane and the plane's
-        * normal.
-        *
-        * @param point The point on the plane.
-        * @param normal The plane's normal (normalized).
-        *
-        * @exception std::exception `normal` must be normalized.
-        *
-        */
-        FPlane(const glm::dvec3& point, const glm::dvec3& normal);
-
-        /**
-        * @brief Construct a new plane from three points in the plane.
-        *
-        * @param A First point in the plane.
-        * @param B Second point in the plane.
-        * @param C Third point in the plane.
-        *
-        */
-        FPlane(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& C);
-
-        /**
-        * @brief Computes the signed shortest distance of a point to this plane.
-        * The sign of the distance determines which side of the plane the point
-        * is on.  If the distance is positive, the point is in the half-space
-        * in the direction of the normal; if negative, the point is in the half-space
-        * opposite to the normal; if zero, the plane passes through the point.
-        *
-        * @param point The point.
-        * @returns The signed shortest distance of the point to the plane.
-        */
-        double GetPointDistance(const glm::dvec3& point) const noexcept;
-
-        /**
-        * @brief Projects a point onto this plane.
-        * @param point The point to project onto the plane.
-        * @returns The projected point.
-        */
-        glm::dvec3 ProjectPointOntoPlane(const glm::dvec3& point) const noexcept;
-
-        bool Equals(const FPlane &Other, double epsilon=1e-6);
-
-        /**
-        * @brief The plane's normal.
-        */
-        glm::dvec3 Normal;
-
-        /**
-        * @brief The signed shortest distance from the origin to the plane.
-        * The sign of `distance` determines which side of the plane the origin
-        * is on.  If `distance` is positive, the origin is in the half-space
-        * in the direction of the normal; if negative, the origin is in the
-        * half-space opposite to the normal; if zero, the plane passes through the
-        * origin.
-        */
-        double Distance;
-    };
 
     struct FOrientedBoundingBox
     {  
@@ -146,29 +48,29 @@ namespace nilou {
 
 
     // Axis Aligned
-    struct NSTRUCT FBoundingBox
-    {
-        GENERATED_STRUCT_BODY()
+    // struct NSTRUCT FBoundingBox
+    // {
+    //     GENERATED_STRUCT_BODY()
 
-        NPROPERTY()
-        dvec3 Min;
-        NPROPERTY()
-        dvec3 Max;
-        FBoundingBox() { Min = Max = dvec3(0); }
+    //     NPROPERTY()
+    //     dvec3 Min;
+    //     NPROPERTY()
+    //     dvec3 Max;
+    //     FBoundingBox() { Min = Max = dvec3(0); }
 
-        FBoundingBox(const dvec3 &Min, const dvec3 &Max);
+    //     FBoundingBox(const dvec3 &Min, const dvec3 &Max);
 
-        FBoundingBox(const FOrientedBoundingBox &OBB) 
-            : FBoundingBox(OBB.Center, OBB.HalfAxes[0], OBB.HalfAxes[1], OBB.HalfAxes[2]) { }
+    //     FBoundingBox(const FOrientedBoundingBox &OBB) 
+    //         : FBoundingBox(OBB.Center, OBB.HalfAxes[0], OBB.HalfAxes[1], OBB.HalfAxes[2]) { }
 
-        FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection);
+    //     FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection);
 
-        FBoundingBox TransformBy(const FTransform &Transform) const;
+    //     FBoundingBox TransformBy(const FTransform &Transform) const;
 
-        void FromBoundingSphere(const FBoundingSphere &Sphere);
+    //     void FromBoundingSphere(const FBoundingSphere &Sphere);
 
-        ECullingResult IntersectPlane(const FPlane& plane) const noexcept;
-    };
+    //     ECullingResult IntersectPlane(const FPlane& plane) const noexcept;
+    // };
 
     // template<>
     // class TStaticSerializer<FBoundingBox>
@@ -231,13 +133,13 @@ namespace nilou {
         const FPlane &GetFarPlane() const { return Planes[5]; }
 
         bool Intersects(const FViewFrustum &Other) const;
-        bool IsBoxOutSidePlane(const FPlane &plane, const FBoundingBox &AABB) const;
+        bool IsBoxOutSidePlane(const FPlane &plane, const FBoxSphereBounds &AABB) const;
         bool IsBoxOutSidePlane(const FPlane &plane, const FOrientedBoundingBox &OBB) const;
         
         /**
          * @brief Calculate if the oriented bounding box is out of frustum
          */
-        bool IsBoxOutSideFrustum(const FBoundingBox &AABB) const;
+        bool IsBoxOutSideFrustum(const FBoxSphereBounds &AABB) const;
 
         /**
          * @brief Calculate if the oriented bounding box is out of frustum
@@ -249,7 +151,7 @@ namespace nilou {
          * @brief Calculate if the axis-aligned bounding box is out of frustum, 
          * ignoring near and far clip plane to make it faster.
          */
-        bool IsBoxOutSideFrustumFast(const FBoundingBox &AABB) const;
+        bool IsBoxOutSideFrustumFast(const FBoxSphereBounds &AABB) const;
 
         /**
          * @brief Calculate if the oriented bounding box is out of frustum, 
@@ -276,7 +178,7 @@ namespace nilou {
             Planes(InPlanes)
         { }
 
-        bool IntersectBox(const FBoundingBox &Box);
+        bool IntersectBox(const FBoxSphereBounds &Box);
     };
 
 }

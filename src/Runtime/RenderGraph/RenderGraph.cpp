@@ -142,7 +142,6 @@ RDGTextureView* RenderGraph::CreateTextureView(RDGTexture* InTexture)
 RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc)
 {
     RDGBufferRef Buffer = new RDGBuffer(Name, Desc);
-    Buffer->bDirty = true;
     Buffers.push_back(Buffer);
     return Buffer;
 }

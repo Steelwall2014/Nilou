@@ -61,7 +61,7 @@ namespace nilou {
 
     FTextureResource* UTexture3D::CreateResource()
     {
-        FTexture3DResource* Resource = new FTexture3DResource(Name, SamplerState, NumMips);
+        FTexture3DResource* Resource = new FTexture3DResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

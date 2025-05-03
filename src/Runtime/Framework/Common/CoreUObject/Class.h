@@ -6,6 +6,9 @@
 #include "Macros.h"
 #include <magic_enum/magic_enum_utility.hpp>
 
+namespace nilou {
+    class FContentManager;
+}
 
 template<typename T>
 struct TClassRegistry { };
@@ -245,12 +248,29 @@ public:
         return GetClass()->GetType().GetName();
     }
 
+    NFUNCTION()
+    std::string GetName() const
+    {
+        return NamePrivate;
+    }
+
+    NFUNCTION()
+    void Rename(const std::string& NewName)
+    {
+        NamePrivate = NewName;
+    }
+
     virtual void PreSerialize(FArchive& Ar) { }
     virtual void PostSerialize(FArchive& Ar) { }
     virtual void PreDeserialize(FArchive& Ar) { }
     virtual void PostDeserialize(FArchive& Ar) { }
 
     bool bIsSerializing = false;
+
+private:
+    std::string NamePrivate;
+
+    friend class nilou::FContentManager;
 };
 
 inline NObject* CreateDefaultObject(const std::string& TypeName)
@@ -275,6 +295,14 @@ inline NObject* CreateDefaultObject(const NClass* Class)
     if (Object)
         Ubpa::UDRefl::Mngr.Delete(Object);
     return nullptr;
+}
+
+template<typename T>
+T* NewObject(const std::string& Name)
+{
+    NObject* Object = CreateDefaultObject(T::StaticClass());
+    Object->Rename(Name);
+    return Object;
 }
 
 /** Older solution */

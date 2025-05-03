@@ -23,11 +23,11 @@ namespace nilou {
         return new FStaticMeshSceneProxy(this);
     }
 
-    FBoundingBox UStaticMeshComponent::CalcBounds(const FTransform &LocalToWorld) const
+    FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
         if (StaticMesh)
         {
-            FBoundingBox &LocalBoundingBox = StaticMesh->LocalBoundingBox;
+            FBox &LocalBoundingBox = StaticMesh->LocalBoundingBox;
             return LocalBoundingBox.TransformBy(LocalToWorld);
         }
         else 
@@ -41,7 +41,6 @@ namespace nilou {
     {
         RenderData = Component->StaticMesh->RenderData;
         MaterialSlots = Component->MaterialSlots;
-        Component->SceneProxy = this;
     }
 
     void FStaticMeshSceneProxy::GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector)

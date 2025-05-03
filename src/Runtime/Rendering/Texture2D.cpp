@@ -11,7 +11,7 @@ namespace nilou {
         if (InSizeX > 0 && InSizeY > 0)
         {
             Texture = new UTexture2D();
-            Texture->Name = Name;
+            Texture->Rename(Name);
             Texture->ImageData = FImage(InSizeX, InSizeY, InFormat, EImageType::IT_Image2D);
         }
         else
@@ -76,7 +76,7 @@ namespace nilou {
 
     FTextureResource* UTexture2D::CreateResource()
     {
-        FTexture2DResource* Resource = new FTexture2DResource(Name, SamplerState, NumMips);
+        FTexture2DResource* Resource = new FTexture2DResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

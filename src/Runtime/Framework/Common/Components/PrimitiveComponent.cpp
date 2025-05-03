@@ -29,60 +29,37 @@ namespace nilou {
 
     void UPrimitiveComponent::SendRenderTransform()
     {
-        auto LocalToWorld = GetRenderMatrix();
-        auto Bound = GetBounds();
-        if (SceneProxy)
-        {
-            ENQUEUE_RENDER_COMMAND(UPrimitiveComponent_SendRenderTransform)(
-                [this, LocalToWorld, Bound](RenderGraph&) 
-                {
-                    SceneProxy->SetTransform(LocalToWorld, Bound);
-                });
-        }
+        UpdateBounds();
+
+        GetWorld()->Scene->UpdatePrimitiveTransform(this);
 
         USceneComponent::SendRenderTransform();
     }
 
-    FPrimitiveSceneProxy::FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName)
+    FPrimitiveSceneProxy::FPrimitiveSceneProxy(UPrimitiveComponent *Primitive)
         : Scene(nullptr)
         , PrimitiveSceneInfo(nullptr)
         , ReflectionProbeBlendMode(Primitive->GetReflectionProbeBlendMode())
+        , DebugComponentName(Primitive->GetName())
+        , bCastShadow(Primitive->GetCastShadow())
     {
-        Name = InName;
-        bCastShadow = Primitive->GetCastShadow();
         Primitive->SceneProxy = this;
-        SetTransform(Primitive->GetRenderMatrix(), Primitive->GetBounds());
+        LocalToWorld = Primitive->GetRenderMatrix();
+        Bounds = Primitive->GetBounds();
     }
 
-    void FPrimitiveSceneProxy::SetTransform(const glm::dmat4 &InLocalToWorld, const FBoundingBox &InBounds)
+    void FPrimitiveSceneProxy::CreateUniformBuffer()
     {
-        Bounds = InBounds;
-        LocalToWorld = InLocalToWorld;
-        PrimitiveUniformBuffer->GetData().LocalToWorld = LocalToWorld;
-        if (PrimitiveSceneInfo)
-            PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(true);
-    }
-
-    void FPrimitiveSceneProxy::CreateRenderThreadResources()
-    {
-        assert(IsInRenderingThread());
-        PrimitiveUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FPrimitiveShaderParameters>("");
-        if (PrimitiveSceneInfo)
-            PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
-    }
-
-    void FPrimitiveSceneProxy::DestroyRenderThreadResources()
-    {
-        assert(IsInRenderingThread());
-        PrimitiveUniformBuffer = nullptr;
+        Ncheck(IsInRenderingThread());
+        UniformBuffer = RenderGraph::CreateExternalUniformBuffer<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer", nullptr);
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer()
     {
-        ENQUEUE_RENDER_COMMAND(FPrimitiveSceneProxy_UpdateUniformBuffer)(
-            [this](RenderGraph&)
-            {
-                // PrimitiveUniformBuffer->UpdateUniformBuffer();
-            });
+        FPrimitiveUniformShaderParameters Data;
+        Data.LocalToWorld = LocalToWorld;
+        Data.ModelToLocal = glm::inverse(LocalToWorld);
+        UniformBuffer->UpdateUniformBufferImmediate(Data);
     }
+
 }

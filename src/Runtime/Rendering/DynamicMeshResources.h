@@ -1,5 +1,5 @@
 #pragma once
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 #include "RHIDefinitions.h"
 
 namespace nilou {

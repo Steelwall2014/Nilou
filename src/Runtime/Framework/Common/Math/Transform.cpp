@@ -4,20 +4,6 @@ using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
 
-namespace nilou {
-
-    template<> const FTransform3f FTransform3f::Identity = FTransform3f();
-
-    template<>const  FTransform FTransform::Identity = FTransform();
-    
-    template<> const FRotator3f FRotator3f::ZeroRotator = FRotator3f();
-
-    template<> const FRotator FRotator::ZeroRotator = FRotator();
-
-
-
-}
-
 template<>
 struct TClassRegistry<nilou::FRotator>
 {

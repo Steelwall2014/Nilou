@@ -224,11 +224,11 @@ namespace nilou {
                                         uniform_block_code +
                                         samplers_code +
                                         material_interface_code;
-                std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(OutDirectory + "/" + Material->Name + ".glsl").generic_string();
+                std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(OutDirectory + "/" + Material->GetName() + ".glsl").generic_string();
                 std::ofstream out_stream(ShaderAbsPath);
                 out_stream << glsl_code;
                 out_stream.close();
-                Material->SetShaderFileVirtualPath(OutDirectory + "/" + Material->Name + ".glsl");
+                Material->SetShaderFileVirtualPath(OutDirectory + "/" + Material->GetName() + ".glsl");
             }
 
             

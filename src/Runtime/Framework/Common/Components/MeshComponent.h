@@ -26,7 +26,7 @@ namespace nilou {
         std::vector<UMaterial *> MaterialSlots;
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */
-        virtual FBoundingBox CalcBounds(const FTransform& LocalToWorld) const override;
+        virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
         virtual FPrimitiveSceneProxy *CreateSceneProxy() override;
     };

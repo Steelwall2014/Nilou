@@ -10,7 +10,7 @@
 #include "Common/AssertionMacros.h"
 #include "Common/Components/SceneComponent.h"
 #include "Common/Components/ActorComponent.h"
-#include "Common/Transform.h"
+#include "Common/Math/Transform.h"
 #include "Templates/TypeTraits.h"
 #include "GameStatics.h"
 
@@ -26,9 +26,6 @@ namespace nilou {
 	public:
 
 		AActor();
-
-		NPROPERTY()
-		std::string ActorName;
 
 		virtual void Tick(double DeltaTime) {};
 
@@ -79,8 +76,6 @@ namespace nilou {
 
 		void SetActorScale3D(const dvec3 &scale);
 		// 以上Get和Set都是通过操作Actor下RootComponent的变换实现的
-
-		void SetActorName(const std::string &InName);
 
 
 		// 获取根组件的裸指针

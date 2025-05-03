@@ -23,10 +23,6 @@ namespace nilou {
     {
         GENERATED_BODY()
     public:
-        UTexture2D()
-        {
-
-        }
 
         static UTexture2D* CreateTransient(std::string Name, int32 InSizeX, int32 InSizeY, EPixelFormat InFormat);
 

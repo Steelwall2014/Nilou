@@ -251,7 +251,7 @@ namespace nilou {
                 Entry->bIsDirectory = false;
                 Entry->bIsDirty = true;
                 auto Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(Class)));
-                Object->Name = Name;
+                Object->NamePrivate = Name;
                 Object->ContentEntry = Entry.get();
                 NAsset *raw_p = Object.get();
                 Entry->Object = std::move(Object);
@@ -280,7 +280,7 @@ namespace nilou {
             EntryToRename->VirtualPath = virtual_path.generic_string();
             EntryToRename->AbsolutePath = FPath::VirtualPathToAbsPath(EntryToRename->VirtualPath);
             EntryToRename->Name = NewName;
-            AssetToRename->Name = NewName;
+            AssetToRename->NamePrivate = NewName;
             SaveAsset(EntryToRename->VirtualPath);
             fs::remove(old_absolute_path);
             return true;

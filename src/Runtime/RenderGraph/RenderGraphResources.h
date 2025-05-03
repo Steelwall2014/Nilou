@@ -276,32 +276,15 @@ public:
         : RDGResource(InName, ERDGResourceType::Buffer)
         , Desc(InDesc) 
     { 
-        Buffer = std::make_unique<uint8[]>(InDesc.GetSize());
+        // Buffer = std::make_unique<uint8[]>(InDesc.GetSize());
     }
     RHIBuffer* GetRHI() const { return static_cast<RHIBuffer*>(ResourceRHI.GetReference()); }
 
-    void SetData(const void* InData, uint32 Offset, uint32 Size)
-    {
-        Ncheckf(Offset+Size <= Desc.GetSize(), "Data size is too large, expected %d, got %d", Desc.GetSize(), Offset+Size);
-        if (Buffer)
-        {
-            memcpy(Buffer.get()+Offset, InData, Size);
-            bDirty = true;
-        }
-    }
+    uint32 GetSize() const { return Desc.GetSize(); }
 
-    template<typename T>
-    const T& GetData() const
-    {
-        Ncheckf(sizeof(T) <= Desc.GetSize(), "Data size is too large");
-        return *reinterpret_cast<T*>(Buffer.get());
-    }
-
-    void Flush();
+    void UpdateBufferImmediate(const void* Contents, uint32 Offset, uint32 Size);
 
     const RDGBufferDesc Desc;
-    std::unique_ptr<uint8[]> Buffer = nullptr;
-    bool bDirty;
 
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
     class FRHITransientBuffer* TransientBuffer;
@@ -320,14 +303,10 @@ public:
         : RDGBuffer(InName, InDesc)
     { 
     }
-    T& GetData()
+
+    void UpdateUniformBufferImmediate(const T& Data)
     {
-        Ncheckf(sizeof(T) <= Desc.GetSize(), "Data size is too large");
-        return *reinterpret_cast<T*>(Buffer.get());
-    }
-    void SetData(const T& Value)
-    {
-        RDGBuffer::SetData(&Value, 0, sizeof(T));
+        UpdateBufferImmediate(&Data, 0, sizeof(T));
     }
 };
 template <typename T>

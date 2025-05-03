@@ -43,8 +43,9 @@ void FGenerateMips::Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerS
         int TextureSizeY = std::max(Desc.SizeY >> MipLevel, 1u);
 
         TRDGUniformBuffer<FGenerateMipsCB>* GenerateMipsCB = Graph.CreateUniformBuffer<FGenerateMipsCB>(NFormat("GenerateMipsCB{} for texture {}", MipLevel, Texture->Name));
-        FGenerateMipsCB& Data = GenerateMipsCB->GetData();
+        FGenerateMipsCB Data;
         Data.TexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
+        GenerateMipsCB->UpdateUniformBufferImmediate(Data);
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FGenerateMipsCS>(0, 0);
         DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1)), Sampler);

@@ -18,9 +18,6 @@ namespace nilou {
 
         FContentEntry* ContentEntry;
 
-        NPROPERTY()
-        std::string Name;
-
         std::string GetVirtualPath() const { return ContentEntry->VirtualPath; }
 
         std::filesystem::path GetAbsolutePath() const { return ContentEntry->AbsolutePath; }

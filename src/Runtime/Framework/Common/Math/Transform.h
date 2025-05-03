@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ostream>
-#include "Common/Maths.h"
+#include "Maths.h"
 
 namespace nilou {
     
@@ -111,6 +111,12 @@ namespace nilou {
 
         static const TTransform<T> Identity;
     };
+
+    template<typename T> 
+    const TTransform<T> TTransform<T>::Identity = TTransform<T>();
+    
+    template<typename T> 
+    const TRotator<T> TRotator<T>::ZeroRotator = TRotator<T>();
 
     using FTransform = TTransform<double>;
     using FTransform3f = TTransform<float>;

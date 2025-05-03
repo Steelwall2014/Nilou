@@ -99,9 +99,9 @@ namespace nilou {
     }
 
 
-    FBoundingBox UArrowComponent::CalcBounds(const FTransform &LocalToWorld) const
+    FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
-        return FBoundingBox(vec3(0, -ARROW_SCALE, -ARROW_SCALE), vec3(ArrowSize * ArrowLength * 3.0f, ARROW_SCALE, ARROW_SCALE)).TransformBy(LocalToWorld);
+        return FBoxSphereBounds(FBox(vec3(0, -ARROW_SCALE, -ARROW_SCALE), vec3(ArrowSize * ArrowLength * 3.0f, ARROW_SCALE, ARROW_SCALE)).TransformBy(LocalToWorld));
     }
 
     void UArrowComponent::SetArrowColor(vec4 NewColor)

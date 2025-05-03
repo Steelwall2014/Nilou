@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_set>
 #include "RenderGraphResources.h"
 #include "RHIResources.h"
 #include "RHIStaticStates.h"

@@ -211,7 +211,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
             [this](RenderGraph&)
             {
-                FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
+                FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters", nullptr);
             });
     }
 
@@ -234,7 +234,7 @@ namespace nilou {
              WindSpeed=this->WindSpeed,
              Amplitude=this->Amplitude,
              Time=(clock()-this->InitialTime)/1000.f]
-            (RenderGraph&)
+            (RenderGraph& Graph)
             {
                 FOceanFastFourierTransformParameters Parameters;
                 Parameters.WindDirection = WindDirection;
@@ -242,9 +242,9 @@ namespace nilou {
                 Parameters.WindSpeed = WindSpeed;
                 Parameters.Amplitude = Amplitude;
                 Parameters.Time = Time;
-                FFTParameters->SetData(Parameters);
+                FFTParameters->UpdateUniformBufferImmediate(Parameters);
                 
-                UpdateHeightField_RenderThread(FRenderingThread::GetRenderGraph(), FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
+                UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
         );
     }

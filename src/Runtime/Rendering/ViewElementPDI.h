@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 #include "BatchedLine.h"
 
 namespace nilou {

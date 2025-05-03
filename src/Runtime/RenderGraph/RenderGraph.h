@@ -34,14 +34,14 @@ public:
     static RDGBufferRef CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
     template<class T>
-    static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name)
+    static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name, const T* Data)
     {
         RDGBufferDesc Desc;
         Desc.NumElements = 1;
         Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
         Buffer->bIsPersistent = true;
-        Buffer->ResourceRHI = RHICreateBuffer(Desc.GetStride(), Desc.GetStride(), EBufferUsageFlags::None, nullptr);
+        Buffer->ResourceRHI = RHICreateBuffer(Desc.GetStride(), Desc.GetStride(), EBufferUsageFlags::None, Data);
         return Buffer;
     }
 
@@ -68,7 +68,6 @@ public:
         Desc.NumElements = 1;
         Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
-        Buffer->bDirty = true;
         Buffers.push_back(Buffer);
         return Buffer;
     }

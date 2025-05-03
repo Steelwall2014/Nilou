@@ -56,7 +56,7 @@ public:
     virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) override;
     virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) override;
     virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) override;
-    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) override;
+    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) override;
     virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(

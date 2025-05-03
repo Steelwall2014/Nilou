@@ -255,7 +255,7 @@ namespace nilou {
             RenderData = nullptr;
         }
         SectionInfoMap.Clear();
-        LocalBoundingBox = FBoundingBox();
+        LocalBoundingBox = FBox();
         // TODO: multiple LODs
         NumLODs = 1;
         RenderData = new FStaticMeshRenderData;

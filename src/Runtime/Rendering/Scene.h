@@ -53,7 +53,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            LightUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FLightShaderParameters>("");
+            LightUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FLightShaderParameters>("", nullptr);
         }
 
         ~FLightSceneInfo()
@@ -125,6 +125,9 @@ namespace nilou {
 
         void UpdateRenderInfos();
 
+        void UpdatePrimitiveTransform(UPrimitiveComponent *Primitive);
+        void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds);
+
         TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
         TMulticastDelegate<FLightSceneInfo *> &GetRemoveLightDelegate() { return SceneRemoveLightDelegate; }
 
@@ -161,5 +164,13 @@ namespace nilou {
 
         TMulticastDelegate<FLightSceneInfo *> SceneAddLightDelegate;
         TMulticastDelegate<FLightSceneInfo *> SceneRemoveLightDelegate;
+
+        struct FUpdateTransformCommand
+        {
+            FBoxSphereBounds WorldBounds;
+            FBoxSphereBounds LocalBounds; 
+            glm::mat4 LocalToWorld; 
+        };
+        std::unordered_map<FPrimitiveSceneProxy*, FUpdateTransformCommand> UpdatedTransforms;
     };
 }

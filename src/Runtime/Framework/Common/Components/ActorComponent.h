@@ -102,10 +102,11 @@ namespace nilou {
 
     };
     template<typename T, typename... ParamTypes>
-    std::shared_ptr<T> CreateComponent(AActor* InOwner, ParamTypes&&... Args)
+    std::shared_ptr<T> CreateComponent(AActor* InOwner, const std::string& Name, ParamTypes&&... Args)
     {
         static_assert(TIsDerivedFrom<T, UActorComponent>::Value, "T must be derived from UActorComponent!");
         std::shared_ptr<T> Comp = std::make_shared<T>(std::forward<ParamTypes>(Args)...);
+        Comp->Rename(Name);
         Comp->SetOwner(InOwner);
         return Comp;
     }

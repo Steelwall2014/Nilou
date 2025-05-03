@@ -82,9 +82,9 @@ namespace nilou {
         return new FSphereSceneProxy(this);
     }
 
-    FBoundingBox USphereComponent::CalcBounds(const FTransform &LocalToWorld) const
+    FBoxSphereBounds USphereComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
-	    return FBoundingBox(-vec3(SphereRadius), vec3(SphereRadius)).TransformBy(LocalToWorld);
+	    return FBoxSphereBounds(FBox(-vec3(SphereRadius), vec3(SphereRadius)).TransformBy(LocalToWorld));
     }
 
 

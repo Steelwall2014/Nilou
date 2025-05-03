@@ -16,15 +16,17 @@ RDGTexture::RDGTexture(std::string InName, const RDGTextureDesc& InDesc)
 	SubresourceStates.resize(SubresourceCount);
 }
 
-void RDGBuffer::Flush()
+void RDGBuffer::UpdateBufferImmediate(const void* Contents, uint32 Offset, uint32 Size)
 {
 	Ncheck(IsInRenderingThread());
+	Ncheck(Contents);
+	Ncheck(Offset + Size <= GetSize());
+	
 	if (RHIBuffer* BufferRHI = GetRHI())
 	{
-		void* data = RHIMapMemory(BufferRHI, 0, Desc.GetSize());
-			memcpy(data, Buffer.get(), Desc.GetSize());
+		void* Data = RHIMapMemory(BufferRHI, 0, GetSize());
+			memcpy(Data, Contents, Size);
 		RHIUnmapMemory(BufferRHI);
-		bDirty = false;
 	}
 }
 

@@ -1,7 +1,6 @@
 #include <cmath>
 #include <iostream>
 
-#include "Common/Maths.h"
 #include "UniformBuffer.h"
 #include "LightComponent.h"
 // #include "LightSceneProxy.h"

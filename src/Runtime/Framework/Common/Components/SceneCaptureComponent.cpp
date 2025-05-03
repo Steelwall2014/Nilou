@@ -151,7 +151,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnRegister)(
             [this](RenderGraph&) 
             {
-                ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("");
+                ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("", nullptr);
             });
     }
 
@@ -292,7 +292,7 @@ namespace nilou {
             {
                 for (int i = 0; i < ViewUniformBuffers.size(); i++)
                 {
-                    ViewUniformBuffers[i] = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("");
+                    ViewUniformBuffers[i] = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("", nullptr);
                 }
             });
     }

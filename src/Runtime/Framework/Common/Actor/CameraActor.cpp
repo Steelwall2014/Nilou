@@ -30,7 +30,7 @@ namespace nilou {
 
     ACameraActor::ACameraActor()
     { 
-        CameraComponent = CreateComponent<UCameraComponent>(this); 
+        CameraComponent = CreateComponent<UCameraComponent>(this, "CameraComponent"); 
         CameraComponent->AttachToComponent(GetRootComponent());
 
 		/** TEST SCENE CAPTURE 2D*/

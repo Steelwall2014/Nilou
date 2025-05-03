@@ -13,7 +13,7 @@
 #include "Platform.h"
 #include "RHIDefinitions.h"
 #include "RenderResource.h"
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 #include "DynamicRHI.h"
 #include "RenderGraph.h"
 

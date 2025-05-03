@@ -35,7 +35,7 @@ namespace nilou {
 
         }
         
-        virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return this; }
+        virtual FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() override { return this; }
 
         RDGRenderTargets RenderTarget;
     };
@@ -57,7 +57,7 @@ namespace nilou {
             RenderTargetTextureViews.fill(nullptr);
         }
         
-        virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return this; }
+        virtual FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() override { return this; }
 
         std::array<RDGTextureRef, 6> RenderTargetTextureViews;
 

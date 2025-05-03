@@ -11,7 +11,7 @@ namespace nilou {
 
     AReflectionProbe::AReflectionProbe()
     { 
-        ReflectionProbeComponent = CreateComponent<UReflectionProbeComponent>(this); 
+        ReflectionProbeComponent = CreateComponent<UReflectionProbeComponent>(this, "ReflectionProbeComponent"); 
         ReflectionProbeComponent->AttachToComponent(GetRootComponent());
 
         // Always keep false, we will take over the capture in this class
@@ -22,7 +22,7 @@ namespace nilou {
         {
             FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>();
-            EnvironmentTexture->Name = "Test EnvironmentTexture";
+            EnvironmentTexture->Rename("Test EnvironmentTexture");
             EnvironmentTexture->ImageData = Image;
             EnvironmentTexture->UpdateResource();
             ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
@@ -31,7 +31,7 @@ namespace nilou {
         {
             FImage Image = FImage(16, 16, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             IrradianceTexture = std::make_shared<UTextureCube>();
-            IrradianceTexture->Name = "Test IrradianceTexture";
+            IrradianceTexture->Rename("Test IrradianceTexture");
             IrradianceTexture->ImageData = Image;
             IrradianceTexture->UpdateResource();
         }
@@ -39,7 +39,7 @@ namespace nilou {
         {
             FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
             PrefilteredTexture = std::make_shared<UTextureCube>();
-            PrefilteredTexture->Name = "Test PrefilteredTexture";
+            PrefilteredTexture->Rename("Test PrefilteredTexture");
             PrefilteredTexture->ImageData = Image;
             PrefilteredTexture->NumMips = 5;
             PrefilteredTexture->UpdateResource();

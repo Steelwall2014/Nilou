@@ -52,7 +52,7 @@ namespace nilou {
 		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) = 0;
 		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) = 0;
 		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) = 0;
-		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data) = 0;
+		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
@@ -133,7 +133,7 @@ namespace nilou {
 	// 	return FDynamicRHI::GetDynamicRHI()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
 
-	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, void *Data)
+	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 	{
 		return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, Size, InUsage, Data);
 	}

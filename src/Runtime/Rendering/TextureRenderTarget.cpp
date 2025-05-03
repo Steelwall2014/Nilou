@@ -133,7 +133,7 @@ namespace nilou {
 
     FTextureResource* UTextureRenderTarget2D::CreateResource()
     {
-        FTextureRenderTarget2DResource* Resource = new FTextureRenderTarget2DResource(Name, SamplerState, NumMips);
+        FTextureRenderTarget2DResource* Resource = new FTextureRenderTarget2DResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;
@@ -161,7 +161,7 @@ namespace nilou {
 
     FTextureResource* UTextureRenderTargetCube::CreateResource()
     {
-        FTextureRenderTargetCubeResource* Resource = new FTextureRenderTargetCubeResource(Name, SamplerState, NumMips);
+        FTextureRenderTargetCubeResource* Resource = new FTextureRenderTargetCubeResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         Resource->ClearColor = ClearColor;
         return Resource;

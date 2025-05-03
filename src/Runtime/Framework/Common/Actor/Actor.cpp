@@ -45,11 +45,10 @@ namespace nilou {
     
     AActor::AActor()
         : OwnedWorld(nullptr)
-        , ActorName("")
         , bActorInitialized(false)
         , ActorHasBegunPlay(EActorBeginPlayState::HasNotBegunPlay)
     {
-        RootComponent = CreateComponent<USceneComponent>(this);
+        RootComponent = CreateComponent<USceneComponent>(this, "RootComponent");
     }
 
     void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform)
@@ -145,11 +144,6 @@ namespace nilou {
     void AActor::SetActorScale3D(const dvec3 &scale)
     {
         RootComponent->SetWorldScale3D(scale);
-    }
-
-    void AActor::SetActorName(const std::string &InName)
-    {
-        ActorName = InName;
     }
 
 

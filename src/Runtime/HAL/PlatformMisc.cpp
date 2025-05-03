@@ -1,5 +1,5 @@
 #include "PlatformMisc.h"
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 
 namespace nilou {
 
