@@ -60,6 +60,8 @@ public:
     RDGTextureView* CreateTextureView(RDGTexture* Texture);
 
     RDGBuffer* CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc);
+
+    void QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, uint32 InitialDataSize);
     
     template<class T>
     TRDGUniformBuffer<T>* CreateUniformBuffer(const std::string& Name)
@@ -132,6 +134,8 @@ public:
 
 private:
 
+    void SubmitBufferUploads();
+
     RDGDescriptorSet* CreateDescriptorSet(RHIDescriptorSetLayout* Layout);
 
     template <typename ExecuteLambdaType>
@@ -191,6 +195,24 @@ private:
     std::vector<RDGTextureViewRef> TextureViews;
     std::vector<RDGBufferRef> Buffers;
     std::vector<RDGDescriptorSetRef> DescriptorSets;
+
+    struct FUploadedBuffer
+    {
+        FUploadedBuffer() = default;
+
+        FUploadedBuffer(RDGBuffer* InBuffer, const void* InData, uint64 InDataSize)
+            : Buffer(InBuffer)
+            , Data(InData)
+            , DataSize(InDataSize)
+        {
+
+        }
+
+        RDGBuffer* Buffer;
+        const void* Data;
+        uint64 DataSize;
+    };
+    std::vector<FUploadedBuffer> UploadedBuffers;
 
 	/** Tracks external resources to their registered render graph counterparts for de-duplication. */
 	std::unordered_map<RHITexture*, RDGTexture*> ExternalTextures;

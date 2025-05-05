@@ -292,6 +292,8 @@ public:
     FRDGPooledBufferRef PooledBuffer;
 
     RDGSubresourceState State;
+
+    bool bQueuedForUpload = false;
 };
 using RDGBufferRef = TRefCountPtr<RDGBuffer>;
 

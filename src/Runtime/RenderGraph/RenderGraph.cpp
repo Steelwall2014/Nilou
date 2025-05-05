@@ -146,6 +146,12 @@ RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDes
     return Buffer;
 }
 
+void RenderGraph::QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, uint32 InitialDataSize)
+{
+	UploadedBuffers.push_back(FUploadedBuffer(Buffer, InitialData, InitialDataSize));
+	Buffer->bQueuedForUpload = true;
+}
+
 RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layout)
 {
     if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
@@ -344,6 +350,32 @@ void RenderGraph::Compile()
 	}
 }
 
+void RenderGraph::SubmitBufferUploads()
+{
+	SCOPED_NAMED_EVENT("RenderGraph::SubmitBufferUploads", FColor::Magenta);
+
+	{
+		SCOPED_NAMED_EVENT("Allocate", FColor::Magenta);
+		
+		for (FUploadedBuffer& UploadedBuffer : UploadedBuffers)
+		{
+			RDGBuffer* Buffer = UploadedBuffer.Buffer;
+			if (!Buffer->ResourceRHI)
+			{
+				FRDGPooledBufferRef PooledBuffer = AllocatePooledBufferRHI(Buffer);
+				Buffer->ResourceRHI = PooledBuffer->GetRHI();
+				Buffer->PooledBuffer = PooledBuffer;
+			}
+		}
+	}
+	for (FUploadedBuffer& UploadedBuffer : UploadedBuffers)
+	{
+		UploadedBuffer.Buffer->UpdateBufferImmediate(UploadedBuffer.Data, 0, UploadedBuffer.DataSize);
+		UploadedBuffer.Buffer->bQueuedForUpload = false;
+	}
+	UploadedBuffers.clear();
+}
+
 void RenderGraph::Execute()
 {
 	RDGPassDesc EpiloguePassDesc{"EpiloguePass"};
@@ -359,6 +391,8 @@ void RenderGraph::Execute()
 	const int32 NumExternalBuffers   = ExternalBuffers.size();
 	const int32 NumExternalTextures  = ExternalTextures.size();
 	FCollectResourceContext CollectResourceContext;
+
+	SubmitBufferUploads();
 
     Compile();
 
