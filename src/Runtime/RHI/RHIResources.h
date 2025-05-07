@@ -432,6 +432,7 @@ namespace nilou {
 		};
 		std::map<uint32, std::map<uint32, uint32>> UniformBuffersSize;
 		std::map<std::string, UniformPosition> UniformPositions;
+    	std::vector<RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 

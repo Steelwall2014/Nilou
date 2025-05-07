@@ -309,8 +309,6 @@ int FVulkanDynamicRHI::Initialize()
 
     RenderPassManager = std::unique_ptr<FVulkanRenderPassManager>(new FVulkanRenderPassManager(Device->Handle));
 
-    DescriptorPoolsManager = std::unique_ptr<FVulkanDescriptorPoolsManager>(new FVulkanDescriptorPoolsManager(Device->Handle));
-
     CurrentImageAcquiredSemaphore = std::make_shared<FVulkanSemaphore>();
 
     /** Create swap chain */
@@ -428,7 +426,6 @@ void FVulkanDynamicRHI::Finalize()
 {
     SamplerMap.clear();
     RenderPassManager = nullptr;
-    DescriptorPoolsManager = nullptr;
     SwapChain = nullptr;
     swapChainFramebuffers.clear();
     DepthImage = nullptr;
@@ -484,7 +481,6 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
     {
         for (auto& [SetIndex, SetLayout] : shader->Reflection)
         {
-            std::vector<VkDescriptorSetLayoutBinding> Bindings;
             for (auto& [BindingIndex, Descriptor] : SetLayout)
             {
                 // Map the name of the uniform variable within the uniform block to its position.
@@ -508,31 +504,30 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
                     Position.Offset = 0;
                     NameToPositions[Descriptor.Name] = Position;
                 }
-
-                // Fill the vulkan structure
-                VkDescriptorSetLayoutBinding LayoutBinding{};
-                LayoutBinding.binding = BindingIndex;
-                LayoutBinding.descriptorCount = 1;
-                LayoutBinding.descriptorType = static_cast<VkDescriptorType>(Descriptor.DescriptorType);
-                LayoutBinding.pImmutableSamplers = nullptr;
-                LayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+            }
+            std::vector<RHIDescriptorSetLayoutBinding> Bindings;
+            for (auto& [BindingIndex, Descriptor] : SetLayout)
+            {
+                RHIDescriptorSetLayoutBinding LayoutBinding{};
+                LayoutBinding.BindingIndex = BindingIndex;
+                LayoutBinding.DescriptorType = Descriptor.DescriptorType;
+                LayoutBinding.DescriptorCount = 1;
                 Bindings.push_back(LayoutBinding);
             }
-            
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
-            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            layoutInfo.bindingCount = Bindings.size();
-            layoutInfo.pBindings = Bindings.data();
-            if (SetIndex >= PipelineLayout->SetLayoutHandles.size())
-                PipelineLayout->SetLayoutHandles.resize(SetIndex + 1, VK_NULL_HANDLE);
-            Ncheck(vkCreateDescriptorSetLayout(Device->Handle, &layoutInfo, nullptr, &PipelineLayout->SetLayoutHandles[SetIndex]));
+            RHIDescriptorSetLayoutRef DescriptorSetLayout = RHICreateDescriptorSetLayout(Bindings);
+            PipelineLayout->DescriptorSetLayouts.push_back(DescriptorSetLayout);
         }
     }
 
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles;
+    for (RHIDescriptorSetLayoutRef DescriptorSetLayout : PipelineLayout->DescriptorSetLayouts)
+    {
+        SetLayoutHandles.push_back(ResourceCast(DescriptorSetLayout)->Handle);
+    }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = PipelineLayout->SetLayoutHandles.size();
-    pipelineLayoutInfo.pSetLayouts = PipelineLayout->SetLayoutHandles.data();
+    pipelineLayoutInfo.setLayoutCount = SetLayoutHandles.size();
+    pipelineLayoutInfo.pSetLayouts = SetLayoutHandles.data();
 
     std::vector<VkPushConstantRange> VulkanPushConstantRanges;
     for (const RHIPushConstantRange& Range : PushConstantRanges)

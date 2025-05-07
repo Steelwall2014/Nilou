@@ -24,7 +24,6 @@ namespace nilou {
 class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
 class FVulkanStagingManager;
-class FVulkanDescriptorPoolsManager;
 class VulkanQueue;
 class VulkanTexture;
 class VulkanDevice;
@@ -100,7 +99,6 @@ public:
     VulkanDevice* Device = nullptr;
     VkPhysicalDeviceProperties GpuProps;
     std::unique_ptr<FVulkanRenderPassManager> RenderPassManager;
-    std::unique_ptr<FVulkanDescriptorPoolsManager> DescriptorPoolsManager;
 
     static std::string ErrorString(VkResult Result);
     

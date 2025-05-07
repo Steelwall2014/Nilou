@@ -49,9 +49,11 @@ public:
         : Device(InDevice)
     {}
     VkDevice Device;
-    std::vector<VkDescriptorSetLayout> SetLayoutHandles;
     VkPipelineLayout Handle;
-    ~VulkanPipelineLayout();
+    virtual ~VulkanPipelineLayout()
+    {
+	    vkDestroyPipelineLayout(Device, Handle, nullptr);
+    }
 };
 using VulkanPipelineLayoutRef = TRefCountPtr<VulkanPipelineLayout>;
 
