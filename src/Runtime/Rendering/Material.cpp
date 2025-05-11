@@ -270,7 +270,7 @@ namespace nilou {
         NewRenderProxy->ShaderMap = this->MaterialRenderProxy->ShaderMap;
         for (auto& [SetIndex, Layout] : NewRenderProxy->ShaderMap->DescriptorSetLayout)
         {
-            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(Layout.GetReference());
+            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(Layout);
         }
         for (auto& [Key, Texture] : this->MaterialRenderProxy->Textures)
         {
@@ -413,7 +413,7 @@ namespace nilou {
             BindingRHI.DescriptorType = Binding.DescriptorType;
             BindingsRHI.push_back(BindingRHI);
         }
-        RHIDescriptorSetLayoutRef LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
+        RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
         ShaderMap->DescriptorSetLayout[SetIndex] = LayoutRHI;
         DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(LayoutRHI);
 

@@ -22,28 +22,30 @@ public:
 
     void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
     {
-        if (RHIDescriptorSetLayoutBinding* Binding = Layout->GetBindingByName(Name))
+        if (auto Binding = GetBindingByName(Name))
         {
+            Ncheck(Binding->DescriptorType == EDescriptorType::UniformBuffer);
             SetUniformBuffer(Binding->BindingIndex, Buffer);
         }
     }
     void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI())
     {
-        if (RHIDescriptorSetLayoutBinding* Binding = Layout->GetBindingByName(Name))
+        if (auto Binding = GetBindingByName(Name))
         {
+            Ncheck(Binding->DescriptorType == EDescriptorType::CombinedImageSampler);
             SetSampler(Binding->BindingIndex, Texture, SamplerState);
         }
     }
     void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer, ERHIAccess Access)
     {
-        if (RHIDescriptorSetLayoutBinding* Binding = Layout->GetBindingByName(Name))
+        if (auto Binding = GetBindingByName(Name))
         {
             SetStorageBuffer(Binding->BindingIndex, Buffer, Access);
         }
     }
     void SetStorageImage(const std::string& Name, RDGTextureView* Image, ERHIAccess Access)
     {
-        if (RHIDescriptorSetLayoutBinding* Binding = Layout->GetBindingByName(Name))
+        if (auto Binding = GetBindingByName(Name))
         {
             SetStorageImage(Binding->BindingIndex, Image, Access);
         }
@@ -89,7 +91,17 @@ private:
 
     uint32 SetIndex = 0;
 
+    std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
     RHIDescriptorSetLayout* Layout;
+
+    std::optional<RHIDescriptorSetLayoutBinding> GetBindingByName(const std::string& Name)
+    {
+        if (NameToBinding.find(Name) != NameToBinding.end())
+        {
+            return NameToBinding[Name];
+        }
+        return std::nullopt;
+    }
 
 };
 using RDGDescriptorSetRef = TRefCountPtr<RDGDescriptorSet>;

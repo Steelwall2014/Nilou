@@ -96,11 +96,6 @@ namespace nilou {
         }
     }
 
-	void RHIDescriptorSetLayout::GenerateHash()
-	{
-		Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
-	}
-
 }
 
 namespace std {

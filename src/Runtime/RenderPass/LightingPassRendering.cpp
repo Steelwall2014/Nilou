@@ -21,8 +21,8 @@ namespace nilou {
         if (!ScreenQuadVertexDeclaration)
         {
             FVertexDeclarationElementList Elements;
-            Elements[0] = FVertexElement(0, 0, VET_Float4, 0, sizeof(float)*4);
-            Elements[1] = FVertexElement(1, 0, VET_Float2, 1, sizeof(float)*2);
+            Elements[0] = FVertexElement(0, 0, EVertexElementType::Float4, 0, sizeof(float)*4);
+            Elements[1] = FVertexElement(1, 0, EVertexElementType::Float2, 1, sizeof(float)*2);
             ScreenQuadVertexDeclaration = RHICreateVertexDeclaration(Elements);
         }
 

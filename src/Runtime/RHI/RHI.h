@@ -17,7 +17,13 @@ namespace nilou {
         uint8 AttributeIndex;
         uint16 Stride;
 
-        FVertexElement() {}
+        FVertexElement() :
+            StreamIndex(0),
+            Offset(0),
+            Type(EVertexElementType::None),
+            AttributeIndex(0),
+            Stride(0)
+		{}
         FVertexElement(uint8 InStreamIndex,uint8 InOffset,EVertexElementType InType,uint8 InAttributeIndex,uint16 InStride):
 			StreamIndex(InStreamIndex),
             Offset(InOffset),
@@ -41,7 +47,7 @@ namespace nilou {
             : VertexBuffer(nullptr)
             , Offset(0)
             , Stride(0)
-            , Type(EVertexElementType::VET_None)
+            , Type(EVertexElementType::None)
         { }
 
         FVertexStreamComponent(FVertexBuffer *InVertexBuffer, uint8 InOffset, uint8 InStride, EVertexElementType InType) 

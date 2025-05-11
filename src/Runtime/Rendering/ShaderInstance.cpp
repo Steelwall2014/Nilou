@@ -12,13 +12,13 @@ namespace nilou {
         switch (ShaderStage) 
         {
             case EShaderStage::Vertex:
-                ShaderRHI = RHICreateVertexShader(Code);
+                ShaderRHI = RHICreateVertexShader(Code, ShaderName);
                 break;
             case EShaderStage::Pixel:
-                ShaderRHI = RHICreatePixelShader(Code);
+                ShaderRHI = RHICreatePixelShader(Code, ShaderName);
                 break;
             case EShaderStage::Compute:
-                ShaderRHI = RHICreateComputeShader(Code);
+                ShaderRHI = RHICreateComputeShader(Code, ShaderName);
                 break;
             default:
                 break;
@@ -26,7 +26,11 @@ namespace nilou {
         if (ShaderRHI)
         {
             std::string ErrorMessage;
-            if (!sr::ReflectShader(Code, ShaderStage, DescriptorSetLayouts, ErrorMessage))
+            if (sr::ReflectShader(Code, ShaderStage, DescriptorSetLayouts, ErrorMessage))
+            {
+                ShaderRHI->Reflection = DescriptorSetLayouts;
+            }
+            else
             {
                 {
                     std::ofstream out(ShaderName + ".glsl");

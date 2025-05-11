@@ -115,6 +115,7 @@ namespace nilou {
         {
             return;
         }
+        std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
         std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
         for (auto& [BindingIndex, Binding] : Layouts[SetIndex])
         {
@@ -122,20 +123,11 @@ namespace nilou {
             BindingRHI.BindingIndex = BindingIndex;
             BindingRHI.DescriptorType = Binding.DescriptorType;
             BindingRHI.DescriptorCount = 1; // For now, only support 1
-            if (BindingIndex >= BindingsRHI.size())
-                BindingsRHI.resize(BindingIndex + 1, RHIDescriptorSetLayoutBinding{});
-            BindingsRHI[BindingIndex] = BindingRHI;
+            BindingsRHI.push_back(BindingRHI);
+            NameToBinding[Binding.Name] = BindingRHI;
         }
-        // Find or create the layout RHI.
-        auto& UniqueLayouts = ShaderType->UniqueDescriptorSetLayouts;
-        uint32 Hash = FCrc::MemCrc32(BindingsRHI.data(), sizeof(RHIDescriptorSetLayoutBinding) * BindingsRHI.size());
-        if (UniqueLayouts.count(Hash) == 0)
-        {
-            RHIDescriptorSetLayoutRef LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
-            UniqueLayouts[Hash] = LayoutRHI;
-        }
-        // Link permutation id and set index to the layout
-        ShaderType->DescriptorSetLayouts[PermutationId][SetIndex] = UniqueLayouts[Hash];
+        RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
+        ShaderType->DescriptorSetLayouts[PermutationId][SetIndex] = FNamedDescriptorSetLayout(LayoutRHI, NameToBinding);
     }
 
     void FShaderCompiler::CompileGlobalShader(

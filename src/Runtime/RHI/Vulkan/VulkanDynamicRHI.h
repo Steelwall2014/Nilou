@@ -52,9 +52,9 @@ public:
     virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
     virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
     virtual RHISamplerStateRef RHICreateSamplerState(const FSamplerStateInitializer& Initializer) override;
-    virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) override;
-    virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) override;
-    virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) override;
+    virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName) override;
+    virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName) override;
+    virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName) override;
     virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) override;
     virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
@@ -88,7 +88,7 @@ public:
     virtual void RHIUnmapMemory(RHIBuffer* buffer) override;
     virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) override;
 
-	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
+	virtual RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings) override;
     virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
     virtual RHICommandList* RHICreateGfxCommandList() override;
@@ -173,6 +173,7 @@ private:
     void PrepareForDispatch();
     void PrepareForDraw();
 
+    std::unordered_map<uint32, RHIDescriptorSetLayoutRef> UniqueDescriptorSetLayouts;
 };
 
 }

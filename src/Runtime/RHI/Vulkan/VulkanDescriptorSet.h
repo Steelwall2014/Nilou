@@ -16,7 +16,10 @@ namespace nilou {
 class VulkanDescriptorSetLayout : public RHIDescriptorSetLayout
 {
 public:
-    VulkanDescriptorSetLayout(VkDevice InDevice) : Device(InDevice) { }
+    VulkanDescriptorSetLayout(VkDevice InDevice, const std::vector<RHIDescriptorSetLayoutBinding>& InBindings) 
+        : RHIDescriptorSetLayout(InBindings)
+        , Device(InDevice)
+    { }
     VkDevice Device;
 	VkDescriptorSetLayout Handle;
 

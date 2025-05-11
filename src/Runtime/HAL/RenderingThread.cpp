@@ -59,7 +59,6 @@ namespace nilou {
         _this->GraphRecording = new RenderGraph();
         if (_this->GraphExecuting)
         {
-            _this->GraphExecuting->Compile();
             _this->GraphExecuting->Execute();
         }
     }

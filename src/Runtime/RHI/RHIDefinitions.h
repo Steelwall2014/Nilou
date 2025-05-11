@@ -205,48 +205,27 @@ namespace nilou {
 		UniformBuffer_MultiFrame,
 	};
 	
-	enum class EVertexElementTypeFlags : uint32
+	enum class EVertexElementType : uint8
 	{
-		VET_None = 0,
-		VET_1 = 1 << 1,
-		VET_2 = 1 << 2,
-		VET_3 = 1 << 3,
-		VET_4 = 1 << 4,
-		VET_9 = 1 << 9,
-		VET_16 = 1 << 16,
-		VET_Byte = 1 << 17,
-		VET_UByte = 1 << 18,
-		VET_Short = 1 << 19,
-		VET_UShort = 1 << 20,
-		VET_Int = 1 << 21,
-		VET_UInt = 1 << 22,
-		VET_Float = 1 << 23,
-	};
-	constexpr EVertexElementTypeFlags operator|(EVertexElementTypeFlags a, EVertexElementTypeFlags b)
-	{
-		return static_cast<EVertexElementTypeFlags>(static_cast<int>(a) | static_cast<int>(b));
-	}
-	enum EVertexElementType : uint8
-	{
-		VET_None,
-		VET_Float1,
-		VET_Float2,
-		VET_Float3,
-		VET_Float4,
-		VET_Half2,			// 16 bit float using 1 bit sign, 5 bit exponent, 10 bit mantissa 
-		VET_Half4,
-		VET_UByte4,
-		VET_UByte4N,
-		VET_Short2,
-		VET_Short4,
-		VET_Short2N,		// 16 bit word normalized to (value/32767.0,value/32767.0,0,0,1)
-		VET_Short4N,		// 4 X 16 bit word, normalized 
-		VET_UShort2,
-		VET_UShort4,
-		VET_UShort2N,		// 16 bit word normalized to (value/65535.0,value/65535.0,0,0,1)
-		VET_UShort4N,		// 4 X 16 bit word unsigned, normalized 
-		VET_UInt,
-		VET_MAX,
+		None,
+		Float1,
+		Float2,
+		Float3,
+		Float4,
+		Half2,			// 16 bit float using 1 bit sign, 5 bit exponent, 10 bit mantissa 
+		Half4,
+		UByte4,
+		UByte4N,
+		Short2,
+		Short4,
+		Short2N,		// 16 bit word normalized to (value/32767.0,value/32767.0,0,0,1)
+		Short4N,		// 4 X 16 bit word, normalized 
+		UShort2,
+		UShort4,
+		UShort2N,		// 16 bit word normalized to (value/65535.0,value/65535.0,0,0,1)
+		UShort4N,		// 4 X 16 bit word unsigned, normalized 
+		UInt,
+		MAX,
 	};
 
 	enum class EIndexType : uint32

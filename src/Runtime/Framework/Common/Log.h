@@ -43,10 +43,20 @@ namespace nilou {
         return os << std::wstring_view(strPt);
     }
 
-#if __cplusplus >= 202002L
-        #define NFormat(...) std::format(__VA_ARGS__)
+#if defined(_MSC_VER)
+    #define NILOU_DEBUG_BREAK() __debugbreak()
+#elif defined(__clang__)
+    #define NILOU_DEBUG_BREAK() __builtin_debugtrap()
+#elif defined(__GNUC__)
+    #define NILOU_DEBUG_BREAK() __builtin_trap()
 #else
-        #define NFormat(...) fmt::format(__VA_ARGS__)
+    #define NILOU_DEBUG_BREAK() assert(false)
+#endif
+
+#if __cplusplus >= 202002L
+    #define NFormat(...) std::format(__VA_ARGS__)
+#else
+    #define NFormat(...) fmt::format(__VA_ARGS__)
 #endif
 
     enum class ELogVerbosity
@@ -72,10 +82,10 @@ namespace nilou {
     #define NILOU_LOG(Verbosity, Format, ...) \
         { \
             auto NILOU_LOG_lambda = [](auto&&... args) { \
-                Logf_Internal(nilou::ELogVerbosity::Verbosity, NFormat(#Verbosity": |{}:{}|"Format"\n", std::forward<decltype(args)>(args)...)); \
+                Logf_Internal(nilou::ELogVerbosity::Verbosity, NFormat(#Verbosity": |{}:{}| " Format "\n", std::forward<decltype(args)>(args)...)); \
                 NILOU_LOG_EXPAND_IS_FATAL(Verbosity, \
                     { \
-                        __debugbreak(); \
+                        NILOU_DEBUG_BREAK(); \
                         assert(false); \
                     },\
                     {} \

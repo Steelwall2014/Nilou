@@ -4,8 +4,16 @@
 
 namespace nilou {
 
-RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+RHIDescriptorSetLayout* FVulkanDynamicRHI::RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings)
 {
+	std::sort(Bindings.begin(), Bindings.end(), [](const RHIDescriptorSetLayoutBinding& a, const RHIDescriptorSetLayoutBinding& b) {
+		return a.BindingIndex < b.BindingIndex;
+	});
+	uint32 Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
+	if (RHIDescriptorSetLayoutRef Found = UniqueDescriptorSetLayouts[Hash])
+	{
+		return Found;
+	}
     std::vector<VkDescriptorSetLayoutBinding> VulkanBindings(Bindings.size());
     for (int i = 0; i < Bindings.size(); i++)
     {
@@ -17,12 +25,13 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const 
         VulkanBinding.stageFlags = VK_SHADER_STAGE_ALL;
         VulkanBinding.pImmutableSamplers = nullptr;
     }
-    TRefCountPtr<VulkanDescriptorSetLayout> VulkanLayout = new VulkanDescriptorSetLayout(Device->Handle);
+    TRefCountPtr<VulkanDescriptorSetLayout> VulkanLayout = new VulkanDescriptorSetLayout(Device->Handle, Bindings);
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
     layoutInfo.pBindings = VulkanBindings.data();
     VK_CHECK_RESULT(vkCreateDescriptorSetLayout(Device->Handle, &layoutInfo, nullptr, &VulkanLayout->Handle));
+	UniqueDescriptorSetLayouts[Hash] = VulkanLayout;
     return VulkanLayout;
 }
 

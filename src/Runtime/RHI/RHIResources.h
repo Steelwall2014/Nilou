@@ -8,6 +8,7 @@
 
 // #include <glm/glm.hpp>
 #include "Common/Math/Maths.h"
+#include "Common/Crc.h"
 #include "Platform.h"
 #include "RHIDefinitions.h"
 #include "ShaderParameter.h"
@@ -63,6 +64,7 @@ namespace nilou {
 		RHIShader(ERHIResourceType InResourceType) 
 			: RHIResource(InResourceType)
 		{ }
+		std::string DebugName;
 		shader_reflection::DescriptorSetLayouts Reflection;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
@@ -386,17 +388,14 @@ namespace nilou {
 	class RHIDescriptorSetLayout : public RHIResource
 	{
 	public:
-		friend class std::hash<RHIDescriptorSetLayout>;
-		RHIDescriptorSetLayout() : RHIResource(RRT_DescriptorSetLayout) {}
-		void GenerateHash();
-		RHIDescriptorSetLayoutBinding* GetBindingByName(const std::string &Name)
+		RHIDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& InBindings) 
+			: RHIResource(RRT_DescriptorSetLayout)
+			, Bindings(InBindings) 
 		{
-			auto Found = NameToBindingIndex.find(Name);
-			if (Found != NameToBindingIndex.end())
+			std::sort(Bindings.begin(), Bindings.end(), [](const RHIDescriptorSetLayoutBinding& A, const RHIDescriptorSetLayoutBinding& B)
 			{
-				return &Bindings[Found->second];
-			}
-			return nullptr;
+				return A.BindingIndex < B.BindingIndex;
+			});
 		}
 		uint32 GetNumTypeUsed(EDescriptorType Type) const
 		{
@@ -408,10 +407,7 @@ namespace nilou {
 			return NumTypeUsed;
 		}
 
-	protected:
 		std::vector<RHIDescriptorSetLayoutBinding> Bindings;
-		std::map<std::string, int> NameToBindingIndex;
-		uint32 Hash;
 	};
 	using RHIDescriptorSetLayoutRef = TRefCountPtr<RHIDescriptorSetLayout>;
 
@@ -431,8 +427,8 @@ namespace nilou {
 			uint32 Offset;
 		};
 		std::map<uint32, std::map<uint32, uint32>> UniformBuffersSize;
-		std::map<std::string, UniformPosition> UniformPositions;
-    	std::vector<RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
+		// std::map<std::string, UniformPosition> UniformPositions;
+    	std::vector<RHIDescriptorSetLayout*> DescriptorSetLayouts;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 
@@ -609,15 +605,6 @@ template<>
 struct hash<nilou::FGraphicsPipelineStateInitializer>
 {
 	size_t operator()(const nilou::FGraphicsPipelineStateInitializer &_Keyval) const noexcept;
-};
-
-template<>
-struct hash<nilou::RHIDescriptorSetLayout>
-{
-	size_t operator()(const nilou::RHIDescriptorSetLayout &_Keyval) const noexcept
-	{
-		return _Keyval.Hash;
-	}
 };
 
 template<>

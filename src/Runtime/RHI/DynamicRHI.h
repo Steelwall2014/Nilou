@@ -49,9 +49,9 @@ namespace nilou {
 		virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) = 0;
 		virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) = 0;
 		virtual RHISamplerStateRef RHICreateSamplerState(const FSamplerStateInitializer &Initializer) = 0;
-		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code) = 0;
-		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code) = 0;
-		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code) = 0;
+		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName) = 0;
+		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName) = 0;
+		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName) = 0;
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
@@ -87,7 +87,7 @@ namespace nilou {
 		virtual void RHIUnmapMemory(RHIBuffer* buffer) = 0;
 		virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) = 0;
 
-		virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) = 0;
+		virtual RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings) = 0;
 		virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) = 0;
 		virtual RHISemaphoreRef RHICreateSemaphore() = 0;
     	virtual RHICommandList* RHICreateGfxCommandList() = 0;
@@ -173,19 +173,19 @@ namespace nilou {
 		return FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(Initializer);
 	}
 	
-	inline RHIVertexShaderRef RHICreateVertexShader(const std::string& code)
+	inline RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateVertexShader(code);
+		return FDynamicRHI::GetDynamicRHI()->RHICreateVertexShader(code, DebugName);
 	}
 	
-	inline RHIPixelShaderRef RHICreatePixelShader(const std::string& code)
+	inline RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreatePixelShader(code);
+		return FDynamicRHI::GetDynamicRHI()->RHICreatePixelShader(code, DebugName);
 	}
 	
-	inline RHIComputeShaderRef RHICreateComputeShader(const std::string& code)
+	inline RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateComputeShader(code);
+		return FDynamicRHI::GetDynamicRHI()->RHICreateComputeShader(code, DebugName);
 	}
 
 	inline EGraphicsAPI RHIGetCurrentGraphicsAPI()
@@ -203,11 +203,9 @@ namespace nilou {
 		FDynamicRHI::GetDynamicRHI()->RHIUnmapMemory(buffer);
 	}
 
-	inline RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+	inline RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 	{
-		RHIDescriptorSetLayoutRef Layout = FDynamicRHI::GetDynamicRHI()->RHICreateDescriptorSetLayout(Bindings);
-		// TODO: cache
-		return Layout;
+		return FDynamicRHI::GetDynamicRHI()->RHICreateDescriptorSetLayout(Bindings);
 	}
 
 	inline RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)

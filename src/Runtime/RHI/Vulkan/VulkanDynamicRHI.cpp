@@ -57,39 +57,39 @@ static VkFormat TranslateVertexElementTypeToVKFormat(EVertexElementType ElementT
 {
     switch (ElementType) 
     {
-	case EVertexElementType::VET_Float1:
+	case EVertexElementType::Float1:
 		return VK_FORMAT_R32_SFLOAT;
-	case EVertexElementType::VET_Float2:
+	case EVertexElementType::Float2:
 		return VK_FORMAT_R32G32_SFLOAT;
-	case EVertexElementType::VET_Float3:
+	case EVertexElementType::Float3:
 		return VK_FORMAT_R32G32B32_SFLOAT;
-	case EVertexElementType::VET_Float4:
+	case EVertexElementType::Float4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
-	case EVertexElementType::VET_Half2:
+	case EVertexElementType::Half2:
 		return VK_FORMAT_R16G16_SFLOAT;
-	case EVertexElementType::VET_Half4:
+	case EVertexElementType::Half4:
 		return VK_FORMAT_R16G16B16A16_SFLOAT;
-	case EVertexElementType::VET_UByte4:
+	case EVertexElementType::UByte4:
 		return VK_FORMAT_R8G8B8A8_UINT;
-	case EVertexElementType::VET_UByte4N:
+	case EVertexElementType::UByte4N:
 		return VK_FORMAT_R8G8B8A8_UNORM;
-	case EVertexElementType::VET_Short2:
+	case EVertexElementType::Short2:
 		return VK_FORMAT_R16G16_SINT;
-	case EVertexElementType::VET_Short4:
+	case EVertexElementType::Short4:
 		return VK_FORMAT_R16G16B16A16_SINT;
-	case EVertexElementType::VET_Short2N:
+	case EVertexElementType::Short2N:
 		return VK_FORMAT_R16G16_SNORM;
-	case EVertexElementType::VET_Short4N:		// 4 X 16 bit word: normalized
+	case EVertexElementType::Short4N:		// 4 X 16 bit word: normalized
 		return VK_FORMAT_R16G16B16A16_SNORM;
-	case EVertexElementType::VET_UShort2:
+	case EVertexElementType::UShort2:
 		return VK_FORMAT_R16G16_UINT;
-	case EVertexElementType::VET_UShort4:
+	case EVertexElementType::UShort4:
 		return VK_FORMAT_R16G16B16A16_UINT;
-	case EVertexElementType::VET_UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
+	case EVertexElementType::UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
 		return VK_FORMAT_R16G16_UNORM;
-	case EVertexElementType::VET_UShort4N:		// 4 X 16 bit word unsigned: normalized
+	case EVertexElementType::UShort4N:		// 4 X 16 bit word unsigned: normalized
 		return VK_FORMAT_R16G16B16A16_UNORM;
-	case EVertexElementType::VET_UInt:
+	case EVertexElementType::UInt:
 		return VK_FORMAT_R32_UINT;
 	default:
 		break;
@@ -137,6 +137,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     void* pUserData) {
 
     std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+    __debugbreak();
 
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         // Message is important enough to show
@@ -476,35 +477,10 @@ static VkShaderStageFlagBits TranslateShaderStageFlagBits(EShaderStage StageFlag
 RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders, const std::vector<RHIPushConstantRange>& PushConstantRanges)
 {
     VulkanPipelineLayoutRef PipelineLayout = new VulkanPipelineLayout(Device->Handle);
-    auto& NameToPositions = PipelineLayout->UniformPositions;
     for (RHIShader* shader : shaders)
     {
         for (auto& [SetIndex, SetLayout] : shader->Reflection)
         {
-            for (auto& [BindingIndex, Descriptor] : SetLayout)
-            {
-                // Map the name of the uniform variable within the uniform block to its position.
-                // The position is a combination of the set index, binding index and offset within the uniform block.
-                if (Descriptor.DescriptorType == sr::EDescriptorType::UniformBuffer)
-                {
-                    for (const sr::BlockVariable& BlockVariable : Descriptor.Block.Members)
-                    {
-                        RHIPipelineLayout::UniformPosition Position;
-                        Position.SetIndex = SetIndex;
-                        Position.BindingIndex = BindingIndex;
-                        Position.Offset = BlockVariable.Offset;
-                        NameToPositions[BlockVariable.Name] = Position;
-                    }
-                }
-                else if (Descriptor.DescriptorType == sr::EDescriptorType::CombinedImageSampler)
-                {
-                    RHIPipelineLayout::UniformPosition Position;
-                    Position.SetIndex = SetIndex;
-                    Position.BindingIndex = BindingIndex;
-                    Position.Offset = 0;
-                    NameToPositions[Descriptor.Name] = Position;
-                }
-            }
             std::vector<RHIDescriptorSetLayoutBinding> Bindings;
             for (auto& [BindingIndex, Descriptor] : SetLayout)
             {
@@ -514,13 +490,13 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
                 LayoutBinding.DescriptorCount = 1;
                 Bindings.push_back(LayoutBinding);
             }
-            RHIDescriptorSetLayoutRef DescriptorSetLayout = RHICreateDescriptorSetLayout(Bindings);
+            RHIDescriptorSetLayout* DescriptorSetLayout = RHICreateDescriptorSetLayout(Bindings);
             PipelineLayout->DescriptorSetLayouts.push_back(DescriptorSetLayout);
         }
     }
 
     std::vector<VkDescriptorSetLayout> SetLayoutHandles;
-    for (RHIDescriptorSetLayoutRef DescriptorSetLayout : PipelineLayout->DescriptorSetLayouts)
+    for (RHIDescriptorSetLayout* DescriptorSetLayout : PipelineLayout->DescriptorSetLayouts)
     {
         SetLayoutHandles.push_back(ResourceCast(DescriptorSetLayout)->Handle);
     }
@@ -636,9 +612,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (vkCreateGraphicsPipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create graphics pipeline!");
-    }
+    VK_CHECK_RESULT(vkCreateGraphicsPipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle));
 
     return PSO;
 }
@@ -663,9 +637,7 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
     pipelineInfo.layout = ResourceCast(PipelineLayout)->Handle;
     pipelineInfo.stage = computeShaderStageInfo;
 
-    if (vkCreateComputePipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create graphics pipeline!");
-    }
+    VK_CHECK_RESULT(vkCreateComputePipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle));
     return PSO;
 }
 
@@ -823,6 +795,7 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
     uint32 BindingMask = 0;
     for (auto& Element : ElementList)
     {
+        if (Element.Type == EVertexElementType::None) continue;
         VkVertexInputBindingDescription& CurrBinding = Bindings[Element.StreamIndex];
         if (((1 << Element.StreamIndex) & BindingMask) != 0)
         {

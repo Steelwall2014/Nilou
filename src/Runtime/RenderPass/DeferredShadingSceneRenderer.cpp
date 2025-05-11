@@ -76,7 +76,7 @@ namespace nilou {
             PositionVertexElement.StreamIndex = 0;
             PositionVertexElement.Offset = 0;
             PositionVertexElement.Stride = sizeof(float) * 4;
-            PositionVertexElement.Type = EVertexElementType::VET_Float4;
+            PositionVertexElement.Type = EVertexElementType::Float4;
             PositionVertexInputStream.StreamIndex = 0;
             PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRDG;
             PositionVertexInputStream.Offset = 0;
@@ -85,7 +85,7 @@ namespace nilou {
             UVVertexElement.StreamIndex = 1;
             UVVertexElement.Offset = 0;
             UVVertexElement.Stride = sizeof(float) * 2;
-            UVVertexElement.Type = EVertexElementType::VET_Float2;
+            UVVertexElement.Type = EVertexElementType::Float2;
             UVVertexInputStream.StreamIndex = 1;
             UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRDG;
             UVVertexInputStream.Offset = 0;

@@ -152,15 +152,16 @@ void RenderGraph::QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, 
 	Buffer->bQueuedForUpload = true;
 }
 
-RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layout)
+RDGDescriptorSet* RenderGraph::CreateDescriptorSet(FNamedDescriptorSetLayout Layout)
 {
-    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
+    if (DescriptorSetPools.find(Layout.GetRHI()) == DescriptorSetPools.end())
     {
-        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
+        DescriptorSetPools[Layout.GetRHI()] = RDGDescriptorSetPool(Layout.GetRHI());
     }
 
-    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
+    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout.GetRHI()];
     RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+	DescriptorSet->NameToBinding = Layout.NameToBinding;
     DescriptorSets.push_back(DescriptorSet);
     return DescriptorSet;
 }
@@ -418,6 +419,7 @@ void RenderGraph::Execute()
 	// CollectResources
 	for (FRDGPass* Pass : Passes)
 	{
+		if (Pass->Name.find("FTextureCubeResource::InitRHI") != -1) __debugbreak();
 		if (!Pass->bCulled)
 		{
 			CollectAllocations(CollectResourceContext, Pass);

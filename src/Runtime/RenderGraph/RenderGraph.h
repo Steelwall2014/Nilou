@@ -77,7 +77,7 @@ public:
     template<class TShaderType>
     RDGDescriptorSet* CreateDescriptorSet(int32 PermutationId, uint32 SetIndex)
     {
-        RHIDescriptorSetLayout* Layout = TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex);
+        FNamedDescriptorSetLayout Layout = TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex);
         RDGDescriptorSet* DescriptorSet = CreateDescriptorSet(Layout);
         DescriptorSet->SetIndex = SetIndex;
         return DescriptorSet;
@@ -136,7 +136,7 @@ private:
 
     void SubmitBufferUploads();
 
-    RDGDescriptorSet* CreateDescriptorSet(RHIDescriptorSetLayout* Layout);
+    RDGDescriptorSet* CreateDescriptorSet(FNamedDescriptorSetLayout Layout);
 
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddPassInternal(

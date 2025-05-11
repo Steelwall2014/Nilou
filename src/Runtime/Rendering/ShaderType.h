@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "HashedName.h"
+#include "RHIResources.h"
 #include "ShaderParameter.h"
 #include "ShaderCompileEnvironment.h"
 #include "Templates/RefCounting.h"
@@ -56,6 +57,18 @@ namespace nilou {
     //     std::string SourceCodeBody;
     // };
 
+	struct FNamedDescriptorSetLayout
+	{
+        FNamedDescriptorSetLayout() { }
+        FNamedDescriptorSetLayout(RHIDescriptorSetLayout* InLayoutRHI, std::map<std::string, RHIDescriptorSetLayoutBinding> InNameToBinding)
+            : LayoutRHI(InLayoutRHI)
+            , NameToBinding(InNameToBinding)
+        { }
+		RHIDescriptorSetLayout* LayoutRHI = nullptr;
+		std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
+        RHIDescriptorSetLayout* GetRHI() const { return LayoutRHI; }
+	};
+
     class FShaderTypeBase
     {
     public:
@@ -78,11 +91,11 @@ namespace nilou {
             return HashedName;
         }
 
-        RHIDescriptorSetLayout* GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) const
+        FNamedDescriptorSetLayout GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) const
         {
             if (DescriptorSetLayouts.size() <= PermutationId)
             {
-                return nullptr;
+                return {};
             }
             auto &DescriptorSetLayoutMap = DescriptorSetLayouts[PermutationId];
             auto It = DescriptorSetLayoutMap.find(SetIndex);
@@ -90,19 +103,14 @@ namespace nilou {
             {
                 return It->second;
             }
-            return nullptr;
+            return {};
         }
 
         // Descriptor set layouts of every set index for each permutation
         // For FMaterialShader and FVertexFactory, the map only contains one element, 
         // and its key can only be VERTEX_SHADER_SET_INDEX, PIXEL_SHADER_SET_INDEX or VERTEX_FACTORY_SET_INDEX.
         // For FGlobalShader, the map contains all set indices.
-        std::vector<std::map<uint32, RHIDescriptorSetLayout*>> DescriptorSetLayouts;  
-
-        // Different permutation may share the same descriptor set layout.
-        // So we need to keep track of the unique descriptor set layouts.
-        // This will be filled in FShaderCompiler::CompileMaterialShader and FShaderCompiler::CompileGlobalShaders.
-        std::map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> UniqueDescriptorSetLayouts;
+        std::vector<std::map<uint32, FNamedDescriptorSetLayout>> DescriptorSetLayouts;
 
     };
 

@@ -37,13 +37,13 @@ namespace nilou {
         //     PositionElement.StreamIndex = 0;
         //     PositionElement.Offset = 0;
         //     PositionElement.Stride = 3 * sizeof(float);
-        //     PositionElement.Type = EVertexElementType::VET_Float3;
+        //     PositionElement.Type = EVertexElementType::Float3;
         //     FVertexElement ColorElement;
         //     ColorElement.AttributeIndex = 1;
         //     ColorElement.StreamIndex = 1;
         //     ColorElement.Offset = 0;
         //     ColorElement.Stride = 3 * sizeof(float);
-        //     ColorElement.Type = EVertexElementType::VET_Float3;
+        //     ColorElement.Type = EVertexElementType::Float3;
         //     FRHIVertexDeclaration* Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration({ PositionElement, ColorElement} );
             
         //     FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
