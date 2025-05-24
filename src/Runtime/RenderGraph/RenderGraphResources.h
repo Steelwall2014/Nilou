@@ -18,7 +18,7 @@ public:
 	ERHIAccess Access = ERHIAccess::None;
 
 	/** The last pass in this state. */
-	FRDGPassHandle Pass;
+	FRDGPassHandle Pass = NullPassHandle;
 
 };
 
@@ -92,6 +92,14 @@ public:
     uint32 ComputeMemorySize() const;
 
     RHITexture* GetRHI() const { return Texture.GetReference(); }
+
+    bool IsFree() const 
+    { 
+        uint32 RefCount = GetRefCount();
+        Ncheck(RefCount >= 1);
+
+        return RefCount == 1; 
+    }
     
 private:
     const RDGTextureDesc Desc;
@@ -129,8 +137,6 @@ public:
 	}
 
     std::string Name;
-    
-    bool bIsPersistent = false;
 
     ERDGResourceType Type;
 
@@ -153,10 +159,10 @@ protected:
 	/** If false, the resource needs to be collected. */
 	bool bCollectForAllocate = true;
 
-	FRDGPassHandle FirstPass;
-	FRDGPassHandle LastPass;
-	FRDGPassHandle MinAcquirePass;
-	FRDGPassHandle MinDiscardPass;
+	FRDGPassHandle FirstPass = NullPassHandle;
+	FRDGPassHandle LastPass = NullPassHandle;
+	FRDGPassHandle MinAcquirePass = NullPassHandle;
+	FRDGPassHandle MinDiscardPass = NullPassHandle;
 
 	/** Number of references in passes and deferred queries. */
 	uint16 ReferenceCount = 0;
@@ -182,7 +188,7 @@ public:
 
     class RDGTextureView* GetDefaultView() const 
     { 
-        if (bIsPersistent)
+        if (!bTransient)
         {
             return PooledDefaultView;
         }
@@ -216,8 +222,8 @@ public:
 
 private:
     
-    class RDGTextureView* TransientDefaultView;
-    TRefCountPtr<RDGTextureView> PooledDefaultView;
+    class RDGTextureView* TransientDefaultView = nullptr;
+    TRefCountPtr<RDGTextureView> PooledDefaultView = nullptr;
 
 	/** The layout used to facilitate subresource transitions. */
 	FRDGTextureSubresourceLayout Layout;
@@ -228,10 +234,10 @@ private:
 	std::vector<FRDGProducerState> LastProducers;
 
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateTexture
-    class FRHITransientTexture* TransientTexture;
+    class FRHITransientTexture* TransientTexture = nullptr;
 
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateExternalTexture
-    FRDGPooledTextureRef PooledTexture;
+    FRDGPooledTextureRef PooledTexture = nullptr;
 
 	/** The assigned view cache for this texture (sourced from transient / pooled texture). Never reset. */
 	class FRHITextureViewCache* ViewCache = nullptr;

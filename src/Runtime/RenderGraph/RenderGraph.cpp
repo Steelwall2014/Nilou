@@ -62,9 +62,12 @@ RDGTextureRef RenderGraph::CreateExternalTexture(const std::string& Name, const 
 {
     RDGTextureRef Texture = new RDGTexture(Name, Desc);
     Texture->Name = Name;
-    Texture->bIsPersistent = true;
-	Texture->ResourceRHI = RHICreateTexture(Desc, Name);
+    Texture->bTransient = false;
+	FRDGPooledTextureRef PooledTexture = AllocatePooledRenderTargetRHI(Texture);
+	Texture->PooledTexture = PooledTexture;
+	Texture->ResourceRHI = PooledTexture->GetRHI();
 	Texture->PooledDefaultView = CreateExternalTextureView(Texture);
+	Texture->bCollectForAllocate = false;
     return Texture;
 }
 
@@ -92,8 +95,11 @@ RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RD
 {
     RDGBufferRef Buffer = new RDGBuffer(Name, Desc);
     Buffer->Name = Name;
-    Buffer->bIsPersistent = true;
-    Buffer->ResourceRHI = RHICreateBuffer(Desc.GetStride(), Desc.GetStride(), EBufferUsageFlags::None, nullptr);
+    Buffer->bTransient = false;
+	FRDGPooledBufferRef PooledBuffer = AllocatePooledBufferRHI(Buffer);
+	Buffer->PooledBuffer = PooledBuffer;
+	Buffer->ResourceRHI = PooledBuffer->GetRHI();
+	Buffer->bCollectForAllocate = false;
     return Buffer;
 }
 
@@ -112,6 +118,7 @@ RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(RHIDescriptorSetLay
 RDGTexture* RenderGraph::CreateTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
     RDGTextureRef Texture = new RDGTexture(Name, Desc);
+	Texture->bTransient = true;
 	Texture->TransientDefaultView = CreateTextureView(Texture);
     Textures.push_back(Texture);
     return Texture;
@@ -142,6 +149,7 @@ RDGTextureView* RenderGraph::CreateTextureView(RDGTexture* InTexture)
 RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc)
 {
     RDGBufferRef Buffer = new RDGBuffer(Name, Desc);
+	Buffer->bTransient = true;
     Buffers.push_back(Buffer);
     return Buffer;
 }
@@ -208,6 +216,7 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		RDGBuffer* Buffer = static_cast<RDGBuffer*>(Resource);
 		FRDGPass::FBufferState& PassState = Pass->FindOrAddBufferState(Buffer);
 		PassState.ReferenceCount++;
+		Buffer->ReferenceCount++;
 
 		PassState.Access = Access;
 	}
@@ -217,6 +226,7 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		RDGTexture* Texture = TextureView->GetParent();
 		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
 		PassState.ReferenceCount++;
+		Texture->ReferenceCount++;
 		
 		FRDGTextureSubresourceRange WholeRange = Texture->GetSubresourceRange();
 		for (FRDGTextureSubresource& Subresource : TextureView->GetSubresourceRange())
@@ -224,6 +234,22 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 			int32 SubresourceIndex = WholeRange.GetSubresourceIndex(Subresource);
 			PassState.Access[SubresourceIndex] = Access;
 		}
+	}
+	else if (Resource->Type == ERDGResourceType::Texture)
+	{
+		RDGTexture* Texture = static_cast<RDGTexture*>(Resource);
+		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
+		PassState.ReferenceCount++;
+		Texture->ReferenceCount++;
+
+		for (int32 SubresourceIndex = 0; SubresourceIndex < Texture->GetSubresourceCount(); ++SubresourceIndex)
+		{
+			PassState.Access[SubresourceIndex] = Access;
+		}
+	}
+	else 
+	{
+		Ncheckf(false, "Unsupported resource type: {}", (int)Resource->Type);
 	}
 }
 
@@ -397,42 +423,41 @@ void RenderGraph::Execute()
 
     Compile();
 
-	CollectPassBarriers();
+	// for  (auto [TextureRHI, Texture] : ExternalTextures)
+	// {
+	// 	if (Texture->IsCulled())
+	// 	{
+	// 		CollectDeallocateTexture(CollectResourceContext, ProloguePassHandle, Texture, 0);
+	// 	}
+	// }
 
-	for  (auto [TextureRHI, Texture] : ExternalTextures)
-	{
-		if (Texture->IsCulled())
-		{
-			CollectDeallocateTexture(CollectResourceContext, ProloguePassHandle, Texture, 0);
-		}
-	}
-
-	for  (auto [BufferRHI, Buffer] : ExternalBuffers)
-	{
-		if (Buffer->IsCulled())
-		{
-			CollectDeallocateBuffer(CollectResourceContext, ProloguePassHandle, Buffer, 0);
-		}
-	}
+	// for  (auto [BufferRHI, Buffer] : ExternalBuffers)
+	// {
+	// 	if (Buffer->IsCulled())
+	// 	{
+	// 		CollectDeallocateBuffer(CollectResourceContext, ProloguePassHandle, Buffer, 0);
+	// 	}
+	// }
 
 
 	// CollectResources
 	for (FRDGPass* Pass : Passes)
 	{
-		if (Pass->Name.find("FTextureCubeResource::InitRHI") != -1) __debugbreak();
 		if (!Pass->bCulled)
 		{
 			CollectAllocations(CollectResourceContext, Pass);
 			CollectDeallocations(CollectResourceContext, Pass);
 		}
 	}
-	AllocatePooledBuffers(CollectResourceContext.PooledBuffers);
-	AllocatePooledTextures(CollectResourceContext.PooledTextures);
+	// AllocatePooledBuffers(CollectResourceContext.PooledBuffers);
+	// AllocatePooledTextures(CollectResourceContext.PooledTextures);
 	AllocateTransientResources(CollectResourceContext.TransientResources);
+
+	CollectPassBarriers();
 
 	CreateViews(CollectResourceContext.Views);
 	
-	for (FRDGPassHandle PassHandle = ProloguePassHandle; PassHandle <= EpiloguePassHandle; ++PassHandle)
+	for (FRDGPassHandle PassHandle = ProloguePassHandle+1; PassHandle <= EpiloguePassHandle; ++PassHandle)
 	{
 		FRDGPass* Pass = Passes[PassHandle];
 
@@ -824,6 +849,9 @@ ETextureLayout GetTextureLayout(ERHIAccess Access)
 		return ETextureLayout::Undefined;
 	case ERHIAccess::ShaderResourceRead:
 		return ETextureLayout::ShaderReadOnlyOptimal;
+	case ERHIAccess::ShaderResourceWrite:
+	case ERHIAccess::ShaderResourceReadWrite:
+		return ETextureLayout::General;
 	case ERHIAccess::ColorAttachmentRead:
 	case ERHIAccess::ColorAttachmentWrite:
 		return ETextureLayout::ColorAttachmentOptimal;
@@ -867,13 +895,11 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 				continue;
 			}
 			RDGSubresourceState& LastState = Texture->SubresourceStates[Index];
-			FRDGPass* LastPass = Passes[LastState.Pass];
 			ERHIAccess LastAccess = LastState.Access;
 			ERHIAccess CurrentAccess = PassState.Access[Index];
 			
 			if (LastAccess != CurrentAccess)
 			{
-				const ERHIPipeline LastPipeline = LastPass->Pipeline;
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
@@ -881,11 +907,15 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 					GetTextureLayout(LastAccess), GetTextureLayout(CurrentAccess),
 					Texture->GetSubresource(Index));
 				CurrentPass->ImageBarriers.push_back(Barrier);
-				if (LastPipeline != CurrentPipeline)
+				if (LastState.Pass != NullPassHandle)
 				{
-					RHISemaphoreRef Semaphore = RHICreateSemaphore();
-					LastPass->SemaphoresToSignal.push_back(Semaphore);
-					CurrentPass->SemaphoresToWait.push_back(Semaphore);
+					FRDGPass* LastPass = Passes[LastState.Pass];
+					if (LastPass->Pipeline != CurrentPipeline)
+					{
+						RHISemaphoreRef Semaphore = RHICreateSemaphore();
+						LastPass->SemaphoresToSignal.push_back(Semaphore);
+						CurrentPass->SemaphoresToWait.push_back(Semaphore);
+					}
 				}
 			}
 
@@ -903,24 +933,26 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			continue;
 		}
 		RDGSubresourceState& LastState = Buffer->State;
-		FRDGPass* LastPass = Passes[LastState.Pass];
 		ERHIAccess LastAccess = LastState.Access;
 		ERHIAccess CurrentAccess = PassState.Access;
 
 		if (LastAccess != CurrentAccess)
 		{
-			const ERHIPipeline LastPipeline = LastPass->Pipeline;
 			RHIBufferMemoryBarrier Barrier = RHIBufferMemoryBarrier(
 				Buffer->GetRHI(), 
 				LastAccess, CurrentAccess, 
 				GetPipelineStage(LastAccess), GetPipelineStage(CurrentAccess),
 				0, Buffer->Desc.GetSize());
 			CurrentPass->BufferBarriers.push_back(Barrier);
-			if (LastPipeline != CurrentPipeline)
+			if (LastState.Pass != NullPassHandle)
 			{
-				RHISemaphoreRef Semaphore = RHICreateSemaphore();
-				LastPass->SemaphoresToSignal.push_back(Semaphore);
-				CurrentPass->SemaphoresToWait.push_back(Semaphore);
+				FRDGPass* LastPass = Passes[LastState.Pass];
+				if (LastPass->Pipeline != CurrentPipeline)
+				{
+					RHISemaphoreRef Semaphore = RHICreateSemaphore();
+					LastPass->SemaphoresToSignal.push_back(Semaphore);
+					CurrentPass->SemaphoresToWait.push_back(Semaphore);
+				}
 			}
 		}
 

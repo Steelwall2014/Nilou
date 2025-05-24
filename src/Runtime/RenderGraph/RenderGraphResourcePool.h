@@ -10,7 +10,7 @@ public:
 	FRDGBufferPool() = default;
 
 	/** Call once per frame to trim elements from the pool. */
-	void TickPoolElements();
+	void TickPoolElements() { }
 
 	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::Page);
 
@@ -50,8 +50,6 @@ public:
 	 * call from RenderThread only
 	 */
 	void TickPoolElements();
-	/** Free renderer resources */
-	void ReleaseRHI() NILOU_NOT_IMPLEMENTED
 
 	/** Allows to remove a resource so it cannot be shared and gets released immediately instead a/some frame[s] later. */
 	void FreeUnusedResource(FRDGPooledTextureRef& In);
@@ -86,6 +84,7 @@ extern FRDGTexturePool GRenderGraphTexturePool;
 class FRDGTransientResourceAllocator
 {
 public:
+	FRDGTransientResourceAllocator();
 	IRHITransientResourceAllocator* Get() { return Allocator; }
 
 private:

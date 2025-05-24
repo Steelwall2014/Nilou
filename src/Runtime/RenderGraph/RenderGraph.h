@@ -40,7 +40,7 @@ public:
         Desc.NumElements = 1;
         Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
-        Buffer->bIsPersistent = true;
+        Buffer->bTransient = false;
         Buffer->ResourceRHI = RHICreateBuffer(Desc.GetStride(), Desc.GetStride(), EBufferUsageFlags::None, Data);
         return Buffer;
     }
@@ -90,7 +90,7 @@ public:
     FRDGPassHandle AddGraphicsPass(
         const RDGPassDesc& PassDesc,
         const RDGRenderTargets& RenderTargets,
-        const std::set<RDGDescriptorSet*>& PassParameters,
+        const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
         return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::Graphics, std::forward<ExecuteLambdaType>(Executor));
@@ -100,7 +100,7 @@ public:
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddComputePass(
         const RDGPassDesc& PassDesc,
-        const std::set<RDGDescriptorSet*>& PassParameters,
+        const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
         return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::AsyncCompute, std::forward<ExecuteLambdaType>(Executor));
@@ -141,7 +141,7 @@ private:
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddPassInternal(
         const RDGPassDesc& PassDesc,
-        const std::set<RDGDescriptorSet*>& PassParameters,
+        const std::vector<RDGDescriptorSet*>& PassParameters,
         ERHIPipeline Pipeline,
         ExecuteLambdaType&& Executor)
     {
@@ -150,7 +150,7 @@ private:
             PassDesc, 
             Pipeline,
             std::forward<ExecuteLambdaType>(Executor));
-
+        Pass->DescriptorSets = PassParameters;
         Passes.push_back(Pass);
         SetupParameterPass(Pass);
         return Pass->Handle;
@@ -288,8 +288,8 @@ private:
 
     IRHITransientResourceAllocator* TransientResourceAllocator = nullptr;
 
-    FRDGPooledTextureRef AllocatePooledRenderTargetRHI(RDGTexture* Texture); 
-    FRDGPooledBufferRef AllocatePooledBufferRHI(RDGBuffer* Buffer);
+    static FRDGPooledTextureRef AllocatePooledRenderTargetRHI(RDGTexture* Texture); 
+    static FRDGPooledBufferRef AllocatePooledBufferRHI(RDGBuffer* Buffer);
     void CreateViews(const std::unordered_set<RDGTextureView*>& ViewsToCreate);
 
     void SetTransientTextureRHI(RDGTexture* Texture, FRHITransientTexture* TransientTexture);

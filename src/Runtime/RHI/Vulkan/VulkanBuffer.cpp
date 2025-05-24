@@ -48,6 +48,13 @@ constexpr T AlignArbitrary(T Val, uint64 Alignment)
 RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 {
     VulkanBufferRef Buffer = new VulkanBuffer(Device, Stride, Size, InUsage);
+	VkBufferCreateInfo BufferInfo{};
+	BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	BufferInfo.size = Size;
+	BufferInfo.usage = TranslateBufferUsageFlags(InUsage, false);
+	BufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VK_CHECK_RESULT(vkCreateBuffer(Device->Handle, &BufferInfo, nullptr, &Buffer->Handle));
     return Buffer;
 }
 

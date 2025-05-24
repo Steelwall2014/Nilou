@@ -16,6 +16,7 @@ public:
 
     void Query(VkPhysicalDevice PhysicalDevice, uint32 APIVersion);
 
+    VkPhysicalDeviceFeatures2        Features;
     VkPhysicalDeviceFeatures	     Core_1_0;
     VkPhysicalDeviceVulkan11Features Core_1_1;
 private:

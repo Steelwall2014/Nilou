@@ -20,16 +20,16 @@ namespace nilou {
             RDGRenderTargets RenderTargets;
             RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
-            std::set<RDGDescriptorSet*> DescriptorSets;
+            std::vector<RDGDescriptorSet*> DescriptorSets;
             RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FPreZPassVS>(0, VERTEX_SHADER_SET_INDEX);
             DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-            DescriptorSets.insert(DescriptorSet_VS);
+            DescriptorSets.push_back(DescriptorSet_VS);
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
                 for (auto& [SetIndex, DescriptorSet] : Mesh.MaterialRenderProxy->DescriptorSets)
                 {
-                    DescriptorSets.insert(DescriptorSet);
+                    DescriptorSets.push_back(DescriptorSet);
                 }
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {

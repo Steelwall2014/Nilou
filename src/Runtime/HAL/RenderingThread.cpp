@@ -6,6 +6,7 @@
 #include "Common/ContentManager.h"
 #include "Material.h"
 #include "RenderGraph.h"
+#include "RenderGraphResourcePool.h"
 
 namespace nilou {
 
@@ -67,6 +68,8 @@ namespace nilou {
     {
         FRenderingThread* _this = RenderingThread;
         delete _this->GraphExecuting;
+        GRenderGraphBufferPool.TickPoolElements();
+        GRenderGraphTexturePool.TickPoolElements();
         FrameCount++;
     }
 

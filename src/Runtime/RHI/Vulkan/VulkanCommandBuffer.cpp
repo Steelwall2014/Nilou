@@ -281,7 +281,7 @@ namespace nilou {
     VkBufferMemoryBarrier2 Translate(RHIBufferMemoryBarrier Barrier)
     {
         VkBufferMemoryBarrier2 VkBarrier{};
-        VkBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        VkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
         VkBarrier.srcStageMask = Translate(Barrier.SrcStage);
         VkBarrier.srcAccessMask = Translate(Barrier.SrcAccess);
         VkBarrier.dstStageMask = Translate(Barrier.DstStage);
@@ -297,7 +297,7 @@ namespace nilou {
     VkImageMemoryBarrier2 Translate(RHIImageMemoryBarrier Barrier)
     {
         VkImageMemoryBarrier2 VkBarrier{};
-        VkBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        VkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         VkBarrier.srcStageMask = Translate(Barrier.SrcStage);
         VkBarrier.srcAccessMask = Translate(Barrier.SrcAccess);
         VkBarrier.dstStageMask = Translate(Barrier.DstStage);

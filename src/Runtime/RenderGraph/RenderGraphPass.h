@@ -31,12 +31,12 @@ public:
     }
 
     const std::string Name;
-    bool bCulled;
-    FRDGPassHandle Handle;
+    bool bCulled = false;
+    FRDGPassHandle Handle = NullPassHandle;
     // Steelwall2014: Instead of using ERDGPassFlags, we use a structure.
     // ERDGPassFlags Flags;
     RDGPassDesc Desc;
-    ERHIPipeline Pipeline;
+    ERHIPipeline Pipeline = ERHIPipeline::Graphics;
 
     RDGRenderTargets RenderTargets;
     std::vector<RDGDescriptorSet*> DescriptorSets;

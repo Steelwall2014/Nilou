@@ -7,10 +7,9 @@ namespace nilou {
 
 void FVulkanPhysicalDeviceFeatures::Query(VkPhysicalDevice PhysicalDevice, uint32 APIVersion)
 {
-	VkPhysicalDeviceFeatures2 PhysicalDeviceFeatures2{};
-    PhysicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
-	PhysicalDeviceFeatures2.pNext = &Core_1_1;
+	Features.pNext = &Core_1_1;
 	Core_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
 
 	if (APIVersion >= VK_API_VERSION_1_2)
@@ -25,10 +24,10 @@ void FVulkanPhysicalDeviceFeatures::Query(VkPhysicalDevice PhysicalDevice, uint3
 		Core_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 	}
 
-	vkGetPhysicalDeviceFeatures2(PhysicalDevice, &PhysicalDeviceFeatures2);
+	vkGetPhysicalDeviceFeatures2(PhysicalDevice, &Features);
 
 	// Copy features into old struct for convenience
-	Core_1_0 = PhysicalDeviceFeatures2.features;
+	Core_1_0 = Features.features;
 
 	// Apply config modifications
 	Core_1_0.robustBufferAccess = VK_TRUE;
@@ -61,7 +60,7 @@ void VulkanDevice::InitGPU()
     vkGetPhysicalDeviceQueueFamilyProperties(Gpu, &QueueFamilyCount, QueueFamilyProps.data());
 
 	// Query base features
-    PhysicalDeviceFeatures.Query(Gpu, VK_API_VERSION_1_3);
+    PhysicalDeviceFeatures.Query(Gpu, NILOU_VK_API_VERSION);
 	std::vector<VkDeviceQueueCreateInfo> QueueFamilyInfos;
 	int32 GfxQueueFamilyIndex = -1;
 	int32 ComputeQueueFamilyIndex = -1;
@@ -144,13 +143,14 @@ void VulkanDevice::InitGPU()
     };
     VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pNext = &PhysicalDeviceFeatures.Features;
 	createInfo.queueCreateInfoCount = QueueFamilyInfos.size();
 	createInfo.pQueueCreateInfos = QueueFamilyInfos.data();
 	createInfo.enabledExtensionCount = DeviceExtensions.size();
 	createInfo.ppEnabledExtensionNames = DeviceExtensions.data();
 	createInfo.enabledLayerCount = Layers.size();
 	createInfo.ppEnabledLayerNames = Layers.data();
-	createInfo.pEnabledFeatures = &PhysicalDeviceFeatures.Core_1_0;
+	createInfo.pEnabledFeatures = nullptr;
 	VK_CHECK_RESULT(vkCreateDevice(Gpu, &createInfo, nullptr, &Handle));
 	NILOU_LOG(Display, "Create logical device")
 

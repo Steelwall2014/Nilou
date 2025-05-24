@@ -5,6 +5,9 @@
 #include "Common/CoreUObject/Class.h"
 
 namespace nilou {
+
+    // TODO: TArray as a wrapper of std::vector
+
     template <typename InElementType, uint32 NumElements, uint32 Alignment = alignof(InElementType)>
     class alignas(Alignment) TAlignedStaticArray
     {

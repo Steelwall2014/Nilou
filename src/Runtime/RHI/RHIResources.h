@@ -190,9 +190,9 @@ namespace nilou {
 		uint32 SizeZ = 1;
 		uint32 ArraySize = 1;
 		uint32 NumMips = 1;
-		EPixelFormat Format;
-		ETextureDimension TextureType;
-		ETextureCreateFlags Flags;
+		EPixelFormat Format = PF_Unknown;
+		ETextureDimension TextureType = ETextureDimension::TextureDimensionsNum;
+		ETextureCreateFlags Flags = ETextureCreateFlags::None;
 
 		bool operator==(const RHITextureDesc& Other) const = default;
 	};
@@ -502,10 +502,10 @@ namespace nilou {
 	public:
 		RHIRenderTargetLayout RTLayout;
 
-		std::array<RHITextureView*, MaxSimultaneousRenderTargets> ColorRenderTargets;
+		std::array<RHITextureView*, MaxSimultaneousRenderTargets> ColorRenderTargets = { nullptr };
 		std::array<vec4, MaxSimultaneousRenderTargets> ClearColors = { vec4(0.0f) };
 
-		RHITextureView* DepthStencilRenderTarget;
+		RHITextureView* DepthStencilRenderTarget = nullptr;
 		float ClearDepth = 0.0f;
 		uint32 ClearStencil = 0u;
 

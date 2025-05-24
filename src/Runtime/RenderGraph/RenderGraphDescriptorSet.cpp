@@ -24,6 +24,7 @@ void RDGDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::UniformBuffer;
 	WriteDescriptor.BufferInfo = BufferInfo;
+	WriteDescriptor.Access = ERHIAccess::UniformRead;
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 
@@ -37,6 +38,7 @@ void RDGDescriptorSet::SetSampler(uint32 BindingIndex, RDGTextureView* Texture, 
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::CombinedImageSampler;
 	WriteDescriptor.ImageInfo = ImageInfo;
+	WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 
@@ -51,6 +53,7 @@ void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, 
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::StorageBuffer;
 	WriteDescriptor.BufferInfo = BufferInfo;
+	WriteDescriptor.Access = Access;
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 
@@ -63,6 +66,7 @@ void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Imag
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::StorageImage;
 	WriteDescriptor.ImageInfo = ImageInfo;
+	WriteDescriptor.Access = Access;
 	WriterInfos[BindingIndex] = WriteDescriptor;
 }
 

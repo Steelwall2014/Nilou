@@ -80,7 +80,7 @@ private:
         EDescriptorType DescriptorType;
         DescriptorImageInfo ImageInfo;
         DescriptorBufferInfo BufferInfo;
-        ERHIAccess Access;
+        ERHIAccess Access = ERHIAccess::None;
     };
 
     std::map<uint32, WriteDescriptorSet> WriterInfos;

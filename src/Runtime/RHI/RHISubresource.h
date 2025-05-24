@@ -250,12 +250,12 @@ struct RHITextureSubresourceRange
 
 	auto end() const
 	{
-		return const_iterator(this, GetMaxSubresource());
+		return ++const_iterator(this, GetMaxSubresource());
 	}
 
 	auto end()
 	{
-		return iterator(this, GetMaxSubresource());
+		return ++iterator(this, GetMaxSubresource());
 	}
 
 	bool IsWholeResource(const RHITextureSubresourceLayout& Layout) const
