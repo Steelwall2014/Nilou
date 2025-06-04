@@ -14,7 +14,7 @@ FRHITransientTexture* RHITransientResourceAllocator::CreateTexture(const FRHITex
 	std::vector<FRHITransientTexture*>& Pool = TexturePool[InCreateInfo];
 	if (Pool.size() == 0)
 	{
-		RHITexture* TextureRHI = RHICreateTexture(InCreateInfo, InDebugName);
+		RHITextureRef TextureRHI = RHICreateTexture(InCreateInfo, InDebugName);
 		FRHITransientTexture* Texture = new FRHITransientTexture(TextureRHI, 0, 0, 0, ERHITransientAllocationType::Heap, InCreateInfo);
 		AllocatedTextures.insert(Texture);
 		return Texture;
@@ -32,7 +32,7 @@ FRHITransientBuffer* RHITransientResourceAllocator::CreateBuffer(const FRHIBuffe
 	std::vector<FRHITransientBuffer*>& Pool = BufferPool[InCreateInfo];
 	if (Pool.size() == 0)
 	{
-		RHIBuffer* BufferRHI = RHICreateBuffer(InCreateInfo, InDebugName);
+		RHIBufferRef BufferRHI = RHICreateBuffer(InCreateInfo, InDebugName);
 		FRHITransientBuffer* Buffer = new FRHITransientBuffer(BufferRHI, 0, 0, 0, ERHITransientAllocationType::Heap, InCreateInfo);
 		AllocatedBuffers.insert(Buffer);
 		return Buffer;

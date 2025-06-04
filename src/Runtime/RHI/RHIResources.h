@@ -120,10 +120,10 @@ namespace nilou {
 	{
 		uint32 Size;
 		uint32 Stride;
-		EBufferUsageFlags Usage = EBufferUsageFlags::None;
+		EBufferUsageFlags Usage = EBufferUsageFlags::TransferSrc;
 
 		RHIBufferDesc() = default;
-		RHIBufferDesc(uint32 InSize, uint32 InStride=0) : Size(InSize), Stride(InStride) { }
+		RHIBufferDesc(uint32 InSize, uint32 InStride, EBufferUsageFlags InUsage) : Size(InSize), Stride(InStride), Usage(InUsage) { }
 
 		bool operator==(const RHIBufferDesc& Other) const = default;
 	};
@@ -564,9 +564,9 @@ namespace nilou {
 
         virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
 
-        virtual void SetSampler(uint32 BindingIndex, RHISampler Sampler) { }
+        virtual void SetSampler(uint32 BindingIndex, RHITextureView* Texture, RHISamplerState* SamplerState) { }
 
-        virtual void SetStorageImage(uint32 BindingIndex, RHITexture* Image) { }
+        virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) { }
 
 		RHIDescriptorPool* GetPool() const { return Pool; }
 
@@ -591,8 +591,7 @@ namespace nilou {
 
 		virtual RHIDescriptorSet* Allocate() { return nullptr;}
 		virtual void Free(RHIDescriptorSet* DescriptorSet) { }
-
-		bool CanAllocate() { return false; }
+		virtual bool CanAllocate() const { return false; }
 	};
 	using RHIDescriptorPoolRef = TRefCountPtr<RHIDescriptorPool>;
 

@@ -90,7 +90,7 @@ public:
 	static const uint32 kInvalidPassIndex = std::numeric_limits<uint32>::max();
 
 	FRHITransientResource(
-		RHIResource* InResource,
+		TRefCountPtr<RHIResource> InResource,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,
@@ -161,7 +161,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI resource.
-	RHIResource* GetRHI() const { return Resource.get(); }
+	RHIResource* GetRHI() const { return Resource; }
 
 	// Returns the gpu virtual address of the transient resource.
 	uint64 GetGpuVirtualAddress() const { return GpuVirtualAddress; }
@@ -205,7 +205,7 @@ public:
 
 private:
 	// Underlying RHI resource.
-	std::shared_ptr<RHIResource> Resource;
+	TRefCountPtr<RHIResource> Resource;
 
 	// The Gpu virtual address of the RHI resource.
 	uint64 GpuVirtualAddress = 0;
@@ -246,7 +246,7 @@ class FRHITransientTexture final : public FRHITransientResource
 {
 public:
 	FRHITransientTexture(
-		RHITexture* InTexture,
+		RHITextureRef InTexture,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,
@@ -275,7 +275,7 @@ class FRHITransientBuffer final : public FRHITransientResource
 {
 public:
 	FRHITransientBuffer(
-		RHIBuffer* InBuffer,
+		RHIBufferRef InBuffer,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,

@@ -7,9 +7,9 @@ constexpr int MAX_NUM_DESCRIPTORSETS_PER_POOL = 1024;
 
 RDGDescriptorSet::~RDGDescriptorSet()
 {
-    if (Pool)
+    if (Pool && GetRHI())
     {
-        Pool->Release(this);
+        Pool->Release(GetRHI());
     }
 }
 
@@ -95,13 +95,7 @@ void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Imag
 //     return AllocatedDescriptorSet;
 // }
 
-RDGDescriptorSetPool::RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
-    : Layout(InLayout)
-{
-
-}
-
-RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
+RHIDescriptorSet* RDGDescriptorSetPool::Allocate()
 {
     if (VacantPoolsRHI.size() == 0)
     {
@@ -112,6 +106,7 @@ RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
 
     RHIDescriptorPool* VacantPoolRHI = VacantPoolsRHI.back();
     RHIDescriptorSet* DescriptorSetRHI = VacantPoolRHI->Allocate();
+	Ncheck(DescriptorSetRHI);
 
     if (!VacantPoolRHI->CanAllocate())
     {
@@ -119,15 +114,12 @@ RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
         FullPoolsRHI.insert(VacantPoolRHI);
     }
 
-    RDGDescriptorSetRef DescriptorSetRDG = new RDGDescriptorSet("", Layout, DescriptorSetRHI);
-    DescriptorSetRDG->DescriptorSetRHI = DescriptorSetRHI;
-
-    return DescriptorSetRDG;
+	NumAllocatedDescriptorSets++;
+    return DescriptorSetRHI;
 }
 
-void RDGDescriptorSetPool::Release(RDGDescriptorSet* DescriptorSet)
+void RDGDescriptorSetPool::Release(RHIDescriptorSet* DescriptorSetRHI)
 {
-    RHIDescriptorSet* DescriptorSetRHI = DescriptorSet->DescriptorSetRHI;
     RHIDescriptorPool* PoolRHI = DescriptorSetRHI->GetPool();
     PoolRHI->Free(DescriptorSetRHI);
 
@@ -137,7 +129,8 @@ void RDGDescriptorSetPool::Release(RDGDescriptorSet* DescriptorSet)
         FullPoolsRHI.erase(Found);
         VacantPoolsRHI.push_back(PoolRHI);
     }
-    
+
+    NumAllocatedDescriptorSets--;
 }
 
 } // namespace nilou

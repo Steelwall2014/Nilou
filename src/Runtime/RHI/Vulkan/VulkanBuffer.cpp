@@ -9,32 +9,19 @@
 namespace nilou {
 
 
-static VkBufferUsageFlags TranslateBufferUsageFlags(EBufferUsageFlags InUsage, bool bZeroSize)
+static VkBufferUsageFlags TranslateBufferUsageFlags(EBufferUsageFlags InUsage)
 {
-	// Always include TRANSFER_SRC since hardware vendors confirmed it wouldn't have any performance cost and we need it for some debug functionalities.
-	VkBufferUsageFlags OutVkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-	auto TranslateFlag = [&OutVkUsage, &InUsage](EBufferUsageFlags SearchFlag, VkBufferUsageFlags AddedIfFound, VkBufferUsageFlags AddedIfNotFound = 0)
+	return (VkBufferUsageFlags)InUsage;
+}
+static VkMemoryPropertyFlags TranslateMemoryPropertyFlags(EBufferUsageFlags InUsage)
+{
+	VkMemoryPropertyFlags Properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	if (EnumHasAnyFlags(InUsage, EBufferUsageFlags::StorageBuffer) ||
+		EnumHasAnyFlags(InUsage, EBufferUsageFlags::TransferSrc))
 	{
-		const bool HasFlag = EnumHasAnyFlags(InUsage, SearchFlag);
-		OutVkUsage |= HasFlag ? AddedIfFound : AddedIfNotFound;
-	};
-
-	TranslateFlag(EBufferUsageFlags::VertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-	TranslateFlag(EBufferUsageFlags::IndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-	TranslateFlag(EBufferUsageFlags::StructuredBuffer, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
-	if (!bZeroSize)
-	{
-		TranslateFlag(EBufferUsageFlags::UnorderedAccess, VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
-		TranslateFlag(EBufferUsageFlags::DrawIndirect, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
-		TranslateFlag(EBufferUsageFlags::KeepCPUAccessible, (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT));
-		TranslateFlag(EBufferUsageFlags::ShaderResource, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
-
-		TranslateFlag(EBufferUsageFlags::Volatile, 0, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		Properties |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	}
-
-	return OutVkUsage;
+	return Properties;
 }
 
 template <typename T>
@@ -45,35 +32,190 @@ constexpr T AlignArbitrary(T Val, uint64 Alignment)
 	return (T)((((uint64)Val + Alignment - 1) / Alignment) * Alignment);
 }
 
-RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
+RHIBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags, VkMemoryPropertyFlags InMemoryReadFlags)
+{
+	FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+    if (InMemoryReadFlags == VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+    {
+        uint64 NonCoherentAtomSize = (uint64)VulkanRHI->GpuProps.limits.nonCoherentAtomSize;
+        Size = AlignArbitrary(Size, NonCoherentAtomSize);
+    }
+
+    // Add both source and dest flags
+    if ((InUsageFlags & (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)) != 0)
+    {
+        InUsageFlags |= (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    }
+
+    //#todo-rco: Better locking!
+    {
+        std::lock_guard<std::mutex> Lock(StagingLock);
+        for (int32 Index = FreeStagingBuffers.size()-1; Index >= 0; --Index)
+        {
+            VulkanBuffer* FreeBuffer = ResourceCast(FreeStagingBuffers[Index]);
+            if (FreeBuffer->GetSize() == Size && FreeBuffer->MemoryReadFlags == InMemoryReadFlags)
+            {
+                FreeStagingBuffers.erase(FreeStagingBuffers.begin()+Index);
+                UsedStagingBuffers.push_back(FreeBuffer);
+                return FreeBuffer;
+            }
+        }
+    }
+
+    RHIBufferRef StagingBuffer = VulkanRHI->RHICreateBufferInternal(Size, Size, EBufferUsageFlags::TransferSrc | EBufferUsageFlags::TransferDst, InUsageFlags, InMemoryReadFlags);
+
+    {
+        std::lock_guard<std::mutex> Lock(StagingLock);
+        UsedStagingBuffers.push_back(StagingBuffer);
+        UsedMemory += StagingBuffer->GetSize();
+        PeakUsedMemory = std::max(UsedMemory, PeakUsedMemory);
+    }
+
+    return StagingBuffer;
+}
+
+void FVulkanStagingManager::ReleaseBuffer(RHIBuffer*& StagingBuffer)
+{
+    std::lock_guard<std::mutex> Lock(StagingLock);
+	FreeStagingBuffers.push_back(StagingBuffer);
+    UsedStagingBuffers.erase(std::find(UsedStagingBuffers.begin(), UsedStagingBuffers.end(), StagingBuffer));
+    StagingBuffer = nullptr;
+}
+
+// FVulkanStagingManager::FPendingItemsPerCmdBuffer::FPendingItems* FVulkanStagingManager::FPendingItemsPerCmdBuffer::FindOrAddItemsForFence(uint64 Fence)
+// {
+//     for (int32 Index = 0; Index < PendingItems.size(); ++Index)
+//     {
+//         if (PendingItems[Index].FenceCounter == Fence)
+//         {
+//             return &PendingItems[Index];
+//         }
+//     }
+
+//     FPendingItems& New = PendingItems.emplace_back();
+//     New.FenceCounter = Fence;
+//     return &New;
+// }
+
+// FVulkanStagingManager::FPendingItemsPerCmdBuffer* FVulkanStagingManager::FindOrAdd(FVulkanCmdBuffer* CmdBuffer)
+// {
+//     for (int32 Index = 0; Index < PendingFreeStagingBuffers.size(); ++Index)
+//     {
+//         if (PendingFreeStagingBuffers[Index].CmdBuffer == CmdBuffer)
+//         {
+//             return &PendingFreeStagingBuffers[Index];
+//         }
+//     }
+
+//     FPendingItemsPerCmdBuffer& New = PendingFreeStagingBuffers.emplace_back();
+//     New.CmdBuffer = CmdBuffer;
+//     return &New;
+// }
+
+// void FVulkanStagingManager::ProcessPendingFree(bool bImmediately, bool bFreeToOS)
+// {
+//     std::lock_guard<std::mutex> Lock(StagingLock);
+//     ProcessPendingFreeNoLock(bImmediately, bFreeToOS);
+// }
+
+// void FVulkanStagingManager::ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS)
+// {
+//     int32 NumOriginalFreeBuffers = FreeStagingBuffers.size();
+//     for (int32 Index = PendingFreeStagingBuffers.size() - 1; Index >= 0; --Index)
+//     {
+//         FPendingItemsPerCmdBuffer& EntriesPerCmdBuffer = PendingFreeStagingBuffers[Index];
+//         for (int32 FenceIndex = EntriesPerCmdBuffer.PendingItems.size() - 1; FenceIndex >= 0; --FenceIndex)
+//         {
+//             FPendingItemsPerCmdBuffer::FPendingItems& PendingItems = EntriesPerCmdBuffer.PendingItems[FenceIndex];
+//             if (bImmediately || PendingItems.FenceCounter < EntriesPerCmdBuffer.CmdBuffer->GetFenceSignaledCounter())
+//             {
+//                 for (int32 ResourceIndex = 0; ResourceIndex < PendingItems.Resources.size(); ++ResourceIndex)
+//                 {
+//                     Ncheck(PendingItems.Resources[ResourceIndex]);
+//                     FreeStagingBuffers.push_back({PendingItems.Resources[ResourceIndex], FRenderingThread::GetFrameCount()});
+//                 }
+
+//                 EntriesPerCmdBuffer.PendingItems.erase(EntriesPerCmdBuffer.PendingItems.begin() + FenceIndex);
+//             }
+//         }
+
+//         if (EntriesPerCmdBuffer.PendingItems.size() == 0)
+//         {
+//             PendingFreeStagingBuffers.erase(PendingFreeStagingBuffers.begin() + Index);
+//         }
+//     }
+
+//     if (bFreeToOS)
+//     {
+//         int32 NumFreeBuffers = bImmediately ? FreeStagingBuffers.size() : NumOriginalFreeBuffers;
+//         for (int32 Index = NumFreeBuffers - 1; Index >= 0; --Index)
+//         {
+//             FFreeEntry& Entry = FreeStagingBuffers[Index];
+//             if (bImmediately || Entry.FrameNumber < FRenderingThread::GetFrameCount())
+//             {
+//                 UsedMemory -= Entry.StagingBuffer->GetSize();
+//                 delete Entry.StagingBuffer;
+//                 FreeStagingBuffers.erase(FreeStagingBuffers.begin()+Index);
+//             }
+//         }
+//     }
+// }
+
+VulkanBuffer::~VulkanBuffer()
+{
+	if (Handle)
+	{
+		vkDestroyBuffer(Device->Handle, Handle, nullptr);
+		Handle = VK_NULL_HANDLE;
+	}
+	if (Memory)
+	{
+		vkFreeMemory(Device->Handle, Memory, nullptr);
+		Memory = VK_NULL_HANDLE;
+	}
+}
+
+RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags)
 {
     VulkanBufferRef Buffer = new VulkanBuffer(Device, Stride, Size, InUsage);
+
 	VkBufferCreateInfo BufferInfo{};
 	BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufferInfo.size = Size;
-	BufferInfo.usage = TranslateBufferUsageFlags(InUsage, false);
+	BufferInfo.usage = UsageFlags;
 	BufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 	VK_CHECK_RESULT(vkCreateBuffer(Device->Handle, &BufferInfo, nullptr, &Buffer->Handle));
+
+    Device->MemoryManager->AllocateBufferMemory(&Buffer->Memory, Buffer->Handle, MemoryReadFlags);
+    VK_CHECK_RESULT(vkBindBufferMemory(Device->Handle, Buffer->Handle, Buffer->Memory, 0));
+
+	Buffer->UsageFlags = UsageFlags;
+	Buffer->MemoryReadFlags = MemoryReadFlags;
+
     return Buffer;
+}
+
+RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
+{
+	return RHICreateBufferInternal(Stride, Size, InUsage, TranslateBufferUsageFlags(InUsage), TranslateMemoryPropertyFlags(InUsage));
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data)
 {
-    return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, Data);
+    return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StorageBuffer, Data);
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
 {
     VkDispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
-    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DispatchIndirect | EBufferUsageFlags::Dynamic, &command);
+    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, &command);
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
     int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance)
 {
     VkDrawIndexedIndirectCommand command{ (uint32)Count, instanceCount, firstIndex, (int32)baseVertex, baseInstance };
-    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::DrawIndirect | EBufferUsageFlags::Dynamic, &command);
+    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, &command);
 }
 
 // void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
@@ -125,6 +267,11 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
 //     vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1, &BarrierAfter, 0, nullptr, 0, nullptr);
 //     CommandBufferManager->SubmitUploadCmdBuffer();
 // }
+
+RHIBuffer* FVulkanDynamicRHI::RHICreateStagingBuffer(uint32 Size)
+{
+    return RHICreateBuffer(Size, Size, EBufferUsageFlags::TransferSrc, nullptr);
+}
 
 void* FVulkanDynamicRHI::RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
 {

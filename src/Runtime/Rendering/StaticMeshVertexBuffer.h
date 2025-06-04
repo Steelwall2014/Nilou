@@ -142,9 +142,7 @@ namespace nilou {
     void FStaticMeshVertexBuffer<VertexType>::InitRHI(RenderGraph& Graph)
     {
         FRenderResource::InitRHI(Graph);
-        RDGBufferDesc Desc;
-        Desc.BytesPerElement = Stride;
-        Desc.NumElements = NumVertices;
+        RDGBufferDesc Desc(Stride*NumVertices, Stride, EBufferUsageFlags::TransferSrc);
         VertexBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);
         // Graph.AddUploadPass(VertexBufferRDG, Data, Desc.GetSize());
     }

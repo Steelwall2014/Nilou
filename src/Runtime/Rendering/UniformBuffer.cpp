@@ -11,9 +11,7 @@ namespace nilou {
 
     void FUniformBuffer::InitRHI_impl(RenderGraph& Graph)
     {
-        RDGBufferDesc Desc;
-        Desc.BytesPerElement = Size;
-        Desc.NumElements = 1;
+        RDGBufferDesc Desc(Size, EBufferUsageFlags::UniformBuffer);
         if (Usage == UniformBuffer_MultiFrame)
         {
             UniformBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);

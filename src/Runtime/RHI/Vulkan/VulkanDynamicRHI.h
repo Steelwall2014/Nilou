@@ -62,6 +62,7 @@ public:
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
             int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
+    virtual RHIBuffer* RHICreateStagingBuffer(uint32 Size) override;
     
     // virtual RHITexture2DRef RHICreateTexture2D(
     //     const std::string &name, EPixelFormat Format, 
@@ -122,6 +123,7 @@ private:
     void TransitionImageLayout(RHITexture* Texture, VkImageLayout DstLayout);
     void TransitionImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
     RHICommandList* RHICreateCommandList(VulkanCommandBufferPool* Pool);
+    RHIBufferRef RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags);
 
     std::map<uint32, RHISamplerStateRef> SamplerMap;
 
@@ -176,6 +178,10 @@ private:
     void PrepareForDraw();
 
     std::unordered_map<uint32, RHIDescriptorSetLayoutRef> UniqueDescriptorSetLayouts;
+
+    FVulkanStagingManager* StagingManager;
+
+    friend FVulkanStagingManager;
 };
 
 }

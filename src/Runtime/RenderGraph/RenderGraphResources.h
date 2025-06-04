@@ -53,26 +53,7 @@ private:
 		return AlignedDesc;
 	}
 
-	// Used internally by FRDGBuilder::QueueCommitReservedBuffer(),
-	// which is expected to be the only way to resize physical memory for FRDGPooledBuffer
-	void SetCommittedSize(uint64 InCommittedSizeInBytes)
-	{
-		if (InCommittedSizeInBytes == UINT64_MAX)
-		{
-			InCommittedSizeInBytes = GetSize();
-		}
-
-		Ncheckf(EnumHasAllFlags(Desc.Usage, EBufferUsageFlags::ReservedResource), "CommitReservedResource() may only be used on reserved buffers");
-		Ncheckf(InCommittedSizeInBytes <= GetSize(), "Attempting to commit more memory than was reserved for this buffer during creation");
-
-		CommittedSizeInBytes = InCommittedSizeInBytes;
-	}
-
     std::string Name;
-
-	// Size of the GPU physical memory committed to a reserved buffer.
-	// May be UINT64_MAX for regular (non-reserved) buffers or when the entire resource is committed.
-	uint64 CommittedSizeInBytes = UINT64_MAX;
 
 	const uint32 NumAllocatedElements;
 	uint32 LastUsedFrame = 0;

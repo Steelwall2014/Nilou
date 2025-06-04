@@ -66,6 +66,8 @@ namespace nilou {
             const std::vector<RHIImageMemoryBarrier>& ImageBarriers, 
             const std::vector<RHIBufferMemoryBarrier>& BufferBarriers) = 0;
 
+        virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) = 0;
+
         RHICommandContext& GetContext() 
         {
             Ncheck(GraphicsContext);

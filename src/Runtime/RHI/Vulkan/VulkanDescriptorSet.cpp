@@ -1,6 +1,8 @@
 #include "VulkanDevice.h"
 #include "VulkanDescriptorSet.h"
 #include "VulkanDynamicRHI.h"
+#include "VulkanBuffer.h"
+#include "VulkanTexture.h"
 
 namespace nilou {
 
@@ -56,9 +58,133 @@ RHIDescriptorPoolRef FVulkanDynamicRHI::RHICreateDescriptorPool(RHIDescriptorSet
 	PoolInfo.pPoolSizes = Types.data();
 	PoolInfo.maxSets = PoolSize;
 
-	TRefCountPtr<VulkanDescriptorPool> VulkanPool = new VulkanDescriptorPool(Layout);
-	VK_CHECK_RESULT(vkCreateDescriptorPool(Device->Handle, &PoolInfo, nullptr, &VulkanPool->Handle));
+	VkDescriptorPool VulkanPoolHandle;
+	VK_CHECK_RESULT(vkCreateDescriptorPool(Device->Handle, &PoolInfo, nullptr, &VulkanPoolHandle));
+	TRefCountPtr<VulkanDescriptorPool> VulkanPool = new VulkanDescriptorPool(Device->Handle, VulkanPoolHandle, PoolSize, Layout);
 	return VulkanPool;
+}
+
+VulkanDescriptorPool::VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout)
+    : Device(InDevice)
+    , Handle(InHandle)
+    , RHIDescriptorPool(InLayout)
+{
+	for (int i = 0; i < InPoolSize; i++)
+	{
+		VkDescriptorSetAllocateInfo AllocInfo{};
+		AllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		AllocInfo.descriptorPool = Handle;
+		AllocInfo.descriptorSetCount = 1;
+		AllocInfo.pSetLayouts = &ResourceCast(Layout)->Handle;
+
+		TRefCountPtr<VulkanDescriptorSet> NewDescriptorSet = new VulkanDescriptorSet(this);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(Device, &AllocInfo, &NewDescriptorSet->Handle));
+		Sets.push_back(NewDescriptorSet);
+	}
+}
+
+RHIDescriptorSet* VulkanDescriptorPool::Allocate()
+{
+	if (FreeSets.empty())
+	{
+		return nullptr;
+	}
+	VulkanDescriptorSet* Set = FreeSets.back();
+	FreeSets.pop_back();
+	UsedSets.push_back(Set);
+	return Set;
+}
+
+void VulkanDescriptorPool::Free(RHIDescriptorSet* Set)
+{
+	VulkanDescriptorSet* VulkanSet = ResourceCast(Set);
+	FreeSets.push_back(VulkanSet);
+	UsedSets.erase(std::find(UsedSets.begin(), UsedSets.end(), VulkanSet));
+}
+
+bool VulkanDescriptorPool::CanAllocate() const
+{
+	return FreeSets.size() > 0;
+}
+
+void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
+{
+	VkDescriptorBufferInfo BufferInfo{};
+	BufferInfo.buffer = ResourceCast(Buffer)->Handle;
+	BufferInfo.offset = 0;
+	BufferInfo.range = Buffer->GetSize();
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pBufferInfo = &BufferInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+}
+
+void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
+{
+	VkDescriptorBufferInfo BufferInfo{};
+	BufferInfo.buffer = ResourceCast(Buffer)->Handle;
+	BufferInfo.offset = 0;
+	BufferInfo.range = Buffer->GetSize();
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pBufferInfo = &BufferInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+}
+
+void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InTexture, RHISamplerState* InSamplerState)
+{
+	VulkanSamplerState* SamplerState = ResourceCast(SamplerState);
+	VulkanTextureView* Texture = ResourceCast(InTexture);
+
+	VkDescriptorImageInfo ImageInfo{};
+	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	ImageInfo.imageView = Texture->Handle;
+	ImageInfo.sampler = SamplerState->Handle;
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pImageInfo = &ImageInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+}
+
+void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture)
+{
+	VulkanTextureView* Texture = ResourceCast(InTexture);
+
+	VkDescriptorImageInfo ImageInfo{};
+	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	ImageInfo.imageView = Texture->Handle;
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pImageInfo = &ImageInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
 }
 
 }

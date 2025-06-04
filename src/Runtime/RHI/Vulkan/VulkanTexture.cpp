@@ -84,11 +84,13 @@ VulkanTexture::~VulkanTexture()
     if (Handle)
     {
         vkDestroyImage(Device->Handle, Handle, nullptr);
+        Handle = VK_NULL_HANDLE;
     }
     if (Memory)
     {
         assert(Device->MemoryManager != nullptr);
         Device->MemoryManager->FreeMemory(Memory);
+        Memory = VK_NULL_HANDLE;
     }
 }
 

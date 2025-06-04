@@ -74,7 +74,7 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 	{
 		const uint32 NumBytes = AlignedDesc.GetSize();
 
-		RHIBufferRef BufferRHI = RHICreateBuffer(RHIBufferDesc(NumBytes, AlignedDesc.GetStride()), InDebugName);
+		RHIBufferRef BufferRHI = RHICreateBuffer(AlignedDesc.Translate(), InDebugName);
 
 		FRDGPooledBufferRef PooledBuffer = new FRDGPooledBuffer(std::move(BufferRHI), Desc, AlignedDesc.NumElements, InDebugName);
 		AllocatedBuffers.push_back(PooledBuffer);
@@ -82,11 +82,6 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 		Ncheck(PooledBuffer->GetRefCount() == 2);
 
 		PooledBuffer->LastUsedFrame = FrameCounter;
-
-		if (EnumHasAllFlags(Desc.Usage, EBufferUsageFlags::ReservedResource))
-		{
-			PooledBuffer->CommittedSizeInBytes = 0;
-		}
 
 		return PooledBuffer;
 	}

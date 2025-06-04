@@ -53,7 +53,21 @@ struct RDGBufferDesc
 	uint32 NumElements = 1;
 
 	/** Bitfields describing the uses of that buffer. */
-	EBufferUsageFlags Usage = EBufferUsageFlags::None;
+	EBufferUsageFlags Usage = EBufferUsageFlags::TransferSrc;
+
+	RDGBufferDesc(uint32 InSize, EBufferUsageFlags InUsage)
+		: BytesPerElement(InSize)
+		, NumElements(1)
+		, Usage(InUsage)
+	{
+	}
+
+	RDGBufferDesc(uint32 InSize, uint32 InStride, EBufferUsageFlags InUsage)
+		: BytesPerElement(InStride)
+		, NumElements(InSize / InStride)
+		, Usage(InUsage)
+	{
+	}
 
 	uint32 GetSize() const
 	{
@@ -70,7 +84,7 @@ struct RDGBufferDesc
 		RHIBufferDesc Desc;
 		Desc.Size = GetSize();
 		Desc.Stride = GetStride();
-		// Desc.Usage = Usage;
+		Desc.Usage = Usage;
 		return Desc;
 	}
 

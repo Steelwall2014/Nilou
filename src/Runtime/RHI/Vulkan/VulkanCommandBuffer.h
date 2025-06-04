@@ -44,6 +44,8 @@ namespace nilou {
             const std::vector<RHIImageMemoryBarrier>& ImageMemoryBarriers, 
             const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) override;
 
+        virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) override;
+
         enum class EState : uint8
         {
             ReadyForBegin,
@@ -83,6 +85,9 @@ namespace nilou {
         VkQueue Queue;
         VkCommandPool Pool;
         VkFence Fence;
+
+        class FVulkanStagingManager* StagingManager;
+        std::vector<RHIBuffer*> StagingBuffers;
 
         friend class FVulkanDynamicRHI;
         friend class VulkanCommandBufferPool;

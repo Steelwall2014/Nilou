@@ -38,25 +38,40 @@ inline VulkanDescriptorSetLayout* ResourceCast(RHIDescriptorSetLayout* SetLayout
 class VulkanDescriptorPool : public RHIDescriptorPool
 {
 public:
-	VulkanDescriptorPool(RHIDescriptorSetLayout* InLayout) : RHIDescriptorPool(InLayout) { }
+	VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout);
 	VkDescriptorPool Handle;
+    VkDevice Device;
+
+    // RHIDescriptorPool interface
+    virtual RHIDescriptorSet* Allocate() override;
+    virtual void Free(RHIDescriptorSet* DescriptorSet) override;
+    virtual bool CanAllocate() const override;
+    // End of RHIDescriptorPool interface
+
+    std::vector<TRefCountPtr<class VulkanDescriptorSet>> Sets;
+    std::vector<VulkanDescriptorSet*> FreeSets;
+    std::vector<VulkanDescriptorSet*> UsedSets;
 };
 
 class VulkanDescriptorSet : public RHIDescriptorSet
 {
 public:
 
+    VulkanDescriptorSet(VulkanDescriptorPool* Pool) 
+        : RHIDescriptorSet(Pool)
+        , Device(Pool->Device)
+    { }
+
     virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
 
     virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
 
-    virtual void SetSampler(uint32 BindingIndex, RHISampler Sampler) override;
+    virtual void SetSampler(uint32 BindingIndex, RHITextureView* Texture, RHISamplerState* SamplerState) override;
 
-    virtual void SetStorageImage(uint32 BindingIndex, RHITexture* Image) override;
+    virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) override;
 
     VkDescriptorSet Handle;
-    VkDescriptorSetLayout LayoutHandle;
-
+    VkDevice Device;
 private:
 
     struct VulkanDescriptorSetWriter

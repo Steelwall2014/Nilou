@@ -118,29 +118,29 @@ namespace nilou {
             for (int ViewIndex = 0; ViewIndex < NumRelevantViews; ViewIndex++)
             {
                 FShadowMapResource Resource;
-                RDGBufferDesc BufferDesc;
                 RDGTextureDesc TextureDesc;
                 TextureDesc.SizeX = 1024;
                 TextureDesc.SizeY = 1024;
                 TextureDesc.NumMips = 1;
                 TextureDesc.Format = EPixelFormat::PF_D24S8;
                 TextureDesc.TextureType = ETextureDimension::Texture2DArray;
+                int32 BufferSize = 0;
                 if (Proxy->LightType == ELightType::LT_Directional)
                 {
-                    BufferDesc.BytesPerElement = sizeof(FDirectionalShadowMappingBlock);
+                    BufferSize = sizeof(FDirectionalShadowMappingBlock);
                     TextureDesc.ArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
                 }
                 else if (Proxy->LightType == ELightType::LT_Point)
                 {
-                    BufferDesc.BytesPerElement = sizeof(FPointShadowMappingBlock);
+                    BufferSize = sizeof(FPointShadowMappingBlock);
                     TextureDesc.ArraySize = 6;
                 }
                 else if (Proxy->LightType == ELightType::LT_Spot)
                 {
-                    BufferDesc.BytesPerElement = sizeof(FSpotShadowMappingBlock);
+                    BufferSize = sizeof(FSpotShadowMappingBlock);
                     TextureDesc.ArraySize = 1;
                 }
-                Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", BufferDesc);
+                Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", RDGBufferDesc(BufferSize, EBufferUsageFlags::UniformBuffer));
                 for (int i = 0; i < TextureDesc.ArraySize; i++)
                 {
                     RDGTextureViewDesc TextureViewDesc;

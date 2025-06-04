@@ -160,6 +160,7 @@ namespace nilou {
         std::vector<VkDescriptorSet> DescriptorSetHandles;
         for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
         {
+            Ncheck(DescriptorSet);
             VulkanDescriptorSet* VulkanDescriptorSet = ResourceCast(const_cast<RHIDescriptorSet*>(DescriptorSet));
             DescriptorSetHandles.push_back(VulkanDescriptorSet->Handle);
             for (auto& [BindingIndex, Info] : VulkanDescriptorSet->Writers)
@@ -363,6 +364,11 @@ namespace nilou {
             VkResult result = vkGetFenceStatus(Device, Fence);
             if (result == VK_SUCCESS) 
             {
+                for (RHIBuffer* Buffer : StagingBuffers)
+                {
+                    StagingManager->ReleaseBuffer(Buffer);
+                }
+                StagingBuffers.clear();
                 vkResetCommandBuffer(Handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
                 State = EState::ReadyForBegin;
             }
@@ -453,7 +459,7 @@ namespace nilou {
         {
             VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore);
             VkSemaphoreSubmitInfo SemaphoreInfo{};
-            SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+            SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;
             WaitSemephores.push_back(SemaphoreInfo);
         }
@@ -461,11 +467,12 @@ namespace nilou {
         {
             VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore);
             VkSemaphoreSubmitInfo SemaphoreInfo{};
-            SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+            SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;
             SignalSemephores.push_back(SemaphoreInfo);
         }
         VkSubmitInfo2 SubmitInfo{};
+        SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
         SubmitInfo.waitSemaphoreInfoCount = WaitSemephores.size();
         SubmitInfo.pWaitSemaphoreInfos = WaitSemephores.data();
         VkCommandBufferSubmitInfo CmdBufferInfo{};
@@ -477,6 +484,13 @@ namespace nilou {
         SubmitInfo.pSignalSemaphoreInfos = SignalSemephores.data();
         vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VulkanCmdList->Fence);
         VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
+    }
+
+    RHIBuffer* VulkanCommandBuffer::AcquireStagingBuffer(uint32 Size)
+    {
+        RHIBuffer* Buffer = StagingManager->AcquireBuffer(Size);
+        StagingBuffers.push_back(Buffer);
+        return Buffer;
     }
 
 }

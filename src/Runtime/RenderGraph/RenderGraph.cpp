@@ -111,7 +111,7 @@ RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(RHIDescriptorSetLay
     }
 
     RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
-    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout);
     return DescriptorSet;
 }
 
@@ -167,8 +167,7 @@ RDGDescriptorSet* RenderGraph::CreateDescriptorSet(FNamedDescriptorSetLayout Lay
         DescriptorSetPools[Layout.GetRHI()] = RDGDescriptorSetPool(Layout.GetRHI());
     }
 
-    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout.GetRHI()];
-    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout.GetRHI());
 	DescriptorSet->NameToBinding = Layout.NameToBinding;
     DescriptorSets.push_back(DescriptorSet);
     return DescriptorSet;
@@ -201,8 +200,14 @@ void RenderGraph::SetupCopyPass(FRDGPass* Pass, RDGResource* Source, RDGResource
 {
 	SetupPassInternal(Pass);
 
-	SetupCopyPassResource(Pass, Source, ERHIAccess::TransferRead);
-	SetupCopyPassResource(Pass, Destination, ERHIAccess::TransferWrite);
+	if (Source)
+	{
+		SetupCopyPassResource(Pass, Source, ERHIAccess::TransferRead);
+	}
+	if (Destination)
+	{
+		SetupCopyPassResource(Pass, Destination, ERHIAccess::TransferWrite);
+	}
 }
 
 void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, ERHIAccess Access)
@@ -820,10 +825,11 @@ EPipelineStageFlags GetPipelineStage(ERHIAccess Access)
 	case ERHIAccess::VertexAttributeRead:
 		return EPipelineStageFlags::VertexInput;
 	case ERHIAccess::UniformRead:
+		return EPipelineStageFlags::FragmentShader;
 	case ERHIAccess::ShaderResourceRead:
 	case ERHIAccess::ShaderResourceWrite:
 	case ERHIAccess::ShaderResourceReadWrite:
-		return EPipelineStageFlags::FragmentShader;
+		return EPipelineStageFlags::ComputeShader;
 	case ERHIAccess::ColorAttachmentRead:
 	case ERHIAccess::ColorAttachmentWrite:
 		return EPipelineStageFlags::ColorAttachmentOutput;

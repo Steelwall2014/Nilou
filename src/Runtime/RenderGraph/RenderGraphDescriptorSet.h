@@ -13,10 +13,9 @@ public:
     friend class RDGDescriptorSetPool;
     friend class RenderGraph;
 
-    RDGDescriptorSet(const std::string& Name, RHIDescriptorSetLayout* InLayout, RHIDescriptorSet* InDescriptorSetRHI) 
+    RDGDescriptorSet(const std::string& Name, RHIDescriptorSetLayout* InLayout) 
         : RDGResource(Name, ERDGResourceType::DescriptorSet) 
         , Layout(InLayout)
-        , DescriptorSetRHI(InDescriptorSetRHI)
     { }
     ~RDGDescriptorSet();
 
@@ -56,7 +55,7 @@ public:
     void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, ERHIAccess Access);
     void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access);
 
-    RHIDescriptorSet* GetRHI() const { return DescriptorSetRHI; }
+    RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
 
 private:
 
@@ -84,8 +83,6 @@ private:
     };
 
     std::map<uint32, WriteDescriptorSet> WriterInfos;
-
-    RHIDescriptorSet* DescriptorSetRHI;
 
     RDGDescriptorSetPool* Pool = nullptr;
 
@@ -124,26 +121,22 @@ class RDGDescriptorSetPool
 {
 public:
     RDGDescriptorSetPool() { }
-    RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout);
+    RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
+        : Layout(InLayout)
+    { }
+
+    RHIDescriptorSet* Allocate();
+    void Release(RHIDescriptorSet* DescriptorSet);
+
+private:
 
     std::vector<RHIDescriptorPoolRef> PoolsRHI;
-
     std::vector<RHIDescriptorPool*> VacantPoolsRHI;
     std::unordered_set<RHIDescriptorPool*> FullPoolsRHI;
 
-    RDGDescriptorSetRef Allocate();
-    void Release(RDGDescriptorSet* Set);
-
-    bool CanAllocate() const;
-
-    uint32 MaxNumDescriptorSets;
-
-	uint32 NumAllocatedDescriptorSets = 0;
-
     RHIDescriptorSetLayout* Layout = nullptr;
     
-    std::vector<uint32> NumAllocatedSetsPerPool;
-
+	uint32 NumAllocatedDescriptorSets = 0;
 };
 
 }

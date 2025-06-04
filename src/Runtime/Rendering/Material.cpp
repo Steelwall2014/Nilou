@@ -432,7 +432,7 @@ namespace nilou {
                 uint32 Size = Binding.Block.Size;
                 uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
                 std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Material->GetName(), SetIndex, BindingIndex);
-                UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
+                UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size, Size, EBufferUsageFlags::UniformBuffer));
                 UniformBuffersData[key] = std::vector<uint8>(Size);
                 DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key]);
             }

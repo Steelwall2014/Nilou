@@ -42,19 +42,15 @@ namespace nilou {
         Desc.NumMips = NumMips;
         TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
-        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
-            NFormat("Texture \"{}\" InitRHI staging buffer", Name), 
-            RDGBufferDesc(Image->GetDataSize()));
-
         RDGPassDesc PassDesc("FTexture2DResource::InitRHI");
         PassDesc.bNeverCull = true;
         Graph.AddCopyPass(
             PassDesc,
-            StagingBuffer,
+            nullptr,
             TextureRDG,
-            [=](RHICommandList& RHICmdList)
+            [=, this](RHICommandList& RHICmdList)
             {
-                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
+                RHIBuffer* StagingBufferRHI = RHICmdList.AcquireStagingBuffer(Image->GetDataSize());
                 void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
                     std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
                 RHIUnmapMemory(StagingBufferRHI);
