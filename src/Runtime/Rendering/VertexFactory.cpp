@@ -40,7 +40,7 @@ namespace nilou {
 
     // void FVertexFactory::InitDeclaration(const FVertexDeclarationElementList &ElementList)  
     // {
-    //     Declaration = FDynamicRHI::GetDynamicRHI()->RHICreateVertexDeclaration(ElementList);
+    //     Declaration = FDynamicRHI::Get()->RHICreateVertexDeclaration(ElementList);
     // }
 
     // FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex) const

@@ -38,7 +38,7 @@ namespace nilou {
 class FVulkanDynamicRHI : public FDynamicRHI
 {
 public:
-    static FVulkanDynamicRHI *GetDynamicRHI() { return static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI()); }
+    static FVulkanDynamicRHI *Get() { return static_cast<FVulkanDynamicRHI*>(FDynamicRHI::Get()); }
     FVulkanDynamicRHI(const GfxConfiguration& Config);
     virtual int Initialize() override;
     virtual void Finalize() override;
@@ -179,9 +179,10 @@ private:
 
     std::unordered_map<uint32, RHIDescriptorSetLayoutRef> UniqueDescriptorSetLayouts;
 
-    FVulkanStagingManager* StagingManager;
+    std::unique_ptr<FVulkanStagingManager> StagingManager;
 
     friend FVulkanStagingManager;
+    friend class VulkanCommandBuffer;
 };
 
 }

@@ -107,7 +107,7 @@ namespace nilou {
 
         void CreateUniformBuffer();
 
-        void UpdateUniformBuffer();
+        void UpdateUniformBuffer(RenderGraph& Graph);
 
     protected:
 

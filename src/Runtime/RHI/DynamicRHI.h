@@ -27,7 +27,7 @@ namespace nilou {
 	class FDynamicRHI
 	{
 	public:
-		static FDynamicRHI *GetDynamicRHI();
+		static FDynamicRHI *Get();
 		static void CreateDynamicRHI_RenderThread(const GfxConfiguration& configs);
 
 		FDynamicRHI(const GfxConfiguration&) {}
@@ -36,7 +36,7 @@ namespace nilou {
 		virtual void Finalize();
 		virtual void GetError(const char *file, int line) = 0;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
-		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return GetDynamicRHI()->GetCurrentGraphicsAPI(); }
+		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return Get()->GetCurrentGraphicsAPI(); }
 
 		/**
 		* Create/Update data
@@ -104,163 +104,163 @@ namespace nilou {
     	// void ReflectShader(RHIDescriptorSetsLayout& DescriptorSetsLayout, shaderc_compilation_result_t compile_result);
 	};
 
-	#define RHIGetError() FDynamicRHI::GetDynamicRHI()->GetError(__FILE__, __LINE__)
+	#define RHIGetError() FDynamicRHI::Get()->GetError(__FILE__, __LINE__)
 
 	// inline RHITextureRef RHICreateTexture2D(
 	// 	const std::string &name, EPixelFormat Format, 
 	// 	int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags)
 	// {
-	// 	return FDynamicRHI::GetDynamicRHI()->RHICreateTexture2D(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
+	// 	return FDynamicRHI::Get()->RHICreateTexture2D(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
 
 	// inline RHITextureRef RHICreateTexture2DArray(
 	// 	const std::string &name, EPixelFormat Format, 
 	// 	int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InArraySize, ETextureCreateFlags InTexCreateFlags)
 	// {
-	// 	return FDynamicRHI::GetDynamicRHI()->RHICreateTexture2DArray(name, Format, NumMips, InSizeX, InSizeY, InArraySize, InTexCreateFlags);
+	// 	return FDynamicRHI::Get()->RHICreateTexture2DArray(name, Format, NumMips, InSizeX, InSizeY, InArraySize, InTexCreateFlags);
 	// }
 
 	// inline RHITextureRef RHICreateTexture3D(
 	// 	const std::string &name, EPixelFormat Format, 
 	// 	int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureCreateFlags InTexCreateFlags)
 	// {
-	// 	return FDynamicRHI::GetDynamicRHI()->RHICreateTexture3D(name, Format, NumMips, InSizeX, InSizeY, InSizeZ, InTexCreateFlags);
+	// 	return FDynamicRHI::Get()->RHICreateTexture3D(name, Format, NumMips, InSizeX, InSizeY, InSizeZ, InTexCreateFlags);
 	// }
 
 	// inline RHITextureRef RHICreateTextureCube(
 	// 	const std::string &name, EPixelFormat Format, 
 	// 	int32 NumMips, uint32 InSizeX, uint32 InSizeY, ETextureCreateFlags InTexCreateFlags)
 	// {
-	// 	return FDynamicRHI::GetDynamicRHI()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
+	// 	return FDynamicRHI::Get()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
 
 	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(Stride, Size, InUsage, Data);
+		return FDynamicRHI::Get()->RHICreateBuffer(Stride, Size, InUsage, Data);
 	}
 
 	inline RHIBuffer* RHICreateStagingBuffer(uint32 Size)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateStagingBuffer(Size);
+		return FDynamicRHI::Get()->RHICreateStagingBuffer(Size);
 	}
 
 	inline RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges={})
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateGraphicsPipelineState(Initializer, PushConstantRanges);
+		return FDynamicRHI::Get()->RHICreateGraphicsPipelineState(Initializer, PushConstantRanges);
 	}
 
 	inline RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges={})
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateComputePipelineState(ComputeShader, PushConstantRanges);
+		return FDynamicRHI::Get()->RHICreateComputePipelineState(ComputeShader, PushConstantRanges);
 	}
 
 	inline FRHIVertexDeclaration* RHICreateVertexDeclaration(const FVertexDeclarationElementList& ElementList)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateVertexDeclaration(ElementList);
+		return FDynamicRHI::Get()->RHICreateVertexDeclaration(ElementList);
 	}
 
 	inline RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer& Initializer)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateDepthStencilState(Initializer);
+		return FDynamicRHI::Get()->RHICreateDepthStencilState(Initializer);
 	}
 
 	inline RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer& Initializer)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateRasterizerState(Initializer);
+		return FDynamicRHI::Get()->RHICreateRasterizerState(Initializer);
 	}
 
 	inline RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer& Initializer)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateBlendState(Initializer);
+		return FDynamicRHI::Get()->RHICreateBlendState(Initializer);
 	}
 
 	inline RHISamplerStateRef RHICreateSamplerState(const FSamplerStateInitializer& Initializer)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateSamplerState(Initializer);
+		return FDynamicRHI::Get()->RHICreateSamplerState(Initializer);
 	}
 	
 	inline RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateVertexShader(code, DebugName);
+		return FDynamicRHI::Get()->RHICreateVertexShader(code, DebugName);
 	}
 	
 	inline RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreatePixelShader(code, DebugName);
+		return FDynamicRHI::Get()->RHICreatePixelShader(code, DebugName);
 	}
 	
 	inline RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateComputeShader(code, DebugName);
+		return FDynamicRHI::Get()->RHICreateComputeShader(code, DebugName);
 	}
 
 	inline EGraphicsAPI RHIGetCurrentGraphicsAPI()
 	{
-		return FDynamicRHI::GetDynamicRHI()->GetCurrentGraphicsAPI();
+		return FDynamicRHI::Get()->GetCurrentGraphicsAPI();
 	}
 
 	inline void* RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHIMapMemory(buffer, Offset, Size);
+		return FDynamicRHI::Get()->RHIMapMemory(buffer, Offset, Size);
 	}
 
 	inline void RHIUnmapMemory(RHIBuffer* buffer)
 	{
-		FDynamicRHI::GetDynamicRHI()->RHIUnmapMemory(buffer);
+		FDynamicRHI::Get()->RHIUnmapMemory(buffer);
 	}
 
 	inline RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateDescriptorSetLayout(Bindings);
+		return FDynamicRHI::Get()->RHICreateDescriptorSetLayout(Bindings);
 	}
 
 	inline RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateDescriptorPool(Layout, PoolSize);
+		return FDynamicRHI::Get()->RHICreateDescriptorPool(Layout, PoolSize);
 	}
 
 	inline RHITextureRef RHICreateTexture(const FRHITextureCreateInfo& CreateInfo, const std::string& Name)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateTexture(CreateInfo, Name);
+		return FDynamicRHI::Get()->RHICreateTexture(CreateInfo, Name);
 	}
 
 	inline RHITextureViewRef RHICreateTextureView(RHITexture* Texture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateTextureView(Texture, CreateInfo, Name);
+		return FDynamicRHI::Get()->RHICreateTextureView(Texture, CreateInfo, Name);
 	}
 
 	inline RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& Name)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(CreateInfo, Name);
+		return FDynamicRHI::Get()->RHICreateBuffer(CreateInfo, Name);
 	}
 
 	inline uint32 RHIComputeMemorySize(RHITexture* TextureRHI)
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHIComputeMemorySize(TextureRHI);
+		return FDynamicRHI::Get()->RHIComputeMemorySize(TextureRHI);
 	}
 
 	inline RHISemaphoreRef RHICreateSemaphore()
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateSemaphore();
+		return FDynamicRHI::Get()->RHICreateSemaphore();
 	}
 
 	inline RHICommandList* RHICreateGfxCommandList()
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateGfxCommandList();
+		return FDynamicRHI::Get()->RHICreateGfxCommandList();
 	}
 
 	inline RHICommandList* RHICreateComputeCommandList()
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateComputeCommandList();
+		return FDynamicRHI::Get()->RHICreateComputeCommandList();
 	}
 
 	inline RHICommandList* RHICreateTransferCommandList()
 	{
-		return FDynamicRHI::GetDynamicRHI()->RHICreateTransferCommandList();
+		return FDynamicRHI::Get()->RHICreateTransferCommandList();
 	}
 
 	inline void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal)
 	{
-		FDynamicRHI::GetDynamicRHI()->RHISubmitCommandList(RHICmdList, SemaphoresToWait, SemaphoresToSignal);
+		FDynamicRHI::Get()->RHISubmitCommandList(RHICmdList, SemaphoresToWait, SemaphoresToSignal);
 	}
 }

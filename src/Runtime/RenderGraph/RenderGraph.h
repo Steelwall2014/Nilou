@@ -70,6 +70,7 @@ public:
         Desc.NumElements = 1;
         Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
+        Buffer->bTransient = true;
         Buffers.push_back(Buffer);
         return Buffer;
     }
@@ -90,10 +91,23 @@ public:
     FRDGPassHandle AddGraphicsPass(
         const RDGPassDesc& PassDesc,
         const RDGRenderTargets& RenderTargets,
+        const std::vector<RDGBuffer*>& IndexBuffer,
+        const std::vector<RDGBuffer*>& VertexBuffers,
         const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
-        return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::Graphics, std::forward<ExecuteLambdaType>(Executor));
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::Graphics,
+            std::forward<ExecuteLambdaType>(Executor));
+        Pass->RenderTargets = RenderTargets;
+        Pass->IndexBuffers = IndexBuffer;
+        Pass->VertexBuffers = VertexBuffers;
+        Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);   
+        return Pass->Handle;
     }
 
     // Add a compute pass to the render graph
@@ -103,7 +117,15 @@ public:
         const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
-        return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::AsyncCompute, std::forward<ExecuteLambdaType>(Executor));
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::AsyncCompute,
+            std::forward<ExecuteLambdaType>(Executor));
+        Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);
+        return Pass->Handle;
     }
 
     template <typename ExecuteLambdaType>
@@ -118,7 +140,23 @@ public:
             PassDesc, 
             ERHIPipeline::Copy,
             std::forward<ExecuteLambdaType>(Executor));
+        Passes.push_back(Pass);
+        SetupCopyPass(Pass, Source, Destination);
+        return Pass->Handle;
+    }
 
+    template <typename ExecuteLambdaType>
+    FRDGPassHandle AddCopyPass(
+        const RDGPassDesc& PassDesc,
+        RDGBuffer* Source,
+        RDGBuffer* Destination,
+        ExecuteLambdaType&& Executor)
+    {
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::Copy,
+            std::forward<ExecuteLambdaType>(Executor));
         Passes.push_back(Pass);
         SetupCopyPass(Pass, Source, Destination);
         return Pass->Handle;
@@ -137,25 +175,6 @@ private:
     void SubmitBufferUploads();
 
     RDGDescriptorSet* CreateDescriptorSet(FNamedDescriptorSetLayout Layout);
-
-    template <typename ExecuteLambdaType>
-    FRDGPassHandle AddPassInternal(
-        const RDGPassDesc& PassDesc,
-        const std::vector<RDGDescriptorSet*>& PassParameters,
-        ERHIPipeline Pipeline,
-        ExecuteLambdaType&& Executor)
-    {
-        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
-            Passes.size(), 
-            PassDesc, 
-            Pipeline,
-            std::forward<ExecuteLambdaType>(Executor));
-        Pass->DescriptorSets = PassParameters;
-        Passes.push_back(Pass);
-        SetupParameterPass(Pass);
-        return Pass->Handle;
-    }
-
 
 	/** The epilogue and prologue passes are sentinels that are used to simplify graph logic around barriers
 	*  and traversal. The prologue pass is used exclusively for barriers before the graph executes, while the
@@ -299,10 +318,12 @@ private:
     void CollectPassBarriers();
     void CollectPassBarriers(FRDGPassHandle PassHandle);
 
+    void CollectPassDescriptorSets(FRDGPassHandle PassHandle);
+
     void ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass);
 
-    static void EnumerateTextureAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction);
-    static void EnumerateBufferAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction);
+    static void EnumerateTextureAccess(FRDGPass* Pass, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction);
+    static void EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction);
 
 
 };

@@ -136,8 +136,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
 
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-    __debugbreak();
+    NILOU_LOG(Fatal, "validation layer: {}", pCallbackData->pMessage);
 
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         // Message is important enough to show
@@ -308,7 +307,9 @@ int FVulkanDynamicRHI::Initialize()
                 vkGetPhysicalDeviceFormatProperties(physicalDevice, TranslatePixelFormatToVKFormat(PixelFormat), &FormatProperties[PixelFormat]);
         });
 
-    RenderPassManager = std::unique_ptr<FVulkanRenderPassManager>(new FVulkanRenderPassManager(Device->Handle));
+    RenderPassManager = std::make_unique<FVulkanRenderPassManager>(Device->Handle);
+
+    StagingManager = std::make_unique<FVulkanStagingManager>(Device->Handle);
 
     CurrentImageAcquiredSemaphore = std::make_shared<FVulkanSemaphore>();
 
@@ -427,6 +428,7 @@ void FVulkanDynamicRHI::Finalize()
 {
     SamplerMap.clear();
     RenderPassManager = nullptr;
+    StagingManager = nullptr;
     SwapChain = nullptr;
     swapChainFramebuffers.clear();
     DepthImage = nullptr;

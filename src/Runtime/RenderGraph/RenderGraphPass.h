@@ -39,6 +39,8 @@ public:
     ERHIPipeline Pipeline = ERHIPipeline::Graphics;
 
     RDGRenderTargets RenderTargets;
+    std::vector<RDGBuffer*> VertexBuffers;
+    std::vector<RDGBuffer*> IndexBuffers;
     std::vector<RDGDescriptorSet*> DescriptorSets;
     std::set<FRDGPass*> Producers;
     std::set<FRDGPass*> Consumers;

@@ -26,7 +26,7 @@ namespace nilou {
         GRenderThreadId = std::this_thread::get_id();
         FDynamicRHI::CreateDynamicRHI_RenderThread(GetAppication()->GetConfiguration());
         GetAppication()->Initialize_RenderThread();
-        FDynamicRHI::GetDynamicRHI()->Initialize();
+        FDynamicRHI::Get()->Initialize();
         // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders();
         GraphRecording = new RenderGraph();
@@ -94,7 +94,7 @@ namespace nilou {
         // FSceneRenderer::ShadowMapResourcesPool.ReleaseAll();
         // FSceneRenderer::SceneTexturesPool.ReleaseAll();
         GetAppication()->Finalize_RenderThread();
-        FDynamicRHI::GetDynamicRHI()->Finalize();
+        FDynamicRHI::Get()->Finalize();
     }
 
     bool IsInRenderingThread()

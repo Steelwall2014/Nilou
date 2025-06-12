@@ -123,7 +123,7 @@ namespace nilou {
         void AddReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
         void RemoveReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
 
-        void UpdateRenderInfos();
+        void UpdateRenderInfos(RenderGraph& Graph);
 
         void UpdatePrimitiveTransform(UPrimitiveComponent *Primitive);
         void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds);
@@ -159,8 +159,8 @@ namespace nilou {
         void AddReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
         void RemoveReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
 
-        void UpdatePrimitiveInfos();
-        void UpdateLightInfos();
+        void UpdatePrimitiveInfos(RenderGraph& Graph);
+        void UpdateLightInfos(RenderGraph& Graph);
 
         TMulticastDelegate<FLightSceneInfo *> SceneAddLightDelegate;
         TMulticastDelegate<FLightSceneInfo *> SceneRemoveLightDelegate;

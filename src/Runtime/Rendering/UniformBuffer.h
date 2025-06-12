@@ -411,7 +411,7 @@ namespace nilou {
         virtual void InitRHI(RenderGraph& Graph) override
         {
             // FRenderResource::InitRHI(Graph);
-            // UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, &Data);
+            // UniformBufferRHI = FDynamicRHI::Get()->RHICreateUniformBuffer(Size, Usage, &Data);
             FRenderResource::InitRHI(Graph);
             InitRHI_impl(Graph);
             UploadData_impl(Graph, &Data, sizeof(UniformBufferStruct));

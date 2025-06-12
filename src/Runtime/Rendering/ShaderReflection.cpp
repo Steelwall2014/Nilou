@@ -54,6 +54,14 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, Desc
         Binding.BindingIndex = input_ubo->binding;
         Binding.SetIndex = input_ubo->set;
         Binding.Name = input_ubo->name;
+        if (Binding.Name == "")
+        {
+            Binding.Name = input_ubo->block.name;
+        }
+        if (Binding.Name == "")
+        {
+            Binding.Name = input_ubo->block.type_description->type_name;
+        }
         Binding.DescriptorType = static_cast<EDescriptorType>(input_ubo->descriptor_type);
         // Block
         Binding.Block.Name = input_ubo->block.name ? input_ubo->block.name : "";

@@ -350,15 +350,7 @@ namespace nilou {
 	class FGraphicsPipelineStateInitializer
 	{
 	public: 
-		FGraphicsPipelineStateInitializer()
-			: VertexShader(nullptr)
-			, PixelShader(nullptr)
-			, DepthStencilState(nullptr)
-			, RasterizerState(nullptr)
-			, BlendState(nullptr)
-			, VertexDeclaration(nullptr)
-			, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
-		{ }
+		FGraphicsPipelineStateInitializer();
 
 		RHIVertexShader *VertexShader;
 		RHIPixelShader *PixelShader;

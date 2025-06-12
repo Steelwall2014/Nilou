@@ -54,12 +54,12 @@ namespace nilou {
         UniformBuffer = RenderGraph::CreateExternalUniformBuffer<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer", nullptr);
     }
 
-    void FPrimitiveSceneProxy::UpdateUniformBuffer()
+    void FPrimitiveSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)
     {
         FPrimitiveUniformShaderParameters Data;
         Data.LocalToWorld = LocalToWorld;
         Data.ModelToLocal = glm::inverse(LocalToWorld);
-        UniformBuffer->UpdateUniformBufferImmediate(Data);
+        Graph.QueueBufferUpload(UniformBuffer, &Data, sizeof(Data));
     }
 
 }

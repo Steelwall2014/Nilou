@@ -3,6 +3,7 @@
 #include "DynamicRHI.h"
 #include "Common/Containers/Array.h"
 #include "RenderingThread.h"
+#include "RenderGraph.h"
 
 namespace nilou {
 
@@ -14,20 +15,6 @@ RDGTexture::RDGTexture(std::string InName, const RDGTextureDesc& InDesc)
 	, SubresourceCount(Layout.GetSubresourceCount())
 { 
 	SubresourceStates.resize(SubresourceCount);
-}
-
-void RDGBuffer::UpdateBufferImmediate(const void* Contents, uint32 Offset, uint32 Size)
-{
-	Ncheck(IsInRenderingThread());
-	Ncheck(Contents);
-	Ncheck(Offset + Size <= GetSize());
-	
-	if (RHIBuffer* BufferRHI = GetRHI())
-	{
-		void* Data = RHIMapMemory(BufferRHI, 0, GetSize());
-			memcpy(Data, Contents, Size);
-		RHIUnmapMemory(BufferRHI);
-	}
 }
 
 RHIRenderTargetLayout RDGRenderTargets::GetRenderTargetLayout() const

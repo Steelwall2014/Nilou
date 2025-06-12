@@ -80,6 +80,7 @@ VulkanDescriptorPool::VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool I
 		TRefCountPtr<VulkanDescriptorSet> NewDescriptorSet = new VulkanDescriptorSet(this);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(Device, &AllocInfo, &NewDescriptorSet->Handle));
 		Sets.push_back(NewDescriptorSet);
+		FreeSets.push_back(NewDescriptorSet);
 	}
 }
 
@@ -109,8 +110,11 @@ bool VulkanDescriptorPool::CanAllocate() const
 
 void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
 {
+	VulkanBuffer* VulkanBuffer = ResourceCast(Buffer);
+	Ncheck(VulkanBuffer && VulkanBuffer->Handle != VK_NULL_HANDLE);
+
 	VkDescriptorBufferInfo BufferInfo{};
-	BufferInfo.buffer = ResourceCast(Buffer)->Handle;
+	BufferInfo.buffer = VulkanBuffer->Handle;
 	BufferInfo.offset = 0;
 	BufferInfo.range = Buffer->GetSize();
 
@@ -128,8 +132,11 @@ void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 
 void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
 {
+	VulkanBuffer* VulkanBuffer = ResourceCast(Buffer);
+	Ncheck(VulkanBuffer && VulkanBuffer->Handle != VK_NULL_HANDLE);
+
 	VkDescriptorBufferInfo BufferInfo{};
-	BufferInfo.buffer = ResourceCast(Buffer)->Handle;
+	BufferInfo.buffer = VulkanBuffer->Handle;
 	BufferInfo.offset = 0;
 	BufferInfo.range = Buffer->GetSize();
 
@@ -147,8 +154,10 @@ void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 
 void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InTexture, RHISamplerState* InSamplerState)
 {
-	VulkanSamplerState* SamplerState = ResourceCast(SamplerState);
+	VulkanSamplerState* SamplerState = ResourceCast(InSamplerState);
 	VulkanTextureView* Texture = ResourceCast(InTexture);
+	Ncheck(SamplerState && SamplerState->Handle != VK_NULL_HANDLE);
+	Ncheck(Texture && Texture->Handle != VK_NULL_HANDLE);
 
 	VkDescriptorImageInfo ImageInfo{};
 	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -170,6 +179,7 @@ void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InText
 void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture)
 {
 	VulkanTextureView* Texture = ResourceCast(InTexture);
+	Ncheck(Texture && Texture->Handle != VK_NULL_HANDLE);
 
 	VkDescriptorImageInfo ImageInfo{};
 	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;

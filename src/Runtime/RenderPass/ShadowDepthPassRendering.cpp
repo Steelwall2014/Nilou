@@ -265,7 +265,7 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                UniformBuffer->UpdateBufferImmediate(Resources.Frustums.data(), 0, Resources.Frustums.size() * sizeof(FShadowMappingParameters));
+                Graph.QueueBufferUpload(UniformBuffer, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
@@ -307,6 +307,8 @@ namespace nilou {
                     Graph.AddGraphicsPass(
                         PassDesc,
                         RenderTargets,
+                        { },
+                        { },
                         { DescriptorSet_VS },
                         [=](RHICommandList& RHICmdList)
                         {

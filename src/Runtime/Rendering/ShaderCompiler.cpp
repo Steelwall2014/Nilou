@@ -89,7 +89,7 @@ namespace nilou {
         std::vector<const std::string*> PreprocessResults, 
         const FShaderCompilerEnvironment &Environment)
     {
-        FDynamicRHI* DynamicRHI = FDynamicRHI::GetDynamicRHI();
+        FDynamicRHI* DynamicRHI = FDynamicRHI::Get();
         std::stringstream stream;
         stream << "#version 460\n";
         stream << "#define RHI_OPENGL (0)\n";
@@ -115,6 +115,7 @@ namespace nilou {
         {
             return;
         }
+        NILOU_LOG(Display, "Layout of shader {} permutation {} set {}", ShaderType->Name, PermutationId, SetIndex);
         std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
         std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
         for (auto& [BindingIndex, Binding] : Layouts[SetIndex])
@@ -125,6 +126,7 @@ namespace nilou {
             BindingRHI.DescriptorCount = 1; // For now, only support 1
             BindingsRHI.push_back(BindingRHI);
             NameToBinding[Binding.Name] = BindingRHI;
+            NILOU_LOG(Display, "\tBindingIndex: {}, Name: \"{}\", type: {}", BindingIndex, Binding.Name, magic_enum::enum_name(Binding.DescriptorType));
         }
         RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
         ShaderType->DescriptorSetLayouts[PermutationId][SetIndex] = FNamedDescriptorSetLayout(LayoutRHI, NameToBinding);

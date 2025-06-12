@@ -96,6 +96,17 @@ namespace nilou {
         }
     }
 
+	FGraphicsPipelineStateInitializer::FGraphicsPipelineStateInitializer()
+		: VertexShader(nullptr)
+		, PixelShader(nullptr)
+		, DepthStencilState(TStaticDepthStencilState<>::GetRHI())
+		, RasterizerState(TStaticRasterizerState<>::GetRHI())
+		, BlendState(TStaticBlendState<>::GetRHI())
+		, VertexDeclaration(nullptr)
+		, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
+	{ 
+
+	}
 }
 
 namespace std {

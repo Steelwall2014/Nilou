@@ -297,13 +297,13 @@ namespace nilou {
             }
         }
 
-        void RenderThread_UpdateUniformBuffer()
+        void RenderThread_UpdateUniformBuffer(RenderGraph& Graph)
         {
             for (const auto& [Key, Data] : UniformBuffersData)
             {
                 if (UniformBuffers.find(Key) != UniformBuffers.end())
                 {
-                    UniformBuffers[Key]->UpdateBufferImmediate(Data.data(), 0, Data.size());
+                    Graph.QueueBufferUpload(UniformBuffers[Key], Data.data(), Data.size());
                 }
             }
         }

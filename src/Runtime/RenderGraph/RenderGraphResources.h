@@ -220,8 +220,9 @@ private:
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateExternalTexture
     FRDGPooledTextureRef PooledTexture = nullptr;
 
+    // Steelwall2014: ViewCache is embedded in RHITexture in NilouEngine.
 	/** The assigned view cache for this texture (sourced from transient / pooled texture). Never reset. */
-	class FRHITextureViewCache* ViewCache = nullptr;
+	// class FRHITextureViewCache* ViewCache = nullptr;
 
     std::vector<RDGSubresourceState> SubresourceStates;
 
@@ -269,8 +270,6 @@ public:
 
     uint32 GetSize() const { return Desc.GetSize(); }
 
-    void UpdateBufferImmediate(const void* Contents, uint32 Offset, uint32 Size);
-
     const RDGBufferDesc Desc;
 
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
@@ -291,11 +290,6 @@ public:
     TRDGUniformBuffer(std::string InName, const RDGBufferDesc& InDesc) 
         : RDGBuffer(InName, InDesc)
     { 
-    }
-
-    void UpdateUniformBufferImmediate(const T& Data)
-    {
-        UpdateBufferImmediate(&Data, 0, sizeof(T));
     }
 };
 template <typename T>

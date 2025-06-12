@@ -16,7 +16,9 @@ public:
     RDGDescriptorSet(const std::string& Name, RHIDescriptorSetLayout* InLayout) 
         : RDGResource(Name, ERDGResourceType::DescriptorSet) 
         , Layout(InLayout)
-    { }
+    { 
+        Ncheck(Layout);
+    }
     ~RDGDescriptorSet();
 
     void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
@@ -56,6 +58,7 @@ public:
     void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access);
 
     RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
+    RHIDescriptorSetLayout* GetLayout() const { return Layout; }
 
 private:
 
@@ -120,7 +123,6 @@ using RDGDescriptorSetRef = TRefCountPtr<RDGDescriptorSet>;
 class RDGDescriptorSetPool
 {
 public:
-    RDGDescriptorSetPool() { }
     RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
         : Layout(InLayout)
     { }

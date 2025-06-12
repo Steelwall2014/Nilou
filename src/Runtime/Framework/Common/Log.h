@@ -74,10 +74,7 @@ namespace nilou {
     #define NILOU_LOG_EXPAND_IS_FATAL_Warning(ActiveBlock, InactiveBlock) InactiveBlock
     #define NILOU_LOG_EXPAND_IS_FATAL_Display(ActiveBlock, InactiveBlock) InactiveBlock
 
-    inline void Logf_Internal(ELogVerbosity Verbosity, const std::string& Message)
-    {
-        std::cout << Message;
-    }
+    void Logf_Internal(ELogVerbosity Verbosity, const std::string& Message);
 
     #define NILOU_LOG(Verbosity, Format, ...) \
         { \

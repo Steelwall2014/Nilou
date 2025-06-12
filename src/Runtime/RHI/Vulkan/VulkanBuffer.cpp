@@ -11,7 +11,7 @@ namespace nilou {
 
 static VkBufferUsageFlags TranslateBufferUsageFlags(EBufferUsageFlags InUsage)
 {
-	return (VkBufferUsageFlags)InUsage;
+	return (VkBufferUsageFlags)InUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 }
 static VkMemoryPropertyFlags TranslateMemoryPropertyFlags(EBufferUsageFlags InUsage)
 {
@@ -34,7 +34,7 @@ constexpr T AlignArbitrary(T Val, uint64 Alignment)
 
 RHIBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags, VkMemoryPropertyFlags InMemoryReadFlags)
 {
-	FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::GetDynamicRHI());
+	FVulkanDynamicRHI* VulkanRHI = static_cast<FVulkanDynamicRHI*>(FDynamicRHI::Get());
     if (InMemoryReadFlags == VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
     {
         uint64 NonCoherentAtomSize = (uint64)VulkanRHI->GpuProps.limits.nonCoherentAtomSize;

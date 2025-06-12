@@ -66,7 +66,7 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
     if (status != shaderc_compilation_status_success) {
         const char* msg = shaderc_result_get_error_message(result);
-        NILOU_LOG(Error, "Shader compilation error! Error message: {}. The code is written to {}", msg, "ShaderCompilationErrors.txt");
+        NILOU_LOG(Fatal, "Shader compilation error! Error message: {}. The code is written to {}", msg, "ShaderCompilationErrors.txt");
         std::ofstream out{"ShaderCompilationErrors.txt", std::ios::app};
         out << msg << "\n\n" << code << std::endl;
         return {};

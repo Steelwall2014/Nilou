@@ -242,8 +242,7 @@ namespace nilou {
                 Parameters.WindSpeed = WindSpeed;
                 Parameters.Amplitude = Amplitude;
                 Parameters.Time = Time;
-                FFTParameters->UpdateUniformBufferImmediate(Parameters);
-                
+                Graph.QueueBufferUpload(FFTParameters, &Parameters, sizeof(Parameters));
                 UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
         );

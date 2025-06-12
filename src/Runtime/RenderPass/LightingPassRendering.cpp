@@ -92,6 +92,8 @@ namespace nilou {
                 Graph.AddGraphicsPass(
                     PassDesc, 
                     RenderTargets,
+                    { },
+                    { PositionVertexBuffer.VertexBufferRDG, UVVertexBuffer.VertexBufferRDG },
                     { DescriptorSet }, 
                     [=](RHICommandList& RHICmdList)
                     {

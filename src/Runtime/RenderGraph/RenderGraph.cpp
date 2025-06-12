@@ -18,9 +18,9 @@ FRDGTexturePool GRenderGraphTexturePool;
 /** Enumerates all texture accesses and provides the access and subresource range info. This results in
  *  multiple invocations of the same resource, but with different access / subresource range.
  */
-void RenderGraph::EnumerateTextureAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction)
+void RenderGraph::EnumerateTextureAccess(FRDGPass* Pass, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction)
 {
-    for (RDGDescriptorSet* DescriptorSet : PassParameters)
+    for (RDGDescriptorSet* DescriptorSet : Pass->DescriptorSets)
     {
         for (auto& [BindingIndex, Writer] : DescriptorSet->WriterInfos)
         {
@@ -32,12 +32,28 @@ void RenderGraph::EnumerateTextureAccess(const std::vector<RDGDescriptorSet*>& P
             }
         }
     }
+	for (auto& Attachment : Pass->RenderTargets.ColorAttachments)
+	{
+		RDGTextureView* TextureView = Attachment.TextureView;
+		if (TextureView)
+		{
+			RDGTexture* Texture = TextureView->GetParent();
+			AccessFunction(TextureView, Texture, nullptr, ERHIAccess::ColorAttachmentWrite);
+		}
+	}
+	auto& Attachment = Pass->RenderTargets.DepthStencilAttachment;
+	RDGTextureView* TextureView = Attachment.TextureView;
+	if (TextureView)
+	{
+		RDGTexture* Texture = TextureView->GetParent();
+		AccessFunction(TextureView, Texture, nullptr, ERHIAccess::DepthStencilAttachmentWrite);
+	}
 }
 
 /** Enumerates all buffer accesses and provides the access info. */
-void RenderGraph::EnumerateBufferAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction)
+void RenderGraph::EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction)
 {
-    for (RDGDescriptorSet* DescriptorSet : PassParameters)
+    for (RDGDescriptorSet* DescriptorSet : Pass->DescriptorSets)
     {
         for (auto [BindingIndex, Writer] : DescriptorSet->WriterInfos)
         {
@@ -47,6 +63,14 @@ void RenderGraph::EnumerateBufferAccess(const std::vector<RDGDescriptorSet*>& Pa
             }
         }
     }
+	for (RDGBuffer* Buffer : Pass->IndexBuffers)
+	{
+		AccessFunction(Buffer, ERHIAccess::IndexRead);
+	}
+	for (RDGBuffer* Buffer : Pass->VertexBuffers)
+	{
+		AccessFunction(Buffer, ERHIAccess::VertexAttributeRead);
+	}
 }
 
 RenderGraph::RenderGraph()
@@ -105,12 +129,6 @@ RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RD
 
 RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(RHIDescriptorSetLayout* Layout)
 {
-    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
-    {
-        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
-    }
-
-    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
     RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout);
     return DescriptorSet;
 }
@@ -156,17 +174,30 @@ RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDes
 
 void RenderGraph::QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, uint32 InitialDataSize)
 {
-	UploadedBuffers.push_back(FUploadedBuffer(Buffer, InitialData, InitialDataSize));
-	Buffer->bQueuedForUpload = true;
+	if (!InitialData) return;
+	Ncheck(InitialDataSize <= Buffer->GetSize());
+
+	std::unique_ptr<uint8[]> InitialDataCopy = std::make_unique<uint8[]>(InitialDataSize);
+	std::memcpy(InitialDataCopy.get(), InitialData, InitialDataSize);
+	
+	RDGPassDesc PassDesc("QueueBufferUpload");
+	PassDesc.bNeverCull = true;
+	AddCopyPass(
+		PassDesc,
+		nullptr,
+		Buffer,
+		[=, InitialDataCopy = std::move(InitialDataCopy)](RHICommandList& RHICmdList)
+		{
+			RHIBuffer* StagingBuffer = RHICmdList.AcquireStagingBuffer(InitialDataSize);
+			void* Data = RHIMapMemory(StagingBuffer, 0, InitialDataSize);
+				memcpy(Data, InitialDataCopy.get(), InitialDataSize);
+			RHIUnmapMemory(StagingBuffer);
+			RHICmdList.CopyBuffer(StagingBuffer, Buffer->GetRHI(), 0, 0, InitialDataSize);
+		});
 }
 
 RDGDescriptorSet* RenderGraph::CreateDescriptorSet(FNamedDescriptorSetLayout Layout)
 {
-    if (DescriptorSetPools.find(Layout.GetRHI()) == DescriptorSetPools.end())
-    {
-        DescriptorSetPools[Layout.GetRHI()] = RDGDescriptorSetPool(Layout.GetRHI());
-    }
-
     RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout.GetRHI());
 	DescriptorSet->NameToBinding = Layout.NameToBinding;
     DescriptorSets.push_back(DescriptorSet);
@@ -265,7 +296,7 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 
     // Steelwall2014: This lambda function can be called on the same texture multiple times with different access and subresource range.
     // So PassState.ReferenceCount is needed to keep track of the number of times the texture is accessed in this pass.
-	EnumerateTextureAccess(Pass->DescriptorSets, [&](RDGTextureView* TextureView, RDGTexture* Texture, RHISamplerState* SamplerState, ERHIAccess Access)
+	EnumerateTextureAccess(Pass, [&](RDGTextureView* TextureView, RDGTexture* Texture, RHISamplerState* SamplerState, ERHIAccess Access)
 	{
 		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
 		PassState.ReferenceCount++;
@@ -279,9 +310,10 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 			int32 SubresourceIndex = WholeRange.GetSubresourceIndex(Subresource);
 			PassState.Access[SubresourceIndex] = Access;
 		}
+		Pass->Views.push_back(TextureView);
 	});
 
-	EnumerateBufferAccess(Pass->DescriptorSets, [&](RDGBuffer* Buffer, ERHIAccess Access)
+	EnumerateBufferAccess(Pass, [&](RDGBuffer* Buffer, ERHIAccess Access)
 	{
 		FRDGPass::FBufferState& PassState = Pass->FindOrAddBufferState(Buffer);
 		PassState.ReferenceCount++;
@@ -402,7 +434,7 @@ void RenderGraph::SubmitBufferUploads()
 	}
 	for (FUploadedBuffer& UploadedBuffer : UploadedBuffers)
 	{
-		UploadedBuffer.Buffer->UpdateBufferImmediate(UploadedBuffer.Data, 0, UploadedBuffer.DataSize);
+		QueueBufferUpload(UploadedBuffer.Buffer, UploadedBuffer.Data, UploadedBuffer.DataSize);
 		UploadedBuffer.Buffer->bQueuedForUpload = false;
 	}
 	UploadedBuffers.clear();
@@ -461,6 +493,11 @@ void RenderGraph::Execute()
 	CollectPassBarriers();
 
 	CreateViews(CollectResourceContext.Views);
+
+	for (FRDGPassHandle PassHandle = GetProloguePassHandle() + 1; PassHandle < GetEpiloguePassHandle(); ++PassHandle)
+	{
+		CollectPassDescriptorSets(PassHandle);
+	}
 	
 	for (FRDGPassHandle PassHandle = ProloguePassHandle+1; PassHandle <= EpiloguePassHandle; ++PassHandle)
 	{
@@ -964,6 +1001,57 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 
 		LastState.Access = CurrentAccess;
 		LastState.Pass = CurrentPass->Handle;
+	}
+}
+
+void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
+{
+	FRDGPass* CurrentPass = Passes[PassHandle];
+
+	if (CurrentPass->bCulled)
+	{
+		return;
+	}
+
+	for (auto& DescriptorSet : CurrentPass->DescriptorSets)
+	{
+		RHIDescriptorSetLayout* Layout = DescriptorSet->GetLayout();
+		RDGDescriptorSetPool& Pool = DescriptorSetPools.try_emplace(Layout, Layout).first->second;
+		RHIDescriptorSet* DescriptorSetRHI = Pool.Allocate();
+		DescriptorSet->ResourceRHI = DescriptorSetRHI;
+
+		for (auto& [BindingIndex, WriterInfo] : DescriptorSet->WriterInfos)
+		{
+			switch (WriterInfo.DescriptorType)
+			{
+			case EDescriptorType::UniformBuffer:
+			{
+				auto& BufferInfo = WriterInfo.BufferInfo;
+				DescriptorSetRHI->SetUniformBuffer(BindingIndex, BufferInfo.Buffer->GetRHI());
+				break;
+			}
+			case EDescriptorType::StorageBuffer:
+			{
+				auto& BufferInfo = WriterInfo.BufferInfo;
+				DescriptorSetRHI->SetStorageBuffer(BindingIndex, BufferInfo.Buffer->GetRHI());
+				break;
+			}
+			case EDescriptorType::CombinedImageSampler:
+			{
+				auto& ImageInfo = WriterInfo.ImageInfo;
+				DescriptorSetRHI->SetSampler(BindingIndex, ImageInfo.Texture->GetRHI(), ImageInfo.SamplerState);
+				break;
+			}
+			case EDescriptorType::StorageImage:
+			{
+				auto& ImageInfo = WriterInfo.ImageInfo;
+				DescriptorSetRHI->SetStorageImage(BindingIndex, ImageInfo.Texture->GetRHI());
+				break;
+			}
+			default:
+				Ncheckf(false, "Unknown descriptor type {}", magic_enum::enum_name(WriterInfo.DescriptorType));
+			}
+		}
 	}
 }
 

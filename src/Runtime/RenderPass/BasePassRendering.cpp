@@ -69,6 +69,8 @@ namespace nilou {
                 PassDesc,
                 RenderTargets,
                 {},
+                {},
+                {},
                 [=](RHICommandList& RHICmdList)
                 {
                     // FRHIRenderPassInfo PassInfo(SceneTextures->GeometryPassFramebuffer.get(), ViewInfo.ScreenResolution, true);

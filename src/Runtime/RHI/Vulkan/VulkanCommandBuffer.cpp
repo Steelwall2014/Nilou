@@ -28,6 +28,8 @@ namespace nilou {
         VK_CHECK_RESULT(vkCreateFence(InDevice, &FenceInfo, nullptr, &Fence));
 
         State = EState::ReadyForBegin;
+
+        StagingManager = FVulkanDynamicRHI::Get()->StagingManager.get();
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
@@ -37,7 +39,7 @@ namespace nilou {
 
     void VulkanCommandBuffer::BeginRenderPass(FRHIRenderPassInfo& Info)
     {
-        FVulkanDynamicRHI* DynamicRHI = FVulkanDynamicRHI::GetDynamicRHI();
+        FVulkanDynamicRHI* DynamicRHI = FVulkanDynamicRHI::Get();
         VkRenderPass RenderPass = DynamicRHI->RenderPassManager->GetOrCreateRenderPass(Info.RTLayout);
         VkFramebuffer Framebuffer = DynamicRHI->RenderPassManager->GetOrCreateFramebuffer(RenderPass, Info.ColorRenderTargets, Info.DepthStencilRenderTarget);
 

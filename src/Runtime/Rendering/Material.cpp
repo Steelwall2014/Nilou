@@ -30,10 +30,10 @@ namespace nilou {
         const FMaterialParameterInfo& ParameterInfo = Parameter.ParameterInfo;
         typename ParameterType::ValueType Value = ParameterType::GetValue(Parameter);
         ENQUEUE_RENDER_COMMAND(SetMIParameterValue)(
-            [Proxy, ParameterInfo, Value](RenderGraph&)
+            [Proxy, ParameterInfo, Value](RenderGraph& Graph)
             {
                 Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
-                Proxy->RenderThread_UpdateUniformBuffer();
+                Proxy->RenderThread_UpdateUniformBuffer(Graph);
             });
     }
 
@@ -296,9 +296,9 @@ namespace nilou {
         NewRenderProxy->ShadingModel = this->MaterialRenderProxy->ShadingModel;
 
         ENQUEUE_RENDER_COMMAND(MaterialInstance_UpdateUniformBuffer)(
-            [NewRenderProxy](RenderGraph&)
+            [NewRenderProxy](RenderGraph& Graph)
             {
-                NewRenderProxy->RenderThread_UpdateUniformBuffer();
+                NewRenderProxy->RenderThread_UpdateUniformBuffer(Graph);
             });
         return MaterialInstance;
     }
@@ -330,7 +330,7 @@ namespace nilou {
         auto TextureParameterValues = this->TextureParameterValues;
         auto Proxy = GetRenderProxy();
         ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
-            [=](RenderGraph&) 
+            [=](RenderGraph& Graph) 
             {
                 Proxy->BlendState = RHICreateBlendState(BlendState);
                 Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
@@ -348,7 +348,7 @@ namespace nilou {
                 {
                     Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
                 }
-                Proxy->RenderThread_UpdateUniformBuffer();
+                Proxy->RenderThread_UpdateUniformBuffer(Graph);
             });
     }
 

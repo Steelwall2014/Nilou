@@ -192,7 +192,7 @@ namespace nilou {
             for (int i = 0; i < 6; i++)
                 ViewUniformBufferData.FrustumPlanes[i] = dvec4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
-            View.ViewUniformBuffer->UpdateUniformBufferImmediate(ViewUniformBufferData);
+            Graph.QueueBufferUpload(View.ViewUniformBuffer, &ViewUniformBufferData, sizeof(ViewUniformBufferData));
 
             FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
             RDGTextureDesc Desc;
@@ -259,7 +259,7 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::Render(RenderGraph& Graph)
     {
-        FDynamicRHI *RHICmdList = FDynamicRHI::GetDynamicRHI();
+        FDynamicRHI *RHICmdList = FDynamicRHI::Get();
 
         GetAppication()->GetPreRenderDelegate().Broadcast(RHICmdList, Scene);
 
@@ -406,7 +406,7 @@ namespace nilou {
                     SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
             }
             auto UniformBuffer = Graph.CreateUniformBuffer<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
-            UniformBuffer->UpdateUniformBufferImmediate(Parameters);
+            Graph.QueueBufferUpload(UniformBuffer, &Parameters, sizeof(Parameters));
             DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBuffer);
             RDGRenderTargets RenderTargets;
             RenderTargets.ColorAttachments[0] = RenderTargetResource->GetTextureRDG()->GetDefaultView();
@@ -415,6 +415,8 @@ namespace nilou {
             Graph.AddGraphicsPass(
                 PassDesc,
                 RenderTargets,
+                { },
+                { PositionVertexBuffer.VertexBufferRDG, UVVertexBuffer.VertexBufferRDG },
                 { DescriptorSetPS },
                 [=](RHICommandList& RHICmdList)
                 {

@@ -186,10 +186,10 @@ namespace nilou {
         }
     }
 
-    void FScene::UpdateRenderInfos()
+    void FScene::UpdateRenderInfos(RenderGraph& Graph)
     {
-        UpdatePrimitiveInfos();
-        UpdateLightInfos();
+        UpdatePrimitiveInfos(Graph);
+        UpdateLightInfos(Graph);
     }
 
     void FScene::UpdatePrimitiveTransform(UPrimitiveComponent *Primitive)
@@ -249,12 +249,12 @@ namespace nilou {
         delete InReflectionProbeInfo;
     }
 
-    void FScene::UpdatePrimitiveInfos()
+    void FScene::UpdatePrimitiveInfos(RenderGraph& Graph)
     {
         for (auto &&PrimitiveInfo : AddedPrimitiveSceneInfos)
         {
             if (PrimitiveInfo->bNeedsUniformBufferUpdate)
-                PrimitiveInfo->SceneProxy->UpdateUniformBuffer();
+                PrimitiveInfo->SceneProxy->UpdateUniformBuffer(Graph);
         }
     }
 
@@ -299,7 +299,7 @@ namespace nilou {
         }
     }
 
-    static void SetLightUniformBuffer(TRDGUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
+    static void SetLightUniformBuffer(RenderGraph& Graph, TRDGUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
     {
         FLightShaderParameters Parameters;
         Parameters.lightPosition = Proxy->Position;
@@ -309,15 +309,15 @@ namespace nilou {
         Parameters.lightType = (int)Proxy->LightType;
         SetLightAttenParams(Parameters.lightDistAttenParams, Proxy->DistAttenCurve);
         SetLightAttenParams(Parameters.lightAngleAttenParams, Proxy->AngleAttenCurve);
-        LightUniformBuffer->UpdateUniformBufferImmediate(Parameters);
+        Graph.QueueBufferUpload(LightUniformBuffer, &Parameters, sizeof(Parameters));
     }
 
-    void FScene::UpdateLightInfos()
+    void FScene::UpdateLightInfos(RenderGraph& Graph)
     {
         for (auto &&LightInfo : AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightInfo->SceneProxy;
-            SetLightUniformBuffer(LightInfo->LightUniformBuffer, Proxy);
+            SetLightUniformBuffer(Graph, LightInfo->LightUniformBuffer, Proxy);
         }
     }
 

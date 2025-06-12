@@ -29,7 +29,7 @@ namespace nilou {
         // Graph.AddPass(
         //     [=](RDGPassBuilder& PassBuilder)
         //     {
-        //         FDynamicRHI* DynamicRHI = FDynamicRHI::GetDynamicRHI();
+        //         FDynamicRHI* DynamicRHI = FDynamicRHI::Get();
         //         void* Dst = DynamicRHI->MapMemory(StagingBuffer->BufferRHI.get(), 0, DataSize);
         //             std::memcpy(Dst, Data, DataSize);
         //         DynamicRHI->UnmapMemory(StagingBuffer->BufferRHI.get());

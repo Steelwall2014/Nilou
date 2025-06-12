@@ -1,3 +1,6 @@
+#include <mutex>
+#include <filesystem>
+#include <fstream>
 #include <windows.h>
 #include "Log.h"
 
@@ -33,5 +36,47 @@ namespace nilou {
     std::ostream &operator<<(std::ostream &os, std::wstring_view str)
     {
         return os << encode::wideToOme(str);
+    }
+
+    std::ofstream CreateLogFile()
+    {
+        std::string CurrentPath = "Nilou.log";
+        if (std::filesystem::exists(CurrentPath))
+        {
+            auto LastWriteTime = std::filesystem::last_write_time(CurrentPath);
+            auto TimeT = std::chrono::system_clock::to_time_t(
+                std::chrono::clock_cast<std::chrono::system_clock>(LastWriteTime));
+            std::stringstream ss;
+            ss << std::put_time(std::localtime(&TimeT), "Nilou_%Y%m%d_%H%M%S.log");
+            std::filesystem::rename(CurrentPath, ss.str());
+        }
+        std::ofstream LogFile{CurrentPath};
+        return LogFile;
+    }
+
+    void Logf_Internal(ELogVerbosity Verbosity, const std::string& Message)
+    {
+        static std::mutex Mutex;
+        static std::ofstream File = CreateLogFile();
+        std::lock_guard<std::mutex> Lock(Mutex);
+        // 生成带有毫秒的时间戳字符串
+        auto now = std::chrono::system_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+        auto time_t_now = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_now;
+    #if defined(_WIN32)
+        localtime_s(&tm_now, &time_t_now);
+    #else
+        localtime_r(&time_t_now, &tm_now);
+    #endif
+        char timestamp[40];
+        std::strftime(timestamp, sizeof(timestamp), "[%Y-%m-%d %H:%M:%S", &tm_now);
+        std::stringstream ss_timestamp;
+        ss_timestamp << timestamp << "." << std::setfill('0') << std::setw(3) << ms.count() << "] ";
+        std::string timestamp_with_ms = ss_timestamp.str();
+
+        std::cout << timestamp_with_ms << Message;
+        File << timestamp_with_ms << Message;
+        File.flush();
     }
 }

@@ -59,6 +59,8 @@ namespace nilou {
             Graph.AddGraphicsPass(
                 PassDesc,
                 RenderTargets,
+                { },
+                { },
                 DescriptorSets,
                 [=](RHICommandList& RHICmdList)
                 {

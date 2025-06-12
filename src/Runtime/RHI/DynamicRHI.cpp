@@ -10,7 +10,7 @@ namespace nilou {
 
 	FDynamicRHI *FDynamicRHI::DynamicRHI = nullptr;
 
-	FDynamicRHI *FDynamicRHI::GetDynamicRHI()
+	FDynamicRHI *FDynamicRHI::Get()
 	{
 		return FDynamicRHI::DynamicRHI;
 	}

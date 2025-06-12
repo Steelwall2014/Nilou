@@ -25,8 +25,8 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(FRendererModule_BeginRenderingViewFamily)(
             [Scene, SceneRenderer](RenderGraph& Graph)
             {
-                Scene->UpdateRenderInfos();
-                SceneRenderer->Render(FRenderingThread::GetRenderGraph());
+                Scene->UpdateRenderInfos(Graph);
+                SceneRenderer->Render(Graph);
                 delete SceneRenderer;
             });
     }

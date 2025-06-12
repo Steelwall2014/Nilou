@@ -72,37 +72,6 @@ namespace nilou {
         //     FarClipDistance);
         
         ViewFrustum = FViewFrustum(ViewMatrix, ProjectionMatrix);
-            
-        if (ViewUniformBuffer)
-        {
-            const dmat4& WorldToView = ViewMatrix;
-            const mat4& ViewToClip = ProjectionMatrix;
-            mat4 RelativeWorldToView = WorldToView;
-            RelativeWorldToView[3][0] = 0;
-            RelativeWorldToView[3][1] = 0;
-            RelativeWorldToView[3][2] = 0;
-            FViewShaderParameters Parameters;
-            Parameters.RelWorldToView = RelativeWorldToView;
-            Parameters.ViewToClip = ViewToClip;
-            Parameters.RelWorldToClip = ViewToClip * RelativeWorldToView;
-            Parameters.ClipToView = glm::inverse(ViewToClip);
-            Parameters.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
-            Parameters.AbsWorldToClip = ViewToClip * mat4(WorldToView);
-
-            Parameters.CameraPosition = Position;
-            Parameters.CameraDirection = Forward;
-            Parameters.CameraResolution = ScreenResolution;
-            Parameters.CameraNearClipDist = NearClipDistance;
-            Parameters.CameraFarClipDist = FarClipDistance;
-            Parameters.CameraVerticalFieldOfView = VerticalFieldOfView;
-
-            for (int i = 0; i < 6; i++)
-            {
-                Parameters.FrustumPlanes[i] = dvec4(ViewFrustum.Planes[i].Normal, ViewFrustum.Planes[i].Distance);
-            }
-
-            ViewUniformBuffer->UpdateUniformBufferImmediate(Parameters);
-        }
     }
 
     FSceneViewFamily::FSceneViewFamily(

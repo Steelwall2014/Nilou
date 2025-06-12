@@ -252,6 +252,15 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     case ETextureDimension::Texture2D:
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         break;
+    case ETextureDimension::Texture2DArray:
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        break;
+    case ETextureDimension::Texture3D:
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+        break;
+    case ETextureDimension::TextureCube:
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        break;
     default:
         Ncheckf(false, "RHICreateTextureView not implemented view type");
     }

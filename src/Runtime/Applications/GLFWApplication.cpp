@@ -201,7 +201,7 @@ namespace nilou {
     {
         int result;
         glfwInit();
-        auto RHI_API = FDynamicRHI::GetDynamicRHI()->GetCurrentGraphicsAPI();
+        auto RHI_API = FDynamicRHI::Get()->GetCurrentGraphicsAPI();
         if (RHI_API == EGraphicsAPI::Vulkan) {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         }
