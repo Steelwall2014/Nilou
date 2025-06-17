@@ -3,6 +3,7 @@
 #include <fstream>
 #include <windows.h>
 #include "Log.h"
+#include "Path.h"
 
 namespace nilou {
 
@@ -40,7 +41,7 @@ namespace nilou {
 
     std::ofstream CreateLogFile()
     {
-        std::string CurrentPath = "Nilou.log";
+        std::filesystem::path CurrentPath = FPath::ProjectDir() / "Saved/Logs/Nilou.log";
         if (std::filesystem::exists(CurrentPath))
         {
             auto LastWriteTime = std::filesystem::last_write_time(CurrentPath);
@@ -50,6 +51,7 @@ namespace nilou {
             ss << std::put_time(std::localtime(&TimeT), "Nilou_%Y%m%d_%H%M%S.log");
             std::filesystem::rename(CurrentPath, ss.str());
         }
+        std::filesystem::create_directories(CurrentPath.parent_path());
         std::ofstream LogFile{CurrentPath};
         return LogFile;
     }
@@ -76,6 +78,7 @@ namespace nilou {
         std::string timestamp_with_ms = ss_timestamp.str();
 
         std::cout << timestamp_with_ms << Message;
+        std::cout.flush();
         File << timestamp_with_ms << Message;
         File.flush();
     }

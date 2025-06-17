@@ -103,7 +103,7 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             Parameters.HalfTexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Parameters.Level = float(MipLevel);
             RDGBuffer* ParametersBuffer = CreateUniformBuffer(Graph, Parameters);
-            DescriptorSet->SetUniformBuffer("Parameters", ParametersBuffer);
+            DescriptorSet->SetUniformBuffer("FParameters", ParametersBuffer);
 
             RDGRenderTargets RenderTargets;
             RenderTargets.ColorAttachments[0] = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));

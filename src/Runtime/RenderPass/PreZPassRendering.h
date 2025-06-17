@@ -7,6 +7,6 @@
 
 namespace nilou {
     DECLARE_MATERIAL_SHADER(FPreZPassVS)
-    DECLARE_GLOBAL_SHADER(FPreZPassPS)
+    DECLARE_MATERIAL_SHADER(FPreZPassPS)
 
 }

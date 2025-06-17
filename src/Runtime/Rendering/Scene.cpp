@@ -124,6 +124,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
             [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RenderGraph&) 
             {
+                PrimitiveSceneProxy->CreateUniformBuffer();
                 PrimitiveSceneProxy->CreateRenderThreadResources();
                 Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
             });

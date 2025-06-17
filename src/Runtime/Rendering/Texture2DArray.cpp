@@ -47,7 +47,8 @@ namespace nilou {
                     Image->GetWidth(),      // width
                     Image->GetHeight(),     // height
                     1,                      // depth
-                    Image->GetNumLayers()); // array layer
+                    0,                      // base array layer
+                    Image->GetNumLayers()); // num array layers
             });
         
         FGenerateMips::Execute(Graph, TextureRDG);

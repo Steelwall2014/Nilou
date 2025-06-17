@@ -7,7 +7,7 @@ layout(location = 3) in vec4 COLOR;
 
 layout(location = 4) in vec2 TEXCOORD_0;
 
-layout(std430, binding=8) readonly buffer NodeListBuffer{
+layout(std430, set=VERTEX_SHADER_SET_INDEX, binding=8) readonly buffer NodeListBuffer{
     uvec4 NodeList[];
 };
 
@@ -16,11 +16,11 @@ struct OceanLODParam
     vec2 NodeMeterSize;
     uvec2 NodeSideNum;
 };
-layout(std430, binding=9) readonly buffer LODParamsBuffer{
+layout(std430, set=VERTEX_SHADER_SET_INDEX, binding=9) readonly buffer LODParamsBuffer{
     OceanLODParam LODParams[];
 };
 
-layout (std140, binding=10) uniform FPrimitiveShaderParameters {
+layout (std140, set=VERTEX_SHADER_SET_INDEX, binding=10) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 	dmat4 ModelToLocal;
 };

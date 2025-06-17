@@ -27,17 +27,11 @@ namespace nilou {
             RenderTargets.ColorAttachments[5] = SceneTextures.ShadingModel->GetDefaultView();
             RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
-            std::vector<RDGDescriptorSet*> DescriptorSets;
             RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FBasePassVS>(0, VERTEX_SHADER_SET_INDEX);
             DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-            DescriptorSets.push_back(DescriptorSet_VS);
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
-                for (auto& [SetIndex, DescriptorSet] : Mesh.MaterialRenderProxy->DescriptorSets)
-                {
-                    DescriptorSets.push_back(DescriptorSet);
-                }
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
@@ -68,9 +62,9 @@ namespace nilou {
             Graph.AddGraphicsPass(
                 PassDesc,
                 RenderTargets,
-                {},
-                {},
-                {},
+                DrawCommands.GetIndexBuffers(),
+                DrawCommands.GetVertexBuffers(),
+                DrawCommands.GetDescriptorSets(),
                 [=](RHICommandList& RHICmdList)
                 {
                     // FRHIRenderPassInfo PassInfo(SceneTextures->GeometryPassFramebuffer.get(), ViewInfo.ScreenResolution, true);

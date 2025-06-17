@@ -284,6 +284,7 @@ namespace nilou {
                             FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
                             if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
                                 continue;
+                            NILOU_LOG(Display, "\tVertexFactory {} Permutation: {}", ShaderType->Name, VFPermutationId);
                             CompileVertexMaterialShader(
                                 MaterialParsedResult, VFParameters, ShaderParameter, 
                                 ShaderMap->VertexShaderMap);
@@ -292,6 +293,7 @@ namespace nilou {
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Pixel)
                 {
+                    NILOU_LOG(Display, "\tPixelShader {}", ShaderType->Name);
                     CompilePixelMaterialShader(
                         MaterialParsedResult, ShaderParameter, 
                         ShaderMap->PixelShaderMap);

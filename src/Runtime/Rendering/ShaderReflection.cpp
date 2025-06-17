@@ -1,6 +1,9 @@
 #include <spirv_reflect.h>
 #include <shaderc/shaderc.h>
 #include "ShaderReflection.h"
+#include "DynamicRHI.h"
+#include "RHIResources.h"
+#include "ShaderType.h"
 
 namespace nilou {
 
@@ -105,5 +108,82 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, Desc
 }
 
 } // namespace shader_reflection
+
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, FNamedDescriptorSetLayout>& OutLayouts, std::string& OutMessage)
+{
+
+    shaderc_compiler_t shader_compiler = shaderc_compiler_initialize();
+    shaderc_shader_kind shader_kind;
+    switch (ShaderStage) 
+    {
+    case EShaderStage::Vertex:
+        shader_kind = shaderc_glsl_vertex_shader;
+        break;
+    case EShaderStage::Pixel:
+        shader_kind = shaderc_glsl_fragment_shader;
+        break;
+    case EShaderStage::Compute:
+        shader_kind = shaderc_glsl_compute_shader;
+        break;
+    default:
+        Ncheck(0);
+    };
+    shaderc_compilation_result_t compile_result = shaderc_compile_into_spv(shader_compiler, 
+        ShaderCode.c_str(), ShaderCode.size(), shader_kind, 
+        "", "main", nullptr);
+    shaderc_compilation_status status = shaderc_result_get_compilation_status(compile_result);
+    if (status != shaderc_compilation_status_success)
+    {
+        OutMessage = shaderc_result_get_error_message(compile_result);
+        NILOU_LOG(Error, "Shader compilation error occured during shader reflection! Error message: {}", OutMessage);
+        return false;
+    }
+    size_t codeSize = shaderc_result_get_length(compile_result);
+    const char* pCode = shaderc_result_get_bytes(compile_result);
+
+    SpvReflectShaderModule module;
+    SpvReflectResult result = spvReflectCreateShaderModule(codeSize, pCode, &module);
+    Ncheck(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    uint32_t ubo_count = 0;
+    result = spvReflectEnumerateDescriptorBindings(&module, &ubo_count, NULL);
+    Ncheck(result == SPV_REFLECT_RESULT_SUCCESS);
+    auto input_ubos = std::vector<SpvReflectDescriptorBinding*>(ubo_count);
+    result = spvReflectEnumerateDescriptorBindings(&module, &ubo_count, input_ubos.data());
+    Ncheck(result == SPV_REFLECT_RESULT_SUCCESS);
+
+    std::unordered_map<uint32, std::vector<RHIDescriptorSetLayoutBinding>> BindingsPerSet;
+    for (SpvReflectDescriptorBinding* input_ubo : input_ubos)
+    {
+        FNamedDescriptorSetLayout& Layout = OutLayouts[input_ubo->set];
+        std::vector<RHIDescriptorSetLayoutBinding>& Bindings = BindingsPerSet[input_ubo->set];
+        RHIDescriptorSetLayoutBinding Binding;
+        Binding.BindingIndex = input_ubo->binding;
+        Binding.DescriptorType = static_cast<EDescriptorType>(input_ubo->descriptor_type);
+        Binding.DescriptorCount = 1;
+        Bindings.push_back(Binding);
+        std::string BindingName = input_ubo->name;
+        if (BindingName == "")
+        {
+            BindingName = input_ubo->block.name;
+        }
+        if (BindingName == "")
+        {
+            BindingName = input_ubo->block.type_description->type_name;
+        }
+        Ncheck(Layout.NameToBinding.find(BindingName) == Layout.NameToBinding.end());
+        Layout.NameToBinding[BindingName] = Binding;
+    }
+    for (auto& [SetIndex, Bindings] : BindingsPerSet)
+    {
+        FNamedDescriptorSetLayout& Layout = OutLayouts[SetIndex];
+        Layout.LayoutRHI = RHICreateDescriptorSetLayout(Bindings);
+    }
+
+    spvReflectDestroyShaderModule(&module);
+    shaderc_compiler_release(shader_compiler);
+
+    return true;
+}
 
 } // namespace nilou

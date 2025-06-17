@@ -37,6 +37,26 @@ namespace nilou {
         vkFreeCommandBuffers(Device, Pool, 1, &Handle);
     }
 
+    void VulkanCommandBuffer::SetViewport(int32 X, int32 Y, int32 Width, int32 Height)
+    {
+        VkViewport Viewport{};
+        Viewport.x = X;
+        Viewport.y = Y;
+        Viewport.width = (float)Width;
+        Viewport.height = (float)Height;
+        Viewport.minDepth = 0.0f;
+        Viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(Handle, 0, 1, &Viewport);
+    }
+
+    void VulkanCommandBuffer::SetScissor(int32 X, int32 Y, int32 Width, int32 Height)
+    {
+        VkRect2D Scissor{};
+        Scissor.offset = VkOffset2D{X, Y};
+        Scissor.extent = VkExtent2D{(uint32)Width, (uint32)Height};
+        vkCmdSetScissor(Handle, 0, 1, &Scissor);
+    }
+
     void VulkanCommandBuffer::BeginRenderPass(FRHIRenderPassInfo& Info)
     {
         FVulkanDynamicRHI* DynamicRHI = FVulkanDynamicRHI::Get();
@@ -75,6 +95,7 @@ namespace nilou {
     void VulkanCommandBuffer::EndRenderPass()
     {
         State = EState::IsInsideBegin;
+        vkCmdEndRenderPass(Handle);
     }
 
     void VulkanCommandBuffer::DrawArrays(uint32 VertexCount, uint32 InstanceCount, uint32 FirstVertex, uint32 FirstInstance)
@@ -193,13 +214,13 @@ namespace nilou {
     void VulkanCommandBuffer::CopyBufferToImage(
         RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
         int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
-        uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer)
+        uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer, int32 NumArrayLayers)
     {
         VkBufferImageCopy Region{};
         Region.imageSubresource.aspectMask = GetFullAspectMask(DstTexture->GetFormat());
         Region.imageSubresource.mipLevel = MipmapLevel;
         Region.imageSubresource.baseArrayLayer = BaseArrayLayer;
-        Region.imageSubresource.layerCount = 1;
+        Region.imageSubresource.layerCount = NumArrayLayers;
         Region.imageOffset.x = Xoffset;
         Region.imageOffset.y = Yoffset;
         Region.imageOffset.z = Zoffset;

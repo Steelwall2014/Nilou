@@ -37,11 +37,8 @@ public:
     static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name, const T* Data)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
-        Desc.NumElements = 1;
-        Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
         Buffer->bTransient = false;
-        Buffer->ResourceRHI = RHICreateBuffer(Desc.GetStride(), Desc.GetSize(), EBufferUsageFlags::UniformBuffer, Data);
         return Buffer;
     }
 
@@ -67,8 +64,6 @@ public:
     TRDGUniformBuffer<T>* CreateUniformBuffer(const std::string& Name)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
-        Desc.NumElements = 1;
-        Desc.BytesPerElement = sizeof(T);
         TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
         Buffer->bTransient = true;
         Buffers.push_back(Buffer);
@@ -232,10 +227,6 @@ private:
         uint64 DataSize;
     };
     std::vector<FUploadedBuffer> UploadedBuffers;
-
-	/** Tracks external resources to their registered render graph counterparts for de-duplication. */
-	std::unordered_map<RHITexture*, RDGTexture*> ExternalTextures;
-	std::unordered_map<RHIBuffer*,  RDGBuffer*>  ExternalBuffers;
 
     static std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> DescriptorSetPools;
 

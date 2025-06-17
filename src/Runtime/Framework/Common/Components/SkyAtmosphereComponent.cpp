@@ -126,7 +126,6 @@ namespace nilou {
             Desc.NumMips = 1;
             Desc.SizeX = TRANSMITTANCE_TEXTURE_WIDTH;
             Desc.SizeY = TRANSMITTANCE_TEXTURE_HEIGHT;
-            Desc.Flags = TexCreate_UAV;
             TransmittanceLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere TransmittanceLUT", Desc);
 
             Desc.SizeX = IRRADIANCE_TEXTURE_WIDTH;

@@ -27,6 +27,11 @@ namespace nilou {
         void AddMeshDrawCommand(const FMeshDrawCommand &MeshDrawCommand);
         void Clear();
         void DispatchDraw(RHICommandList& RHICmdList) const;
+
+        std::vector<RDGBuffer*> GetVertexBuffers() const;
+        std::vector<RDGBuffer*> GetIndexBuffers() const;
+        std::vector<RDGDescriptorSet*> GetDescriptorSets() const;
+
     private:
         std::vector<FMeshDrawCommand> MeshCommands;
     };

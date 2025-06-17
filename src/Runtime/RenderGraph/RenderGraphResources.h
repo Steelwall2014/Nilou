@@ -237,7 +237,26 @@ public:
         : RDGResource(InName, ERDGResourceType::TextureView)
         , Texture(InTexture)
         , Desc(InDesc)
-    { }
+    { 
+        SubresourceRange.MipIndex = InDesc.BaseMipLevel;
+        SubresourceRange.NumMips = InDesc.LevelCount;
+        SubresourceRange.ArraySlice = InDesc.BaseArrayLayer;
+        SubresourceRange.NumArraySlices = InDesc.LayerCount;
+        SubresourceRange.PlaneSlice = 0;
+        SubresourceRange.NumPlaneSlices = 1;
+        if (IsStencilFormat(InTexture->Desc.Format))
+        {
+            if (IsStencilFormat(InDesc.Format))
+            {
+                SubresourceRange.PlaneSlice = 0;
+                SubresourceRange.NumPlaneSlices = 2;
+            }
+            else
+            {
+                Ncheckf(false, "Not supported");
+            }
+        }
+    }
 
     RDGTexture* Texture;
     const RDGTextureViewDesc Desc;
@@ -246,9 +265,9 @@ public:
 
     RHITextureView* GetRHI() const { return static_cast<RHITextureView*>(ResourceRHI.GetReference()); }
 
-    uint32 GetSizeX() const { return GetParent()->Desc.SizeX; }
-    uint32 GetSizeY() const { return GetParent()->Desc.SizeY; }
-    uint32 GetSizeZ() const { return GetParent()->Desc.SizeZ; }
+    uint32 GetSizeX() const { return GetParent()->Desc.SizeX >> Desc.BaseMipLevel; }
+    uint32 GetSizeY() const { return GetParent()->Desc.SizeY >> Desc.BaseMipLevel; }
+    uint32 GetSizeZ() const { return GetParent()->Desc.SizeZ >> Desc.BaseMipLevel; }
 
     const FRDGTextureSubresourceRange& GetSubresourceRange() const { return SubresourceRange; }
 

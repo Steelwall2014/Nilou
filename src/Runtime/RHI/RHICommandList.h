@@ -42,7 +42,7 @@ namespace nilou {
         virtual void CopyBufferToImage(
             RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
             int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
-            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) = 0;
+            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer, int32 NumArrayLayers) = 0;
         // virtual void CopyImageToBuffer(
         //     RHITexture* SrcTexture, RHIBuffer* DstBuffer, 
         //     int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
@@ -50,8 +50,8 @@ namespace nilou {
         virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) = 0;
 
         /* Set state commands */
-        virtual void SetViewport(int32 Width, int32 Height) = 0;
-        virtual void SetScissor(int32 Width, int32 Height) = 0;
+        virtual void SetViewport(int32 X, int32 Y, int32 Width, int32 Height) = 0;
+        virtual void SetScissor(int32 X, int32 Y, int32 Width, int32 Height) = 0;
         virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) = 0;
         virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) = 0;
         // TODO: 测试一下到底用map还是unordered_map

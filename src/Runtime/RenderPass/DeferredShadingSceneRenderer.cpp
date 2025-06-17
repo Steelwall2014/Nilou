@@ -52,6 +52,55 @@ namespace nilou {
         }
     }
 
+    template<typename T>
+    void AddUnique(std::vector<T>& Vector, const T& Value)
+    {
+        if (std::find(Vector.begin(), Vector.end(), Value) == Vector.end())
+        {
+            Vector.push_back(Value);
+        }
+    }
+
+    std::vector<RDGBuffer*> FParallelMeshDrawCommands::GetVertexBuffers() const
+    {
+        std::vector<RDGBuffer*> VertexBuffers;
+        for (int i = 0; i < MeshCommands.size(); i++)
+        {
+            const FMeshDrawCommand& MeshDrawCommand = MeshCommands[i];
+            for (int j = 0; j < MeshDrawCommand.VertexStreams.size(); j++)
+            {
+                const FVertexInputStream& VertexStream = MeshDrawCommand.VertexStreams[j];
+                AddUnique(VertexBuffers, VertexStream.VertexBuffer);
+            }
+        }
+        return VertexBuffers;
+    }
+
+    std::vector<RDGBuffer*> FParallelMeshDrawCommands::GetIndexBuffers() const
+    {
+        std::vector<RDGBuffer*> IndexBuffers;
+        for (int i = 0; i < MeshCommands.size(); i++)
+        {
+            const FMeshDrawCommand& MeshDrawCommand = MeshCommands[i];
+            AddUnique(IndexBuffers, MeshDrawCommand.IndexBuffer);
+        }
+        return IndexBuffers;
+    }
+
+    std::vector<RDGDescriptorSet*> FParallelMeshDrawCommands::GetDescriptorSets() const
+    {
+        std::vector<RDGDescriptorSet*> DescriptorSets;
+        for (int i = 0; i < MeshCommands.size(); i++)
+        {
+            const FMeshDrawCommand& MeshDrawCommand = MeshCommands[i];
+            for (auto [SetIndex, DescriptorSet] : MeshDrawCommand.ShaderBindings.DescriptorSets)
+            {
+                AddUnique(DescriptorSets, DescriptorSet);
+            }
+        }
+        return DescriptorSets;
+    }
+
     FSceneRenderer::FScreenQuadPositionVertexBuffer FSceneRenderer::PositionVertexBuffer;
     FSceneRenderer::FScreenQuadUVVertexBuffer FSceneRenderer::UVVertexBuffer;
     FRHIVertexDeclaration* FSceneRenderer::ScreenQuadVertexDeclaration;
@@ -141,6 +190,7 @@ namespace nilou {
                     TextureDesc.ArraySize = 1;
                 }
                 Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", RDGBufferDesc(BufferSize, EBufferUsageFlags::UniformBuffer));
+                Resource.DepthArray = Graph.CreateTexture(NFormat("DepthArray {}", ViewIndex), TextureDesc);
                 for (int i = 0; i < TextureDesc.ArraySize; i++)
                 {
                     RDGTextureViewDesc TextureViewDesc;
@@ -150,7 +200,7 @@ namespace nilou {
                     TextureViewDesc.BaseArrayLayer = i;
                     TextureViewDesc.LayerCount = 1;
                     TextureViewDesc.ViewType = ETextureDimension::Texture2D;
-                    RDGTextureView* DepthArrayView = Graph.CreateTextureView("", Resource.DepthArray, TextureViewDesc);
+                    RDGTextureView* DepthArrayView = Graph.CreateTextureView(NFormat("DepthArrayView {}", i), Resource.DepthArray, TextureViewDesc);
                     Resource.DepthViews.push_back(DepthArrayView);
                 }
                 LightInfo.ShadowMapResources.push_back(Resource);

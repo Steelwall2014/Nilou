@@ -383,6 +383,7 @@ namespace nilou {
         ShaderMap->DescriptorSetLayout.clear();
         DescriptorSets.clear();
         std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
+        NILOU_LOG(Display, "Compile the shaderMap of Material {}", Material->ShaderVirtualPath);
         FShaderCompiler::CompileMaterialShader(ShaderMap.get(), PreprocessResult);
 
         // Build reflection, then we can set uniforms by name.

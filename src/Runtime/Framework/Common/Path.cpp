@@ -2,9 +2,25 @@
 
 namespace nilou {
 
+    static std::string GetNormalizedProjectPath()
+    {
+        std::string path = PROJECT_DIR;
+        std::string::size_type pos = 0;
+        while ((pos = path.find("//", pos)) != std::string::npos) {
+            path.replace(pos, 2, "/");
+            pos += 1;
+        }
+        pos = 0;
+        while ((pos = path.find("\\\\", pos)) != std::string::npos) {
+            path.replace(pos, 2, "/");
+            pos += 1;
+        }
+        return path;
+    }
+
     std::filesystem::path FPath::ProjectDir()
     {
-        static const std::filesystem::path ProjectDirectory = PROJECT_DIR;
+        static const std::filesystem::path ProjectDirectory = GetNormalizedProjectPath();
         return ProjectDirectory;
     }
 

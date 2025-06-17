@@ -15,7 +15,7 @@ FRHIVertexDeclaration* GetScreenQuadVertexDeclaration()
     {
         FVertexDeclarationElementList Elements;
         Elements[0] = FVertexElement(0, 0, EVertexElementType::Float4, 0, sizeof(FScreenQuadVertex));
-        Elements[1] = FVertexElement(0, 0, EVertexElementType::Float2, 1, sizeof(FScreenQuadVertex));
+        Elements[1] = FVertexElement(0, sizeof(vec4), EVertexElementType::Float2, 1, sizeof(FScreenQuadVertex));
         ScreenQuadVertexDeclaration = RHICreateVertexDeclaration(Elements);
     }
     return ScreenQuadVertexDeclaration;

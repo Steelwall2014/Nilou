@@ -10,8 +10,8 @@ namespace nilou {
 RDGTexture::RDGTexture(std::string InName, const RDGTextureDesc& InDesc)
 	: RDGResource(InName, ERDGResourceType::Texture)
 	, Desc(InDesc) 
-	, Layout(InDesc)
-	, WholeRange(Layout)
+	, Layout(FRDGTextureSubresourceLayout(InDesc))
+	, WholeRange(FRDGTextureSubresourceRange(Layout))
 	, SubresourceCount(Layout.GetSubresourceCount())
 { 
 	SubresourceStates.resize(SubresourceCount);

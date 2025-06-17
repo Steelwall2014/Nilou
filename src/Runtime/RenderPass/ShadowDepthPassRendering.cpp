@@ -14,7 +14,7 @@ constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
 namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/GlobalShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
+    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
     void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
@@ -307,9 +307,9 @@ namespace nilou {
                     Graph.AddGraphicsPass(
                         PassDesc,
                         RenderTargets,
-                        { },
-                        { },
-                        { DescriptorSet_VS },
+                        DrawCommands.GetIndexBuffers(),
+                        DrawCommands.GetVertexBuffers(),
+                        DrawCommands.GetDescriptorSets(),
                         [=](RHICommandList& RHICmdList)
                         {
                             DrawCommands.DispatchDraw(RHICmdList);

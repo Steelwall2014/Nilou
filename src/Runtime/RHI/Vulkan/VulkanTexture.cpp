@@ -56,6 +56,11 @@ static VkSamplerAddressMode TranslateWrapMode(ETextureWrapModes WrapMode)
     return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
 }
 
+static VkImageUsageFlags TranslateTextureUsageToVkUsageFlags(ETextureUsageFlags Usage)
+{
+    return (VkImageUsageFlags)Usage;
+}
+
 VulkanTexture::VulkanTexture(
         VkImage InImage,
         VkDeviceMemory InMemory,
@@ -135,48 +140,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     
-	imageInfo.usage = 0;
-	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	//@TODO: should everything be created with the source bit?
-	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	imageInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	if (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_Presentable))
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;		
-	}
-	else if (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable))
-	{
-		if (EnumHasAllFlags(CreateInfo.Flags, TexCreate_InputAttachmentRead))
-		{
-			imageInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-		}
-		imageInfo.usage |= (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_RenderTargetable) ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// if (EnumHasAllFlags(InFlags, TexCreate_Memoryless) && InDevice.GetDeviceMemoryManager().SupportsMemoryless())
-		// {
-		// 	imageInfo.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-		// 	// Remove the transfer and sampled bits, as they are incompatible with the transient bit.
-		// 	imageInfo.usage &= ~(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		// }
-	}
-	else if (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_DepthStencilResolveTarget))
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	}
-	else if (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_ResolveTargetable))
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	}
-	
-	if (EnumHasAnyFlags(CreateInfo.Flags, TexCreate_UAV))
-	{
-		//cannot have the storage bit on a memoryless texture
-		assert(!EnumHasAnyFlags(CreateInfo.Flags, TexCreate_Memoryless));
-		imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-	}
+	imageInfo.usage = TranslateTextureUsageToVkUsageFlags(CreateInfo.Usage);
 
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;

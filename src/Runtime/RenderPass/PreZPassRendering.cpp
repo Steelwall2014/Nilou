@@ -6,7 +6,7 @@
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FPreZPassVS, "/Shaders/MaterialShaders/PreZPassVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FPreZPassPS, "/Shaders/GlobalShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
+    IMPLEMENT_SHADER_TYPE(FPreZPassPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
     void FDeferredShadingSceneRenderer::RenderPreZPass(RenderGraph& Graph)
     {
@@ -20,17 +20,11 @@ namespace nilou {
             RDGRenderTargets RenderTargets;
             RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
-            std::vector<RDGDescriptorSet*> DescriptorSets;
             RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FPreZPassVS>(0, VERTEX_SHADER_SET_INDEX);
             DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-            DescriptorSets.push_back(DescriptorSet_VS);
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
-                for (auto& [SetIndex, DescriptorSet] : Mesh.MaterialRenderProxy->DescriptorSets)
-                {
-                    DescriptorSets.push_back(DescriptorSet);
-                }
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
@@ -59,9 +53,9 @@ namespace nilou {
             Graph.AddGraphicsPass(
                 PassDesc,
                 RenderTargets,
-                { },
-                { },
-                DescriptorSets,
+                DrawCommands.GetIndexBuffers(),
+                DrawCommands.GetVertexBuffers(),
+                DrawCommands.GetDescriptorSets(),
                 [=](RHICommandList& RHICmdList)
                 {
                     DrawCommands.DispatchDraw(RHICmdList);

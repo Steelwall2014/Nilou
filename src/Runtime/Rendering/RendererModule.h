@@ -6,7 +6,7 @@ namespace nilou {
     class FRendererModule
     {
     public:
-        void BeginRenderingViewFamily(FSceneViewFamily& ViewFamily);
+        void BeginRenderingViewFamily(FSceneViewFamily* ViewFamily);
     };
 
     FRendererModule* GetRendererModule();

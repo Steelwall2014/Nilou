@@ -58,6 +58,9 @@ target("Nilou")
 
     add_defines([[PROJECT_DIR=R"($(projectdir))"]])
     add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
+    if (is_mode("debug")) then
+        add_defines("NILOU_DEBUG")
+    end
     add_includedirs(
         "External/include", 
         "src/Runtime/Framework", 

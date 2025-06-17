@@ -323,7 +323,7 @@ VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTarg
     // fill in the attachment descriptions and references
     std::vector<VkAttachmentDescription> AttachmentDescriptions;
     std::vector<VkAttachmentReference> ColorReferences;
-    VkAttachmentReference DepthStencilReference;
+    VkAttachmentReference DepthStencilReference{};
     {
         for (auto [Index, Attachment] : Enumerate(RTLayout.ColorAttachments))
         {

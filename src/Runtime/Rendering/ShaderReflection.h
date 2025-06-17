@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include "Platform.h"
 #include "RHIDefinitions.h"
@@ -228,5 +229,7 @@ private:
 bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, DescriptorSetLayouts& OutLayouts, std::string& OutMessage);
 
 } // namespace shader_reflection
+
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, struct FNamedDescriptorSetLayout>& OutLayouts, std::string& OutMessage);
 
 } // namespace nilou

@@ -25,12 +25,12 @@ namespace nilou {
         virtual void CopyBufferToImage(
             RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
             int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
-            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer) override;
+            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer, int32 NumArrayLayers) override;
         virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) override NILOU_NOT_IMPLEMENTED;
 
         /* Set state commands */
-        virtual void SetViewport(int32 Width, int32 Height) override NILOU_NOT_IMPLEMENTED;
-        virtual void SetScissor(int32 Width, int32 Height) override NILOU_NOT_IMPLEMENTED;
+        virtual void SetViewport(int32 X, int32 Y, int32 Width, int32 Height) override;
+        virtual void SetScissor(int32 X, int32 Y, int32 Width, int32 Height) override;
         virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) override;
         virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) override;
         virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;

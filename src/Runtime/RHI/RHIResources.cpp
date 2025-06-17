@@ -107,6 +107,11 @@ namespace nilou {
 	{ 
 
 	}
+
+	RHIDescriptorSetLayout* RHIDescriptorSet::GetLayout() const
+	{
+		return Pool->Layout;
+	}
 }
 
 namespace std {

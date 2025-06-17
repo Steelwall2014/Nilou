@@ -93,12 +93,6 @@ FRDGPooledTextureRef FRDGTexturePool::FindFreeElement(RDGTextureDesc Desc, const
 	FRDGPooledTextureRef Found = nullptr;
 	uint32 FoundIndex = -1;
 
-	// FastVRAM is no longer supported by the render target pool.
-	EnumRemoveFlags(Desc.Flags, ETextureCreateFlags::FastVRAM | ETextureCreateFlags::FastVRAMPartialAlloc);
-
-	// We always want SRV access
-	Desc.Flags |= TexCreate_ShaderResource;
-
 	const uint32 DescHash = GetTypeHash(Desc);
 
 	std::lock_guard<std::recursive_mutex> Lock(Mutex);

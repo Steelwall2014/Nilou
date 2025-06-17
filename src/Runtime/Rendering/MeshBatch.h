@@ -30,8 +30,9 @@ namespace nilou {
         uint32 NumInstances;
 
         FMeshBatchElement()
-            : IndexBuffer(nullptr)
+            : PrimitiveUniformBuffer(nullptr)
             , VertexFactory(nullptr)
+            , IndexBuffer(nullptr)
             , IndirectArgsBuffer(nullptr)
             , IndirectArgsOffset(0)
             , FirstIndex(0)
@@ -60,6 +61,7 @@ namespace nilou {
             //, bWireframe(false)
             , bSelectable(true)
             , bEnableReflectionProbe(true)
+            , Elements(std::vector<FMeshBatchElement>(1))
         { }
     };
 

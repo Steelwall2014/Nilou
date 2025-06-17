@@ -66,6 +66,7 @@ namespace nilou {
 		{ }
 		std::string DebugName;
 		shader_reflection::DescriptorSetLayouts Reflection;
+		std::unordered_map<uint32, class RHIDescriptorSetLayout*> DescriptorSetLayouts;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -192,7 +193,7 @@ namespace nilou {
 		uint32 NumMips = 1;
 		EPixelFormat Format = PF_Unknown;
 		ETextureDimension TextureType = ETextureDimension::TextureDimensionsNum;
-		ETextureCreateFlags Flags = ETextureCreateFlags::None;
+		ETextureUsageFlags Usage = ETextureUsageFlags::None;
 
 		bool operator==(const RHITextureDesc& Other) const = default;
 	};
@@ -207,7 +208,7 @@ namespace nilou {
 		Hash = HashCombine(Hash, GetTypeHash(Desc.NumMips));
 		Hash = HashCombine(Hash, GetTypeHash(Desc.Format));
 		Hash = HashCombine(Hash, GetTypeHash(static_cast<int32>(Desc.TextureType)));
-		Hash = HashCombine(Hash, GetTypeHash(static_cast<uint64>(Desc.Flags)));
+		Hash = HashCombine(Hash, GetTypeHash(static_cast<uint64>(Desc.Usage)));
 		return Hash;
 	}
 
@@ -309,9 +310,9 @@ namespace nilou {
 		RHITextureViewDesc Desc;
 		RHITexture* Texture;
 
-		int32 GetSizeX() const { return Texture->GetSizeX(); }
-		int32 GetSizeY() const { return Texture->GetSizeY(); }
-		int32 GetSizeZ() const { return Texture->GetSizeZ(); }
+		int32 GetSizeX() const { return Texture->GetSizeX() >> Desc.BaseMipLevel; }
+		int32 GetSizeY() const { return Texture->GetSizeY() >> Desc.BaseMipLevel; }
+		int32 GetSizeZ() const { return Texture->GetSizeZ() >> Desc.BaseMipLevel; }
 	};
 	using RHITextureViewRef = TRefCountPtr<RHITextureView>;
 
@@ -366,6 +367,20 @@ namespace nilou {
 		RHIRenderTargetLayout RTLayout;
 
 		bool operator==(const FGraphicsPipelineStateInitializer &Other) const = default;
+
+		uint32 ComputeNumValidRenderTargets() const
+		{
+			int32 LastValidIndex = -1;
+			for (int32 i = MaxSimultaneousRenderTargets-1; i >= 0; i--)
+			{
+				if (RTLayout.ColorAttachments[i].Format != PF_Unknown)
+				{
+					LastValidIndex = i;
+					break;
+				}
+			}
+			return LastValidIndex + 1;
+		}
 	};
 
 	using EDescriptorType = shader_reflection::EDescriptorType;
@@ -561,6 +576,8 @@ namespace nilou {
         virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) { }
 
 		RHIDescriptorPool* GetPool() const { return Pool; }
+
+		RHIDescriptorSetLayout* GetLayout() const;
 
 		RHIDescriptorPool* Pool;
     };

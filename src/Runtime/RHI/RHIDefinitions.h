@@ -116,10 +116,7 @@ enum class EBufferUsageFlags : uint32
 	VertexBuffer = 0x00000080,
 	IndirectBuffer = 0x00000100,
 };
-constexpr EBufferUsageFlags operator|(EBufferUsageFlags a, EBufferUsageFlags b)
-{
-	return static_cast<EBufferUsageFlags>(static_cast<int>(a) | static_cast<int>(b));
-}
+ENUM_CLASS_FLAGS(EBufferUsageFlags)
 
 enum EUniformBufferUsage
 {
@@ -555,6 +552,22 @@ ENUM_CLASS_FLAGS(ETextureCreateFlags);
 #define TexCreate_External               		 ETextureCreateFlags::External
 #define TexCreate_MultiGPUGraphIgnore            ETextureCreateFlags::MultiGPUGraphIgnore
 
+// Keep the same with VkImageUsageFlagBits
+enum class ETextureUsageFlags : uint32
+{
+	None = 0,
+	TransferSrc = 0x00000001,
+	TransferDst = 0x00000002,
+	Sampled = 0x00000004,
+	Storage = 0x00000008,
+	ColorAttachment = 0x00000010,
+	DepthStencilAttachment = 0x00000020,
+	TransientAttachment = 0x00000040,
+	InputAttachment = 0x00000080,
+	Max = 0x7FFFFFFF
+};
+ENUM_CLASS_FLAGS(ETextureUsageFlags)
+
 // Keep the same with VkAccessFlagBits
 enum class ERHIAccess : uint32
 {
@@ -658,6 +671,7 @@ enum class ERHIPipeline : uint8
 	Copy = 2,
 
 	Num = 3,
+	None = Num,
 };
 
 inline constexpr uint32 GetRHIPipelineCount()

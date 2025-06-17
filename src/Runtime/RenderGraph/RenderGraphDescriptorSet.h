@@ -64,15 +64,15 @@ private:
 
     struct DescriptorBufferInfo
     {
-        RDGBuffer* Buffer;
-        uint32 Offset;
-        uint32 Range;
+        RDGBuffer* Buffer = nullptr;
+        uint32 Offset = 0;
+        uint32 Range = 0;
     };
 
     struct DescriptorImageInfo
     {
-        RHISamplerState* SamplerState;
-        RDGTextureView* Texture;
+        RHISamplerState* SamplerState = nullptr;
+        RDGTextureView* Texture = nullptr;
     };
 
     struct WriteDescriptorSet

@@ -346,7 +346,7 @@ int FVulkanDynamicRHI::Initialize()
         TextureInfo.SizeX = swapChainExtent.width;
         TextureInfo.SizeY = swapChainExtent.height;
         TextureInfo.Format = depthImageFormat;
-        TextureInfo.Flags = TexCreate_DepthStencilTargetable | TexCreate_DepthStencilResolveTarget;
+        TextureInfo.Usage = ETextureUsageFlags::DepthStencilAttachment;
         DepthImage = RHICreateTexture(TextureInfo, "Vulkan Render to Screen DepthStencil");
         FRHITextureViewCreateInfo CreateInfo;
         CreateInfo.ViewType = ETextureDimension::Texture2D;
@@ -493,14 +493,25 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
                 Bindings.push_back(LayoutBinding);
             }
             RHIDescriptorSetLayout* DescriptorSetLayout = RHICreateDescriptorSetLayout(Bindings);
-            PipelineLayout->DescriptorSetLayouts.push_back(DescriptorSetLayout);
+            if (SetIndex >= PipelineLayout->DescriptorSetLayouts.size())
+                PipelineLayout->DescriptorSetLayouts.resize(SetIndex + 1);
+            Ncheck(PipelineLayout->DescriptorSetLayouts[SetIndex] == nullptr);
+            PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout;
         }
     }
 
-    std::vector<VkDescriptorSetLayout> SetLayoutHandles;
-    for (RHIDescriptorSetLayout* DescriptorSetLayout : PipelineLayout->DescriptorSetLayouts)
+    // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
+    // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
+    static RHIDescriptorSetLayout* DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles(PipelineLayout->DescriptorSetLayouts.size(), VK_NULL_HANDLE);
+    for (int i = 0; i < PipelineLayout->DescriptorSetLayouts.size(); i++)
     {
-        SetLayoutHandles.push_back(ResourceCast(DescriptorSetLayout)->Handle);
+        RHIDescriptorSetLayout* DescriptorSetLayout = PipelineLayout->DescriptorSetLayouts[i];
+        if (!DescriptorSetLayout)
+        {
+            DescriptorSetLayout = DummyDescriptorSetLayout;
+        }
+        SetLayoutHandles[i] = ResourceCast(DescriptorSetLayout)->Handle;
     }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -573,7 +584,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = MaxSimultaneousRenderTargets;
+    colorBlending.attachmentCount = Initializer.ComputeNumValidRenderTargets();
     colorBlending.pAttachments = BlendState->BlendStates;
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
@@ -811,6 +822,7 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
             CurrBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
             CurrBinding.stride = Element.Stride;
             bindingDescriptions.push_back(CurrBinding);
+            BindingMask |= (1 << Element.StreamIndex);
         }
         VkVertexInputAttributeDescription AttrDesc;
         AttrDesc.binding = Element.StreamIndex;
