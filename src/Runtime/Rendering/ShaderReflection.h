@@ -2,8 +2,10 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <shaderc/shaderc.h>
 #include "Platform.h"
 #include "RHIDefinitions.h"
+#include "Templates/RefCounting.h"
 
 namespace nilou {
 
@@ -153,6 +155,8 @@ struct DescriptorSetLayoutBinding
     ImageTraits Image;
     ArrayTraits Array;
 
+    bool bReadOnly;
+    bool bWriteOnly;
 };
 
 struct DescriptorSetLayout
@@ -230,6 +234,6 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, Desc
 
 } // namespace shader_reflection
 
-bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, struct FNamedDescriptorSetLayout>& OutLayouts, std::string& OutMessage);
-
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
+bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
 } // namespace nilou

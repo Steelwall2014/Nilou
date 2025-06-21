@@ -45,12 +45,22 @@ namespace nilou {
             return nullptr;
         }
 
+        const std::string& GetName() const { return ShaderName; }
+
         RHIShaderRef ShaderRHI;
         EShaderStage ShaderStage;
         EShaderMetaType ShaderMetaType; // Material or Global
         std::string ShaderName;
         std::string Code;
-        shader_reflection::DescriptorSetLayouts DescriptorSetLayouts;
+
+        const std::unordered_map<uint32, RHIDescriptorSetLayoutRef>& GetDescriptorSetLayouts() const
+        {
+            return ShaderRHI->DescriptorSetLayouts;
+        }
+        RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
+        {
+            return ShaderRHI->DescriptorSetLayouts[SetIndex];
+        }
 
         virtual void InitRHI();
 

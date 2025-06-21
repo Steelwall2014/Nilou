@@ -41,9 +41,9 @@ namespace nilou {
         FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanGaussionSpectrumShader>(0, 0);
-        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters, ERHIAccess::ShaderResourceReadWrite);
-        DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GaussionSpectrumShader DescriptorSet", GaussionSpectrumShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters);
+        DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"CreateGaussionSpectrum"};
         Graph.AddComputePass(
@@ -68,12 +68,12 @@ namespace nilou {
         FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
         
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementSpectrumShader>(0, 0);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementSpectrumShader DescriptorSet", DisplacementSpectrumShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
-        DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
-        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
-        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
-        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"CreateDisplacementSpectrum"};
         Graph.AddComputePass(
@@ -99,10 +99,10 @@ namespace nilou {
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanFastFourierTransformShader>(PermutationVector.ToDimensionValueId(), 0);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
-        DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView(), ERHIAccess::ShaderResourceRead);
-        DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView(), ERHIAccess::ShaderResourceWrite);
+        DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"FastFourierTransform"};
         Graph.AddComputePass(
@@ -126,11 +126,11 @@ namespace nilou {
         FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementShader>(0, 0);
-        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
-        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
-        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
-        DescriptorSet->SetStorageImage("DisplaceRT", OutDisplaceRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementShader DescriptorSet", DisplacementShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("DisplaceRT", OutDisplaceRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"CreateDisplacement"};
         Graph.AddComputePass(
@@ -153,11 +153,11 @@ namespace nilou {
         FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanNormalFoamShader>(0, 0);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("NormalFoamShader DescriptorSet", NormalFoamShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
-        DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView(), ERHIAccess::ShaderResourceRead  | ERHIAccess::ShaderResourceWrite);
-        DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
-        DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView(), ERHIAccess::ShaderResourceReadWrite);
+        DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView());
+        DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"CreateNormalFoam"};
         Graph.AddComputePass(

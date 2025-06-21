@@ -57,18 +57,6 @@ namespace nilou {
     //     std::string SourceCodeBody;
     // };
 
-	struct FNamedDescriptorSetLayout
-	{
-        FNamedDescriptorSetLayout() { }
-        FNamedDescriptorSetLayout(RHIDescriptorSetLayout* InLayoutRHI, std::map<std::string, RHIDescriptorSetLayoutBinding> InNameToBinding)
-            : LayoutRHI(InLayoutRHI)
-            , NameToBinding(InNameToBinding)
-        { }
-		RHIDescriptorSetLayout* LayoutRHI = nullptr;
-		std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
-        RHIDescriptorSetLayout* GetRHI() const { return LayoutRHI; }
-	};
-
     class FShaderTypeBase
     {
     public:
@@ -90,27 +78,6 @@ namespace nilou {
         {
             return HashedName;
         }
-
-        FNamedDescriptorSetLayout GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) const
-        {
-            if (DescriptorSetLayouts.size() <= PermutationId)
-            {
-                return {};
-            }
-            auto &DescriptorSetLayoutMap = DescriptorSetLayouts[PermutationId];
-            auto It = DescriptorSetLayoutMap.find(SetIndex);
-            if (It != DescriptorSetLayoutMap.end())
-            {
-                return It->second;
-            }
-            return {};
-        }
-
-        // Descriptor set layouts of every set index for each permutation
-        // For FMaterialShader and FVertexFactory, the map only contains one element, 
-        // and its key can only be VERTEX_SHADER_SET_INDEX, PIXEL_SHADER_SET_INDEX or VERTEX_FACTORY_SET_INDEX.
-        // For FGlobalShader, the map contains all set indices.
-        std::vector<std::map<uint32, FNamedDescriptorSetLayout>> DescriptorSetLayouts;
 
     };
 

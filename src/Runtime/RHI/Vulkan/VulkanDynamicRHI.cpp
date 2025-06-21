@@ -479,39 +479,30 @@ static VkShaderStageFlagBits TranslateShaderStageFlagBits(EShaderStage StageFlag
 RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders, const std::vector<RHIPushConstantRange>& PushConstantRanges)
 {
     VulkanPipelineLayoutRef PipelineLayout = new VulkanPipelineLayout(Device->Handle);
+    uint32 MaxSetIndex = 0;
     for (RHIShader* shader : shaders)
     {
-        for (auto& [SetIndex, SetLayout] : shader->Reflection)
+        for (auto& [SetIndex, DescriptorSetLayout] : shader->DescriptorSetLayouts)
         {
-            std::vector<RHIDescriptorSetLayoutBinding> Bindings;
-            for (auto& [BindingIndex, Descriptor] : SetLayout)
+            MaxSetIndex = std::max(MaxSetIndex, SetIndex);
+            auto Found = PipelineLayout->DescriptorSetLayouts.find(SetIndex);
+            if (Found != PipelineLayout->DescriptorSetLayouts.end())
             {
-                RHIDescriptorSetLayoutBinding LayoutBinding{};
-                LayoutBinding.BindingIndex = BindingIndex;
-                LayoutBinding.DescriptorType = Descriptor.DescriptorType;
-                LayoutBinding.DescriptorCount = 1;
-                Bindings.push_back(LayoutBinding);
+                RHIDescriptorSetLayout* ExistingLayout = Found->second;
+                RHIDescriptorSetLayout* NewLayout = DescriptorSetLayout;
+                Ncheckf(ExistingLayout->IsEquivalent(NewLayout), "Descriptor set layout mismatch");
             }
-            RHIDescriptorSetLayout* DescriptorSetLayout = RHICreateDescriptorSetLayout(Bindings);
-            if (SetIndex >= PipelineLayout->DescriptorSetLayouts.size())
-                PipelineLayout->DescriptorSetLayouts.resize(SetIndex + 1);
-            Ncheck(PipelineLayout->DescriptorSetLayouts[SetIndex] == nullptr);
             PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout;
         }
     }
 
     // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
     // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
-    static RHIDescriptorSetLayout* DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
-    std::vector<VkDescriptorSetLayout> SetLayoutHandles(PipelineLayout->DescriptorSetLayouts.size(), VK_NULL_HANDLE);
-    for (int i = 0; i < PipelineLayout->DescriptorSetLayouts.size(); i++)
+    static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex+1, ResourceCast(DummyDescriptorSetLayout)->Handle);
+    for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
     {
-        RHIDescriptorSetLayout* DescriptorSetLayout = PipelineLayout->DescriptorSetLayouts[i];
-        if (!DescriptorSetLayout)
-        {
-            DescriptorSetLayout = DummyDescriptorSetLayout;
-        }
-        SetLayoutHandles[i] = ResourceCast(DescriptorSetLayout)->Handle;
+        SetLayoutHandles[SetIndex] = ResourceCast(DescriptorSetLayout)->Handle;
     }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

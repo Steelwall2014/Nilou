@@ -20,9 +20,6 @@ namespace nilou {
             RDGRenderTargets RenderTargets;
             RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
 
-            RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FPreZPassVS>(0, VERTEX_SHADER_SET_INDEX);
-            DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-
             for (FMeshBatch &Mesh : MeshBatches)
             {
                 for (FMeshBatchElement& Element : Mesh.Elements)
@@ -31,10 +28,12 @@ namespace nilou {
                     FShaderPermutationParameters PermutationParametersVS(&FPreZPassVS::StaticType, 0);
                     FShaderPermutationParameters PermutationParametersPS(&FPreZPassPS::StaticType, 0);
 
+                    FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
+                    ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+
                     FMeshDrawCommand MeshDrawCommand;
-                    MeshDrawCommand.ShaderBindings.SetDescriptorSet(VERTEX_SHADER_SET_INDEX, DescriptorSet_VS);
-                    
                     BuildMeshDrawCommand(
+                        Graph,
                         VertexFactoryParams,
                         Mesh.MaterialRenderProxy,
                         PermutationParametersVS,
@@ -42,6 +41,7 @@ namespace nilou {
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
                         RenderTargets.GetRenderTargetLayout(),
+                        ShaderBindings,
                         MeshDrawCommand);
 
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

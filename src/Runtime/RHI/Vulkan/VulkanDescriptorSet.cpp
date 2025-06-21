@@ -6,16 +6,13 @@
 
 namespace nilou {
 
-RHIDescriptorSetLayout* FVulkanDynamicRHI::RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings)
+RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 {
-	std::sort(Bindings.begin(), Bindings.end(), [](const RHIDescriptorSetLayoutBinding& a, const RHIDescriptorSetLayoutBinding& b) {
-		return a.BindingIndex < b.BindingIndex;
-	});
-	uint32 Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
-	if (RHIDescriptorSetLayoutRef Found = UniqueDescriptorSetLayouts[Hash])
-	{
-		return Found;
-	}
+	// uint32 Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
+	// if (RHIDescriptorSetLayoutRef Found = UniqueDescriptorSetLayouts[Hash])
+	// {
+	// 	return Found;
+	// }
     std::vector<VkDescriptorSetLayoutBinding> VulkanBindings(Bindings.size());
     for (int i = 0; i < Bindings.size(); i++)
     {
@@ -33,7 +30,7 @@ RHIDescriptorSetLayout* FVulkanDynamicRHI::RHICreateDescriptorSetLayout(std::vec
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
     layoutInfo.pBindings = VulkanBindings.data();
     VK_CHECK_RESULT(vkCreateDescriptorSetLayout(Device->Handle, &layoutInfo, nullptr, &VulkanLayout->Handle));
-	UniqueDescriptorSetLayouts[Hash] = VulkanLayout;
+	// UniqueDescriptorSetLayouts[Hash] = VulkanLayout;
     return VulkanLayout;
 }
 

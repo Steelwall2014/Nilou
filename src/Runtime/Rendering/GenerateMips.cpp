@@ -62,9 +62,9 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FGenerateMipsCS>(0, 0);
+            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", Shader->GetDescriptorSetLayout(0));
             DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
-            DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex)), ERHIAccess::ShaderResourceWrite);
+            DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex)));
 
             RDGPassDesc PassDesc{NFormat("GenerateMips for texture \"{}\" mipmap {}", Texture->Name, MipLevel)};
             Graph.AddComputePass(
@@ -97,16 +97,26 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
         
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FGenerateMipsPS>(0, 0);
+            RDGRenderTargets RenderTargets;
+            RenderTargets.ColorAttachments[0] = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
+
+            FShaderInstance* VertexShader = GetGlobalShader<FGenerateMipsVS>();
+            FShaderInstance* PixelShader = GetGlobalShader<FGenerateMipsPS>();
+
+            FGraphicsPipelineStateInitializer GraphicsPSOInit;
+            GraphicsPSOInit.VertexShader = VertexShader->GetVertexShaderRHI();
+            GraphicsPSOInit.PixelShader = PixelShader->GetPixelShaderRHI();
+            GraphicsPSOInit.RTLayout = RenderTargets.GetRenderTargetLayout();
+            GraphicsPSOInit.VertexDeclaration = GetScreenQuadVertexDeclaration();
+            RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
+
+            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", VertexShader->GetDescriptorSetLayout(0));
             DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
             FGenerateMipsPS::FParameters Parameters;
             Parameters.HalfTexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Parameters.Level = float(MipLevel);
             RDGBuffer* ParametersBuffer = CreateUniformBuffer(Graph, Parameters);
             DescriptorSet->SetUniformBuffer("FParameters", ParametersBuffer);
-
-            RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
 
             RDGBuffer* ScreenQuadVertexBuffer = GetScreenQuadVertexBuffer(Graph);
             RDGBuffer* ScreenQuadIndexBuffer = GetScreenQuadIndexBuffer(Graph);
@@ -121,15 +131,6 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                 { DescriptorSet },
                 [=](RHICommandList& RHICmdList)
                 {
-                    FShaderInstance* VertexShader = GetGlobalShader<FGenerateMipsVS>();
-                    FShaderInstance* PixelShader = GetGlobalShader<FGenerateMipsPS>();
-
-                    FGraphicsPipelineStateInitializer GraphicsPSOInit;
-                    GraphicsPSOInit.VertexShader = VertexShader->GetVertexShaderRHI();
-                    GraphicsPSOInit.PixelShader = PixelShader->GetPixelShaderRHI();
-                    GraphicsPSOInit.RTLayout = RenderTargets.GetRenderTargetLayout();
-                    GraphicsPSOInit.VertexDeclaration = GetScreenQuadVertexDeclaration();
-                    RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
 
                     RHICmdList.BindGraphicsPipelineState(PSO);
                     RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);

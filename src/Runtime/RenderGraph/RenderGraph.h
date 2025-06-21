@@ -42,13 +42,7 @@ public:
         return Buffer;
     }
 
-    static RDGDescriptorSetRef CreateExternalDescriptorSet(RHIDescriptorSetLayout* Layout);
-
-    template<class TShaderType>
-    static RDGDescriptorSetRef CreateExternalDescriptorSet(int32 PermutationId, uint32 SetIndex)
-    {
-        return CreateExternalDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
-    }
+    static RDGDescriptorSetRef CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
@@ -70,14 +64,7 @@ public:
         return Buffer;
     }
 
-    template<class TShaderType>
-    RDGDescriptorSet* CreateDescriptorSet(int32 PermutationId, uint32 SetIndex)
-    {
-        FNamedDescriptorSetLayout Layout = TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex);
-        RDGDescriptorSet* DescriptorSet = CreateDescriptorSet(Layout);
-        DescriptorSet->SetIndex = SetIndex;
-        return DescriptorSet;
-    }
+    RDGDescriptorSet* CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
 
 
@@ -169,8 +156,6 @@ private:
 
     void SubmitBufferUploads();
 
-    RDGDescriptorSet* CreateDescriptorSet(FNamedDescriptorSetLayout Layout);
-
 	/** The epilogue and prologue passes are sentinels that are used to simplify graph logic around barriers
 	*  and traversal. The prologue pass is used exclusively for barriers before the graph executes, while the
 	*  epilogue pass is used for resource extraction barriers--a property that also makes it the main root of
@@ -228,7 +213,7 @@ private:
     };
     std::vector<FUploadedBuffer> UploadedBuffers;
 
-    static std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> DescriptorSetPools;
+    static std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> DescriptorSetPools;
 
 	std::vector<FRDGPass*> CullPassStack;
 

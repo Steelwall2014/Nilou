@@ -11,7 +11,7 @@
 
 namespace nilou {
 
-std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> RenderGraph::DescriptorSetPools;
+std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> RenderGraph::DescriptorSetPools;
 FRDGBufferPool GRenderGraphBufferPool;
 FRDGTexturePool GRenderGraphTexturePool;
 
@@ -144,9 +144,9 @@ RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RD
     return Buffer;
 }
 
-RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(RHIDescriptorSetLayout* Layout)
+RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
 {
-    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout);
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet(Name, Layout);
     return DescriptorSet;
 }
 
@@ -213,10 +213,9 @@ void RenderGraph::QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, 
 		});
 }
 
-RDGDescriptorSet* RenderGraph::CreateDescriptorSet(FNamedDescriptorSetLayout Layout)
+RDGDescriptorSet* RenderGraph::CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
 {
-    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet("", Layout.GetRHI());
-	DescriptorSet->NameToBinding = Layout.NameToBinding;
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet(Name, Layout);
     DescriptorSets.push_back(DescriptorSet);
     return DescriptorSet;
 }
@@ -1037,7 +1036,7 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 	for (auto& DescriptorSet : CurrentPass->DescriptorSets)
 	{
 		RHIDescriptorSetLayout* Layout = DescriptorSet->GetLayout();
-		RDGDescriptorSetPool& Pool = DescriptorSetPools.try_emplace(Layout, Layout).first->second;
+		RHIDescriptorSetPools& Pool = DescriptorSetPools.try_emplace(Layout, Layout).first->second;
 		RHIDescriptorSet* DescriptorSetRHI = Pool.Allocate();
 		DescriptorSet->ResourceRHI = DescriptorSetRHI;
 

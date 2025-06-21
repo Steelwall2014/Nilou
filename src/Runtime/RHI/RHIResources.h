@@ -65,8 +65,7 @@ namespace nilou {
 			: RHIResource(InResourceType)
 		{ }
 		std::string DebugName;
-		shader_reflection::DescriptorSetLayouts Reflection;
-		std::unordered_map<uint32, class RHIDescriptorSetLayout*> DescriptorSetLayouts;
+		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -385,11 +384,29 @@ namespace nilou {
 
 	using EDescriptorType = shader_reflection::EDescriptorType;
 
+	enum class EDescriptorDecorationFlags
+	{
+		None = 0,
+		// PushConstant = 1 << 0,
+		NonWritable = 1 << 1,
+		NonReadable = 1 << 2,
+	};
+	ENUM_CLASS_FLAGS(EDescriptorDecorationFlags);
 	struct RHIDescriptorSetLayoutBinding
 	{
 		uint32 BindingIndex;
 		EDescriptorType DescriptorType;
 		uint32 DescriptorCount = 1;		// For now, only support 1
+
+		std::string Name;
+		uint32 BlockSize;
+		struct Member
+		{
+			std::string Name;
+			uint32 Offset;
+		};
+		std::vector<Member> Members;
+		EDescriptorDecorationFlags Flags = EDescriptorDecorationFlags::None;
 	};
 
 	class RHIDescriptorSetLayout : public RHIResource
@@ -414,6 +431,20 @@ namespace nilou {
 			return NumTypeUsed;
 		}
 
+		bool IsEquivalent(RHIDescriptorSetLayout* Other) const
+		{
+			if (Bindings.size() != Other->Bindings.size())
+				return false;
+			for (size_t i = 0; i < Bindings.size(); ++i)
+			{
+				if (Bindings[i].BindingIndex != Other->Bindings[i].BindingIndex)
+					return false;
+				if (Bindings[i].DescriptorType != Other->Bindings[i].DescriptorType)
+					return false;
+			}
+			return true;
+		}
+
 		std::vector<RHIDescriptorSetLayoutBinding> Bindings;
 	};
 	using RHIDescriptorSetLayoutRef = TRefCountPtr<RHIDescriptorSetLayout>;
@@ -427,15 +458,7 @@ namespace nilou {
 	{
 	public:
 	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
-		struct UniformPosition
-		{
-			uint32 SetIndex;
-			uint32 BindingIndex;
-			uint32 Offset;
-		};
-		std::map<uint32, std::map<uint32, uint32>> UniformBuffersSize;
-		// std::map<std::string, UniformPosition> UniformPositions;
-    	std::vector<RHIDescriptorSetLayout*> DescriptorSetLayouts;
+    	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 

@@ -66,7 +66,7 @@ namespace nilou {
 
                 RHIGraphicsPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
 
-                RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FLightingPassPS>(0, 0);
+                RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("LightingPassPS DescriptorSet", LightPassPS->GetDescriptorSetLayout(0));
                 DescriptorSet->SetSampler("BaseColor", SceneTextures.BaseColor->GetDefaultView());
                 DescriptorSet->SetSampler("RelativeWorldSpacePosition", SceneTextures.RelativeWorldSpacePosition->GetDefaultView());
                 DescriptorSet->SetSampler("WorldSpaceNormal", SceneTextures.WorldSpaceNormal->GetDefaultView());

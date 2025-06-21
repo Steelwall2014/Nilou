@@ -109,29 +109,6 @@ namespace nilou {
         return stream.str();
     }
 
-    static void AddLayoutToShaderType(FShaderTypeBase* ShaderType, int32 PermutationId, int32 SetIndex, const shader_reflection::DescriptorSetLayouts& Layouts)
-    {
-        if (!Layouts.contains(SetIndex))
-        {
-            return;
-        }
-        NILOU_LOG(Display, "Layout of shader {} permutation {} set {}", ShaderType->Name, PermutationId, SetIndex);
-        std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
-        std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
-        for (auto& [BindingIndex, Binding] : Layouts[SetIndex])
-        {
-            RHIDescriptorSetLayoutBinding BindingRHI;
-            BindingRHI.BindingIndex = BindingIndex;
-            BindingRHI.DescriptorType = Binding.DescriptorType;
-            BindingRHI.DescriptorCount = 1; // For now, only support 1
-            BindingsRHI.push_back(BindingRHI);
-            NameToBinding[Binding.Name] = BindingRHI;
-            NILOU_LOG(Display, "\tBindingIndex: {}, Name: \"{}\", type: {}", BindingIndex, Binding.Name, magic_enum::enum_name(Binding.DescriptorType));
-        }
-        RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
-        ShaderType->DescriptorSetLayouts[PermutationId][SetIndex] = FNamedDescriptorSetLayout(LayoutRHI, NameToBinding);
-    }
-
     void FShaderCompiler::CompileGlobalShader(
         const FShaderPermutationParameters &ShaderParameter)
     {
@@ -161,8 +138,6 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, ShaderStage, ShaderType->ShaderMetaType);
         ShaderInstance->InitRHI();
-        for (auto& [SetIndex, Layout] : ShaderInstance->DescriptorSetLayouts)
-            AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, SetIndex, ShaderInstance->DescriptorSetLayouts);
         AddGlobalShader(ShaderParameter, ShaderInstance);
     }
 
@@ -188,8 +163,6 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, EShaderStage::Vertex, ShaderType->ShaderMetaType);
         ShaderInstance->InitRHI();
-        AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, VERTEX_SHADER_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
-        AddLayoutToShaderType(VertexFactoryType, VertexFactoryParams.PermutationId, VERTEX_FACTORY_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
@@ -209,7 +182,6 @@ namespace nilou {
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
             ShaderType->Name, code, EShaderStage::Pixel, ShaderType->ShaderMetaType);
         ShaderInstance->InitRHI();
-        AddLayoutToShaderType(ShaderType, ShaderParameter.PermutationId, PIXEL_SHADER_SET_INDEX, ShaderInstance->DescriptorSetLayouts);
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
 
@@ -224,8 +196,6 @@ namespace nilou {
             if (!filter(ShaderType))
                 continue;
             ShaderType->UpdateCode();
-            ShaderType->DescriptorSetLayouts.clear();
-            ShaderType->DescriptorSetLayouts.resize(ShaderType->PermutationCount);
             for (int32 PermutationId = 0; PermutationId < ShaderType->PermutationCount; PermutationId++)
             {
                 FShaderPermutationParameters ShaderParameter(ShaderType, PermutationId);
@@ -277,8 +247,6 @@ namespace nilou {
                         if (VertexFactoryType->Name == "FVertexFactory")    // It's the base class so skip it
                             continue;
                         VertexFactoryType->UpdateCode();
-                        VertexFactoryType->DescriptorSetLayouts.clear();
-                        VertexFactoryType->DescriptorSetLayouts.resize(VertexFactoryType->PermutationCount);
                         for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
                         {
                             FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);

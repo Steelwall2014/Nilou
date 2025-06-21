@@ -457,6 +457,8 @@ namespace nilou {
         virtual FImage CreateImage(const ImageCreateInfo& ImageInfo) { return FImage(); }
 
         void DeserializeImageData(FArchive& Ar);
+
+        friend UMaterial;
     };
 
 }

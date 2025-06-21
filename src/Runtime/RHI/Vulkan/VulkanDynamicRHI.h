@@ -91,7 +91,7 @@ public:
     virtual void RHIUnmapMemory(RHIBuffer* buffer) override;
     virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) override;
 
-	virtual RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings) override;
+	virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) override;
     virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) override;
     virtual RHISemaphoreRef RHICreateSemaphore() override;
     virtual RHICommandList* RHICreateGfxCommandList() override;

@@ -24,7 +24,6 @@
     public: \
         static FVertexFactoryType StaticType; \
         virtual FVertexFactoryType* GetType() const override; \
-		static FNamedDescriptorSetLayout GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) { return StaticType.GetDescriptorSetLayout(PermutationId, SetIndex); }
 
 #define IMPLEMENT_VERTEX_FACTORY_TYPE(FactoryClass, ShaderFilename) \
 	FVertexFactoryType FactoryClass::StaticType( \
@@ -40,7 +39,6 @@
     public: \
         static FShaderType StaticType; \
         virtual FShaderType* GetType() const override; \
-		static FNamedDescriptorSetLayout GetDescriptorSetLayout(int32 PermutationId, uint32 SetIndex) { return StaticType.GetDescriptorSetLayout(PermutationId, SetIndex); }
 
 #define DECLARE_GLOBAL_SHADER(ShaderClass) \
 	class ShaderClass : public FGlobalShader\

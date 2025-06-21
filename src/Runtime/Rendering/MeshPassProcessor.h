@@ -16,12 +16,15 @@ namespace nilou {
     class FMeshDrawShaderBindings
     {
     public:
+        void SetBuffer(const std::string& Name, RDGBuffer* Buffer) { Buffers[Name] = Buffer; }
+        void SetTexture(const std::string& Name, RDGTextureView* Texture) { Textures[Name] = Texture; }
 
-        void SetDescriptorSet(uint32 SetIndex, RDGDescriptorSet* DescriptorSet) { DescriptorSets[SetIndex] = DescriptorSet; }
-
-        std::map<uint32, RDGDescriptorSet*> DescriptorSets;
-
-        void SetOnCommandList(RHICommandList& RHICmdList) const;
+        RDGBuffer* GetBuffer(const std::string& Name) const { return Buffers.at(Name); }
+        RDGTextureView* GetTexture(const std::string& Name) const { return Textures.at(Name); }
+        
+    private:
+        std::map<std::string, RDGBuffer*> Buffers;
+        std::map<std::string, RDGTextureView*> Textures;
     };
 
 
@@ -39,7 +42,7 @@ namespace nilou {
         /**
         * Resource bindings
         */
-	    FMeshDrawShaderBindings ShaderBindings;
+	    std::unordered_map<uint32, RDGDescriptorSet*> DescriptorSets;
         std::vector<FVertexInputStream> VertexStreams;
         RDGBuffer* IndexBuffer;
 

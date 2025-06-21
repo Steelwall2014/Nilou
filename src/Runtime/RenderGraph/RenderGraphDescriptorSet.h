@@ -10,7 +10,7 @@ class RDGDescriptorSet : public RDGResource
 {
 public:
 
-    friend class RDGDescriptorSetPool;
+    friend class RHIDescriptorSetPools;
     friend class RenderGraph;
 
     RDGDescriptorSet(const std::string& Name, RHIDescriptorSetLayout* InLayout) 
@@ -21,41 +21,10 @@ public:
     }
     ~RDGDescriptorSet();
 
-    void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
-    {
-        if (auto Binding = GetBindingByName(Name))
-        {
-            Ncheck(Binding->DescriptorType == EDescriptorType::UniformBuffer);
-            SetUniformBuffer(Binding->BindingIndex, Buffer);
-        }
-    }
-    void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI())
-    {
-        if (auto Binding = GetBindingByName(Name))
-        {
-            Ncheck(Binding->DescriptorType == EDescriptorType::CombinedImageSampler);
-            SetSampler(Binding->BindingIndex, Texture, SamplerState);
-        }
-    }
-    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer, ERHIAccess Access)
-    {
-        if (auto Binding = GetBindingByName(Name))
-        {
-            SetStorageBuffer(Binding->BindingIndex, Buffer, Access);
-        }
-    }
-    void SetStorageImage(const std::string& Name, RDGTextureView* Image, ERHIAccess Access)
-    {
-        if (auto Binding = GetBindingByName(Name))
-        {
-            SetStorageImage(Binding->BindingIndex, Image, Access);
-        }
-    }
-
-    void SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
-    void SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
-    void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, ERHIAccess Access);
-    void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access);
+    void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
+    void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
+    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
+    void SetStorageImage(const std::string& Name, RDGTextureView* Image);
 
     RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
     RHIDescriptorSetLayout* GetLayout() const { return Layout; }
@@ -87,18 +56,20 @@ private:
 
     std::map<uint32, WriteDescriptorSet> WriterInfos;
 
-    RDGDescriptorSetPool* Pool = nullptr;
+    RHIDescriptorSetPools* Pools = nullptr;
 
     uint32 SetIndex = 0;
 
-    std::map<std::string, RHIDescriptorSetLayoutBinding> NameToBinding;
     RHIDescriptorSetLayout* Layout;
 
     std::optional<RHIDescriptorSetLayoutBinding> GetBindingByName(const std::string& Name)
     {
-        if (NameToBinding.find(Name) != NameToBinding.end())
+        for (auto& Binding : Layout->Bindings)
         {
-            return NameToBinding[Name];
+            if (Binding.Name == Name)
+            {
+                return Binding;
+            }
         }
         return std::nullopt;
     }
@@ -120,10 +91,10 @@ using RDGDescriptorSetRef = TRefCountPtr<RDGDescriptorSet>;
 //     RHIDescriptorPoolRef PoolRHI;
 // };
 
-class RDGDescriptorSetPool
+class RHIDescriptorSetPools
 {
 public:
-    RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
+    RHIDescriptorSetPools(RHIDescriptorSetLayout* InLayout)
         : Layout(InLayout)
     { }
 

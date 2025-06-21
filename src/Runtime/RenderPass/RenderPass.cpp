@@ -4,6 +4,7 @@
 namespace nilou {
 
 void BuildMeshDrawCommand(
+    RenderGraph& Graph,
     const FVertexFactoryPermutationParameters &VFPermutationParameters,
     FMaterialRenderProxy *MaterialProxy,
     const FShaderPermutationParameters &PermutationParametersVS,
@@ -11,6 +12,7 @@ void BuildMeshDrawCommand(
     FRHIVertexDeclaration* VertexDeclaration,
     const FMeshBatchElement &Element,
     const RHIRenderTargetLayout &RTLayout,
+    const FMeshDrawShaderBindings &ShaderBindings,
     FMeshDrawCommand &OutMeshDrawCommand
 )
 {
@@ -26,14 +28,47 @@ void BuildMeshDrawCommand(
     Initializer.VertexDeclaration = VertexDeclaration;
     Initializer.RTLayout = RTLayout;
 
+    RHIGraphicsPipelineState* PipelineState = RHICreateGraphicsPipelineState(Initializer);
+    auto PipelineDescriptorSetsLayout = PipelineState->GetPipelineLayout()->DescriptorSetLayouts;
+
+    for (auto& [SetIndex, DescriptorSetLayout] : PipelineDescriptorSetsLayout)
     {
-        for (auto& [SetIndex, DescriptorSet] : MaterialProxy->DescriptorSets)
+        std::string DescriptorSetName = NFormat("DescriptorSet_{}_{}_set{}", VertexShader->GetName(), PixelShader->GetName(), SetIndex);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet(DescriptorSetName, DescriptorSetLayout);
+        for (auto& Binding : DescriptorSetLayout->Bindings)
         {
-            OutMeshDrawCommand.ShaderBindings.SetDescriptorSet(SetIndex, DescriptorSet);
+            std::string Name = Binding.Name;
+            if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
+            {
+                RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
+                DescriptorSet->SetUniformBuffer(Name, Buffer);
+            }
+            else if (Binding.DescriptorType == EDescriptorType::StorageBuffer)
+            {
+                RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
+                DescriptorSet->SetStorageBuffer(Name, Buffer);
+            }
+            else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
+            {
+                RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
+                DescriptorSet->SetSampler(Name, Texture);
+            }
+            else if (Binding.DescriptorType == EDescriptorType::StorageImage)
+            {
+                RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
+                DescriptorSet->SetStorageImage(Name, Texture);
+            }
+            else 
+            {
+                Ncheckf(false, "Unsupported descriptor type, Name={}, Type={}", Name.c_str(), magic_enum::enum_name(Binding.DescriptorType));
+            }
         }
+    }
+
+    {
+        OutMeshDrawCommand.PipelineState = PipelineState;
         OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
         OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRDG;
-        OutMeshDrawCommand.PipelineState = RHICreateGraphicsPipelineState(Initializer);
         OutMeshDrawCommand.NumInstances = Element.NumInstances;
         if (Element.IndirectArgsBuffer)
         {

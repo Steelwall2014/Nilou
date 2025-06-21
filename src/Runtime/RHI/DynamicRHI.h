@@ -88,7 +88,7 @@ namespace nilou {
 		virtual void RHIUnmapMemory(RHIBuffer* buffer) = 0;
 		virtual uint32 RHIComputeMemorySize(RHITexture* TextureRHI) = 0;
 
-		virtual RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings) = 0;
+		virtual RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings) = 0;
 		virtual RHIDescriptorPoolRef RHICreateDescriptorPool(RHIDescriptorSetLayout* Layout, uint32 PoolSize) = 0;
 		virtual RHISemaphoreRef RHICreateSemaphore() = 0;
     	virtual RHICommandList* RHICreateGfxCommandList() = 0;
@@ -209,8 +209,11 @@ namespace nilou {
 		FDynamicRHI::Get()->RHIUnmapMemory(buffer);
 	}
 
-	inline RHIDescriptorSetLayout* RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
+	inline RHIDescriptorSetLayoutRef RHICreateDescriptorSetLayout(std::vector<RHIDescriptorSetLayoutBinding> Bindings)
 	{
+		std::sort(Bindings.begin(), Bindings.end(), [](const RHIDescriptorSetLayoutBinding& a, const RHIDescriptorSetLayoutBinding& b) {
+			return a.BindingIndex < b.BindingIndex;
+		});
 		return FDynamicRHI::Get()->RHICreateDescriptorSetLayout(Bindings);
 	}
 

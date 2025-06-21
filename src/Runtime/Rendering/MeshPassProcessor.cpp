@@ -30,7 +30,7 @@ namespace nilou {
         RHIGetError();
 
         std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
-        for (auto& [SetIndex, DescriptorSet] : ShaderBindings.DescriptorSets)
+        for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
         {
             DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();
         }

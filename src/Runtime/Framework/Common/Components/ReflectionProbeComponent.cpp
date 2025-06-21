@@ -1,9 +1,7 @@
 #include "ReflectionProbeComponent.h"
-#include "Common/ContentManager.h"
+#include "Shader.h"
 #include "TextureCube.h"
-#include "TextureRenderTarget.h"
-#include "DeferredShadingSceneRenderer.h"
-#include "Texture2D.h"
+#include "Common/World.h"
 
 
 namespace nilou {

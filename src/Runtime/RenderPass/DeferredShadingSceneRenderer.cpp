@@ -93,7 +93,7 @@ namespace nilou {
         for (int i = 0; i < MeshCommands.size(); i++)
         {
             const FMeshDrawCommand& MeshDrawCommand = MeshCommands[i];
-            for (auto [SetIndex, DescriptorSet] : MeshDrawCommand.ShaderBindings.DescriptorSets)
+            for (auto& [SetIndex, DescriptorSet] : MeshDrawCommand.DescriptorSets)
             {
                 AddUnique(DescriptorSets, DescriptorSet);
             }
@@ -414,7 +414,7 @@ namespace nilou {
         {
             FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
 
-            RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet<FRenderToScreenPixelShader>(0, 0);
+            RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet("RenderToScreenPS DescriptorSet", RenderToScreenPS->GetDescriptorSetLayout(0));
             FRenderToScreenParameters Parameters;
             if (ViewFamily.bIsSceneCapture)
             {

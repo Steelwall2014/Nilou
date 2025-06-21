@@ -154,12 +154,7 @@ namespace nilou {
                 ShadowViewport.Height = LightSceneProxy->ShadowMapResolution.y;
                 FSceneViewFamily ShadowViewFamily(ShadowViewport, Scene);
 
-                RDGBuffer* UniformBuffer = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(NFormat("Light {} DirectionalShadowMappingBlock", LightIndex));
-                RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FShadowDepthVS>(0, VERTEX_SHADER_SET_INDEX);
-                DescriptorSet_VS->SetUniformBuffer("FShadowMappingBlock", UniformBuffer);
-                DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-                // TODO: Push constant
-                // DescriptorSet_VS->SetUniformBuffer("FShadowMapFrustumIndex");
+                RDGBuffer* ShadowMappingBlock = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(NFormat("Light {} DirectionalShadowMappingBlock", LightIndex));
 
                 std::vector<std::vector<FMeshBatch>> ShadowMeshBatches;
                 std::vector<FViewElementPDI> ShadowPDIs;
@@ -265,7 +260,7 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                Graph.QueueBufferUpload(UniformBuffer, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
+                Graph.QueueBufferUpload(ShadowMappingBlock, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
@@ -286,10 +281,13 @@ namespace nilou {
                             FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
                             FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
 
-                            FMeshDrawCommand MeshDrawCommand;
-                            MeshDrawCommand.ShaderBindings.SetDescriptorSet(VERTEX_SHADER_SET_INDEX, DescriptorSet_VS);
+                            FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
+                            ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+                            ShaderBindings.SetBuffer("FShadowMappingBlock", ShadowMappingBlock);
 
+                            FMeshDrawCommand MeshDrawCommand;
                             BuildMeshDrawCommand(
+                                Graph,
                                 VertexFactoryParams,
                                 Mesh.MaterialRenderProxy,
                                 PermutationParametersVS,
@@ -297,6 +295,7 @@ namespace nilou {
                                 Element.VertexFactory->GetVertexDeclaration(),
                                 Element,
                                 RenderTargets.GetRenderTargetLayout(),
+                                ShaderBindings,
                                 MeshDrawCommand);
 
                             DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
