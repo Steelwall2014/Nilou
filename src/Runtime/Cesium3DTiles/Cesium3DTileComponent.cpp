@@ -1,3 +1,4 @@
+#if NILOU_ENABLE_3DTILES
 #include "Cesium3DTileComponent.h"
 #include "Cesium3DTileset.h"
 #include "Common/Actor/GeoreferenceActor.h"
@@ -119,3 +120,4 @@ namespace nilou {
     }
 
 }
+#endif

@@ -13,7 +13,7 @@ namespace nilou {
             FVertexInputStream VertexStream;
             VertexStream.StreamIndex = StreamIndex;
             VertexStream.Offset = Streams[StreamIndex].Offset;
-            VertexStream.VertexBuffer = Streams[StreamIndex].VertexBuffer->VertexBufferRDG.get();
+            VertexStream.VertexBuffer = Streams[StreamIndex].VertexBuffer->VertexBufferRDG;
             Out.push_back(VertexStream);
         }
         return Out;
@@ -40,7 +40,7 @@ namespace nilou {
 
     // void FVertexFactory::InitDeclaration(const FVertexDeclarationElementList &ElementList)  
     // {
-    //     Declaration = FDynamicRHI::GetDynamicRHI()->RHICreateVertexDeclaration(ElementList);
+    //     Declaration = FDynamicRHI::Get()->RHICreateVertexDeclaration(ElementList);
     // }
 
     // FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponent& Component, uint8 AttributeIndex) const

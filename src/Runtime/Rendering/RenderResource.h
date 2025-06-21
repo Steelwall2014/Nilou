@@ -1,14 +1,14 @@
 #pragma once
 
-#include "RHIResources.h"
-#include "glm/glm.hpp"
 #include <vector>
+#include "Thread.h"
+#include "RenderingThread.h"
+#include "RHIResources.h"
+#include "RenderGraphResources.h"
 
 namespace nilou {
     class RenderGraph;
     class RDGBuffer;
-    class RHICommandListImmediate;
-    using RDGBufferRef = std::shared_ptr<RDGBuffer>;
 
     class FRenderResource
     {
@@ -22,10 +22,10 @@ namespace nilou {
         };
 
         // used to create non-persistent resources
-        virtual void InitRHI(RenderGraph&) { bRHIInitialized = true; }
+        virtual void InitRHI(RenderGraph&) { }
         // used to create persistent resources
-        virtual void InitRHI() { bRHIInitialized = true; }
-        virtual void ReleaseRHI() { bRHIInitialized = false; }
+        virtual void InitRHI() { }
+        virtual void ReleaseRHI() { }
         
         // used to create non-persistent resources
         virtual void InitResource(RenderGraph&);
@@ -33,15 +33,12 @@ namespace nilou {
         virtual void InitResource();
         virtual void ReleaseResource();
         virtual ~FRenderResource() { ReleaseResource(); }
-        bool IsInitialized() { return bRHIInitialized; }
+        bool IsInitialized() { return ListIndex != INDEX_NONE; }
         void UpdateRHI();
         static std::vector<FRenderResource*>& GetResourceList();
 
-        RHICommandListImmediate& FRenderResource::GetImmediateCommandList();
-
     private:
-        int32 ListIndex = -1;
-        bool bRHIInitialized = false;
+        int32 ListIndex = INDEX_NONE;
     };
 
     class FVertexBuffer : public FRenderResource
@@ -110,12 +107,10 @@ namespace nilou {
          */
         void InitGlobalResource()
         {
-            ResourceType::SetInitPhase(InInitPhase);
-
             if (IsInRenderingThread())
             {
                 // If the resource is constructed in the rendering thread, directly initialize it.
-                ((ResourceType*)this)->InitResource(FRenderResource::GetImmediateCommandList());
+                ((ResourceType*)this)->InitResource(FRenderingThread::GetRenderGraph());
             }
             else
             {

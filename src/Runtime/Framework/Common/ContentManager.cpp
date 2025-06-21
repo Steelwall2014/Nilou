@@ -175,7 +175,7 @@ namespace nilou {
                 NAsset* asset = static_cast<NAsset*>(CreateDefaultObject(class_name));
                 if (asset == nullptr)
                 {
-                    NILOU_LOG(Info, "Failed to create object of class {}", class_name);
+                    NILOU_LOG(Warning, "Failed to create object of class {}", class_name);
                     continue;
                 }
                 Entries[i]->Object = std::unique_ptr<NAsset>(asset);
@@ -187,15 +187,24 @@ namespace nilou {
         // TODO: dependency graph
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->PreDeserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->PreDeserialize(Archives[i]->Ar);
+            }
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->Deserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->Deserialize(Archives[i]->Ar);
+            }
         }
         for (int i = 0; i < Archives.size(); i++)
         {
-            Entries[i]->Object->PostDeserialize(Archives[i]->Ar);
+            if (Entries[i]->Object)
+            {
+                Entries[i]->Object->PostDeserialize(Archives[i]->Ar);
+            }
         }
     }
 
@@ -242,7 +251,7 @@ namespace nilou {
                 Entry->bIsDirectory = false;
                 Entry->bIsDirty = true;
                 auto Object = std::unique_ptr<NAsset>(static_cast<NAsset*>(CreateDefaultObject(Class)));
-                Object->Name = Name;
+                Object->NamePrivate = Name;
                 Object->ContentEntry = Entry.get();
                 NAsset *raw_p = Object.get();
                 Entry->Object = std::move(Object);
@@ -271,7 +280,7 @@ namespace nilou {
             EntryToRename->VirtualPath = virtual_path.generic_string();
             EntryToRename->AbsolutePath = FPath::VirtualPathToAbsPath(EntryToRename->VirtualPath);
             EntryToRename->Name = NewName;
-            AssetToRename->Name = NewName;
+            AssetToRename->NamePrivate = NewName;
             SaveAsset(EntryToRename->VirtualPath);
             fs::remove(old_absolute_path);
             return true;
@@ -349,7 +358,7 @@ namespace nilou {
     void FContentManager::ReleaseRenderResources()
     {
         ENQUEUE_RENDER_COMMAND(FContentManager_ReleaseRenderResources)(
-            [this](FDynamicRHI*) {
+            [this](RenderGraph&) {
                 GlobalShaders.RemoveAllShaders();
                 ForEachContent(
                     [](NAsset* Obj) {

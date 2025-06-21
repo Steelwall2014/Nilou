@@ -8,6 +8,8 @@ class RDGDescriptorSet;
 
 struct RDGPassDesc
 {
+    RDGPassDesc(const std::string& InName) : Name(InName) {}
+
     std::string Name;
 
     // If this pass should never be culled.
@@ -29,13 +31,16 @@ public:
     }
 
     const std::string Name;
-    bool bCulled;
-    FRDGPassHandle Handle;
+    bool bCulled = false;
+    FRDGPassHandle Handle = NullPassHandle;
     // Steelwall2014: Instead of using ERDGPassFlags, we use a structure.
     // ERDGPassFlags Flags;
     RDGPassDesc Desc;
-    ERHIPipeline Pipeline;
+    ERHIPipeline Pipeline = ERHIPipeline::Graphics;
 
+    RDGRenderTargets RenderTargets;
+    std::vector<RDGBuffer*> VertexBuffers;
+    std::vector<RDGBuffer*> IndexBuffers;
     std::vector<RDGDescriptorSet*> DescriptorSets;
     std::set<FRDGPass*> Producers;
     std::set<FRDGPass*> Consumers;
@@ -93,6 +98,7 @@ public:
 	/** Maps textures / buffers to information on how they are used in the pass. */
 	std::vector<FTextureState> TextureStates;
 	std::vector<FBufferState> BufferStates;
+    std::vector<RDGTextureView*> Views;
 
     FTextureState& FindOrAddTextureState(RDGTexture* Texture)
     {

@@ -141,8 +141,6 @@ namespace nilou {
             PixelShaderMap.RemoveAllShaders();
         }
 
-        std::map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayout;
-    
     private:
         TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> VertexShaderMap;
         TShaderMap<FShaderPermutationParameters> PixelShaderMap;

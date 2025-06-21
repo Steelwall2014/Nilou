@@ -16,41 +16,51 @@ namespace nilou {
         FShaderInstance(
             const std::string& InShaderName, 
             const std::string& InCode, 
-            EPipelineStage InPipelineStage,
+            EShaderStage InShaderStage,
             EShaderMetaType InShaderMetaType)
             : ShaderName(InShaderName)
             , Code(InCode)
-            , PipelineStage(InPipelineStage)
+            , ShaderStage(InShaderStage)
             , ShaderMetaType(InShaderMetaType)
         { }
 
         RHIVertexShader* GetVertexShaderRHI()
         {
             if (ShaderRHI->ResourceType == ERHIResourceType::RRT_VertexShader)
-                return static_cast<RHIVertexShader*>(ShaderRHI.get());
+                return static_cast<RHIVertexShader*>(ShaderRHI.GetReference());
             return nullptr;
         }
 
         RHIPixelShader* GetPixelShaderRHI()
         {
             if (ShaderRHI->ResourceType == ERHIResourceType::RRT_PixelShader)
-                return static_cast<RHIPixelShader*>(ShaderRHI.get());
+                return static_cast<RHIPixelShader*>(ShaderRHI.GetReference());
             return nullptr;
         }
 
         RHIComputeShader* GetComputeShaderRHI()
         {
             if (ShaderRHI->ResourceType == ERHIResourceType::RRT_ComputeShader)
-                return static_cast<RHIComputeShader*>(ShaderRHI.get());
+                return static_cast<RHIComputeShader*>(ShaderRHI.GetReference());
             return nullptr;
         }
 
+        const std::string& GetName() const { return ShaderName; }
+
         RHIShaderRef ShaderRHI;
-        EPipelineStage PipelineStage;
+        EShaderStage ShaderStage;
         EShaderMetaType ShaderMetaType; // Material or Global
         std::string ShaderName;
         std::string Code;
-        shader_reflection::DescriptorSetLayouts DescriptorSetLayouts;
+
+        const std::unordered_map<uint32, RHIDescriptorSetLayoutRef>& GetDescriptorSetLayouts() const
+        {
+            return ShaderRHI->DescriptorSetLayouts;
+        }
+        RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
+        {
+            return ShaderRHI->DescriptorSetLayouts[SetIndex];
+        }
 
         virtual void InitRHI();
 

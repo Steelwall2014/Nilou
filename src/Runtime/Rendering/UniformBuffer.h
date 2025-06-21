@@ -13,7 +13,7 @@
 #include "Platform.h"
 #include "RHIDefinitions.h"
 #include "RenderResource.h"
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 #include "DynamicRHI.h"
 #include "RenderGraph.h"
 
@@ -385,7 +385,7 @@ namespace nilou {
     public:
         FUniformBuffer(EUniformBufferUsage InUsage) : UniformBufferRDG(nullptr), Usage(InUsage) { }
         RDGBuffer* GetRDG() const { return UniformBufferRDG; }
-        RHIBuffer* GetRHI() const { return UniformBufferRDG->Resolve(); }
+        RHIBuffer* GetRHI() const { return UniformBufferRDG->GetRHI(); }
 
     protected:
 
@@ -411,7 +411,7 @@ namespace nilou {
         virtual void InitRHI(RenderGraph& Graph) override
         {
             // FRenderResource::InitRHI(Graph);
-            // UniformBufferRHI = FDynamicRHI::GetDynamicRHI()->RHICreateUniformBuffer(Size, Usage, &Data);
+            // UniformBufferRHI = FDynamicRHI::Get()->RHICreateUniformBuffer(Size, Usage, &Data);
             FRenderResource::InitRHI(Graph);
             InitRHI_impl(Graph);
             UploadData_impl(Graph, &Data, sizeof(UniformBufferStruct));
@@ -436,10 +436,10 @@ namespace nilou {
     template<class UniformBufferStruct>
     using TUniformBufferRef = std::shared_ptr<TUniformBuffer<UniformBufferStruct>>;
 
-    template<class UniformBufferStruct>
-    inline TUniformBufferRef<UniformBufferStruct> CreateUniformBuffer()
-    {
-        return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
-    }
+    // template<class UniformBufferStruct>
+    // inline TUniformBufferRef<UniformBufferStruct> CreateUniformBuffer()
+    // {
+    //     return TUniformBufferRef<UniformBufferStruct>(std::make_shared<TUniformBuffer<UniformBufferStruct>>());
+    // }
 
 }

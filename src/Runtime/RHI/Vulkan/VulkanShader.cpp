@@ -1,19 +1,30 @@
+#include "VulkanDevice.h"
 #include "VulkanShader.h"
 #include "VulkanDynamicRHI.h"
 #include "Common/Log.h"
+#include "ShaderReflection.h"
 
 namespace nilou {
 
 
-RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& code)
+RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
         RHICompileShaderInternal(code, shaderc_vertex_shader);
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = std::make_shared<VulkanVertexShader>(device, result);
+        VulkanVertexShaderRef VulkanShader = new VulkanVertexShader(Device->Handle);
+        VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
+        std::string OutMessage;
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        if (!bSuccess)
+        {
+            NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
+            NILOU_LOG(Error, "\n{}", code);
+            return nullptr;
+        }
         return VulkanShader;
     }
 
@@ -21,15 +32,24 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
     return nullptr;
 }
 
-RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& code)
+RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
         RHICompileShaderInternal(code, shaderc_fragment_shader);
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = std::make_shared<VulkanPixelShader>(device, result);
+        VulkanPixelShaderRef VulkanShader = new VulkanPixelShader(Device->Handle);
+        VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
+        std::string OutMessage;
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        if (!bSuccess)
+        {
+            NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
+            NILOU_LOG(Error, "\n{}", code);
+            return nullptr;
+        }
         return VulkanShader;
     }
 
@@ -37,15 +57,24 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
     return nullptr;
 }
 
-RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string& code)
+RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
         RHICompileShaderInternal(code, shaderc_compute_shader);
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = std::make_shared<VulkanComputeShader>(device, result);
+        VulkanComputeShaderRef VulkanShader = new VulkanComputeShader(Device->Handle);
+        VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
+        std::string OutMessage;
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        if (!bSuccess)
+        {
+            NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);
+            NILOU_LOG(Error, "\n{}", code);
+            return nullptr;
+        }
         return VulkanShader;
     }
 
@@ -62,9 +91,9 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
     if (status != shaderc_compilation_status_success) {
         const char* msg = shaderc_result_get_error_message(result);
-        NILOU_LOG(Error, "Shader compilation error! Error message: {}. The code is written to {}", msg, "ShaderCompilationErrors.txt");
-        std::ofstream out{"ShaderCompilationErrors.txt", std::ios::app};
-        out << msg << "\n\n" << code << std::endl;
+        NILOU_LOG(Error, "Shader compilation error! Error message: {}, Dump the code to log", msg);
+        NILOU_LOG(Error, "\n{}", code);
+        NILOU_LOG(Fatal, "");
         return {};
     }
 
@@ -73,9 +102,7 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     createInfo.codeSize = shaderc_result_get_length(result);
     createInfo.pCode = reinterpret_cast<const uint32*>(shaderc_result_get_bytes(result));
     VkShaderModule Module{};
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &Module) != VK_SUCCESS) {
-        return {};
-    }
+    VK_CHECK_RESULT(vkCreateShaderModule(Device->Handle, &createInfo, nullptr, &Module));
 
     return { Module, result };
 

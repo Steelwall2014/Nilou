@@ -46,7 +46,7 @@ namespace nilou {
         double OrthoWidth;
         double VerticalFieldOfView;
 
-        RDGBuffer* ViewUniformBuffer;
+        TRDGUniformBuffer<FViewShaderParameters>* ViewUniformBuffer;
 
         FSceneView();
 

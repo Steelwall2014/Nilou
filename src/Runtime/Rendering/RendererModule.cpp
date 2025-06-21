@@ -6,28 +6,29 @@
 
 namespace nilou {
 
-    void FRendererModule::BeginRenderingViewFamily(FSceneViewFamily& ViewFamily)
+    void FRendererModule::BeginRenderingViewFamily(FSceneViewFamily* ViewFamily)
     {
-        FScene* Scene = ViewFamily.Scene;
+        FScene* Scene = ViewFamily->Scene;
         if (Scene)
         {
             UWorld *World = Scene->World;
             if (World)
                 World->SendAllEndOfFrameUpdates();
             Scene->IncrementFrameNumber();
-		    ViewFamily.FrameNumber = Scene->GetFrameNumber();
+		    ViewFamily->FrameNumber = Scene->GetFrameNumber();
         }
 
-        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
+        FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(*ViewFamily);
 
         USceneCaptureComponent::UpdateDeferredCaptures(Scene);
 
         ENQUEUE_RENDER_COMMAND(FRendererModule_BeginRenderingViewFamily)(
-            [Scene, SceneRenderer](FDynamicRHI* RHICmdList)
+            [Scene, SceneRenderer, ViewFamily](RenderGraph& Graph)
             {
-                Scene->UpdateRenderInfos();
-                SceneRenderer->Render();
+                Scene->UpdateRenderInfos(Graph);
+                SceneRenderer->Render(Graph);
                 delete SceneRenderer;
+                delete ViewFamily;
             });
     }
 

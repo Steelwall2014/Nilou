@@ -1,243 +1,122 @@
 #pragma once
-
 #include <vulkan/vulkan.h>
-#include <vector>
-#include "Platform.h"
-#include "RHIResources.h"
-#include "Common/Log.h"
+#include "RHICommandList.h"
 
 namespace nilou {
 
-class FVulkanQueue;
-class FVulkanCommandBufferPool;
-class FVulkanCommandBufferManager;
-class FVulkanSemaphore;
+    class VulkanQueue;
 
-class FVulkanCmdBuffer
-{
-public:
-
-    friend class FVulkanQueue;
-
-	FVulkanCmdBuffer(class FVulkanDynamicRHI* Context, VkDevice InDevice, FVulkanCommandBufferPool* CmdBufferPool, bool bIsUploadOnly);
-	~FVulkanCmdBuffer();
-
-	bool IsInsideRenderPass() const
-	{
-		return State == EState::IsInsideRenderPass;
-	}
-
-	bool IsOutsideRenderPass() const
-	{
-		return State == EState::IsInsideBegin;
-	}
-
-	bool HasBegun() const
-	{
-		return State == EState::IsInsideBegin || State == EState::IsInsideRenderPass;
-	}
-
-	bool HasEnded() const
-	{
-		return State == EState::HasEnded;
-	}
-
-	bool IsSubmitted() const
-	{
-		return State == EState::Submitted;
-	}
-
-	bool IsAllocated() const
-	{
-		return State != EState::NotAllocated;
-	}
-
-	void Wait(uint64 Time)
-	{
-		vkWaitForFences(Device, 1, &Fence, VK_TRUE, Time);
-		RefreshFenceStatus();
-	}
-
-	void AllocMemory();
-	void FreeMemory();
-
-	VkCommandBuffer GetHandle() const { return Handle; }
-
-	void RefreshFenceStatus();
-
-	void AddWaitSemaphore(VkPipelineStageFlags Flags, std::shared_ptr<FVulkanSemaphore> Semaphore)
-	{
-		Ncheck(std::find(WaitSemaphores.begin(), WaitSemaphores.end(), Semaphore) == WaitSemaphores.end());
-		WaitSemaphores.push_back(Semaphore);
-		WaitFlags.push_back(Flags);
-	}
-
-	uint64 GetFenceSignaledCounter() const
-	{
-		return FenceSignaledCounter;
-	}
-
-    VkCommandBuffer Handle{};
-
-    std::vector<std::shared_ptr<FVulkanSemaphore>> WaitSemaphores;
-	std::vector<std::shared_ptr<FVulkanSemaphore>> SubmittedWaitSemaphores;
-
-    std::vector<VkPipelineStageFlags> WaitFlags;
-
-	VkDevice Device{};
-
-	VkFence Fence{};
-
-	FVulkanDynamicRHI* Context;
-
-	// Last value passed after the fence got signaled
-	volatile uint64 FenceSignaledCounter{};
-	// Last value when we submitted the cmd buffer; useful to track down if something waiting for the fence has actually been submitted
-	volatile uint64 SubmittedFenceCounter{};
-
-	FVulkanCommandBufferPool* CmdBufferPool{};
-	
-	class FVulkanDescriptorPoolSetContainer* CurrentSetContainer{};
-
-    void Begin();
-    void End();
-	
-	void BeginRenderPass(const FRHIRenderPassInfo& InInfo, VkRenderPass RenderPass, VkFramebuffer Framebuffer);
-	void EndRenderPass()
-	{
-		vkCmdEndRenderPass(Handle);
-		State = EState::IsInsideBegin;
-	}
-
-    bool bIsUploadOnly;
-    
-	enum class EState : uint8
-	{
-		ReadyForBegin,
-		IsInsideBegin,
-		IsInsideRenderPass,
-		HasEnded,
-		Submitted,
-		NotAllocated,
-		NeedReset,
-	};
-	EState State;
-
-private:
-
-	void MarkSemaphoresAsSubmitted()
-	{
-		WaitFlags.clear();
-		// Move to pending delete list
-		SubmittedWaitSemaphores = WaitSemaphores;
-		WaitSemaphores.clear();
-	}
-
-};
-
-class FVulkanCommandBufferPool
-{
-public:
-
-    FVulkanCommandBufferPool(FVulkanDynamicRHI* InContext, VkDevice InDevice, FVulkanCommandBufferManager& InMgr, int32 QueueFamilyIndex)
-		: Device(InDevice)
-		, Mgr(InMgr)
-		, Context(InContext)
-	{
-		VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolInfo.queueFamilyIndex = QueueFamilyIndex;
-		vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle);
-	}
-	~FVulkanCommandBufferPool();
-
-    VkCommandPool Handle{};
-
-    VkDevice Device;
-
-	std::vector<std::shared_ptr<FVulkanCmdBuffer>> CmdBuffers;
-	std::vector<std::shared_ptr<FVulkanCmdBuffer>> FreeCmdBuffers;
-
-    FVulkanCommandBufferManager& Mgr;
-
-	// TODO: 封装出一个VulkanDevice，来替换掉到处出现的Context
-	FVulkanDynamicRHI* Context;
-
-    FVulkanCmdBuffer* Create(bool bIsUploadOnly);
-
-	void FreeUnusedCmdBuffers(FVulkanQueue* Queue);
-
-	void RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer = nullptr);
-};
-
-class FVulkanCommandBufferManager
-{
-public:
-
-    FVulkanCommandBufferManager(VkDevice InDevice, class FVulkanDynamicRHI* InContext);
-	~FVulkanCommandBufferManager();
-
-	FVulkanCmdBuffer* GetActiveCmdBuffer()
+    class VulkanCommandBuffer : public RHICommandList
     {
-        if (UploadCmdBuffer)
+    public:
+        VulkanCommandBuffer(VkDevice Device, VkQueue Queue, VkCommandPool Pool);
+        ~VulkanCommandBuffer();
+
+        /* Perform actions commands */
+        virtual void BeginRenderPass(FRHIRenderPassInfo& Info) override;
+        virtual void EndRenderPass() override;
+        virtual void DrawArrays(uint32 VertexCount, uint32 InstanceCount, uint32 FirstVertex, uint32 FirstInstance) override;
+        virtual void DrawIndexed(uint32 IndexCount, uint32 InstanceCount, uint32 FirstIndex, uint32 VertexOffset, uint32 FirstInstance) override;
+        virtual void DispatchCompute(uint32 NumGroupsX, uint32 NumGroupsY, uint32 NumGroupsZ) override;
+        virtual void DrawIndirect(RHIBuffer* Buffer, uint32 Offset) override;
+        virtual void DrawIndexedIndirect(RHIBuffer* Buffer, uint32 Offset) override;
+        virtual void DispatchComputeIndirect(RHIBuffer* Buffer, uint32 Offset) override;
+        virtual void CopyBuffer(RHIBuffer* SrcBuffer, RHIBuffer* DstBuffer, uint32 SrcOffset, uint32 DstOffset, uint32 NumBytes) override;
+        virtual void CopyBufferToImage(
+            RHIBuffer* SrcBuffer, RHITexture* DstTexture, 
+            int32 MipmapLevel, int32 Xoffset, int32 Yoffset, int32 Zoffset, 
+            uint32 Width, uint32 Height, uint32 Depth, int32 BaseArrayLayer, int32 NumArrayLayers) override;
+        virtual void BlitImage(RHITexture* SrcTexture, RHITexture* DstTexture) override NILOU_NOT_IMPLEMENTED;
+
+        /* Set state commands */
+        virtual void SetViewport(int32 X, int32 Y, int32 Width, int32 Height) override;
+        virtual void SetScissor(int32 X, int32 Y, int32 Width, int32 Height) override;
+        virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) override;
+        virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) override;
+        virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;
+        virtual void BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset) override;
+        virtual void BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset) override;
+        virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data) override;
+
+        /* Perform synchronization commands */
+        virtual void PipelineBarrier(
+            const std::vector<RHIMemoryBarrier>& MemoryBarriers, 
+            const std::vector<RHIImageMemoryBarrier>& ImageMemoryBarriers, 
+            const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) override;
+
+        virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) override;
+
+        enum class EState : uint8
         {
-            SubmitUploadCmdBuffer();
+            ReadyForBegin,
+            IsInsideBegin,
+            IsInsideRenderPass,
+            Submitted,
+            NotAllocated,
+        };
+        EState State;
+
+        void RefreshState();
+
+        inline bool IsInsideRenderPass() const
+        {
+            return State == EState::IsInsideRenderPass;
+        }
+    
+        inline bool IsOutsideRenderPass() const
+        {
+            return State == EState::IsInsideBegin;
         }
 
-		return ActiveCmdBuffer;
+        inline bool HasBegun() const
+        {
+            return State == EState::IsInsideBegin || State == EState::IsInsideRenderPass;
+        }
+
+        inline bool IsSubmitted() const
+        {
+            return State == EState::Submitted;
+        }
+
+    private:
+
+        VkDevice Device;
+        VkCommandBuffer Handle;
+        VkQueue Queue;
+        VkCommandPool Pool;
+        VkFence Fence;
+
+        class FVulkanStagingManager* StagingManager;
+        std::vector<RHIBuffer*> StagingBuffers;
+
+        friend class FVulkanDynamicRHI;
+        friend class VulkanCommandBufferPool;
+
+    };
+
+    inline VulkanCommandBuffer* ResourceCast(RHICommandList* RHICmdList)
+    {
+        return static_cast<VulkanCommandBuffer*>(RHICmdList);
     }
+    
+    class VulkanCommandBufferPool
+    {
+    public:
 
-	FVulkanCmdBuffer* GetUploadCmdBuffer();
+        VulkanCommandBufferPool(VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
+        ~VulkanCommandBufferPool();
 
-	void SubmitUploadCmdBuffer(uint32 NumSignalSemaphores = 0, VkSemaphore* SignalSemaphores = nullptr);
-	void SubmitActiveCmdBuffer(std::vector<VkSemaphore> SignalSemaphores);
+        VulkanCommandBuffer* Allocate();
+        void FreeUnusedCmdBuffers();
 
-	// Called at the end of frame. Need to call RefreshFenceStatus() before calling this function
-	void FreeUnusedCmdBuffers();
+        VkCommandPool Handle{};
 
-	void PrepareForNewActiveCommandBuffer();
+        VkDevice Device;
+        VkQueue Queue;
 
-	bool HasPendingUploadCmdBuffer() const
-	{
-		return UploadCmdBuffer != nullptr;
-	}
+        std::vector<TRefCountPtr<VulkanCommandBuffer>> CmdBuffers;
+        std::vector<TRefCountPtr<VulkanCommandBuffer>> FreeCmdBuffers;
 
-	bool HasPendingActiveCmdBuffer() const
-	{
-		return ActiveCmdBuffer != nullptr;
-	}
-
-	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 10.0f);
-
-	void RefreshFenceStatus(FVulkanCmdBuffer* SkipCmdBuffer = nullptr)
-	{
-		Pool->RefreshFenceStatus(SkipCmdBuffer);
-	}
-
-	VkDevice Device;
-
-    std::unique_ptr<FVulkanCommandBufferPool> Pool;
-
-    FVulkanQueue* Queue{};
-
-    FVulkanCmdBuffer* ActiveCmdBuffer = nullptr;
-    FVulkanCmdBuffer* UploadCmdBuffer = nullptr;
-
-	/** This semaphore is used to prevent overlaps between the (current) graphics cmdbuf and next upload cmdbuf. */
-	std::shared_ptr<FVulkanSemaphore> ActiveCmdBufferSemaphore{};
-
-	/** Holds semaphores associated with the recent render cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
-	std::vector<std::shared_ptr<FVulkanSemaphore>> RenderingCompletedSemaphores;
-	
-	/** This semaphore is used to prevent overlaps between (current) upload cmdbuf and next graphics cmdbuf. */
-	std::shared_ptr<FVulkanSemaphore> UploadCmdBufferSemaphore{};
-	
-	/** Holds semaphores associated with the recent upload cmdbuf(s) - waiting to be added to the next graphics cmdbuf as WaitSemaphores. */
-	std::vector<std::shared_ptr<FVulkanSemaphore>> UploadCompletedSemaphores;
-
-	FVulkanDynamicRHI* Context;
-
-};
+    };
 
 }

@@ -44,10 +44,10 @@ namespace nilou {
     void BaseApplication::Tick(double DeltaTime)
     {
         ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
-            [this](RHICommandListImmediate& RHICmdList) 
+            [this](RenderGraph& Graph) 
             {
                 FRenderingThread::NotifyStartOfFrame();
-                RHICmdList.BeginFrame();
+                // RHICmdList.BeginFrame();
             });
         GameViewportClient->Tick(DeltaTime);
         static FViewport Viewport;
@@ -58,10 +58,10 @@ namespace nilou {
         std::unique_lock<std::mutex> lock(m);
         std::condition_variable fence;
         ENQUEUE_RENDER_COMMAND(BaseApplication_Tick)(
-            [this, &fence](RHICommandListImmediate& RHICmdList) 
+            [this, &fence](RenderGraph& Graph) 
             {
                 this->Tick_RenderThread();
-                RHICmdList.EndFrame();
+                // RHICmdList.EndFrame();
                 FRenderingThread::NotifyEndOfFrame();
                 fence.notify_one();
             });

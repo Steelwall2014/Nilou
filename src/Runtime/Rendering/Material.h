@@ -178,7 +178,7 @@ namespace nilou {
         
         FMaterialRenderProxy* GetRenderProxy() const
         {
-            return MaterialRenderProxy.get();
+            return MaterialRenderProxy;
         }
 
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
@@ -191,15 +191,14 @@ namespace nilou {
 
         virtual void PostDeserialize(FArchive& Ar) override;
 
-        void ReleaseResources()
-        {
-        }
+        void InitializeResources();
+
+        void ReleaseResources();
 
     protected:
 
         std::string Code;
-        // While FMaterialRenderProxy contains uniform buffers, so it is UNIQUE for each material/material instance
-        std::unique_ptr<FMaterialRenderProxy> MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
+        FMaterialRenderProxy* MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
     };
 
     class NCLASS UMaterialInstance : public UMaterial
@@ -235,20 +234,6 @@ namespace nilou {
         // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances
         std::shared_ptr<FMaterialShaderMap> ShaderMap = nullptr;
 
-        std::map<uint64, FTextureResource*> Textures;
-
-        std::map<uint64, RDGBufferRef> UniformBuffers;
-
-        struct ParameterPosition
-        {
-            uint32 SetIndex;
-            uint32 BindingIndex;
-            uint32 Offset;
-        };
-        std::map<std::string, ParameterPosition> ParameterNameToPosition;
-
-        std::map<uint32, RDGDescriptorSetRef> DescriptorSets;
-
         uint8 StencilRefValue = 0;
 
         RHIRasterizerStateRef RasterizerState = nullptr;
@@ -257,9 +242,9 @@ namespace nilou {
 
         RHIBlendStateRef BlendState = nullptr;
 
-        EShadingModel ShadingModel;
+        EShadingModel ShadingModel = EShadingModel::SM_DefaultLit;
 
-        UMaterial* Material;
+        UMaterial* Owner;
 
         void RenderThread_UpdateShader(const std::string& ShaderCode);
 
@@ -269,37 +254,39 @@ namespace nilou {
         template <typename ValueType>
         void RenderThread_UpdateParameter(const FMaterialParameterInfo& ParameterInfo, const ValueType& Value)
         {
-            auto Found = ParameterNameToPosition.find(ParameterInfo.Name);
-            if (Found != ParameterNameToPosition.end())
-            {
-                ParameterPosition Position = Found->second;
-                uint64 Key = UNIFORMBUFFER_KEY(Position.SetIndex, Position.BindingIndex);
-                if constexpr (std::is_same_v<ValueType, UTexture*>)
-                {
-                    if (DescriptorSets.count(Position.SetIndex) != 0)
-                    {
-                        Textures[Key] = Value->GetResource();
-                        DescriptorSets[Position.SetIndex]->SetSampler(
-                            Position.BindingIndex, 
-                            Textures[Key]->GetTextureRDG()->GetDefaultView(), 
-                            Textures[Key]->GetSamplerState());
-                    }
-                }
-                else 
-                {
-                    if (UniformBuffers.count(Key) != 0)
-                        UniformBuffers[Key]->SetData(Value, Position.Offset);
-                }
-            }
+            auto& ValueArray = GetValueArray<ValueType>();
+            ValueArray[ParameterInfo.Name] = Value;
         }
 
+        FMeshDrawShaderBindings GetShaderBindings() const;
+
+    private:
+
+        template <typename ValueType> std::map<std::string, ValueType>& GetValueArray() { return ScalarParameterArray; }
+        template <typename ValueType> const std::map<std::string, ValueType>& GetValueArray() const { return ScalarParameterArray; }
+
+        std::map<std::string, vec4> VectorParameterArray;
+        std::map<std::string, float> ScalarParameterArray;
+        // Note by Steelwall2014:
+        // In UE5.5, the TextureParametersArray is a map of UTexture*, because they can check if the pointer is valid. (see FUniformExpressionSet::FillUniformBuffer)
+        // So actually we have a risk of wild pointer here, but we haven't have a good way to solve this.
+        std::map<std::string, UTexture*> TextureParameterArray;
+
+        RDGBufferRef UniformBufferRDG = nullptr;
     };
+
+    template <> inline std::map<std::string, float>& FMaterialRenderProxy::GetValueArray<float>() { return ScalarParameterArray; }
+    template <> inline std::map<std::string, vec4>& FMaterialRenderProxy::GetValueArray<vec4>() { return VectorParameterArray; }
+    template <> inline std::map<std::string, UTexture*>& FMaterialRenderProxy::GetValueArray<UTexture*>() { return TextureParameterArray; }
+    template <> inline const std::map<std::string, float>& FMaterialRenderProxy::GetValueArray<float>() const { return ScalarParameterArray; }
+    template <> inline const std::map<std::string, vec4>& FMaterialRenderProxy::GetValueArray<vec4>() const { return VectorParameterArray; }
+    template <> inline const std::map<std::string, UTexture*>& FMaterialRenderProxy::GetValueArray<UTexture*>() const { return TextureParameterArray; }
 
     /** Finds a parameter by name from the game thread. */
     template <typename ParameterType>
     ParameterType* GameThread_FindParameterByName(std::vector<ParameterType>& Parameters, const FMaterialParameterInfo& ParameterInfo)
     {
-        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.Num(); ParameterIndex++)
+        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.size(); ParameterIndex++)
         {
             ParameterType* Parameter = &Parameters[ParameterIndex];
             if (Parameter->ParameterInfo == ParameterInfo)
@@ -323,8 +310,3 @@ namespace nilou {
     }
 
 }
-
-// TStaticSerializer的用法是这样的：
-// 有时候我们需要序列化一个类，这个类可能是来自库的，我们不能修改它的代码，
-// 那我们可以把模板的特化写在头文件里，特化的实现写在cpp文件里，
-// header tool生成的代码能看得到TStaticSerializer。

@@ -23,10 +23,7 @@ BaseApplication *GetAppication()
 
 int main(int argc, char* argv[])
 {
-    const char* DefaultRHI = "opengl";
-    if (argc >= 3 && !strcmp(argv[1], "-rhi"))
-        DefaultRHI = argv[2];
-    assert(!strcmp(DefaultRHI, "opengl") || !strcmp(DefaultRHI, "vulkan"));
+    const char* DefaultRHI = "vulkan";
     config.defaultRHI = DefaultRHI;
     
     int ret;

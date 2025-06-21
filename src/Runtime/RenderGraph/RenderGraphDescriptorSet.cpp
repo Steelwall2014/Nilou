@@ -7,133 +7,139 @@ constexpr int MAX_NUM_DESCRIPTORSETS_PER_POOL = 1024;
 
 RDGDescriptorSet::~RDGDescriptorSet()
 {
-    if (Pool)
+    if (Pools && GetRHI())
     {
-        Pool->Release(this);
+        Pools->Release(GetRHI());
     }
 }
 
-void RDGDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
+void RDGDescriptorSet::SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
 {
-	DescriptorBufferInfo BufferInfo;
-	BufferInfo.Buffer = Buffer;
-	BufferInfo.Offset = 0;
-	BufferInfo.Range = Buffer->Desc.Size;
-	WriteDescriptorSet WriteDescriptor;
-	WriteDescriptor.DstBinding = BindingIndex;
-	WriteDescriptor.DstArrayElement = 0;
-	WriteDescriptor.DescriptorType = EDescriptorType::UniformBuffer;
-	WriteDescriptor.BufferInfo = BufferInfo;
-	WriterInfos[BindingIndex] = WriteDescriptor;
+    if (auto Binding = GetBindingByName(Name))
+	{
+		Ncheck(Binding->DescriptorType == EDescriptorType::UniformBuffer);
+		DescriptorBufferInfo BufferInfo;
+		BufferInfo.Buffer = Buffer;
+		BufferInfo.Offset = 0;
+		BufferInfo.Range = Buffer->Desc.GetSize();
+		WriteDescriptorSet WriteDescriptor;
+		WriteDescriptor.DstBinding = Binding->BindingIndex;
+		WriteDescriptor.DstArrayElement = 0;
+		WriteDescriptor.DescriptorType = EDescriptorType::UniformBuffer;
+		WriteDescriptor.BufferInfo = BufferInfo;
+		WriteDescriptor.Access = ERHIAccess::UniformRead;
+		WriterInfos[Binding->BindingIndex] = WriteDescriptor;
+	}
 }
 
-void RDGDescriptorSet::SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState)
+void RDGDescriptorSet::SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState)
 {
-	DescriptorImageInfo ImageInfo;
-	ImageInfo.SamplerState = SamplerState;
-	ImageInfo.Texture = Texture;
-	WriteDescriptorSet WriteDescriptor;
-	WriteDescriptor.DstBinding = BindingIndex;
-	WriteDescriptor.DstArrayElement = 0;
-	WriteDescriptor.DescriptorType = EDescriptorType::CombinedImageSampler;
-	WriteDescriptor.ImageInfo = ImageInfo;
-	WriterInfos[BindingIndex] = WriteDescriptor;
+	if (auto Binding = GetBindingByName(Name))
+	{
+		Ncheck(Binding->DescriptorType == EDescriptorType::CombinedImageSampler);
+		DescriptorImageInfo ImageInfo;
+		ImageInfo.SamplerState = SamplerState;
+		ImageInfo.Texture = Texture;
+		WriteDescriptorSet WriteDescriptor;
+		WriteDescriptor.DstBinding = Binding->BindingIndex;
+		WriteDescriptor.DstArrayElement = 0;
+		WriteDescriptor.DescriptorType = EDescriptorType::CombinedImageSampler;
+		WriteDescriptor.ImageInfo = ImageInfo;
+		WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
+		WriterInfos[Binding->BindingIndex] = WriteDescriptor;
+	}
 }
 
-void RDGDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer)
+void RDGDescriptorSet::SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer)
 {
-	DescriptorBufferInfo BufferInfo;
-	BufferInfo.Buffer = Buffer;
-	BufferInfo.Offset = 0;
-	BufferInfo.Range = Buffer->Desc.Size;
-	WriteDescriptorSet WriteDescriptor;
-	WriteDescriptor.DstBinding = BindingIndex;
-	WriteDescriptor.DstArrayElement = 0;
-	WriteDescriptor.DescriptorType = EDescriptorType::StorageBuffer;
-	WriteDescriptor.BufferInfo = BufferInfo;
-	WriterInfos[BindingIndex] = WriteDescriptor;
+	if (auto Binding = GetBindingByName(Name))
+	{
+		Ncheck(Binding->DescriptorType == EDescriptorType::StorageBuffer);
+		DescriptorBufferInfo BufferInfo;
+		BufferInfo.Buffer = Buffer;
+		BufferInfo.Offset = 0;
+		BufferInfo.Range = Buffer->Desc.GetSize();
+		WriteDescriptorSet WriteDescriptor;
+		WriteDescriptor.DstBinding = Binding->BindingIndex;
+		WriteDescriptor.DstArrayElement = 0;
+		WriteDescriptor.DescriptorType = EDescriptorType::StorageBuffer;
+		WriteDescriptor.BufferInfo = BufferInfo;
+		WriteDescriptor.Access = ERHIAccess::ShaderResourceReadWrite;
+		if ((Binding->Flags & EDescriptorDecorationFlags::NonReadable) != EDescriptorDecorationFlags::None)
+		{
+			WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceRead;
+		}
+		if ((Binding->Flags & EDescriptorDecorationFlags::NonWritable) != EDescriptorDecorationFlags::None)
+		{
+			WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceWrite;
+		}
+		Ncheck(WriteDescriptor.Access != ERHIAccess::None);
+		WriterInfos[Binding->BindingIndex] = WriteDescriptor;
+	}
 }
 
-void RDGDescriptorSet::SetStorageImage(uint32 BindingIndex, RDGTextureView* Image)
+void RDGDescriptorSet::SetStorageImage(const std::string& Name, RDGTextureView* Image)
 {
-	DescriptorImageInfo ImageInfo;
-	ImageInfo.Texture = Image;
-	WriteDescriptorSet WriteDescriptor;
-	WriteDescriptor.DstBinding = BindingIndex;
-	WriteDescriptor.DstArrayElement = 0;
-	WriteDescriptor.DescriptorType = EDescriptorType::StorageImage;
-	WriteDescriptor.ImageInfo = ImageInfo;
-	WriterInfos[BindingIndex] = WriteDescriptor;
+	if (auto Binding = GetBindingByName(Name))
+	{
+		Ncheck(Binding->DescriptorType == EDescriptorType::StorageImage);
+		DescriptorImageInfo ImageInfo;
+		ImageInfo.Texture = Image;
+		WriteDescriptorSet WriteDescriptor;
+		WriteDescriptor.DstBinding = Binding->BindingIndex;
+		WriteDescriptor.DstArrayElement = 0;
+		WriteDescriptor.DescriptorType = EDescriptorType::StorageImage;
+		WriteDescriptor.ImageInfo = ImageInfo;
+		WriteDescriptor.Access = ERHIAccess::ShaderResourceReadWrite;
+		if ((Binding->Flags & EDescriptorDecorationFlags::NonReadable) != EDescriptorDecorationFlags::None)
+		{
+			WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceRead;
+		}
+		if ((Binding->Flags & EDescriptorDecorationFlags::NonWritable) != EDescriptorDecorationFlags::None)
+		{
+			WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceWrite;
+		}
+		Ncheck(WriteDescriptor.Access != ERHIAccess::None);
+		WriterInfos[Binding->BindingIndex] = WriteDescriptor;
+	}
 }
 
-// RDGDescriptorPool::RDGDescriptorPool(RHIDescriptorSetLayout* InLayout, uint32 InMaxNumDescriptorSets)
-// {
-//     PoolRHI = RHICreateDescriptorPool(InLayout, InMaxNumDescriptorSets);
-//     for (int i = 0; i < InMaxNumDescriptorSets; i++)
-//     {
-//         RDGDescriptorSetRef DescriptorSetRDG = std::make_shared<RDGDescriptorSet>();
-//         DescriptorSetRDG->DescriptorSetRHI = RHIAllocateDescriptorSet(PoolRHI.get());
-//         DescriptorSets.push_back(DescriptorSetRDG);
-//         VacantDescriptorSets.push_back(DescriptorSetRDG.get());
-//     }
-// }
-
-// RDGDescriptorSet* RDGDescriptorPool::Allocate()
-// {
-//     if (VacantDescriptorSets.size() == 0)
-//     {
-//         return nullptr;
-//     }
-
-//     RDGDescriptorSet* AllocatedDescriptorSet = VacantDescriptorSets.front();
-//     VacantDescriptorSets.pop_front();
-//     AllocatedDescriptorSets.push_back(AllocatedDescriptorSet);
-//     return AllocatedDescriptorSet;
-// }
-
-RDGDescriptorSetPool::RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout)
-    : Layout(InLayout)
+RHIDescriptorSet* RHIDescriptorSetPools::Allocate()
 {
-
-}
-
-RDGDescriptorSetRef RDGDescriptorSetPool::Allocate()
-{
-    if (VacantPools.size() == 0)
+    if (VacantPoolsRHI.size() == 0)
     {
-        RHIDescriptorPoolRef Pool = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
-        PoolsRHI.push_back(Pool);
-        VacantPools.push_back(Pool.get());
+        RHIDescriptorPoolRef PoolRHI = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
+        PoolsRHI.push_back(PoolRHI);
+        VacantPoolsRHI.push_back(PoolRHI);
     }
 
-    RHIDescriptorPool* VacantPool = VacantPools.back();
-    RHIDescriptorSet* Set = VacantPool->Allocate();
+    RHIDescriptorPool* VacantPoolRHI = VacantPoolsRHI.back();
+    RHIDescriptorSet* DescriptorSetRHI = VacantPoolRHI->Allocate();
+	Ncheck(DescriptorSetRHI);
 
-    if (!VacantPool->CanAllocate())
+    if (!VacantPoolRHI->CanAllocate())
     {
-        VacantPools.pop_back();
-        PoolIterators[VacantPool] = FullPools.insert(FullPools.end(), VacantPool);
+        VacantPoolsRHI.pop_back();
+        FullPoolsRHI.insert(VacantPoolRHI);
     }
 
-    RDGDescriptorSetRef SetRDG = std::make_shared<RDGDescriptorSet>();
-    SetRDG->DescriptorSetRHI = Set;
-
-    return SetRDG;
+	NumAllocatedDescriptorSets++;
+    return DescriptorSetRHI;
 }
 
-void RDGDescriptorSetPool::Release(RDGDescriptorSet* Set)
+void RHIDescriptorSetPools::Release(RHIDescriptorSet* DescriptorSetRHI)
 {
-    RHIDescriptorSet* SetRHI = Set->DescriptorSetRHI;
-    RHIDescriptorPool* PoolRHI = SetRHI->GetPool();
-    PoolRHI->Release(SetRHI);
+    RHIDescriptorPool* PoolRHI = DescriptorSetRHI->GetPool();
+    PoolRHI->Free(DescriptorSetRHI);
 
-    if (PoolIterators.find(PoolRHI) != PoolIterators.end())
+	auto Found = FullPoolsRHI.find(PoolRHI);
+    if (Found != FullPoolsRHI.end())
     {
-        FullPools.erase(PoolIterators[PoolRHI]);
-        PoolIterators.erase(PoolRHI);
-        VacantPools.push_back(PoolRHI);
+        FullPoolsRHI.erase(Found);
+        VacantPoolsRHI.push_back(PoolRHI);
     }
-    
+
+    NumAllocatedDescriptorSets--;
 }
 
 } // namespace nilou

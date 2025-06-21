@@ -1,3 +1,4 @@
+#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
 #include <half/half.hpp>
 #include "VirtualHeightfieldMeshComponent.h"
 #include "BaseApplication.h"
@@ -8,7 +9,7 @@
 #include "VirtualTexture2D.h"
 #include "PipelineStateCache.h"
 
-#include <glad/glad.h>
+#include <glad.h>
 
 namespace nilou {
     
@@ -319,7 +320,7 @@ namespace nilou {
                 {
                     if (Views[ViewIndex]->ViewUniformBuffer == nullptr)
                         continue;
-                    GenerateRenderPatches(FDynamicRHI::GetDynamicRHI(), Views[ViewIndex]->ViewUniformBuffer.get());
+                    GenerateRenderPatches(FDynamicRHI::Get(), Views[ViewIndex]->ViewUniformBuffer.get());
                     FMeshBatch Mesh;
                     Mesh.CastShadow = bCastShadow;
                     Mesh.MaterialRenderProxy = Material;
@@ -349,17 +350,17 @@ namespace nilou {
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxFirstPassShader::StaticType, 0);
             FShaderInstance *CreateMinMaxFirstPassShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxFirstPassShader->GetComputeShaderRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateMinMaxFirstPassShader->GetComputeShaderRHI());
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FQuadTreeParameters", QuadTreeParameters->GetRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
+            FDynamicRHI::Get()->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute, 
                 "HeightMap", *HeightFieldSampler);
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+            FDynamicRHI::Get()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "OutMinMaxMap", HeightMinMaxTextureViews[0].get(), EDataAccessFlag::DA_WriteOnly);
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FBuildMinMaxBlock", BuildMinMaxBlock->GetRHI());
 
@@ -374,7 +375,7 @@ namespace nilou {
                 HeightField->UpdateBoundSync(vec2(0), vec2(1), 0);
                 int group_num_y = HeightMinMaxTexture->GetSizeY() / BUILD_MINMAX_LOCAL_SIZE;
                 int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
-                FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+                FDynamicRHI::Get()->RHIDispatch(group_num_x, group_num_y, 1);
             }
             else // The physical memory can not hold all of the texture.
             {
@@ -395,7 +396,7 @@ namespace nilou {
                             int group_num_x = HeightMinMaxTexture->GetSizeX() * (Col_Max - Col_Min) / BUILD_MINMAX_LOCAL_SIZE;
                             BuildMinMaxBlock->Data.Offset = uvec2(HeightMinMaxTexture->GetSizeX() * Col_Min, HeightMinMaxTexture->GetSizeY() * Row_Min);
                             BuildMinMaxBlock->UpdateUniformBuffer();
-                            FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+                            FDynamicRHI::Get()->RHIDispatch(group_num_x, group_num_y, 1);
                         }
                     }
                 }
@@ -411,7 +412,7 @@ namespace nilou {
                         int group_num_x = HeightMinMaxTexture->GetSizeX() / BUILD_MINMAX_LOCAL_SIZE;
                         BuildMinMaxBlock->Data.Offset = uvec2(0, HeightMinMaxTexture->GetSizeY() * Row_Min);
                         BuildMinMaxBlock->UpdateUniformBuffer();
-                        FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num_x, group_num_y, 1);
+                        FDynamicRHI::Get()->RHIDispatch(group_num_x, group_num_y, 1);
                     }
                 }
             }
@@ -421,34 +422,34 @@ namespace nilou {
             {   // Create MinMax texture for patches
                 FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxShader::StaticType, PermutationVector.ToDimensionValueId());
                 FShaderInstance *CreateMinMaxShader = GetGlobalShader(PermutationParameters);
-                FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
+                FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
                 for (int LOD = 1; LOD < LodCount; LOD++)
                 {
-                    FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+                    FDynamicRHI::Get()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "InMinMaxMap", HeightMinMaxTextureViews[LOD - 1].get(), EDataAccessFlag::DA_ReadOnly);
-                    FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+                    FDynamicRHI::Get()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "OutMinMaxMap", HeightMinMaxTextureViews[LOD].get(), EDataAccessFlag::DA_WriteOnly);
                     uvec2 group_num = LodParams[LOD].NodeSideNum;
-                    FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
+                    FDynamicRHI::Get()->RHIDispatch(group_num.x, group_num.y, 1);
                 }
             }
             PermutationVector.Set<FVHMCreateMinMaxShader::FDimensionForPatchMinMax>(false);
             {   // Create MinMax texture for nodes
                 FShaderPermutationParameters PermutationParameters(&FVHMCreateMinMaxShader::StaticType, PermutationVector.ToDimensionValueId());
                 FShaderInstance *CreateMinMaxShader = GetGlobalShader(PermutationParameters);
-                FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
+                FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateMinMaxShader->GetComputeShaderRHI());
                 for (int LOD = LodCount; LOD < LodCount+3; LOD++)
                 {
-                    FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+                    FDynamicRHI::Get()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "InMinMaxMap", HeightMinMaxTextureViews[LOD - 1].get(), EDataAccessFlag::DA_ReadOnly);
-                    FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+                    FDynamicRHI::Get()->RHISetShaderImage(
                         PSO, EPipelineStage::PS_Compute, 
                         "OutMinMaxMap", HeightMinMaxTextureViews[LOD].get(), EDataAccessFlag::DA_WriteOnly);
                     uvec2 group_num = LodParams[LOD-3].NodeSideNum;
-                    FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
+                    FDynamicRHI::Get()->RHIDispatch(group_num.x, group_num.y, 1);
                 }
             }
         }
@@ -459,45 +460,45 @@ namespace nilou {
             CreateNodeListBlock->Data.ScreenSizeDenominator = 2 * glm::tan(0.5*ViewShaderParameters->Data.CameraVerticalFieldOfView);
             RHIGetError();
             uint32 index_b_value = LodParams[LodCount-1].NodeSideNum.x * LodParams[LodCount-1].NodeSideNum.y;
-            RHIBufferRef IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
-            RHIBufferRef IndexFinal = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
+            RHIBufferRef IndexB = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
+            RHIBufferRef IndexFinal = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
 
             RHIGetError();
-            RHIBufferRef indirectArgs = FDynamicRHI::GetDynamicRHI()->RHICreateDispatchIndirectBuffer(index_b_value, 1, 1);
+            RHIBufferRef indirectArgs = FDynamicRHI::Get()->RHICreateDispatchIndirectBuffer(index_b_value, 1, 1);
 
             RHIGetError();
             FShaderPermutationParameters PermutationParameters(&FVHMCreateNodeListShader::StaticType, 0);
             FShaderInstance *CreateNodeListShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateNodeListShader->GetComputeShaderRHI());
+            FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateNodeListShader->GetComputeShaderRHI());
             
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeIDs_Final_Buffer", FinalNodeListBuffer.get());
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "AtomicIndexBlock2", IndexFinal.get());
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODParams_Buffer", LodParamsBuffer.get());
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeDescription_Buffer", NodeDescriptionBuffer.get());
             
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderSampler(
+            FDynamicRHI::Get()->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute, 
                 "MinMaxMap", HeightMinMaxSampler);
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FCreateNodeListBlock", CreateNodeListBlock->GetRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FViewShaderParameters", ViewShaderParameters->GetRHI());
             
@@ -506,30 +507,30 @@ namespace nilou {
             {
                 CreateNodeListBlock->Data.PassLOD = lod;
                 CreateNodeListBlock->UpdateUniformBuffer();
-                FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+                FDynamicRHI::Get()->RHIBindComputeBuffer(
                     PSO, EPipelineStage::PS_Compute, 
                     "NodeIDs_TempA_Buffer", NodeIDs_TempA.get());
-                FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+                FDynamicRHI::Get()->RHIBindComputeBuffer(
                     PSO, EPipelineStage::PS_Compute, 
                     "NodeIDs_TempB_Buffer", NodeIDs_TempB.get());
-                FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+                FDynamicRHI::Get()->RHIBindComputeBuffer(
                     PSO, EPipelineStage::PS_Compute, 
                     "AtomicIndexBlock1", IndexB.get());
 
                 RHIGetError();
-                FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(indirectArgs.get());
+                FDynamicRHI::Get()->RHIDispatchIndirect(indirectArgs.get());
 
                 RHIGetError();
-                FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(IndexB, indirectArgs, 0, 0, 4);
+                FDynamicRHI::Get()->RHICopyBufferSubData(IndexB, indirectArgs, 0, 0, 4);
                 
 
                 RHIGetError();
                 std::swap(NodeIDs_TempA, NodeIDs_TempB);
-                IndexB = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
+                IndexB = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
             }
 
             RHIGetError();
-            FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(IndexFinal, FinalNodeListIndirectArgs, 0, 0, 4);
+            FDynamicRHI::Get()->RHICopyBufferSubData(IndexFinal, FinalNodeListIndirectArgs, 0, 0, 4);
             
         }
 
@@ -537,56 +538,56 @@ namespace nilou {
         {
             FShaderPermutationParameters PermutationParameters(&FVHMCreateLodTextureShader::StaticType, 0);
             FShaderInstance *CreateLodTextureShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreateLodTextureShader->GetComputeShaderRHI());
+            FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateLodTextureShader->GetComputeShaderRHI());
 
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeDescription_Buffer", NodeDescriptionBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODParams_Buffer", LodParamsBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+            FDynamicRHI::Get()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODMap", LodTexture.get(), EDataAccessFlag::DA_WriteOnly);
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FQuadTreeParameters", QuadTreeParameters->GetRHI());
 
             uvec2 group_num = NodeCount / uvec2(32);
-            FDynamicRHI::GetDynamicRHI()->RHIDispatch(group_num.x, group_num.y, 1);
+            FDynamicRHI::Get()->RHIDispatch(group_num.x, group_num.y, 1);
 
         }
 
         void CreatePatch(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
         {
             static uint32 zero_value = 0;
-            AtomicPatchCounterBuffer = FDynamicRHI::GetDynamicRHI()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
+            AtomicPatchCounterBuffer = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);
 
             FShaderPermutationParameters PermutationParameters(&FVHMCreatePatchShader::StaticType, 0);
             FShaderInstance *CreatePatchShader = GetGlobalShader(PermutationParameters);
-            FRHIGraphicsPipelineState *PSO = FDynamicRHI::GetDynamicRHI()->RHISetComputeShader(CreatePatchShader->GetComputeShaderRHI());
+            FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreatePatchShader->GetComputeShaderRHI());
 
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeIDs_Final_Buffer", FinalNodeListBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "Patch_Buffer", PatchListBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODParams_Buffer", LodParamsBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHIBindComputeBuffer(
+            FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "AtomicIndexBuffer", AtomicPatchCounterBuffer.get());
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderImage(
+            FDynamicRHI::Get()->RHISetShaderImage(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODMap", LodTexture.get(), EDataAccessFlag::DA_ReadOnly);
-            FDynamicRHI::GetDynamicRHI()->RHISetShaderUniformBuffer(
+            FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "FCreatePatchBlock", CreatePatchBlock->GetRHI());
 
-            FDynamicRHI::GetDynamicRHI()->RHIDispatchIndirect(FinalNodeListIndirectArgs.get());
-            FDynamicRHI::GetDynamicRHI()->RHICopyBufferSubData(AtomicPatchCounterBuffer, DrawIndirectArgs, 0, 4, 4);
+            FDynamicRHI::Get()->RHIDispatchIndirect(FinalNodeListIndirectArgs.get());
+            FDynamicRHI::Get()->RHICopyBufferSubData(AtomicPatchCounterBuffer, DrawIndirectArgs, 0, 4, 4);
             
             
         }
@@ -676,3 +677,4 @@ namespace nilou {
 
 
 }
+#endif

@@ -1,7 +1,11 @@
 #pragma once
 #include <map>
+#include <unordered_map>
 #include <vector>
+#include <shaderc/shaderc.h>
 #include "Platform.h"
+#include "RHIDefinitions.h"
+#include "Templates/RefCounting.h"
 
 namespace nilou {
 
@@ -72,7 +76,7 @@ enum class EImageFormat
 constexpr uint32 MAX_ARRAY_DIMS = 32;
 
 // keep the same with spirv-reflect
-enum class EDescriptorType
+enum class EDescriptorType : uint32
 {
     Sampler                     =  0,        // = VK_DESCRIPTOR_TYPE_SAMPLER
     CombinedImageSampler        =  1,        // = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
@@ -85,7 +89,7 @@ enum class EDescriptorType
     UniformBufferDynamic        =  8,        // = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
     StorageBufferDynamic        =  9,        // = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
     InputAttachment             = 10,        // = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-    AccelerationStructure       = 1000150000 // = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+    Max                         = 0x7FFFFFFF
 };
 
 struct NumericTraits
@@ -151,6 +155,8 @@ struct DescriptorSetLayoutBinding
     ImageTraits Image;
     ArrayTraits Array;
 
+    bool bReadOnly;
+    bool bWriteOnly;
 };
 
 struct DescriptorSetLayout
@@ -210,6 +216,11 @@ public:
         return SetLayouts.end();
     }
 
+    bool contains(int32 SetIndex) const
+    {
+        return SetLayouts.find(SetIndex) != SetLayouts.end();
+    }
+
     auto NumDescriptorSets() const
     {
         return SetLayouts.size();
@@ -219,8 +230,10 @@ private:
     std::map<uint32, DescriptorSetLayout> SetLayouts;
 };
 
-DescriptorSetLayouts ReflectShader(const std::string& ShaderCode);
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, DescriptorSetLayouts& OutLayouts, std::string& OutMessage);
 
 } // namespace shader_reflection
 
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
+bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
 } // namespace nilou

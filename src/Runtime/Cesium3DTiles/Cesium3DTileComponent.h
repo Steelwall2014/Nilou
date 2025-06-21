@@ -1,4 +1,5 @@
 #pragma once
+#if NILOU_ENABLE_3DTILES
 
 #include "Common/Components/PrimitiveComponent.h"
 #include "Cesium3DTilesetSelection.h"
@@ -31,3 +32,4 @@ namespace nilou {
 
 
 }
+#endif

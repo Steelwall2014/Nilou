@@ -3,6 +3,7 @@
 
 #include "Thread.h"
 #include "DynamicRHI.h"
+#include "RHICommandList.h"
 
 #include "Common/Log.h"
 
@@ -49,7 +50,7 @@ namespace nilou {
 
         std::mutex mutex;
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
-        RenderGraph* GraphExucuting;
+        RenderGraph* GraphExecuting;
         RenderGraph* GraphRecording;
         static uint32 FrameCount;
 
@@ -60,7 +61,8 @@ namespace nilou {
     {
         if (IsInRenderingThread())
         {
-            lambda(FDynamicRHI::GetDynamicRHI());
+            RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+            lambda(Graph);
         }
         else
         {

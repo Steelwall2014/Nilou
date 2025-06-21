@@ -1,5 +1,4 @@
 #include "SerializeHelper.h"
-#include "base64/base64.h"
 
 namespace nilou {
 

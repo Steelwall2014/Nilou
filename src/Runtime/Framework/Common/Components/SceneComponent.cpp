@@ -1,5 +1,5 @@
 #include "SceneComponent.h"
-#include "Common/Transform.h"
+#include "Common/Math/Transform.h"
 #include "Common/Actor/Actor.h"
 
 #include <memory>
@@ -48,7 +48,7 @@ namespace nilou {
                         // Didn't find a suitable component to promote so create a new default component
 
                         // Construct a new default root component
-                        std::shared_ptr<USceneComponent> NewRootComponent = CreateComponent<USceneComponent>(Owner);
+                        std::shared_ptr<USceneComponent> NewRootComponent = CreateComponent<USceneComponent>(Owner, "RootComponent");
                         NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
                         Owner->AddOwnedComponent(NewRootComponent);
                         NewRootComponent->RegisterComponent();

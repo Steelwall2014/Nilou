@@ -23,19 +23,43 @@ struct FVulkanRenderPass
     }
 };
 
-class VulkanPipelineState : public FRHIPipelineState
+class VulkanGraphicsPipelineState : public RHIGraphicsPipelineState
 {
 public:
-    VulkanPipelineState(VkDevice InDevice, const FGraphicsPipelineStateInitializer& InInInitializer)
+    VulkanGraphicsPipelineState(VkDevice InDevice, const FGraphicsPipelineStateInitializer& InInInitializer)
         : Device(InDevice)
-        , FRHIPipelineState(InInInitializer)
+        , RHIGraphicsPipelineState(InInInitializer)
     { }
     VkDevice Device{};
-    VkPipeline VulkanPipeline{};
-    FVulkanRenderPass* RenderPass{};
-    ~VulkanPipelineState();
+    VkPipeline Handle{};
+    VkRenderPass RenderPass{};
+    ~VulkanGraphicsPipelineState();
 };
-using VulkanPipelineStateRef = std::shared_ptr<VulkanPipelineState>;
+using VulkanGraphicsPipelineStateRef = TRefCountPtr<VulkanGraphicsPipelineState>;
+inline VulkanGraphicsPipelineState* ResourceCast(RHIGraphicsPipelineState* PSO)
+{
+    return static_cast<VulkanGraphicsPipelineState*>(PSO);
+}
+
+class VulkanComputePipelineState : public RHIComputePipelineState
+{
+public:
+    VulkanComputePipelineState(VkDevice InDevice, RHIComputeShader* ComputeShader)
+        : Device(InDevice)
+        , RHIComputePipelineState(ComputeShader)
+    { }
+    VkDevice Device{};
+    VkPipeline Handle{};
+    ~VulkanComputePipelineState()
+    {
+        vkDestroyPipeline(Device, Handle, nullptr);
+    }
+};
+using VulkanComputePipelineStateRef = TRefCountPtr<VulkanComputePipelineState>;
+inline VulkanComputePipelineState* ResourceCast(RHIComputePipelineState* PSO)
+{
+    return static_cast<VulkanComputePipelineState*>(PSO);
+}
 
 class VulkanDepthStencilState : public RHIDepthStencilState
 {
@@ -43,7 +67,7 @@ public:
     VulkanDepthStencilState(const FDepthStencilStateInitializer& Initializer);
     VkPipelineDepthStencilStateCreateInfo DepthStencilState{};
 };
-using VulkanDepthStencilStateRef = std::shared_ptr<VulkanDepthStencilState>;
+using VulkanDepthStencilStateRef = TRefCountPtr<VulkanDepthStencilState>;
 
 class VulkanRasterizerState : public RHIRasterizerState
 {
@@ -51,15 +75,15 @@ public:
     VulkanRasterizerState(const FRasterizerStateInitializer& Initializer);
     VkPipelineRasterizationStateCreateInfo RasterizerState{};
 };
-using VulkanRasterizerStateRef = std::shared_ptr<VulkanRasterizerState>;
+using VulkanRasterizerStateRef = TRefCountPtr<VulkanRasterizerState>;
 
 class VulkanBlendState : public RHIBlendState
 {
 public:
     VulkanBlendState(const FBlendStateInitializer& Initializer);
-	VkPipelineColorBlendAttachmentState BlendStates[MAX_SIMULTANEOUS_RENDERTARGETS];
+	VkPipelineColorBlendAttachmentState BlendStates[MaxSimultaneousRenderTargets];
 };
-using VulkanBlendStateRef = std::shared_ptr<VulkanBlendState>;
+using VulkanBlendStateRef = TRefCountPtr<VulkanBlendState>;
 
 class VulkanSamplerState : public RHISamplerState
 {
@@ -74,60 +98,63 @@ public:
     VkDevice Device{};
     VkSampler Handle{};
 };
-using VulkanSamplerStateRef = std::shared_ptr<VulkanSamplerState>;
+using VulkanSamplerStateRef = TRefCountPtr<VulkanSamplerState>;
 
 inline VulkanSamplerState* ResourceCast(RHISamplerState* Sampler)
 {
     return static_cast<VulkanSamplerState*>(Sampler);
 }
 
-struct FVulkanRenderTargetLayout
-{
-    FVulkanRenderTargetLayout(const std::unordered_map<EFramebufferAttachment, EPixelFormat>& Attachments);
-    FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
-    FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info);
+// struct FVulkanRenderTargetLayout
+// {
+//     FVulkanRenderTargetLayout(const RHIRenderTargetLayout& RTLayout);
     
-    std::vector<VkAttachmentDescription> Desc;
-    std::vector<VkAttachmentReference> ColorReferences;
-    VkAttachmentReference DepthStencilReference{};
+//     std::vector<VkAttachmentDescription> Desc;
+//     std::vector<VkAttachmentReference> ColorReferences;
+//     VkAttachmentReference DepthStencilReference{};
 
-    uint32 RenderPassFullHash = 0;
+//     uint32 RenderPassFullHash = 0;
 
-    bool bHasDepthAttachment = false;
+//     bool bHasDepthAttachment = false;
 
-    bool operator==(const FVulkanRenderTargetLayout& Other) const
-    {
-        if (Desc.size() != Other.Desc.size() || ColorReferences.size() != Other.ColorReferences.size())
-            return false;
-        size_t desc_size = sizeof(VkAttachmentDescription) * Desc.size();
-        size_t ref_size = sizeof(VkAttachmentReference) * ColorReferences.size();
-        if (std::memcmp(Desc.data(), Other.Desc.data(), desc_size) != 0 || 
-            std::memcmp(ColorReferences.data(), Other.ColorReferences.data(), ref_size) != 0 ||
-            std::memcmp(&DepthStencilReference, &Other.DepthStencilReference, sizeof(VkAttachmentReference)) != 0)
-            return false;
+//     bool operator==(const FVulkanRenderTargetLayout& Other) const
+//     {
+//         if (Desc.size() != Other.Desc.size() || ColorReferences.size() != Other.ColorReferences.size())
+//             return false;
+//         size_t desc_size = sizeof(VkAttachmentDescription) * Desc.size();
+//         size_t ref_size = sizeof(VkAttachmentReference) * ColorReferences.size();
+//         if (std::memcmp(Desc.data(), Other.Desc.data(), desc_size) != 0 || 
+//             std::memcmp(ColorReferences.data(), Other.ColorReferences.data(), ref_size) != 0 ||
+//             std::memcmp(&DepthStencilReference, &Other.DepthStencilReference, sizeof(VkAttachmentReference)) != 0)
+//             return false;
 
-        return true;
-    }
+//         return true;
+//     }
 
-private:
-    void InitWithAttachments(
-        const std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS>& RenderTargetFormats,
-        uint32 NumRenderTargetsEnabled,
-        EPixelFormat DepthStencilTargetFormat);
+// private:
+//     void InitWithAttachments(
+//         const std::array<EPixelFormat, MaxSimultaneousRenderTargets>& RenderTargetFormats,
+//         EPixelFormat DepthStencilTargetFormat);
 
-};
+// };
 
 }
 
 namespace std {
 
+// template<>
+// struct hash<nilou::FVulkanRenderTargetLayout>
+// {
+//     size_t operator()(const nilou::FVulkanRenderTargetLayout& _Keyval) const noexcept
+//     {
+//         return _Keyval.RenderPassFullHash;
+//     }
+// };
+
 template<>
-struct hash<nilou::FVulkanRenderTargetLayout>
+struct hash<nilou::RHIRenderTargetLayout>
 {
-    size_t operator()(const nilou::FVulkanRenderTargetLayout& _Keyval) const noexcept
-    {
-        return _Keyval.RenderPassFullHash;
-    }
+    size_t operator()(const nilou::RHIRenderTargetLayout& _Keyval) const noexcept;
 };
 
 }
@@ -139,9 +166,12 @@ struct FVulkanRenderPassManager
     FVulkanRenderPassManager(VkDevice InDevice)
         : Device(InDevice)
     { }
+    ~FVulkanRenderPassManager();
     VkDevice Device{};
-    FVulkanRenderPass* GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout);
-    std::unordered_map<FVulkanRenderTargetLayout, FVulkanRenderPass> RenderPasses;
+    VkFramebuffer GetOrCreateFramebuffer(VkRenderPass RenderPass, const std::array<RHITextureView*, MaxSimultaneousRenderTargets>& ColorAttachments, RHITextureView* DepthStencilAttachment);
+    VkRenderPass GetOrCreateRenderPass(const RHIRenderTargetLayout& RTLayout);
+    std::unordered_map<uint32, VkRenderPass> RenderPasses;
+    std::unordered_map<uint32, VkFramebuffer> Framebuffers;
 };
 
 VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format);

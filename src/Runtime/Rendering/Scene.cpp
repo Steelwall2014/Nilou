@@ -48,7 +48,7 @@ namespace nilou {
         FScene *Scene = this;
 
         ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
-            [Scene, SkyAtmosphereSceneProxy](FDynamicRHI*)
+            [Scene, SkyAtmosphereSceneProxy](RenderGraph&)
             {
                 Scene->SkyAtmosphereStack.emplace_back(SkyAtmosphereSceneProxy);
                 Scene->SkyAtmosphere = SkyAtmosphereSceneProxy;
@@ -61,7 +61,7 @@ namespace nilou {
         FScene *Scene = this;
 
         ENQUEUE_RENDER_COMMAND(FScene_AddSkyAtmosphere)(
-            [Scene, SkyAtmosphereSceneProxy](FDynamicRHI*)
+            [Scene, SkyAtmosphereSceneProxy](RenderGraph&)
             {
                 safe_erase(Scene->SkyAtmosphereStack, SkyAtmosphereSceneProxy);
                 if (!Scene->SkyAtmosphereStack.empty())
@@ -83,7 +83,7 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddLight)(
-            [Scene, LightSceneInfo] (FDynamicRHI*) 
+            [Scene, LightSceneInfo] (RenderGraph&) 
             {
                 Scene->AddLightSceneInfo_RenderThread(LightSceneInfo);
             });
@@ -100,7 +100,7 @@ namespace nilou {
             
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(RemoveLight)(
-                [Scene, LightSceneInfo] (FDynamicRHI *DynamicRHI) 
+                [Scene, LightSceneInfo] (RenderGraph&) 
                 {
                     Scene->RemoveLightSceneInfo_RenderThread(LightSceneInfo);
                 });
@@ -118,14 +118,14 @@ namespace nilou {
         PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
 
         glm::mat4 RenderMatrix = InPrimitive->GetRenderMatrix();
-        FBoundingBox Bounds = InPrimitive->GetBounds();
+        FBoxSphereBounds Bounds = InPrimitive->GetBounds();
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (FDynamicRHI *DynamicRHI) 
+            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RenderGraph&) 
             {
+                PrimitiveSceneProxy->CreateUniformBuffer();
                 PrimitiveSceneProxy->CreateRenderThreadResources();
-                PrimitiveSceneProxy->SetTransform(RenderMatrix, Bounds);
                 Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
             });
     }
@@ -141,7 +141,7 @@ namespace nilou {
 
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-                [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo] (FDynamicRHI *DynamicRHI) 
+                [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo] (RenderGraph&) 
                 {
                     PrimitiveSceneInfo->SceneProxy->DestroyRenderThreadResources();
                     Scene->RemovePrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
@@ -159,11 +159,11 @@ namespace nilou {
         FReflectionProbeSceneInfo *ReflectionProbeSceneInfo = new FReflectionProbeSceneInfo(ReflectionProbeSceneProxy, InReflectionProbe, this);
         ReflectionProbeSceneProxy->ReflectionProbeSceneInfo = ReflectionProbeSceneInfo;
 
-        FBoundingBox Bounds = InReflectionProbe->GetBounds();
+        FBoxSphereBounds Bounds = InReflectionProbe->GetBounds();
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddReflectionProbe)(
-            [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo, Bounds] (FDynamicRHI *DynamicRHI) 
+            [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo, Bounds] (RenderGraph&) 
             {
                 Scene->AddReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
             });
@@ -180,17 +180,37 @@ namespace nilou {
 
             FScene *Scene = this;
             ENQUEUE_RENDER_COMMAND(RemoveReflectionProbe)(
-                [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo] (FDynamicRHI *DynamicRHI) 
+                [Scene, ReflectionProbeSceneProxy, ReflectionProbeSceneInfo] (RenderGraph&) 
                 {
                     Scene->RemoveReflectionProbeSceneInfo_RenderThread(ReflectionProbeSceneInfo);
                 });
         }
     }
 
-    void FScene::UpdateRenderInfos()
+    void FScene::UpdateRenderInfos(RenderGraph& Graph)
     {
-        UpdatePrimitiveInfos();
-        UpdateLightInfos();
+        UpdatePrimitiveInfos(Graph);
+        UpdateLightInfos(Graph);
+    }
+
+    void FScene::UpdatePrimitiveTransform(UPrimitiveComponent *Primitive)
+    {
+        FPrimitiveSceneProxy* Proxy = Primitive->GetSceneProxy();
+        if (Proxy)
+        {
+            glm::mat4 RenderMatrix = Primitive->GetRenderMatrix();
+            FBoxSphereBounds Bounds = Primitive->GetBounds();
+            ENQUEUE_RENDER_COMMAND(UpdatePrimitiveTransform)(
+                [this, Proxy, RenderMatrix, Bounds](RenderGraph&)
+                {
+                    UpdatePrimitiveTransform_RenderThread(Proxy, RenderMatrix, Bounds);
+                });
+        }
+    }
+
+    void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds)
+    {
+        UpdatedTransforms[Proxy] = FUpdateTransformCommand(Bounds, Bounds, RenderMatrix);
     }
 
     void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo *InPrimitiveInfo)
@@ -207,13 +227,13 @@ namespace nilou {
     void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo)
     {
         AddedLightSceneInfos.emplace(InLightInfo);
-        InLightInfo->LightUniformBufferRHI->InitResource();
+        // InLightInfo->LightUniformBufferRHI->InitResource();
         GetAddLightDelegate().Broadcast(InLightInfo);
     }
 
     void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo *InLightInfo)
     {
-        InLightInfo->LightUniformBufferRHI->ReleaseResource();
+        // InLightInfo->LightUniformBufferRHI->ReleaseResource();
         AddedLightSceneInfos.erase(InLightInfo);
         GetRemoveLightDelegate().Broadcast(InLightInfo);
         delete InLightInfo;
@@ -230,12 +250,12 @@ namespace nilou {
         delete InReflectionProbeInfo;
     }
 
-    void FScene::UpdatePrimitiveInfos()
+    void FScene::UpdatePrimitiveInfos(RenderGraph& Graph)
     {
         for (auto &&PrimitiveInfo : AddedPrimitiveSceneInfos)
         {
             if (PrimitiveInfo->bNeedsUniformBufferUpdate)
-                PrimitiveInfo->SceneProxy->UpdateUniformBuffer();
+                PrimitiveInfo->SceneProxy->UpdateUniformBuffer(Graph);
         }
     }
 
@@ -275,27 +295,30 @@ namespace nilou {
                         AttenCurveParam.u.inverse_squre_params.kl,
                         AttenCurveParam.u.inverse_squre_params.kc);
                 break;
+            default:
+                Ncheck(0);
         }
     }
 
-    static void SetLightUniformBuffer(TUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
+    static void SetLightUniformBuffer(RenderGraph& Graph, TRDGUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
     {
-        LightUniformBuffer->Data.lightPosition = Proxy->Position;
-        LightUniformBuffer->Data.lightDirection = Proxy->Direction;
-        LightUniformBuffer->Data.lightIntensity = Proxy->LightIntensity;
-        LightUniformBuffer->Data.lightCastShadow = Proxy->bCastShadow;
-        LightUniformBuffer->Data.lightType = (int)Proxy->LightType;
-        SetLightAttenParams(LightUniformBuffer->Data.lightDistAttenParams, Proxy->DistAttenCurve);
-        SetLightAttenParams(LightUniformBuffer->Data.lightAngleAttenParams, Proxy->AngleAttenCurve);
+        FLightShaderParameters Parameters;
+        Parameters.lightPosition = Proxy->Position;
+        Parameters.lightDirection = Proxy->Direction;
+        Parameters.lightIntensity = Proxy->LightIntensity;
+        Parameters.lightCastShadow = Proxy->bCastShadow;
+        Parameters.lightType = (int)Proxy->LightType;
+        SetLightAttenParams(Parameters.lightDistAttenParams, Proxy->DistAttenCurve);
+        SetLightAttenParams(Parameters.lightAngleAttenParams, Proxy->AngleAttenCurve);
+        Graph.QueueBufferUpload(LightUniformBuffer, &Parameters, sizeof(Parameters));
     }
 
-    void FScene::UpdateLightInfos()
+    void FScene::UpdateLightInfos(RenderGraph& Graph)
     {
         for (auto &&LightInfo : AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightInfo->SceneProxy;
-            SetLightUniformBuffer(LightInfo->LightUniformBufferRHI.get(), Proxy);
-            LightInfo->LightUniformBufferRHI->UpdateUniformBuffer();
+            SetLightUniformBuffer(Graph, LightInfo->LightUniformBuffer, Proxy);
         }
     }
 

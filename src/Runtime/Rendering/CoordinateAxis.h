@@ -1,6 +1,6 @@
 #pragma once
 // #include <glm/glm.hpp>
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 
 class CoordinateAxis
 {

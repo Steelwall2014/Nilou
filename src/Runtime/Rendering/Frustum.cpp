@@ -1,48 +1,9 @@
 #include "Frustum.h"
 
 #include "Common/Log.h"
+#include "Common/Math/BoxSphereBounds.h"
 
 namespace nilou {
-
-    FPlane::FPlane() noexcept : FPlane(glm::dvec3(0.0, 0.0, 1.0), 0.0) {}
-
-    FPlane::FPlane(const glm::dvec3& normal, double distance)
-        : Normal(normal), Distance(distance) 
-    {
-        if (!Math::equalsEpsilon(glm::length(normal), 1.0, 1e-6)) 
-        {
-            NILOU_LOG(Fatal, "normal must be normalized.");
-            std::cout << normal << std::endl;;
-        }
-    }
-
-    FPlane::FPlane(const glm::dvec3& point, const glm::dvec3& normal)
-        : FPlane(normal, -glm::dot(normal, point)) {}
-
-    FPlane::FPlane(const glm::dvec3& A, const glm::dvec3& B, const glm::dvec3& C)
-    {
-        Normal = glm::normalize(glm::cross(B-A, C-A));
-        Distance = -glm::dot(Normal, A);
-    }
-
-
-    double FPlane::GetPointDistance(const glm::dvec3& point) const noexcept 
-    {
-        return glm::dot(this->Normal, point) + this->Distance;
-    }
-
-    glm::dvec3 FPlane::ProjectPointOntoPlane(const glm::dvec3& point) const noexcept 
-    {
-        // projectedPoint = point - (normal.point + scale) * normal
-        const double pointDistance = this->GetPointDistance(point);
-        const glm::dvec3 scaledNormal = this->Normal * pointDistance;
-        return point - scaledNormal;
-    }
-
-    bool FPlane::Equals(const FPlane &Other, double epsilon)
-    {
-        return Math::equalsEpsilon(Other.Normal, Normal, epsilon) && Math::equalsEpsilon(Other.Distance, Distance, epsilon);
-    }
 
     ECullingResult FOrientedBoundingBox::IntersectPlane(const FPlane& plane) const noexcept 
     {
@@ -80,179 +41,6 @@ namespace nilou {
         dvec4 center = Transform * dvec4(Center, 1);
         FBoundingSphere NewSphere(center, Radius);
         return NewSphere;
-    }
-
-    FBoundingBox::FBoundingBox(const glm::dvec3 &Min, const glm::dvec3 &Max)
-        : Min(Min)
-        , Max(Max)
-    {
-    }
-
-    FBoundingBox::FBoundingBox(const dvec3 &Center, const dvec3 &xDirection, const dvec3 &yDirection, const dvec3 &zDirection)
-    {
-        double x =  glm::abs(xDirection.x) + glm::abs(yDirection.x) + glm::abs(zDirection.x);
-        
-        double y =  glm::abs(xDirection.y) + glm::abs(yDirection.y) + glm::abs(zDirection.y);
-
-        double z =  glm::abs(xDirection.z) + glm::abs(yDirection.z) + glm::abs(zDirection.z);
-
-        Min = Center - dvec3(x, y, z);
-        Max = Center + dvec3(x, y, z);
-    }
-
-    FBoundingBox FBoundingBox::TransformBy(const FTransform &Transform) const
-    {
-        FBoundingBox NewBox;
-        glm::dmat4 M = Transform.ToMatrix();
-
-        NewBox.Min = NewBox.Max = Transform.GetTranslation();
-
-        {   // NewBox.Min.x NewBox.Max.x
-            if (M[0][0] > 0.f)
-            {
-                NewBox.Min.x += M[0][0] * Min.x;
-                NewBox.Max.x += M[0][0] * Max.x;
-            }
-            else 
-            {
-                NewBox.Min.x += M[0][0] * Max.x;
-                NewBox.Max.x += M[0][0] * Min.x;
-            }
-            if (M[1][0] > 0.f)
-            {
-                NewBox.Min.x += M[1][0] * Min.y;
-                NewBox.Max.x += M[1][0] * Max.y;
-            }
-            else 
-            {
-                NewBox.Min.x += M[1][0] * Max.y;
-                NewBox.Max.x += M[1][0] * Min.y;
-            }
-            if (M[2][0] > 0.f)
-            {
-                NewBox.Min.x += M[2][0] * Min.z;
-                NewBox.Max.x += M[2][0] * Max.z;
-            }
-            else 
-            {
-                NewBox.Min.x += M[2][0] * Max.z;
-                NewBox.Max.x += M[2][0] * Min.z;
-            }
-        }
-
-        {   // NewBox.Min.y NewBox.Max.y
-            if (M[0][1] > 0.f)
-            {
-                NewBox.Min.y += M[0][1] * Min.x;
-                NewBox.Max.y += M[0][1] * Max.x;
-            }
-            else 
-            {
-                NewBox.Min.y += M[0][1] * Max.x;
-                NewBox.Max.y += M[0][1] * Min.x;
-            }
-            if (M[1][1] > 0.f)
-            {
-                NewBox.Min.y += M[1][1] * Min.y;
-                NewBox.Max.y += M[1][1] * Max.y;
-            }
-            else 
-            {
-                NewBox.Min.y += M[1][1] * Max.y;
-                NewBox.Max.y += M[1][1] * Min.y;
-            }
-            if (M[2][1] > 0.f)
-            {
-                NewBox.Min.y += M[2][1] * Min.z;
-                NewBox.Max.y += M[2][1] * Max.z;
-            }
-            else 
-            {
-                NewBox.Min.y += M[2][1] * Max.z;
-                NewBox.Max.y += M[2][1] * Min.z;
-            }
-        }
-
-        {   // NewBox.Min.z NewBox.Max.z
-            if (M[0][2] > 0.f)
-            {
-                NewBox.Min.z += M[0][2] * Min.x;
-                NewBox.Max.z += M[0][2] * Max.x;
-            }
-            else 
-            {
-                NewBox.Min.z += M[0][2] * Max.x;
-                NewBox.Max.z += M[0][2] * Min.x;
-            }
-            if (M[1][2] > 0.f)
-            {
-                NewBox.Min.z += M[1][2] * Min.y;
-                NewBox.Max.z += M[1][2] * Max.y;
-            }
-            else 
-            {
-                NewBox.Min.z += M[1][2] * Max.y;
-                NewBox.Max.z += M[1][2] * Min.y;
-            }
-            if (M[2][2] > 0.f)
-            {
-                NewBox.Min.z += M[2][2] * Min.z;
-                NewBox.Max.z += M[2][2] * Max.z;
-            }
-            else 
-            {
-                NewBox.Min.z += M[2][2] * Max.z;
-                NewBox.Max.z += M[2][2] * Min.z;
-            }
-        }
-        return NewBox;
-    }
-
-    void FBoundingBox::FromBoundingSphere(const FBoundingSphere &Sphere)
-    {
-        Min = Sphere.Center - dvec3(Sphere.Radius);
-        Max = Sphere.Center + dvec3(Sphere.Radius);
-    }
-
-    ECullingResult FBoundingBox::IntersectPlane(const FPlane& plane) const noexcept
-    {
-        const glm::dvec3 normal = plane.Normal;
-
-        const dvec3 Center = (Min+Max) / 2.0;
-
-        // const glm::dvec3& boxVertex1 = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
-        // const glm::dvec3& boxVertex2 = -HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
-        // const glm::dvec3& boxVertex3 = HalfAxes[0] - HalfAxes[1] + HalfAxes[2];
-        // const glm::dvec3& boxVertex4 = HalfAxes[0] + HalfAxes[1] - HalfAxes[2];
-
-        
-        glm::dvec3 boxVertex;
-        boxVertex.x = normal.x > 0 ? Max.x : Min.x;
-        boxVertex.y = normal.y > 0 ? Max.y : Min.y;
-        boxVertex.z = normal.z > 0 ? Max.z : Min.z;
-
-        // plane is used as if it is its normal; the first three components are
-        // assumed to be normalized
-        // const double radEffective1 = glm::abs(glm::dot(normal, boxVertex));
-        // const double radEffective2 = glm::abs(glm::dot(normal, boxVertex2));
-        // const double radEffective3 = glm::abs(glm::dot(normal, boxVertex3));
-        // const double radEffective4 = glm::abs(glm::dot(normal, boxVertex4));
-
-        // const double radEffective = glm::max(radEffective1, glm::max(radEffective2, glm::max(radEffective3, radEffective4)));
-
-        const double radEffective = glm::abs(glm::dot(normal, boxVertex));
-
-        const double distanceToPlane = plane.GetPointDistance(Center);
-
-        if (distanceToPlane <= -radEffective) {
-            // The entire box is on the negative side of the plane normal
-            return ECullingResult::CR_Outside;
-        }
-        if (distanceToPlane >= radEffective) {
-            // The entire box is on the positive side of the plane normal
-            return ECullingResult::CR_Inside;
-        }
-        return ECullingResult::CR_Intersecting;
     }
 
     void NormalizePlane(glm::dvec4 &plane)
@@ -400,8 +188,9 @@ namespace nilou {
         return true;
     }
 
-    bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FBoundingBox &AABB) const
+    bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FBoxSphereBounds &Bound) const
     {
+        FBox AABB = Bound.GetBox();
         return 
             IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Min.z)) && 
             IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Max.z)) &&
@@ -416,7 +205,7 @@ namespace nilou {
     {
         return OBB.IntersectPlane(plane) == ECullingResult::CR_Outside;
     }
-    bool FViewFrustum::IsBoxOutSideFrustum(const FBoundingBox &AABB) const
+    bool FViewFrustum::IsBoxOutSideFrustum(const FBoxSphereBounds &AABB) const
     {
         return 
             IsBoxOutSidePlane(Planes[0], AABB) || 
@@ -441,7 +230,7 @@ namespace nilou {
         FOrientedBoundingBox OBB{Center, HalfAxes};
         return IsBoxOutSideFrustum(OBB);
     }
-    bool FViewFrustum::IsBoxOutSideFrustumFast(const FBoundingBox &AABB) const
+    bool FViewFrustum::IsBoxOutSideFrustumFast(const FBoxSphereBounds &AABB) const
     {
         return 
             IsBoxOutSidePlane(Planes[0], AABB) || 
@@ -478,11 +267,11 @@ namespace nilou {
         return glm::dot(plane.Normal, position) + plane.Distance < 0;
     }
 
-    bool FConvexVolume::IntersectBox(const FBoundingBox &Box)
+    bool FConvexVolume::IntersectBox(const FBoxSphereBounds &Box)
     {
         for (int i = 0; i < Planes.size(); i++)
         {
-            if (Box.IntersectPlane(Planes[i]) == ECullingResult::CR_Outside)
+            if (Box.GetBox().IntersectPlane(Planes[i]) == ECullingResult::CR_Outside)
                 return false;
         }
         return true;

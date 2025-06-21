@@ -11,6 +11,6 @@ public:
     std::vector<VkVertexInputBindingDescription> BindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> AttributeDescriptions;
 };
-using VulkanVertexDeclarationRef = std::shared_ptr<VulkanVertexDeclaration>;
+using VulkanVertexDeclarationRef = TRefCountPtr<VulkanVertexDeclaration>;
 
 }

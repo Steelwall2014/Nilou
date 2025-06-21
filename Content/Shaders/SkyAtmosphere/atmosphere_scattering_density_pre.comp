@@ -9,7 +9,7 @@ layout (binding=3) uniform sampler2D IrradianceLUT;
 
 layout (rgba32f, binding=4) uniform image3D ScatteringDensityLUT;
 
-layout (std140, binding=5) uniform ScatteringOrderBlock {
+layout ( push_constant ) uniform ScatteringOrderBlock {
     int scattering_order;
 };
 #include "atmosphere_functions.glsl"

@@ -70,10 +70,8 @@ namespace nilou {
     void FStaticMeshIndexBuffer::InitRHI(RenderGraph& Graph)
     {
         FRenderResource::InitRHI(Graph);
-        RDGBufferDesc Desc;
-        Desc.Size = Stride * NumIndices;
-        Desc.Stride = Stride;
-        IndexBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
-        Graph.AddUploadPass(IndexBufferRDG.get(), Data, Desc.Size);
+        RDGBufferDesc Desc(NumIndices * Stride, Stride, EBufferUsageFlags::IndexBuffer);
+        IndexBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);
+        // Graph.AddUploadPass(IndexBufferRDG.get(), Data, Desc.Size);
     }
 }

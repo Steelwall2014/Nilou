@@ -7,6 +7,21 @@
 
 namespace nilou {
 
+	RHITextureView* FRHITextureViewCache::GetOrCreateView(RHITexture* Texture, const FRHITextureViewCreateInfo& InCreateInfo)
+	{
+		for (auto& [Desc, View] : TextureViews)
+		{
+			if (Desc == InCreateInfo)
+			{
+				return View;
+			}
+		}
+
+		RHITextureViewRef TextureView = RHICreateTextureView(Texture, InCreateInfo, Texture->GetName() + "_View");
+		TextureViews.push_back({InCreateInfo, TextureView});
+		return TextureView;
+	}
+
     uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat)
     {
         switch (PixelFormat) {
@@ -81,11 +96,22 @@ namespace nilou {
         }
     }
 
-	void RHIDescriptorSetLayout::GenerateHash()
-	{
-		Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
+	FGraphicsPipelineStateInitializer::FGraphicsPipelineStateInitializer()
+		: VertexShader(nullptr)
+		, PixelShader(nullptr)
+		, DepthStencilState(TStaticDepthStencilState<>::GetRHI())
+		, RasterizerState(TStaticRasterizerState<>::GetRHI())
+		, BlendState(TStaticBlendState<>::GetRHI())
+		, VertexDeclaration(nullptr)
+		, PrimitiveMode(EPrimitiveMode::PM_TriangleList)
+	{ 
+
 	}
 
+	RHIDescriptorSetLayout* RHIDescriptorSet::GetLayout() const
+	{
+		return Pool->Layout;
+	}
 }
 
 namespace std {

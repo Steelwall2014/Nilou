@@ -9,7 +9,7 @@ namespace nilou {
     public:
         ASphereActor() 
         { 
-            SphereComponent = CreateComponent<USphereComponent>(this); 
+            SphereComponent = CreateComponent<USphereComponent>(this, "SphereComponent"); 
             SphereComponent->AttachToComponent(GetRootComponent());
         }
         

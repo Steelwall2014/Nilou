@@ -9,7 +9,7 @@ namespace nilou {
     public:
         AStaticMeshActor() 
         { 
-            StaticMeshComponent = CreateComponent<UStaticMeshComponent>(this); 
+            StaticMeshComponent = CreateComponent<UStaticMeshComponent>(this, "StaticMeshComponent"); 
             StaticMeshComponent->AttachToComponent(GetRootComponent());
         }
 

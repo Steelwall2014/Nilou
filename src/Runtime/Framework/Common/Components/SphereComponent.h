@@ -52,7 +52,7 @@ namespace nilou {
         //~ End UPrimitiveComponent Interface.
 
         //~ Begin USceneComponent Interface.
-        virtual FBoundingBox CalcBounds(const FTransform &LocalToWorld) const override;
+        virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
         //~ Begin USceneComponent Interface.
 
     private:

@@ -23,10 +23,6 @@ namespace nilou {
     {
         GENERATED_BODY()
     public:
-        UTexture2DArray()
-        {
-
-        }
 
         virtual FTextureResource* CreateResource() override;
 

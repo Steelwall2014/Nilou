@@ -1,0 +1,6 @@
+target("base64")
+    set_optimize("fastest")
+    set_languages("cxx20")
+    set_kind("static")
+    add_includedirs("./", {public = true})
+    add_files("base64.cpp")

@@ -1,6 +1,6 @@
 #pragma once
 #include <json/json.hpp>
-#include <reflection/Class.h>
+#include "Class.h"
 #include "Templates/ObjectMacros.h"
 #include "SerializeHelper.h"
 #include "Archive.h"
@@ -18,9 +18,6 @@ namespace nilou {
 
         FContentEntry* ContentEntry;
 
-        NPROPERTY()
-        std::string Name;
-
         std::string GetVirtualPath() const { return ContentEntry->VirtualPath; }
 
         std::filesystem::path GetAbsolutePath() const { return ContentEntry->AbsolutePath; }
@@ -33,7 +30,7 @@ namespace nilou {
     {
         auto obj = Object.StaticCast(Ubpa::Type_of<T>);
         if (obj)
-            return obj.AsPtr<T>();
+            return obj.template AsPtr<T>();
         return nullptr;
     }
 
@@ -43,6 +40,16 @@ namespace nilou {
         if (Object && Object->IsA(T::StaticClass()))
             return static_cast<T*>(Object);
         return nullptr;
+    }
+
+    inline void Serialize(NObject* Obj, FArchive& Ar)
+    {
+        Obj->Serialize(Ar);
+    }
+
+    inline void Deserialize(NObject* Obj, FArchive& Ar)
+    {
+        Obj->Deserialize(Ar);
     }
 
     class FContentManager *GetContentManager();

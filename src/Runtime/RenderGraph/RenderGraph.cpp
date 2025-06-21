@@ -7,144 +7,217 @@
 #include "RenderGraphTransition.h"
 #include "PlatformMisc.h"
 #include "Stats/Stats2.h"
+#include "Common/Containers/Array.h"
 
 namespace nilou {
+
+std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> RenderGraph::DescriptorSetPools;
+FRDGBufferPool GRenderGraphBufferPool;
+FRDGTexturePool GRenderGraphTexturePool;
 
 /** Enumerates all texture accesses and provides the access and subresource range info. This results in
  *  multiple invocations of the same resource, but with different access / subresource range.
  */
-void EnumerateTextureAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction)
+void RenderGraph::EnumerateTextureAccess(FRDGPass* Pass, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction)
 {
-    for (RDGDescriptorSet* DescriptorSet : PassParameters)
+    for (RDGDescriptorSet* DescriptorSet : Pass->DescriptorSets)
     {
-        for (auto [BindingIndex, Writer] : DescriptorSet->WriterInfos)
+        for (auto& [BindingIndex, Writer] : DescriptorSet->WriterInfos)
         {
             if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler || Writer.DescriptorType == EDescriptorType::StorageImage)
             {
 				RDGTextureView* TextureView = Writer.ImageInfo.Texture;
-                RDGTexture* Texture = TextureView->GetParent();
+				RDGTexture* Texture = TextureView->GetParent();
+				RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
+				if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler)
+				{
+					Desc.Usage |= ETextureUsageFlags::Sampled;
+				}
+				else if (Writer.DescriptorType == EDescriptorType::StorageImage)
+				{
+					Desc.Usage |= ETextureUsageFlags::Storage;
+				}
                 AccessFunction(TextureView, Texture, Writer.ImageInfo.SamplerState, Writer.Access);
             }
         }
     }
+	for (auto& Attachment : Pass->RenderTargets.ColorAttachments)
+	{
+		RDGTextureView* TextureView = Attachment.TextureView;
+		if (TextureView)
+		{
+			RDGTexture* Texture = TextureView->GetParent();
+			RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
+			Desc.Usage |= ETextureUsageFlags::ColorAttachment;
+			AccessFunction(TextureView, Texture, nullptr, ERHIAccess::ColorAttachmentWrite);
+		}
+	}
+	auto& Attachment = Pass->RenderTargets.DepthStencilAttachment;
+	RDGTextureView* TextureView = Attachment.TextureView;
+	if (TextureView)
+	{
+		RDGTexture* Texture = TextureView->GetParent();
+		RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
+		Desc.Usage |= ETextureUsageFlags::DepthStencilAttachment;
+		AccessFunction(TextureView, Texture, nullptr, ERHIAccess::DepthStencilAttachmentWrite);
+	}
 }
 
 /** Enumerates all buffer accesses and provides the access info. */
-void EnumerateBufferAccess(const std::vector<RDGDescriptorSet*>& PassParameters, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction)
+void RenderGraph::EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction)
 {
-    for (RDGDescriptorSet* DescriptorSet : PassParameters)
+    for (RDGDescriptorSet* DescriptorSet : Pass->DescriptorSets)
     {
         for (auto [BindingIndex, Writer] : DescriptorSet->WriterInfos)
         {
             if (Writer.DescriptorType == EDescriptorType::StorageBuffer)
             {
+				RDGBufferDesc& Desc = const_cast<RDGBufferDesc&>(Writer.BufferInfo.Buffer->Desc);
+                Desc.Usage |= EBufferUsageFlags::StorageBuffer;
                 AccessFunction(Writer.BufferInfo.Buffer, Writer.Access);
             }
+            else if (Writer.DescriptorType == EDescriptorType::UniformBuffer)
+            {
+				RDGBufferDesc& Desc = const_cast<RDGBufferDesc&>(Writer.BufferInfo.Buffer->Desc);
+                Desc.Usage |= EBufferUsageFlags::UniformBuffer;
+                AccessFunction(Writer.BufferInfo.Buffer, Writer.Access);
+			}
         }
     }
+	for (RDGBuffer* Buffer : Pass->IndexBuffers)
+	{
+		RDGBufferDesc& Desc = const_cast<RDGBufferDesc&>(Buffer->Desc);
+		Desc.Usage |= EBufferUsageFlags::IndexBuffer;
+		AccessFunction(Buffer, ERHIAccess::IndexRead);
+	}
+	for (RDGBuffer* Buffer : Pass->VertexBuffers)
+	{
+		RDGBufferDesc& Desc = const_cast<RDGBufferDesc&>(Buffer->Desc);
+		Desc.Usage |= EBufferUsageFlags::VertexBuffer;
+		AccessFunction(Buffer, ERHIAccess::VertexAttributeRead);
+	}
 }
 
-RenderGraph::RenderGraph(RHICommandList& InRHICmdList)
-    : RHICmdList(InRHICmdList)
-	, TransientResourceAllocator(GRDGTransientResourceAllocator.Get())
+RenderGraph::RenderGraph()
+    : TransientResourceAllocator(GRDGTransientResourceAllocator.Get())
 {
-	ProloguePass = new FRDGPass(GetProloguePassHandle(), RDGPassDesc{"ProloguePass", true}, ERHIPipeline::Graphics);
+	RDGPassDesc ProloguePassDesc{"ProloguePass"};
+	ProloguePassDesc.bNeverCull = true;
+	ProloguePass = new FRDGPass(GetProloguePassHandle(), ProloguePassDesc, ERHIPipeline::Graphics);
 	Passes.push_back(ProloguePass);
 }
 
 RDGTextureRef RenderGraph::CreateExternalTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
-    std::shared_ptr<RDGTexture> Texture = std::make_shared<RDGTexture>(Desc);
+    RDGTextureRef Texture = new RDGTexture(Name, Desc);
     Texture->Name = Name;
-    Texture->bIsPersistent = true;
-    switch (Desc.TextureType)
-    {
-    case ETextureDimension::Texture2D:
-        Texture->ResourceRHI = RHICreateTexture2D(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.Flags);
-        break;
-    case ETextureDimension::Texture2DArray:
-        Texture->ResourceRHI = RHICreateTexture2DArray(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.ArraySize, Desc.Flags);
-        break;
-    case ETextureDimension::Texture3D:
-        Texture->ResourceRHI = RHICreateTexture3D(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.SizeZ, Desc.Flags);
-        break;
-    case ETextureDimension::TextureCube:
-        Texture->ResourceRHI = RHICreateTextureCube(Name, Desc.Format, Desc.NumMips, Desc.SizeX, Desc.SizeY, Desc.Flags);
-        break;
-    default:
-        Ncheckf(false, "Invalid texture type");
-    };
-    Texture->DefaultView = CreateExternalTextureViewInternal(RDGTextureViewDesc::Create(Texture.get()));
+    Texture->bTransient = false;
+	Texture->PooledDefaultView = CreateExternalTextureView(Texture);
     return Texture;
 }
 
-RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& BufferDesc)
+RDGTextureViewRef RenderGraph::CreateExternalTextureView(const std::string& Name, RDGTexture* InTexture, const RDGTextureViewDesc& ViewDesc)
 {
-    std::shared_ptr<RDGBuffer> Buffer = std::make_shared<RDGBuffer>(BufferDesc);
+    RDGTextureViewRef TextureView = new RDGTextureView(Name, InTexture, ViewDesc);
+    return TextureView;
+}
+
+RDGTextureViewRef RenderGraph::CreateExternalTextureView(RDGTexture* InTexture)
+{
+	std::string Name = InTexture->Name + "_DefaultView";
+	RDGTextureViewDesc ViewDesc;
+	ViewDesc.Format = InTexture->Desc.Format;
+	ViewDesc.BaseMipLevel = 0;
+	ViewDesc.LevelCount = InTexture->Desc.NumMips;
+	ViewDesc.BaseArrayLayer = 0;
+	ViewDesc.LayerCount = InTexture->Desc.ArraySize;
+	ViewDesc.ViewType = InTexture->Desc.TextureType;
+    RDGTextureViewRef TextureView = new RDGTextureView(Name, InTexture, ViewDesc);
+    return TextureView;
+}
+
+RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& Desc)
+{
+    RDGBufferRef Buffer = new RDGBuffer(Name, Desc);
     Buffer->Name = Name;
-    Buffer->bIsPersistent = true;
-    Buffer->ResourceRHI = RHICreateBuffer(BufferDesc.GetStride(), BufferDesc.GetStride(), EBufferUsageFlags::None, nullptr);
+    Buffer->bTransient = false;
     return Buffer;
 }
 
-RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(RHIDescriptorSetLayout* Layout)
+RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
 {
-    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
-    {
-        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
-    }
-
-    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
-    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet(Name, Layout);
     return DescriptorSet;
 }
 
 RDGTexture* RenderGraph::CreateTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
-    std::shared_ptr<RDGTexture> Texture = std::make_shared<RDGTexture>(Desc);
-    Texture->Name = Name;
+    RDGTextureRef Texture = new RDGTexture(Name, Desc);
+	Texture->bTransient = true;
+	Texture->TransientDefaultView = CreateTextureView(Texture);
     Textures.push_back(Texture);
-    return Texture.get();
+    return Texture;
 }
 
-// RDGTextureView* RenderGraph::CreateTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& ViewDesc)
-// {
-//     RDGTextureDesc Desc;
-//     Desc.SizeX = Texture->Desc.SizeX >> ViewDesc.LevelCount;
-//     Desc.SizeY = Texture->Desc.SizeY >> ViewDesc.LevelCount;
-//     Desc.SizeZ = Texture->Desc.SizeZ >> ViewDesc.LevelCount;
-//     Desc.ArraySize = ViewDesc.LayerCount;
-//     Desc.NumMips = ViewDesc.LevelCount;
-//     Desc.Format = ViewDesc.Format;
-//     Desc.TexCreateFlags = Texture->Desc.TexCreateFlags;
-//     Desc.TextureType = ViewDesc.ViewType;
+RDGTextureView* RenderGraph::CreateTextureView(const std::string& Name, RDGTexture* InTexture, const RDGTextureViewDesc& ViewDesc)
+{
+    RDGTextureViewRef TextureView = new RDGTextureView(Name, InTexture, ViewDesc);
+    TextureViews.push_back(TextureView);
+    return TextureView;
+}
 
-//     std::shared_ptr<RDGTextureView> TextureView = std::make_shared<RDGTextureView>(Desc, Texture, ViewDesc);
-//     RDGTextureView* TextureViewPtr = TextureView.get();
-//     Textures.push_back(TextureView);
-
-//     return TextureViewPtr;
-// }
+RDGTextureView* RenderGraph::CreateTextureView(RDGTexture* InTexture)
+{
+	std::string Name = InTexture->Name + "_DefaultView";
+	RDGTextureViewDesc ViewDesc;
+	ViewDesc.Format = InTexture->Desc.Format;
+	ViewDesc.BaseMipLevel = 0;
+	ViewDesc.LevelCount = InTexture->Desc.NumMips;
+	ViewDesc.BaseArrayLayer = 0;
+	ViewDesc.LayerCount = InTexture->Desc.ArraySize;
+	ViewDesc.ViewType = InTexture->Desc.TextureType;
+    RDGTextureViewRef TextureView = new RDGTextureView(Name, InTexture, ViewDesc);
+    TextureViews.push_back(TextureView);
+    return TextureView;
+}
 
 RDGBuffer* RenderGraph::CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc)
 {
-    std::shared_ptr<RDGBuffer> Buffer = std::make_shared<RDGBuffer>(Desc);
-    Buffer->Name = Name;
+    RDGBufferRef Buffer = new RDGBuffer(Name, Desc);
+	Buffer->bTransient = true;
     Buffers.push_back(Buffer);
-    return Buffer.get();
+    return Buffer;
 }
 
-RDGDescriptorSet* RenderGraph::CreateDescriptorSet(RHIDescriptorSetLayout* Layout)
+void RenderGraph::QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, uint32 InitialDataSize)
 {
-    if (DescriptorSetPools.find(Layout) == DescriptorSetPools.end())
-    {
-        DescriptorSetPools[Layout] = RDGDescriptorSetPool(Layout);
-    }
+	if (!InitialData) return;
+	Ncheck(InitialDataSize <= Buffer->GetSize());
 
-    RDGDescriptorSetPool& Pool = DescriptorSetPools[Layout];
-    RDGDescriptorSetRef DescriptorSet = Pool.Allocate();
+	std::unique_ptr<uint8[]> InitialDataCopy = std::make_unique<uint8[]>(InitialDataSize);
+	std::memcpy(InitialDataCopy.get(), InitialData, InitialDataSize);
+	
+	RDGPassDesc PassDesc("QueueBufferUpload");
+	PassDesc.bNeverCull = true;
+	AddCopyPass(
+		PassDesc,
+		nullptr,
+		Buffer,
+		[=, InitialDataCopy = std::move(InitialDataCopy)](RHICommandList& RHICmdList)
+		{
+			RHIBuffer* StagingBuffer = RHICmdList.AcquireStagingBuffer(InitialDataSize);
+			void* Data = RHIMapMemory(StagingBuffer, 0, InitialDataSize);
+				memcpy(Data, InitialDataCopy.get(), InitialDataSize);
+			RHIUnmapMemory(StagingBuffer);
+			RHICmdList.CopyBuffer(StagingBuffer, Buffer->GetRHI(), 0, 0, InitialDataSize);
+		});
+}
+
+RDGDescriptorSet* RenderGraph::CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
+{
+    RDGDescriptorSetRef DescriptorSet = new RDGDescriptorSet(Name, Layout);
     DescriptorSets.push_back(DescriptorSet);
-    return DescriptorSet.get();
+    return DescriptorSet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,8 +247,14 @@ void RenderGraph::SetupCopyPass(FRDGPass* Pass, RDGResource* Source, RDGResource
 {
 	SetupPassInternal(Pass);
 
-	SetupCopyPassResource(Pass, Source, ERHIAccess::TransferRead);
-	SetupCopyPassResource(Pass, Destination, ERHIAccess::TransferWrite);
+	if (Source)
+	{
+		SetupCopyPassResource(Pass, Source, ERHIAccess::TransferRead);
+	}
+	if (Destination)
+	{
+		SetupCopyPassResource(Pass, Destination, ERHIAccess::TransferWrite);
+	}
 }
 
 void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, ERHIAccess Access)
@@ -189,6 +268,10 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		RDGBuffer* Buffer = static_cast<RDGBuffer*>(Resource);
 		FRDGPass::FBufferState& PassState = Pass->FindOrAddBufferState(Buffer);
 		PassState.ReferenceCount++;
+		Buffer->ReferenceCount++;
+
+		RDGBufferDesc& Desc = const_cast<RDGBufferDesc&>(Buffer->Desc);
+		Desc.Usage |= Access == ERHIAccess::TransferRead ? EBufferUsageFlags::TransferSrc : EBufferUsageFlags::TransferDst;
 
 		PassState.Access = Access;
 	}
@@ -198,6 +281,10 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		RDGTexture* Texture = TextureView->GetParent();
 		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
 		PassState.ReferenceCount++;
+		Texture->ReferenceCount++;
+
+		RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
+		Desc.Usage |= Access == ERHIAccess::TransferRead ? ETextureUsageFlags::TransferSrc : ETextureUsageFlags::TransferDst;
 		
 		FRDGTextureSubresourceRange WholeRange = Texture->GetSubresourceRange();
 		for (FRDGTextureSubresource& Subresource : TextureView->GetSubresourceRange())
@@ -205,6 +292,25 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 			int32 SubresourceIndex = WholeRange.GetSubresourceIndex(Subresource);
 			PassState.Access[SubresourceIndex] = Access;
 		}
+	}
+	else if (Resource->Type == ERDGResourceType::Texture)
+	{
+		RDGTexture* Texture = static_cast<RDGTexture*>(Resource);
+		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
+		PassState.ReferenceCount++;
+		Texture->ReferenceCount++;
+
+		RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
+		Desc.Usage |= Access == ERHIAccess::TransferRead ? ETextureUsageFlags::TransferSrc : ETextureUsageFlags::TransferDst;
+
+		for (int32 SubresourceIndex = 0; SubresourceIndex < Texture->GetSubresourceCount(); ++SubresourceIndex)
+		{
+			PassState.Access[SubresourceIndex] = Access;
+		}
+	}
+	else 
+	{
+		Ncheckf(false, "Unsupported resource type: {}", magic_enum::enum_name(Resource->Type));
 	}
 }
 
@@ -215,7 +321,7 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 
     // Steelwall2014: This lambda function can be called on the same texture multiple times with different access and subresource range.
     // So PassState.ReferenceCount is needed to keep track of the number of times the texture is accessed in this pass.
-	EnumerateTextureAccess(Pass->DescriptorSets, [&](RDGTextureView* TextureView, RDGTexture* Texture, RHISamplerState* SamplerState, ERHIAccess Access)
+	EnumerateTextureAccess(Pass, [&](RDGTextureView* TextureView, RDGTexture* Texture, RHISamplerState* SamplerState, ERHIAccess Access)
 	{
 		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
 		PassState.ReferenceCount++;
@@ -229,9 +335,10 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 			int32 SubresourceIndex = WholeRange.GetSubresourceIndex(Subresource);
 			PassState.Access[SubresourceIndex] = Access;
 		}
+		Pass->Views.push_back(TextureView);
 	});
 
-	EnumerateBufferAccess(Pass->DescriptorSets, [&](RDGBuffer* Buffer, ERHIAccess Access)
+	EnumerateBufferAccess(Pass, [&](RDGBuffer* Buffer, ERHIAccess Access)
 	{
 		FRDGPass::FBufferState& PassState = Pass->FindOrAddBufferState(Buffer);
 		PassState.ReferenceCount++;
@@ -332,9 +439,37 @@ void RenderGraph::Compile()
 	}
 }
 
+void RenderGraph::SubmitBufferUploads()
+{
+	SCOPED_NAMED_EVENT("RenderGraph::SubmitBufferUploads", FColor::Magenta);
+
+	{
+		SCOPED_NAMED_EVENT("Allocate", FColor::Magenta);
+		
+		for (FUploadedBuffer& UploadedBuffer : UploadedBuffers)
+		{
+			RDGBuffer* Buffer = UploadedBuffer.Buffer;
+			if (!Buffer->ResourceRHI)
+			{
+				FRDGPooledBufferRef PooledBuffer = AllocatePooledBufferRHI(Buffer);
+				Buffer->ResourceRHI = PooledBuffer->GetRHI();
+				Buffer->PooledBuffer = PooledBuffer;
+			}
+		}
+	}
+	for (FUploadedBuffer& UploadedBuffer : UploadedBuffers)
+	{
+		QueueBufferUpload(UploadedBuffer.Buffer, UploadedBuffer.Data, UploadedBuffer.DataSize);
+		UploadedBuffer.Buffer->bQueuedForUpload = false;
+	}
+	UploadedBuffers.clear();
+}
+
 void RenderGraph::Execute()
 {
-	EpiloguePass = new FRDGPass(Passes.size(), RDGPassDesc{"EpiloguePass", true}, ERHIPipeline::Graphics);
+	RDGPassDesc EpiloguePassDesc{"EpiloguePass"};
+	EpiloguePassDesc.bNeverCull = true;
+	EpiloguePass = new FRDGPass(Passes.size(), EpiloguePassDesc, ERHIPipeline::Graphics);
 	Passes.push_back(EpiloguePass);
 
 	const FRDGPassHandle ProloguePassHandle = GetProloguePassHandle();
@@ -342,30 +477,11 @@ void RenderGraph::Execute()
 
 	const int32 NumBuffers           = Buffers.size();
 	const int32 NumTextures          = Textures.size();
-	const int32 NumExternalBuffers   = ExternalBuffers.size();
-	const int32 NumExternalTextures  = ExternalTextures.size();
 	FCollectResourceContext CollectResourceContext;
 
+	SubmitBufferUploads();
+
     Compile();
-
-	CollectPassBarriers();
-
-	for  (auto [TextureRHI, Texture] : ExternalTextures)
-	{
-		if (Texture->IsCulled())
-		{
-			CollectDeallocateTexture(CollectResourceContext, ProloguePassHandle, Texture, 0);
-		}
-	}
-
-	for  (auto [BufferRHI, Buffer] : ExternalBuffers)
-	{
-		if (Buffer->IsCulled())
-		{
-			CollectDeallocateBuffer(CollectResourceContext, ProloguePassHandle, Buffer, 0);
-		}
-	}
-
 
 	// CollectResources
 	for (FRDGPass* Pass : Passes)
@@ -380,8 +496,11 @@ void RenderGraph::Execute()
 	AllocatePooledTextures(CollectResourceContext.PooledTextures);
 	AllocateTransientResources(CollectResourceContext.TransientResources);
 
+	CollectPassBarriers();
+
+	CreateViews(CollectResourceContext.Views);
 	
-	for (FRDGPassHandle PassHandle = ProloguePassHandle; PassHandle <= EpiloguePassHandle; ++PassHandle)
+	for (FRDGPassHandle PassHandle = ProloguePassHandle+1; PassHandle < EpiloguePassHandle; ++PassHandle)
 	{
 		FRDGPass* Pass = Passes[PassHandle];
 
@@ -390,7 +509,16 @@ void RenderGraph::Execute()
 			continue;
 		}
 		
-		ExecuteSerialPass(RHICmdList, Pass);
+		RHICommandList* RHICmdList = nullptr;
+		if (Pass->Pipeline == ERHIPipeline::Graphics)
+			RHICmdList = RHICreateGfxCommandList();
+		else if (Pass->Pipeline == ERHIPipeline::AsyncCompute)
+			RHICmdList = RHICreateComputeCommandList();
+		else if (Pass->Pipeline == ERHIPipeline::Copy)
+			RHICmdList = RHICreateTransferCommandList();
+		CollectPassDescriptorSets(PassHandle);
+		ExecuteSerialPass(*RHICmdList, Pass);
+		RHISubmitCommandList(RHICmdList, Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
 	}
 
 }
@@ -398,8 +526,39 @@ void RenderGraph::Execute()
 void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 {
 	RHICmdList.PipelineBarrier(Pass->MemoryBarriers, Pass->ImageBarriers, Pass->BufferBarriers);
+	if (Pass->Pipeline == ERHIPipeline::Graphics)
+	{
+		FRHIRenderPassInfo Info;
+		auto& ColorAttachments = Info.ColorRenderTargets;
+		auto& DepthStencilAttachment = Info.DepthStencilRenderTarget;
+		Info.Extent = ivec2(0, 0);
+		std::map<int, int&> map;
+		auto iter = map.begin();
+		for (auto [Index, ColorBindingPoint] : Enumerate(Pass->RenderTargets.ColorAttachments))
+		{
+			auto ColorRDG = ColorBindingPoint.TextureView;
+			if (ColorRDG)
+			{
+				ColorAttachments[Index] = ColorRDG->GetRHI();
+				Info.Extent = ivec2(ColorRDG->GetSizeX(), ColorRDG->GetSizeY());
+			}
+		}
+		auto& DepthStencilRDG = Pass->RenderTargets.DepthStencilAttachment.TextureView;
+		if (DepthStencilRDG)
+		{
+			DepthStencilAttachment = DepthStencilRDG->GetRHI();
+			Info.Extent = ivec2(DepthStencilRDG->GetSizeX(), DepthStencilRDG->GetSizeY());
+		}
+		Info.RTLayout = Pass->RenderTargets.GetRenderTargetLayout();
+		RHICmdList.BeginRenderPass(Info);
+		RHICmdList.SetViewport(Info.Offset.x, Info.Offset.y, Info.Extent.x, Info.Extent.y);
+		RHICmdList.SetScissor(Info.Offset.x, Info.Offset.y, Info.Extent.x, Info.Extent.y);
+	}
 	Pass->Execute(RHICmdList);
-	RHICmdList.Submit(Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
+	if (Pass->Pipeline == ERHIPipeline::Graphics)
+	{
+		RHICmdList.EndRenderPass();
+	}
 }
 
 /******************** Collect Resources ********************/
@@ -415,6 +574,11 @@ void RenderGraph::CollectAllocations(FCollectResourceContext& Context, FRDGPass*
     {
         CollectAllocateTexture(Context, Pass->Handle, PassState.Texture);
     }
+
+	for (RDGTextureView* View : Pass->Views)
+	{
+		Context.Views.insert(View);
+	}
 }
 
 void RenderGraph::CollectAllocateTexture(FCollectResourceContext& Context, FRDGPassHandle PassHandle, RDGTexture* Texture)
@@ -466,6 +630,19 @@ void RenderGraph::CollectAllocateBuffer(FCollectResourceContext& Context, FRDGPa
 		}
     }
     
+}
+
+void RenderGraph::CollectDeallocations(FCollectResourceContext& Context, FRDGPass* Pass)
+{
+    for (FRDGPass::FBufferState& PassState : Pass->BufferStates)
+    {
+        CollectDeallocateBuffer(Context, Pass->Handle, PassState.Buffer, PassState.ReferenceCount);
+    }
+
+    for (FRDGPass::FTextureState& PassState : Pass->TextureStates)
+    {
+        CollectDeallocateTexture(Context, Pass->Handle, PassState.Texture, PassState.ReferenceCount);
+    }
 }
 
 void RenderGraph::CollectDeallocateTexture(FCollectResourceContext& Context, FRDGPassHandle PassHandle, RDGTexture* Texture, uint32 ReferenceCount)
@@ -548,8 +725,8 @@ void RenderGraph::AllocatePooledTextures(const std::vector<FCollectResourceOp>& 
 			break;
 		}
 		case FCollectResourceOp::EOp::Deallocate:
-			Texture->PooledTexture = nullptr;
-			Texture->ResourceRHI = nullptr;
+			// Texture->PooledTexture = nullptr;
+			// Texture->ResourceRHI = nullptr;
 			break;
 		}
 	}
@@ -575,14 +752,26 @@ void RenderGraph::AllocatePooledBuffers(const std::vector<FCollectResourceOp>& O
 			break;
 		}
 		case FCollectResourceOp::EOp::Deallocate:
-			Buffer->ResourceRHI = nullptr;
-			Buffer->PooledBuffer = nullptr;
+			// Buffer->ResourceRHI = nullptr;
+			// Buffer->PooledBuffer = nullptr;
 			break;
 		}
 	}
 
 }
 
+void RenderGraph::CreateViews(const std::unordered_set<RDGTextureView*>& ViewsToCreate)
+{
+	for (RDGTextureView* View : ViewsToCreate)
+	{
+		RHITexture* TextureRHI = View->GetParent()->GetRHI();
+		if (TextureRHI)
+		{
+			RHITextureView* ViewRHI = TextureRHI->GetOrCreateView(View->Desc);
+			View->ResourceRHI = ViewRHI;
+		}
+	}
+}
 
 /******************** Transient Resources Allocation ******************/
 
@@ -670,62 +859,80 @@ void RenderGraph::CollectPassBarriers()
 	}
 }
 
-	EPipelineStageFlags GetPipelineStage(ERHIAccess Access)
+EPipelineStageFlags GetPipelineStage(ERHIPipeline Pipeline, ERHIAccess Access)
+{
+	switch (Access)
 	{
-		switch (Access)
+	case ERHIAccess::None:
+		return EPipelineStageFlags::None;
+	case ERHIAccess::IndirectCommandRead:
+		return EPipelineStageFlags::DrawIndirect;
+	case ERHIAccess::IndexRead:
+	case ERHIAccess::VertexAttributeRead:
+		return EPipelineStageFlags::VertexInput;
+	case ERHIAccess::UniformRead:
+	{
+		if (Pipeline == ERHIPipeline::Graphics)
 		{
-		case ERHIAccess::None:
-			return EPipelineStageFlags::None;
-		case ERHIAccess::IndirectCommandRead:
-			return EPipelineStageFlags::DrawIndirect;
-		case ERHIAccess::IndexRead:
-		case ERHIAccess::VertexAttributeRead:
-			return EPipelineStageFlags::VertexInput;
-		case ERHIAccess::UniformRead:
-		case ERHIAccess::ShaderResourceRead:
 			return EPipelineStageFlags::FragmentShader;
-		case ERHIAccess::ColorAttachmentRead:
-		case ERHIAccess::ColorAttachmentWrite:
-			return EPipelineStageFlags::ColorAttachmentOutput;
-		case ERHIAccess::DepthStencilAttachmentRead:
-		case ERHIAccess::DepthStencilAttachmentWrite:
-			return EPipelineStageFlags::EarlyFragmentTests;
-		case ERHIAccess::TransferRead:
-		case ERHIAccess::TransferWrite:
-			return EPipelineStageFlags::Transfer;
-		case ERHIAccess::HostRead:
-		case ERHIAccess::HostWrite:
-			return EPipelineStageFlags::Host;
-		default:
-			Ncheckf(false, "Unknown access type {}", (int)Access);
-		};
-	}
-	ETextureLayout GetTextureLayout(ERHIAccess Access)
-	{
-		switch (Access)
+		}
+		else
 		{
-		case ERHIAccess::None:
-			return ETextureLayout::Undefined;
-		case ERHIAccess::ShaderResourceRead:
-			return ETextureLayout::ShaderReadOnlyOptimal;
-		case ERHIAccess::ColorAttachmentRead:
-		case ERHIAccess::ColorAttachmentWrite:
-			return ETextureLayout::ColorAttachmentOptimal;
-		case ERHIAccess::DepthStencilAttachmentRead:
-			return ETextureLayout::DepthStencilReadOnlyOptimal;
-		case ERHIAccess::DepthStencilAttachmentWrite:
-			return ETextureLayout::DepthStencilAttachmentOptimal;
-		case ERHIAccess::TransferRead:
-			return ETextureLayout::TransferSrcOptimal;
-		case ERHIAccess::TransferWrite:
-			return ETextureLayout::TransferDstOptimal;
-		case ERHIAccess::HostRead:
-		case ERHIAccess::HostWrite:
-			return ETextureLayout::General;
-		default:
-			Ncheckf(false, "Invalid access type {}", (int)Access);
-		};
+			return EPipelineStageFlags::ComputeShader;
+		}
 	}
+	case ERHIAccess::ShaderResourceRead:
+	case ERHIAccess::ShaderResourceWrite:
+	case ERHIAccess::ShaderResourceReadWrite:
+		return EPipelineStageFlags::ComputeShader;
+	case ERHIAccess::ColorAttachmentRead:
+	case ERHIAccess::ColorAttachmentWrite:
+		return EPipelineStageFlags::ColorAttachmentOutput;
+	case ERHIAccess::DepthStencilAttachmentRead:
+	case ERHIAccess::DepthStencilAttachmentWrite:
+		return EPipelineStageFlags::EarlyFragmentTests;
+	case ERHIAccess::TransferRead:
+	case ERHIAccess::TransferWrite:
+		return EPipelineStageFlags::Transfer;
+	case ERHIAccess::HostRead:
+	case ERHIAccess::HostWrite:
+		return EPipelineStageFlags::Host;
+	default:
+		Ncheckf(false, "Unknown access type {}", (int)Access);
+	};
+	return EPipelineStageFlags::None;
+}
+ETextureLayout GetTextureLayout(ERHIAccess Access)
+{
+	switch (Access)
+	{
+	case ERHIAccess::None:
+		return ETextureLayout::Undefined;
+	case ERHIAccess::ShaderResourceRead:
+		return ETextureLayout::ShaderReadOnlyOptimal;
+	case ERHIAccess::ShaderResourceWrite:
+	case ERHIAccess::ShaderResourceReadWrite:
+		return ETextureLayout::General;
+	case ERHIAccess::ColorAttachmentRead:
+	case ERHIAccess::ColorAttachmentWrite:
+		return ETextureLayout::ColorAttachmentOptimal;
+	case ERHIAccess::DepthStencilAttachmentRead:
+		return ETextureLayout::DepthStencilReadOnlyOptimal;
+	case ERHIAccess::DepthStencilAttachmentWrite:
+		return ETextureLayout::DepthStencilAttachmentOptimal;
+	case ERHIAccess::TransferRead:
+		return ETextureLayout::TransferSrcOptimal;
+	case ERHIAccess::TransferWrite:
+		return ETextureLayout::TransferDstOptimal;
+	case ERHIAccess::HostRead:
+	case ERHIAccess::HostWrite:
+		return ETextureLayout::General;
+	default:
+		Ncheckf(false, "Invalid access type {}", (int)Access);
+	};
+	return ETextureLayout::Undefined;
+}
+
 void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 {
 	FRDGPass* CurrentPass = Passes[PassHandle];
@@ -748,26 +955,29 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			{
 				continue;
 			}
-			RDGSubresourceState& LastState = Texture->State[Index];
-			FRDGPass* LastPass = Passes[LastState.Pass];
+			RDGSubresourceState& LastState = Texture->SubresourceStates[Index];
 			ERHIAccess LastAccess = LastState.Access;
 			ERHIAccess CurrentAccess = PassState.Access[Index];
 			
 			if (LastAccess != CurrentAccess)
 			{
-				const ERHIPipeline LastPipeline = LastPass->Pipeline;
+				const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::None;
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
-					GetPipelineStage(LastAccess), GetPipelineStage(CurrentAccess),
+					GetPipelineStage(LastPipeline, LastAccess), GetPipelineStage(CurrentPipeline, CurrentAccess),
 					GetTextureLayout(LastAccess), GetTextureLayout(CurrentAccess),
 					Texture->GetSubresource(Index));
 				CurrentPass->ImageBarriers.push_back(Barrier);
-				if (LastPipeline != CurrentPipeline)
+				if (LastState.Pass != NullPassHandle)
 				{
-					RHISemaphoreRef Semaphore = RHICreateSemaphore();
-					LastPass->SemaphoresToSignal.push_back(Semaphore);
-					CurrentPass->SemaphoresToWait.push_back(Semaphore);
+					FRDGPass* LastPass = Passes[LastState.Pass];
+					if (LastPass->Pipeline != CurrentPipeline)
+					{
+						RHISemaphoreRef Semaphore = RHICreateSemaphore();
+						LastPass->SemaphoresToSignal.push_back(Semaphore);
+						CurrentPass->SemaphoresToWait.push_back(Semaphore);
+					}
 				}
 			}
 
@@ -785,29 +995,95 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			continue;
 		}
 		RDGSubresourceState& LastState = Buffer->State;
-		FRDGPass* LastPass = Passes[LastState.Pass];
 		ERHIAccess LastAccess = LastState.Access;
 		ERHIAccess CurrentAccess = PassState.Access;
 
 		if (LastAccess != CurrentAccess)
 		{
-			const ERHIPipeline LastPipeline = LastPass->Pipeline;
+			const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::None;
 			RHIBufferMemoryBarrier Barrier = RHIBufferMemoryBarrier(
 				Buffer->GetRHI(), 
 				LastAccess, CurrentAccess, 
-				GetPipelineStage(LastAccess), GetPipelineStage(CurrentAccess),
+				GetPipelineStage(LastPipeline, LastAccess), GetPipelineStage(CurrentPipeline, CurrentAccess),
 				0, Buffer->Desc.GetSize());
 			CurrentPass->BufferBarriers.push_back(Barrier);
-			if (LastPipeline != CurrentPipeline)
+			if (LastState.Pass != NullPassHandle)
 			{
-				RHISemaphoreRef Semaphore = RHICreateSemaphore();
-				LastPass->SemaphoresToSignal.push_back(Semaphore);
-				CurrentPass->SemaphoresToWait.push_back(Semaphore);
+				FRDGPass* LastPass = Passes[LastState.Pass];
+				if (LastPass->Pipeline != CurrentPipeline)
+				{
+					RHISemaphoreRef Semaphore = RHICreateSemaphore();
+					LastPass->SemaphoresToSignal.push_back(Semaphore);
+					CurrentPass->SemaphoresToWait.push_back(Semaphore);
+				}
 			}
 		}
 
 		LastState.Access = CurrentAccess;
 		LastState.Pass = CurrentPass->Handle;
+	}
+}
+
+void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
+{
+	FRDGPass* CurrentPass = Passes[PassHandle];
+
+	if (CurrentPass->bCulled)
+	{
+		return;
+	}
+
+	for (auto& DescriptorSet : CurrentPass->DescriptorSets)
+	{
+		RHIDescriptorSetLayout* Layout = DescriptorSet->GetLayout();
+		RHIDescriptorSetPools& Pool = DescriptorSetPools.try_emplace(Layout, Layout).first->second;
+		RHIDescriptorSet* DescriptorSetRHI = Pool.Allocate();
+		DescriptorSet->ResourceRHI = DescriptorSetRHI;
+
+		// check every binding is updated
+		for (auto& Binding : Layout->Bindings)
+		{
+			if (DescriptorSet->WriterInfos.find(Binding.BindingIndex) == DescriptorSet->WriterInfos.end())
+			{
+				Ncheckf(false, "Binding {} is not updated", Binding.BindingIndex);
+			}
+			uint32 BindingIndex = Binding.BindingIndex;
+			EDescriptorType DescriptorType = Binding.DescriptorType;
+			auto& WriterInfo = DescriptorSet->WriterInfos[BindingIndex];
+			Ncheckf(DescriptorType == WriterInfo.DescriptorType, "Descriptor type mismatch");
+			switch (WriterInfo.DescriptorType)
+			{
+			case EDescriptorType::UniformBuffer:
+			{
+				auto& BufferInfo = WriterInfo.BufferInfo;
+				DescriptorSetRHI->SetUniformBuffer(BindingIndex, BufferInfo.Buffer->GetRHI());
+				break;
+			}
+			case EDescriptorType::StorageBuffer:
+			{
+				auto& BufferInfo = WriterInfo.BufferInfo;
+				DescriptorSetRHI->SetStorageBuffer(BindingIndex, BufferInfo.Buffer->GetRHI());
+				break;
+			}
+			case EDescriptorType::CombinedImageSampler:
+			{
+				auto& ImageInfo = WriterInfo.ImageInfo;
+				DescriptorSetRHI->SetSampler(BindingIndex, ImageInfo.Texture->GetRHI(), ImageInfo.SamplerState);
+				break;
+			}
+			case EDescriptorType::StorageImage:
+			{
+				auto& ImageInfo = WriterInfo.ImageInfo;
+				DescriptorSetRHI->SetStorageImage(BindingIndex, ImageInfo.Texture->GetRHI());
+				break;
+			}
+			default:
+			{
+				Ncheckf(false, "Unknown descriptor type {}", magic_enum::enum_name(WriterInfo.DescriptorType));
+				break;
+			}
+			}
+		}
 	}
 }
 

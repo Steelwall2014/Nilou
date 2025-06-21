@@ -5,24 +5,22 @@
 
 namespace nilou {
 
-    namespace sr = shader_reflection;
-
     void FShaderInstance::InitRHI()
     {
-        switch (PipelineStage) 
+        switch (ShaderStage) 
         {
-            case EPipelineStage::PS_Vertex:
-                ShaderRHI = RHICreateVertexShader(Code);
+            case EShaderStage::Vertex:
+                ShaderRHI = RHICreateVertexShader(Code, ShaderName);
                 break;
-            case EPipelineStage::PS_Pixel:
-                ShaderRHI = RHICreatePixelShader(Code);
+            case EShaderStage::Pixel:
+                ShaderRHI = RHICreatePixelShader(Code, ShaderName);
                 break;
-            case EPipelineStage::PS_Compute:
-                ShaderRHI = RHICreateComputeShader(Code);
+            case EShaderStage::Compute:
+                ShaderRHI = RHICreateComputeShader(Code, ShaderName);
                 break;
+            default:
+                Ncheckf(false, "Unsupported shader stage: {}", magic_enum::enum_name(ShaderStage));
         }
-        if (ShaderRHI)
-            DescriptorSetLayouts = sr::ReflectShader(Code);
     }
 
     void FShaderInstance::ReleaseRHI()

@@ -6,7 +6,7 @@
 #include <set>
 
 #include "Scene.h"
-#include "Common/Transform.h"
+#include "Common/Math/Transform.h"
 #include "Common/Actor/Actor.h"
 
 namespace nilou {
@@ -93,7 +93,7 @@ namespace nilou {
         static_assert(TIsDerivedFrom<ActorClass, AActor>::Value, "'ActorClass' template parameter to SpawnActor must be derived from AActor");
         std::shared_ptr<ActorClass> Actor = std::make_shared<ActorClass>();
         Actor->SetOwnedWorld(this);
-        Actor->SetActorName(ActorName);
+        Actor->Rename(ActorName);
         Actor->PostSpawnInitialize(ActorTransform);
         Actors.push_back(Actor);
         if constexpr (TIsDerivedFrom<ActorClass, ACameraActor>::Value)

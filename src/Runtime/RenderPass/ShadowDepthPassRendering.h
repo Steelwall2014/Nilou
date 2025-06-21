@@ -14,5 +14,5 @@ namespace nilou {
         using FPermutationDomain = TShaderPermutationDomain<FDimensionFrustumCount>;
         static void ModifyCompilationEnvironment(const FShaderPermutationParameters& Parameter, FShaderCompilerEnvironment& Environment);
 	};
-    DECLARE_GLOBAL_SHADER(FShadowDepthPS)
+    DECLARE_MATERIAL_SHADER(FShadowDepthPS)
 }

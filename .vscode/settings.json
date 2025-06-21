@@ -17,20 +17,7 @@
     ],
     "xmake.debuggingTargetsArguments": {
         "NilouHeaderTool": [
-            "D:/Nilou/src/Runtime/Framework/Common", "D:/Nilou/src/Runtime/Generated",
-            "D:/Nilou/External/include", 
-            "D:/Nilou/src/Runtime/Framework", 
-            "D:/Nilou/src/Runtime/Applications", 
-            "D:/Nilou/src/Runtime/RHI", 
-            "D:/Nilou/src/Runtime/HAL", 
-            "D:/Nilou/src/Runtime/Rendering", 
-            "D:/Nilou/src/Runtime/GameStatics",
-            "D:/Nilou/src/Runtime/Generated",
-            "D:/Nilou/src/Runtime/Serialization",
-            "D:/Nilou/src/Runtime/RenderPass",
-            "D:/Nilou/src/Runtime/Geospatial",
-            "D:/Nilou/src/Runtime/Cesium3DTiles",
-            "D:/Nilou/Assets/Shaders"
+            "D:\\BaiduSyncdisk\\Nilou\\src","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Generated" ,"D:\\BaiduSyncdisk\\Nilou\\External\\include","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Framework","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Applications","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\RHI","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\HAL","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Rendering","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\GameStatics","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Generated","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Serialization","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\RenderPass","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Geospatial","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\Cesium3DTiles","D:\\BaiduSyncdisk\\Nilou\\src\\Runtime\\RenderGraph","D:\\BaiduSyncdisk\\Nilou\\Assets\\Shaders","D:\\VulkanSDK\\1.3.296.0\\Include","D:\\VulkanSDK\\1.3.296.0\\Source\\SPIRV-Reflect"
         ],
         "Nilou": [
             "-rhi", "opengl"

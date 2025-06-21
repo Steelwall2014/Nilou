@@ -132,14 +132,14 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_UpdateSceneCaptureContents)(
-            [SceneRenderer](FDynamicRHI*) 
+            [SceneRenderer](RenderGraph&) 
             {
-                for (FViewInfo& View : SceneRenderer->Views)
-                {
-                    View.ViewUniformBuffer->UpdateUniformBuffer();
-                }
-
-                SceneRenderer->Render();
+                // for (auto& View : SceneRenderer->Views)
+                // {
+                //     View.ViewUniformBuffer->UpdateUniformBuffer();
+                // }
+                RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+                SceneRenderer->Render(Graph);
                 
                 delete SceneRenderer;
             });
@@ -148,19 +148,20 @@ namespace nilou {
 
     void USceneCaptureComponent2D::OnRegister()
     {
-        ViewUniformBuffer = CreateUniformBuffer<FViewShaderParameters>();
-        BeginInitResource(ViewUniformBuffer.get());
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnRegister)(
+            [this](RenderGraph&) 
+            {
+                ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("", nullptr);
+            });
     }
 
     void USceneCaptureComponent2D::OnUnregister()
     {
-        auto ToDelete = ViewUniformBuffer;
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnUnregister)(
-            [ToDelete](FDynamicRHI*) 
+            [this](RenderGraph&) 
             {
-                ToDelete->ReleaseResource();
+                ViewUniformBuffer = nullptr;
             });
-        ViewUniformBuffer = nullptr;
     }
 
     void USceneCaptureComponentCube::CaptureSceneDeferred()
@@ -269,14 +270,15 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_UpdateSceneCaptureContents)(
-            [SceneRenderer](FDynamicRHI*) 
+            [SceneRenderer](RenderGraph&) 
             {
-                for (FViewInfo& View : SceneRenderer->Views)
-                {
-                    View.ViewUniformBuffer->UpdateUniformBuffer();
-                }
+                // for (FViewInfo& View : SceneRenderer->Views)
+                // {
+                //     View.ViewUniformBuffer->UpdateUniformBuffer();
+                // }
 
-                SceneRenderer->Render();
+                RenderGraph& Graph = FRenderingThread::GetRenderGraph();
+                SceneRenderer->Render(Graph);
                 
                 delete SceneRenderer;
             });
@@ -285,25 +287,26 @@ namespace nilou {
 
     void USceneCaptureComponentCube::OnRegister()
     {
-        for (int i = 0; i < ViewUniformBuffers.size(); i++)
-        {
-            ViewUniformBuffers[i] = CreateUniformBuffer<FViewShaderParameters>();
-            BeginInitResource(ViewUniformBuffers[i].get());
-        }
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnRegister)(
+            [this](RenderGraph&) 
+            {
+                for (int i = 0; i < ViewUniformBuffers.size(); i++)
+                {
+                    ViewUniformBuffers[i] = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("", nullptr);
+                }
+            });
     }
 
     void USceneCaptureComponentCube::OnUnregister()
     {
-        for (int i = 0; i < ViewUniformBuffers.size(); i++)
-        {
-            auto ToDelete = ViewUniformBuffers[i];
-            ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnUnregister)(
-                [ToDelete](FDynamicRHI*) 
+        ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnUnregister)(
+            [this](RenderGraph&) 
+            {
+                for (int i = 0; i < ViewUniformBuffers.size(); i++)
                 {
-                    ToDelete->ReleaseResource();
-                });
-            ViewUniformBuffers[i] = nullptr;
-        }
+                    ViewUniformBuffers[i] = nullptr;
+                }
+            });
     }
 
 }

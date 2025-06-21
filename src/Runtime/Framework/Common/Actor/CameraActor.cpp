@@ -30,7 +30,7 @@ namespace nilou {
 
     ACameraActor::ACameraActor()
     { 
-        CameraComponent = CreateComponent<UCameraComponent>(this); 
+        CameraComponent = CreateComponent<UCameraComponent>(this, "CameraComponent"); 
         CameraComponent->AttachToComponent(GetRootComponent());
 
 		/** TEST SCENE CAPTURE 2D*/
@@ -108,7 +108,7 @@ namespace nilou {
             << CameraComponent->GetForwardVector() << CameraComponent->GetRightVector() << CameraComponent->GetUpVector();
         // stream << GetActorLocation() << GetActorForwardVector();
         // stream << MovementInput << CameraInput;
-        // NILOU_LOG(Info, stream.str())
+        // NILOU_LOG(Display, stream.str())
         if (bZoomingIn)
         {
             CameraComponent->VerticalFieldOfView = glm::radians(2.0);

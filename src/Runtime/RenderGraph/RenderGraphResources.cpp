@@ -1,47 +1,41 @@
 #include "RenderGraphResources.h"
 #include "Common/Crc.h"
 #include "DynamicRHI.h"
+#include "Common/Containers/Array.h"
 #include "RenderingThread.h"
+#include "RenderGraph.h"
 
 namespace nilou {
 
 RDGTexture::RDGTexture(std::string InName, const RDGTextureDesc& InDesc)
 	: RDGResource(InName, ERDGResourceType::Texture)
 	, Desc(InDesc) 
-	, Layout(InDesc)
-	, WholeRange(Layout)
+	, Layout(FRDGTextureSubresourceLayout(InDesc))
+	, WholeRange(FRDGTextureSubresourceRange(Layout))
 	, SubresourceCount(Layout.GetSubresourceCount())
 { 
 	SubresourceStates.resize(SubresourceCount);
 }
 
-void RDGBuffer::Flush()
+RHIRenderTargetLayout RDGRenderTargets::GetRenderTargetLayout() const
 {
-	Ncheck(IsInRenderingThread());
-	if (RHIBuffer* BufferRHI = GetRHI())
+	RHIRenderTargetLayout RTLayout;
+	for (auto [i, ColorAttachment] : Enumerate(ColorAttachments))
 	{
-		void* data = RHIMapMemory(BufferRHI, 0, Desc.GetSize());
-			memcpy(data, Data.get(), Desc.GetSize());
-		RHIUnmapMemory(BufferRHI);
-		bDirty = false;
+		if (ColorAttachment.TextureView != nullptr)
+		{
+			RTLayout.ColorAttachments[i].Format = ColorAttachment.TextureView->Desc.Format;
+			RTLayout.ColorAttachments[i].LoadAction = ColorAttachment.LoadAction;
+			RTLayout.ColorAttachments[i].StoreAction = ColorAttachment.StoreAction;
+		}
 	}
-}
-
-void RDGFramebuffer::SetAttachment(EFramebufferAttachment Attachment, RDGTextureView* Texture)
-{
-	if (Attachments.find(Attachment) == Attachments.end())
+	if (DepthStencilAttachment.TextureView != nullptr)
 	{
-		RTLayout.NumRenderTargetsEnabled += 1;
+		RTLayout.DepthStencilAttachment.Format = DepthStencilAttachment.TextureView->Desc.Format;
+		RTLayout.DepthStencilAttachment.LoadAction = DepthStencilAttachment.LoadAction;
+		RTLayout.DepthStencilAttachment.StoreAction = DepthStencilAttachment.StoreAction;
 	}
-	Attachments[Attachment] = Texture;
-	if (Attachment == FA_Depth_Stencil_Attachment)
-	{
-		RTLayout.DepthStencilTargetFormat = Texture->Desc.Format;
-	}
-	else
-	{
-		RTLayout.RenderTargetFormats[Attachment] = Texture->Desc.Format;
-	}
+	return RTLayout;
 }
 
 uint32 FRDGPooledTexture::ComputeMemorySize() const

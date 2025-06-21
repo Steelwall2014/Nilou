@@ -1,7 +1,6 @@
 #include <cmath>
 #include <iostream>
 
-#include "Common/Maths.h"
 #include "UniformBuffer.h"
 #include "LightComponent.h"
 // #include "LightSceneProxy.h"
@@ -52,7 +51,7 @@ namespace nilou {
     void ULightComponent::SendRenderTransform()
     {
         ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderTransform)(
-            [this](FDynamicRHI*) 
+            [this](RenderGraph&) 
             {
                 SceneProxy->SetPositionAndDirection(GetComponentLocation(), GetForwardVector(), GetUpVector());
             });
@@ -63,7 +62,7 @@ namespace nilou {
     void ULightComponent::SendRenderDynamicData()
     {
         ENQUEUE_RENDER_COMMAND(ULightComponent_SendRenderDynamicData)(
-            [this](FDynamicRHI*) 
+            [this](RenderGraph&) 
             {
                 SceneProxy->SetLightDistAttenParams(LightDistAttenuation);
                 SceneProxy->SetLightAngleAttenParams(LightAngleAttenuation);

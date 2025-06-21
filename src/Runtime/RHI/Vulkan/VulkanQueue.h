@@ -5,29 +5,19 @@
 
 namespace nilou {
 
-class FVulkanCmdBuffer;
-class FVulkanDynamicRHI;
-
-class FVulkanQueue
+class VulkanQueue
 {
 public:
-
-    FVulkanQueue(FVulkanDynamicRHI* InContext, VkDevice InDevice, uint32 InFamilyIndex);
-
-	void Submit(FVulkanCmdBuffer* CmdBuffer, uint32 NumSignalSemaphores = 0, VkSemaphore* SignalSemaphores = nullptr);
-
-	inline void Submit(FVulkanCmdBuffer* CmdBuffer, VkSemaphore SignalSemaphore)
+    VulkanQueue(VkDevice InDevice, uint32 InFamilyIndex)
+		: Device(InDevice)
+		, FamilyIndex(InFamilyIndex)
 	{
-		Submit(CmdBuffer, 1, &SignalSemaphore);
+		vkGetDeviceQueue(InDevice, FamilyIndex, QueueIndex, &Handle);
 	}
-
-	FVulkanDynamicRHI* Context;
     VkDevice Device;
     VkQueue Handle;
 	uint32 FamilyIndex;
-	uint32 QueueIndex;
-
-	FVulkanCmdBuffer* LastSubmittedCmdBuffer;
+	uint32 QueueIndex = 0;
 };
 
 }

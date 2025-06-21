@@ -3,12 +3,21 @@
 #include "DynamicRHI.h"
 
 namespace nilou {
+	
 	template<typename InitializerType,typename RHIRefType,typename RHIParamRefType>
 	class TStaticStateRHI
 	{
 	public:
 		static RHIParamRefType GetRHI()
 		{
+			if (!StaticResource.IsInitialized())
+			{
+				ENQUEUE_RENDER_COMMAND(BeginInitResource)(
+					[](RenderGraph&)
+				    {
+						StaticResource.InitResource();
+				    });
+			}
 			return StaticResource.StateRHI;
 		};
 
@@ -18,23 +27,15 @@ namespace nilou {
 		{
 		public:
 			RHIRefType StateRHI;
-			FStaticStateResource()
-			{
-				BeginInitResource(this);
-			}
 
 			// FRenderResource interface.
-			virtual void InitRHI(RenderGraph&) override
+			virtual void InitRHI() override final
 			{
 				StateRHI = InitializerType::CreateRHI();
 			}
 			virtual void ReleaseRHI() override final
 			{
-				StateRHI.SafeRelease();
-			}
-			virtual void ReleaseResource() override final
-			{
-				FRenderResource::ReleaseResource();
+				StateRHI = nullptr;
 			}
 
 			~FStaticStateResource()
@@ -46,21 +47,9 @@ namespace nilou {
 		static FStaticStateResource StaticResource;
 	};
 
-	
-	/*	bool bEnableDepthWrite;
-		ECompareFunction DepthTest;
-		bool bEnableFrontFaceStencil;
-		ECompareFunction FrontFaceStencilTest;
-		EStencilOp FrontFaceStencilFailStencilOp;
-		EStencilOp FrontFaceDepthFailStencilOp;
-		EStencilOp FrontFacePassStencilOp;
-		bool bEnableBackFaceStencil;
-		ECompareFunction BackFaceStencilTest;
-		EStencilOp BackFaceStencilFailStencilOp;
-		EStencilOp BackFaceDepthFailStencilOp;
-		EStencilOp BackFacePassStencilOp;
-		uint8 StencilReadMask;
-		uint8 StencilWriteMask;*/
+	template<typename InitializerType, typename RHIRefType, typename RHIParamRefType>
+	typename TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::FStaticStateResource TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::StaticResource = TStaticStateRHI<InitializerType, RHIRefType, RHIParamRefType>::FStaticStateResource();
+
 	template<
 		bool bEnableDepthWrite = true,
 		ECompareFunction DepthTest = CF_Less,
@@ -116,7 +105,7 @@ namespace nilou {
 				StencilReadMask,
 				StencilWriteMask);
 
-			static RHIDepthStencilStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateDepthStencilState(Initializer);
+			static RHIDepthStencilStateRef RHI = RHICreateDepthStencilState(Initializer);
 			return RHI;
 		}
 	};
@@ -146,7 +135,7 @@ namespace nilou {
 				CullMode
 			);
 
-			static RHIRasterizerStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateRasterizerState(Initializer);
+			static RHIRasterizerStateRef RHI = RHICreateRasterizerState(Initializer);
 			return RHI;
 		}
 	};
@@ -258,7 +247,7 @@ namespace nilou {
 			RenderTargetBlendStates[6] = FBlendStateInitializer::FRenderTarget(RT6ColorBlendOp,RT6ColorSrcBlend,RT6ColorDestBlend,RT6AlphaBlendOp,RT6AlphaSrcBlend,RT6AlphaDestBlend,RT6ColorWriteMask);
 			RenderTargetBlendStates[7] = FBlendStateInitializer::FRenderTarget(RT7ColorBlendOp,RT7ColorSrcBlend,RT7ColorDestBlend,RT7AlphaBlendOp,RT7AlphaSrcBlend,RT7AlphaDestBlend,RT7ColorWriteMask);
 
-			static RHIBlendStateRef RHI = FDynamicRHI::GetDynamicRHI()->RHICreateBlendState(FBlendStateInitializer(RenderTargetBlendStates/*, bUseAlphaToCoverage*/));
+			static RHIBlendStateRef RHI = RHICreateBlendState(FBlendStateInitializer(RenderTargetBlendStates/*, bUseAlphaToCoverage*/));
 			return RHI;
 		}
 	};
@@ -288,8 +277,9 @@ namespace nilou {
 	public:
 		static RHISamplerStateRef CreateRHI()
 		{
-			FSamplerStateInitializerRHI Initializer( Filter, AddressU, AddressV, AddressW, MipBias, MaxAnisotropy, 0, FLT_MAX, BorderColor, SamplerComparisonFunction );
+			FSamplerStateInitializer Initializer( Filter, AddressU, AddressV, AddressW, MipBias, MaxAnisotropy, 0, FLT_MAX, BorderColor, SamplerComparisonFunction );
 			return RHICreateSamplerState(Initializer);
 		}
 	};
+	
 }

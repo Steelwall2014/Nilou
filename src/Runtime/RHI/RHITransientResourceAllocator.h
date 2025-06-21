@@ -1,6 +1,8 @@
 #pragma once
 
-#include "RHI.h"
+#include <unordered_map>
+#include <unordered_set>
+
 #include "RHIResources.h"
 #include "Templates/Interval.h"
 #include "RHITransition.h"
@@ -88,7 +90,7 @@ public:
 	static const uint32 kInvalidPassIndex = std::numeric_limits<uint32>::max();
 
 	FRHITransientResource(
-		RHIResource* InResource,
+		TRefCountPtr<RHIResource> InResource,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,
@@ -159,7 +161,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI resource.
-	RHIResource* GetRHI() const { return Resource.get(); }
+	RHIResource* GetRHI() const { return Resource; }
 
 	// Returns the gpu virtual address of the transient resource.
 	uint64 GetGpuVirtualAddress() const { return GpuVirtualAddress; }
@@ -203,7 +205,7 @@ public:
 
 private:
 	// Underlying RHI resource.
-	std::shared_ptr<RHIResource> Resource;
+	TRefCountPtr<RHIResource> Resource;
 
 	// The Gpu virtual address of the RHI resource.
 	uint64 GpuVirtualAddress = 0;
@@ -244,7 +246,7 @@ class FRHITransientTexture final : public FRHITransientResource
 {
 public:
 	FRHITransientTexture(
-		RHITexture* InTexture,
+		RHITextureRef InTexture,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,
@@ -256,7 +258,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//! Internal Allocator API
-	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override;
+	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override NILOU_NOT_IMPLEMENTED
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI texture.
@@ -265,21 +267,15 @@ public:
 	// Returns the create info struct used when creating this texture.
 	const FRHITextureCreateInfo& GetCreateInfo() const { return CreateInfo; }
 
-	// Finds a UAV matching the descriptor in the cache or creates a new one and updates the cache.
-	RHITextureView* GetOrCreateView(RHICommandList& RHICmdList, const RHITextureViewDesc& InCreateInfo) { return ViewCache.GetOrCreateView(RHICmdList, GetRHI(), InCreateInfo); }
-
 	// The create info describing the texture.
 	const FRHITextureCreateInfo CreateInfo;
-
-	// The persistent view cache containing all views created for this texture.
-	RHITextureViewCache ViewCache;
 };
 
 class FRHITransientBuffer final : public FRHITransientResource
 {
 public:
 	FRHITransientBuffer(
-		RHIBuffer* InBuffer,
+		RHIBufferRef InBuffer,
 		uint64 InGpuVirtualAddress,
 		uint64 InHash,
 		uint64 InSize,
@@ -291,7 +287,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//! Internal Allocator API
-	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override;
+	void Acquire(RHICommandList& RHICmdList, const std::string& InName, uint32 InAcquirePassIndex, uint64 InInitCycle) override NILOU_NOT_IMPLEMENTED
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI buffer.
@@ -363,6 +359,38 @@ public:
 
 	// Releases this instance of the transient allocator. Invalidates any outstanding transient resources.
 	virtual void Release(RHICommandList& RHICmdList) { delete this; }
+};
+
+// Steelwall2014: This is a simplified implementation of IRHITransientResourceAllocator.
+// In Unreal Engine, an implementation of IRHITransientResourceAllocator requires memory aliasing support on different RHI backends
+// which is kind of complicated. So I just implement a simple version here, and it's basically an object pool.
+class RHITransientResourceAllocator : public IRHITransientResourceAllocator
+{
+public:
+
+	// Supports transient allocations of given resource type
+	virtual bool SupportsResourceType(ERHITransientResourceType InType) const;
+
+	// Allocates a new transient resource with memory backed by the transient allocator.
+	virtual FRHITransientTexture* CreateTexture(const FRHITextureCreateInfo& InCreateInfo, const std::string& InDebugName, uint32 InPassIndex);
+	virtual FRHITransientBuffer* CreateBuffer(const FRHIBufferCreateInfo& InCreateInfo, const std::string& InDebugName, uint32 InPassIndex);
+
+	// Deallocates the underlying memory for use by a future resource creation call.
+	virtual void DeallocateMemory(FRHITransientTexture* InTexture, uint32 InPassIndex);
+	virtual void DeallocateMemory(FRHITransientBuffer* InBuffer, uint32 InPassIndex);
+
+	// Flushes any pending allocations prior to rendering. Optionally emits stats if OutStats is valid.
+	virtual void Flush(RHICommandList& RHICmdList, FRHITransientAllocationStats* OutStats = nullptr);
+
+	// Releases this instance of the transient allocator. Invalidates any outstanding transient resources.
+	virtual void Release(RHICommandList& RHICmdList) { delete this; }
+
+private:
+    std::unordered_map<FRHITextureCreateInfo, std::vector<FRHITransientTexture*>> TexturePool;
+    std::unordered_map<FRHIBufferCreateInfo, std::vector<FRHITransientBuffer*>> BufferPool;
+
+	std::unordered_set<FRHITransientTexture*> AllocatedTextures;
+	std::unordered_set<FRHITransientBuffer*> AllocatedBuffers;
 };
 
 }

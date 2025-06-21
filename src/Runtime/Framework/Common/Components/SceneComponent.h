@@ -6,7 +6,8 @@
 #include "ActorComponent.h"
 #include "Frustum.h"
 #include "Platform.h"
-#include "Common/Transform.h"
+#include "Common/Math/Transform.h"
+#include "Common/Math/BoxSphereBounds.h"
 #include "UniformBuffer.h"
 
 // #include "SceneComponent.generated.h"
@@ -114,15 +115,15 @@ namespace nilou {
         { }
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */
-        virtual FBoundingBox CalcBounds(const FTransform& LocalToWorld) const
+        virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const
         {
-            FBoundingBox Bounds;
-            Bounds.Min = Bounds.Max = LocalToWorld.GetTranslation();
-            return Bounds;
+            FBox Box;
+            Box.Min = Box.Max = LocalToWorld.GetTranslation();
+            return FBoxSphereBounds(Box);
         }
 
         /** Calculate the local bounds of the component. Default behavior is calling CalcBounds with an identity transform. */
-        virtual FBoundingBox CalcLocalBounds() const 
+        virtual FBoxSphereBounds CalcLocalBounds() const 
         { 
             return CalcBounds(FTransform::Identity);
         }
@@ -134,7 +135,7 @@ namespace nilou {
 
         virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
-	    FBoundingBox GetBounds() const
+	    FBoxSphereBounds GetBounds() const
         {
             return Bounds;
         }
@@ -244,7 +245,7 @@ namespace nilou {
         USceneComponent *AttachParent = nullptr;
         std::vector<std::shared_ptr<USceneComponent>> AttachChildren;
 
-        FBoundingBox Bounds;
+        FBoxSphereBounds Bounds;
 
     private:
         NPROPERTY()

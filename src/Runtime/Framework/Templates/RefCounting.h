@@ -20,34 +20,28 @@ class TRefCountedObject
 
 public:
 
-    TRefCountedObject()
-        : NumRefs(0)
-    {
-    }
-
+    TRefCountedObject(): NumRefs(0) {}
+	virtual ~TRefCountedObject() { Ncheck(!NumRefs); }
+	TRefCountedObject(const TRefCountedObject& Rhs) = delete;
+	TRefCountedObject& operator=(const TRefCountedObject& Rhs) = delete;
     uint32 AddRef()
     {
-        ++NumRefs;
-        return NumRefs;
+        return uint32(++NumRefs);
     }
-
     uint32 Release()
     {
-        --NumRefs;
-        if (NumRefs == 0)
+        uint32 Refs = uint32(--NumRefs);
+        if (Refs == 0)
         {
             delete this;
         }
-        return NumRefs;
+        return Refs;
     }
-
     uint32 GetRefCount() const
     {
-        return NumRefs;
+        return uint32(NumRefs);
     }
-
 private:
-
 	mutable RefCountType NumRefs = 0;
 };
 
@@ -67,27 +61,36 @@ public:
     }
 
     TRefCountPtr(ReferencedType* InReference)
-        : Reference(InReference)
     {
-        if (Reference)
-        {
-            Reference->AddRef();
-        }
+        this->CopyConstructFrom(InReference);
+    }
+
+    template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
+    TRefCountPtr(OtherReferencedType* InReference)
+    {
+        this->CopyConstructFrom(InReference);
     }
 
     TRefCountPtr(const TRefCountPtr& InCopy)
-        : Reference(InCopy.Reference)
     {
-        if (Reference)
-        {
-            Reference->AddRef();
-        }
+        this->CopyConstructFrom(InCopy.Reference);
+    }
+
+    template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
+    TRefCountPtr(const TRefCountPtr<OtherReferencedType>& InCopy)
+    {
+        this->CopyConstructFrom(InCopy.Reference);
     }
 
     TRefCountPtr(TRefCountPtr&& InMove)
-        : Reference(InMove.Reference)
     {
-        InMove.Reference = nullptr;
+        this->MoveConstructFrom(std::move(InMove));
+    }
+
+    template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
+    TRefCountPtr(TRefCountPtr<OtherReferencedType>&& InMove)
+    {
+        this->MoveConstructFrom(std::move(InMove));
     }
 
     ~TRefCountPtr()
@@ -123,7 +126,30 @@ public:
         return *this = InCopy.Reference;
     }
 
+    template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
+    TRefCountPtr& operator=(const TRefCountPtr<OtherReferencedType>& InCopy)
+    {
+        return *this = InCopy.Reference;
+    }
+
     TRefCountPtr& operator=(TRefCountPtr&& InMove)
+    {
+        if (Reference != InMove.Reference)
+        {
+            if (Reference)
+            {
+                Reference->Release();
+            }
+
+            Reference = InMove.Reference;
+            InMove.Reference = nullptr;
+        }
+
+        return *this;
+    }
+
+    template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
+    TRefCountPtr& operator=(TRefCountPtr<OtherReferencedType>&& InMove)
     {
         if (Reference != InMove.Reference)
         {
@@ -172,6 +198,25 @@ public:
 private:
 
     ReferencedType* Reference;
+
+    template <typename OtherReferencedType>
+    friend class TRefCountPtr;
+
+    void CopyConstructFrom(ReferencedType* InReference)
+    {
+        Reference = InReference;
+        if (Reference)
+        {
+            Reference->AddRef();
+        }
+    }
+
+    template <typename OtherReferencedType>
+    void MoveConstructFrom(TRefCountPtr<OtherReferencedType>&& InMove)
+    {
+        Reference = InMove.Reference;
+        InMove.Reference = nullptr;
+    }
 
 };
 

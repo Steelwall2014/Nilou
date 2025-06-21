@@ -2,10 +2,32 @@
 
 namespace nilou {
 
+    static std::string GetNormalizedProjectPath()
+    {
+        std::string path = PROJECT_DIR;
+        std::string::size_type pos = 0;
+        while ((pos = path.find("//", pos)) != std::string::npos) {
+            path.replace(pos, 2, "/");
+            pos += 1;
+        }
+        pos = 0;
+        while ((pos = path.find("\\\\", pos)) != std::string::npos) {
+            path.replace(pos, 2, "/");
+            pos += 1;
+        }
+        return path;
+    }
+
     std::filesystem::path FPath::ProjectDir()
     {
-        static const std::filesystem::path ProjectDirectory = PROJECT_DIR;
+        static const std::filesystem::path ProjectDirectory = GetNormalizedProjectPath();
         return ProjectDirectory;
+    }
+
+    std::filesystem::path FPath::ProjectSavedDir()
+    {
+        static const std::filesystem::path ProjectSavedDirectory = FPath::ProjectDir() / "Saved";
+        return ProjectSavedDirectory;
     }
 
     std::filesystem::path FPath::ShaderDir()
@@ -69,6 +91,11 @@ namespace nilou {
     std::filesystem::path FPath::VirtualPathToAbsPath(const std::string &VirtualPath)
     {
         return FPath::ContentDir() / VirtualPath.substr(1);
+    }
+
+    std::filesystem::path FPath::GetBaseFilename(const std::filesystem::path &InPath)
+    {
+        return InPath.filename();
     }
 
 }

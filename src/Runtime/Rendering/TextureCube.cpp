@@ -22,45 +22,43 @@ namespace nilou {
         Desc.Format = Image->GetPixelFormat();
         Desc.SizeX = Image->GetWidth();
         Desc.SizeY = Image->GetHeight();
+        Desc.ArraySize = 6;
         Desc.TextureType = ETextureDimension::TextureCube;
         Desc.NumMips = NumMips;
         TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
-        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
-            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
-            RDGBufferDesc(Image->GetDataSize()));
+        // RDGPassDesc PassDesc{"FTextureCubeResource::InitRHI"};
+        // PassDesc.bNeverCull = true;
+        // Graph.AddCopyPass(
+        //     PassDesc,
+        //     nullptr,
+        //     TextureRDG,
+        //     [=, this](RHICommandList& RHICmdList)
+        //     {
+        //         RHIBuffer* StagingBufferRHI = RHICmdList.AcquireStagingBuffer(Image->GetDataSize());
+        //         void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
+        //             std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
+        //         RHIUnmapMemory(StagingBufferRHI);
 
-        RDGCopyPassDesc PassDesc{};
-        PassDesc.Source = StagingBuffer;
-        PassDesc.Destination = TextureRDG.get();
-        PassDesc.bNeverCull = true;
-        Graph.AddCopyPass(
-            PassDesc,
-            [=](RHICommandList& RHICmdList)
-            {
-                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
-                void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
-                    std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
-                RHIUnmapMemory(StagingBufferRHI);
-
-                RHITexture* TextureRHI = TextureRDG->GetRHI();
-                RHICmdList.CopyBufferToImage(StagingBufferRHI, TextureRHI, 
-                    0,                      // mipmap level
-                    0, 0, 0,                // x, y, z offset
-                    Image->GetWidth(),      // width
-                    Image->GetHeight(),     // height
-                    1,                      // depth
-                    6);                     // array layer
-            });
+        //         RHITexture* TextureRHI = TextureRDG->GetRHI();
+        //         RHICmdList.CopyBufferToImage(StagingBufferRHI, TextureRHI, 
+        //             0,                      // mipmap level
+        //             0, 0, 0,                // x, y, z offset
+        //             Image->GetWidth(),      // width
+        //             Image->GetHeight(),     // height
+        //             1,                      // depth
+        //             0,                      // base array layer
+        //             6);                     // num array layers
+        //     });
         
-        FGenerateMips::Execute(Graph, TextureRDG.get(), SamplerStateRHI.get());
+        // FGenerateMips::Execute(Graph, TextureRDG);
 
         RHIGetError();
     }
 
     FTextureResource* UTextureCube::CreateResource()
     {
-        FTextureCubeResource* Resource = new FTextureCubeResource(Name, SamplerState, NumMips);
+        FTextureCubeResource* Resource = new FTextureCubeResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

@@ -6,10 +6,10 @@ namespace nilou {
 class RHIMemoryBarrier
 {
 public:
-	ERHIAccess SrcAccess;
-	ERHIAccess DstAccess;
-	EPipelineStageFlags SrcStage;
-	EPipelineStageFlags DstStage;
+	ERHIAccess SrcAccess = ERHIAccess::None;
+	ERHIAccess DstAccess = ERHIAccess::None;
+	EPipelineStageFlags SrcStage = EPipelineStageFlags::None;
+	EPipelineStageFlags DstStage = EPipelineStageFlags::None;
 
 	friend class RHICommandList;
 };
@@ -26,7 +26,7 @@ public:
 		, Offset(InOffset)
 		, Size(InSize)
 	{
-
+		Ncheck(Buffer);
 	}
 
 	RHIBuffer* Buffer;
@@ -53,7 +53,7 @@ public:
 		, NewLayout(InNewLayout)
 		, Subresource(InSubresource)
 	{
-
+		Ncheck(Texture);
 	}
 
 	RHITexture* Texture;

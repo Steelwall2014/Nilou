@@ -67,7 +67,7 @@ namespace nilou {
                     this, 
                     Offset, 
                     GetStride(), 
-                    EVertexElementType::VET_Float2);
+                    EVertexElementType::Float2);
             }
             else if constexpr (std::is_same<VertexType, vec3>::value)
             {
@@ -75,7 +75,7 @@ namespace nilou {
                     this, 
                     Offset, 
                     GetStride(), 
-                    EVertexElementType::VET_Float3);
+                    EVertexElementType::Float3);
             }
             else if constexpr (std::is_same<VertexType, vec4>::value)
             {
@@ -83,7 +83,7 @@ namespace nilou {
                     this, 
                     Offset, 
                     GetStride(), 
-                    EVertexElementType::VET_Float4);
+                    EVertexElementType::Float4);
             }
         }
 
@@ -142,11 +142,9 @@ namespace nilou {
     void FStaticMeshVertexBuffer<VertexType>::InitRHI(RenderGraph& Graph)
     {
         FRenderResource::InitRHI(Graph);
-        RDGBufferDesc Desc;
-        Desc.Size = Stride * NumVertices;
-        Desc.Stride = Stride;
-        VertexBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
-        Graph.AddUploadPass(VertexBufferRDG, Data, Desc.Size);
+        RDGBufferDesc Desc(Stride*NumVertices, Stride, EBufferUsageFlags::TransferSrc);
+        VertexBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);
+        // Graph.AddUploadPass(VertexBufferRDG, Data, Desc.GetSize());
     }
 
 }

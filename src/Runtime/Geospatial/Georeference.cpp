@@ -1,4 +1,4 @@
-#include "Common/Maths.h"
+#include "Common/Math/Maths.h"
 
 #include "Georeference.h"
 
@@ -10,7 +10,7 @@ namespace nilou {
         const glm::dvec3& origin, 
         const Geospatial::Ellipsoid& ellipsoid /*= Ellipsoid::WGS84*/) noexcept
     {
-        if (Math::equalsEpsilon(origin, glm::dvec3(0.0), 1e-14)) {
+        if (FMath::equalsEpsilon(origin, glm::dvec3(0.0), 1e-14)) {
             // If x, y, and z are zero, use the degenerate local frame, which is a
             // special case
             return glm::dmat4x4(
@@ -19,8 +19,8 @@ namespace nilou {
                 glm::dvec4(0.0, 0.0, 1.0, 0.0),
                 glm::dvec4(origin, 1.0));
         }
-        if (Math::equalsEpsilon(origin.x, 0.0, 1e-14) &&
-            Math::equalsEpsilon(origin.y, 0.0, 1e-14)) {
+        if (FMath::equalsEpsilon(origin.x, 0.0, 1e-14) &&
+            FMath::equalsEpsilon(origin.y, 0.0, 1e-14)) {
             // If x and y are zero, assume origin is at a pole, which is a special case.
             const double sign = glm::sign(origin.z);
             return glm::dmat4x4(

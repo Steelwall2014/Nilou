@@ -1,5 +1,7 @@
 #include "Common/Crc.h"
 #include "VulkanDynamicRHI.h"
+#include "VulkanTexture.h"
+#include "Common/Containers/Array.h"
 
 namespace nilou {
 
@@ -121,7 +123,7 @@ static inline VkBlendFactor BlendFactorToVulkan(EBlendFactor InFactor)
 
 VulkanGraphicsPipelineState::~VulkanGraphicsPipelineState()
 {
-	vkDestroyPipeline(Device, VulkanPipeline, nullptr);
+	vkDestroyPipeline(Device, Handle, nullptr);
 }
 
 VulkanDepthStencilState::VulkanDepthStencilState(const FDepthStencilStateInitializer& Initializer)
@@ -180,7 +182,7 @@ VulkanRasterizerState::VulkanRasterizerState(const FRasterizerStateInitializer& 
 
 VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
 {
-    for (int i = 0; i < MAX_SIMULTANEOUS_RENDERTARGETS; i++)
+    for (int i = 0; i < MaxSimultaneousRenderTargets; i++)
     {
 		auto& ColorTarget = Initializer.RenderTargets[i];
         auto& BlendState = BlendStates[i];
@@ -205,138 +207,171 @@ VulkanBlendState::VulkanBlendState(const FBlendStateInitializer& Initializer)
     }
 }
 
-FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const std::unordered_map<EFramebufferAttachment, EPixelFormat>& Attachments)
+// FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const RHIRenderTargetLayout& RTLayout)
+// {
+//     InitWithAttachments(RTLayout.RenderTargetFormats, RTLayout.DepthStencilTargetFormat);
+// }
+//
+// void FVulkanRenderTargetLayout::InitWithAttachments(        
+//     const std::array<EPixelFormat, MaxSimultaneousRenderTargets>& RenderTargetFormats,
+//     EPixelFormat DepthStencilTargetFormat)
+// {
+//     int32 NumColorAttachments = 0;
+// 	for (uint32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
+//     {
+// 		EPixelFormat Format = RenderTargetFormats[Index];
+// 		if (Format != EPixelFormat::PF_Unknown)
+// 		{
+// 			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
+// 			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+// 			CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
+// 			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+// 			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+// 			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+// 			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+//
+// 			// If the initial != final we need to change the FullHashInfo and use FinalLayout
+// 			CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+// 			CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+//
+// 			VkAttachmentReference& ColorRef = ColorReferences.emplace_back();
+//             ColorRef.attachment = Index;
+// 			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+//             Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
+//             NumColorAttachments += 1;
+// 		}
+//     }
+//     if (DepthStencilTargetFormat != EPixelFormat::PF_Unknown)
+//     {
+//         bHasDepthAttachment = true;
+//         EPixelFormat Format = DepthStencilTargetFormat;
+// 		VkAttachmentDescription& CurrDesc = Desc.emplace_back();
+//         CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+//         CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
+//         CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+//         CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+//         CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+//         CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+//         CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+//         CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+//
+//         DepthStencilReference.attachment = NumColorAttachments;
+//         DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+//         Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
+//     }
+// 
+//     RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
+// }
+
+VkFramebuffer FVulkanRenderPassManager::GetOrCreateFramebuffer(VkRenderPass RenderPass, const std::array<RHITextureView*, MaxSimultaneousRenderTargets>& ColorAttachments, RHITextureView* DepthStencilAttachment)
 {
-    std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
-    uint32 NumRenderTargetsEnabled = 0;
-    EPixelFormat DepthStencilTargetFormat;
-    for (auto [Attachment, Format] : Attachments)
+    uint32 Width = 0, Height = 0;
+    std::vector<VkImageView> Attachments;
+    for (auto [Index, Texture] : Enumerate(ColorAttachments))
     {
-        if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
+        if (Texture)
         {
-            DepthStencilTargetFormat = Format;
-        }
-        else 
-        {
-            uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
-            RenderTargetFormats[index] = Format;
-            NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
+            VulkanTextureView* vkTexture = ResourceCast(Texture);
+            Attachments.push_back(vkTexture->GetHandle());
+            if (Index == 0)
+            {
+                Width = Texture->GetSizeX();
+                Height = Texture->GetSizeY();
+            }
+            else
+            {
+                Ncheck(Texture->GetSizeX() == Width);
+                Ncheck(Texture->GetSizeY() == Height);
+            }
         }
     }
-    InitWithAttachments(RenderTargetFormats, NumRenderTargetsEnabled, DepthStencilTargetFormat);
+    if (DepthStencilAttachment)
+    {
+        VulkanTextureView* vkTexture = ResourceCast(DepthStencilAttachment);
+        Attachments.push_back(vkTexture->GetHandle());
+    }
+
+    Ncheck(Attachments.size() != 0);
+    uint32 Hash = FCrc::MemCrc32(Attachments.data(), sizeof(VkImageView) * Attachments.size());
+    auto Found = Framebuffers.find(Hash);
+    if (Found != Framebuffers.end())
+    {
+        return Found->second;
+    }
+
+    VkFramebufferCreateInfo FramebufferInfo{};
+    FramebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    FramebufferInfo.width = Width;
+    FramebufferInfo.height = Height;
+    FramebufferInfo.renderPass = RenderPass;
+    FramebufferInfo.attachmentCount = static_cast<uint32>(Attachments.size());
+    FramebufferInfo.pAttachments = Attachments.data();
+    FramebufferInfo.layers = 1;
+
+    VkFramebuffer& Framebuffer = Framebuffers[Hash];
+    VK_CHECK_RESULT(vkCreateFramebuffer(Device, &FramebufferInfo, nullptr, &Framebuffer));
+    return Framebuffer;
 }
 
-FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer)
+VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTargetLayout& RTLayout)
 {
-    InitWithAttachments(Initializer.RenderTargetFormats, Initializer.NumRenderTargetsEnabled, Initializer.DepthStencilTargetFormat);
-}
-
-FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHIRenderPassInfo& Info)
-{
-    std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS> RenderTargetFormats;
-    RenderTargetFormats.fill(PF_Unknown);
-    uint32 NumRenderTargetsEnabled = 0;
-    EPixelFormat DepthStencilTargetFormat = PF_Unknown;
-    for (auto [Attachment, Texture] : Info.Framebuffer->Attachments)
-    {
-        if (Attachment == EFramebufferAttachment::FA_Depth_Stencil_Attachment)
-        {
-            DepthStencilTargetFormat = Texture->GetFormat();
-        }
-        else 
-        {
-            uint32 index = (uint8)Attachment-(uint8)EFramebufferAttachment::FA_Color_Attachment0;
-            RenderTargetFormats[index] = Texture->GetFormat();
-            NumRenderTargetsEnabled = std::max(NumRenderTargetsEnabled, index+1);
-        }
-    }
-    InitWithAttachments(RenderTargetFormats, NumRenderTargetsEnabled, DepthStencilTargetFormat);
-    if (Info.bClearDepthBuffer)
-    {
-        Ncheck(DepthStencilReference.attachment < Desc.size());
-        VkAttachmentDescription& CurrDesc = Desc[DepthStencilReference.attachment];
-        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    }
-    if (Info.bClearStencilBuffer)
-    {
-        Ncheck(DepthStencilReference.attachment < Desc.size());
-        VkAttachmentDescription& CurrDesc = Desc[DepthStencilReference.attachment];
-        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    }
-    if (Info.bClearColorBuffer)
-    {
-        Ncheck(DepthStencilReference.attachment < Desc.size());
-        for (auto& Ref : ColorReferences)
-        {
-            VkAttachmentDescription& CurrDesc = Desc[Ref.attachment];
-            CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        }
-    }
-}
-
-void FVulkanRenderTargetLayout::InitWithAttachments(        
-    const std::array<EPixelFormat, MAX_SIMULTANEOUS_RENDERTARGETS>& RenderTargetFormats,
-    uint32 NumRenderTargetsEnabled,
-    EPixelFormat DepthStencilTargetFormat)
-{
-	for (uint32 Index = 0; Index < NumRenderTargetsEnabled; ++Index)
-    {
-		EPixelFormat Format = RenderTargetFormats[Index];
-		if (Format != EPixelFormat::PF_Unknown)
-		{
-			VkAttachmentDescription& CurrDesc = Desc.emplace_back();
-			CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-			CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-			CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-			// If the initial != final we need to change the FullHashInfo and use FinalLayout
-			CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			VkAttachmentReference& ColorRef = ColorReferences.emplace_back();
-            ColorRef.attachment = Index;
-			ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
-		}
-    }
-    if (DepthStencilTargetFormat != EPixelFormat::PF_Unknown)
-    {
-        bHasDepthAttachment = true;
-        EPixelFormat Format = DepthStencilTargetFormat;
-		VkAttachmentDescription& CurrDesc = Desc.emplace_back();
-        CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-        CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-        CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        DepthStencilReference.attachment = NumRenderTargetsEnabled;
-        DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        Ncheck(CurrDesc.format != VK_FORMAT_UNDEFINED);
-    }
-    
-    RenderPassFullHash = FCrc::MemCrc32(Desc.data(), sizeof(VkAttachmentDescription) * Desc.size());
-}
-
-FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
-{
-	auto Found = RenderPasses.find(RTLayout);
+    uint32 Hash = std::hash<RHIRenderTargetLayout>{}(RTLayout);
+	auto Found = RenderPasses.find(Hash);
     if (Found != RenderPasses.end())
-        return &Found->second;
+        return Found->second;
 
-    FVulkanRenderPass& RenderPass = RenderPasses.emplace(RTLayout, Device).first->second;
+    // fill in the attachment descriptions and references
+    std::vector<VkAttachmentDescription> AttachmentDescriptions;
+    std::vector<VkAttachmentReference> ColorReferences;
+    VkAttachmentReference DepthStencilReference{};
+    {
+        for (auto [Index, Attachment] : Enumerate(RTLayout.ColorAttachments))
+        {
+            EPixelFormat Format = Attachment.Format;
+            if (Format != EPixelFormat::PF_Unknown)
+            {
+                VkAttachmentDescription CurrDesc{};
+                CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+                CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
+                CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                AttachmentDescriptions.push_back(CurrDesc);
+
+                VkAttachmentReference ColorRef{};
+                ColorRef.attachment = Index;
+                ColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                ColorReferences.push_back(ColorRef);
+            }
+        }
+        EPixelFormat Format = RTLayout.DepthStencilAttachment.Format;
+        if (Format != EPixelFormat::PF_Unknown)
+        {
+            VkAttachmentDescription CurrDesc{};
+            CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+            CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
+            CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+            CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            AttachmentDescriptions.push_back(CurrDesc);
+
+            DepthStencilReference.attachment = AttachmentDescriptions.size() - 1;
+            DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
+    }
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = RTLayout.ColorReferences.size();
-    subpass.pColorAttachments = RTLayout.ColorReferences.data();
-    if (RTLayout.bHasDepthAttachment)
-        subpass.pDepthStencilAttachment = &RTLayout.DepthStencilReference;
+    subpass.colorAttachmentCount = ColorReferences.size();
+    subpass.pColorAttachments = ColorReferences.data();
+    if (DepthStencilReference.layout != VK_IMAGE_LAYOUT_UNDEFINED)
+        subpass.pDepthStencilAttachment = &DepthStencilReference;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -348,20 +383,27 @@ FVulkanRenderPass* FVulkanRenderPassManager::GetOrCreateRenderPass(const FVulkan
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    Ncheck(RTLayout.Desc.size() != 0);
-    if (RTLayout.Desc.size() == 0)
-        throw "";
-    renderPassInfo.attachmentCount = static_cast<uint32>(RTLayout.Desc.size());
-    renderPassInfo.pAttachments = RTLayout.Desc.data();
+    renderPassInfo.attachmentCount = AttachmentDescriptions.size();
+    renderPassInfo.pAttachments = AttachmentDescriptions.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(Device, &renderPassInfo, nullptr, &RenderPass.Handle) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create render pass!");
+    VkRenderPass& RenderPass = RenderPasses[Hash];
+    VK_CHECK_RESULT(vkCreateRenderPass(Device, &renderPassInfo, nullptr, &RenderPass));
+    return RenderPass;
+}
+FVulkanRenderPassManager::~FVulkanRenderPassManager()
+{
+    for (auto& [Hash, RenderPass] : RenderPasses)
+    {
+        vkDestroyRenderPass(Device, RenderPass, nullptr);
     }
-    return &RenderPass;
+    for (auto& [Hash, Framebuffer] : Framebuffers)
+    {
+        vkDestroyFramebuffer(Device, Framebuffer, nullptr);
+    }
 }
 
 VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
@@ -425,6 +467,15 @@ VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
     default:
         throw "Unknown PixelFormat!";
     }
+}
+
+}
+
+namespace std {
+
+size_t hash<nilou::RHIRenderTargetLayout>::operator()(const nilou::RHIRenderTargetLayout& _Keyval) const noexcept
+{
+    return FCrc::MemCrc32(&_Keyval, sizeof(_Keyval));
 }
 
 }

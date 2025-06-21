@@ -78,7 +78,7 @@ struct RHITextureSubresourceLayout
 	{}
 
 	RHITextureSubresourceLayout(const RHITextureDesc& Desc)
-		: RHITextureSubresourceLayout(Desc.NumMips, Desc.ArraySize * (Desc.TextureType == ETextureDimension::TextureCube ? 6 : 1), IsStencilFormat(Desc.Format) ? 2 : 1)
+		: RHITextureSubresourceLayout(Desc.NumMips, Desc.ArraySize, IsStencilFormat(Desc.Format) ? 2 : 1)
 	{}
 
 	inline uint32 GetSubresourceCount() const
@@ -166,7 +166,7 @@ struct RHITextureSubresourceRange
 	inline uint32 GetSubresourceIndex(RHITextureSubresource Subresource) const
 	{
 		Ncheck(Subresource >= GetMinSubresource());
-		Ncheck(Subresource < GetMaxSubresource());
+		Ncheck(Subresource <= GetMaxSubresource());
 		Subresource.MipIndex -= MipIndex;
 		Subresource.ArraySlice -= ArraySlice;
 		Subresource.PlaneSlice -= PlaneSlice;
@@ -189,7 +189,7 @@ struct RHITextureSubresourceRange
 
 	RHITextureSubresource GetMaxSubresource() const
 	{
-		return RHITextureSubresource(MipIndex + NumMips, ArraySlice + NumArraySlices, PlaneSlice + NumPlaneSlices);
+		return RHITextureSubresource(MipIndex + NumMips - 1, ArraySlice + NumArraySlices - 1, PlaneSlice + NumPlaneSlices - 1);
 	}
 
 	template <typename T>
@@ -250,12 +250,12 @@ struct RHITextureSubresourceRange
 
 	auto end() const
 	{
-		return const_iterator(this, GetMaxSubresource());
+		return ++const_iterator(this, GetMaxSubresource());
 	}
 
 	auto end()
 	{
-		return iterator(this, GetMaxSubresource());
+		return ++iterator(this, GetMaxSubresource());
 	}
 
 	bool IsWholeResource(const RHITextureSubresourceLayout& Layout) const

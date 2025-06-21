@@ -39,20 +39,19 @@ namespace nilou {
         int32 group_num = OutGaussianRandomRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
         FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
-        FRHIPipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanGaussionSpectrumShader>(0, 0);
-        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GaussionSpectrumShader DescriptorSet", GaussionSpectrumShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters);
         DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView());
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = "CreateGaussionSpectrum";
-        PassDesc.DescriptorSets = { DescriptorSet };
+        RDGPassDesc PassDesc{"CreateGaussionSpectrum"};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -67,23 +66,22 @@ namespace nilou {
 
         FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
         FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
-        FRHIPipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
         
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementSpectrumShader>(0, 0);
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementSpectrumShader DescriptorSet", DisplacementSpectrumShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
         DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView());
         DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = "CreateDisplacementSpectrum";
-        PassDesc.DescriptorSets = { DescriptorSet };
+        RDGPassDesc PassDesc{"CreateDisplacementSpectrum"};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -95,32 +93,25 @@ namespace nilou {
     {
         int32 group_num = InputRT->Desc.SizeX / 32;
         FOceanFastFourierTransformShader::FPermutationDomain PermutationVector;
-        if (bHorizontalPass)
-            PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(true);
-        else
-            PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(false);
+        PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(bHorizontalPass);
         FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
         FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
-        FRHIPipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI());
-
-        TRDGUniformBuffer<FOceanFFTButterflyBlock>* ButterflyBlock = Graph.CreateUniformBuffer<FOceanFFTButterflyBlock>("FOceanFFTButterflyBlock");
-        ButterflyBlock->SetData<&FOceanFFTButterflyBlock::Ns>(Ns);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanFastFourierTransformShader>(PermutationVector.ToDimensionValueId(), 0);
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
-        DescriptorSet->SetStorageBuffer("FOceanFFTButterflyBlock", ButterflyBlock);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
         DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView());
         DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView());
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = "FastFourierTransform";
-        PassDesc.DescriptorSets = { DescriptorSet };
+        RDGPassDesc PassDesc{"FastFourierTransform"};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
+                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &Ns);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -133,22 +124,21 @@ namespace nilou {
         int32 group_num = HeightSpectrumRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
         FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
-        FRHIPipelineState* PSO = RHICreateComputePipelineState(DisplacementShader->GetComputeShaderRHI());
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanDisplacementShader>(0, 0);
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementShader DescriptorSet", DisplacementShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceRT", OutDisplaceRT->GetDefaultView());
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = "CreateDisplacement";
-        PassDesc.DescriptorSets = { DescriptorSet };
+        RDGPassDesc PassDesc{"CreateDisplacement"};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -161,22 +151,21 @@ namespace nilou {
         int32 group_num = DisplaceRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
         FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
-        FRHIPipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet<FOceanNormalFoamShader>(0, 0);
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.get());
+        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("NormalFoamShader DescriptorSet", NormalFoamShader->GetDescriptorSetLayout(0));
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
         DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView());
         DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView());
         DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView());
 
-        RDGComputePassDesc PassDesc;
-        PassDesc.Name = "CreateNormalFoam";
-        PassDesc.DescriptorSets = { DescriptorSet };
+        RDGPassDesc PassDesc{"CreateNormalFoam"};
         Graph.AddComputePass(
             PassDesc,
+            { DescriptorSet },
             [=](RHICommandList& RHICmdList)
             {
-                RHICmdList.BindPipeline(PSO, EPipelineBindPoint::Compute);
+                RHICmdList.BindComputePipelineState(PSO);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -220,9 +209,9 @@ namespace nilou {
         InitialTime = clock();
 
         ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
-            [this](RenderGraph& Graph, RHICommandListImmediate& RHICmdList)
+            [this](RenderGraph&)
             {
-                FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
+                FFTParameters = RenderGraph::CreateExternalUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters", nullptr);
             });
     }
 
@@ -245,14 +234,15 @@ namespace nilou {
              WindSpeed=this->WindSpeed,
              Amplitude=this->Amplitude,
              Time=(clock()-this->InitialTime)/1000.f]
-            (RenderGraph& Graph, RHICommandListImmediate& RHICmdList)
+            (RenderGraph& Graph)
             {
-                FFTParameters->SetData<&FOceanFastFourierTransformParameters::WindDirection>(WindDirection);
-                FFTParameters->SetData<&FOceanFastFourierTransformParameters::N>(N);
-                FFTParameters->SetData<&FOceanFastFourierTransformParameters::WindSpeed>(WindSpeed);
-                FFTParameters->SetData<&FOceanFastFourierTransformParameters::Amplitude>(Amplitude);
-                FFTParameters->SetData<&FOceanFastFourierTransformParameters::Time>(Time);
-                
+                FOceanFastFourierTransformParameters Parameters;
+                Parameters.WindDirection = WindDirection;
+                Parameters.N = N;
+                Parameters.WindSpeed = WindSpeed;
+                Parameters.Amplitude = Amplitude;
+                Parameters.Time = Time;
+                Graph.QueueBufferUpload(FFTParameters, &Parameters, sizeof(Parameters));
                 UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
         );

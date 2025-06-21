@@ -3,7 +3,7 @@
 #include "Common/AssetImporter.h"
 #include "World.h"
 #include "BaseApplication.h"
-#include "Common/Transform.h"
+#include "Common/Math/Transform.h"
 
 #include "StaticMeshResources.h"
 #include "Common/Asset/AssetLoader.h"
@@ -148,19 +148,21 @@ namespace nilou {
         SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
         World->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
     }
-
     static void LoadVirtualHeightfieldMesh(UWorld* World)
     {
+#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
         FTransform VHMTransform;
         VHMTransform.SetScale3D(dvec3(0.5, 0.5, 1));
         std::shared_ptr<AVirtualHeightfieldMeshActor> VHMActor = World->SpawnActor<AVirtualHeightfieldMeshActor>(VHMTransform, "test VHM");
         VHMActor->VHMComponent->SetHeightfieldTexture(dynamic_cast<UVirtualTexture*>(GetContentManager()->GetContentByPath("/Textures/Karelia_VirtualTexture.nasset")));
         VHMActor->VHMComponent->SetMaterial(GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset"));
         VHMActor->VHMComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
+#endif
     }
 
     static void Load3DTileset(UWorld* World)
     {
+#if NILOU_ENABLE_3DTILES
         std::shared_ptr<AGeoreferenceActor> GeoreferenceActor = World->SpawnActor<AGeoreferenceActor>(FTransform::Identity, "test georeference");
         GeoreferenceActor->SetGeoreferenceOrigin(84.77921, 45.65067, 604.42679);
         // GeoreferenceActor->SetGeoreferenceOrigin(-75.612037, 40.043799, 123.340197);
@@ -174,6 +176,7 @@ namespace nilou {
         // TilesetActor->GetTilesetComponent()->SetEnableFrustumCulling(false);
         TilesetActor->bShowBoundingBox = true;
         // TilesetActor->GetTilesetComponent()->SetReflectionProbeBlendMode(RPBM_Off);
+#endif
     }
 
     static void LoadFFTOcean(UWorld* World)

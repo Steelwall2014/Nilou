@@ -48,12 +48,13 @@ static std::string PreprocessIncludeInternal(
 
     std::string lineBuffer;
     std::regex re("^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*");
+    std::regex re_version("^[ ]*#[ ]*version[ ]+[0-9]+.*");
     while (std::getline(input, lineBuffer))
     {
         std::smatch matches;
         if (std::regex_match(lineBuffer, matches, re))
         {
-            std::filesystem::path absolute_path = ShaderIncludePathToAbsolute(matches[1].str(), WorkingDirectory, IncludeDirectories);
+            fs::path absolute_path = ShaderIncludePathToAbsolute(matches[1].str(), WorkingDirectory, IncludeDirectories);
             if (IncludedFiles.find(absolute_path.generic_string()) == IncludedFiles.end())
             {
                 std::string SourceCode = nilou::GetAssetLoader()->SyncOpenAndReadText(absolute_path.generic_string().c_str());
@@ -65,7 +66,7 @@ static std::string PreprocessIncludeInternal(
                     IncludedFiles);
             }
         }
-        else 
+        else if (!std::regex_match(lineBuffer, matches, re_version))
         {
             output << lineBuffer << '\n';
         }

@@ -4,18 +4,17 @@
 
 namespace nilou {
 
-class FRDGBufferPool : public FRenderResource
+class FRDGBufferPool
 {
 public:
 	FRDGBufferPool() = default;
 
 	/** Call once per frame to trim elements from the pool. */
-	void TickPoolElements();
+	void TickPoolElements() { }
 
 	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::Page);
 
 private:
-	void ReleaseRHI() override;
 
 	mutable std::recursive_mutex Mutex;
 
@@ -29,7 +28,7 @@ private:
 };
 
 /** The global buffers for easy shading. */
-extern TGlobalResource<FRDGBufferPool> GRenderGraphBufferPool;
+extern FRDGBufferPool GRenderGraphBufferPool;
 
 
 // Steewall2014: In UE5, it's called "FRenderTargetPool". I guess it's for backward compatibility.
@@ -37,7 +36,7 @@ extern TGlobalResource<FRDGBufferPool> GRenderGraphBufferPool;
 /**
  * Encapsulates the render targets pools that allows easy sharing (mostly used on the render thread side)
  */
-class FRDGTexturePool : public FRenderResource
+class FRDGTexturePool
 {
 public:
 	FRDGTexturePool() = default;
@@ -51,8 +50,6 @@ public:
 	 * call from RenderThread only
 	 */
 	void TickPoolElements();
-	/** Free renderer resources */
-	void ReleaseRHI();
 
 	/** Allows to remove a resource so it cannot be shared and gets released immediately instead a/some frame[s] later. */
 	void FreeUnusedResource(FRDGPooledTextureRef& In);
@@ -82,20 +79,19 @@ private:
 };
 
 /** The global render targets for easy shading. */
-extern TGlobalResource<FRDGTexturePool> GRenderGraphTexturePool;
+extern FRDGTexturePool GRenderGraphTexturePool;
 
-class FRDGTransientResourceAllocator : public FRenderResource
+class FRDGTransientResourceAllocator
 {
 public:
+	FRDGTransientResourceAllocator();
 	IRHITransientResourceAllocator* Get() { return Allocator; }
 
 private:
-    virtual void InitRHI(RenderGraph&) override;
-    virtual void ReleaseRHI() override;
 
 	IRHITransientResourceAllocator* Allocator = nullptr;
 };
 
-extern TGlobalResource<FRDGTransientResourceAllocator, FRenderResource::EInitPhase::Pre> GRDGTransientResourceAllocator;
+extern FRDGTransientResourceAllocator GRDGTransientResourceAllocator;
 
 }

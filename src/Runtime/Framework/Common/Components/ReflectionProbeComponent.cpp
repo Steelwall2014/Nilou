@@ -1,9 +1,7 @@
 #include "ReflectionProbeComponent.h"
-#include "Common/ContentManager.h"
+#include "Shader.h"
 #include "TextureCube.h"
-#include "TextureRenderTarget.h"
-#include "DeferredShadingSceneRenderer.h"
-#include "Texture2D.h"
+#include "Common/World.h"
 
 
 namespace nilou {
@@ -22,9 +20,9 @@ namespace nilou {
     {
         UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation()+OriginOffset);
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_UpdateSceneCaptureContents)(
-            [Scene, this](FDynamicRHI* RHICmdList) 
+            [Scene, this](RenderGraph&) 
             {
-                UpdateSceneCaptureContents_RenderThread(Scene, RHICmdList);
+                UpdateSceneCaptureContents_RenderThread(Scene);
             });
     }
 
@@ -32,10 +30,12 @@ namespace nilou {
     {
         USceneCaptureComponentCube::OnRegister();
         
-        IrradianceShaderUniformBuffer = CreateUniformBuffer<IrradianceEnvTextureShaderBlock>();
-        PrefilterShaderUniformBuffer = CreateUniformBuffer<PrefilteredEnvTextureShaderBlock>();
-        BeginInitResource(IrradianceShaderUniformBuffer.get());
-        BeginInitResource(PrefilterShaderUniformBuffer.get());
+        ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_OnRegister)(
+            [this](RenderGraph& Graph) 
+            {
+                IrradianceShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<IrradianceEnvTextureShaderBlock>("IrradianceEnvTextureShaderBlock", nullptr);
+                PrefilterShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<PrefilteredEnvTextureShaderBlock>("PrefilteredEnvTextureShaderBlock", nullptr);
+            });
 
         if (WorldPrivate) 
         {
@@ -59,8 +59,13 @@ namespace nilou {
 
     void UReflectionProbeComponent::OnUnregister()
     {
-        BeginReleaseResource(IrradianceShaderUniformBuffer.get());
-        BeginReleaseResource(PrefilterShaderUniformBuffer.get());
+        
+        ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_OnRegister)(
+            [this](RenderGraph& Graph) 
+            {
+                IrradianceShaderUniformBuffer = nullptr;
+                PrefilterShaderUniformBuffer = nullptr;
+            });
 
         if (WorldPrivate) 
         {
@@ -73,8 +78,9 @@ namespace nilou {
         USceneCaptureComponentCube::OnUnregister();
     }
 
-    void UReflectionProbeComponent::UpdateSceneCaptureContents_RenderThread(FScene* Scene, FDynamicRHI* RHICmdList)
+    void UReflectionProbeComponent::UpdateSceneCaptureContents_RenderThread(FScene* Scene)
     {
+#if NILOU_ENABLE_REFLECTION_PROBE
         // UTexture2D* lut = (UTexture2D*)GetContentManager()->GetTextureByPath("/Textures/my_lut.nasset");
         // FShaderPermutationParameters PermutationParameters(&FBrdfLUTShader::StaticType, 0);
         // FShaderInstance *BrdfLUTShader = GetGlobalShader(PermutationParameters);
@@ -156,7 +162,7 @@ namespace nilou {
         }
 
         SceneProxy->bHasData = true;
-
+#endif
     }
 
     FReflectionProbeSceneProxy* UReflectionProbeComponent::CreateSceneProxy()
@@ -171,7 +177,7 @@ namespace nilou {
             dvec3 NewLocation = GetComponentLocation();
             auto Proxy = SceneProxy;
             ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderTransform)(
-                [NewLocation, Proxy](FDynamicRHI*) 
+                [NewLocation, Proxy](RenderGraph&) 
                 {
                     Proxy->Location = NewLocation;
                 });
@@ -187,7 +193,7 @@ namespace nilou {
             auto NewOffset = OriginOffset;
             auto Proxy = SceneProxy;
             ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderDynamicData)(
-                [NewExtent, NewOffset, Proxy](FDynamicRHI*) 
+                [NewExtent, NewOffset, Proxy](RenderGraph&) 
                 {
                     Proxy->Extent = NewExtent;
                     Proxy->OriginOffset = NewOffset;

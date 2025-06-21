@@ -4,7 +4,7 @@
 #include <regex>
 #include <sstream>
 
-#include <glad/glad.h>
+#include <glad.h>
 
 #include "Common/Log.h"
 #include "Gamestatics.h"

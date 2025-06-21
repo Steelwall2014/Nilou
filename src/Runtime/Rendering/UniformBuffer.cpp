@@ -11,42 +11,40 @@ namespace nilou {
 
     void FUniformBuffer::InitRHI_impl(RenderGraph& Graph)
     {
-        RDGBufferDesc Desc;
-        Desc.Size = Size;
-        Desc.Stride = 0;
+        RDGBufferDesc Desc(Size, EBufferUsageFlags::UniformBuffer);
         if (Usage == UniformBuffer_MultiFrame)
         {
-            UniformBufferRDG = RenderGraph::CreateExternalBuffer(Desc);
+            UniformBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);
         }
         else 
         {
-            UniformBufferRDG = Graph.CreateBuffer(Desc);
+            UniformBufferRDG = Graph.CreateBuffer("", Desc);
         }
     }
 
     void FUniformBuffer::UploadData_impl(RenderGraph& Graph, const void* Data, uint32 DataSize)
     {
-        DataSize = std::min(DataSize, Size);
-        StagingBuffer* StagingBuffer = Graph.AcquireStagingBuffer(DataSize);
-        Graph.AddPass(
-            [=](RDGPassBuilder& PassBuilder)
-            {
-                FDynamicRHI* DynamicRHI = FDynamicRHI::GetDynamicRHI();
-                void* Dst = DynamicRHI->MapMemory(StagingBuffer->BufferRHI.get(), 0, DataSize);
-                    std::memcpy(Dst, Data, DataSize);
-                DynamicRHI->UnmapMemory(StagingBuffer->BufferRHI.get());
+        // DataSize = std::min(DataSize, Size);
+        // StagingBuffer* StagingBuffer = Graph.AcquireStagingBuffer(DataSize);
+        // Graph.AddPass(
+        //     [=](RDGPassBuilder& PassBuilder)
+        //     {
+        //         FDynamicRHI* DynamicRHI = FDynamicRHI::Get();
+        //         void* Dst = DynamicRHI->MapMemory(StagingBuffer->BufferRHI.get(), 0, DataSize);
+        //             std::memcpy(Dst, Data, DataSize);
+        //         DynamicRHI->UnmapMemory(StagingBuffer->BufferRHI.get());
 
-                PassBuilder.TransferDestination(UniformBufferRDG);
-            },
-            [=](RHICommandList& RHICmdList)
-            {
-                RHIBuffer* SrcBuffer = StagingBuffer->BufferRHI.get();
-                RHIBuffer* DstBuffer = UniformBufferRDG->Resolve();
-                if (SrcBuffer && DstBuffer)
-                {
-                    RHICmdList.CopyBuffer(SrcBuffer, DstBuffer, 0, 0, DataSize);
-                }
-            });
+        //         PassBuilder.TransferDestination(UniformBufferRDG);
+        //     },
+        //     [=](RenderGraph& Graph)
+        //     {
+        //         RHIBuffer* SrcBuffer = StagingBuffer->BufferRHI.get();
+        //         RHIBuffer* DstBuffer = UniformBufferRDG->Resolve();
+        //         if (SrcBuffer && DstBuffer)
+        //         {
+        //             RHICmdList.CopyBuffer(SrcBuffer, DstBuffer, 0, 0, DataSize);
+        //         }
+        //     });
     }
 
 }

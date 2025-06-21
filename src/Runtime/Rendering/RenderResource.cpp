@@ -77,21 +77,20 @@ namespace nilou {
 
     void BeginInitResource_Internal(FRenderResource* Resource, const char *file, int line)
     {
-        // ENQUEUE_RENDER_COMMAND(BeginInitResource)(
-        //    [Resource, file, line](FDynamicRHI *DynamicRHI)
-        //    {
-        //         const char *debug_file = file;
-        //         int debug_line = line;
-        //         Resource->InitResource();
-        //    });
-        Resource->InitResource(FRenderingThread::GetRenderGraph());
+        ENQUEUE_RENDER_COMMAND(BeginInitResource)(
+           [Resource, file, line](RenderGraph& Graph)
+           {
+                const char *debug_file = file;
+                int debug_line = line;
+                Resource->InitResource(Graph);
+           });
     }
 
     void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line)
     {
         if (!Resource->IsInitialized()) return;
         ENQUEUE_RENDER_COMMAND(BeginReleaseResource)(
-           [Resource, file, line](FDynamicRHI *DynamicRHI)
+           [Resource, file, line](RenderGraph&)
            {
                 const char *debug_file = file;
                 int debug_line = line;
@@ -113,12 +112,12 @@ namespace nilou {
 
     RHIBuffer* FVertexBuffer::GetRHI() const
     {
-        return VertexBufferRDG->Resolve();
+        return VertexBufferRDG->GetRHI();
     }
 
     RHIBuffer* FIndexBuffer::GetRHI() const
     {
-        return IndexBufferRDG->Resolve();
+        return IndexBufferRDG->GetRHI();
     }
 
 }

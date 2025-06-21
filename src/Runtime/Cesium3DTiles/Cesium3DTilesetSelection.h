@@ -1,4 +1,5 @@
 #pragma once
+#if NILOU_ENABLE_3DTILES
 #include <tiny3dtiles/tiny_3dtiles.h>
 #include <tinygltf/tiny_gltf.h>
 
@@ -105,3 +106,4 @@ namespace nilou {
     }
 
 }
+#endif

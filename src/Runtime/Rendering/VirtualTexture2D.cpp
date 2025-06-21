@@ -2,6 +2,7 @@
 
 #include "VirtualTexture2D.h"
 #include "Common/Path.h"
+#if NILOU_ENABLE_VIRTUAL_TEXTURE
 
 namespace nilou {
 		
@@ -17,7 +18,7 @@ namespace nilou {
         }
 
         FTextureResource::InitRHI();
-        TextureRHI = FDynamicRHI::GetDynamicRHI()->RHICreateSparseTexture2D(
+        TextureRHI = FDynamicRHI::Get()->RHICreateSparseTexture2D(
             Name, Image->GetPixelFormat(), 
             NumMips, Image->GetWidth(), Image->GetHeight(), TexCreate_Virtual);
         SamplerRHI.Texture = TextureRHI.get();
@@ -284,3 +285,4 @@ namespace nilou {
     }
 
 }
+#endif

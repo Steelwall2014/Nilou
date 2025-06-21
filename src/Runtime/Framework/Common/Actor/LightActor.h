@@ -9,7 +9,7 @@ namespace nilou {
     public:
         ALightActor() 
         { 
-            LightComponent = CreateComponent<ULightComponent>(this); 
+            LightComponent = CreateComponent<ULightComponent>(this, "LightComponent"); 
             LightComponent->AttachToComponent(GetRootComponent());
         }
 

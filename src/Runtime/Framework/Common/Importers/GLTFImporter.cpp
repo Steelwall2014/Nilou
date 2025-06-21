@@ -40,27 +40,24 @@ namespace nilou {
         return ret;
     }
 
-    static ETextureFilters _GLTFFilterToETextureFilters(uint32 GLTFFilter)
+    static ESamplerFilter _GLTFFilterToETextureFilters(uint32 GLTFFilter)
     {
-        ETextureFilters filter;
+        ESamplerFilter filter;
         switch (GLTFFilter) {
-            case TINYGLTF_TEXTURE_FILTER_NEAREST: filter = ETextureFilters::TF_Nearest; break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR: filter = ETextureFilters::TF_Linear; break;
-            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST: filter = ETextureFilters::TF_Nearest_Mipmap_Nearest; break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST: filter = ETextureFilters::TF_Linear_Mipmap_Nearest; break;
-            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR: filter = ETextureFilters::TF_Nearest_Mipmap_Linear; break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: filter = ETextureFilters::TF_Linear_Mipmap_Linear; break;
+            case TINYGLTF_TEXTURE_FILTER_NEAREST: filter = ESamplerFilter::SF_Point; break;
+            case TINYGLTF_TEXTURE_FILTER_LINEAR: filter = ESamplerFilter::SF_Bilinear; break;
+            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: filter = ESamplerFilter::SF_Trilinear; break;
         }
         return filter;
     }
     
-    static ETextureWrapModes _GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
+    static ESamplerAddressMode _GLTFFilterToETextureWrapModes(uint32 GLTFWrapMode)
     {
-        ETextureWrapModes mode;
+        ESamplerAddressMode mode;
         switch (GLTFWrapMode) {
-            case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: mode = ETextureWrapModes::TW_Clamp; break;
-            case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: mode = ETextureWrapModes::TW_Mirrored_Repeat; break;
-            case TINYGLTF_TEXTURE_WRAP_REPEAT: mode = ETextureWrapModes::TW_Repeat; break;
+            case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: mode = ESamplerAddressMode::AM_Clamp; break;
+            case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: mode = ESamplerAddressMode::AM_Mirror; break;
+            case TINYGLTF_TEXTURE_WRAP_REPEAT: mode = ESamplerAddressMode::AM_Wrap; break;
         }
         return mode;
     }
@@ -105,17 +102,17 @@ namespace nilou {
 
             int NumMips = std::min(std::log2(gltf_image.width), std::log2(gltf_image.height)) + 1;
             
-            RHITextureParams& TextureParams = Texture->TextureParams;
+            FSamplerStateInitializer& SamplerState = Texture->SamplerState;
             if (gltf_texture.sampler != -1)
             {
                 tinygltf::Sampler &sampler = model.samplers[gltf_texture.sampler];
 
-                if (sampler.minFilter != -1)
-                    TextureParams.Min_Filter = _GLTFFilterToETextureFilters(sampler.minFilter);
-                if (sampler.magFilter != -1)
-                    TextureParams.Mag_Filter = _GLTFFilterToETextureFilters(sampler.magFilter);
-                TextureParams.Wrap_S = _GLTFFilterToETextureWrapModes(sampler.wrapS);
-                TextureParams.Wrap_T = _GLTFFilterToETextureWrapModes(sampler.wrapT);
+                // if (sampler.minFilter != -1)
+                //     SamplerState.Filter = _GLTFFilterToETextureFilters(sampler.minFilter);
+                // if (sampler.magFilter != -1)
+                //     SamplerState.Mag_Filter = _GLTFFilterToETextureFilters(sampler.magFilter);
+                SamplerState.AddressU = _GLTFFilterToETextureWrapModes(sampler.wrapS);
+                SamplerState.AddressV = _GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
             Texture->UpdateResource();
             Texture->MarkAssetDirty();
@@ -227,11 +224,11 @@ namespace nilou {
                                         uniform_block_code +
                                         samplers_code +
                                         material_interface_code;
-                std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(OutDirectory + "/" + Material->Name + ".glsl").generic_string();
+                std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(OutDirectory + "/" + Material->GetName() + ".glsl").generic_string();
                 std::ofstream out_stream(ShaderAbsPath);
                 out_stream << glsl_code;
                 out_stream.close();
-                Material->SetShaderFileVirtualPath(OutDirectory + "/" + Material->Name + ".glsl");
+                Material->SetShaderFileVirtualPath(OutDirectory + "/" + Material->GetName() + ".glsl");
             }
 
             
@@ -263,10 +260,10 @@ namespace nilou {
                 }
                 else
                 {
-                    Material->SetVectorParameterValue("emissive", vec3(0));
+                    Material->SetVectorParameterValue("emissive", vec4(0));
                 }
                 Material->SetVectorParameterValue("baseColorFactor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
-                Material->SetVectorParameterValue("emissiveFactor", vec3(1.0f, 1.0f, 1.0f));
+                Material->SetVectorParameterValue("emissiveFactor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 Material->SetScalarParameterValue("metallicFactor", 1.0f);
                 Material->SetScalarParameterValue("roughnessFactor", 1.0f);
             }

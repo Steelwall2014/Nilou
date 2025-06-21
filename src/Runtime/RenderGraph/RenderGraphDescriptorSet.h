@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_set>
 #include "RenderGraphResources.h"
 #include "RHIResources.h"
 #include "RHIStaticStates.h"
@@ -9,34 +10,38 @@ class RDGDescriptorSet : public RDGResource
 {
 public:
 
-    friend class RDGDescriptorSetPool;
+    friend class RHIDescriptorSetPools;
     friend class RenderGraph;
 
+    RDGDescriptorSet(const std::string& Name, RHIDescriptorSetLayout* InLayout) 
+        : RDGResource(Name, ERDGResourceType::DescriptorSet) 
+        , Layout(InLayout)
+    { 
+        Ncheck(Layout);
+    }
     ~RDGDescriptorSet();
 
     void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
     void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
-    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer, ERHIAccess Access);
-    void SetStorageImage(const std::string& Name, RDGTextureView* Image, ERHIAccess Access);
+    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
+    void SetStorageImage(const std::string& Name, RDGTextureView* Image);
 
-    void SetUniformBuffer(uint32 BindingIndex, RDGBuffer* Buffer);
-    void SetSampler(uint32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=TStaticSamplerState<SF_Trilinear>::GetRHI());
-    void SetStorageBuffer(uint32 BindingIndex, RDGBuffer* Buffer, ERHIAccess Access);
-    void SetStorageImage(uint32 BindingIndex, RDGTextureView* Image, ERHIAccess Access);
+    RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
+    RHIDescriptorSetLayout* GetLayout() const { return Layout; }
 
-    RHIDescriptorSet* GetRHI() const;
+private:
 
     struct DescriptorBufferInfo
     {
-        RDGBuffer* Buffer;
-        uint32 Offset;
-        uint32 Range;
+        RDGBuffer* Buffer = nullptr;
+        uint32 Offset = 0;
+        uint32 Range = 0;
     };
 
     struct DescriptorImageInfo
     {
-        RHISamplerState* SamplerState;
-        RDGTextureView* Texture;
+        RHISamplerState* SamplerState = nullptr;
+        RDGTextureView* Texture = nullptr;
     };
 
     struct WriteDescriptorSet
@@ -46,18 +51,31 @@ public:
         EDescriptorType DescriptorType;
         DescriptorImageInfo ImageInfo;
         DescriptorBufferInfo BufferInfo;
-        ERHIAccess Access;
+        ERHIAccess Access = ERHIAccess::None;
     };
 
     std::map<uint32, WriteDescriptorSet> WriterInfos;
 
-private:
+    RHIDescriptorSetPools* Pools = nullptr;
 
-    RHIDescriptorSet* DescriptorSetRHI;
-    RDGDescriptorSetPool* Pool = nullptr;
+    uint32 SetIndex = 0;
+
+    RHIDescriptorSetLayout* Layout;
+
+    std::optional<RHIDescriptorSetLayoutBinding> GetBindingByName(const std::string& Name)
+    {
+        for (auto& Binding : Layout->Bindings)
+        {
+            if (Binding.Name == Name)
+            {
+                return Binding;
+            }
+        }
+        return std::nullopt;
+    }
 
 };
-using RDGDescriptorSetRef = std::shared_ptr<RDGDescriptorSet>;
+using RDGDescriptorSetRef = TRefCountPtr<RDGDescriptorSet>;
 
 // class RDGDescriptorPool
 // {
@@ -73,31 +91,25 @@ using RDGDescriptorSetRef = std::shared_ptr<RDGDescriptorSet>;
 //     RHIDescriptorPoolRef PoolRHI;
 // };
 
-class RDGDescriptorSetPool
+class RHIDescriptorSetPools
 {
 public:
-    RDGDescriptorSetPool(RHIDescriptorSetLayout* InLayout);
+    RHIDescriptorSetPools(RHIDescriptorSetLayout* InLayout)
+        : Layout(InLayout)
+    { }
+
+    RHIDescriptorSet* Allocate();
+    void Release(RHIDescriptorSet* DescriptorSet);
+
+private:
 
     std::vector<RHIDescriptorPoolRef> PoolsRHI;
-
-    std::vector<RHIDescriptorPool*> VacantPools;
-    std::list<RHIDescriptorPool*> FullPools;
-
-    RDGDescriptorSetRef Allocate();
-    void Release(RDGDescriptorSet* Set);
-
-    bool CanAllocate() const;
-
-    uint32 MaxNumDescriptorSets;
-
-	uint32 NumAllocatedDescriptorSets = 0;
+    std::vector<RHIDescriptorPool*> VacantPoolsRHI;
+    std::unordered_set<RHIDescriptorPool*> FullPoolsRHI;
 
     RHIDescriptorSetLayout* Layout = nullptr;
     
-    std::vector<uint32> NumAllocatedSetsPerPool;
-
-    std::map<RHIDescriptorPool*, std::list<RHIDescriptorPool*>::iterator> PoolIterators;
-
+	uint32 NumAllocatedDescriptorSets = 0;
 };
 
 }

@@ -23,11 +23,11 @@ namespace nilou {
         return new FStaticMeshSceneProxy(this);
     }
 
-    FBoundingBox UStaticMeshComponent::CalcBounds(const FTransform &LocalToWorld) const
+    FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
         if (StaticMesh)
         {
-            FBoundingBox &LocalBoundingBox = StaticMesh->LocalBoundingBox;
+            FBox &LocalBoundingBox = StaticMesh->LocalBoundingBox;
             return LocalBoundingBox.TransformBy(LocalToWorld);
         }
         else 
@@ -41,7 +41,6 @@ namespace nilou {
     {
         RenderData = Component->StaticMesh->RenderData;
         MaterialSlots = Component->MaterialSlots;
-        Component->SceneProxy = this;
     }
 
     void FStaticMeshSceneProxy::GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector)
@@ -56,11 +55,10 @@ namespace nilou {
                     const FStaticMeshSection &Section = *LODModel.Sections[SectionIndex];
                     FMeshBatch Mesh;
                     Mesh.CastShadow = Section.bCastShadow;
-                    Mesh.Element.VertexFactory = &Section.VertexFactory;
-                    Mesh.Element.IndexBuffer = &Section.IndexBuffer;
-                    Mesh.Element.NumVertices = Section.GetNumVertices();
+                    Mesh.Elements[0].VertexFactory = &Section.VertexFactory;
+                    Mesh.Elements[0].IndexBuffer = &Section.IndexBuffer;
+                    Mesh.Elements[0].NumVertices = Section.GetNumVertices();
                     Mesh.MaterialRenderProxy = MaterialSlots[Section.MaterialIndex]->GetRenderProxy();
-                    Mesh.Element.Bindings.SetElementShaderBinding("FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
                     Collector.AddMesh(ViewIndex, Mesh);
                 }
 			}

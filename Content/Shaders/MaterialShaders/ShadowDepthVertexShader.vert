@@ -4,10 +4,10 @@
 
 #include "../include/ShadowMapShaderParameters.glsl"
 
-layout (std140, binding=16) uniform FShadowMappingBlock {
+layout (std140, set=VERTEX_SHADER_SET_INDEX, binding=0) uniform FShadowMappingBlock {
     FShadowMappingParameters Frustums[FrustumCount];
 };
-layout (std140, binding=17) uniform FShadowMapFrustumIndex {
+layout (std140, set=VERTEX_SHADER_SET_INDEX, binding=1) uniform FShadowMapFrustumIndex {
     int FrustumIndex;
 };
 void main()

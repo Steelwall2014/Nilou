@@ -30,7 +30,7 @@ namespace nilou {
             , bCastShadow(true)
         { }
 
-        FPrimitiveSceneProxy *SceneProxy;
+        FPrimitiveSceneProxy *GetSceneProxy() const { return SceneProxy; }
 
         virtual FPrimitiveSceneProxy *CreateSceneProxy() { return nullptr; }
 
@@ -55,12 +55,17 @@ namespace nilou {
         bool bCastShadow;
 
         EReflectionProbeBlendMode ReflectionProbeBlendMode = RPBM_BlendProbes;
+
+        FPrimitiveSceneProxy *SceneProxy;
+
+        friend class FPrimitiveSceneProxy;
+        friend class FScene;
         
     };
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveShaderParameters)
-        SHADER_PARAMETER(dmat4, LocalToWorld)
-        SHADER_PARAMETER(dmat4, ModelToLocal)
+    BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters)
+        SHADER_PARAMETER(FMatrix44f, LocalToWorld)
+        SHADER_PARAMETER(FMatrix44f, ModelToLocal)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FPrimitiveSceneProxy
@@ -69,15 +74,23 @@ namespace nilou {
         friend class FDeferredShadingSceneRenderer;
     public:
         
-        FPrimitiveSceneProxy(UPrimitiveComponent *Primitive, const std::string &InName = "");
+        FPrimitiveSceneProxy(UPrimitiveComponent *Primitive);
 
         virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) { };
-    
-        virtual void SetTransform(const dmat4 &InLocalToWorld, const FBoundingBox &InBounds);
+        
+        /**
+        *	Called when the rendering thread adds the proxy to the scene.
+        *	This function allows for generating renderer-side resources.
+        *	Called in the rendering thread.
+        */
+        virtual void CreateRenderThreadResources() {}
 
-        virtual void CreateRenderThreadResources(RenderGraph& Graph);
-
-        virtual void DestroyRenderThreadResources();
+        /**
+        *	Called when the rendering thread removes the proxy from the scene.
+        *	This function allows for removing renderer-side resources.
+        *	Called in the rendering thread.
+        */
+        virtual void DestroyRenderThreadResources() {}
 
         virtual ~FPrimitiveSceneProxy()
         {
@@ -86,33 +99,42 @@ namespace nilou {
 
         FPrimitiveSceneInfo *GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 
-        std::string GetName() const { return Name; }
-
         dmat4 GetLocalToWorld() const { return LocalToWorld; }
 
-        FBoundingBox GetBounds() const { return Bounds; }
+        FBoxSphereBounds GetBounds() const { return Bounds; }
 
-        RHIBuffer *GetUniformBuffer() const { return PrimitiveUniformBuffer->GetRHI(); }
+        RHIBuffer *GetUniformBuffer() const { return UniformBuffer->GetRHI(); }
 
-        void UpdateUniformBuffer();
+        void CreateUniformBuffer();
+
+        void UpdateUniformBuffer(RenderGraph& Graph);
 
     protected:
 
         bool bCastShadow;
 
-        std::string Name;
-
         FPrimitiveSceneInfo *PrimitiveSceneInfo;
         FScene *Scene;
 
-        TUniformBufferRef<FPrimitiveShaderParameters> PrimitiveUniformBuffer;
+        TRDGUniformBufferRef<FPrimitiveUniformShaderParameters> UniformBuffer;
 
         EReflectionProbeBlendMode ReflectionProbeBlendMode;
 
     private:
     
-        dmat4 LocalToWorld;
-        FBoundingBox Bounds;
+	    /** The primitive's local to world transform. */
+        FMatrix LocalToWorld;
+
+	    /** The primitive's bounds. */
+        FBoxSphereBounds Bounds;
+
+	    /** The primitive's local space bounds. */
+        FBoxSphereBounds LocalBounds;
+
+        std::string DebugComponentName;
+        std::string DebugActorName;
+        std::string DebugResourceName;
+        std::string DebugLevelName;
 
     };
 }

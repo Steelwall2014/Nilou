@@ -21,7 +21,7 @@ namespace nilou {
     void FMeshDrawCommand::SubmitDraw(RHICommandList& RHICmdList) const
     {
         RHIGetError();
-        RHICmdList.BindPipeline(PipelineState, EPipelineBindPoint::Graphics);
+        RHICmdList.BindGraphicsPipelineState(PipelineState);
 
         for (auto& Stream : VertexStreams)
         {
@@ -30,11 +30,11 @@ namespace nilou {
         RHIGetError();
 
         std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
-        for (auto& [SetIndex, DescriptorSet] : ShaderBindings.DescriptorSets)
+        for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
         {
             DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();
         }
-        RHICmdList.BindDescriptorSets(PipelineState->PipelineLayout.get(), DescriptorSetsRHI, EPipelineBindPoint::Graphics);
+        RHICmdList.BindDescriptorSets(PipelineState->GetPipelineLayout(), DescriptorSetsRHI, EPipelineBindPoint::Graphics);
 
         if (IndirectArgs.Buffer)
         {

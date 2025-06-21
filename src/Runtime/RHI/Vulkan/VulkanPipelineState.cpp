@@ -103,11 +103,4 @@ namespace nilou {
 //     vkUpdateDescriptorSets(Context->device, WriteInfo.size(), WriteInfo.data(), 0, nullptr);
 // }
 
-VulkanPipelineLayout::~VulkanPipelineLayout()
-{
-	vkDestroyPipelineLayout(Device, Handle, nullptr);
-	for (int i = 0; i < DescriptorSetsLayout->Handles.size(); i++)
-		vkDestroyDescriptorSetLayout(Device, DescriptorSetsLayout->Handles[i], nullptr);
-}
-
 }

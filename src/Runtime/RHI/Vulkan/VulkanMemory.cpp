@@ -59,9 +59,7 @@ void FVulkanMemoryManager::AllocateBufferMemory(VkDeviceMemory* Memory, VkBuffer
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, MemPropertyFlags);
 
-    if (vkAllocateMemory(Device, &allocInfo, nullptr, Memory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
+    VK_CHECK_RESULT(vkAllocateMemory(Device, &allocInfo, nullptr, Memory));
 }
 
 void FVulkanMemoryManager::AllocateImageMemory(VkDeviceMemory* Memory, VkImage Image, VkMemoryPropertyFlags MemPropertyFlags)
@@ -73,9 +71,7 @@ void FVulkanMemoryManager::AllocateImageMemory(VkDeviceMemory* Memory, VkImage I
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, MemPropertyFlags);
 
-    if (vkAllocateMemory(Device, &allocInfo, nullptr, Memory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
+    VK_CHECK_RESULT(vkAllocateMemory(Device, &allocInfo, nullptr, Memory));
 }
 
 void FVulkanMemoryManager::AllocateBufferPooled(VkDeviceMemory* Memory, uint32 Size, VkMemoryPropertyFlags MemPropertyFlags)

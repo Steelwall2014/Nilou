@@ -1,8 +1,8 @@
 #include "GameStatics.h"
 #include "Templates/ObjectMacros.h"
 #include <filesystem>
-#include <glad/glad.h>
-#define TINYGLTF_ENABLE_DRACO
+#include <glad.h>
+// #define TINYGLTF_ENABLE_DRACO
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -10,8 +10,10 @@
 // #define STBI_MSC_SECURE_CRT
 
 #include <iostream>
+#if NILOU_ENABLE_GDAL
 #include <gdal.h>
 #include <gdal_priv.h>
+#endif
 
 #include "DDS.h"
 
@@ -22,7 +24,9 @@ namespace nilou {
 
 	AssetLoader::AssetLoader()
 	{
+#if NILOU_ENABLE_GDAL
 		GDALAllRegister();
+#endif
 	}
 
 
@@ -164,14 +168,14 @@ namespace nilou {
 	{
 		if (!std::filesystem::exists(Directory))
 		{
-			std::cout << "Directory: " << Directory << " doesn't exist" << std::endl;
-			throw;
+			NILOU_LOG(Error, "Directory: {} doesn't exist", Directory.generic_string());
+			return std::filesystem::path();
 		}
 
 		if (!FileName.has_filename())
 		{
-			std::cout << FileName << " is not a file" << std::endl;
-			throw;
+			NILOU_LOG(Error, "{} is not a file", FileName.generic_string());
+			return std::filesystem::path();
 		}
                 
 		for (const std::filesystem::directory_entry & dir_entry : 
@@ -183,6 +187,7 @@ namespace nilou {
 					return dir_entry.path();
 			}
 		}
+		return std::filesystem::path();
 	}
 
 	FImage AssetLoader::SyncOpenAndReadImage(const char *filePath)
@@ -194,6 +199,7 @@ namespace nilou {
 		FImage img; 
 		if (GameStatics::EndsWith(AbsolutePath, ".tiff") || GameStatics::EndsWith(AbsolutePath, ".tif"))
 		{
+#if NILOU_ENABLE_GDAL
 			GDALDataset *ds = (GDALDataset *)GDALOpen(AbsolutePath.c_str(), GA_ReadOnly);
 			int width = ds->GetRasterXSize();
 			int height = ds->GetRasterYSize();
@@ -250,6 +256,7 @@ namespace nilou {
 					}
 				}
 			}
+#endif
 		}
 		else if (GameStatics::EndsWith(AbsolutePath, ".dds"))
 		{

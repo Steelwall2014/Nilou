@@ -27,19 +27,15 @@ namespace nilou {
         Desc.NumMips = NumMips;
         TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
 
-        RDGBuffer* StagingBuffer = Graph.CreateBuffer(
-            fmt::format("Texture \"{}\" InitRHI staging buffer", Name), 
-            RDGBufferDesc(Image->GetDataSize()));
-
-        RDGCopyPassDesc PassDesc{};
-        PassDesc.Source = StagingBuffer;
-        PassDesc.Destination = TextureRDG.get();
+        RDGPassDesc PassDesc{"FTexture3DResource::InitRHI"};
         PassDesc.bNeverCull = true;
         Graph.AddCopyPass(
             PassDesc,
-            [=](RHICommandList& RHICmdList)
+            nullptr,
+            TextureRDG,
+            [=, this](RHICommandList& RHICmdList)
             {
-                RHIBuffer* StagingBufferRHI = StagingBuffer->GetRHI();
+                RHIBuffer* StagingBufferRHI = RHICmdList.AcquireStagingBuffer(Image->GetDataSize());
                 void* Data = RHIMapMemory(StagingBufferRHI, 0, Image->GetDataSize());
                     std::memcpy(Data, Image->GetPointer(0, 0, 0), Image->GetAllocatedDataSize());
                 RHIUnmapMemory(StagingBufferRHI);
@@ -51,17 +47,18 @@ namespace nilou {
                     Image->GetWidth(),      // width
                     Image->GetHeight(),     // height
                     Image->GetDepth(),      // depth
-                    0);                     // array layer
+                    0,                      // base array layer
+                    1);                     // num array layers
             });
         
-        FGenerateMips::Execute(Graph, TextureRDG.get(), SamplerStateRHI.get());
+        FGenerateMips::Execute(Graph, TextureRDG);
 
         RHIGetError();
     }
 
     FTextureResource* UTexture3D::CreateResource()
     {
-        FTexture3DResource* Resource = new FTexture3DResource(Name, SamplerState, NumMips);
+        FTexture3DResource* Resource = new FTexture3DResource(GetName(), SamplerState, NumMips);
         Resource->SetData(&ImageData);
         return Resource;
     }

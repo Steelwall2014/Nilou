@@ -14,7 +14,7 @@ constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
 namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/GlobalShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
+    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
     void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
@@ -134,10 +134,6 @@ namespace nilou {
         for (int i = 0; i < Scales.size(); i++)
             Scales[i] /= TotalScale;
 
-        RHIRenderTargetLayout RTLayout;
-        RTLayout.NumRenderTargetsEnabled = 1;
-        RTLayout.DepthStencilTargetFormat = PF_D24S8;
-
         for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
         {
             FLightSceneProxy* LightSceneProxy = Lights[LightIndex].LightSceneProxy;
@@ -158,12 +154,7 @@ namespace nilou {
                 ShadowViewport.Height = LightSceneProxy->ShadowMapResolution.y;
                 FSceneViewFamily ShadowViewFamily(ShadowViewport, Scene);
 
-                RDGBuffer* UniformBuffer = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(fmt::format("Light {} DirectionalShadowMappingBlock", LightIndex));
-                RDGDescriptorSet* DescriptorSet_VS = Graph.CreateDescriptorSet<FShadowDepthVS>(0, VERTEX_SHADER_SET_INDEX);
-                DescriptorSet_VS->SetUniformBuffer("FShadowMappingBlock", UniformBuffer);
-                DescriptorSet_VS->SetUniformBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-                // TODO: Push constant
-                // DescriptorSet_VS->SetUniformBuffer("FShadowMapFrustumIndex");
+                RDGBuffer* ShadowMappingBlock = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(NFormat("Light {} DirectionalShadowMappingBlock", LightIndex));
 
                 std::vector<std::vector<FMeshBatch>> ShadowMeshBatches;
                 std::vector<FViewElementPDI> ShadowPDIs;
@@ -269,13 +260,15 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                UniformBuffer->SetData(Resources.Frustums.data());
+                Graph.QueueBufferUpload(ShadowMappingBlock, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
                 for (int ShadowViewIndex = 0; ShadowViewIndex < ShadowMeshBatches.size(); ShadowViewIndex++)
                 {
                     FParallelMeshDrawCommands DrawCommands;
+                    RDGRenderTargets RenderTargets;
+                    RenderTargets.DepthStencilAttachment = Resources.DepthViews[ShadowViewIndex];
                     for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
                         if (!Mesh.CastShadow)   
@@ -288,30 +281,34 @@ namespace nilou {
                             FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
                             FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
 
-                            FMeshDrawCommand MeshDrawCommand;
-                            MeshDrawCommand.ShaderBindings.SetDescriptorSet(VERTEX_SHADER_SET_INDEX, DescriptorSet_VS);
+                            FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
+                            ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+                            ShaderBindings.SetBuffer("FShadowMappingBlock", ShadowMappingBlock);
 
+                            FMeshDrawCommand MeshDrawCommand;
                             BuildMeshDrawCommand(
+                                Graph,
                                 VertexFactoryParams,
                                 Mesh.MaterialRenderProxy,
                                 PermutationParametersVS,
                                 PermutationParametersPS,
                                 Element.VertexFactory->GetVertexDeclaration(),
                                 Element,
-                                RTLayout,
+                                RenderTargets.GetRenderTargetLayout(),
+                                ShaderBindings,
                                 MeshDrawCommand);
 
                             DrawCommands.AddMeshDrawCommand(MeshDrawCommand);
                         }
                     }
-                    RDGFramebuffer Framebuffer;
-                    Framebuffer.SetAttachment(FA_Depth_Stencil_Attachment, Resources.DepthViews[ShadowViewIndex]);
-                    RDGGraphicsPassDesc PassDesc;
-                    PassDesc.Name = "ShadowDepthPass";
-                    PassDesc.RenderTargets = Framebuffer;
-                    PassDesc.DescriptorSets = { DescriptorSet_VS };
+                    RDGPassDesc PassDesc{NFormat("ShadowDepthPass of view {} of ShadowView {}", ViewIndex, ShadowViewIndex)};
+                    PassDesc.bNeverCull = true;
                     Graph.AddGraphicsPass(
                         PassDesc,
+                        RenderTargets,
+                        DrawCommands.GetIndexBuffers(),
+                        DrawCommands.GetVertexBuffers(),
+                        DrawCommands.GetDescriptorSets(),
                         [=](RHICommandList& RHICmdList)
                         {
                             DrawCommands.DispatchDraw(RHICmdList);

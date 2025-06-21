@@ -1,0 +1,6 @@
+target("VulkanSDK")
+    set_kind("headeronly")
+    add_includedirs("$(env VK_SDK_PATH)/Include", {public = true})
+    add_links("$(env VK_SDK_PATH)/Lib/vulkan-1", {public = true})
+    add_links("$(env VK_SDK_PATH)/Lib/shaderc*", {public = true})
+    add_links("$(env VK_SDK_PATH)/Lib/glslang", {public = true})

@@ -9,7 +9,7 @@ namespace nilou {
     public:
         ALineBatchActor() 
         { 
-            LineBatchComponent = CreateComponent<ULineBatchComponent>(this); 
+            LineBatchComponent = CreateComponent<ULineBatchComponent>(this, "LineBatchComponent"); 
             LineBatchComponent->AttachToComponent(GetRootComponent());
         }
 

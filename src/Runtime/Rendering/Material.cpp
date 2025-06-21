@@ -30,7 +30,7 @@ namespace nilou {
         const FMaterialParameterInfo& ParameterInfo = Parameter.ParameterInfo;
         typename ParameterType::ValueType Value = ParameterType::GetValue(Parameter);
         ENQUEUE_RENDER_COMMAND(SetMIParameterValue)(
-            [Proxy, ParameterInfo, Value](RenderGraph&)
+            [Proxy, ParameterInfo, Value](RenderGraph& Graph)
             {
                 Proxy->RenderThread_UpdateParameter(ParameterInfo, Value);
             });
@@ -43,18 +43,58 @@ namespace nilou {
 
     UMaterial::UMaterial()
     {
-        MaterialRenderProxy = std::make_unique<FMaterialRenderProxy>(this);
     }
 
     UMaterial::~UMaterial()
     {
-        ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
-            [
-                ToDelete_proxy = std::move(MaterialRenderProxy)] (RenderGraph&)
-            {
-            });
-        MaterialRenderProxy = nullptr;
     }
+
+    void UMaterial::InitializeResources()
+    {
+        ReleaseResources();
+        MaterialRenderProxy = new FMaterialRenderProxy(this);
+
+        ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
+            [BlendState = this->BlendState
+            ,RasterizerState = this->RasterizerState
+            ,DepthStencilState = this->DepthStencilState
+            ,ShadingModel = this->ShadingModel
+            ,ScalarParameterValues = this->ScalarParameterValues
+            ,VectorParameterValues = this->VectorParameterValues
+            ,TextureParameterValues = this->TextureParameterValues
+            ,Proxy = MaterialRenderProxy](RenderGraph& Graph) 
+            {
+                Proxy->BlendState = RHICreateBlendState(BlendState);
+                Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
+                Proxy->DepthStencilState = RHICreateDepthStencilState(DepthStencilState);
+                Proxy->ShadingModel = ShadingModel;
+                for (const FScalarParameterValue& Param : ScalarParameterValues)
+                {
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
+                }
+                for (const FVectorParameterValue& Param : VectorParameterValues)
+                {
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
+                }
+                for (const FTextureParameterValue& Param : TextureParameterValues)
+                {
+                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
+                }
+            });
+    }
+
+    void UMaterial::ReleaseResources()
+    {
+        if (MaterialRenderProxy)
+        {
+            ENQUEUE_RENDER_COMMAND(Material_ReleaseResources)(
+                [ToDelete_proxy = std::move(MaterialRenderProxy)] (RenderGraph&)
+                {
+                    delete ToDelete_proxy;
+                });
+            MaterialRenderProxy = nullptr;
+        }
+    }    
 
     void UMaterial::UpdateCode(const std::string &InCode)
     {
@@ -202,7 +242,7 @@ namespace nilou {
     {
         ShadingModel = InShadingModel;
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
-            [InShadingModel, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InShadingModel, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->ShadingModel = InShadingModel;
             });
@@ -212,7 +252,7 @@ namespace nilou {
     {
         BlendState = InBlendState;
         ENQUEUE_RENDER_COMMAND(Material_SetBlendState)(
-            [InBlendState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InBlendState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->BlendState = RHICreateBlendState(InBlendState);
             });
@@ -222,7 +262,7 @@ namespace nilou {
     {
         DepthStencilState = InDepthStencilState;
         ENQUEUE_RENDER_COMMAND(Material_SetDepthStencilState)(
-            [InDepthStencilState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InDepthStencilState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
             });
@@ -232,7 +272,7 @@ namespace nilou {
     {
         RasterizerState = InRasterizerState;
         ENQUEUE_RENDER_COMMAND(Material_SetRasterizerState)(
-            [InRasterizerState, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InRasterizerState, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->RasterizerState = RHICreateRasterizerState(InRasterizerState);
             });
@@ -242,7 +282,7 @@ namespace nilou {
     {
         StencilRefValue = InStencilRefValue;
         ENQUEUE_RENDER_COMMAND(Material_SetStencilRefValue)(
-            [InStencilRefValue, Proxy=GetRenderProxy()](RenderGraph& Graph) 
+            [InStencilRefValue, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->StencilRefValue = InStencilRefValue;
             });
@@ -251,7 +291,7 @@ namespace nilou {
     UMaterialInstance* UMaterial::CreateMaterialInstance()
     {
         std::string parent_path = std::filesystem::path(GetVirtualPath()).parent_path().generic_string();
-        UMaterialInstance* MaterialInstance = GetContentManager()->CreateAsset<UMaterialInstance>(Name+"_Instance", parent_path);
+        UMaterialInstance* MaterialInstance = GetContentManager()->CreateAsset<UMaterialInstance>(GetName()+"_Instance", parent_path);
 
         // Copy some properties
         MaterialInstance->Code = this->Code;
@@ -263,36 +303,7 @@ namespace nilou {
         MaterialInstance->BlendState = this->BlendState;
         MaterialInstance->DepthStencilState = this->DepthStencilState;
         MaterialInstance->RasterizerState = this->RasterizerState;
-
-        // Copy the render proxy
-        auto NewRenderProxy = MaterialInstance->MaterialRenderProxy.get();
-        NewRenderProxy->ShaderMap = this->MaterialRenderProxy->ShaderMap;
-        for (auto& [SetIndex, Layout] : NewRenderProxy->ShaderMap->DescriptorSetLayout)
-        {
-            NewRenderProxy->DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(Layout.GetReference());
-        }
-        for (auto& [Key, Texture] : this->MaterialRenderProxy->Textures)
-        {
-            uint32 SetIndex = Key >> 32;
-            uint32 BindingIndex = Key & 0xFFFFFFFF;
-            NewRenderProxy->Textures[Key] = Texture;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetSampler(BindingIndex, Texture->GetTextureRDG()->GetDefaultView(), Texture->GetSamplerState());
-        }
-        for (auto& [Key, Buffer] : this->MaterialRenderProxy->UniformBuffers)
-        {
-            uint32 SetIndex = Key >> 32;
-            uint32 BindingIndex = Key & 0xFFFFFFFF;
-            // Copy the uniform buffer instead of the refs.
-            RDGBufferRef NewUniformBuffer = RenderGraph::CreateExternalBuffer(Buffer->Name, Buffer->Desc);
-            NewUniformBuffer->SetData(Buffer->Data.get(), Buffer->Desc.GetSize(), 0);
-            NewRenderProxy->UniformBuffers[Key] = NewUniformBuffer;
-            NewRenderProxy->DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, NewRenderProxy->UniformBuffers[Key].get());
-        }
-        NewRenderProxy->StencilRefValue = this->MaterialRenderProxy->StencilRefValue;
-        NewRenderProxy->RasterizerState = this->MaterialRenderProxy->RasterizerState;
-        NewRenderProxy->DepthStencilState = this->MaterialRenderProxy->DepthStencilState;
-        NewRenderProxy->BlendState = this->MaterialRenderProxy->BlendState;
-        NewRenderProxy->ShadingModel = this->MaterialRenderProxy->ShadingModel;
+        MaterialInstance->InitializeResources();
 
         return MaterialInstance;
     }
@@ -314,53 +325,12 @@ namespace nilou {
         //     FArchive local_Ar(json, Ar);
         //     MaterialUniformBlock->Deserialize(local_Ar);
         // }
-        auto BlendState = this->BlendState;
-        auto RasterizerState = this->RasterizerState;
-        auto DepthStencilState = this->DepthStencilState;
-        auto ShaderVirtualPath = this->ShaderVirtualPath;
-        auto ShadingModel = this->ShadingModel;
-        auto ScalarParameterValues = this->ScalarParameterValues;
-        auto VectorParameterValues = this->VectorParameterValues;
-        auto TextureParameterValues = this->TextureParameterValues;
-        auto Proxy = GetRenderProxy();
-        ENQUEUE_RENDER_COMMAND(Material_PostDeserialize)(
-            [=](RenderGraph&) 
-            {
-                Proxy->BlendState = RHICreateBlendState(BlendState);
-                Proxy->RasterizerState = RHICreateRasterizerState(RasterizerState);
-                Proxy->DepthStencilState = RHICreateDepthStencilState(DepthStencilState);
-                Proxy->ShadingModel = ShadingModel;
-                for (const FScalarParameterValue& Param : ScalarParameterValues)
-                {
-                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
-                }
-                for (const FVectorParameterValue& Param : VectorParameterValues)
-                {
-                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
-                }
-                for (const FTextureParameterValue& Param : TextureParameterValues)
-                {
-                    Proxy->RenderThread_UpdateParameter(Param.ParameterInfo, Param.ParameterValue);
-                }
-            });
+        InitializeResources();
     }
 
     FMaterialRenderProxy::FMaterialRenderProxy(UMaterial* InMaterial)
-        : Material(InMaterial)
+        : Owner(InMaterial)
     {
-        ENQUEUE_RENDER_COMMAND(FMaterialRenderProxy_Constructor)(
-            [InBlendState=InMaterial->BlendState,
-             InRasterizerState=InMaterial->RasterizerState,
-             InDepthStencilState=InMaterial->DepthStencilState,
-             InShadingModel=InMaterial->ShadingModel,
-             this](RenderGraph&) 
-            {
-                ShaderMap = std::make_shared<FMaterialShaderMap>();
-                BlendState = RHICreateBlendState(InBlendState);
-                RasterizerState = RHICreateRasterizerState(InRasterizerState);
-                DepthStencilState = RHICreateDepthStencilState(InDepthStencilState);
-                ShadingModel = InShadingModel;
-            });
     }
 
     void FMaterialRenderProxy::RenderThread_UpdateShader(const std::string& ShaderCode)
@@ -368,9 +338,8 @@ namespace nilou {
         Ncheck(IsInRenderingThread());
 
         ShaderMap->RemoveAllShaders();
-        ShaderMap->DescriptorSetLayout.clear();
-        DescriptorSets.clear();
         std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
+        NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
         FShaderCompiler::CompileMaterialShader(ShaderMap.get(), PreprocessResult);
 
         // Build reflection, then we can set uniforms by name.
@@ -380,59 +349,37 @@ namespace nilou {
             "layout (location = 0) out vec4 FragColor;\n" +  
             PreprocessResult + 
             "\nvoid main() { FragColor = vec4(0.0, 0.0, 0.0, 1.0); }";
-        sr::DescriptorSetLayouts DescriptorSetLayouts = sr::ReflectShader(PixelShaderCode);
+        std::string ReflectMessage;
+        std::unordered_map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
+        if (!ReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, ReflectMessage))
+        {
+            NILOU_LOG(Fatal, "Error occured during material reflection of {} : \"{}\"", Owner->GetName(), ReflectMessage);
+        }
 
         for (auto& [SetIndex, Layout] : DescriptorSetLayouts)
         {
-            Ncheckf(SetIndex != VERTEX_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_SHADER_SET_INDEX ({})", Material->Name, VERTEX_SHADER_SET_INDEX);
-            Ncheckf(SetIndex != PIXEL_SHADER_SET_INDEX, "Material:{} should not have the same descriptor set index as PIXEL_SHADER_SET_INDEX ({})", Material->Name, PIXEL_SHADER_SET_INDEX);
-            Ncheckf(SetIndex != VERTEX_FACTORY_SET_INDEX, "Material:{} should not have the same descriptor set index as VERTEX_FACTORY_SET_INDEX ({})", Material->Name, VERTEX_FACTORY_SET_INDEX);
             std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
-            for (auto& [BindingIndex, Binding] : Layout)
+            for (auto& Binding : Layout->Bindings)
             {
-                RHIDescriptorSetLayoutBinding BindingRHI;
-                BindingRHI.BindingIndex = BindingIndex;
-                BindingRHI.DescriptorType = Binding.DescriptorType;
-                BindingsRHI.push_back(BindingRHI);
-            }
-            RHIDescriptorSetLayout* LayoutRHI = RHICreateDescriptorSetLayout(BindingsRHI);
-            ShaderMap->DescriptorSetLayout[SetIndex] = RHIDescriptorSetLayoutRef(LayoutRHI);
-            DescriptorSets[SetIndex] = RenderGraph::CreateExternalDescriptorSet(LayoutRHI);
-
-            for (auto& [BindingIndex, Binding] : Layout)
-            {
-                if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
+                if (Binding.Name == "FMaterial" && Binding.DescriptorType == EDescriptorType::UniformBuffer)
                 {
-                    for (const sr::BlockVariable& Member : Binding.Block.Members)
-                    {
-                        FMaterialRenderProxy::ParameterPosition Position;
-                        Position.SetIndex = SetIndex;
-                        Position.BindingIndex = BindingIndex;
-                        Position.Offset = Member.Offset;
-                        ParameterNameToPosition[Member.Name] = Position;
-                    }
-                    uint32 Size = Binding.Block.Size;
-                    uint64 key = UNIFORMBUFFER_KEY(SetIndex, BindingIndex);
-                    std::string BufferName = fmt::format("{}_UniformBuffer_s{}_b{}", Material->Name, SetIndex, BindingIndex);
-                    UniformBuffers[key] = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Size));
-                    DescriptorSets[SetIndex]->SetUniformBuffer(BindingIndex, UniformBuffers[key].get());
-                }
-                else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
-                {
-                    FMaterialRenderProxy::ParameterPosition Position;
-                    Position.SetIndex = SetIndex;
-                    Position.BindingIndex = BindingIndex;
-                    ParameterNameToPosition[Binding.Name] = Position;
-                    // Textures should not be create by the Material like UniformBuffers,
-                    // Instead, they should be pass as input by UMaterial::SetTextureParameterValue.
-                }
-                else 
-                {
-                    Ncheckf(false, "Unsupported descriptor type");
+                    std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Owner->GetName(), SetIndex, Binding.BindingIndex);
+                    UniformBufferRDG = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
                 }
             }
         }
+        
+    }
 
+    FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const
+    {
+        FMeshDrawShaderBindings ShaderBindings;
+        ShaderBindings.SetBuffer("FMaterial", UniformBufferRDG);
+        for (auto& [Name, Texture] : TextureParameterArray)
+        {
+            ShaderBindings.SetTexture(Name, Texture->GetResource()->TextureRDG->GetDefaultView());
+        }
+        return ShaderBindings;
     }
 
 }

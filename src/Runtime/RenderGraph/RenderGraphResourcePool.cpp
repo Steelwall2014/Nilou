@@ -1,4 +1,5 @@
 #include "RenderGraphResourcePool.h"
+#include "RHITransientResourceAllocator.h"
 #include "Templates/AlignmentTemplates.h"
 #include "Templates/TypeHash.h"
 #include "ProfilingDebugging/ContersTrace.h"
@@ -24,6 +25,11 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 
 	case ERDGPooledBufferAlignment::Page:
 		AlignedDesc.NumElements = Align(AlignedDesc.BytesPerElement * AlignedDesc.NumElements, BufferPageSize) / AlignedDesc.BytesPerElement;
+		break;
+
+	default:
+		Ncheck(false);
+		break;
 	}
 
     if (AlignedDesc.NumElements >= Desc.NumElements)
@@ -68,7 +74,7 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 	{
 		const uint32 NumBytes = AlignedDesc.GetSize();
 
-		RHIBufferRef BufferRHI = RHICreateBuffer(RHIBufferDesc(NumBytes, AlignedDesc.GetStride()), InDebugName);
+		RHIBufferRef BufferRHI = RHICreateBuffer(AlignedDesc.Translate(), InDebugName);
 
 		FRDGPooledBufferRef PooledBuffer = new FRDGPooledBuffer(std::move(BufferRHI), Desc, AlignedDesc.NumElements, InDebugName);
 		AllocatedBuffers.push_back(PooledBuffer);
@@ -76,11 +82,6 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 		Ncheck(PooledBuffer->GetRefCount() == 2);
 
 		PooledBuffer->LastUsedFrame = FrameCounter;
-
-		if (EnumHasAllFlags(Desc.Usage, EBufferUsageFlags::ReservedResource))
-		{
-			PooledBuffer->CommittedSizeInBytes = 0;
-		}
 
 		return PooledBuffer;
 	}
@@ -92,12 +93,6 @@ FRDGPooledTextureRef FRDGTexturePool::FindFreeElement(RDGTextureDesc Desc, const
 	FRDGPooledTextureRef Found = nullptr;
 	uint32 FoundIndex = -1;
 
-	// FastVRAM is no longer supported by the render target pool.
-	EnumRemoveFlags(Desc.Flags, ETextureCreateFlags::FastVRAM | ETextureCreateFlags::FastVRAMPartialAlloc);
-
-	// We always want SRV access
-	Desc.Flags |= TexCreate_ShaderResource;
-
 	const uint32 DescHash = GetTypeHash(Desc);
 
 	std::lock_guard<std::recursive_mutex> Lock(Mutex);
@@ -108,7 +103,7 @@ FRDGPooledTextureRef FRDGTexturePool::FindFreeElement(RDGTextureDesc Desc, const
 		{
 			FRDGPooledTextureRef& Element = PooledRenderTargets[Index];
 
-			if (Element->GetRefCount() == 1)
+			if (Element->IsFree())
 			{
 				Found = Element;
 				FoundIndex = Index;
@@ -140,6 +135,78 @@ FRDGPooledTextureRef FRDGTexturePool::FindFreeElement(RDGTextureDesc Desc, const
     return Found;
 }
 
-TGlobalResource<FRDGTransientResourceAllocator, FRenderResource::EInitPhase::Pre> GRDGTransientResourceAllocator;
+void FRDGTexturePool::TickPoolElements()
+{
+	DeferredDeleteArray.clear();
+}
+
+int32 FRDGTexturePool::FindIndex(FRDGPooledTexture* In) const
+{
+	for (int32 Index = 0, Num = (uint32)PooledRenderTargets.size(); Index < Num; ++Index)
+	{
+		if (PooledRenderTargets[Index] == In)
+		{
+			return Index;
+		}
+	}
+
+	return -1;
+}
+
+void FRDGTexturePool::FreeUnusedResource(FRDGPooledTextureRef& In)
+{
+	std::lock_guard<std::recursive_mutex> Lock(Mutex);
+
+	int32 Index = FindIndex(In);
+	if (Index != -1)
+	{
+		FRDGPooledTexture* Element = PooledRenderTargets[Index];
+		Ncheck(Element->GetRefCount() >= 2);
+		In = nullptr;
+
+		if (Element->IsFree())
+		{
+			AllocationLevelInKB -= ComputeSizeInKB(*Element);
+			TRACE_COUNTER_SUBTRACT(RenderTargetPoolCount, 1);
+			TRACE_COUNTER_SET(RenderTargetPoolSize, (int64)AllocationLevelInKB * 1024);
+
+			DeferredDeleteArray.push_back(PooledRenderTargets[Index]);
+			FreeElementAtIndex(Index);
+		}
+	}
+}
+
+void FRDGTexturePool::FreeUnusedResources()
+{
+	std::lock_guard<std::recursive_mutex> Lock(Mutex);
+
+	for (int32 Index = 0, Num = (uint32)PooledRenderTargets.size(); Index < Num; ++Index)
+	{
+		FRDGPooledTexture* Element = PooledRenderTargets[Index];
+
+		if (Element && Element->IsFree())
+		{
+			AllocationLevelInKB -= ComputeSizeInKB(*Element);
+			TRACE_COUNTER_SUBTRACT(RenderTargetPoolCount, 1);
+			TRACE_COUNTER_SET(RenderTargetPoolSize, (int64)AllocationLevelInKB * 1024);
+
+			DeferredDeleteArray.push_back(PooledRenderTargets[Index]);
+			FreeElementAtIndex(Index);
+		}
+	}
+}
+
+void FRDGTexturePool::FreeElementAtIndex(int32 Index)
+{
+	PooledRenderTargets[Index] = nullptr;
+	PooledRenderTargetHashes[Index] = 0;
+}
+
+FRDGTransientResourceAllocator::FRDGTransientResourceAllocator()
+{
+	Allocator = new RHITransientResourceAllocator();
+}
+
+FRDGTransientResourceAllocator GRDGTransientResourceAllocator;
 
 }

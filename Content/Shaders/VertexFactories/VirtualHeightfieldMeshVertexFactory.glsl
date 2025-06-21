@@ -60,36 +60,36 @@ bool FixLODSeam(inout vec3 pos, float scale, RenderPatch current_patch)
 		on_edge = true;
 	if (vertex_index.x == 0 && current_patch.DeltaLod_x_neg > 0)
 	{
-		uint multiple = 1 << current_patch.DeltaLod_x_neg;	// ÅÔ±ßÄÇÒ»¸öpatchÊÇÕâ¸öpatchµÄ¼¸±¶´ó
+		uint multiple = 1 << current_patch.DeltaLod_x_neg;	// ï¿½Ô±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½patchï¿½ï¿½ï¿½ï¿½ï¿½patchï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 		uint modIndex = vertex_index.y % multiple;	
-		if (modIndex != 0)	// Èç¹ûÊÇ0µÄ»°ÊÇ²»ÐèÒªÐÞ¸Ä¶¥µãµÄ£¬ÒòÎªÎ»ÓÚ¸ü´Ö²ÚpatchµÄ¶¥µãÉÏ
+		if (modIndex != 0)	// ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½Ä»ï¿½ï¿½Ç²ï¿½ï¿½ï¿½Òªï¿½Þ¸Ä¶ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ÎªÎ»ï¿½Ú¸ï¿½ï¿½Ö²ï¿½patchï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		{
 			pos.y += (multiple - modIndex) * PatchOriginalGridMeterSize.y * scale;
 		}
 	}
 	if (vertex_index.x == PatchGridSideNum-1 && current_patch.DeltaLod_x_pos > 0)
 	{
-		uint multiple = 1 << current_patch.DeltaLod_x_pos;	// ÅÔ±ßÄÇÒ»¸öpatchÊÇÕâ¸öpatchµÄ¼¸±¶´ó
+		uint multiple = 1 << current_patch.DeltaLod_x_pos;	// ï¿½Ô±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½patchï¿½ï¿½ï¿½ï¿½ï¿½patchï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 		uint modIndex = vertex_index.y % multiple;	
-		if (modIndex != 0)	// Èç¹ûÊÇ0µÄ»°ÊÇ²»ÐèÒªÐÞ¸Ä¶¥µãµÄ£¬ÒòÎªÎ»ÓÚ¸ü´Ö²ÚpatchµÄ¶¥µãÉÏ
+		if (modIndex != 0)	// ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½Ä»ï¿½ï¿½Ç²ï¿½ï¿½ï¿½Òªï¿½Þ¸Ä¶ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ÎªÎ»ï¿½Ú¸ï¿½ï¿½Ö²ï¿½patchï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		{
 			pos.y += (multiple - modIndex) * PatchOriginalGridMeterSize.y * scale;
 		}
 	}
 	if (vertex_index.y == 0 && current_patch.DeltaLod_y_neg > 0)
 	{
-		uint multiple = 1 << current_patch.DeltaLod_y_neg;	// ÅÔ±ßÄÇÒ»¸öpatchÊÇÕâ¸öpatchµÄ¼¸±¶´ó
+		uint multiple = 1 << current_patch.DeltaLod_y_neg;	// ï¿½Ô±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½patchï¿½ï¿½ï¿½ï¿½ï¿½patchï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 		uint modIndex = vertex_index.x % multiple;	
-		if (modIndex != 0)	// Èç¹ûÊÇ0µÄ»°ÊÇ²»ÐèÒªÐÞ¸Ä¶¥µãµÄ£¬ÒòÎªÎ»ÓÚ¸ü´Ö²ÚpatchµÄ¶¥µãÉÏ
+		if (modIndex != 0)	// ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½Ä»ï¿½ï¿½Ç²ï¿½ï¿½ï¿½Òªï¿½Þ¸Ä¶ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ÎªÎ»ï¿½Ú¸ï¿½ï¿½Ö²ï¿½patchï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		{
 			pos.x += (multiple - modIndex) * PatchOriginalGridMeterSize.x * scale;
 		}
 	}
 	if (vertex_index.y == PatchGridSideNum-1 && current_patch.DeltaLod_y_pos > 0)
 	{
-		uint multiple = 1 << current_patch.DeltaLod_y_pos;	// ÅÔ±ßÄÇÒ»¸öpatchÊÇÕâ¸öpatchµÄ¼¸±¶´ó
+		uint multiple = 1 << current_patch.DeltaLod_y_pos;	// ï¿½Ô±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½patchï¿½ï¿½ï¿½ï¿½ï¿½patchï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 		uint modIndex = vertex_index.x % multiple;	
-		if (modIndex != 0)	// Èç¹ûÊÇ0µÄ»°ÊÇ²»ÐèÒªÐÞ¸Ä¶¥µãµÄ£¬ÒòÎªÎ»ÓÚ¸ü´Ö²ÚpatchµÄ¶¥µãÉÏ
+		if (modIndex != 0)	// ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½Ä»ï¿½ï¿½Ç²ï¿½ï¿½ï¿½Òªï¿½Þ¸Ä¶ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ÎªÎ»ï¿½Ú¸ï¿½ï¿½Ö²ï¿½patchï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		{
 			pos.x += (multiple - modIndex) * PatchOriginalGridMeterSize.x * scale;
 		}

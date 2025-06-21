@@ -1,7 +1,7 @@
 #version 460
 #include "../include/Macros.glsl"
 #include "../include/BasePassCommon.glsl"
-layout (std140, binding=0) uniform MAT_UNIFORM_BLOCK {
+layout (std140, set=binding=0) uniform MAT_UNIFORM_BLOCK {
    vec4 baseColorFactor;
    vec3 emissiveFactor;
    float metallicFactor;

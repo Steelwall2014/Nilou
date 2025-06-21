@@ -1,3 +1,5 @@
+#pragma once
+#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
 #include "Actor.h"
 #include "Common/Components/VirtualHeightfieldMeshComponent.h"
 
@@ -18,3 +20,4 @@ namespace nilou {
     };
 
 }
+#endif

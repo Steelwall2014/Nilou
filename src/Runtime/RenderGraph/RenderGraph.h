@@ -19,56 +19,52 @@ public:
 
     friend class RDGBuilder;
 
-    RenderGraph(RHICommandList& InRHICmdList);
+    RenderGraph();
 
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
+    RenderGraph& operator=(RenderGraph&&) = default;
 
     static RDGTextureRef CreateExternalTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
-    static RDGTextureViewRef CreateExternalTextureView(const RDGTextureViewDesc& TextureViewDesc);
+    static RDGTextureViewRef CreateExternalTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& TextureViewDesc);
+
+    static RDGTextureViewRef CreateExternalTextureView(RDGTexture* Texture);
 
     static RDGBufferRef CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
     template<class T>
-    static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name)
+    static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name, const T* Data)
     {
-        RDGBufferDesc Desc;
-        Desc.NumElements = 1;
-        Desc.BytesPerElement = sizeof(T);
-        return CreateExternalBuffer(Name, Desc);
+        RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
+        TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
+        Buffer->bTransient = false;
+        return Buffer;
     }
 
-    static RDGDescriptorSetRef CreateExternalDescriptorSet(RHIDescriptorSetLayout* Layout);
-
-    template<class TShaderType>
-    static RDGDescriptorSetRef CreateExternalDescriptorSet(int32 PermutationId, uint32 SetIndex)
-    {
-        return CreateExternalDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
-    }
+    static RDGDescriptorSetRef CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
-    RDGTextureView* CreateTextureView(const RDGTextureViewDesc& TextureViewDesc);
+    RDGTextureView* CreateTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& TextureViewDesc);
+
+    RDGTextureView* CreateTextureView(RDGTexture* Texture);
 
     RDGBuffer* CreateBuffer(const std::string& Name, const RDGBufferDesc& Desc);
+
+    void QueueBufferUpload(RDGBuffer* Buffer, const void* InitialData, uint32 InitialDataSize);
     
     template<class T>
     TRDGUniformBuffer<T>* CreateUniformBuffer(const std::string& Name)
     {
-        RDGBufferDesc Desc;
-        Desc.NumElements = 1;
-        Desc.BytesPerElement = sizeof(T);
-        return CreateBuffer(Name, Desc);
+        RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
+        TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
+        Buffer->bTransient = true;
+        Buffers.push_back(Buffer);
+        return Buffer;
     }
 
-    RDGDescriptorSet* CreateDescriptorSet(RHIDescriptorSetLayout* Layout);
-
-    template<class TShaderType>
-    RDGDescriptorSet* CreateDescriptorSet(int32 PermutationId, uint32 SetIndex)
-    {
-        return CreateDescriptorSet(TShaderType::GetDescriptorSetLayout(PermutationId, SetIndex));
-    }
+    RDGDescriptorSet* CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
 
 
@@ -76,10 +72,24 @@ public:
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddGraphicsPass(
         const RDGPassDesc& PassDesc,
+        const RDGRenderTargets& RenderTargets,
+        const std::vector<RDGBuffer*>& IndexBuffer,
+        const std::vector<RDGBuffer*>& VertexBuffers,
         const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
-        return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::Graphics, std::forward<ExecuteLambdaType>(Executor));
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::Graphics,
+            std::forward<ExecuteLambdaType>(Executor));
+        Pass->RenderTargets = RenderTargets;
+        Pass->IndexBuffers = IndexBuffer;
+        Pass->VertexBuffers = VertexBuffers;
+        Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);   
+        return Pass->Handle;
     }
 
     // Add a compute pass to the render graph
@@ -89,35 +99,49 @@ public:
         const std::vector<RDGDescriptorSet*>& PassParameters,
         ExecuteLambdaType&& Executor)
     {
-        return AddPassInternal(PassDesc, PassParameters, ERHIPipeline::AsyncCompute, std::forward<ExecuteLambdaType>(Executor));
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::AsyncCompute,
+            std::forward<ExecuteLambdaType>(Executor));
+        Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);
+        return Pass->Handle;
     }
 
-    template <typename SourceType, typename DestinationType, typename ExecuteLambdaType>
+    template <typename ExecuteLambdaType>
     FRDGPassHandle AddCopyPass(
         const RDGPassDesc& PassDesc,
-        SourceType* Source,
-        DestinationType* Destination,
+        RDGBuffer* Source,
+        RDGTexture* Destination,
         ExecuteLambdaType&& Executor)
     {
-        // Do some static type checking
-        CheckCanCopy(Source, Destination);
-
         FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
             Passes.size(), 
             PassDesc, 
             ERHIPipeline::Copy,
             std::forward<ExecuteLambdaType>(Executor));
-
         Passes.push_back(Pass);
         SetupCopyPass(Pass, Source, Destination);
         return Pass->Handle;
     }
 
-    template <typename SourceType, typename DestinationType>
-    constexpr void CheckCanCopy(SourceType*, DestinationType*)
+    template <typename ExecuteLambdaType>
+    FRDGPassHandle AddCopyPass(
+        const RDGPassDesc& PassDesc,
+        RDGBuffer* Source,
+        RDGBuffer* Destination,
+        ExecuteLambdaType&& Executor)
     {
-        static_assert(std::is_same_v<SourceType, RDGBuffer>, "Source type must be RDGBuffer");
-        static_assert(std::is_same_v<DestinationType, RDGBuffer> || std::is_same_v<DestinationType, RDGTextureView>, "Destination type must be RDGBuffer or RDGTextureView");
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::Copy,
+            std::forward<ExecuteLambdaType>(Executor));
+        Passes.push_back(Pass);
+        SetupCopyPass(Pass, Source, Destination);
+        return Pass->Handle;
     }
 
     void Start();
@@ -130,26 +154,7 @@ public:
 
 private:
 
-    static RDGTextureView* CreateExternalTextureViewInternal(const RDGTextureViewDesc& TextureViewDesc);
-
-    template <typename ExecuteLambdaType>
-    FRDGPassHandle AddPassInternal(
-        const RDGPassDesc& PassDesc,
-        const std::vector<RDGDescriptorSet*>& PassParameters,
-        ERHIPipeline Pipeline,
-        ExecuteLambdaType&& Executor)
-    {
-        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
-            Passes.size(), 
-            PassDesc, 
-            Pipeline,
-            std::forward<ExecuteLambdaType>(Executor));
-
-        Passes.push_back(Pass);
-        SetupParameterPass(Pass);
-        return Pass->Handle;
-    }
-
+    void SubmitBufferUploads();
 
 	/** The epilogue and prologue passes are sentinels that are used to simplify graph logic around barriers
 	*  and traversal. The prologue pass is used exclusively for barriers before the graph executes, while the
@@ -181,19 +186,34 @@ private:
 		return Passes.size()-1;
 	}
 
-    RHICommandList& RHICmdList;
+    // RHICommandList& RHICmdList;
 
 	/** Registry of graph objects. */
     std::vector<FRDGPass*> Passes;
     std::vector<RDGTextureRef> Textures;
+    std::vector<RDGTextureViewRef> TextureViews;
     std::vector<RDGBufferRef> Buffers;
     std::vector<RDGDescriptorSetRef> DescriptorSets;
 
-	/** Tracks external resources to their registered render graph counterparts for de-duplication. */
-	std::unordered_map<RHITexture*, RDGTexture*> ExternalTextures;
-	std::unordered_map<RHIBuffer*,  RDGBuffer*>  ExternalBuffers;
+    struct FUploadedBuffer
+    {
+        FUploadedBuffer() = default;
 
-    static std::map<RHIDescriptorSetLayout*, RDGDescriptorSetPool> DescriptorSetPools;
+        FUploadedBuffer(RDGBuffer* InBuffer, const void* InData, uint64 InDataSize)
+            : Buffer(InBuffer)
+            , Data(InData)
+            , DataSize(InDataSize)
+        {
+
+        }
+
+        RDGBuffer* Buffer;
+        const void* Data;
+        uint64 DataSize;
+    };
+    std::vector<FUploadedBuffer> UploadedBuffers;
+
+    static std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> DescriptorSetPools;
 
 	std::vector<FRDGPass*> CullPassStack;
 
@@ -243,6 +263,7 @@ private:
         std::vector<FCollectResourceOp> TransientResources;
         std::vector<FCollectResourceOp> PooledTextures;
 		std::vector<FCollectResourceOp> PooledBuffers;
+		std::unordered_set<RDGTextureView*> Views;
     };
 
     /** Collects new resource allocations for the pass into the provided context. */
@@ -262,8 +283,9 @@ private:
 
     IRHITransientResourceAllocator* TransientResourceAllocator = nullptr;
 
-    FRDGPooledTextureRef AllocatePooledRenderTargetRHI(RDGTexture* Texture); 
-    FRDGPooledBufferRef AllocatePooledBufferRHI(RDGBuffer* Buffer);
+    static FRDGPooledTextureRef AllocatePooledRenderTargetRHI(RDGTexture* Texture); 
+    static FRDGPooledBufferRef AllocatePooledBufferRHI(RDGBuffer* Buffer);
+    void CreateViews(const std::unordered_set<RDGTextureView*>& ViewsToCreate);
 
     void SetTransientTextureRHI(RDGTexture* Texture, FRHITransientTexture* TransientTexture);
     void SetTransientBufferRHI(RDGBuffer* Buffer, FRHITransientBuffer* TransientBuffer);
@@ -272,7 +294,13 @@ private:
     void CollectPassBarriers();
     void CollectPassBarriers(FRDGPassHandle PassHandle);
 
+    void CollectPassDescriptorSets(FRDGPassHandle PassHandle);
+
     void ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass);
+
+    static void EnumerateTextureAccess(FRDGPass* Pass, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction);
+    static void EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction);
+
 
 };
 

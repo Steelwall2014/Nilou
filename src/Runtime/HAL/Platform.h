@@ -1,3 +1,4 @@
+#pragma once
 #include <cstdint>
 // Put it here to always include Ncheck. (Platform.h is included by almost every file)
 // Ncheck is IMPORTANT! Use it frequently!
@@ -15,3 +16,5 @@ typedef std::uint32_t uint32;
 typedef std::uint64_t uint64;
 
 #define FORCEINLINE __forceinline
+
+constexpr int32 INDEX_NONE = -1;

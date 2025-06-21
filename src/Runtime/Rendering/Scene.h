@@ -53,9 +53,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            RDGBufferDesc Desc;
-            Desc.Size = sizeof(FLightShaderParameters);
-            LightUniformBuffer = RenderGraph::CreateExternalBuffer(Desc);
+            LightUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FLightShaderParameters>("", nullptr);
         }
 
         ~FLightSceneInfo()
@@ -66,7 +64,7 @@ namespace nilou {
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
-        RDGBufferRef LightUniformBuffer;
+        TRDGUniformBufferRef<FLightShaderParameters> LightUniformBuffer;
     };
 
     class FReflectionProbeSceneInfo
@@ -125,7 +123,10 @@ namespace nilou {
         void AddReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
         void RemoveReflectionProbe(UReflectionProbeComponent *InReflectionProbe);
 
-        void UpdateRenderInfos();
+        void UpdateRenderInfos(RenderGraph& Graph);
+
+        void UpdatePrimitiveTransform(UPrimitiveComponent *Primitive);
+        void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds);
 
         TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
         TMulticastDelegate<FLightSceneInfo *> &GetRemoveLightDelegate() { return SceneRemoveLightDelegate; }
@@ -158,10 +159,18 @@ namespace nilou {
         void AddReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
         void RemoveReflectionProbeSceneInfo_RenderThread(FReflectionProbeSceneInfo *InReflectionProbeInfo);
 
-        void UpdatePrimitiveInfos();
-        void UpdateLightInfos();
+        void UpdatePrimitiveInfos(RenderGraph& Graph);
+        void UpdateLightInfos(RenderGraph& Graph);
 
         TMulticastDelegate<FLightSceneInfo *> SceneAddLightDelegate;
         TMulticastDelegate<FLightSceneInfo *> SceneRemoveLightDelegate;
+
+        struct FUpdateTransformCommand
+        {
+            FBoxSphereBounds WorldBounds;
+            FBoxSphereBounds LocalBounds; 
+            glm::mat4 LocalToWorld; 
+        };
+        std::unordered_map<FPrimitiveSceneProxy*, FUpdateTransformCommand> UpdatedTransforms;
     };
 }
