@@ -8,7 +8,7 @@ struct FScreenQuadVertex
     vec2 TexCoord;
 };
 
-FRHIVertexDeclaration* GetScreenQuadVertexDeclaration()
+FRHIVertexDeclaration* RDGGetScreenQuadVertexDeclaration()
 {
     static FRHIVertexDeclaration* ScreenQuadVertexDeclaration = nullptr;
     if (!ScreenQuadVertexDeclaration)
@@ -21,7 +21,7 @@ FRHIVertexDeclaration* GetScreenQuadVertexDeclaration()
     return ScreenQuadVertexDeclaration;
 }
 
-RDGBuffer* GetScreenQuadVertexBuffer(RenderGraph& Graph)
+RDGBuffer* RDGGetScreenQuadVertexBuffer(RenderGraph& Graph)
 {
     static RDGBufferRef ScreenQuadVertexBuffer = nullptr;
     if (!ScreenQuadVertexBuffer)
@@ -39,7 +39,7 @@ RDGBuffer* GetScreenQuadVertexBuffer(RenderGraph& Graph)
     return ScreenQuadVertexBuffer;
 }
 
-RDGBuffer* GetScreenQuadIndexBuffer(RenderGraph& Graph)
+RDGBuffer* RDGGetScreenQuadIndexBuffer(RenderGraph& Graph)
 {
     static RDGBufferRef ScreenQuadIndexBuffer = nullptr;
     if (!ScreenQuadIndexBuffer)

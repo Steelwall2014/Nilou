@@ -107,19 +107,19 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             GraphicsPSOInit.VertexShader = VertexShader->GetVertexShaderRHI();
             GraphicsPSOInit.PixelShader = PixelShader->GetPixelShaderRHI();
             GraphicsPSOInit.RTLayout = RenderTargets.GetRenderTargetLayout();
-            GraphicsPSOInit.VertexDeclaration = GetScreenQuadVertexDeclaration();
+            GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
 
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", VertexShader->GetDescriptorSetLayout(0));
+            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", PixelShader->GetDescriptorSetLayout(0));
             DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
             FGenerateMipsPS::FParameters Parameters;
             Parameters.HalfTexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Parameters.Level = float(MipLevel);
-            RDGBuffer* ParametersBuffer = CreateUniformBuffer(Graph, Parameters);
+            RDGBuffer* ParametersBuffer = RDGCreateUniformBuffer(Graph, Parameters, "GenerateMipsParameters");
             DescriptorSet->SetUniformBuffer("FParameters", ParametersBuffer);
 
-            RDGBuffer* ScreenQuadVertexBuffer = GetScreenQuadVertexBuffer(Graph);
-            RDGBuffer* ScreenQuadIndexBuffer = GetScreenQuadIndexBuffer(Graph);
+            RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
+            RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
 
             RDGPassDesc PassDesc{NFormat("GenerateMips for texture \"{}\" mipmap {}", Texture->Name, MipLevel)};
             PassDesc.bNeverCull = true;

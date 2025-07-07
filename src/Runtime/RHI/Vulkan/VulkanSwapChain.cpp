@@ -1,4 +1,5 @@
 #include "VulkanSwapChain.h"
+#include "Vulkan/VulkanDynamicRHI.h"
 #include "VulkanQueue.h"
 #include "Common/Log.h"
 
@@ -74,6 +75,14 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevic
         ImageAcquiredSemaphore[i] = CreateSemephore(Device);
     }
 
+    ImageAcquiredFences.resize(imageCount);
+    for (int i = 0; i < ImageAcquiredFences.size(); i++)
+    {
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        vkCreateFence(Device, &fenceInfo, nullptr, &ImageAcquiredFences[i]);
+    }
+
 }
 
 void FVulkanSwapChain::Present(VulkanQueue* GfxQueue, VulkanQueue* PresentQueue)
@@ -92,10 +101,12 @@ int32 FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
     uint32 ImageIndex;
     VkResult result = vkAcquireNextImageKHR(
         Device, Handle, UINT64_MAX, 
-        ImageAcquiredSemaphore[SemaphoreIndex]->Handle, 
-        VK_NULL_HANDLE, &ImageIndex);
+        VK_NULL_HANDLE, 
+        ImageAcquiredFences[SemaphoreIndex], &ImageIndex);
     CurrentImageIndex = ImageIndex;
     *OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex]->Handle;
+    vkWaitForFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex], VK_TRUE, UINT64_MAX);
+    VK_CHECK_RESULT(vkResetFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex]));
     return CurrentImageIndex;
 }
 

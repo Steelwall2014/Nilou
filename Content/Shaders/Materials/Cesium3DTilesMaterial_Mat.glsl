@@ -2,12 +2,12 @@
 #include "../include/Macros.glsl"
 #include "../include/BasePassCommon.glsl"
 
-layout (binding=0) uniform sampler2D baseColorTexture;
-layout (binding=1) uniform sampler2D metallicRoughnessTexture;
-layout (binding=2) uniform sampler2D emissiveTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D baseColorTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D metallicRoughnessTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D emissiveTexture;
 // uniform sampler2D normalTexture;
 
-layout (std140, binding=3) uniform FGLTFMaterialBlock {
+layout (std140, set=SET_INDEX, binding=BINDING_INDEX) uniform FGLTFMaterialBlock {
     vec4 baseColorFactor;
     vec3 emissiveFactor;
     float metallicFactor;

@@ -1,12 +1,13 @@
 #version 460
+#include "../include/Common.glsl"
 #include "../include/functions.glsl"
 #include "../include/PBRFunctions.glsl"
 #include "../include/BasePassCommon.glsl" 
 #include "../include/ViewShaderParameters.glsl" 
 #include "../FastFourierTransformOcean/OceanFastFourierTransformParameters.glsl" 
-layout (binding=0) uniform sampler2D PerlinNoise;
-layout (binding=1) uniform sampler2D DisplaceTexture;
-layout (binding=2) uniform sampler2D NormalTexture;        
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D PerlinNoise;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D DisplaceTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D NormalTexture;        
 #define ONE_OVER_4PI	0.0795774715459476
 #define BLEND_START  10    // m
 #define BLEND_END    300  // m

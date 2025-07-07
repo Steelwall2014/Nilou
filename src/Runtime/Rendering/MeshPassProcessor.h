@@ -1,15 +1,12 @@
 #pragma once
 
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "StaticMeshResources.h"
 #include "MeshBatch.h"
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "VertexFactory.h"
-#include "RHICommandContext.h"
 
 namespace nilou {
 
@@ -18,13 +15,20 @@ namespace nilou {
     public:
         void SetBuffer(const std::string& Name, RDGBuffer* Buffer) { Buffers[Name] = Buffer; }
         void SetTexture(const std::string& Name, RDGTextureView* Texture) { Textures[Name] = Texture; }
+        void SetPushConstant(EShaderStage Stage, uint32 Size, const void* Data) 
+        { 
+            PushConstants[Stage].resize(Size);
+            memcpy(PushConstants[Stage].data(), Data, Size);
+        }
 
         RDGBuffer* GetBuffer(const std::string& Name) const { return Buffers.at(Name); }
         RDGTextureView* GetTexture(const std::string& Name) const { return Textures.at(Name); }
+        const std::vector<uint8>& GetPushConstant(EShaderStage Stage) const { return PushConstants.at(Stage); }
         
     private:
         std::map<std::string, RDGBuffer*> Buffers;
         std::map<std::string, RDGTextureView*> Textures;
+        std::map<EShaderStage, std::vector<uint8>> PushConstants;
     };
 
 
@@ -35,30 +39,32 @@ namespace nilou {
         FMeshDrawCommand();
 
         #ifdef NILOU_DEBUG 
-        const FVertexFactory* DebugVertexFactory;
-        const FMaterialRenderProxy* DebugMaterial;
+        const FVertexFactory* DebugVertexFactory = nullptr;
+        const FMaterialRenderProxy* DebugMaterial = nullptr;
         #endif
         
         /**
         * Resource bindings
         */
+        std::unordered_map<EShaderStage, std::vector<uint8>> PushConstants;
 	    std::unordered_map<uint32, RDGDescriptorSet*> DescriptorSets;
         std::vector<FVertexInputStream> VertexStreams;
-        RDGBuffer* IndexBuffer;
+        RDGBuffer* IndexBuffer = nullptr;
 
         /**
         * PSO
         */
         // FGraphicsMinimalPipelineStateId CachedPipelineId;
-        RHIGraphicsPipelineState *PipelineState;
+        RHIGraphicsPipelineState *PipelineState = nullptr;
 
         /**
         * Draw command parameters
         */
-        uint32 FirstIndex;
-        uint32 NumPrimitives;
-        uint32 NumInstances;
+        uint32 FirstIndex = 0;
+        uint32 NumPrimitives = 0;
+        uint32 NumInstances = 1;
 
+        bool bUseIndirectArgs = false;
         union
         {
             struct 
@@ -74,7 +80,7 @@ namespace nilou {
             } IndirectArgs;
         };
 
-        uint8 StencilRef;
+        uint8 StencilRef = 0;
 
         void SubmitDraw(RHICommandList& RHICmdList) const;
     };

@@ -91,6 +91,12 @@ namespace nilou {
             NILOU_LOG_lambda(__FILE__, __LINE__, __VA_ARGS__); \
         }
 
+    #define NILOU_CLOG(Condition, Verbosity, Format, ...) \
+        if (Condition) \
+        { \
+            NILOU_LOG(Verbosity, Format, __VA_ARGS__); \
+        }
+
 #define Ncheck(expr) \
     if (!(expr)) \
     { \

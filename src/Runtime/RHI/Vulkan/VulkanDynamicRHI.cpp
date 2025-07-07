@@ -5,6 +5,7 @@
 #include "VulkanDynamicRHI.h"
 #include "BaseApplication.h"
 #include "VulkanDevice.h"
+#include "VulkanSwapChain.h"
 #include "VulkanShader.h"
 #include "VulkanResources.h"
 #include "VulkanTexture.h"
@@ -323,16 +324,23 @@ int FVulkanDynamicRHI::Initialize()
             1, &Device->GfxQueue->FamilyIndex, TempSwapChainImages));
         swapChainImages.resize(TempSwapChainImages.size());
 
-        // RHICommandList* RHICmdList = RHICreateCommandList(Device->TransferCmdBufferPool);
+        RHICommandList* RHICmdList = RHICreateCommandList(Device->TransferCmdBufferPool);
         for (int i = 0; i < swapChainImages.size(); i++)
         {
+            RHITextureDesc Desc;
+            Desc.SizeX = extent.width;
+            Desc.SizeY = extent.height;
+            Desc.Format = swapChainImageFormat;
+            Desc.TextureType = ETextureDimension::Texture2D;
+            Desc.Usage = ETextureUsageFlags::ColorAttachment;
+            
             auto Texture = new VulkanTexture(
+                Device,
                 TempSwapChainImages[i], VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
-                extent.width, extent.height, 1, 1, 
-                0, 0, swapChainImageFormat, "SwapChainImage"+std::to_string(i), ETextureDimension::Texture2D);
+                "SwapChainImage"+std::to_string(i), Desc);
             // RHIImageMemoryBarrier SwapChainImageBarrier{
             //     Texture, 
-            //     ERHIAccess::Present, ERHIAccess::Present, 
+            //     ERHIAccess::None, ERHIAccess::None, 
             //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
             //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
             //     RHITextureSubresource()};
@@ -356,18 +364,18 @@ int FVulkanDynamicRHI::Initialize()
         CreateInfo.BaseArrayLayer = 0;
         CreateInfo.LayerCount = 1;
         DepthImageView = RHICreateTextureView(DepthImage, CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
-        auto VkDepthImage = ResourceCast(DepthImage);
+        // auto VkDepthImage = ResourceCast(DepthImage);
         // RHIImageMemoryBarrier SwapChainImageBarrier{
         //     DepthImage, 
-        //     ERHIAccess::Present, ERHIAccess::Present, 
+        //     ERHIAccess::None, ERHIAccess::None, 
         //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
         //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
         //     RHITextureSubresource()};
+        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 0);
+        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
         // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 1);
         // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 2);
-        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        // this->RHISubmitCommandList(RHICmdList, {}, {});
+        // RHISubmitCommandList(RHICmdList, {}, {});
     }
 
     /** Create image views */
@@ -424,6 +432,27 @@ int FVulkanDynamicRHI::Initialize()
     return 0;
 }
 
+void FVulkanDynamicRHI::RHIBeginFrame()
+{
+    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore->Handle);
+}
+
+void FVulkanDynamicRHI::RHIEndFrame()
+{
+    SwapChain->Present(Device->GfxQueue, Device->PresentQueue);
+    Device->GfxCmdBufferPool->FreeUnusedCmdBuffers();
+    Device->ComputeCmdBufferPool->FreeUnusedCmdBuffers();
+    Device->TransferCmdBufferPool->FreeUnusedCmdBuffers();
+
+    NILOU_LOG(Display, "Free Staging Buffers Count: {}", StagingManager->FreeStagingBuffers.size());
+    NILOU_LOG(Display, "Used Staging Buffers Count: {}", StagingManager->UsedStagingBuffers.size());
+}
+
+RHITexture* FVulkanDynamicRHI::RHIGetSwapChainTexture()
+{
+    return swapChainImages[CurrentSwapChainImageIndex];
+}
+
 void FVulkanDynamicRHI::Finalize()
 {
     SamplerMap.clear();
@@ -471,15 +500,11 @@ static VkDescriptorType TranslateDescriptorType(EDescriptorType Type)
     }
 }
 
-static VkShaderStageFlagBits TranslateShaderStageFlagBits(EShaderStage StageFlags)
-{
-    return (VkShaderStageFlagBits)StageFlags;
-}
-
-RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders, const std::vector<RHIPushConstantRange>& PushConstantRanges)
+RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders)
 {
     VulkanPipelineLayoutRef PipelineLayout = new VulkanPipelineLayout(Device->Handle);
     uint32 MaxSetIndex = 0;
+    std::vector<VkPushConstantRange> VulkanPushConstantRanges;
     for (RHIShader* shader : shaders)
     {
         for (auto& [SetIndex, DescriptorSetLayout] : shader->DescriptorSetLayouts)
@@ -493,6 +518,26 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
                 Ncheckf(ExistingLayout->IsEquivalent(NewLayout), "Descriptor set layout mismatch");
             }
             PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout;
+        }
+        if (shader->PushConstantRange)
+        {
+            VkPushConstantRange VulkanRange{};
+            if (shader->ShaderStage == EShaderStage::Vertex)
+            {
+                VulkanRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+            }
+            else if (shader->ShaderStage == EShaderStage::Pixel)
+            {
+                VulkanRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            }
+            else if (shader->ShaderStage == EShaderStage::Compute)
+            {
+                VulkanRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+            }
+            VulkanRange.offset = 0;
+            VulkanRange.size = shader->PushConstantRange->Size;
+            VulkanPushConstantRanges.push_back(VulkanRange);
+            PipelineLayout->PushConstantRanges[shader->ShaderStage] = *shader->PushConstantRange;
         }
     }
 
@@ -509,15 +554,6 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
     pipelineLayoutInfo.setLayoutCount = SetLayoutHandles.size();
     pipelineLayoutInfo.pSetLayouts = SetLayoutHandles.data();
 
-    std::vector<VkPushConstantRange> VulkanPushConstantRanges;
-    for (const RHIPushConstantRange& Range : PushConstantRanges)
-    {
-        VkPushConstantRange VulkanRange{};
-        VulkanRange.stageFlags = TranslateShaderStageFlagBits(Range.StageFlags);
-        VulkanRange.offset = Range.Offset;
-        VulkanRange.size = Range.Size;
-        VulkanPushConstantRanges.push_back(VulkanRange);
-    }
     pipelineLayoutInfo.pushConstantRangeCount = VulkanPushConstantRanges.size();
     pipelineLayoutInfo.pPushConstantRanges = VulkanPushConstantRanges.data();
 
@@ -525,7 +561,7 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
     return PipelineLayout;
 }
 
-RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges)
+RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
     VulkanGraphicsPipelineStateRef PSO = new VulkanGraphicsPipelineState(Device->Handle, Initializer);
 
@@ -593,7 +629,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     dynamicState.dynamicStateCount = static_cast<uint32>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {Initializer.VertexShader, Initializer.PixelShader}, PushConstantRanges );
+    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {Initializer.VertexShader, Initializer.PixelShader} );
 
     PSO->PipelineLayout = PipelineLayout;
 
@@ -621,7 +657,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     return PSO;
 }
 
-RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges)
+RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShader* ComputeShader)
 {
     VulkanComputeShader* vkComputeShader = static_cast<VulkanComputeShader*>(ComputeShader);
 
@@ -631,7 +667,7 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
     computeShaderStageInfo.module = vkComputeShader->Module;
     computeShaderStageInfo.pName = "main";
 
-    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {ComputeShader}, PushConstantRanges );
+    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {ComputeShader} );
 
     VulkanComputePipelineStateRef PSO = new VulkanComputePipelineState(Device->Handle, ComputeShader);
     PSO->PipelineLayout = PipelineLayout;
@@ -645,23 +681,23 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
     return PSO;
 }
 
-RHIGraphicsPipelineState *FVulkanDynamicRHI::RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges)
+RHIGraphicsPipelineState *FVulkanDynamicRHI::RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer)
 {
     RHIGraphicsPipelineState* CachedPSO = FPipelineStateCache::FindCachedGraphicsPSO(Initializer);
     if (CachedPSO)
         return CachedPSO;
-    RHIGraphicsPipelineStateRef PSO = RHICreateGraphicsPSO(Initializer, PushConstantRanges);
+    RHIGraphicsPipelineStateRef PSO = RHICreateGraphicsPSO(Initializer);
     FPipelineStateCache::CacheGraphicsPSO(Initializer, PSO);
     
     return PSO;
 }
 
-RHIComputePipelineState* FVulkanDynamicRHI::RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges)
+RHIComputePipelineState* FVulkanDynamicRHI::RHICreateComputePipelineState(RHIComputeShader* ComputeShader)
 {
     RHIComputePipelineState* CachedPSO = FPipelineStateCache::FindCachedComputePSO(ComputeShader);
     if (CachedPSO)
         return CachedPSO;
-    RHIComputePipelineStateRef PSO = RHICreateComputePSO(ComputeShader, PushConstantRanges);
+    RHIComputePipelineStateRef PSO = RHICreateComputePSO(ComputeShader);
     FPipelineStateCache::CacheComputePSO(ComputeShader, PSO);
     
     return PSO;

@@ -49,14 +49,16 @@ namespace nilou {
         ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture.get();
 
         DebugMat = std::make_shared<UMaterial>();
+        DebugMat->InitializeResources();
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
         FRasterizerStateInitializer RasterizerState;
         RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         DebugMat->SetRasterizerState(RasterizerState);
         DebugMat->UpdateCode(R"(
+#include "../include/Common.glsl"
 #include "../include/BasePassCommon.glsl"
 #include "../include/functions.glsl"
-layout(binding=0) uniform samplerCube Cube;
+layout(set=SET_INDEX, binding=BINDING_INDEX) uniform samplerCube Cube;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {

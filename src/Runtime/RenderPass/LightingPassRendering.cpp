@@ -1,6 +1,7 @@
 #include "LightingPassRendering.h"
 #include "Material.h"
 #include "RHICommandList.h"
+#include "RenderGraphUtils.h"
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/GlobalShaders/LightingPassPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
@@ -17,15 +18,6 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     {
-        static FRHIVertexDeclaration* ScreenQuadVertexDeclaration = nullptr;
-        if (!ScreenQuadVertexDeclaration)
-        {
-            FVertexDeclarationElementList Elements;
-            Elements[0] = FVertexElement(0, 0, EVertexElementType::Float4, 0, sizeof(float)*4);
-            Elements[1] = FVertexElement(1, 0, EVertexElementType::Float2, 1, sizeof(float)*2);
-            ScreenQuadVertexDeclaration = RHICreateVertexDeclaration(Elements);
-        }
-
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneView& View = Views[ViewIndex];
@@ -60,7 +52,7 @@ namespace nilou {
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
                 PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
 
-                PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
+                PSOInitializer.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
 
                 PSOInitializer.RTLayout = RTLayout;
 
@@ -87,13 +79,16 @@ namespace nilou {
                 DescriptorSet->SetUniformBuffer("FShadowMappingBlock", ShadowMapResource.ShadowMapUniformBuffer);
                 DescriptorSet->SetSampler("ShadowMaps", ShadowMapResource.DepthArray->GetDefaultView());
 
+                RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
+                RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
+
                 RDGPassDesc PassDesc{NFormat("LightingPass of view {} of light {}", ViewIndex, LightIndex)};
                 PassDesc.bNeverCull = true;
                 Graph.AddGraphicsPass(
                     PassDesc, 
                     RenderTargets,
-                    { },
-                    { PositionVertexBuffer.VertexBufferRDG, UVVertexBuffer.VertexBufferRDG },
+                    { ScreenQuadIndexBuffer },
+                    { ScreenQuadVertexBuffer },
                     { DescriptorSet }, 
                     [=](RHICommandList& RHICmdList)
                     {
@@ -101,12 +96,11 @@ namespace nilou {
                         RHICmdList.BindGraphicsPipelineState(PSO);
                         RHIGetError();
 
-                        RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->GetRHI(), 0);
-                        RHICmdList.BindVertexBuffer(1, UVVertexBuffer.VertexBufferRDG->GetRHI(), 0);
-
+                        RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
+                        RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
                         RHICmdList.BindDescriptorSets(PSO->PipelineLayout, { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
 
-                        RHICmdList.DrawArrays(4, 1, 0, 0);
+                        RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
                     });
             }
 

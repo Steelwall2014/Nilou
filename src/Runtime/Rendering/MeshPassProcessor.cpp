@@ -11,11 +11,8 @@
 namespace nilou {
 
     FMeshDrawCommand::FMeshDrawCommand()
-        : IndexBuffer(nullptr)
-        , PipelineState(nullptr)
-        , StencilRef(0)
     {
-
+        std::memset(&IndirectArgs, 0, sizeof(IndirectArgs));
     }
 
     void FMeshDrawCommand::SubmitDraw(RHICommandList& RHICmdList) const
@@ -29,14 +26,22 @@ namespace nilou {
         }
         RHIGetError();
 
-        std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
-        for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
+        if (DescriptorSets.size() > 0)
         {
-            DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();
+            std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
+            for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
+            {
+                DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();
+            }
+            RHICmdList.BindDescriptorSets(PipelineState->GetPipelineLayout(), DescriptorSetsRHI, EPipelineBindPoint::Graphics);
         }
-        RHICmdList.BindDescriptorSets(PipelineState->GetPipelineLayout(), DescriptorSetsRHI, EPipelineBindPoint::Graphics);
 
-        if (IndirectArgs.Buffer)
+        for (auto& [Stage, PushConstants] : PushConstants)
+        {
+            RHICmdList.PushConstants(PipelineState->GetPipelineLayout(), Stage, 0, PushConstants.size(), PushConstants.data());
+        }
+
+        if (bUseIndirectArgs)
         {
             RHICmdList.BindIndexBuffer(IndexBuffer->GetRHI(), 0);
             RHICmdList.DrawIndexedIndirect(IndirectArgs.Buffer, IndirectArgs.Offset);

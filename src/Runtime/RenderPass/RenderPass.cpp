@@ -30,11 +30,19 @@ void BuildMeshDrawCommand(
 
     RHIGraphicsPipelineState* PipelineState = RHICreateGraphicsPipelineState(Initializer);
     auto PipelineDescriptorSetsLayout = PipelineState->GetPipelineLayout()->DescriptorSetLayouts;
+    auto PushConstantRanges = PipelineState->GetPipelineLayout()->PushConstantRanges;
+
+    for (auto& [Stage, PushConstantRange] : PushConstantRanges)
+    {
+        auto PushConstants = ShaderBindings.GetPushConstant(Stage);
+        OutMeshDrawCommand.PushConstants[Stage] = PushConstants;
+    }
 
     for (auto& [SetIndex, DescriptorSetLayout] : PipelineDescriptorSetsLayout)
     {
         std::string DescriptorSetName = NFormat("DescriptorSet_{}_{}_set{}", VertexShader->GetName(), PixelShader->GetName(), SetIndex);
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet(DescriptorSetName, DescriptorSetLayout);
+        OutMeshDrawCommand.DescriptorSets[SetIndex] = DescriptorSet;
         for (auto& Binding : DescriptorSetLayout->Bindings)
         {
             std::string Name = Binding.Name;

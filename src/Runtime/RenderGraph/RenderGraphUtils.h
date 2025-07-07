@@ -2,16 +2,16 @@
 
 namespace nilou {
 
-FRHIVertexDeclaration* GetScreenQuadVertexDeclaration();
+FRHIVertexDeclaration* RDGGetScreenQuadVertexDeclaration();
 
-RDGBuffer* GetScreenQuadVertexBuffer(RenderGraph& Graph);
+RDGBuffer* RDGGetScreenQuadVertexBuffer(RenderGraph& Graph);
 
-RDGBuffer* GetScreenQuadIndexBuffer(RenderGraph& Graph);
+RDGBuffer* RDGGetScreenQuadIndexBuffer(RenderGraph& Graph);
 
 template<typename T>
-RDGBuffer* CreateUniformBuffer(RenderGraph& Graph, const T& Data)
+RDGBuffer* RDGCreateUniformBuffer(RenderGraph& Graph, const T& Data, const std::string& Name)
 {
-    RDGBuffer* Buffer = Graph.CreateUniformBuffer<T>("UniformBuffer");
+    RDGBuffer* Buffer = Graph.CreateUniformBuffer<T>(Name);
     Graph.QueueBufferUpload(Buffer, &Data, sizeof(Data));
     return Buffer;
 }

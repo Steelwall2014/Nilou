@@ -145,7 +145,7 @@ namespace nilou {
 
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FShadowMapResource Resources = Light.ShadowMapResources[ViewIndex];
+                FShadowMapResource& Resources = Light.ShadowMapResources[ViewIndex];
                 FSceneView& View = Views[ViewIndex];
                 std::vector<std::array<dvec3, 8>> CascadeFrustums;
 
@@ -269,6 +269,7 @@ namespace nilou {
                     FParallelMeshDrawCommands DrawCommands;
                     RDGRenderTargets RenderTargets;
                     RenderTargets.DepthStencilAttachment = Resources.DepthViews[ShadowViewIndex];
+                    int FrustumIndex = FrustumsToBeUpdated[ShadowViewIndex];
                     for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
                         if (!Mesh.CastShadow)   
@@ -284,6 +285,8 @@ namespace nilou {
                             FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                             ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
                             ShaderBindings.SetBuffer("FShadowMappingBlock", ShadowMappingBlock);
+                            ShaderBindings.SetBuffer("FPrimitiveShaderParameters", Element.PrimitiveUniformBuffer);
+                            ShaderBindings.SetPushConstant(EShaderStage::Vertex, sizeof(int), &FrustumIndex);
 
                             FMeshDrawCommand MeshDrawCommand;
                             BuildMeshDrawCommand(

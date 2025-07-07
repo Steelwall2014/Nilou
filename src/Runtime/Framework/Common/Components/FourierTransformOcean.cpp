@@ -96,7 +96,7 @@ namespace nilou {
         PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(bHorizontalPass);
         FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
         FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI());
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));

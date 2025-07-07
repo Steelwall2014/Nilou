@@ -20,6 +20,7 @@ public:
     std::vector<VkPresentModeKHR> PresentModes;
     VkSwapchainKHR Handle;
     std::vector<std::shared_ptr<FVulkanSemaphore>> ImageAcquiredSemaphore;
+    std::vector<VkFence> ImageAcquiredFences;
 
     void Present(VulkanQueue* GfxQueue, VulkanQueue* PresentQueue);
 

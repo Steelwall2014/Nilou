@@ -33,6 +33,8 @@ protected:
 
     uint64 UsedMemory = 0;
     uint64 PeakUsedMemory = 0;
+
+    friend class FVulkanDynamicRHI;
 };
 
 class VulkanBuffer : public RHIBuffer

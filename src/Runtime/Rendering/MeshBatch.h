@@ -12,7 +12,7 @@ namespace nilou {
     struct FMeshBatchElement
     {
 
-        RHIBuffer* PrimitiveUniformBuffer;
+        RDGBuffer* PrimitiveUniformBuffer;
 
 	    const class FVertexFactory* VertexFactory;
 

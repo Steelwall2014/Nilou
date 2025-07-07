@@ -64,8 +64,8 @@ namespace nilou {
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters)
-        SHADER_PARAMETER(FMatrix44f, LocalToWorld)
-        SHADER_PARAMETER(FMatrix44f, ModelToLocal)
+        SHADER_PARAMETER(FMatrix, LocalToWorld)
+        SHADER_PARAMETER(FMatrix, ModelToLocal)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FPrimitiveSceneProxy
@@ -103,7 +103,7 @@ namespace nilou {
 
         FBoxSphereBounds GetBounds() const { return Bounds; }
 
-        RHIBuffer *GetUniformBuffer() const { return UniformBuffer->GetRHI(); }
+        RDGBuffer *GetUniformBuffer() const { return UniformBuffer; }
 
         void CreateUniformBuffer();
 

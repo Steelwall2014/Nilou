@@ -12,7 +12,7 @@ const vec4 COLOR = vec4(0);
 
 layout(location = 4) in vec2 TEXCOORD_0;
 
-layout (std140, set=VERTEX_FACTORY_SET_INDEX, binding=0) uniform FPrimitiveShaderParameters {
+layout (std140, set=SET_INDEX, binding=BINDING_INDEX) uniform FPrimitiveShaderParameters {
     dmat4 LocalToWorld;
 	dmat4 ModelToLocal;
 };

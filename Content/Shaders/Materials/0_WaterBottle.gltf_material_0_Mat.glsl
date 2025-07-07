@@ -12,10 +12,10 @@
 
 #include "../include/BasePassCommon.glsl"
 
-layout (set=MATERIAL_SET_INDEX, binding=0) uniform sampler2D baseColorTexture;
-layout (set=MATERIAL_SET_INDEX, binding=1) uniform sampler2D metallicRoughnessTexture;
-layout (set=MATERIAL_SET_INDEX, binding=2) uniform sampler2D emissiveTexture;
-layout (set=MATERIAL_SET_INDEX, binding=3) uniform sampler2D normalTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D baseColorTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D metallicRoughnessTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D emissiveTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D normalTexture;
 
 vec4 MaterialGetBaseColor(VS_Out vs_out)
 {

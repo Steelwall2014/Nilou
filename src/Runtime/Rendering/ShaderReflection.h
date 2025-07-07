@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 #include <shaderc/shaderc.h>
@@ -234,6 +235,6 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, Desc
 
 } // namespace shader_reflection
 
-bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
-bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage);
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<class RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
+bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<class RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
 } // namespace nilou

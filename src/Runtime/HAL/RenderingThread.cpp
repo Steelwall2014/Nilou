@@ -29,7 +29,7 @@ namespace nilou {
         FDynamicRHI::Get()->Initialize();
         // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders();
-        GraphRecording = new RenderGraph();
+        GraphRecording = std::make_unique<RenderGraph>();
         GetContentManager()->Init();
         return true;
     }
@@ -55,19 +55,15 @@ namespace nilou {
 
     void FRenderingThread::NotifyStartOfFrame()
     {
-        FRenderingThread* _this = RenderingThread;
-        _this->GraphExecuting = _this->GraphRecording;
-        _this->GraphRecording = new RenderGraph();
-        if (_this->GraphExecuting)
-        {
-            _this->GraphExecuting->Execute();
-        }
+        GraphRecording = std::make_unique<RenderGraph>();
+        GraphRecording->BeginFrame();
     }
 
     void FRenderingThread::NotifyEndOfFrame()
     {
-        FRenderingThread* _this = RenderingThread;
-        delete _this->GraphExecuting;
+        GraphExecuting = std::move(GraphRecording);
+        GraphExecuting->Execute();
+        GraphExecuting->EndFrame();
         GRenderGraphBufferPool.TickPoolElements();
         GRenderGraphTexturePool.TickPoolElements();
         FrameCount++;

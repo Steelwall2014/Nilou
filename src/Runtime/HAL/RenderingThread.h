@@ -39,19 +39,19 @@ namespace nilou {
             std::lock_guard<std::mutex> lock(mutex);
             RenderCommands.emplace(std::forward<Lambda>(lambda), STR::Str());
         }
+        void NotifyEndOfFrame();
+        void NotifyStartOfFrame();
 
         static FRenderingThread *RenderingThread;
         static uint32 GetFrameCount() { return FRenderingThread::FrameCount; }
-        static void NotifyEndOfFrame();
-        static void NotifyStartOfFrame();
         static RenderGraph& GetRenderGraph() { return *RenderingThread->GraphRecording; }
 
     private:
 
         std::mutex mutex;
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
-        RenderGraph* GraphExecuting;
-        RenderGraph* GraphRecording;
+        std::unique_ptr<RenderGraph> GraphExecuting = nullptr;
+        std::unique_ptr<RenderGraph> GraphRecording = nullptr;
         static uint32 FrameCount;
 
     };

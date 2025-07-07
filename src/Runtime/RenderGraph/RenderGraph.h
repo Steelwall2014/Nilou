@@ -20,11 +20,18 @@ public:
     friend class RDGBuilder;
 
     RenderGraph();
+    ~RenderGraph();
 
     RenderGraph(const RenderGraph&) = delete;
     RenderGraph& operator=(const RenderGraph&) = delete;
     RenderGraph& operator=(RenderGraph&&) = default;
 
+    void BeginFrame();
+    void EndFrame();
+
+    RDGTexture* GetSwapChainTexture() const { return SwapChainTexture; }
+
+    // TODO: 以下这些CreateExternalXXX函数重命名为CreatePooledXXX
     static RDGTextureRef CreateExternalTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
     static RDGTextureViewRef CreateExternalTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& TextureViewDesc);
@@ -43,6 +50,8 @@ public:
     }
 
     static RDGDescriptorSetRef CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
+
+    RDGTexture* RegisterExternalTexture(const std::string& Name, RHITexture* TextureRHI);
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
@@ -156,6 +165,8 @@ private:
 
     void SubmitBufferUploads();
 
+    RDGTexture* SwapChainTexture = nullptr;
+
 	/** The epilogue and prologue passes are sentinels that are used to simplify graph logic around barriers
 	*  and traversal. The prologue pass is used exclusively for barriers before the graph executes, while the
 	*  epilogue pass is used for resource extraction barriers--a property that also makes it the main root of
@@ -164,6 +175,7 @@ private:
 	*/
 	FRDGPass* ProloguePass = nullptr;
 	FRDGPass* EpiloguePass = nullptr;
+    FRDGPass* PresentPass = nullptr;
 
 	uint32 AsyncComputePassCount = 0;
 	uint32 RasterPassCount = 0;
@@ -194,6 +206,11 @@ private:
     std::vector<RDGTextureViewRef> TextureViews;
     std::vector<RDGBufferRef> Buffers;
     std::vector<RDGDescriptorSetRef> DescriptorSets;
+
+    std::vector<RDGTexture*> PooledTextures;
+    std::vector<RDGBuffer*> PooledBuffers;
+
+    std::unordered_map<RHITexture*, RDGTexture*> ExternalTextures;
 
     struct FUploadedBuffer
     {

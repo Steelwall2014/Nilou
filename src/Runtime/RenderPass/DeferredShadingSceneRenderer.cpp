@@ -11,6 +11,7 @@
 #include "Frustum.h"
 #include "Material.h"
 #include "ShaderMap.h"
+#include "RenderGraphUtils.h"
 
 #include "ShadowDepthPassRendering.h"
 #include "BasePassRendering.h"
@@ -101,46 +102,12 @@ namespace nilou {
         return DescriptorSets;
     }
 
-    FSceneRenderer::FScreenQuadPositionVertexBuffer FSceneRenderer::PositionVertexBuffer;
-    FSceneRenderer::FScreenQuadUVVertexBuffer FSceneRenderer::UVVertexBuffer;
-    FRHIVertexDeclaration* FSceneRenderer::ScreenQuadVertexDeclaration;
-
     FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
         : Scene(InViewFamily.Scene)
         , ViewFamily(InViewFamily)
         , Views(InViewFamily.Views)
     {
 
-        if (!PositionVertexBuffer.IsInitialized())
-        {
-            PositionVertexBuffer.InitResource();
-            UVVertexBuffer.InitResource();
-                        
-            FVertexInputStream PositionVertexInputStream;
-            FVertexElement PositionVertexElement;
-            FVertexInputStream UVVertexInputStream;
-            FVertexElement UVVertexElement;
-
-            PositionVertexElement.AttributeIndex = 0;
-            PositionVertexElement.StreamIndex = 0;
-            PositionVertexElement.Offset = 0;
-            PositionVertexElement.Stride = sizeof(float) * 4;
-            PositionVertexElement.Type = EVertexElementType::Float4;
-            PositionVertexInputStream.StreamIndex = 0;
-            PositionVertexInputStream.VertexBuffer = PositionVertexBuffer.VertexBufferRDG;
-            PositionVertexInputStream.Offset = 0;
-                        
-            UVVertexElement.AttributeIndex = 1;
-            UVVertexElement.StreamIndex = 1;
-            UVVertexElement.Offset = 0;
-            UVVertexElement.Stride = sizeof(float) * 2;
-            UVVertexElement.Type = EVertexElementType::Float2;
-            UVVertexInputStream.StreamIndex = 1;
-            UVVertexInputStream.VertexBuffer = UVVertexBuffer.VertexBufferRDG;
-            UVVertexInputStream.Offset = 0;
-
-            ScreenQuadVertexDeclaration = RHICreateVertexDeclaration({PositionVertexElement, UVVertexElement});
-        }
     }
 
     FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily)
@@ -159,6 +126,7 @@ namespace nilou {
         {
             FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
             FLightInfo LightInfo;
+            LightInfo.LightSceneProxy = Proxy;
             LightInfo.LightType = Proxy->LightType;
             LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer;
             int NumRelevantViews = 1;
@@ -189,8 +157,9 @@ namespace nilou {
                     BufferSize = sizeof(FSpotShadowMappingBlock);
                     TextureDesc.ArraySize = 1;
                 }
+                Resource.Frustums.resize(TextureDesc.ArraySize);
                 Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", RDGBufferDesc(BufferSize, EBufferUsageFlags::UniformBuffer));
-                Resource.DepthArray = Graph.CreateTexture(NFormat("DepthArray {}", ViewIndex), TextureDesc);
+                Resource.DepthArray = Graph.CreateTexture(NFormat("Shadow DepthArray of View{}", ViewIndex), TextureDesc);
                 for (int i = 0; i < TextureDesc.ArraySize; i++)
                 {
                     RDGTextureViewDesc TextureViewDesc;
@@ -388,8 +357,17 @@ namespace nilou {
     void FDeferredShadingSceneRenderer::RenderToScreen(RenderGraph& Graph)
     {
         FTextureRenderTargetResource* RenderTargetResource = ViewFamily.Viewport.RenderTarget;
+        RDGTexture* RenderTarget = nullptr;
+        if (RenderTargetResource)
+        {
+            RenderTarget = RenderTargetResource->GetTextureRDG();
+        }
+        else
+        {
+            RenderTarget = Graph.GetSwapChainTexture();
+        }
         RHIRenderTargetLayout RTLayout;
-        RTLayout.ColorAttachments[0].Format = RenderTargetResource->GetTextureRDG()->Desc.Format;
+        RTLayout.ColorAttachments[0].Format = RenderTarget->Desc.Format;
 
         // default sampler state of this pass
         RHISamplerState* SamplerStateRHI = TStaticSamplerState<>::GetRHI();
@@ -406,7 +384,7 @@ namespace nilou {
         PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
         PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
         PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI();
-        PSOInitializer.VertexDeclaration = ScreenQuadVertexDeclaration;
+        PSOInitializer.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
         PSOInitializer.RTLayout = RTLayout;
         RHIGraphicsPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
 
@@ -458,15 +436,19 @@ namespace nilou {
             auto UniformBuffer = Graph.CreateUniformBuffer<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
             Graph.QueueBufferUpload(UniformBuffer, &Parameters, sizeof(Parameters));
             DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBuffer);
+
+            RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
+            RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
+
             RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = RenderTargetResource->GetTextureRDG()->GetDefaultView();
+            RenderTargets.ColorAttachments[0] = RenderTarget->GetDefaultView();
             RDGPassDesc PassDesc{NFormat("RenderToScreen {}", ViewIndex)};
             PassDesc.bNeverCull = true;
             Graph.AddGraphicsPass(
                 PassDesc,
                 RenderTargets,
-                { },
-                { PositionVertexBuffer.VertexBufferRDG, UVVertexBuffer.VertexBufferRDG },
+                { ScreenQuadIndexBuffer },
+                { ScreenQuadVertexBuffer },
                 { DescriptorSetPS },
                 [=](RHICommandList& RHICmdList)
                 {
@@ -477,15 +459,15 @@ namespace nilou {
                         RHICmdList.BindGraphicsPipelineState(PSO);
                         RHIGetError();
 
-                        RHICmdList.BindVertexBuffer(0, PositionVertexBuffer.VertexBufferRDG->GetRHI(), 0);
-                        RHICmdList.BindVertexBuffer(1, UVVertexBuffer.VertexBufferRDG->GetRHI(), 0);
+                        RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
+                        RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
 
                         RHICmdList.BindDescriptorSets(
                             PSO->GetPipelineLayout(), 
                             { {0, DescriptorSetPS->GetRHI()} }, 
                             EPipelineBindPoint::Graphics);
 
-                        RHICmdList.DrawArrays(4, 1, 0, 0);
+                        RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
                     }
                     // RHICmdList.RHIEndRenderPass();
                 }

@@ -2,6 +2,7 @@
 #include "Common/Actor/Actor.h"
 #include "TextureRenderTarget.h"
 #include "DeferredShadingSceneRenderer.h"
+#include "Common/World.h"
 
 namespace nilou {
 

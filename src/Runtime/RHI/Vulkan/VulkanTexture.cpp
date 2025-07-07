@@ -62,24 +62,17 @@ static VkImageUsageFlags TranslateTextureUsageToVkUsageFlags(ETextureUsageFlags 
 }
 
 VulkanTexture::VulkanTexture(
+        VulkanDevice* InDevice,
         VkImage InImage,
         VkDeviceMemory InMemory,
         VkImageAspectFlags InAspectFlags,
-        uint32 InSizeX,
-        uint32 InSizeY,
-        uint32 InSizeZ,
-        uint32 InNumMips,
-        uint32 InBaseMipLevel,
-        uint32 InBaseArrayLayer,
-        EPixelFormat InFormat,
         const std::string &InTextureName,
-        ETextureDimension InTextureType)
-    : RHITexture(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InTextureName, InTextureType)
+        RHITextureDesc InDesc)
+    : RHITexture(InTextureName, InDesc)
     , Handle(InImage)
     , Memory(InMemory)
     , FullAspectFlags(InAspectFlags)
-    , BaseArrayLayer(InBaseArrayLayer)
-    , BaseMipLevel(InBaseMipLevel)
+    , Device(InDevice)
 { 
 
 }
@@ -117,7 +110,7 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
     else if (CreateInfo.TextureType == ETextureDimension::Texture2DArray)
     {
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.arrayLayers = CreateInfo.SizeZ;
+        imageInfo.arrayLayers = CreateInfo.ArraySize;
         imageInfo.extent.depth = 1;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     }
@@ -163,47 +156,13 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
 
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(CreateInfo.Format, false, true);
 
-    if (CreateInfo.TextureType == ETextureDimension::Texture2D)
-    {
-        return new VulkanTexture(
-            Image, 
-            Memory, 
-            GetFullAspectMask(CreateInfo.Format), 
-            CreateInfo.SizeX, CreateInfo.SizeY, 1, 
-            CreateInfo.NumMips, 0, 0, 
-            CreateInfo.Format, Name, ETextureDimension::Texture2D);
-    }
-    else if (CreateInfo.TextureType == ETextureDimension::Texture2DArray)
-    {
-        return new VulkanTexture(
-            Image, 
-            Memory, 
-            GetFullAspectMask(CreateInfo.Format), 
-            CreateInfo.SizeX, CreateInfo.SizeY, CreateInfo.SizeZ, 
-            CreateInfo.NumMips, 0, 0, 
-            CreateInfo.Format, Name, ETextureDimension::Texture2DArray);
-    }
-    else if (CreateInfo.TextureType == ETextureDimension::Texture3D)
-    {
-        return new VulkanTexture(
-            Image, 
-            Memory, 
-            GetFullAspectMask(CreateInfo.Format), 
-            CreateInfo.SizeX, CreateInfo.SizeY, CreateInfo.SizeZ, 
-            CreateInfo.NumMips, 0, 0, 
-            CreateInfo.Format, Name, ETextureDimension::Texture3D);
-    }
-    else if (CreateInfo.TextureType == ETextureDimension::TextureCube)
-    {
-        return new VulkanTexture(
-            Image, 
-            Memory, 
-            GetFullAspectMask(CreateInfo.Format), 
-            CreateInfo.SizeX, CreateInfo.SizeY, 6, 
-            CreateInfo.NumMips, 0, 0, 
-            CreateInfo.Format, Name, ETextureDimension::TextureCube);
-    }
-    return nullptr;
+    return new VulkanTexture(
+        Device,
+        Image, 
+        Memory, 
+        GetFullAspectMask(CreateInfo.Format), 
+        Name, 
+        CreateInfo);
 }
 
 RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name)

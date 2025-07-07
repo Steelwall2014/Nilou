@@ -217,7 +217,7 @@ namespace nilou {
 
         // Load3DTileset(this);
 
-        LoadDamagedHelmet(this);
+        // LoadDamagedHelmet(this);
 
         // // std::vector<FDynamicMeshVertex> OutVerts;
         // // std::vector<uint32> OutIndices;

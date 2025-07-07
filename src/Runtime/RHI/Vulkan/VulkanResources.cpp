@@ -273,7 +273,7 @@ VkFramebuffer FVulkanRenderPassManager::GetOrCreateFramebuffer(VkRenderPass Rend
         {
             VulkanTextureView* vkTexture = ResourceCast(Texture);
             Attachments.push_back(vkTexture->GetHandle());
-            if (Index == 0)
+            if (Width == 0 && Height == 0)
             {
                 Width = Texture->GetSizeX();
                 Height = Texture->GetSizeY();
@@ -289,6 +289,16 @@ VkFramebuffer FVulkanRenderPassManager::GetOrCreateFramebuffer(VkRenderPass Rend
     {
         VulkanTextureView* vkTexture = ResourceCast(DepthStencilAttachment);
         Attachments.push_back(vkTexture->GetHandle());
+        if (Width == 0 && Height == 0)
+        {
+            Width = DepthStencilAttachment->GetSizeX();
+            Height = DepthStencilAttachment->GetSizeY();
+        }
+        else
+        {
+            Ncheck(DepthStencilAttachment->GetSizeX() == Width);
+            Ncheck(DepthStencilAttachment->GetSizeY() == Height);
+        }
     }
 
     Ncheck(Attachments.size() != 0);

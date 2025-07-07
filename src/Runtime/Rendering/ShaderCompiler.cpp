@@ -92,6 +92,7 @@ namespace nilou {
         FDynamicRHI* DynamicRHI = FDynamicRHI::Get();
         std::stringstream stream;
         stream << "#version 460\n";
+        stream << "#define FOR_INTELLISENSE 0\n";
         stream << "#define RHI_OPENGL (0)\n";
         stream << "#define RHI_VULKAN (1)\n";
         if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
@@ -106,7 +107,22 @@ namespace nilou {
             stream << *Code;
         }
 
-        return stream.str();
+        std::string shaderCode = stream.str();
+        size_t pos = 0;
+        while ((pos = shaderCode.find("#define BINDING_INDEX 0", pos)) != std::string::npos)
+        {
+            shaderCode.replace(pos, 24, "");
+            pos += 1;
+        }
+
+        pos = 0;
+        int binding_index = 0;
+        while ((pos = shaderCode.find("BINDING_INDEX", pos)) != std::string::npos)
+        {
+            shaderCode.replace(pos, 13, std::to_string(binding_index++));
+            pos += 1;
+        }
+        return shaderCode;
     }
 
     void FShaderCompiler::CompileGlobalShader(
@@ -142,6 +158,7 @@ namespace nilou {
     }
 
     void FShaderCompiler::CompileVertexMaterialShader(
+        const std::string& MaterialName,
         const std::string &MaterialPreprocessedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
@@ -156,17 +173,20 @@ namespace nilou {
         FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
         VertexFactoryType->ModifyCompilationEnvironment(VertexFactoryParams, Environment);
+        Environment.SetDefine("SET_INDEX", 0);
 
         std::string code = ConcateShaderCodeAndParameters(
             {&MaterialPreprocessedResult, &VertexFactoryType->PreprocessedCode, &ShaderType->PreprocessedCode}, 
             Environment);
+        std::string ShaderName = NFormat("{}_{}_p{}_{}_p{}", MaterialName, VertexFactoryType->Name, VertexFactoryParams.PermutationId, ShaderType->Name, ShaderParameter.PermutationId);
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
-            ShaderType->Name, code, EShaderStage::Vertex, ShaderType->ShaderMetaType);
+            ShaderName, code, EShaderStage::Vertex, ShaderType->ShaderMetaType);
         ShaderInstance->InitRHI();
         OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
     void FShaderCompiler::CompilePixelMaterialShader(
+        const std::string& MaterialName,
         const std::string& MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
@@ -175,12 +195,14 @@ namespace nilou {
 
         FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
+        Environment.SetDefine("SET_INDEX", 1);
 
         std::string code = ConcateShaderCodeAndParameters(
             {&MaterialParsedResult, &ShaderType->PreprocessedCode}, 
             Environment);
+        std::string ShaderName = NFormat("{}_{}_p{}", MaterialName, ShaderType->Name, ShaderParameter.PermutationId);
         FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
-            ShaderType->Name, code, EShaderStage::Pixel, ShaderType->ShaderMetaType);
+            ShaderName, code, EShaderStage::Pixel, ShaderType->ShaderMetaType);
         ShaderInstance->InitRHI();
         OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
@@ -232,11 +254,13 @@ namespace nilou {
             });
     }
     
-    void FShaderCompiler::CompileMaterialShader(FMaterialShaderMap* ShaderMap,
+    void FShaderCompiler::CompileMaterialShader(
+        std::string MaterialName,
+        FMaterialShaderMap* ShaderMap,
         const std::string &MaterialParsedResult)
     {
         ForEachMaterialShader(
-            [ShaderMap, &MaterialParsedResult](const FShaderPermutationParameters &ShaderParameter) {   
+            [MaterialName, ShaderMap, &MaterialParsedResult](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
@@ -254,6 +278,7 @@ namespace nilou {
                                 continue;
                             NILOU_LOG(Display, "\tVertexFactory {} Permutation: {}", ShaderType->Name, VFPermutationId);
                             CompileVertexMaterialShader(
+                                MaterialName,
                                 MaterialParsedResult, VFParameters, ShaderParameter, 
                                 ShaderMap->VertexShaderMap);
                         }
@@ -263,6 +288,7 @@ namespace nilou {
                 {
                     NILOU_LOG(Display, "\tPixelShader {}", ShaderType->Name);
                     CompilePixelMaterialShader(
+                        MaterialName,
                         MaterialParsedResult, ShaderParameter, 
                         ShaderMap->PixelShaderMap);
                 }

@@ -1,16 +1,16 @@
 #version 460
 #include "../include/Macros.glsl"
 #include "../include/BasePassCommon.glsl"
-layout (std140, set=binding=0) uniform MAT_UNIFORM_BLOCK {
+layout (std140, set=SET_INDEX, binding=BINDING_INDEX) uniform MAT_UNIFORM_BLOCK {
    vec4 baseColorFactor;
    vec3 emissiveFactor;
    float metallicFactor;
    float roughnessFactor;
 };
-layout (binding=1) uniform sampler2D baseColorTexture;
-layout (binding=2) uniform sampler2D metallicRoughnessTexture;
-layout (binding=3) uniform sampler2D normalTexture;
-layout (binding=4) uniform sampler2D emissiveTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D baseColorTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D metallicRoughnessTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D normalTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D emissiveTexture;
 vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
 {
     return vec3(0);

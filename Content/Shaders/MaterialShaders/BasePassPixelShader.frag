@@ -6,12 +6,12 @@ layout (location = 2) out vec3 WorldSpaceNormal;
 layout (location = 3) out vec2 MetallicRoughness;
 layout (location = 4) out vec3 Emissive;
 layout (location = 5) out uint ShadingModel;
-
-layout(set=PIXEL_SHADER_SET_INDEX, binding=0, std140) uniform PIXEL_UNIFORM_BLOCK {
+/*
+layout(set=SET_INDEX, binding=BINDING_INDEX, std140) uniform PIXEL_UNIFORM_BLOCK {
     uint MaterialShadingModel;
     uint PrefilterEnvTextureNumMips;
     float ReflectionProbeFactor;
-};
+};*/
 //#include "../include/Maths.glsl"
 //#include "../include/Light.glsl"
 #include "../include/PBRFunctions.glsl"
@@ -20,11 +20,11 @@ layout(set=PIXEL_SHADER_SET_INDEX, binding=0, std140) uniform PIXEL_UNIFORM_BLOC
 //#include "../Materials/ColoredMaterial_Mat.glsl"
 
 #if ENABLE_REFLECTION_PROBE
-layout (set=PIXEL_SHADER_SET_INDEX, binding=1) uniform samplerCube IrradianceTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform samplerCube IrradianceTexture;
 
-layout (set=PIXEL_SHADER_SET_INDEX, binding=2) uniform samplerCube PrefilteredTexture;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform samplerCube PrefilteredTexture;
 
-layout (set=PIXEL_SHADER_SET_INDEX, binding=3) uniform sampler2D IBL_BRDF_LUT;
+layout (set=SET_INDEX, binding=BINDING_INDEX) uniform sampler2D IBL_BRDF_LUT;
 #endif
 
 //layout (std140) uniform FPrefilteredTextureBlock {
@@ -37,7 +37,7 @@ layout (location = 0) in VS_Out vs_out;
 
 float getMipLevelFromRoughness(float roughness)
 {
-    return roughness * (PrefilterEnvTextureNumMips-1);
+    return roughness;// * (PrefilterEnvTextureNumMips-1);
 }
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
@@ -84,9 +84,9 @@ void main()
     MetallicRoughness.x = MaterialGetMetallic(vs_out);
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
     Emissive = GammaToLinear(MaterialGetEmissive(vs_out));
-    ShadingModel = MaterialShadingModel;
+    ShadingModel = 0;//MaterialShadingModel;
 #if ENABLE_REFLECTION_PROBE
-    Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
+    //Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
 #endif
 //    vec3 projCoords = frag_lightspace_pos[0].xyz / frag_lightspace_pos[0].w;
 //    projCoords = projCoords * 0.5 + 0.5;

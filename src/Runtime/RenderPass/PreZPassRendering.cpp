@@ -30,6 +30,7 @@ namespace nilou {
 
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                     ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
+                    ShaderBindings.SetBuffer("FPrimitiveShaderParameters", Element.PrimitiveUniformBuffer);
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(

@@ -18,11 +18,12 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
             NILOU_LOG(Error, "\n{}", code);
+            Ncheck(false);
             return nullptr;
         }
         return VulkanShader;
@@ -43,11 +44,12 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
             NILOU_LOG(Error, "\n{}", code);
+            Ncheck(false);
             return nullptr;
         }
         return VulkanShader;
@@ -68,11 +70,12 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, OutMessage);
+        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);
             NILOU_LOG(Error, "\n{}", code);
+            Ncheck(false);
             return nullptr;
         }
         return VulkanShader;
@@ -93,7 +96,7 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
         const char* msg = shaderc_result_get_error_message(result);
         NILOU_LOG(Error, "Shader compilation error! Error message: {}, Dump the code to log", msg);
         NILOU_LOG(Error, "\n{}", code);
-        NILOU_LOG(Fatal, "");
+        Ncheck(false);
         return {};
     }
 

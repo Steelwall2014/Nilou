@@ -117,7 +117,7 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, Desc
 
 } // namespace shader_reflection
 
-bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage)
+bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage)
 {
 
     shaderc_compiler_t shader_compiler = shaderc_compiler_initialize();
@@ -145,14 +145,14 @@ bool ReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std:
         return false;
     }
     
-    bool bSuccess = ReflectShader(compile_result, OutLayouts, OutMessage);
+    bool bSuccess = ReflectShader(compile_result, OutLayouts, OutPushConstantRange, OutMessage);
     shaderc_result_release(compile_result);
     shaderc_compiler_release(shader_compiler);
 
     return bSuccess;
 }
 
-bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::string& OutMessage)
+bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage)
 {
     size_t codeSize = shaderc_result_get_length(compile_result);
     const char* pCode = shaderc_result_get_bytes(compile_result);
@@ -184,7 +184,16 @@ bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_m
         Binding.BindingIndex = input_ubo->binding;
         Binding.DescriptorType = static_cast<EDescriptorType>(input_ubo->descriptor_type);
         Binding.DescriptorCount = 1;
-        Binding.Name = input_ubo->name ? input_ubo->name : (input_ubo->block.name ? input_ubo->block.name : input_ubo->block.type_description->type_name);
+        Binding.Name = input_ubo->name;
+        if (Binding.Name == "")
+        {
+            Binding.Name = input_ubo->block.name;
+        }
+        if (Binding.Name == "")
+        {
+            Binding.Name = input_ubo->block.type_description->type_name;
+        }
+        Binding.BlockSize = input_ubo->block.padded_size;
         for (uint32_t i = 0; i < input_ubo->block.member_count; i++)
         {
             SpvReflectBlockVariable& Member = input_ubo->block.members[i];
@@ -196,13 +205,45 @@ bool ReflectShader(shaderc_compilation_result_t compile_result, std::unordered_m
             Binding.Flags |= EDescriptorDecorationFlags::NonReadable;
         BindingsPerSet[input_ubo->set].push_back(Binding);
     }
+    
+    uint32_t push_constant_count = 0;
+    if (spvReflectEnumeratePushConstantBlocks(&module, &push_constant_count, NULL) != SPV_REFLECT_RESULT_SUCCESS)
+    {
+        OutMessage = "Failed to enumerate push constant blocks!";
+        return false;
+    }
+    if (push_constant_count > 0)
+    {
+        OutPushConstantRange = RHIPushConstantRange();
+        auto input_push_constants = std::vector<SpvReflectBlockVariable*>(push_constant_count);
+        if (spvReflectEnumeratePushConstantBlocks(&module, &push_constant_count, input_push_constants.data()) != SPV_REFLECT_RESULT_SUCCESS)
+        {
+            OutMessage = "Failed to enumerate push constant blocks!";
+            return false;
+        }
+        for (SpvReflectBlockVariable* input_push_constant : input_push_constants)
+        {
+            OutPushConstantRange->Size = input_push_constant->padded_size;
+            for (uint32_t i = 0; i < input_push_constant->member_count; i++)
+            {
+                SpvReflectBlockVariable& Member = input_push_constant->members[i];
+                OutPushConstantRange->Members.push_back({Member.name, Member.offset, Member.size});
+            }
+        }
+    }
+
+    spvReflectDestroyShaderModule(&module);
 
     for (auto& [SetIndex, Bindings] : BindingsPerSet)
     {
         OutLayouts[SetIndex] = RHICreateDescriptorSetLayout(Bindings);
+        if (OutLayouts[SetIndex] == nullptr)
+        {
+            OutMessage = "Failed to create descriptor set layout!";
+            OutLayouts.clear();
+            return false;
+        }
     }
-
-    spvReflectDestroyShaderModule(&module);
 
     return true;
 }

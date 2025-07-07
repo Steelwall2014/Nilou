@@ -1,6 +1,7 @@
+#include "../include/Common.glsl"
 #include "../include/BasePassCommon.glsl"
 
-layout (std140, binding=0) uniform MAT_UNIFORM_BLOCK {
+layout (std140, set=SET_INDEX, binding=BINDING_INDEX) uniform MAT_UNIFORM_BLOCK {
     float Red;
     float Green;
     float Blue;

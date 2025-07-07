@@ -122,9 +122,10 @@ namespace nilou {
 
         FScene *Scene = this;
         ENQUEUE_RENDER_COMMAND(AddPrimitive)(
-            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RenderGraph&) 
+            [Scene, PrimitiveSceneProxy, PrimitiveSceneInfo, RenderMatrix, Bounds] (RenderGraph& Graph) 
             {
                 PrimitiveSceneProxy->CreateUniformBuffer();
+                PrimitiveSceneProxy->UpdateUniformBuffer(Graph);
                 PrimitiveSceneProxy->CreateRenderThreadResources();
                 Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
             });

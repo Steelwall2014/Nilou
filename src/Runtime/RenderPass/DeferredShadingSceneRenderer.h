@@ -51,11 +51,11 @@ namespace nilou {
 
         std::vector<FShadowMapResource> ShadowMapResources;
 
-        RDGBuffer* LightUniformBuffer;
+        RDGBuffer* LightUniformBuffer = nullptr;
 
-        ELightType LightType;
+        ELightType LightType = ELightType::LT_None;
 
-        FLightSceneProxy* LightSceneProxy;
+        FLightSceneProxy* LightSceneProxy = nullptr;
 
     };
 
@@ -116,10 +116,6 @@ namespace nilou {
         private:
             vec2 Vertices[4];
         };
-
-        static FScreenQuadPositionVertexBuffer PositionVertexBuffer;
-        static FScreenQuadUVVertexBuffer UVVertexBuffer;
-        static FRHIVertexDeclaration* ScreenQuadVertexDeclaration;
 
         // template <typename TResource, typename TCreateInfo>
         // class TResourcesPool

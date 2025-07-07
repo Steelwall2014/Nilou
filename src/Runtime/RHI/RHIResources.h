@@ -58,14 +58,29 @@ namespace nilou {
 		ERHIResourceType ResourceType;
 	};
 
+	struct RHIPushConstantRange
+	{
+		uint32 Size;
+		struct Member
+		{
+			std::string Name;
+			uint32 Offset;
+			uint32 Size;
+		};
+		std::vector<Member> Members;
+	};
+
 	class RHIShader : public RHIResource
 	{
 	public:
-		RHIShader(ERHIResourceType InResourceType) 
+		RHIShader(EShaderStage InShaderStage, ERHIResourceType InResourceType) 
 			: RHIResource(InResourceType)
+			, ShaderStage(InShaderStage)
 		{ }
 		std::string DebugName;
 		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
+		std::optional<RHIPushConstantRange> PushConstantRange;
+		EShaderStage ShaderStage;
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 	};
@@ -74,21 +89,21 @@ namespace nilou {
 	class RHIVertexShader : public RHIShader 
 	{
 	public:
-		RHIVertexShader() : RHIShader(ERHIResourceType::RRT_VertexShader) {}
+		RHIVertexShader() : RHIShader(EShaderStage::Vertex, ERHIResourceType::RRT_VertexShader) {}
 	};
 	using RHIVertexShaderRef = TRefCountPtr<RHIVertexShader>;
 	
 	class RHIPixelShader : public RHIShader 
 	{
 	public:
-		RHIPixelShader() : RHIShader(ERHIResourceType::RRT_PixelShader) {}
+		RHIPixelShader() : RHIShader(EShaderStage::Pixel, ERHIResourceType::RRT_PixelShader) {}
 	};
 	using RHIPixelShaderRef = TRefCountPtr<RHIPixelShader>;
 	
 	class RHIComputeShader : public RHIShader 
 	{
 	public:
-		RHIComputeShader() : RHIShader(ERHIResourceType::RRT_ComputeShader) {}
+		RHIComputeShader() : RHIShader(EShaderStage::Compute, ERHIResourceType::RRT_ComputeShader) {}
 	};
 	using RHIComputeShaderRef = TRefCountPtr<RHIComputeShader>;
 
@@ -237,51 +252,42 @@ namespace nilou {
 	class RHITexture : public RHIResource 
 	{
 	public:
-		RHITexture(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, EPixelFormat InFormat, const std::string &InTextureName, ETextureDimension InTextureType)
+		RHITexture(const std::string &InTextureName, RHITextureDesc InDesc)
 			: RHIResource(ERHIResourceType::RRT_Texture)
-			, NumMips(InNumMips)
-			, Format(InFormat)
+			, Desc(InDesc)
 			, TextureName(InTextureName)
-			, TextureType(InTextureType)
-			, SizeX(InSizeX)
-			, SizeY(InSizeY)
-			, SizeZ(InSizeZ)
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual uvec3 GetSizeXYZ() const { return uvec3(SizeX, SizeY, SizeZ); }
-		uint32 GetSizeX() const { return SizeX; }
-		uint32 GetSizeY() const { return SizeY; }
-		uint32 GetSizeZ() const { return SizeZ; }
+		virtual uvec3 GetSizeXYZ() const { return uvec3(Desc.SizeX, Desc.SizeY, Desc.SizeZ); }
+		uint32 GetSizeX() const { return Desc.SizeX; }
+		uint32 GetSizeY() const { return Desc.SizeY; }
+		uint32 GetSizeZ() const { return Desc.SizeZ; }
 		uint32 GetNumMips() const
 		{
-			return NumMips;
+			return Desc.NumMips;
 		}
 		EPixelFormat GetFormat() const
 		{
-			return Format;
+			return Desc.Format;
 		}
 		std::string GetName() const
 		{
 			return TextureName;
 		}
+		const RHITextureDesc& GetDesc() const { return Desc; }
 		void SetName(const std::string &InTextureName)
 		{
 			TextureName = InTextureName;
 		}
-		ETextureDimension GetTextureType() const { return TextureType; };
-		uint32 GetNumLayers() const { return TextureType == ETextureDimension::Texture2DArray || TextureType == ETextureDimension::TextureCube ? GetSizeXYZ().z : 1; }
+		ETextureDimension GetTextureType() const { return Desc.TextureType; };
+		uint32 GetNumLayers() const { return Desc.TextureType == ETextureDimension::Texture2DArray || Desc.TextureType == ETextureDimension::TextureCube ? GetSizeXYZ().z : 1; }
 
 		RHITextureView* GetOrCreateView(const FRHITextureViewCreateInfo& CreateInfo) { return ViewCache.GetOrCreateView(this, CreateInfo); }
 
 	protected:
-		uint32 NumMips;
-		EPixelFormat Format;
-		ETextureDimension TextureType;
 		std::string TextureName;
-		uint32 SizeX;
-		uint32 SizeY;
-		uint32 SizeZ;
+		const RHITextureDesc Desc;
 
 		FRHITextureViewCache ViewCache;
 
@@ -394,12 +400,12 @@ namespace nilou {
 	ENUM_CLASS_FLAGS(EDescriptorDecorationFlags);
 	struct RHIDescriptorSetLayoutBinding
 	{
-		uint32 BindingIndex;
-		EDescriptorType DescriptorType;
+		uint32 BindingIndex = 0;
+		EDescriptorType DescriptorType = EDescriptorType::Max;
 		uint32 DescriptorCount = 1;		// For now, only support 1
 
 		std::string Name;
-		uint32 BlockSize;
+		uint32 BlockSize = 0;
 		struct Member
 		{
 			std::string Name;
@@ -449,16 +455,12 @@ namespace nilou {
 	};
 	using RHIDescriptorSetLayoutRef = TRefCountPtr<RHIDescriptorSetLayout>;
 
-	constexpr uint32 VERTEX_SHADER_SET_INDEX = 0;
-	constexpr uint32 PIXEL_SHADER_SET_INDEX = 1;
-	constexpr uint32 VERTEX_FACTORY_SET_INDEX = 2;
-	constexpr uint32 MATERIAL_SET_INDEX = 3;
-
 	class RHIPipelineLayout : public RHIResource
 	{
 	public:
 	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
     	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
+		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 
@@ -499,13 +501,6 @@ namespace nilou {
 
 	};
 	using RHIComputePipelineStateRef = TRefCountPtr<RHIComputePipelineState>;
-
-	struct RHIPushConstantRange
-	{
-		EShaderStage StageFlags;
-		uint32 Offset;
-		uint32 Size;
-	};
 
 	struct RHISamplerState : public RHIResource
 	{

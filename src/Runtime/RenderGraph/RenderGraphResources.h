@@ -98,6 +98,7 @@ struct FRDGProducerState
 	ERHIAccess Access = ERHIAccess::None;
 };
 
+// TODO: EResourceLifetime
 class RDGResource : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
 {
 public:
@@ -114,7 +115,7 @@ public:
 
 	bool IsCullRoot() const
 	{
-		return bExternal || bExtracted;
+		return bExternal/* || bExtracted*/;
 	}
 
     std::string Name;
@@ -129,10 +130,10 @@ protected:
 	bool bExternal = false;
 
 	/** Whether this is an extracted resource. */
-	bool bExtracted = false;
+	// bool bExtracted = false;
 
 	/** Whether any sub-resource has been used for write by a pass. */
-	bool bProduced = false;
+	// bool bProduced = false;
 
 	/** Whether this resource is allocated through the transient resource allocator. */
 	bool bTransient = false;

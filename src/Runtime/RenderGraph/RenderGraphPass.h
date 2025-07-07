@@ -24,13 +24,13 @@ public:
     FRDGPass(FRDGPassHandle InHandle, const RDGPassDesc& InDesc, ERHIPipeline InPipeline)
         : Handle(InHandle)
         , Desc(InDesc)
-        , Name(InDesc.Name)
         , Pipeline(InPipeline)
     {
         
     }
 
-    const std::string Name;
+    const std::string& GetName() const { return Desc.Name; }
+
     bool bCulled = false;
     FRDGPassHandle Handle = NullPassHandle;
     // Steelwall2014: Instead of using ERDGPassFlags, we use a structure.

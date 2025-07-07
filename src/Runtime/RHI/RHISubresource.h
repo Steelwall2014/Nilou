@@ -18,6 +18,10 @@ struct RHITextureSubresource
 		, ArraySlice(InArraySlice)
 	{}
 
+	uint32 GetMipIndex() const { return MipIndex; }
+	uint32 GetArraySlice() const { return ArraySlice; }
+	uint32 GetPlaneSlice() const { return PlaneSlice; }
+
 	inline bool operator == (const RHITextureSubresource& RHS) const
 	{
 		return MipIndex == RHS.MipIndex

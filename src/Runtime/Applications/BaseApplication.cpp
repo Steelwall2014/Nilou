@@ -44,10 +44,9 @@ namespace nilou {
     void BaseApplication::Tick(double DeltaTime)
     {
         ENQUEUE_RENDER_COMMAND(BaseApplication_BeginFrame)(
-            [this](RenderGraph& Graph) 
+            [this](RenderGraph&) 
             {
-                FRenderingThread::NotifyStartOfFrame();
-                // RHICmdList.BeginFrame();
+                FRenderingThread::RenderingThread->NotifyStartOfFrame();
             });
         GameViewportClient->Tick(DeltaTime);
         static FViewport Viewport;
@@ -61,8 +60,7 @@ namespace nilou {
             [this, &fence](RenderGraph& Graph) 
             {
                 this->Tick_RenderThread();
-                // RHICmdList.EndFrame();
-                FRenderingThread::NotifyEndOfFrame();
+                FRenderingThread::RenderingThread->NotifyEndOfFrame();
                 fence.notify_one();
             });
         fence.wait(lock);

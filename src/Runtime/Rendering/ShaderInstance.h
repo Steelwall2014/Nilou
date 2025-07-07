@@ -59,7 +59,7 @@ namespace nilou {
         }
         RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
         {
-            return ShaderRHI->DescriptorSetLayouts[SetIndex];
+            return ShaderRHI->DescriptorSetLayouts.at(SetIndex);
         }
 
         virtual void InitRHI();

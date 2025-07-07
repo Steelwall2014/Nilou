@@ -1,13 +1,13 @@
 #version 460
 
-#include "../include/ViewShaderParameters.glsl"
+#include "../include/VertexShaderCommon.glsl"
 
 #include "../include/ShadowMapShaderParameters.glsl"
 
-layout (std140, set=VERTEX_SHADER_SET_INDEX, binding=0) uniform FShadowMappingBlock {
+layout (std140, set=SET_INDEX, binding=BINDING_INDEX) uniform FShadowMappingBlock {
     FShadowMappingParameters Frustums[FrustumCount];
 };
-layout (std140, set=VERTEX_SHADER_SET_INDEX, binding=1) uniform FShadowMapFrustumIndex {
+layout (push_constant) uniform FShadowMapFrustumIndex {
     int FrustumIndex;
 };
 void main()

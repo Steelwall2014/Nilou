@@ -10,26 +10,18 @@ class VulkanDevice;
 class VulkanTexture : public RHITexture
 {
 public:
-    VkImage Handle{};
-    VkDeviceMemory Memory{};
-    uint8 BaseMipLevel{};
-    uint8 BaseArrayLayer{};
-    VkImageAspectFlags FullAspectFlags{};
-    VulkanDevice* Device;
+    VkImage Handle = VK_NULL_HANDLE;
+    VkDeviceMemory Memory = VK_NULL_HANDLE;
+    VkImageAspectFlags FullAspectFlags = VK_IMAGE_ASPECT_NONE;
+    VulkanDevice* Device = nullptr;
 
     VulkanTexture(
+        VulkanDevice* InDevice,
         VkImage InImage,
         VkDeviceMemory InMemory,
         VkImageAspectFlags InFullAspectFlag, 
-        uint32 InSizeX,
-        uint32 InSizeY,
-        uint32 InSizeZ,
-        uint32 InNumMips,
-        uint32 InBaseMipLevel,
-        uint32 InBaseArrayLayer,
-        EPixelFormat InFormat,
         const std::string &InTextureName,
-        ETextureDimension InTextureType
+        RHITextureDesc InDesc
     );
     ~VulkanTexture();
 

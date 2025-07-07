@@ -45,11 +45,14 @@ public:
     virtual void GetError(const char *file, int line) override;
     virtual EGraphicsAPI GetCurrentGraphicsAPI() override { return EGraphicsAPI::Vulkan; }
 
+    virtual void RHIBeginFrame() override;
+    virtual void RHIEndFrame() override;
+    virtual RHITexture* RHIGetSwapChainTexture() override;
     /**
     * Create/Update data
     */
-    virtual RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) override;
-    virtual RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) override;
+    virtual RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer) override;
+    virtual RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader) override;
     virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) override;
     virtual RHIRasterizerStateRef RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer) override;
     virtual RHIBlendStateRef RHICreateBlendState(const FBlendStateInitializer &Initializer) override;
@@ -112,9 +115,9 @@ private:
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);
-    RHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges);
-    RHIComputePipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges);
-    RHIPipelineLayoutRef RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders, const std::vector<RHIPushConstantRange>& PushConstantRanges);
+    RHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
+    RHIComputePipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader);
+    RHIPipelineLayoutRef RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders);
     void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
     void RHIUpdateTextureInternal(
         RHITexture* Texture, void* Data, int32 MipmapLevel, 

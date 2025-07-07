@@ -5,6 +5,7 @@
 namespace nilou {
 
     class VulkanQueue;
+    class VulkanSemaphore;
 
     class VulkanCommandBuffer : public RHICommandList
     {
@@ -85,6 +86,9 @@ namespace nilou {
         VkQueue Queue;
         VkCommandPool Pool;
         VkFence Fence;
+
+        std::vector<RHISemaphoreRef> SignalSemaphores;
+        std::vector<RHISemaphoreRef> WaitSemaphores;
 
         class FVulkanStagingManager* StagingManager;
         std::vector<RHIBuffer*> StagingBuffers;

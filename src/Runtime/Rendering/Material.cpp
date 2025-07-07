@@ -19,6 +19,8 @@ namespace sr = nilou::shader_reflection;
 namespace nilou {
 
     const fs::path MATERIAL_STATIC_PARENT_DIR = FPath::MaterialDir();
+    
+    const std::string MATERIAL_UNIFORM_BLOCK_NAME = "MAT_UNIFORM_BLOCK";
 
     /**
     * Updates a parameter on the material instance from the game thread.
@@ -241,6 +243,7 @@ namespace nilou {
     void UMaterial::SetShadingModel(EShadingModel InShadingModel)
     {
         ShadingModel = InShadingModel;
+        if (GetRenderProxy() == nullptr) __debugbreak();
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
             [InShadingModel, Proxy=GetRenderProxy()](RenderGraph&) 
             {
@@ -317,6 +320,7 @@ namespace nilou {
 
     void UMaterial::PostDeserialize(FArchive& Ar)
     {
+        InitializeResources();
         SetShaderFileVirtualPath(ShaderVirtualPath);
         // if (Ar.Node["Content"].contains("MaterialUniformBlock"))
         // {
@@ -325,7 +329,6 @@ namespace nilou {
         //     FArchive local_Ar(json, Ar);
         //     MaterialUniformBlock->Deserialize(local_Ar);
         // }
-        InitializeResources();
     }
 
     FMaterialRenderProxy::FMaterialRenderProxy(UMaterial* InMaterial)
@@ -337,10 +340,17 @@ namespace nilou {
     {
         Ncheck(IsInRenderingThread());
 
-        ShaderMap->RemoveAllShaders();
+        if (ShaderMap)
+        {
+            ShaderMap->RemoveAllShaders();
+        }
+        else 
+        {
+            ShaderMap = std::make_shared<FMaterialShaderMap>();
+        }
         std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
         NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
-        FShaderCompiler::CompileMaterialShader(ShaderMap.get(), PreprocessResult);
+        FShaderCompiler::CompileMaterialShader(Owner->GetName(), ShaderMap.get(), PreprocessResult);
 
         // Build reflection, then we can set uniforms by name.
         // This is only used for reflection, NOT the actual shader compilation.
@@ -349,11 +359,28 @@ namespace nilou {
             "layout (location = 0) out vec4 FragColor;\n" +  
             PreprocessResult + 
             "\nvoid main() { FragColor = vec4(0.0, 0.0, 0.0, 1.0); }";
+        size_t pos = 0;
+        while ((pos = PixelShaderCode.find("#define BINDING_INDEX 0", pos)) != std::string::npos)
+        {
+            PixelShaderCode.replace(pos, 24, "");
+            pos += 1;
+        }
+        pos = 0;
+        int binding_index = 0;
+        while ((pos = PixelShaderCode.find("BINDING_INDEX", pos)) != std::string::npos)
+        {
+            PixelShaderCode.replace(pos, 13, std::to_string(binding_index++));
+            pos += 1;
+        }
+
         std::string ReflectMessage;
         std::unordered_map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
-        if (!ReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, ReflectMessage))
+        std::optional<RHIPushConstantRange> PushConstantRange;
+        if (!ReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, PushConstantRange, ReflectMessage))
         {
-            NILOU_LOG(Fatal, "Error occured during material reflection of {} : \"{}\"", Owner->GetName(), ReflectMessage);
+            NILOU_LOG(Error, "Error occured during material reflection of {} : \"{}\"", Owner->GetName(), ReflectMessage);
+            NILOU_LOG(Error, "\n{}", PixelShaderCode);
+            Ncheck(false);
         }
 
         for (auto& [SetIndex, Layout] : DescriptorSetLayouts)
@@ -361,7 +388,7 @@ namespace nilou {
             std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
             for (auto& Binding : Layout->Bindings)
             {
-                if (Binding.Name == "FMaterial" && Binding.DescriptorType == EDescriptorType::UniformBuffer)
+                if (Binding.Name == MATERIAL_UNIFORM_BLOCK_NAME && Binding.DescriptorType == EDescriptorType::UniformBuffer)
                 {
                     std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Owner->GetName(), SetIndex, Binding.BindingIndex);
                     UniformBufferRDG = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
@@ -374,7 +401,7 @@ namespace nilou {
     FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const
     {
         FMeshDrawShaderBindings ShaderBindings;
-        ShaderBindings.SetBuffer("FMaterial", UniformBufferRDG);
+        ShaderBindings.SetBuffer(MATERIAL_UNIFORM_BLOCK_NAME, UniformBufferRDG);
         for (auto& [Name, Texture] : TextureParameterArray)
         {
             ShaderBindings.SetTexture(Name, Texture->GetResource()->TextureRDG->GetDefaultView());

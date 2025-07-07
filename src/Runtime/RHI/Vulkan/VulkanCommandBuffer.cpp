@@ -267,6 +267,10 @@ namespace nilou {
 
     VkAccessFlagBits Translate(ERHIAccess Access)
     {
+        if (Access == ERHIAccess::Present)
+        {
+            return VK_ACCESS_NONE;
+        }
         return (VkAccessFlagBits)Access;
     }
 
@@ -275,20 +279,33 @@ namespace nilou {
         return (VkImageLayout)Layout;
     }
 
-    VkImageAspectFlags TranslatePlaneSlice(uint8 PlaneSlice)
+    VkImageAspectFlags TranslatePlaneSlice(const RHIImageMemoryBarrier& Barrier)
     {
-        switch (PlaneSlice)
+        if (Barrier.Texture->GetFormat() == EPixelFormat::PF_D24S8 ||
+            Barrier.Texture->GetFormat() == EPixelFormat::PF_D32FS8)
         {
-        case 0:
-            return VK_IMAGE_ASPECT_COLOR_BIT;
-        case 1:
-            return VK_IMAGE_ASPECT_DEPTH_BIT;
-        case 2:
-            return VK_IMAGE_ASPECT_STENCIL_BIT;
-        default:
-            NILOU_LOG(Fatal, "Invalid PlaneSlice");
-        };
-        return VK_IMAGE_ASPECT_NONE;
+            switch (Barrier.Subresource.PlaneSlice)
+            {
+            case 0:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+            case 1:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+            default:
+                NILOU_LOG(Fatal, "Invalid PlaneSlice");
+            };
+        }
+        else 
+        {
+            if (Barrier.Subresource.PlaneSlice == 0)
+            {
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+            }
+            else
+            {
+                NILOU_LOG(Fatal, "Invalid PlaneSlice");
+            }
+        }
+        return VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
     VkMemoryBarrier2 Translate(RHIMemoryBarrier Barrier)
@@ -336,7 +353,7 @@ namespace nilou {
         VkSubresourceRange.baseMipLevel = Barrier.Subresource.MipIndex;
         VkSubresourceRange.layerCount = 1;
         VkSubresourceRange.levelCount = 1;
-        VkSubresourceRange.aspectMask = TranslatePlaneSlice(Barrier.Subresource.PlaneSlice);
+        VkSubresourceRange.aspectMask = TranslatePlaneSlice(Barrier);
         VkBarrier.subresourceRange = VkSubresourceRange;
         return VkBarrier;
     }
@@ -437,6 +454,8 @@ namespace nilou {
             RHICmdList->RefreshState();
             if (RHICmdList->State == VulkanCommandBuffer::EState::ReadyForBegin)
             {
+                RHICmdList->SignalSemaphores.clear();
+                RHICmdList->WaitSemaphores.clear();
                 std::swap(CmdBuffers[CmdBuffers.size()-1], CmdBuffers[i]);
                 CmdBuffers.resize(CmdBuffers.size()-1);
                 FreeCmdBuffers.push_back(RHICmdList);
@@ -507,6 +526,8 @@ namespace nilou {
         SubmitInfo.pSignalSemaphoreInfos = SignalSemephores.data();
         vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VulkanCmdList->Fence);
         VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
+        VulkanCmdList->SignalSemaphores = SemaphoresToSignal;
+        VulkanCmdList->WaitSemaphores = SemaphoresToWait;
     }
 
     RHIBuffer* VulkanCommandBuffer::AcquireStagingBuffer(uint32 Size)

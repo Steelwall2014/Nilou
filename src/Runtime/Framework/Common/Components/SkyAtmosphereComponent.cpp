@@ -230,7 +230,7 @@ namespace nilou {
         RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
         FShaderInstance *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringDensityShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringDensityShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("ScatteringDensityShader DescriptorSet", ScatteringDensityShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
         DescriptorSet->SetStorageImage("ScatteringDensityLUT", ScatteringDensityLUT->GetDefaultView());
@@ -256,7 +256,7 @@ namespace nilou {
         RenderGraph& Graph = FRenderingThread::GetRenderGraph();
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
         FShaderInstance *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState *PSO = RHICreateComputePipelineState(IndirectIrradianceShader->GetComputeShaderRHI(), { {EShaderStage::Compute, 0, 4} });
+        RHIComputePipelineState *PSO = RHICreateComputePipelineState(IndirectIrradianceShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("IndirectIrradianceShader DescriptorSet", IndirectIrradianceShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
         DescriptorSet->SetStorageImage("IrradianceLUT", IrradianceLUT->GetDefaultView());

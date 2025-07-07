@@ -568,11 +568,10 @@ enum class ETextureUsageFlags : uint32
 };
 ENUM_CLASS_FLAGS(ETextureUsageFlags)
 
-// Keep the same with VkAccessFlagBits
+// Keep the same with VkAccessFlagBits, except Present
 enum class ERHIAccess : uint32
 {
 	None = 0,
-	Present = 0,
 	IndirectCommandRead = 0x00000001,
 	IndexRead = 0x00000002,
 	VertexAttributeRead = 0x00000004,
@@ -589,6 +588,7 @@ enum class ERHIAccess : uint32
 	TransferWrite = 0x00001000,
 	HostRead = 0x00002000,
 	HostWrite = 0x00004000,
+	Present = 0x00008000,
 	Max = 0x7FFFFFFF,
 };
 #if 0	// Steelwall2014: ERHIAccess is too complicated in Unreal Engine, so simplify it...

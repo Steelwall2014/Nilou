@@ -38,11 +38,14 @@ namespace nilou {
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
 		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return Get()->GetCurrentGraphicsAPI(); }
 
+		virtual void RHIBeginFrame() = 0;
+		virtual void RHIEndFrame() = 0;
+		virtual RHITexture* RHIGetSwapChainTexture() = 0;
 		/**
 		* Create/Update data
 		*/
-		virtual RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) = 0;
-		virtual RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges={}) = 0;
+		virtual RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer) = 0;
+		virtual RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader) = 0;
 		// TODO: Delete PSO
 		// virtual void RHIDeletePipelineStateObject(FRHIGraphicsPipelineState *PSO) = 0;
 		virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer) = 0;
@@ -134,6 +137,21 @@ namespace nilou {
 	// 	return FDynamicRHI::Get()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
 
+	inline void RHIBeginFrame()
+	{
+		FDynamicRHI::Get()->RHIBeginFrame();
+	}
+
+	inline void RHIEndFrame()
+	{
+		FDynamicRHI::Get()->RHIEndFrame();
+	}	
+
+	inline RHITexture* RHIGetSwapChainTexture()
+	{
+		return FDynamicRHI::Get()->RHIGetSwapChainTexture();
+	}
+
 	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 	{
 		return FDynamicRHI::Get()->RHICreateBuffer(Stride, Size, InUsage, Data);
@@ -144,14 +162,14 @@ namespace nilou {
 		return FDynamicRHI::Get()->RHICreateStagingBuffer(Size);
 	}
 
-	inline RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer, const std::vector<RHIPushConstantRange>& PushConstantRanges={})
+	inline RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer)
 	{
-		return FDynamicRHI::Get()->RHICreateGraphicsPipelineState(Initializer, PushConstantRanges);
+		return FDynamicRHI::Get()->RHICreateGraphicsPipelineState(Initializer);
 	}
 
-	inline RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader, const std::vector<RHIPushConstantRange>& PushConstantRanges={})
+	inline RHIComputePipelineState *RHICreateComputePipelineState(RHIComputeShader* ComputeShader)
 	{
-		return FDynamicRHI::Get()->RHICreateComputePipelineState(ComputeShader, PushConstantRanges);
+		return FDynamicRHI::Get()->RHICreateComputePipelineState(ComputeShader);
 	}
 
 	inline FRHIVertexDeclaration* RHICreateVertexDeclaration(const FVertexDeclarationElementList& ElementList)
@@ -214,6 +232,16 @@ namespace nilou {
 		std::sort(Bindings.begin(), Bindings.end(), [](const RHIDescriptorSetLayoutBinding& a, const RHIDescriptorSetLayoutBinding& b) {
 			return a.BindingIndex < b.BindingIndex;
 		});
+		for (int i = 0; i < Bindings.size()-1; i++)
+		{
+			if (Bindings[i].BindingIndex == Bindings[i+1].BindingIndex)
+			{
+				NILOU_LOG(Error, "Descriptor set layout binding index is not unique");
+				NILOU_LOG(Error, "Binding index: {}, Name: {}", Bindings[i].BindingIndex, Bindings[i].Name);
+				NILOU_LOG(Error, "Binding index: {}, Name: {}", Bindings[i+1].BindingIndex, Bindings[i+1].Name);
+				return nullptr;
+			}
+		}
 		return FDynamicRHI::Get()->RHICreateDescriptorSetLayout(Bindings);
 	}
 
