@@ -467,7 +467,7 @@ namespace nilou {
                             { {0, DescriptorSetPS->GetRHI()} }, 
                             EPipelineBindPoint::Graphics);
 
-                        RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
+                        RHICmdList.DrawIndexed(6, 1, 0, 0, 0);
                     }
                     // RHICmdList.RHIEndRenderPass();
                 }

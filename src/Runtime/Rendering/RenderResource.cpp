@@ -115,9 +115,19 @@ namespace nilou {
         return VertexBufferRDG->GetRHI();
     }
 
+    void FVertexBuffer::ReleaseRHI()
+    {
+        VertexBufferRDG = nullptr;
+    }
+
     RHIBuffer* FIndexBuffer::GetRHI() const
     {
         return IndexBufferRDG->GetRHI();
+    }
+
+    void FIndexBuffer::ReleaseRHI()
+    {
+        IndexBufferRDG = nullptr;
     }
 
 }

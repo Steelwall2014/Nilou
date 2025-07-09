@@ -391,7 +391,7 @@ namespace nilou {
                 if (Binding.Name == MATERIAL_UNIFORM_BLOCK_NAME && Binding.DescriptorType == EDescriptorType::UniformBuffer)
                 {
                     std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Owner->GetName(), SetIndex, Binding.BindingIndex);
-                    UniformBufferRDG = RenderGraph::CreateExternalBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
+                    UniformBufferRDG = RenderGraph::CreatePooledBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
                 }
             }
         }

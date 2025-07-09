@@ -27,7 +27,7 @@ RDGBuffer* RDGGetScreenQuadVertexBuffer(RenderGraph& Graph)
     if (!ScreenQuadVertexBuffer)
     {
         RDGBufferDesc Desc(sizeof(FScreenQuadVertex) * 4, sizeof(FScreenQuadVertex), EBufferUsageFlags::VertexBuffer);
-        ScreenQuadVertexBuffer = RenderGraph::CreateExternalBuffer("ScreenQuadVertexBuffer", Desc);
+        ScreenQuadVertexBuffer = RenderGraph::CreatePooledBuffer("ScreenQuadVertexBuffer", Desc);
         FScreenQuadVertex Data[4] = {
             {vec4(-1.0f, -1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)},
             {vec4(1.0f, -1.0f, 0.0f, 1.0f), vec2(1.0f, 0.0f)},
@@ -45,7 +45,7 @@ RDGBuffer* RDGGetScreenQuadIndexBuffer(RenderGraph& Graph)
     if (!ScreenQuadIndexBuffer)
     {
         RDGBufferDesc Desc(sizeof(uint16) * 6, sizeof(uint16), EBufferUsageFlags::IndexBuffer);
-        ScreenQuadIndexBuffer = RenderGraph::CreateExternalBuffer("ScreenQuadIndexBuffer", Desc);
+        ScreenQuadIndexBuffer = RenderGraph::CreatePooledBuffer("ScreenQuadIndexBuffer", Desc);
         uint16 Data[6] = {
             0, 1, 2,
             1, 3, 2

@@ -25,7 +25,7 @@ namespace nilou {
         Desc.ArraySize = 6;
         Desc.TextureType = ETextureDimension::TextureCube;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         // RDGPassDesc PassDesc{"FTextureCubeResource::InitRHI"};
         // PassDesc.bNeverCull = true;

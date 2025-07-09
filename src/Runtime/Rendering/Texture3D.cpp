@@ -25,7 +25,7 @@ namespace nilou {
         Desc.SizeZ = Image->GetDepth();
         Desc.TextureType = ETextureDimension::Texture3D;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         RDGPassDesc PassDesc{"FTexture3DResource::InitRHI"};
         PassDesc.bNeverCull = true;

@@ -51,7 +51,7 @@ namespace nilou {
     void FPrimitiveSceneProxy::CreateUniformBuffer()
     {
         Ncheck(IsInRenderingThread());
-        UniformBuffer = RenderGraph::CreateExternalUniformBuffer<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer", nullptr);
+        UniformBuffer = RenderGraph::CreatePooledUniformBuffer<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer", nullptr);
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)

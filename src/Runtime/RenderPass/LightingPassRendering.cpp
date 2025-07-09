@@ -100,7 +100,7 @@ namespace nilou {
                         RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
                         RHICmdList.BindDescriptorSets(PSO->PipelineLayout.GetReference(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
 
-                        RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
+                        RHICmdList.DrawIndexed(6, 1, 0, 0, 0);
                     });
             }
 

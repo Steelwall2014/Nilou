@@ -33,8 +33,8 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_OnRegister)(
             [this](RenderGraph& Graph) 
             {
-                IrradianceShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<IrradianceEnvTextureShaderBlock>("IrradianceEnvTextureShaderBlock", nullptr);
-                PrefilterShaderUniformBuffer = RenderGraph::CreateExternalUniformBuffer<PrefilteredEnvTextureShaderBlock>("PrefilteredEnvTextureShaderBlock", nullptr);
+                IrradianceShaderUniformBuffer = RenderGraph::CreatePooledUniformBuffer<IrradianceEnvTextureShaderBlock>("IrradianceEnvTextureShaderBlock", nullptr);
+                PrefilterShaderUniformBuffer = RenderGraph::CreatePooledUniformBuffer<PrefilteredEnvTextureShaderBlock>("PrefilteredEnvTextureShaderBlock", nullptr);
             });
 
         if (WorldPrivate) 

@@ -118,7 +118,7 @@ namespace nilou {
 
         ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph&) {
 
-            AtmosphereParameters = RenderGraph::CreateExternalUniformBuffer<ShaderAtmosphereParametersBlock>("", nullptr);
+            AtmosphereParameters = RenderGraph::CreatePooledUniformBuffer<ShaderAtmosphereParametersBlock>("", nullptr);
 
             RDGTextureDesc Desc;
             Desc.TextureType = ETextureDimension::Texture2D;
@@ -126,20 +126,20 @@ namespace nilou {
             Desc.NumMips = 1;
             Desc.SizeX = TRANSMITTANCE_TEXTURE_WIDTH;
             Desc.SizeY = TRANSMITTANCE_TEXTURE_HEIGHT;
-            TransmittanceLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere TransmittanceLUT", Desc);
+            TransmittanceLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere TransmittanceLUT", Desc);
 
             Desc.SizeX = IRRADIANCE_TEXTURE_WIDTH;
             Desc.SizeY = IRRADIANCE_TEXTURE_HEIGHT;
-            IrradianceLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere IrradianceLUT", Desc);
+            IrradianceLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere IrradianceLUT", Desc);
 
             Desc.TextureType = ETextureDimension::Texture3D;
             Desc.SizeX = SCATTERING_TEXTURE_WIDTH;
             Desc.SizeY = SCATTERING_TEXTURE_HEIGHT;
             Desc.SizeZ = SCATTERING_TEXTURE_DEPTH;
-            DeltaScatteringRayleighLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere SingleScatteringRayleighLUT", Desc);
-            SingleScatteringMieLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere SingleScatteringMieLUT", Desc);
-            MultiScatteringLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere MultiScatteringLUT", Desc);
-            ScatteringDensityLUT = RenderGraph::CreateExternalTexture("SkyAtmosphere ScatteringDensityLUT", Desc);
+            DeltaScatteringRayleighLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere SingleScatteringRayleighLUT", Desc);
+            SingleScatteringMieLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere SingleScatteringMieLUT", Desc);
+            MultiScatteringLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere MultiScatteringLUT", Desc);
+            ScatteringDensityLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere ScatteringDensityLUT", Desc);
 
             DispatchPrecompute();
         });

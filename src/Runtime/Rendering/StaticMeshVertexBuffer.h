@@ -143,7 +143,7 @@ namespace nilou {
     {
         FRenderResource::InitRHI(Graph);
         RDGBufferDesc Desc(Stride*NumVertices, Stride, EBufferUsageFlags::TransferSrc);
-        VertexBufferRDG = RenderGraph::CreateExternalBuffer("StaticMeshVertexBuffer", Desc);
+        VertexBufferRDG = RenderGraph::CreatePooledBuffer("StaticMeshVertexBuffer", Desc);
         Graph.QueueBufferUpload(VertexBufferRDG.GetReference(), Data, Stride*NumVertices);
     }
 

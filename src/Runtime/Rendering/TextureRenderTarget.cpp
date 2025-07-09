@@ -22,7 +22,7 @@ namespace nilou {
         Desc.SizeX = Image->GetWidth();
         Desc.SizeY = Image->GetHeight();
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         RDGPassDesc PassDesc{"FTextureRenderTarget2DResource::InitRHI"};
         PassDesc.bNeverCull = true;
@@ -71,7 +71,7 @@ namespace nilou {
         Desc.ArraySize = 6;
         Desc.TextureType = ETextureDimension::TextureCube;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         // RDGPassDesc PassDesc{"FTextureRenderTargetCubeResource::InitRHI"};
         // PassDesc.bNeverCull = true;

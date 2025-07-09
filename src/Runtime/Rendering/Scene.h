@@ -53,7 +53,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            LightUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FLightShaderParameters>("LightUniformBuffer", nullptr);
+            LightUniformBuffer = RenderGraph::CreatePooledUniformBuffer<FLightShaderParameters>("LightUniformBuffer", nullptr);
         }
 
         ~FLightSceneInfo()

@@ -300,7 +300,7 @@ void RenderGraph::BeginFrame()
 
 void RenderGraph::EndFrame()
 {
-	for (RDGTexture* Texture : PooledTextures)
+	for (RDGTextureRef Texture : PooledTextures)
 	{
 		Texture->ReferenceCount = 0;
 		Texture->PassStateIndex = 0;
@@ -309,7 +309,7 @@ void RenderGraph::EndFrame()
 		Texture->LastProducers.clear();
 		Texture->SubresourceStates.clear();
 	}
-	for (RDGBuffer* Buffer : PooledBuffers)
+	for (RDGBufferRef Buffer : PooledBuffers)
 	{
 		Buffer->ReferenceCount = 0;
 		Buffer->PassStateIndex = 0;
@@ -320,22 +320,22 @@ void RenderGraph::EndFrame()
 	RHIEndFrame();
 }
 
-RDGTextureRef RenderGraph::CreateExternalTexture(const std::string& Name, const RDGTextureDesc& Desc)
+RDGTextureRef RenderGraph::CreatePooledTexture(const std::string& Name, const RDGTextureDesc& Desc)
 {
     RDGTextureRef Texture = TRefCountPtr(new RDGTexture(Name, Desc));
     Texture->Name = Name;
     Texture->bTransient = false;
-	Texture->PooledDefaultView = CreateExternalTextureView(Texture.GetReference());
+	Texture->PooledDefaultView = CreatePooledTextureView(Texture.GetReference());
     return Texture;
 }
 
-RDGTextureViewRef RenderGraph::CreateExternalTextureView(const std::string& Name, RDGTexture* InTexture, const RDGTextureViewDesc& ViewDesc)
+RDGTextureViewRef RenderGraph::CreatePooledTextureView(const std::string& Name, RDGTexture* InTexture, const RDGTextureViewDesc& ViewDesc)
 {
     RDGTextureViewRef TextureView = TRefCountPtr(new RDGTextureView(Name, InTexture, ViewDesc));
     return TextureView;
 }
 
-RDGTextureViewRef RenderGraph::CreateExternalTextureView(RDGTexture* InTexture)
+RDGTextureViewRef RenderGraph::CreatePooledTextureView(RDGTexture* InTexture)
 {
 	std::string Name = InTexture->Name + "_DefaultView";
 	RDGTextureViewDesc ViewDesc;
@@ -349,7 +349,7 @@ RDGTextureViewRef RenderGraph::CreateExternalTextureView(RDGTexture* InTexture)
     return TextureView;
 }
 
-RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& Desc)
+RDGBufferRef RenderGraph::CreatePooledBuffer(const std::string& Name, const RDGBufferDesc& Desc)
 {
     RDGBufferRef Buffer = TRefCountPtr(new RDGBuffer(Name, Desc));
     Buffer->Name = Name;
@@ -357,7 +357,7 @@ RDGBufferRef RenderGraph::CreateExternalBuffer(const std::string& Name, const RD
     return Buffer;
 }
 
-RDGDescriptorSetRef RenderGraph::CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
+RDGDescriptorSetRef RenderGraph::CreatePooledDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout)
 {
     RDGDescriptorSetRef DescriptorSet = TRefCountPtr(new RDGDescriptorSet(Name, Layout));
     return DescriptorSet;
@@ -505,6 +505,10 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		Desc.Usage |= Access == ERHIAccess::TransferRead ? EBufferUsageFlags::TransferSrc : EBufferUsageFlags::TransferDst;
 
 		PassState.Access = Access;
+		if (!Buffer->bTransient)
+		{
+			PooledBuffers.push_back(TRefCountPtr(Buffer));
+		}
 	}
 	else if (Resource->Type == ERDGResourceType::TextureView)
 	{
@@ -523,6 +527,10 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 			int32 SubresourceIndex = WholeRange.GetSubresourceIndex(Subresource);
 			PassState.Access[SubresourceIndex] = Access;
 		}
+		if (!TextureView->bTransient)
+		{
+			PooledTextureViews.push_back(TRefCountPtr(TextureView));
+		}
 	}
 	else if (Resource->Type == ERDGResourceType::Texture)
 	{
@@ -538,6 +546,10 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 		{
 			PassState.Access[SubresourceIndex] = Access;
 		}
+		if (!Texture->bTransient)
+		{
+			PooledTextures.push_back(TRefCountPtr(Texture));
+		}
 	}
 	else 
 	{
@@ -549,6 +561,14 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 {
 	const FRDGPassHandle PassHandle = Pass->Handle;
 	const ERHIPipeline PassPipeline = Pass->Pipeline;
+
+	for (RDGDescriptorSet* DescriptorSet : Pass->DescriptorSets)
+	{
+		if (!DescriptorSet->bTransient)
+		{
+			PooledDescriptorSets.push_back(TRefCountPtr(DescriptorSet));
+		}
+	}
 
     // Steelwall2014: This lambda function can be called on the same texture multiple times with different access and subresource range.
     // So PassState.ReferenceCount is needed to keep track of the number of times the texture is accessed in this pass.
@@ -567,6 +587,14 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 			PassState.Access[SubresourceIndex] = Access;
 		}
 		Pass->Views.push_back(TextureView);
+		if (!TextureView->bTransient)
+		{
+			PooledTextureViews.push_back(TRefCountPtr(TextureView));
+		}
+		if (!Texture->bTransient)
+		{
+			PooledTextures.push_back(TRefCountPtr(Texture));
+		}
 	});
 
 	EnumerateBufferAccess(Pass, [&](RDGBuffer* Buffer, ERHIAccess Access)
@@ -576,6 +604,10 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
 		Buffer->ReferenceCount++;
 
 		PassState.Access = Access;
+		if (!Buffer->bTransient)
+		{
+			PooledBuffers.push_back(TRefCountPtr(Buffer));
+		}
 	});
 	
 	SetupPassDependencies(Pass);
@@ -886,11 +918,6 @@ void RenderGraph::CollectAllocateTexture(FCollectResourceContext& Context, FRDGP
 			Context.PooledTextures.emplace_back(AllocateOp);
 		}
     }
-
-	if (!Texture->bTransient)
-	{
-		PooledTextures.push_back(Texture);
-	}
 }
 
 void RenderGraph::CollectAllocateBuffer(FCollectResourceContext& Context, FRDGPassHandle PassHandle, RDGBuffer* Buffer)
@@ -916,11 +943,6 @@ void RenderGraph::CollectAllocateBuffer(FCollectResourceContext& Context, FRDGPa
 			Context.PooledBuffers.emplace_back(AllocateOp);
 		}
     }
-
-	if (!Buffer->bTransient)
-	{
-		PooledBuffers.push_back(Buffer);
-	}
 }
 
 void RenderGraph::CollectDeallocations(FCollectResourceContext& Context, FRDGPass* Pass)

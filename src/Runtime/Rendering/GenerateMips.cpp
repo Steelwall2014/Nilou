@@ -136,7 +136,7 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                     RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
                     RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                     RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
-                    RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
+                    RHICmdList.DrawIndexed(6, 1, 0, 0, 0);
                 }
             );
         }

@@ -244,7 +244,22 @@ namespace nilou {
     void VulkanCommandBuffer::BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset)
     {
         VkBuffer vkBuffer = ResourceCast(Buffer)->Handle;
-        vkCmdBindIndexBuffer(Handle, vkBuffer, Offset, VK_INDEX_TYPE_UINT32);
+        VkIndexType IndexType = VK_INDEX_TYPE_UINT32;
+        switch (Buffer->GetStride())
+        {
+        case 1:
+            IndexType = VK_INDEX_TYPE_UINT8_EXT;
+            break;
+        case 2:
+            IndexType = VK_INDEX_TYPE_UINT16;
+            break;
+        case 4:
+            IndexType = VK_INDEX_TYPE_UINT32;
+            break;
+        default:
+            Ncheck(0);
+        }
+        vkCmdBindIndexBuffer(Handle, vkBuffer, Offset, IndexType);
     }
 
     void VulkanCommandBuffer::PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data)
@@ -410,6 +425,7 @@ namespace nilou {
                 }
                 StagingBuffers.clear();
                 vkResetCommandBuffer(Handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+                vkResetFences(Device, 1, &Fence);
                 State = EState::ReadyForBegin;
             }
         }

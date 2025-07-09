@@ -20,7 +20,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
             [this](RenderGraph&)
             {
-                ViewUniformBuffer = RenderGraph::CreateExternalUniformBuffer<FViewShaderParameters>("ViewUniformBuffer", nullptr);
+                ViewUniformBuffer = RenderGraph::CreatePooledUniformBuffer<FViewShaderParameters>("ViewUniformBuffer", nullptr);
             });
     }
 

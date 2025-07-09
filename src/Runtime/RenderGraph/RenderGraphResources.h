@@ -218,7 +218,7 @@ private:
     // Steelwall2014: not null if the texture is created from RenderGraph::CreateTexture
     class FRHITransientTexture* TransientTexture = nullptr;
 
-    // Steelwall2014: not null if the texture is created from RenderGraph::CreateExternalTexture
+    // Steelwall2014: not null if the texture is created from RenderGraph::CreatePooledTexture
     FRDGPooledTextureRef PooledTexture = nullptr;
 
     // Steelwall2014: ViewCache is embedded in RHITexture in NilouEngine.
@@ -294,7 +294,7 @@ public:
 
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
     class FRHITransientBuffer* TransientBuffer;
-    // Steelwall2014: not null if the buffer is created from RenderGraph::CreateExternalBuffer
+    // Steelwall2014: not null if the buffer is created from RenderGraph::CreatePooledBuffer
     FRDGPooledBufferRef PooledBuffer;
 
     RDGSubresourceState State;

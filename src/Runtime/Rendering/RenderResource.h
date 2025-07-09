@@ -51,6 +51,7 @@ namespace nilou {
         uint32 NumVertices;
 
         RHIBuffer* GetRHI() const;
+        virtual void ReleaseRHI() override;
 
     };
 
@@ -64,6 +65,7 @@ namespace nilou {
         uint32 NumIndices;
 
         RHIBuffer* GetRHI() const;
+        virtual void ReleaseRHI() override;
     };
 
     #define BeginInitResource(Resource) BeginInitResource_Internal(Resource, __FILE__, __LINE__)

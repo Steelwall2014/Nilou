@@ -25,7 +25,7 @@ namespace nilou {
         Desc.ArraySize = Image->GetNumLayers();
         Desc.TextureType = ETextureDimension::Texture2DArray;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         RDGPassDesc PassDesc{"FTexture2DArrayResource::InitRHI"};
         PassDesc.bNeverCull = true;

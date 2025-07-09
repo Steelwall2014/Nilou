@@ -31,17 +31,16 @@ public:
 
     RDGTexture* GetSwapChainTexture() const { return SwapChainTexture; }
 
-    // TODO: 以下这些CreateExternalXXX函数重命名为CreatePooledXXX
-    static RDGTextureRef CreateExternalTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
+    static RDGTextureRef CreatePooledTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
 
-    static RDGTextureViewRef CreateExternalTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& TextureViewDesc);
+    static RDGTextureViewRef CreatePooledTextureView(const std::string& Name, RDGTexture* Texture, const RDGTextureViewDesc& TextureViewDesc);
 
-    static RDGTextureViewRef CreateExternalTextureView(RDGTexture* Texture);
+    static RDGTextureViewRef CreatePooledTextureView(RDGTexture* Texture);
 
-    static RDGBufferRef CreateExternalBuffer(const std::string& Name, const RDGBufferDesc& Desc);
+    static RDGBufferRef CreatePooledBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
     template<class T>
-    static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name, const T* Data)
+    static TRDGUniformBufferRef<T> CreatePooledUniformBuffer(const std::string& Name, const T* Data)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
         TRDGUniformBufferRef<T> Buffer = TRefCountPtr(new TRDGUniformBuffer<T>(Name, Desc));
@@ -49,7 +48,7 @@ public:
         return Buffer;
     }
 
-    static RDGDescriptorSetRef CreateExternalDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
+    static RDGDescriptorSetRef CreatePooledDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
     RDGTexture* RegisterExternalTexture(const std::string& Name, RHITexture* TextureRHI);
 
@@ -97,7 +96,7 @@ public:
         Pass->VertexBuffers = VertexBuffers;
         Pass->DescriptorSets = PassParameters;
         Passes.push_back(Pass);
-        SetupParameterPass(Pass);   
+        SetupParameterPass(Pass);
         return Pass->Handle;
     }
 
@@ -207,8 +206,14 @@ private:
     std::vector<RDGBufferRef> Buffers;
     std::vector<RDGDescriptorSetRef> DescriptorSets;
 
-    std::vector<RDGTexture*> PooledTextures;
-    std::vector<RDGBuffer*> PooledBuffers;
+    // Note by Steelwall2014: 
+    // Although the lifetime of the pooled resources is not managed by the RenderGraph,
+    // the RenderGraph still needs to borrow the ownership of the pooled resources to 
+    // make sure the pooled resources are not destroyed before the ~RenderGraph().
+    std::vector<RDGTextureRef> PooledTextures;
+    std::vector<RDGTextureViewRef> PooledTextureViews;
+    std::vector<RDGBufferRef> PooledBuffers;
+    std::vector<RDGDescriptorSetRef> PooledDescriptorSets;
 
     std::unordered_map<RHITexture*, RDGTexture*> ExternalTextures;
 

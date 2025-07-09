@@ -41,7 +41,8 @@ namespace nilou {
 
     std::ofstream CreateLogFile()
     {
-        std::filesystem::path CurrentPath = FPath::ProjectDir() / "Saved/Logs/Nilou.log";
+        std::filesystem::path LogsDir = FPath::ProjectDir() / "Saved/Logs";
+        std::filesystem::path CurrentPath = LogsDir / "Nilou.log";
         if (std::filesystem::exists(CurrentPath))
         {
             auto LastWriteTime = std::filesystem::last_write_time(CurrentPath);
@@ -49,9 +50,9 @@ namespace nilou {
                 std::chrono::clock_cast<std::chrono::system_clock>(LastWriteTime));
             std::stringstream ss;
             ss << std::put_time(std::localtime(&TimeT), "Nilou_%Y%m%d_%H%M%S.log");
-            std::filesystem::rename(CurrentPath, ss.str());
+            std::filesystem::rename(CurrentPath, LogsDir / ss.str());
         }
-        std::filesystem::create_directories(CurrentPath.parent_path());
+        std::filesystem::create_directories(LogsDir);
         std::ofstream LogFile{CurrentPath};
         return LogFile;
     }
@@ -59,8 +60,8 @@ namespace nilou {
     void Logf_Internal(ELogVerbosity Verbosity, const std::string& Message)
     {
         static std::mutex Mutex;
-        static std::ofstream File = CreateLogFile();
         std::lock_guard<std::mutex> Lock(Mutex);
+        static std::ofstream File = CreateLogFile();
         // 生成带有毫秒的时间戳字符串
         auto now = std::chrono::system_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;

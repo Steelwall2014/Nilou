@@ -40,7 +40,7 @@ namespace nilou {
         Desc.SizeY = Image->GetHeight();
         Desc.TextureType = ETextureDimension::Texture2D;
         Desc.NumMips = NumMips;
-        TextureRDG = RenderGraph::CreateExternalTexture(Name, Desc);
+        TextureRDG = RenderGraph::CreatePooledTexture(Name, Desc);
 
         RDGPassDesc PassDesc("FTexture2DResource::InitRHI");
         PassDesc.bNeverCull = true;
