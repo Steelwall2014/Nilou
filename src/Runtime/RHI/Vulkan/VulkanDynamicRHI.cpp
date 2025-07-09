@@ -137,7 +137,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
 
-    NILOU_LOG(Fatal, "validation layer: {}", pCallbackData->pMessage);
+    NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
 
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         // Message is important enough to show
@@ -363,7 +363,7 @@ int FVulkanDynamicRHI::Initialize()
         CreateInfo.LevelCount = 1;
         CreateInfo.BaseArrayLayer = 0;
         CreateInfo.LayerCount = 1;
-        DepthImageView = RHICreateTextureView(DepthImage, CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
+        DepthImageView = RHICreateTextureView(DepthImage.GetReference(), CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
         // auto VkDepthImage = ResourceCast(DepthImage);
         // RHIImageMemoryBarrier SwapChainImageBarrier{
         //     DepthImage, 
@@ -411,7 +411,7 @@ int FVulkanDynamicRHI::Initialize()
             CreateInfo.LevelCount = 1;
             CreateInfo.BaseArrayLayer = 0;
             CreateInfo.LayerCount = 1;
-            swapChainImageViews[i] = RHICreateTextureView(swapChainImages[i], CreateInfo, "SwapChainImageView");
+            swapChainImageViews[i] = RHICreateTextureView(swapChainImages[i].GetReference(), CreateInfo, "SwapChainImageView");
             swapChainFramebuffers[i] = RenderPassManager->GetOrCreateFramebuffer(RenderPass, { swapChainImageViews[i].GetReference() }, DepthImageView.GetReference());
         }
 
@@ -450,7 +450,7 @@ void FVulkanDynamicRHI::RHIEndFrame()
 
 RHITexture* FVulkanDynamicRHI::RHIGetSwapChainTexture()
 {
-    return swapChainImages[CurrentSwapChainImageIndex];
+    return swapChainImages[CurrentSwapChainImageIndex].GetReference();
 }
 
 void FVulkanDynamicRHI::Finalize()
@@ -464,7 +464,7 @@ void FVulkanDynamicRHI::Finalize()
     FPipelineStateCache::ClearCacheGraphicsPSO();
     FPipelineStateCache::ClearCacheVertexDeclarations();
     for (auto ImageView : swapChainImageViews)
-        vkDestroyImageView(Device->Handle, ResourceCast(ImageView)->GetHandle(), nullptr);
+        vkDestroyImageView(Device->Handle, ResourceCast(ImageView.GetReference())->GetHandle(), nullptr);
 
     shaderc_compiler_release(shader_compiler);
 
@@ -502,7 +502,7 @@ static VkDescriptorType TranslateDescriptorType(EDescriptorType Type)
 
 RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders)
 {
-    VulkanPipelineLayoutRef PipelineLayout = new VulkanPipelineLayout(Device->Handle);
+    VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
     uint32 MaxSetIndex = 0;
     std::vector<VkPushConstantRange> VulkanPushConstantRanges;
     for (RHIShader* shader : shaders)
@@ -514,10 +514,10 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
             if (Found != PipelineLayout->DescriptorSetLayouts.end())
             {
                 RHIDescriptorSetLayout* ExistingLayout = Found->second;
-                RHIDescriptorSetLayout* NewLayout = DescriptorSetLayout;
+                RHIDescriptorSetLayout* NewLayout = DescriptorSetLayout.GetReference();
                 Ncheckf(ExistingLayout->IsEquivalent(NewLayout), "Descriptor set layout mismatch");
             }
-            PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout;
+            PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout.GetReference();
         }
         if (shader->PushConstantRange)
         {
@@ -544,7 +544,7 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
     // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
     // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
     static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
-    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex+1, ResourceCast(DummyDescriptorSetLayout)->Handle);
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex+1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
     for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
     {
         SetLayoutHandles[SetIndex] = ResourceCast(DescriptorSetLayout)->Handle;
@@ -563,7 +563,7 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vecto
 
 RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer)
 {
-    VulkanGraphicsPipelineStateRef PSO = new VulkanGraphicsPipelineState(Device->Handle, Initializer);
+    VulkanGraphicsPipelineStateRef PSO = TRefCountPtr(new VulkanGraphicsPipelineState(Device->Handle, Initializer));
 
     VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.VertexShader);
     VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.PixelShader);
@@ -600,9 +600,9 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    static RHIDepthStencilState* DefaultDepthStencilState = TStaticDepthStencilState<>::CreateRHI();
-    static RHIRasterizerState* DefaultRasterizerState = TStaticRasterizerState<>::CreateRHI();
-    static RHIBlendState* DefaultBlendState = TStaticBlendState<>::CreateRHI();
+    static RHIDepthStencilState* DefaultDepthStencilState = TStaticDepthStencilState<>::GetRHI();
+    static RHIRasterizerState* DefaultRasterizerState = TStaticRasterizerState<>::GetRHI();
+    static RHIBlendState* DefaultBlendState = TStaticBlendState<>::GetRHI();
     VulkanDepthStencilState* DepthStencilState = static_cast<VulkanDepthStencilState*>(Initializer.DepthStencilState ? Initializer.DepthStencilState : DefaultDepthStencilState);
     VulkanRasterizerState* RasterizerState = static_cast<VulkanRasterizerState*>(Initializer.RasterizerState ? Initializer.RasterizerState : DefaultRasterizerState);
     VulkanBlendState* BlendState = static_cast<VulkanBlendState*>(Initializer.BlendState ? Initializer.BlendState : DefaultBlendState);
@@ -647,7 +647,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     pipelineInfo.pDepthStencilState = &DepthStencilState->DepthStencilState;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = ResourceCast(PipelineLayout)->Handle;
+    pipelineInfo.layout = ResourceCast(PipelineLayout.GetReference())->Handle;
     pipelineInfo.renderPass = PSO->RenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -669,12 +669,12 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
 
     RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {ComputeShader} );
 
-    VulkanComputePipelineStateRef PSO = new VulkanComputePipelineState(Device->Handle, ComputeShader);
+    VulkanComputePipelineStateRef PSO = TRefCountPtr(new VulkanComputePipelineState(Device->Handle, ComputeShader));
     PSO->PipelineLayout = PipelineLayout;
 
     VkComputePipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.layout = ResourceCast(PipelineLayout)->Handle;
+    pipelineInfo.layout = ResourceCast(PipelineLayout.GetReference())->Handle;
     pipelineInfo.stage = computeShaderStageInfo;
 
     VK_CHECK_RESULT(vkCreateComputePipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle));
@@ -689,7 +689,7 @@ RHIGraphicsPipelineState *FVulkanDynamicRHI::RHICreateGraphicsPipelineState(cons
     RHIGraphicsPipelineStateRef PSO = RHICreateGraphicsPSO(Initializer);
     FPipelineStateCache::CacheGraphicsPSO(Initializer, PSO);
     
-    return PSO;
+    return PSO.GetReference();
 }
 
 RHIComputePipelineState* FVulkanDynamicRHI::RHICreateComputePipelineState(RHIComputeShader* ComputeShader)
@@ -700,22 +700,22 @@ RHIComputePipelineState* FVulkanDynamicRHI::RHICreateComputePipelineState(RHICom
     RHIComputePipelineStateRef PSO = RHICreateComputePSO(ComputeShader);
     FPipelineStateCache::CacheComputePSO(ComputeShader, PSO);
     
-    return PSO;
+    return PSO.GetReference();
 }
 
 RHIDepthStencilStateRef FVulkanDynamicRHI::RHICreateDepthStencilState(const FDepthStencilStateInitializer &Initializer)
 {
-    return new VulkanDepthStencilState(Initializer);
+    return TRefCountPtr(new VulkanDepthStencilState(Initializer));
 }
 
 RHIRasterizerStateRef FVulkanDynamicRHI::RHICreateRasterizerState(const FRasterizerStateInitializer &Initializer)
 {
-    return new VulkanRasterizerState(Initializer);
+    return TRefCountPtr(new VulkanRasterizerState(Initializer));
 }
 
 RHIBlendStateRef FVulkanDynamicRHI::RHICreateBlendState(const FBlendStateInitializer &Initializer)
 {
-    return new VulkanBlendState(Initializer);
+    return TRefCountPtr(new VulkanBlendState(Initializer));
 }
 
 inline VkSamplerMipmapMode TranslateMipFilterMode(ESamplerFilter InFilter)
@@ -784,7 +784,7 @@ inline VkCompareOp TranslateSamplerCompareFunction(ESamplerCompareFunction InSam
 
 RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateInitializer &Initializer)
 {
-    VulkanSamplerStateRef Sampler = new VulkanSamplerState(Initializer, Device->Handle);
+    VulkanSamplerStateRef Sampler = TRefCountPtr(new VulkanSamplerState(Initializer, Device->Handle));
     VkSamplerCreateInfo SamplerInfo{};
     SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -824,7 +824,7 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
     if (CachedDeclaration)
         return CachedDeclaration;
     
-    VulkanVertexDeclarationRef Declaration = new VulkanVertexDeclaration();
+    VulkanVertexDeclarationRef Declaration = TRefCountPtr(new VulkanVertexDeclaration());
 
     VkPipelineVertexInputStateCreateInfo& vertexInputInfo = Declaration->VertexInputInfo;
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -865,12 +865,12 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     FPipelineStateCache::CacheVertexDeclaration(ElementList, Declaration);
-    return Declaration;
+    return Declaration.GetReference();
 }
 
 RHISemaphoreRef FVulkanDynamicRHI::RHICreateSemaphore()
 {
-    return new VulkanSemaphore(Device->Handle);
+    return TRefCountPtr(new VulkanSemaphore(Device->Handle));
 }
 
 uint32 FVulkanDynamicRHI::RHIComputeMemorySize(RHITexture* TextureRHI)

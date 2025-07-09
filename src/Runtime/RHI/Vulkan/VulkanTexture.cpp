@@ -156,13 +156,13 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
 
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(CreateInfo.Format, false, true);
 
-    return new VulkanTexture(
+    return TRefCountPtr(new VulkanTexture(
         Device,
         Image, 
         Memory, 
         GetFullAspectMask(CreateInfo.Format), 
         Name, 
-        CreateInfo);
+        CreateInfo));
 }
 
 RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name)
@@ -195,7 +195,7 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     viewInfo.subresourceRange.baseArrayLayer = CreateInfo.BaseArrayLayer;
     viewInfo.subresourceRange.layerCount = CreateInfo.LayerCount;
     
-    TRefCountPtr<VulkanTextureView> TextureView = new VulkanTextureView(CreateInfo, InTexture);
+    TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(CreateInfo, InTexture));
     VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &TextureView->Handle));
 
     return TextureView;

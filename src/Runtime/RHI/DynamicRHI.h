@@ -61,7 +61,6 @@ namespace nilou {
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) = 0;
 		virtual RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& Name) { return RHICreateBuffer(CreateInfo.Stride, CreateInfo.Size, CreateInfo.Usage, nullptr); }
-		virtual RHIBuffer* RHICreateStagingBuffer(uint32 Size) = 0;
 		
 		// virtual RHITexture2DRef RHICreateTexture2D(
 		// 	const std::string &name, EPixelFormat Format, 
@@ -155,11 +154,6 @@ namespace nilou {
 	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
 	{
 		return FDynamicRHI::Get()->RHICreateBuffer(Stride, Size, InUsage, Data);
-	}
-
-	inline RHIBuffer* RHICreateStagingBuffer(uint32 Size)
-	{
-		return FDynamicRHI::Get()->RHICreateStagingBuffer(Size);
 	}
 
 	inline RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer)

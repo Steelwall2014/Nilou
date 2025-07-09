@@ -29,7 +29,7 @@ namespace nilou {
         Graph.AddCopyPass(
             PassDesc,
             nullptr,
-            TextureRDG,
+            TextureRDG.GetReference(),
             [=, this](RHICommandList& RHICmdList)
             {
                 RHIBuffer* StagingBufferRHI = RHICmdList.AcquireStagingBuffer(Image->GetDataSize());

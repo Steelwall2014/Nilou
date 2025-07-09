@@ -13,7 +13,7 @@ RHIGraphicsPipelineState* FPipelineStateCache::FindCachedGraphicsPSO(const FGrap
 {
     if (!GraphicsPipelineCache.contains(Initializer))
         return nullptr;
-    return GraphicsPipelineCache[Initializer];
+    return GraphicsPipelineCache[Initializer].GetReference();
 }
 
 void FPipelineStateCache::CacheComputePSO(RHIComputeShader* ComputeShader, RHIComputePipelineStateRef CacheState)
@@ -25,7 +25,7 @@ RHIComputePipelineState* FPipelineStateCache::FindCachedComputePSO(RHIComputeSha
 {
     if (!ComputePipelineCache.contains(ComputeShader))
         return nullptr;
-    return ComputePipelineCache[ComputeShader];
+    return ComputePipelineCache[ComputeShader].GetReference();
 }
 
 void FPipelineStateCache::CacheVertexDeclaration(const FVertexDeclarationElementList& ElementList, FRHIVertexDeclarationRef VertexDeclaration)
@@ -39,7 +39,7 @@ FRHIVertexDeclaration* FPipelineStateCache::FindVertexDeclaration(const FVertexD
     uint32 Key = FCrc::MemCrc32(Elements.data(), Elements.size() * sizeof(FVertexElement));
     if (!VertexDeclarationCache.contains(Key))
         return nullptr;
-    return VertexDeclarationCache[Key];
+    return VertexDeclarationCache[Key].GetReference();
 }
 
 std::unordered_map<FGraphicsPipelineStateInitializer, RHIGraphicsPipelineStateRef> 

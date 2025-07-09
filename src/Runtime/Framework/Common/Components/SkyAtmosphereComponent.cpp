@@ -165,7 +165,7 @@ namespace nilou {
         FShaderInstance *TransmittanceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(TransmittanceShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("TransmittanceShader DescriptorSet", TransmittanceShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetStorageImage("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
         RDGPassDesc PassDesc{"DispatchTransmittancePass"};
         Graph.AddComputePass(
@@ -186,7 +186,7 @@ namespace nilou {
         FShaderInstance *DirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(DirectIrradianceShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DirectIrradianceShader DescriptorSet", DirectIrradianceShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetStorageImage("IrradianceLUT", IrradianceLUT->GetDefaultView());
         DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
         RDGPassDesc PassDesc{"DispatchDirectIrradiancePass"};
@@ -208,7 +208,7 @@ namespace nilou {
         FShaderInstance *ScatteringShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("ScatteringShader DescriptorSet", ScatteringShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
         DescriptorSet->SetStorageImage("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView());
         DescriptorSet->SetStorageImage("SingleScatteringMieLUT", SingleScatteringMieLUT->GetDefaultView());
@@ -232,7 +232,7 @@ namespace nilou {
         FShaderInstance *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(ScatteringDensityShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("ScatteringDensityShader DescriptorSet", ScatteringDensityShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetStorageImage("ScatteringDensityLUT", ScatteringDensityLUT->GetDefaultView());
         DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());
         DescriptorSet->SetSampler("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView());
@@ -258,7 +258,7 @@ namespace nilou {
         FShaderInstance *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(IndirectIrradianceShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("IndirectIrradianceShader DescriptorSet", IndirectIrradianceShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetStorageImage("IrradianceLUT", IrradianceLUT->GetDefaultView());
         DescriptorSet->SetSampler("SingleScatteringRayleighLUT", DeltaScatteringRayleighLUT->GetDefaultView());
         DescriptorSet->SetSampler("SingleScatteringMieLUT", SingleScatteringMieLUT->GetDefaultView());
@@ -281,7 +281,7 @@ namespace nilou {
         FShaderInstance *MultiScatteringShader = GetGlobalShader<FAtmosphereMultiScatteringShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(MultiScatteringShader->GetComputeShaderRHI());
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("MultiScatteringShader DescriptorSet", MultiScatteringShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters);
+        DescriptorSet->SetUniformBuffer("AtmosphereParametersBlock", AtmosphereParameters.GetReference());
         DescriptorSet->SetStorageImage("DeltaScatteringLUT", DeltaScatteringRayleighLUT->GetDefaultView());
         DescriptorSet->SetStorageImage("MultiScatteringLUT", MultiScatteringLUT->GetDefaultView());
         DescriptorSet->SetSampler("TransmittanceLUT", TransmittanceLUT->GetDefaultView());

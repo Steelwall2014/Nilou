@@ -34,9 +34,9 @@ RDGBuffer* RDGGetScreenQuadVertexBuffer(RenderGraph& Graph)
             {vec4(-1.0f, 1.0f, 0.0f, 1.0f), vec2(0.0f, 1.0f)},
             {vec4(1.0f, 1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)},
         };
-        Graph.QueueBufferUpload(ScreenQuadVertexBuffer, Data, sizeof(Data));
+        Graph.QueueBufferUpload(ScreenQuadVertexBuffer.GetReference(), Data, sizeof(Data));
     }
-    return ScreenQuadVertexBuffer;
+    return ScreenQuadVertexBuffer.GetReference();
 }
 
 RDGBuffer* RDGGetScreenQuadIndexBuffer(RenderGraph& Graph)
@@ -50,9 +50,9 @@ RDGBuffer* RDGGetScreenQuadIndexBuffer(RenderGraph& Graph)
             0, 1, 2,
             1, 3, 2
         };
-        Graph.QueueBufferUpload(ScreenQuadIndexBuffer, Data, sizeof(Data));
+        Graph.QueueBufferUpload(ScreenQuadIndexBuffer.GetReference(), Data, sizeof(Data));
     }
-    return ScreenQuadIndexBuffer;
+    return ScreenQuadIndexBuffer.GetReference();
 }
 
 }

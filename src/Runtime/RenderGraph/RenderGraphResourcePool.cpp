@@ -76,7 +76,7 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 
 		RHIBufferRef BufferRHI = RHICreateBuffer(AlignedDesc.Translate(), InDebugName);
 
-		FRDGPooledBufferRef PooledBuffer = new FRDGPooledBuffer(std::move(BufferRHI), Desc, AlignedDesc.NumElements, InDebugName);
+		FRDGPooledBufferRef PooledBuffer = TRefCountPtr(new FRDGPooledBuffer(std::move(BufferRHI), Desc, AlignedDesc.NumElements, InDebugName));
 		AllocatedBuffers.push_back(PooledBuffer);
 		AllocatedBufferHashes.push_back(BufferHash);
 		Ncheck(PooledBuffer->GetRefCount() == 2);
@@ -157,10 +157,10 @@ void FRDGTexturePool::FreeUnusedResource(FRDGPooledTextureRef& In)
 {
 	std::lock_guard<std::recursive_mutex> Lock(Mutex);
 
-	int32 Index = FindIndex(In);
+	int32 Index = FindIndex(In.GetReference());
 	if (Index != -1)
 	{
-		FRDGPooledTexture* Element = PooledRenderTargets[Index];
+		FRDGPooledTexture* Element = PooledRenderTargets[Index].GetReference();
 		Ncheck(Element->GetRefCount() >= 2);
 		In = nullptr;
 
@@ -182,7 +182,7 @@ void FRDGTexturePool::FreeUnusedResources()
 
 	for (int32 Index = 0, Num = (uint32)PooledRenderTargets.size(); Index < Num; ++Index)
 	{
-		FRDGPooledTexture* Element = PooledRenderTargets[Index];
+		FRDGPooledTexture* Element = PooledRenderTargets[Index].GetReference();
 
 		if (Element && Element->IsFree())
 		{

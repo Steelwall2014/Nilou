@@ -128,7 +128,7 @@ namespace nilou {
             FLightInfo LightInfo;
             LightInfo.LightSceneProxy = Proxy;
             LightInfo.LightType = Proxy->LightType;
-            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer;
+            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer.GetReference();
             int NumRelevantViews = 1;
             if (Proxy->LightType == ELightType::LT_Directional)
                 NumRelevantViews = Views.size();
@@ -381,9 +381,9 @@ namespace nilou {
         PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
         PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
         PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
-        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-        PSOInitializer.BlendState = TStaticBlendState<>::CreateRHI();
+        PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+        PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+        PSOInitializer.BlendState = TStaticBlendState<>::GetRHI();
         PSOInitializer.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
         PSOInitializer.RTLayout = RTLayout;
         RHIGraphicsPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);

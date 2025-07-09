@@ -161,7 +161,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Returns the underlying RHI resource.
-	RHIResource* GetRHI() const { return Resource; }
+	RHIResource* GetRHI() const { return Resource.GetReference(); }
 
 	// Returns the gpu virtual address of the transient resource.
 	uint64 GetGpuVirtualAddress() const { return GpuVirtualAddress; }

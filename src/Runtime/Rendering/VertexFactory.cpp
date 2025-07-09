@@ -13,7 +13,7 @@ namespace nilou {
             FVertexInputStream VertexStream;
             VertexStream.StreamIndex = StreamIndex;
             VertexStream.Offset = Streams[StreamIndex].Offset;
-            VertexStream.VertexBuffer = Streams[StreamIndex].VertexBuffer->VertexBufferRDG;
+            VertexStream.VertexBuffer = Streams[StreamIndex].VertexBuffer->VertexBufferRDG.GetReference();
             Out.push_back(VertexStream);
         }
         return Out;

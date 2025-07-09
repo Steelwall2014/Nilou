@@ -42,7 +42,7 @@ namespace nilou {
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GaussionSpectrumShader DescriptorSet", GaussionSpectrumShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters);
+        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
         DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView());
 
         RDGPassDesc PassDesc{"CreateGaussionSpectrum"};
@@ -69,7 +69,7 @@ namespace nilou {
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
         
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementSpectrumShader DescriptorSet", DisplacementSpectrumShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
         DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView());
         DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
         DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
@@ -100,7 +100,7 @@ namespace nilou {
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
         DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView());
         DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView());
 
@@ -154,7 +154,7 @@ namespace nilou {
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("NormalFoamShader DescriptorSet", NormalFoamShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters);
+        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
         DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView());
         DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView());
         DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView());
@@ -242,7 +242,7 @@ namespace nilou {
                 Parameters.WindSpeed = WindSpeed;
                 Parameters.Amplitude = Amplitude;
                 Parameters.Time = Time;
-                Graph.QueueBufferUpload(FFTParameters, &Parameters, sizeof(Parameters));
+                Graph.QueueBufferUpload(FFTParameters.GetReference(), &Parameters, sizeof(Parameters));
                 UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
         );

@@ -103,7 +103,7 @@ namespace nilou {
 
         FBoxSphereBounds GetBounds() const { return Bounds; }
 
-        RDGBuffer *GetUniformBuffer() const { return UniformBuffer; }
+        RDGBuffer *GetUniformBuffer() const { return UniformBuffer.GetReference(); }
 
         void CreateUniformBuffer();
 

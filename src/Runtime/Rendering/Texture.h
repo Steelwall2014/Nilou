@@ -199,7 +199,7 @@ namespace nilou {
         void SetSamplerState(const FSamplerStateInitializer &InSamplerState)
         {
             SamplerStateRHI = RHICreateSamplerState(InSamplerState);
-            SamplerRHI.SamplerState = SamplerStateRHI;
+            SamplerRHI.SamplerState = SamplerStateRHI.GetReference();
         }
 
         /** Returns the width of the texture in pixels. */
@@ -232,12 +232,12 @@ namespace nilou {
 
         RDGTexture* GetTextureRDG() const
         {
-            return TextureRDG;
+            return TextureRDG.GetReference();
         }
 
         RHISamplerState* GetSamplerState() const
         {
-            return SamplerStateRHI;
+            return SamplerStateRHI.GetReference();
         }
 
         EPixelFormat GetFormat() const

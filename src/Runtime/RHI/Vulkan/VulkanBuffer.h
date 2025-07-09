@@ -6,6 +6,7 @@
 namespace nilou {
 
 class VulkanDevice;
+class VulkanBuffer;
 
 class FVulkanStagingManager
 {

@@ -172,7 +172,7 @@ public:
     { 
         if (!bTransient)
         {
-            return PooledDefaultView;
+            return PooledDefaultView.GetReference();
         }
         else 
         {

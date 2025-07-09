@@ -18,7 +18,7 @@ namespace nilou {
 						StaticResource.InitResource();
 				    });
 			}
-			return StaticResource.StateRHI;
+			return StaticResource.StateRHI.GetReference();
 		};
 
 	private:

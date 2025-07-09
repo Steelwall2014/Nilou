@@ -22,9 +22,9 @@ void BuildMeshDrawCommand(
     Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
     FShaderInstance *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
     Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
-    Initializer.DepthStencilState = TStaticDepthStencilState<true, CF_Equal>::CreateRHI();
-    Initializer.RasterizerState = MaterialProxy->RasterizerState;
-    Initializer.BlendState = MaterialProxy->BlendState;
+    Initializer.DepthStencilState = TStaticDepthStencilState<true, CF_Equal>::GetRHI();
+    Initializer.RasterizerState = MaterialProxy->RasterizerState.GetReference();
+    Initializer.BlendState = MaterialProxy->BlendState.GetReference();
     Initializer.VertexDeclaration = VertexDeclaration;
     Initializer.RTLayout = RTLayout;
 
@@ -76,7 +76,7 @@ void BuildMeshDrawCommand(
     {
         OutMeshDrawCommand.PipelineState = PipelineState;
         OutMeshDrawCommand.VertexStreams = Element.VertexFactory->GetVertexInputStreams();
-        OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRDG;
+        OutMeshDrawCommand.IndexBuffer = Element.IndexBuffer->IndexBufferRDG.GetReference();
         OutMeshDrawCommand.NumInstances = Element.NumInstances;
         if (Element.IndirectArgsBuffer)
         {

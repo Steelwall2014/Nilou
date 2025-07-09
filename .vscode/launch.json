@@ -22,6 +22,12 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceFolder}/execute_header_tool.lua"
+        },
+        {
+            "name": "(Windows) C++ Attach",
+            "type": "cppvsdbg",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
         }
     ]
 }

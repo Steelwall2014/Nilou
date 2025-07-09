@@ -401,7 +401,7 @@ namespace nilou {
     FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const
     {
         FMeshDrawShaderBindings ShaderBindings;
-        ShaderBindings.SetBuffer(MATERIAL_UNIFORM_BLOCK_NAME, UniformBufferRDG);
+        ShaderBindings.SetBuffer(MATERIAL_UNIFORM_BLOCK_NAME, UniformBufferRDG.GetReference());
         for (auto& [Name, Texture] : TextureParameterArray)
         {
             ShaderBindings.SetTexture(Name, Texture->GetResource()->TextureRDG->GetDefaultView());

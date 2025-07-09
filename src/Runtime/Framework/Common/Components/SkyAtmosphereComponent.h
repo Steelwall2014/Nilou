@@ -179,7 +179,7 @@ public: \
 		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
 		inline RDGTextureView *GetMultiScatteringLUT() const { return MultiScatteringLUT->GetDefaultView(); }
 		inline RDGTextureView *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT->GetDefaultView(); }
-		inline RDGBuffer *GetAtmosphereParametersBlock() const { return AtmosphereParameters; }
+		inline RDGBuffer *GetAtmosphereParametersBlock() const { return AtmosphereParameters.GetReference(); }
 
 
 	protected:

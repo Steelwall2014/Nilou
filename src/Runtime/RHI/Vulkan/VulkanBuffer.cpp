@@ -52,12 +52,12 @@ RHIBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags 
         std::lock_guard<std::mutex> Lock(StagingLock);
         for (int32 Index = FreeStagingBuffers.size()-1; Index >= 0; --Index)
         {
-            VulkanBuffer* FreeBuffer = ResourceCast(FreeStagingBuffers[Index]);
-            if (FreeBuffer->GetSize() == Size && FreeBuffer->MemoryReadFlags == InMemoryReadFlags)
+            RHIBufferRef FreeBuffer = FreeStagingBuffers[Index];
+            if (FreeBuffer->GetSize() == Size && ResourceCast(FreeBuffer.GetReference())->MemoryReadFlags == InMemoryReadFlags)
             {
                 FreeStagingBuffers.erase(FreeStagingBuffers.begin()+Index);
                 UsedStagingBuffers.push_back(FreeBuffer);
-                return FreeBuffer;
+                return FreeBuffer.GetReference();
             }
         }
     }
@@ -71,13 +71,13 @@ RHIBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags 
         PeakUsedMemory = std::max(UsedMemory, PeakUsedMemory);
     }
 
-    return StagingBuffer;
+    return StagingBuffer.GetReference();
 }
 
 void FVulkanStagingManager::ReleaseBuffer(RHIBuffer*& StagingBuffer)
 {
     std::lock_guard<std::mutex> Lock(StagingLock);
-	FreeStagingBuffers.push_back(StagingBuffer);
+	FreeStagingBuffers.push_back(TRefCountPtr(StagingBuffer));
     UsedStagingBuffers.erase(std::find(UsedStagingBuffers.begin(), UsedStagingBuffers.end(), StagingBuffer));
     StagingBuffer = nullptr;
 }
@@ -177,7 +177,7 @@ VulkanBuffer::~VulkanBuffer()
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags)
 {
-    VulkanBufferRef Buffer = new VulkanBuffer(Device, Stride, Size, InUsage);
+    VulkanBufferRef Buffer = TRefCountPtr(new VulkanBuffer(Device, Stride, Size, InUsage));
 
 	VkBufferCreateInfo BufferInfo{};
 	BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -268,14 +268,11 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
 //     CommandBufferManager->SubmitUploadCmdBuffer();
 // }
 
-RHIBuffer* FVulkanDynamicRHI::RHICreateStagingBuffer(uint32 Size)
-{
-    return RHICreateBuffer(Size, Size, EBufferUsageFlags::TransferSrc, nullptr);
-}
-
 void* FVulkanDynamicRHI::RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 Size)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+    Ncheck(vkBuffer);
+    Ncheck(vkBuffer->Memory);
     void* MappedPointer = nullptr;
     vkMapMemory(Device->Handle, vkBuffer->Memory, Offset, Size, 0, &MappedPointer);
     return MappedPointer;
@@ -284,6 +281,8 @@ void* FVulkanDynamicRHI::RHIMapMemory(RHIBuffer* buffer, uint32 Offset, uint32 S
 void FVulkanDynamicRHI::RHIUnmapMemory(RHIBuffer* buffer)
 {
     VulkanBuffer* vkBuffer = static_cast<VulkanBuffer*>(buffer);
+    Ncheck(vkBuffer);
+    Ncheck(vkBuffer->Memory);
     vkUnmapMemory(Device->Handle, vkBuffer->Memory);
 }
 

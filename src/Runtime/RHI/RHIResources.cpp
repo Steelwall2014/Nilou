@@ -13,13 +13,13 @@ namespace nilou {
 		{
 			if (Desc == InCreateInfo)
 			{
-				return View;
+				return View.GetReference();
 			}
 		}
 
 		RHITextureViewRef TextureView = RHICreateTextureView(Texture, InCreateInfo, Texture->GetName() + "_View");
 		TextureViews.push_back({InCreateInfo, TextureView});
-		return TextureView;
+		return TextureView.GetReference();
 	}
 
     uint8 TranslatePixelFormatToBytePerPixel(EPixelFormat PixelFormat)

@@ -48,9 +48,9 @@ namespace nilou {
 
                 PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
 
-                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::CreateRHI();
-                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::CreateRHI();
-                PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::CreateRHI();
+                PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+                PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+                PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
 
                 PSOInitializer.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
 
@@ -98,7 +98,7 @@ namespace nilou {
 
                         RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                         RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
-                        RHICmdList.BindDescriptorSets(PSO->PipelineLayout, { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
+                        RHICmdList.BindDescriptorSets(PSO->PipelineLayout.GetReference(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
 
                         RHICmdList.DrawIndexed(3, 1, 0, 0, 0);
                     });

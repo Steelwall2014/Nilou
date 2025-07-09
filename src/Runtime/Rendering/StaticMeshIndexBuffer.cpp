@@ -71,7 +71,7 @@ namespace nilou {
     {
         FRenderResource::InitRHI(Graph);
         RDGBufferDesc Desc(NumIndices * Stride, Stride, EBufferUsageFlags::IndexBuffer);
-        IndexBufferRDG = RenderGraph::CreateExternalBuffer("", Desc);
-        // Graph.AddUploadPass(IndexBufferRDG.get(), Data, Desc.Size);
+        IndexBufferRDG = RenderGraph::CreateExternalBuffer("StaticMeshIndexBuffer", Desc);
+        Graph.QueueBufferUpload(IndexBufferRDG.GetReference(), Data, NumIndices * Stride);
     }
 }

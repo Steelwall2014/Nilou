@@ -3,6 +3,7 @@
 #include <vector>
 #include <GLFWApplication.h>
 #include <time.h>
+#include <windows.h>
 
 using namespace nilou;
 namespace nilou {
@@ -22,7 +23,11 @@ BaseApplication *GetAppication()
 }
 
 int main(int argc, char* argv[])
-{
+{        
+    while (!IsDebuggerPresent()) 
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     const char* DefaultRHI = "vulkan";
     config.defaultRHI = DefaultRHI;
     

@@ -65,7 +65,6 @@ public:
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
             int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) override;
-    virtual RHIBuffer* RHICreateStagingBuffer(uint32 Size) override;
     
     // virtual RHITexture2DRef RHICreateTexture2D(
     //     const std::string &name, EPixelFormat Format, 

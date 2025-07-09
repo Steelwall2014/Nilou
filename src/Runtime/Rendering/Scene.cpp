@@ -319,7 +319,7 @@ namespace nilou {
         for (auto &&LightInfo : AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightInfo->SceneProxy;
-            SetLightUniformBuffer(Graph, LightInfo->LightUniformBuffer, Proxy);
+            SetLightUniformBuffer(Graph, LightInfo->LightUniformBuffer.GetReference(), Proxy);
         }
     }
 

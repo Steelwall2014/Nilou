@@ -60,13 +60,18 @@ public:
     {
     }
 
-    TRefCountPtr(ReferencedType* InReference)
+    TRefCountPtr(std::nullptr_t)
+        : Reference(nullptr)
+    {
+    }
+
+    explicit TRefCountPtr(ReferencedType* InReference)
     {
         this->CopyConstructFrom(InReference);
     }
 
     template<typename OtherReferencedType, std::enable_if_t<std::is_convertible_v<OtherReferencedType*, ReferencedType*>, int> = 0>
-    TRefCountPtr(OtherReferencedType* InReference)
+    explicit TRefCountPtr(OtherReferencedType* InReference)
     {
         this->CopyConstructFrom(InReference);
     }
@@ -170,10 +175,10 @@ public:
         return Reference;
     }
 
-    operator ReferenceType() const
-	{
-		return Reference;
-	}
+    // operator ReferenceType() const
+	// {
+	// 	return Reference;
+	// }
 
     ReferencedType* GetReference() const
     {
@@ -194,6 +199,16 @@ public:
 	{
 		return GetReference() == B;
 	}
+
+    const ReferencedType& operator*() const
+    {
+        return *GetReference();
+    }
+
+    ReferencedType& operator*()
+    {
+        return *GetReference();
+    }
 
 private:
 

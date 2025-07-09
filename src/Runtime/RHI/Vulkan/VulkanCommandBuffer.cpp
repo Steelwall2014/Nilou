@@ -438,12 +438,12 @@ namespace nilou {
             TRefCountPtr<VulkanCommandBuffer> RHICmdList = FreeCmdBuffers[i];
             CmdBuffers.push_back(FreeCmdBuffers[i]);
             FreeCmdBuffers.pop_back();
-            return RHICmdList;
+            return RHICmdList.GetReference();
         }
 
-        TRefCountPtr<VulkanCommandBuffer> RHICmdList = new VulkanCommandBuffer(Device, Queue, Handle);
+        TRefCountPtr<VulkanCommandBuffer> RHICmdList = TRefCountPtr(new VulkanCommandBuffer(Device, Queue, Handle));
         CmdBuffers.push_back(RHICmdList);
-        return RHICmdList;
+        return RHICmdList.GetReference();
     }
 
     void VulkanCommandBufferPool::FreeUnusedCmdBuffers()
@@ -499,7 +499,7 @@ namespace nilou {
         std::vector<VkSemaphoreSubmitInfo> SignalSemephores;
         for (RHISemaphoreRef Semaphore : SemaphoresToWait)
         {
-            VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore);
+            VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore.GetReference());
             VkSemaphoreSubmitInfo SemaphoreInfo{};
             SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;
@@ -507,7 +507,7 @@ namespace nilou {
         }
         for (RHISemaphoreRef Semaphore : SemaphoresToSignal)
         {
-            VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore);
+            VulkanSemaphore* VkSemaphore = ResourceCast(Semaphore.GetReference());
             VkSemaphoreSubmitInfo SemaphoreInfo{};
             SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;

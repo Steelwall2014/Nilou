@@ -24,7 +24,7 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const 
         VulkanBinding.stageFlags = VK_SHADER_STAGE_ALL;
         VulkanBinding.pImmutableSamplers = nullptr;
     }
-    TRefCountPtr<VulkanDescriptorSetLayout> VulkanLayout = new VulkanDescriptorSetLayout(Device->Handle, Bindings);
+    TRefCountPtr<VulkanDescriptorSetLayout> VulkanLayout = TRefCountPtr(new VulkanDescriptorSetLayout(Device->Handle, Bindings));
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
@@ -57,7 +57,7 @@ RHIDescriptorPoolRef FVulkanDynamicRHI::RHICreateDescriptorPool(RHIDescriptorSet
 
 	VkDescriptorPool VulkanPoolHandle;
 	VK_CHECK_RESULT(vkCreateDescriptorPool(Device->Handle, &PoolInfo, nullptr, &VulkanPoolHandle));
-	TRefCountPtr<VulkanDescriptorPool> VulkanPool = new VulkanDescriptorPool(Device->Handle, VulkanPoolHandle, PoolSize, Layout);
+	TRefCountPtr<VulkanDescriptorPool> VulkanPool = TRefCountPtr(new VulkanDescriptorPool(Device->Handle, VulkanPoolHandle, PoolSize, Layout));
 	return VulkanPool;
 }
 
@@ -74,10 +74,10 @@ VulkanDescriptorPool::VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool I
 		AllocInfo.descriptorSetCount = 1;
 		AllocInfo.pSetLayouts = &ResourceCast(Layout)->Handle;
 
-		TRefCountPtr<VulkanDescriptorSet> NewDescriptorSet = new VulkanDescriptorSet(this);
+		TRefCountPtr<VulkanDescriptorSet> NewDescriptorSet = TRefCountPtr(new VulkanDescriptorSet(this));
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(Device, &AllocInfo, &NewDescriptorSet->Handle));
 		Sets.push_back(NewDescriptorSet);
-		FreeSets.push_back(NewDescriptorSet);
+		FreeSets.push_back(NewDescriptorSet.GetReference());
 	}
 }
 

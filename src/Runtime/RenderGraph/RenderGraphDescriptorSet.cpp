@@ -110,7 +110,7 @@ RHIDescriptorSet* RHIDescriptorSetPools::Allocate()
     {
         RHIDescriptorPoolRef PoolRHI = RHICreateDescriptorPool(Layout, MAX_NUM_DESCRIPTORSETS_PER_POOL);
         PoolsRHI.push_back(PoolRHI);
-        VacantPoolsRHI.push_back(PoolRHI);
+        VacantPoolsRHI.push_back(PoolRHI.GetReference());
     }
 
     RHIDescriptorPool* VacantPoolRHI = VacantPoolsRHI.back();

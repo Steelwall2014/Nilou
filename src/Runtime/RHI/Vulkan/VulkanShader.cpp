@@ -14,7 +14,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = new VulkanVertexShader(Device->Handle);
+        VulkanVertexShaderRef VulkanShader = TRefCountPtr(new VulkanVertexShader(Device->Handle));
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
@@ -40,7 +40,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = new VulkanPixelShader(Device->Handle);
+        VulkanPixelShaderRef VulkanShader = TRefCountPtr(new VulkanPixelShader(Device->Handle));
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
@@ -66,7 +66,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = new VulkanComputeShader(Device->Handle);
+        VulkanComputeShaderRef VulkanShader = TRefCountPtr(new VulkanComputeShader(Device->Handle));
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;

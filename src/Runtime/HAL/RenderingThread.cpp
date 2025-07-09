@@ -30,6 +30,7 @@ namespace nilou {
         // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
         FShaderCompiler::CompileGlobalShaders();
         GraphRecording = std::make_unique<RenderGraph>();
+        GraphRecording->BeginFrame();
         GetContentManager()->Init();
         return true;
     }
@@ -55,8 +56,11 @@ namespace nilou {
 
     void FRenderingThread::NotifyStartOfFrame()
     {
-        GraphRecording = std::make_unique<RenderGraph>();
-        GraphRecording->BeginFrame();
+        if (!GraphRecording)
+        {
+            GraphRecording = std::make_unique<RenderGraph>();
+            GraphRecording->BeginFrame();
+        }
     }
 
     void FRenderingThread::NotifyEndOfFrame()

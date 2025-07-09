@@ -47,7 +47,7 @@ namespace nilou {
         Graph.AddCopyPass(
             PassDesc,
             nullptr,
-            TextureRDG,
+            TextureRDG.GetReference(),
             [=, this](RHICommandList& RHICmdList)
             {
                 RHIBuffer* StagingBufferRHI = RHICmdList.AcquireStagingBuffer(Image->GetDataSize());
@@ -66,7 +66,7 @@ namespace nilou {
                     1);                     // num array layers
             });
         
-        FGenerateMips::Execute(Graph, TextureRDG);
+        FGenerateMips::Execute(Graph, TextureRDG.GetReference());
 
         RHIGetError();
     }

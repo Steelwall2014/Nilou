@@ -44,7 +44,7 @@ public:
     static TRDGUniformBufferRef<T> CreateExternalUniformBuffer(const std::string& Name, const T* Data)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
-        TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
+        TRDGUniformBufferRef<T> Buffer = TRefCountPtr(new TRDGUniformBuffer<T>(Name, Desc));
         Buffer->bTransient = false;
         return Buffer;
     }
@@ -67,10 +67,10 @@ public:
     TRDGUniformBuffer<T>* CreateUniformBuffer(const std::string& Name)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
-        TRDGUniformBufferRef<T> Buffer = new TRDGUniformBuffer<T>(Name, Desc);
+        TRDGUniformBufferRef<T> Buffer = TRefCountPtr(new TRDGUniformBuffer<T>(Name, Desc));
         Buffer->bTransient = true;
         Buffers.push_back(Buffer);
-        return Buffer;
+        return Buffer.GetReference();
     }
 
     RDGDescriptorSet* CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
