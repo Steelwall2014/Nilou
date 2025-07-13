@@ -10,6 +10,9 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::RenderPreZPass(RenderGraph& Graph)
     {
+        RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
+        RHIRasterizerState* RasterizerState = TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+        RHIBlendState* BlendState = TStaticBlendState<>::GetRHI();
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneView& View = Views[ViewIndex];
@@ -18,7 +21,7 @@ namespace nilou {
             FParallelMeshDrawCommands DrawCommands;
 
             RDGRenderTargets RenderTargets;
-            RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
+            RenderTargets.DepthStencilAttachment = { SceneTextures.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
@@ -43,6 +46,9 @@ namespace nilou {
                         Element,
                         RenderTargets.GetRenderTargetLayout(),
                         ShaderBindings,
+                        DepthStencilState,
+                        RasterizerState,
+                        BlendState,
                         MeshDrawCommand);
 
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

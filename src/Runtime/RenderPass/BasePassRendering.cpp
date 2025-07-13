@@ -12,6 +12,8 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
     {    
+        RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
+        RHIBlendState* BlendState = TStaticBlendState<>::GetRHI();
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneView& View = Views[ViewIndex];
@@ -20,13 +22,13 @@ namespace nilou {
             FParallelMeshDrawCommands DrawCommands;
 
             RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = SceneTextures.BaseColor->GetDefaultView();
-            RenderTargets.ColorAttachments[1] = SceneTextures.RelativeWorldSpacePosition->GetDefaultView();
-            RenderTargets.ColorAttachments[2] = SceneTextures.WorldSpaceNormal->GetDefaultView();
-            RenderTargets.ColorAttachments[3] = SceneTextures.MetallicRoughness->GetDefaultView();
-            RenderTargets.ColorAttachments[4] = SceneTextures.Emissive->GetDefaultView();
-            RenderTargets.ColorAttachments[5] = SceneTextures.ShadingModel->GetDefaultView();
-            RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
+            RenderTargets.ColorAttachments[0] = { SceneTextures.BaseColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[1] = { SceneTextures.RelativeWorldSpacePosition->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[2] = { SceneTextures.WorldSpaceNormal->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[3] = { SceneTextures.MetallicRoughness->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[4] = { SceneTextures.Emissive->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[5] = { SceneTextures.ShadingModel->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.DepthStencilAttachment = { SceneTextures.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::Store };
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
@@ -51,6 +53,9 @@ namespace nilou {
                         Element,
                         RenderTargets.GetRenderTargetLayout(),
                         ShaderBindings,
+                        DepthStencilState,
+                        Mesh.MaterialRenderProxy->RasterizerState.GetReference(),
+                        BlendState,
                         MeshDrawCommand);
 
                     DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

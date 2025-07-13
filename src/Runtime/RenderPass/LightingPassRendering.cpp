@@ -24,8 +24,8 @@ namespace nilou {
             FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
 
             RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = SceneTextures.SceneColor->GetDefaultView();
-            RenderTargets.DepthStencilAttachment = SceneTextures.DepthStencil->GetDefaultView();
+            RenderTargets.ColorAttachments[0] = { SceneTextures.SceneColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.DepthStencilAttachment = { SceneTextures.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::NoAction };
             const RHIRenderTargetLayout& RTLayout = RenderTargets.GetRenderTargetLayout();
 
             for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
@@ -45,8 +45,6 @@ namespace nilou {
 
                 PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
                 PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
-
-                PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
 
                 PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();

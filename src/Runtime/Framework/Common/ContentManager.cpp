@@ -362,6 +362,7 @@ namespace nilou {
                 GlobalShaders.RemoveAllShaders();
                 ForEachContent(
                     [](NAsset* Obj) {
+                        if (!Obj) return;
                         if (Obj->IsA(UStaticMesh::StaticClass()))
                         {
                             UStaticMesh* mesh = static_cast<UStaticMesh*>(Obj);

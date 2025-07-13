@@ -16,6 +16,9 @@ void BuildMeshDrawCommand(
     const FMeshBatchElement &Element,
     const RHIRenderTargetLayout &RTLayout,
     const FMeshDrawShaderBindings &ShaderBindings,
+    RHIDepthStencilState* DepthStencilState,
+    RHIRasterizerState* RasterizerState,
+    RHIBlendState* BlendState,
     FMeshDrawCommand &OutMeshDrawCommand
 );
 

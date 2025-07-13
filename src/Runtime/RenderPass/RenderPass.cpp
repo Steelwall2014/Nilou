@@ -13,6 +13,9 @@ void BuildMeshDrawCommand(
     const FMeshBatchElement &Element,
     const RHIRenderTargetLayout &RTLayout,
     const FMeshDrawShaderBindings &ShaderBindings,
+    RHIDepthStencilState* DepthStencilState,
+    RHIRasterizerState* RasterizerState,
+    RHIBlendState* BlendState,
     FMeshDrawCommand &OutMeshDrawCommand
 )
 {
@@ -22,9 +25,9 @@ void BuildMeshDrawCommand(
     Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
     FShaderInstance *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
     Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
-    Initializer.DepthStencilState = TStaticDepthStencilState<true, CF_Equal>::GetRHI();
-    Initializer.RasterizerState = MaterialProxy->RasterizerState.GetReference();
-    Initializer.BlendState = MaterialProxy->BlendState.GetReference();
+    Initializer.DepthStencilState = DepthStencilState;
+    Initializer.RasterizerState = RasterizerState;
+    Initializer.BlendState = BlendState;
     Initializer.VertexDeclaration = VertexDeclaration;
     Initializer.RTLayout = RTLayout;
 

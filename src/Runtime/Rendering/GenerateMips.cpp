@@ -98,7 +98,11 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
             RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
+            RenderTargets.ColorAttachments[0] = { 
+                Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex)), 
+                ERenderTargetLoadAction::Clear, 
+                ERenderTargetStoreAction::Store 
+            };
 
             FShaderInstance* VertexShader = GetGlobalShader<FGenerateMipsVS>();
             FShaderInstance* PixelShader = GetGlobalShader<FGenerateMipsPS>();

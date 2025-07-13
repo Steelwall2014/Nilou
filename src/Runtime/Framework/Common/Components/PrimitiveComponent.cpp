@@ -58,7 +58,7 @@ namespace nilou {
     {
         FPrimitiveUniformShaderParameters Data;
         Data.LocalToWorld = LocalToWorld;
-        Data.ModelToLocal = glm::inverse(LocalToWorld);
+        Data.ModelToLocal = FMatrix();
         Graph.QueueBufferUpload(UniformBuffer.GetReference(), &Data, sizeof(Data));
     }
 

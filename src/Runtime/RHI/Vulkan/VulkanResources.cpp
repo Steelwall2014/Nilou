@@ -323,6 +323,35 @@ VkFramebuffer FVulkanRenderPassManager::GetOrCreateFramebuffer(VkRenderPass Rend
     return Framebuffer;
 }
 
+static VkAttachmentLoadOp Translate(ERenderTargetLoadAction Action)
+{
+    switch (Action)
+    {
+        case ERenderTargetLoadAction::Load: return VK_ATTACHMENT_LOAD_OP_LOAD;
+        case ERenderTargetLoadAction::Clear: return VK_ATTACHMENT_LOAD_OP_CLEAR;
+        case ERenderTargetLoadAction::NoAction: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        default:
+            break;
+    }
+
+    NILOU_LOG(Fatal, "Unknown ERenderTargetLoadAction {}", magic_enum::enum_name(Action));
+    return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+}
+
+static VkAttachmentStoreOp Translate(ERenderTargetStoreAction Action)
+{
+    switch (Action)
+    {
+        case ERenderTargetStoreAction::Store: return VK_ATTACHMENT_STORE_OP_STORE;
+        case ERenderTargetStoreAction::NoAction: return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        default:
+            break;
+    }
+
+    NILOU_LOG(Fatal, "Unknown ERenderTargetStoreAction {}", magic_enum::enum_name(Action));
+    return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+}
+
 VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTargetLayout& RTLayout)
 {
     uint32 Hash = std::hash<RHIRenderTargetLayout>{}(RTLayout);
@@ -343,8 +372,8 @@ VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTarg
                 VkAttachmentDescription CurrDesc{};
                 CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
                 CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-                CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-                CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                CurrDesc.loadOp = Translate(Attachment.LoadAction);
+                CurrDesc.storeOp = Translate(Attachment.StoreAction);
                 CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -363,10 +392,10 @@ VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTarg
             VkAttachmentDescription CurrDesc{};
             CurrDesc.samples = VK_SAMPLE_COUNT_1_BIT;
             CurrDesc.format = TranslatePixelFormatToVKFormat(Format);
-            CurrDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+            CurrDesc.loadOp = Translate(RTLayout.DepthStencilAttachment.LoadAction);
+            CurrDesc.storeOp = Translate(RTLayout.DepthStencilAttachment.StoreAction);
+            CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             AttachmentDescriptions.push_back(CurrDesc);

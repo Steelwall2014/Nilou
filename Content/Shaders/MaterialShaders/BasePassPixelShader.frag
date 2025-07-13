@@ -84,7 +84,7 @@ void main()
     MetallicRoughness.x = MaterialGetMetallic(vs_out);
     MetallicRoughness.y = MaterialGetRoughness(vs_out);
     Emissive = GammaToLinear(MaterialGetEmissive(vs_out));
-    ShadingModel = 0;//MaterialShadingModel;
+    ShadingModel = MATERIAL_SHADINGMODEL;
 #if ENABLE_REFLECTION_PROBE
     //Emissive += ReflectionProbeFactor*CalcIndirectLighting(BaseColor.rgb, MetallicRoughness.x, MetallicRoughness.y);
 #endif

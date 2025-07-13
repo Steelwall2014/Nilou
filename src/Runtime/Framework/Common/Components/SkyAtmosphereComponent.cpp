@@ -116,9 +116,25 @@ namespace nilou {
         , Mu_s_Min(InComponent->GetMu_s_Min())
     {
 
-        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph&) {
+        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph& Graph) {
 
-            AtmosphereParameters = RenderGraph::CreatePooledUniformBuffer<ShaderAtmosphereParametersBlock>("", nullptr);
+            ShaderAtmosphereParametersBlock Parameters;
+            Parameters.ATMOSPHERE.SolarIrradiance = SolarIrradiance;
+            Parameters.ATMOSPHERE.SunAngularRadius = SunAngularRadius;
+            Parameters.ATMOSPHERE.BottomRadius = BottomRadius;
+            Parameters.ATMOSPHERE.TopRadius = TopRadius;
+            Parameters.ATMOSPHERE.RayleighDensity = RayleighDensity;
+            Parameters.ATMOSPHERE.RayleighScattering = RayleighScattering;
+            Parameters.ATMOSPHERE.MieDensity = MieDensity;
+            Parameters.ATMOSPHERE.MieScattering = MieScattering;
+            Parameters.ATMOSPHERE.MieExtinction = MieExtinction;
+            Parameters.ATMOSPHERE.MiePhaseFunction_g = MiePhaseFunction_g;
+            Parameters.ATMOSPHERE.AbsorptionDensity = AbsorptionDensity;
+            Parameters.ATMOSPHERE.AbsorptionExtinction = AbsorptionExtinction;
+            Parameters.ATMOSPHERE.GroundAlbedo = GroundAlbedo;
+            Parameters.ATMOSPHERE.Mu_s_Min = Mu_s_Min;
+            AtmosphereParameters = RenderGraph::CreatePooledUniformBuffer<ShaderAtmosphereParametersBlock>("ShaderAtmosphereParametersBlock", &Parameters);
+            Graph.QueueBufferUpload(AtmosphereParameters.GetReference(), &Parameters, sizeof(Parameters));
 
             RDGTextureDesc Desc;
             Desc.TextureType = ETextureDimension::Texture2D;

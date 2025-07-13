@@ -7,8 +7,6 @@ layout(location = 0) out vec2 UV;
 
 void main()
 {
-	vec4 OutPosition = InPosition;
-	OutPosition.xy = -1.0f + 2.0f * InPosition.xy;
-	gl_Position = OutPosition;
+	gl_Position = InPosition;
 	UV = InUV;
 }

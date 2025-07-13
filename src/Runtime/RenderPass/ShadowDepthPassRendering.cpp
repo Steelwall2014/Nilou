@@ -268,7 +268,7 @@ namespace nilou {
                 {
                     FParallelMeshDrawCommands DrawCommands;
                     RDGRenderTargets RenderTargets;
-                    RenderTargets.DepthStencilAttachment = Resources.DepthViews[ShadowViewIndex];
+                    RenderTargets.DepthStencilAttachment = { Resources.DepthViews[ShadowViewIndex], ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
                     int FrustumIndex = FrustumsToBeUpdated[ShadowViewIndex];
                     for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
@@ -299,6 +299,9 @@ namespace nilou {
                                 Element,
                                 RenderTargets.GetRenderTargetLayout(),
                                 ShaderBindings,
+                                Mesh.MaterialRenderProxy->DepthStencilState.GetReference(),
+                                Mesh.MaterialRenderProxy->RasterizerState.GetReference(),
+                                Mesh.MaterialRenderProxy->BlendState.GetReference(),
                                 MeshDrawCommand);
 
                             DrawCommands.AddMeshDrawCommand(MeshDrawCommand);

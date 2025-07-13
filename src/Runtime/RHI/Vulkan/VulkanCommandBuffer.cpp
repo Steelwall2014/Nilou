@@ -41,9 +41,9 @@ namespace nilou {
     {
         VkViewport Viewport{};
         Viewport.x = X;
-        Viewport.y = Y;
+        Viewport.y = Height - Y;
         Viewport.width = (float)Width;
-        Viewport.height = (float)Height;
+        Viewport.height = -(float)Height;
         Viewport.minDepth = 0.0f;
         Viewport.maxDepth = 1.0f;
         vkCmdSetViewport(Handle, 0, 1, &Viewport);
@@ -84,6 +84,17 @@ namespace nilou {
                 }
                 clearValues.push_back(clearColor);
             }
+        }
+        auto& DepthStencilRenderTarget = Info.DepthStencilRenderTarget;
+        auto& LoadAction = Info.RTLayout.DepthStencilAttachment.LoadAction;
+        if (DepthStencilRenderTarget)
+        {
+            VkClearValue clearDepthStencil{};
+            if (LoadAction == ERenderTargetLoadAction::Clear)
+            {
+                clearDepthStencil.depthStencil = VkClearDepthStencilValue{ Info.ClearDepth, Info.ClearStencil };
+            }
+            clearValues.push_back(clearDepthStencil);
         }
         renderPassInfo.clearValueCount = clearValues.size();
         renderPassInfo.pClearValues = clearValues.data();
@@ -275,18 +286,18 @@ namespace nilou {
             Data);
     }
 
-    VkPipelineStageFlags Translate(EPipelineStageFlags Flags)
+    VkPipelineStageFlags2 Translate(EPipelineStageFlags Flags)
     {
-        return (VkPipelineStageFlags)Flags;
+        return (VkPipelineStageFlags2)Flags;
     }
 
-    VkAccessFlagBits Translate(ERHIAccess Access)
+    VkAccessFlagBits2 Translate(ERHIAccess Access)
     {
         if (Access == ERHIAccess::Present)
         {
             return VK_ACCESS_NONE;
         }
-        return (VkAccessFlagBits)Access;
+        return (VkAccessFlagBits2)Access;
     }
 
     VkImageLayout Translate(ETextureLayout Layout)
@@ -403,6 +414,7 @@ namespace nilou {
 
         VkDependencyInfo DependencyInfo{};
         DependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        DependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
         DependencyInfo.memoryBarrierCount = VkMemoryBarriers.size();
         DependencyInfo.pMemoryBarriers = VkMemoryBarriers.data();
         DependencyInfo.bufferMemoryBarrierCount = VkBufferBarriers.size();

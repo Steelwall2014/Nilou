@@ -321,6 +321,8 @@ struct RDGRenderTargets
     {
         FBindingPoint() = default;
         FBindingPoint(RDGTextureView* InTextureView) : TextureView(InTextureView) {}
+        FBindingPoint(RDGTextureView* InTextureView, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) 
+            : TextureView(InTextureView), LoadAction(InLoadAction), StoreAction(InStoreAction) {}
 
         RDGTextureView* TextureView = nullptr;
         ERenderTargetLoadAction LoadAction = ERenderTargetLoadAction::Load;

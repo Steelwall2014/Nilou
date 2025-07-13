@@ -162,6 +162,7 @@ namespace nilou {
         const std::string &MaterialPreprocessedResult,
         const FVertexFactoryPermutationParameters &VertexFactoryParams,
         const FShaderPermutationParameters &ShaderParameter,
+        FShaderCompilerEnvironment &Environment,
         TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap)
     {
         FVertexFactoryType *VertexFactoryType = VertexFactoryParams.Type;
@@ -170,7 +171,6 @@ namespace nilou {
         VertexFactoryType->UpdateCode();
 
         // Material Vertex Shader
-        FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
         VertexFactoryType->ModifyCompilationEnvironment(VertexFactoryParams, Environment);
         Environment.SetDefine("SET_INDEX", 0);
@@ -189,11 +189,11 @@ namespace nilou {
         const std::string& MaterialName,
         const std::string& MaterialParsedResult,
         const FShaderPermutationParameters &ShaderParameter,
+        FShaderCompilerEnvironment &Environment,
         TShaderMap<FShaderPermutationParameters> &OutShaderMap)
     {
         FShaderType *ShaderType = ShaderParameter.Type;
 
-        FShaderCompilerEnvironment Environment;
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
         Environment.SetDefine("SET_INDEX", 1);
 
@@ -257,10 +257,11 @@ namespace nilou {
     void FShaderCompiler::CompileMaterialShader(
         std::string MaterialName,
         FMaterialShaderMap* ShaderMap,
-        const std::string &MaterialParsedResult)
+        const std::string &MaterialParsedResult,
+        FShaderCompilerEnvironment &Environment)
     {
         ForEachMaterialShader(
-            [MaterialName, ShaderMap, &MaterialParsedResult](const FShaderPermutationParameters &ShaderParameter) {   
+            [MaterialName, ShaderMap, &MaterialParsedResult, &Environment](const FShaderPermutationParameters &ShaderParameter) {   
                 FShaderType *ShaderType = ShaderParameter.Type;             
                 if (ShaderType->ShaderFrequency == EShaderFrequency::SF_Vertex)
                 {
@@ -280,6 +281,7 @@ namespace nilou {
                             CompileVertexMaterialShader(
                                 MaterialName,
                                 MaterialParsedResult, VFParameters, ShaderParameter, 
+                                Environment,
                                 ShaderMap->VertexShaderMap);
                         }
                     }
@@ -290,6 +292,7 @@ namespace nilou {
                     CompilePixelMaterialShader(
                         MaterialName,
                         MaterialParsedResult, ShaderParameter, 
+                        Environment,
                         ShaderMap->PixelShaderMap);
                 }
             });

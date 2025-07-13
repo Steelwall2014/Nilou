@@ -24,7 +24,8 @@ namespace nilou {
         static void CompileMaterialShader(
             std::string MaterialName,
             FMaterialShaderMap* ShaderMap, 
-            const std::string &MaterialParsedResult);
+            const std::string &MaterialParsedResult,
+            FShaderCompilerEnvironment &Environment);
 
     private:
         static void CompileVertexMaterialShader(
@@ -32,11 +33,13 @@ namespace nilou {
             const std::string &MaterialParsedResult,
             const FVertexFactoryPermutationParameters &VertexFactoryParams,
             const FShaderPermutationParameters &ShaderParams,
+            FShaderCompilerEnvironment &Environment,
             TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
         static void CompilePixelMaterialShader(
             const std::string& MaterialName,
             const std::string &MaterialParsedResult,
             const FShaderPermutationParameters &ShaderParams,
+            FShaderCompilerEnvironment &Environment,
             TShaderMap<FShaderPermutationParameters> &OutShaderMap);
         static void CompileGlobalShader(
             const FShaderPermutationParameters &ShaderParams);

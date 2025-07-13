@@ -243,12 +243,12 @@ namespace nilou {
     void UMaterial::SetShadingModel(EShadingModel InShadingModel)
     {
         ShadingModel = InShadingModel;
-        if (GetRenderProxy() == nullptr) __debugbreak();
         ENQUEUE_RENDER_COMMAND(Material_SetShadingModel)(
             [InShadingModel, Proxy=GetRenderProxy()](RenderGraph&) 
             {
                 Proxy->ShadingModel = InShadingModel;
             });
+        UpdateCode(Code);
     }
 
     void UMaterial::SetBlendState(FBlendStateInitializer InBlendState)
@@ -350,7 +350,9 @@ namespace nilou {
         }
         std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
         NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
-        FShaderCompiler::CompileMaterialShader(Owner->GetName(), ShaderMap.get(), PreprocessResult);
+        FShaderCompilerEnvironment Environment;
+        Environment.SetDefine("MATERIAL_SHADINGMODEL", (int32)Owner->ShadingModel);
+        FShaderCompiler::CompileMaterialShader(Owner->GetName(), ShaderMap.get(), PreprocessResult, Environment);
 
         // Build reflection, then we can set uniforms by name.
         // This is only used for reflection, NOT the actual shader compilation.

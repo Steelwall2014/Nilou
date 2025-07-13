@@ -531,7 +531,7 @@ namespace nilou {
 		std::array<vec4, MaxSimultaneousRenderTargets> ClearColors = { vec4(0.0f) };
 
 		RHITextureView* DepthStencilRenderTarget = nullptr;
-		float ClearDepth = 0.0f;
+		float ClearDepth = 1.0f;
 		uint32 ClearStencil = 0u;
 
 		ivec2 Offset = ivec2(0);

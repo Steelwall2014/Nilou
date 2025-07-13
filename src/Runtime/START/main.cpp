@@ -24,9 +24,15 @@ BaseApplication *GetAppication()
 
 int main(int argc, char* argv[])
 {        
-    while (!IsDebuggerPresent()) 
+    for (int i = 1; i < argc; i++)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (strcmp(argv[i], "-waitfordebugger") == 0)
+        {
+            while (!IsDebuggerPresent()) 
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
     }
     const char* DefaultRHI = "vulkan";
     config.defaultRHI = DefaultRHI;
