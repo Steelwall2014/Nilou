@@ -99,127 +99,251 @@ struct FArchiveBuffer
 class FArchive
 {
 public:
-    FArchive(nlohmann::json& CurrentNode, const FArchive& Other)
-        : Node(CurrentNode) 
-        , OutBuffers(Other.OutBuffers)
-        , Version(Other.Version)
-        , FileLength(Other.FileLength)
-        , JsonLength(Other.JsonLength)
-        , BinLength(Other.BinLength)
-        , InBuffer(Other.InBuffer)
-    { }
-    FArchive(nlohmann::json& CurrentNode, std::vector<FArchiveBuffer>& OutBuffers)
-        : Node(CurrentNode) 
-        , OutBuffers(OutBuffers)
-    { }
-    FArchive(const FArchive& Other)
-        : FArchive(Other.Node, Other)
-    { }
-    FArchive& operator=(const FArchive& Other)
-    {
-        Node = Other.Node;
-        OutBuffers = Other.OutBuffers;
-        Version = Other.Version;
-        FileLength = Other.FileLength;
-        JsonLength = Other.JsonLength;
-        BinLength = Other.BinLength;
-        InBuffer = Other.InBuffer;
 
+    FArchive(nlohmann::json& InRootNode, bool bInIsLoading = false)
+        : RootNode(InRootNode)
+        , CurrentNode(InRootNode)
+        , bIsLoading(bInIsLoading)
+    { }
+
+    class FScope
+    {
+    public:
+        FScope(FArchive& InArchive, const std::string& ScopeName)
+            : Archive(InArchive)
+            , PreviousNode(Archive.CurrentNode)
+        {
+            Archive.CurrentNode = Archive.CurrentNode[ScopeName];
+        }
+        
+        ~FScope()
+        {
+            Archive.CurrentNode = PreviousNode;
+        }
+        
+    private:
+        FArchive& Archive;
+        nlohmann::json& PreviousNode;
+    };
+
+    bool IsLoading() const
+    {
+        return bIsLoading;
+    }
+
+    nlohmann::json& GetCurrentNode()
+    {
+        return CurrentNode;
+    }
+
+private:
+    nlohmann::json& RootNode;
+    nlohmann::json& CurrentNode;
+    bool bIsLoading;
+    int Version = 0;
+
+    template <typename T>
+    FArchive& Serialize(T& Value)
+    {
+        if (IsLoading())
+        {
+            Value = CurrentNode.get<T>();
+        }
+        else
+        {
+            CurrentNode = Value;
+        }
         return *this;
     }
-    nlohmann::json& Node;
-    std::vector<FArchiveBuffer>& OutBuffers;
-    unsigned int Version;
-    unsigned int FileLength;
-    unsigned int JsonLength;
-    unsigned int BinLength;
-    std::shared_ptr<unsigned char[]> InBuffer = nullptr;
 
-    friend std::ostream& operator<<(std::ostream& out, FArchive& Ar)
+    // bool bIsLoading = false;
+    // nlohmann::json& Node;
+    // std::vector<FArchiveBuffer>& OutBuffers;
+    // unsigned int Version;
+    // unsigned int FileLength;
+    // unsigned int JsonLength;
+    // unsigned int BinLength;
+    // std::shared_ptr<unsigned char[]> InBuffer = nullptr;
+
+    // friend std::ostream& operator<<(std::ostream& out, FArchive& Ar)
+    // {
+    //     Ar.BinLength = 0;
+    //     for (int i = 0; i < Ar.OutBuffers.size(); i++)
+    //     {
+    //         auto &Block = Ar.OutBuffers[i];
+    //         Block.Node["BufferOffset"] = Ar.BinLength;
+    //         Ar.BinLength += Block.Buffer.BufferSize;
+    //     }
+    //     std::string json_str = Ar.Node.dump();
+    //     Ar.JsonLength = json_str.size();
+    //     Ar.FileLength = Ar.BinLength + Ar.JsonLength + 
+    //                 4 + // magic
+    //                 4 + // version
+    //                 4 + // length
+    //                 4 + // json chunk length
+    //                 4 + // json chunk type ('J', 'S', 'O', 'N')
+    //                 4 + // binary chunk length
+    //                 4;  // binary chunk type ('B', 'I', 'N', '\0')
+    //     char magic[4];
+    //     magic[0] = {'n'};
+    //     magic[1] = {'a'};
+    //     magic[2] = {'s'};
+    //     magic[3] = {'t'};
+    //     out.write(magic, 4);
+    //     Ar.Version = 1;
+    //     out.write((char*)&Ar.Version, 4);
+    //     out.write((char*)&Ar.FileLength, 4);
+
+    //     out.write((char*)&Ar.JsonLength, 4);
+    //     char JsonChunkType[4];
+    //     JsonChunkType[0] = {'J'};
+    //     JsonChunkType[1] = {'S'};
+    //     JsonChunkType[2] = {'O'};
+    //     JsonChunkType[3] = {'N'};
+    //     out.write(JsonChunkType, 4);
+    //     out.write(json_str.c_str(), json_str.size());
+
+    //     out.write((char*)&Ar.BinLength, 4);
+    //     char BinChunkType[4];
+    //     BinChunkType[0] = {'B'};
+    //     BinChunkType[1] = {'I'};
+    //     BinChunkType[2] = {'N'};
+    //     BinChunkType[3] = {'\0'};
+    //     out.write(BinChunkType, 4);
+    //     for (int i = 0; i < Ar.OutBuffers.size(); i++)
+    //     {
+    //         auto &Block = Ar.OutBuffers[i];
+    //         out.write((char*)Block.Buffer.Buffer.get(), Block.Buffer.BufferSize);
+    //     }
+    //     return out;
+    // }
+
+    // friend std::istream& operator>>(std::istream& in, FArchive& Ar)
+    // {
+    //     char magic[4];
+    //     in.read(magic, 4);
+    //     if (magic[0] != 'n' || 
+    //         magic[1] != 'a' || 
+    //         magic[2] != 's' || 
+    //         magic[3] != 't')
+    //         return in;
+        
+    //     in.read((char*)&Ar.Version, 4);
+        
+    //     in.read((char*)&Ar.FileLength, 4);
+
+        
+    //     char JsonChunkType[4];
+    //     in.read((char*)&Ar.JsonLength, 4);
+    //     in.read(JsonChunkType, 4);
+    //     std::unique_ptr<char[]> json = std::make_unique<char[]>(Ar.JsonLength+1);
+    //     in.read(json.get(), Ar.JsonLength);
+    //     json[Ar.JsonLength] = '\0';
+    //     std::stringstream(json.get()) >> Ar.Node;
+
+    //     char BinChunkType[4];
+    //     in.read((char*)&Ar.BinLength, 4);
+    //     in.read(BinChunkType, 4);
+    //     Ar.InBuffer = std::make_unique<unsigned char[]>(Ar.BinLength);
+    //     in.read((char*)Ar.InBuffer.get(), Ar.BinLength);
+
+    //     return in;
+    // }
+
+};
+
+void Serialize(FArchive& Ar, FBinaryBuffer& Value);
+void Serialize(FArchive& Ar, class NObject*& Value);
+template <typename T>
+void Serialize(FArchive& Ar, std::vector<T>& Array)
+{
+    auto& CurrentNode = Ar.GetCurrentNode();
+    if (Ar.IsLoading())
     {
-        Ar.BinLength = 0;
-        for (int i = 0; i < Ar.OutBuffers.size(); i++)
+        if (CurrentNode.is_array())
         {
-            auto &Block = Ar.OutBuffers[i];
-            Block.Node["BufferOffset"] = Ar.BinLength;
-            Ar.BinLength += Block.Buffer.BufferSize;
+            Array.resize(CurrentNode.size());
+            for (size_t i = 0; i < CurrentNode.size(); ++i)
+            {
+                FArchive ElementAr(CurrentNode[i], Ar.IsLoading());
+                Serialize(ElementAr, Array[i]);
+            }
         }
-        std::string json_str = Ar.Node.dump();
-        Ar.JsonLength = json_str.size();
-        Ar.FileLength = Ar.BinLength + Ar.JsonLength + 
-                    4 + // magic
-                    4 + // version
-                    4 + // length
-                    4 + // json chunk length
-                    4 + // json chunk type ('J', 'S', 'O', 'N')
-                    4 + // binary chunk length
-                    4;  // binary chunk type ('B', 'I', 'N', '\0')
-        char magic[4];
-        magic[0] = {'n'};
-        magic[1] = {'a'};
-        magic[2] = {'s'};
-        magic[3] = {'t'};
-        out.write(magic, 4);
-        Ar.Version = 1;
-        out.write((char*)&Ar.Version, 4);
-        out.write((char*)&Ar.FileLength, 4);
-
-        out.write((char*)&Ar.JsonLength, 4);
-        char JsonChunkType[4];
-        JsonChunkType[0] = {'J'};
-        JsonChunkType[1] = {'S'};
-        JsonChunkType[2] = {'O'};
-        JsonChunkType[3] = {'N'};
-        out.write(JsonChunkType, 4);
-        out.write(json_str.c_str(), json_str.size());
-
-        out.write((char*)&Ar.BinLength, 4);
-        char BinChunkType[4];
-        BinChunkType[0] = {'B'};
-        BinChunkType[1] = {'I'};
-        BinChunkType[2] = {'N'};
-        BinChunkType[3] = {'\0'};
-        out.write(BinChunkType, 4);
-        for (int i = 0; i < Ar.OutBuffers.size(); i++)
-        {
-            auto &Block = Ar.OutBuffers[i];
-            out.write((char*)Block.Buffer.Buffer.get(), Block.Buffer.BufferSize);
-        }
-        return out;
     }
-
-    friend std::istream& operator>>(std::istream& in, FArchive& Ar)
+    else
     {
-        char magic[4];
-        in.read(magic, 4);
-        if (magic[0] != 'n' || 
-            magic[1] != 'a' || 
-            magic[2] != 's' || 
-            magic[3] != 't')
-            return in;
-        
-        in.read((char*)&Ar.Version, 4);
-        
-        in.read((char*)&Ar.FileLength, 4);
-
-        
-        char JsonChunkType[4];
-        in.read((char*)&Ar.JsonLength, 4);
-        in.read(JsonChunkType, 4);
-        std::unique_ptr<char[]> json = std::make_unique<char[]>(Ar.JsonLength+1);
-        in.read(json.get(), Ar.JsonLength);
-        json[Ar.JsonLength] = '\0';
-        std::stringstream(json.get()) >> Ar.Node;
-
-        char BinChunkType[4];
-        in.read((char*)&Ar.BinLength, 4);
-        in.read(BinChunkType, 4);
-        Ar.InBuffer = std::make_unique<unsigned char[]>(Ar.BinLength);
-        in.read((char*)Ar.InBuffer.get(), Ar.BinLength);
-
-        return in;
+        CurrentNode = nlohmann::json::array();
+        for (auto& Element : Array)
+        {
+            nlohmann::json& ElementNode = CurrentNode.emplace_back();
+            FArchive ElementAr(ElementNode, Ar.IsLoading());
+            Serialize(ElementAr, Element);
+        }
     }
+}
+template <typename T>
+void Serialize(FArchive& Ar, T& Value)
+{
+    if (Ar.IsLoading())
+    {
+        Value = Ar.GetCurrentNode().get<T>();
+    }
+    else
+    {
+        Ar.GetCurrentNode() = Value;
+    }
+}
 
+class FProperty
+{
+public:
+    std::string Name;
+
+    virtual void SerializeItem(FArchive& Ar, void* Value) = 0;
+};
+
+class FBoolProperty : public FProperty
+{
+public:
+    void SerializeItem(FArchive& Ar, void* Value) override
+    {
+        FArchive::FScope Scope(Ar, Name);
+        Serialize(Ar, *static_cast<bool*>(Value));
+    }
+};
+
+template<typename T>
+class TProperty_Numeric : public FProperty
+{
+public:
+    void SerializeItem(FArchive& Ar, void* Value) override
+    {
+        FArchive::FScope Scope(Ar, Name);
+        Serialize(Ar, *static_cast<T*>(Value));
+    }
+};
+using FIntProperty = TProperty_Numeric<int>;
+using FFloatProperty = TProperty_Numeric<float>;
+using FDoubleProperty = TProperty_Numeric<double>;
+
+class FStrProperty : public FProperty
+{
+public:
+    void SerializeItem(FArchive& Ar, void* Value) override
+    {
+        FArchive::FScope Scope(Ar, Name);
+        Serialize(Ar, *static_cast<std::string*>(Value));
+    }
+};
+
+class FObjectProperty : public FProperty
+{
+public:
+    void SerializeItem(FArchive& Ar, void* Value) override
+    {
+        FArchive::FScope Scope(Ar, Name);
+        Serialize(Ar, *static_cast<NObject**>(Value));
+    }
 };
 
 class NCLASS NObject : public std::enable_shared_from_this<NObject>

@@ -31,9 +31,7 @@
         static std::unique_ptr<::NClass> Z_StaticClass; \
     public: \
         virtual const ::NClass *GetClass() const override; \
-        static const ::NClass *StaticClass(); \
-        virtual void Serialize(FArchive& Ar) override; \
-        virtual void Deserialize(FArchive& Ar) override;
+        static const ::NClass *StaticClass();
 
 #define GENERATED_STRUCT_BODY() \
     private: \
