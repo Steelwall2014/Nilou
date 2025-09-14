@@ -1,0 +1,8 @@
+target("microprofile")
+    add_deps("stb")
+    add_defines("MICROPROFILE_SYSTEM_STB")
+    set_optimize("fastest")
+    set_languages("cxx20")
+    set_kind("static")
+    add_includedirs("./", {public = true})
+    add_files("microprofile.cpp")
