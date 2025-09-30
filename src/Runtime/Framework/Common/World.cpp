@@ -5,6 +5,7 @@
 #include "BaseApplication.h"
 #include "Common/Math/Transform.h"
 
+#include "Common/CoreUObject/Package.h"
 #include "StaticMeshResources.h"
 #include "Common/Asset/AssetLoader.h"
 #include "Common/Components/MeshComponent.h"
@@ -53,8 +54,7 @@ namespace nilou {
 
     static void LoadPBRExibition(UWorld* World)
     {
-        UMaterial* PBRExhibitionMaterial = GetContentManager()->GetMaterialByPath("/Materials/PBRExhibition.nasset");
-        UStaticMesh *Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
+        UStaticMesh* Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
         if (Mesh)
         {
             FTransform MeshTransform;
@@ -73,20 +73,33 @@ namespace nilou {
 
         std::vector<std::shared_ptr<ASphereActor>> PBRSpheres;
         {
-            FTransform SphereTransform;
+            NPackage* Package = CreatePackage("/Engine/Materials/PBRExhibitionMaterial");
+            UMaterial* PBRExhibitionMaterial = FindObject<UMaterial>(Package, "PBRExhibitionMaterial");
+            if (!PBRExhibitionMaterial)
+            {
+                PBRExhibitionMaterial = NewObject<UMaterial>(Package, "PBRExhibitionMaterial");
+                PBRExhibitionMaterial->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.glsl");
+                PBRExhibitionMaterial->SetScalarParameterValue("Red", 1.f);
+                PBRExhibitionMaterial->SetScalarParameterValue("Green", 1.f);
+                PBRExhibitionMaterial->SetScalarParameterValue("Blue", 1.f);
+                PBRExhibitionMaterial->SetScalarParameterValue("Metallic", 0.f);
+                PBRExhibitionMaterial->SetScalarParameterValue("Roughness", 0.8f);
+                PBRExhibitionMaterial->MarkPackageDirty();
+                NPackage::SavePackage(Package);
+            }
             for (int i = 1; i <= 5; i++)
             {
                 for (int j = 0; j <= 4; j++)
                 {
-                    UMaterialInstance* mat = PBRExhibitionMaterial->CreateMaterialInstance();
+                    UMaterialInstance* mat = PBRExhibitionMaterial->CreateMaterialInstance(Package, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
                     mat->SetScalarParameterValue("Red", 1.f);
                     mat->SetScalarParameterValue("Green", 1.f);
                     mat->SetScalarParameterValue("Blue", 1.f);
                     mat->SetScalarParameterValue("Metallic", (i-1)*0.25f);
                     mat->SetScalarParameterValue("Roughness", (j)*0.25f);
-                    // auto Data = mat->GetUniformBlock()->GetData<PBRExhibition_UniformBlock>();
-                    SphereTransform.SetTranslation(vec3(-2, j*0.3, i*0.3));
-                    SphereTransform.SetScale3D(dvec3(0.1));
+                    FTransform SphereTransform;
+                    SphereTransform.SetTranslation(FVector(-2, j*0.3, i*0.3));
+                    SphereTransform.SetScale3D(FVector(0.1));
                     std::shared_ptr<ASphereActor> Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
                     Sphere->SphereComponent->SetMaterial(mat);
                     PBRSpheres.push_back(Sphere);
@@ -95,7 +108,7 @@ namespace nilou {
         }
 
         FTransform CubeTransform;
-        CubeTransform.SetScale3D(vec3(15, 15, 0.05));
+        CubeTransform.SetScale3D(FVector(15, 15, 0.05));
         UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
         std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
         StaticMeshActor->SetStaticMesh(Cube);
@@ -104,14 +117,14 @@ namespace nilou {
         std::shared_ptr<AArrowActor> ArrorActor = World->SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         
         FTransform ReflectionProbeTransform1;
-        ReflectionProbeTransform1.SetTranslation(dvec3(-2, 0, 1.5));
+        ReflectionProbeTransform1.SetTranslation(FVector(-2, 0, 1.5));
         std::shared_ptr<AReflectionProbe> ReflectionProbe1 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
         for (auto Sphere : PBRSpheres)
             ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
-        ReflectionProbe1->ReflectionProbeComponent->SetExtent(dvec3(1, 4, 4));
+        ReflectionProbe1->ReflectionProbeComponent->SetExtent(FVector(1, 4, 4));
 
         FTransform ReflectionProbeTransform2;
-        ReflectionProbeTransform2.SetTranslation(dvec3(1, 1, 1));
+        ReflectionProbeTransform2.SetTranslation(FVector(1, 1, 1));
         std::shared_ptr<AReflectionProbe> ReflectionProbe2 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
     }
 
@@ -197,10 +210,10 @@ namespace nilou {
         bHasBegunPlay = true;
 
         FTransform CameraActorTransform;
-        CameraActorTransform.SetTranslation(vec3(-2, 0, 2));
+        CameraActorTransform.SetTranslation(FVector(-2, 0, 2));
         CameraActorTransform.SetRotator(FRotator(-45, 0, 0));
         std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
-        CameraActor->GetCameraComponent()->ScreenResolution = ivec2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
+        CameraActor->GetCameraComponent()->ScreenResolution = FIntVector2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
 
         FTransform LightActorTransform;
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
@@ -272,7 +285,7 @@ namespace nilou {
         for (std::shared_ptr<AActor> Actor : Actors)
         {
             Actor->Tick(DeltaTime);
-            std::vector<UActorComponent*> Components;
+            TArray<UActorComponent*> Components;
             Actor->GetComponents(Components);
             for (auto Component : Components)
             {

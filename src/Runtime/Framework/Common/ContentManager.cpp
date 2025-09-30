@@ -12,17 +12,7 @@
 
 namespace nilou {
 
-	TShaderMap<FShaderPermutationParameters> GlobalShaders;
-    void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
-    {
-        GlobalShaders.AddShader(ShaderRHI, Parameters);
-    }
-
-    FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters)
-    {
-        return GlobalShaders.GetShader(Parameters);
-    }
-
+#if 0
     struct FArchiveHelper
     {
         nlohmann::json root;
@@ -422,4 +412,5 @@ namespace nilou {
         tokens.insert(tokens.begin(), "Content");
         return FContentEntry::Search(RootEntry.get(), tokens, 0);
     }
+#endif
 }

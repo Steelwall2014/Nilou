@@ -110,7 +110,7 @@ namespace nilou {
 
         std::array<TRDGUniformBufferRef<FViewShaderParameters>, 6> ViewUniformBuffers;
 
-        void UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position);
+        void UpdateSceneCaptureContents_Internal(FScene* Scene, FVector Position);
     };
 
 }

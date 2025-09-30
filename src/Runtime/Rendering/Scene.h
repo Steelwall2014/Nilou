@@ -126,7 +126,7 @@ namespace nilou {
         void UpdateRenderInfos(RenderGraph& Graph);
 
         void UpdatePrimitiveTransform(UPrimitiveComponent *Primitive);
-        void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds);
+        void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const FMatrix &RenderMatrix, const FBoxSphereBounds &Bounds);
 
         TMulticastDelegate<FLightSceneInfo *> &GetAddLightDelegate() { return SceneAddLightDelegate; }
         TMulticastDelegate<FLightSceneInfo *> &GetRemoveLightDelegate() { return SceneRemoveLightDelegate; }

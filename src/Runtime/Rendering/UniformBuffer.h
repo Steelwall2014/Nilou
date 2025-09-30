@@ -132,7 +132,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<vec2>
+    struct TShaderParameterTypeInfo<FVector2f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
@@ -144,7 +144,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<vec3>
+    struct TShaderParameterTypeInfo<FVector3f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
@@ -156,7 +156,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<vec4>
+    struct TShaderParameterTypeInfo<FVector4f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 1;
@@ -168,7 +168,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dvec2>
+    struct TShaderParameterTypeInfo<FVector2>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
@@ -180,7 +180,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dvec3>
+    struct TShaderParameterTypeInfo<FVector>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
@@ -192,7 +192,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dvec4>
+    struct TShaderParameterTypeInfo<FVector4>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 1;
@@ -204,7 +204,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<ivec2>
+    struct TShaderParameterTypeInfo<FIntVector2>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
@@ -216,7 +216,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<ivec3>
+    struct TShaderParameterTypeInfo<FIntVector>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
@@ -228,7 +228,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<ivec4>
+    struct TShaderParameterTypeInfo<FIntVector4>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_INT32;
         static constexpr int32 NumRows = 1;
@@ -240,7 +240,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<uvec2>
+    struct TShaderParameterTypeInfo<FUIntVector2>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
@@ -252,7 +252,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<uvec3>
+    struct TShaderParameterTypeInfo<FUIntVector>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
@@ -264,7 +264,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<uvec4>
+    struct TShaderParameterTypeInfo<FUIntVector4>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_UINT32;
         static constexpr int32 NumRows = 1;
@@ -276,7 +276,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<mat2>
+    struct TShaderParameterTypeInfo<FMatrix22f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 2;
@@ -288,7 +288,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<mat3>
+    struct TShaderParameterTypeInfo<FMatrix33f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 3;
@@ -300,7 +300,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<mat4>
+    struct TShaderParameterTypeInfo<FMatrix44f>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT32;
         static constexpr int32 NumRows = 4;
@@ -312,7 +312,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dmat2>
+    struct TShaderParameterTypeInfo<FMatrix22>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 2;
@@ -324,7 +324,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dmat3>
+    struct TShaderParameterTypeInfo<FMatrix33>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 3;
@@ -336,7 +336,7 @@ namespace nilou {
     };
 
     template<>
-    struct TShaderParameterTypeInfo<dmat4>
+    struct TShaderParameterTypeInfo<FMatrix>
     {
         static constexpr EUniformBufferBaseType BaseType = UBMT_FLOAT64;
         static constexpr int32 NumRows = 4;

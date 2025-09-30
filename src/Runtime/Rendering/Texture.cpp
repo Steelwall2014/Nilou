@@ -5,6 +5,7 @@
 #include "DynamicRHI.h"
 #include "Common/Log.h"
 
+#include "Common/CoreUObject/Class.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
 #include "Texture2DArray.h"
@@ -52,7 +53,7 @@ namespace nilou {
         //     cv.wait(lock, [&pixels_readed] { return pixels_readed == true; });
     }
 
-    void UTexture::PostDeserialize(FArchive& Ar)
+    void UTexture::PostLoad()
     {
         if (GetResource() == nullptr)
         {
@@ -61,5 +62,11 @@ namespace nilou {
             UpdateResource();
         }
     }
+
+    BEGIN_CLASS_REGISTRY(Object, UTexture, NObject, EClassFlags::Native)
+        CLASS_PROPERTY(ImageData)
+        CLASS_PROPERTY(SamplerState)
+        CLASS_PROPERTY(NumMips)
+    END_CLASS_REGISTRY(UTexture)
 
 }

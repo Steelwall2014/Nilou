@@ -14,7 +14,7 @@ namespace nilou {
         virtual class FTextureRenderTarget2DResource* GetTextureRenderTarget2DResource() { return nullptr; }
         virtual class FTextureRenderTargetCubeResource* GetTextureRenderTargetCubeResource() { return nullptr; }
 
-        vec3 ClearColor;
+        FVector3f ClearColor;
 
     };
 
@@ -71,7 +71,7 @@ namespace nilou {
     public:
 
         UTextureRenderTarget()
-            : ClearColor(vec3(0))
+            : ClearColor(FVector3f(0))
         { }
 
         /**
@@ -79,7 +79,7 @@ namespace nilou {
          * to update clear color.
          */
         NPROPERTY()
-        vec3 ClearColor;
+        FVector3f ClearColor;
 
         FTextureRenderTargetResource* GetRenderTargetResource();
 

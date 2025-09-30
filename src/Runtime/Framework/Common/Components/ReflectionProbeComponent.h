@@ -13,15 +13,15 @@ namespace nilou {
             : IrradianceTexture(nullptr)
             , PrefilteredTexture(nullptr)
             , SceneProxy(nullptr)
-            , Extent(dvec3(1))
-            , OriginOffset(dvec3(0))
+            , Extent(FVector(1))
+            , OriginOffset(FVector(0))
         { }
 
         class UTextureCube* IrradianceTexture;
 
         class UTextureCube* PrefilteredTexture;
 
-        void SetExtent(dvec3 NewExtent)
+        void SetExtent(FVector NewExtent)
         {
             if (NewExtent != Extent)
             {
@@ -30,7 +30,7 @@ namespace nilou {
             }
         }
 
-        void SetOriginOffset(dvec3 NewOriginOffset)
+        void SetOriginOffset(FVector NewOriginOffset)
         {
             if (NewOriginOffset != OriginOffset)
             {
@@ -39,12 +39,12 @@ namespace nilou {
             }
         }
 
-        dvec3 GetExtent() const
+        FVector GetExtent() const
         {
             return Extent;
         }
 
-        dvec3 GetOriginOffset() const
+        FVector GetOriginOffset() const
         {
             return OriginOffset;
         }
@@ -74,9 +74,9 @@ namespace nilou {
 
     protected:
 
-        dvec3 Extent;
+        FVector Extent;
 
-        dvec3 OriginOffset;
+        FVector OriginOffset;
 
         void UpdateSceneCaptureContents_RenderThread(FScene* Scene);
 
@@ -92,11 +92,11 @@ namespace nilou {
     public:
         FReflectionProbeSceneProxy(UReflectionProbeComponent* Component);
 
-        dvec3 Extent;
+        FVector Extent;
 
-        dvec3 OriginOffset;
+        FVector OriginOffset;
 
-        dvec3 Location;
+        FVector Location;
 
         RHISampler IrradianceTexture;
 

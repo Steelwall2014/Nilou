@@ -43,7 +43,7 @@ namespace nilou {
         glm::dvec3 Center;
         double Radius;
 
-        FBoundingSphere TransformBy(const dmat4 &Transform) const;
+        FBoundingSphere TransformBy(const FMatrix &Transform) const;
     };
 
 
@@ -145,7 +145,7 @@ namespace nilou {
          * @brief Calculate if the oriented bounding box is out of frustum
          */
         bool IsBoxOutSideFrustum(const FOrientedBoundingBox &OBB) const;
-        bool IsBoxOutSideFrustum(const dvec3 &Center, const dmat3& HalfAxes) const;
+        bool IsBoxOutSideFrustum(const FVector &Center, const FMatrix33& HalfAxes) const;
 
         /**
          * @brief Calculate if the axis-aligned bounding box is out of frustum, 
@@ -158,11 +158,11 @@ namespace nilou {
          * ignoring near and far clip plane to make it faster.
          */
         bool IsBoxOutSideFrustumFast(const FOrientedBoundingBox &OBB) const;
-        bool IsBoxOutSideFrustumFast(const dvec3 &Center, const dmat3& HalfAxes) const;
+        bool IsBoxOutSideFrustumFast(const FVector &Center, const FMatrix33& HalfAxes) const;
 
         bool operator==(const FViewFrustum &Other);
     private:
-        bool IsOutSidePlane(const FPlane &plane, glm::dvec3 position) const;
+        bool IsOutSidePlane(const FPlane &plane, FVector position) const;
     };
 
     class FConvexVolume

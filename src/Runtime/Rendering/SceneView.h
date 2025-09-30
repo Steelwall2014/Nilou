@@ -11,16 +11,16 @@
 namespace nilou {
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-        SHADER_PARAMETER_ARRAY(dvec4, 6, FrustumPlanes)
-        SHADER_PARAMETER(mat4, RelWorldToView)
-        SHADER_PARAMETER(mat4, ViewToClip)
-        SHADER_PARAMETER(mat4, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
-        SHADER_PARAMETER(mat4, ClipToView)  
-        SHADER_PARAMETER(mat4, RelClipToWorld)      // Inverse of RelWorldToClip
-        SHADER_PARAMETER(mat4, AbsWorldToClip)     
-        SHADER_PARAMETER(dvec3, CameraPosition)
-        SHADER_PARAMETER(vec3, CameraDirection)
-        SHADER_PARAMETER(ivec2, CameraResolution)
+        SHADER_PARAMETER_ARRAY(FVector4, 6, FrustumPlanes)
+        SHADER_PARAMETER(FMatrix44f, RelWorldToView)
+        SHADER_PARAMETER(FMatrix44f, ViewToClip)
+        SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
+        SHADER_PARAMETER(FMatrix44f, ClipToView)  
+        SHADER_PARAMETER(FMatrix44f, RelClipToWorld)      // Inverse of RelWorldToClip
+        SHADER_PARAMETER(FMatrix44f, AbsWorldToClip)     
+        SHADER_PARAMETER(FVector, CameraPosition)
+        SHADER_PARAMETER(FVector3f, CameraDirection)
+        SHADER_PARAMETER(FIntVector2, CameraResolution)
         SHADER_PARAMETER(float, CameraNearClipDist)
         SHADER_PARAMETER(float, CameraFarClipDist)
         SHADER_PARAMETER(float, CameraVerticalFieldOfView)
@@ -32,15 +32,15 @@ namespace nilou {
         /** The six planes of the view frustum */
         FViewFrustum ViewFrustum;
 
-        glm::dmat4 ProjectionMatrix;
-        glm::dmat4 ViewMatrix;
-        dvec3 Position;
-        dvec3 Forward;
-        dvec3 Up;
+        FMatrix ProjectionMatrix;
+        FMatrix ViewMatrix;
+        FVector Position;
+        FVector Forward;
+        FVector Up;
         double AspectRatio;
         double NearClipDistance;
         double FarClipDistance;
-        ivec2 ScreenResolution;
+        FIntVector2 ScreenResolution;
 
         ECameraProjectionMode ProjectionMode;
         double OrthoWidth;
@@ -56,10 +56,10 @@ namespace nilou {
             double InOrthoWidth,    // omitted if projection mode is Perspective
             double InNearClipDistance, 
             double InFarClipDistance,
-            dvec3 InPosition,
-            dvec3 InForward,
-            dvec3 InUp,
-            ivec2 InScreenResolution/*,
+            FVector InPosition,
+            FVector InForward,
+            FVector InUp,
+            FIntVector2 InScreenResolution/*,
             TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer*/);
 
         // EViewType ViewType;

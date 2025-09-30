@@ -11,15 +11,15 @@ namespace nilou {
         UpdateGeoreference();
     }
 
-	dmat4 affineInverse(dmat4 const& m)
+	glm::dmat4 affineInverse(glm::dmat4 const& m)
 	{
-		dmat3 const Inv(inverse(dmat3(m)));
+		glm::dmat3 const Inv(inverse(glm::dmat3(m)));
 
-		return dmat4(
-			dvec4(Inv[0], 0),
-			dvec4(Inv[1], 0),
-			dvec4(Inv[2], 0),
-			dvec4(-Inv * dvec3(m[3]), 1));
+		return glm::dmat4(
+			glm::dvec4(Inv[0], 0),
+			glm::dvec4(Inv[1], 0),
+			glm::dvec4(Inv[2], 0),
+			glm::dvec4(-Inv * glm::dvec3(m[3]), 1));
 	}
 
     void AGeoreferenceActor::UpdateGeoreference()

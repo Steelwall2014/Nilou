@@ -2,6 +2,7 @@
 #include <shaderc/shaderc.h>
 #include <spirv_reflect.h>
 #include "Common/Path.h"
+#include "Common/CoreUObject/Package.h"
 #include "Material.h"
 #include "Common/Asset/AssetLoader.h"
 #include "RHIDefinitions.h"
@@ -291,10 +292,9 @@ namespace nilou {
             });
     }
 
-    UMaterialInstance* UMaterial::CreateMaterialInstance()
+    UMaterialInstance* UMaterial::CreateMaterialInstance(NPackage* Package, const std::string& Name)
     {
-        std::string parent_path = std::filesystem::path(GetVirtualPath()).parent_path().generic_string();
-        UMaterialInstance* MaterialInstance = GetContentManager()->CreateAsset<UMaterialInstance>(GetName()+"_Instance", parent_path);
+        UMaterialInstance* MaterialInstance = CreateObject<UMaterialInstance>(Package, Name);
 
         // Copy some properties
         MaterialInstance->Code = this->Code;
@@ -311,14 +311,7 @@ namespace nilou {
         return MaterialInstance;
     }
 
-    void UMaterial::PostSerialize(FArchive& Ar)
-    {
-        // nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
-        // FArchive local_Ar(json, Ar);
-        // MaterialUniformBlock->Serialize(local_Ar);
-    }
-
-    void UMaterial::PostDeserialize(FArchive& Ar)
+    void UMaterial::PostLoad()
     {
         InitializeResources();
         SetShaderFileVirtualPath(ShaderVirtualPath);

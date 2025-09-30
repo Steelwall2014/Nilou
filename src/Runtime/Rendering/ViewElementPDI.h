@@ -10,7 +10,7 @@ namespace nilou {
     {
     public:
         friend class FDeferredShadingSceneRenderer;
-        void DrawLine(const dvec3& Start,const dvec3& End,const vec3& Color);
+        void DrawLine(const FVector& Start,const FVector& End,const FVector3f& Color);
         void DrawLine(const FBatchedLine &Line);
 
     private:

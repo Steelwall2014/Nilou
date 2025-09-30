@@ -269,7 +269,6 @@ namespace nilou {
 			img = FImage(
 				info.Width, info.Height, 
 				info.Format, EImageType::IT_Image2D, info.MipLevels);
-			img.AllocateSpace();
 			std::copy((uint8*)info.Data, (uint8*)info.Data+info.DataSize, img.GetData());
 			
 		}
@@ -279,7 +278,6 @@ namespace nilou {
 			uint8* temp_data = stbi_load(AbsolutePath.c_str(), (int *)&width, (int *)&height, (int *)&channel, 0);
 			EPixelFormat PixelFormat = TranslateToEPixelFormat(channel, 8, GL_UNSIGNED_BYTE);
 			img = FImage(width, height, PixelFormat, EImageType::IT_Image2D, 1);
-			img.AllocateSpace();
 			std::copy(temp_data, temp_data+img.GetDataSize(), img.GetData());
 			stbi_image_free(temp_data);
 		}

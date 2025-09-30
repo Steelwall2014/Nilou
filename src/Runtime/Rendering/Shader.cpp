@@ -44,4 +44,15 @@ namespace nilou {
 	// FShaderType* FMaterialShader::GetType() const { return &StaticType; }
 	IMPLEMENT_SHADER_TYPE(FMaterialShader, "", EShaderFrequency::SF_None, Material)
     /*========================Implement FMaterialShader::StaticType==========================*/
+
+	TShaderMap<FShaderPermutationParameters> GlobalShaders;
+    void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap)
+    {
+        GlobalShaders.AddShader(ShaderRHI, Parameters);
+    }
+
+    FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters)
+    {
+        return GlobalShaders.GetShader(Parameters);
+    }
 }

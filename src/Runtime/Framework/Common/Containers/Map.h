@@ -2,6 +2,8 @@
 #include <unordered_map>
 
 namespace nilou {
+
+    class FArchive;
     
     template<typename KeyType, typename ValueType>
     class TMap
@@ -25,15 +27,28 @@ namespace nilou {
         {
             return Data[Key];
         }
-
-        const ValueType& At(const KeyType& Key) const
+        
+        ValueType* Find(const KeyType& Key)
         {
-            return Data.at(Key);
+            auto it = Data.find(Key);
+            return it != Data.end() ? &it->second : nullptr;
         }
 
-        ValueType& At(const KeyType& Key)
+        const ValueType* Find(const KeyType& Key) const
         {
-            return Data.at(Key);
+            auto it = Data.find(Key);
+            return it != Data.end() ? &it->second : nullptr;
+        }
+
+        ValueType FindRef(const KeyType& Key) const
+        {
+            auto it = Data.find(Key);
+            return it != Data.end() ? it->second : ValueType();
+        }
+
+        ValueType& FindOrAdd(const KeyType& Key)
+        {
+            return Data[Key];
         }
 
         bool Contains(const KeyType& Key) const
@@ -113,6 +128,9 @@ namespace nilou {
 
     private:
         std::unordered_map<KeyType, ValueType> Data;
+
+        template<typename TKey, typename TValue>
+        friend void Serialize(FArchive& Ar, TMap<TKey, TValue>& Map);
     };
 
 }

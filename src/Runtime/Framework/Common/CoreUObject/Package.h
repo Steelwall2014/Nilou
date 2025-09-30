@@ -1,5 +1,6 @@
 #pragma once
 #include "Object.h"
+#include "Common/Containers/Array.h"
 
 namespace nilou {
 
@@ -114,7 +115,10 @@ public:
 	{
 		return uint32(In.Index);
 	}
+
+	friend void Serialize(FArchive& Ar, FPackageIndex& Value);
 };
+void Serialize(FArchive& Ar, FPackageIndex& Value);
 
 struct FObjectResource
 {
@@ -126,15 +130,21 @@ void Serialize(FArchive& Ar, FObjectResource& Value);
 
 struct FObjectExport : public FObjectResource
 {
+    FPackageIndex ClassIndex;
+
     std::string ClassName;
 
     FPackageIndex ObjectIndex;
+
+	NObject* Object = nullptr;
 };
 void Serialize(FArchive& Ar, FObjectExport& Value);
 
 struct FObjectImport : public FObjectResource
 {
-    std::string PackageName;
+	std::string PackageName;
+
+	NObject* XObject = nullptr;
 };
 void Serialize(FArchive& Ar, FObjectImport& Value);
 
@@ -142,13 +152,20 @@ class NPackage : public NObject
 {
     GENERATED_BODY()
 public:
-    NPackage();
-
-    std::vector<FObjectExport> ObjectExports;
-    std::vector<FObjectImport> ObjectImports;
-
     virtual void Serialize(FArchive& Ar) override;
+
+	static void SavePackage(NPackage* Package);
+
+	bool IsDirty() const { return bDirty; }
+
+	void SetDirtyFlag(bool bInDirty) { bDirty = bInDirty; }
+
+private:
+	bool bDirty = false;
+
 };
+
+NPackage GetTransientPackage();
 
 }
 

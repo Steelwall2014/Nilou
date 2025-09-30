@@ -99,7 +99,7 @@ namespace nilou {
 
         FPrimitiveSceneInfo *GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 
-        dmat4 GetLocalToWorld() const { return LocalToWorld; }
+        FMatrix GetLocalToWorld() const { return LocalToWorld; }
 
         FBoxSphereBounds GetBounds() const { return Bounds; }
 

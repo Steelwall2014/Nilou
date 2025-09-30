@@ -85,14 +85,14 @@ namespace nilou {
     {
         GENERATED_STRUCT_BODY()
 
-        using ValueType = vec4;
+        using ValueType = FVector4;
         static ValueType GetValue(const FVectorParameterValue& Parameter) { return Parameter.ParameterValue; }
 
         NPROPERTY()
         FMaterialParameterInfo ParameterInfo;
 
         NPROPERTY()
-        vec4 ParameterValue;
+        FVector4 ParameterValue;
     };
 
     struct NSTRUCT FTextureParameterValue
@@ -109,7 +109,7 @@ namespace nilou {
         UTexture* ParameterValue;
     };
 
-    class NCLASS UMaterial : public NAsset
+    class NCLASS UMaterial : public NObject
     {
         friend class UMaterialInstance;
         friend class FMaterialRenderProxy;
@@ -156,13 +156,13 @@ namespace nilou {
 
         void SetScalarParameterValue(const std::string& Name, float Value);
 
-        void SetVectorParameterValue(const std::string& Name, const vec4& Value);
+        void SetVectorParameterValue(const std::string& Name, const FVector4& Value);
 
         void SetTextureParameterValue(const std::string& Name, UTexture *Texture);
 
         bool SetScalarParameterValueByIndex(int32 ParameterIndex, float Value);
 
-        bool SetVectorParameterValueByIndex(int32 ParameterIndex, const vec4& Value);
+        bool SetVectorParameterValueByIndex(int32 ParameterIndex, const FVector4& Value);
 
         bool SetTextureParameterValueByIndex(int32 ParameterIndex, UTexture *Texture);
 
@@ -183,13 +183,11 @@ namespace nilou {
 
         void SetShaderFileVirtualPath(const std::string& VirtualPath);
 
-        UMaterialInstance* CreateMaterialInstance();
+        UMaterialInstance* CreateMaterialInstance(NPackage* Package, const std::string& Name);
 
         std::string GetMateiralCode() const { return Code; }
 
-        virtual void PostSerialize(FArchive& Ar) override;
-
-        virtual void PostDeserialize(FArchive& Ar) override;
+        virtual void PostLoad() override;
 
         void InitializeResources();
 
@@ -265,7 +263,7 @@ namespace nilou {
         template <typename ValueType> std::map<std::string, ValueType>& GetValueArray() { return ScalarParameterArray; }
         template <typename ValueType> const std::map<std::string, ValueType>& GetValueArray() const { return ScalarParameterArray; }
 
-        std::map<std::string, vec4> VectorParameterArray;
+        std::map<std::string, FVector4> VectorParameterArray;
         std::map<std::string, float> ScalarParameterArray;
         // Note by Steelwall2014:
         // In UE5.5, the TextureParametersArray is a map of UTexture*, because they can check if the pointer is valid. (see FUniformExpressionSet::FillUniformBuffer)
@@ -276,10 +274,10 @@ namespace nilou {
     };
 
     template <> inline std::map<std::string, float>& FMaterialRenderProxy::GetValueArray<float>() { return ScalarParameterArray; }
-    template <> inline std::map<std::string, vec4>& FMaterialRenderProxy::GetValueArray<vec4>() { return VectorParameterArray; }
+    template <> inline std::map<std::string, FVector4>& FMaterialRenderProxy::GetValueArray<FVector4>() { return VectorParameterArray; }
     template <> inline std::map<std::string, UTexture*>& FMaterialRenderProxy::GetValueArray<UTexture*>() { return TextureParameterArray; }
     template <> inline const std::map<std::string, float>& FMaterialRenderProxy::GetValueArray<float>() const { return ScalarParameterArray; }
-    template <> inline const std::map<std::string, vec4>& FMaterialRenderProxy::GetValueArray<vec4>() const { return VectorParameterArray; }
+    template <> inline const std::map<std::string, FVector4>& FMaterialRenderProxy::GetValueArray<FVector4>() const { return VectorParameterArray; }
     template <> inline const std::map<std::string, UTexture*>& FMaterialRenderProxy::GetValueArray<UTexture*>() const { return TextureParameterArray; }
 
     /** Finds a parameter by name from the game thread. */

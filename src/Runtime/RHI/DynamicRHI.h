@@ -100,7 +100,7 @@ namespace nilou {
 
 	protected:
 		static FDynamicRHI *DynamicRHI;
-		static ivec3 SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
+		static FIntVector SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
     	// std::unordered_map<uint32, RHISamplerStateRef SamplerMap;
 		RHIFramebufferRef RenderToScreenFramebuffer{};
     	// void ReflectShader(RHIDescriptorSetsLayout& DescriptorSetsLayout, shaderc_compilation_result_t compile_result);

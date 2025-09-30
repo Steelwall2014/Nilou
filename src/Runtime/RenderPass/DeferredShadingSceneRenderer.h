@@ -92,14 +92,14 @@ namespace nilou {
         public:
             FScreenQuadPositionVertexBuffer()
             {
-                Vertices[0] = vec4(-1, 1, 0, 1);
-                Vertices[1] = vec4(-1, -1, 0, 1);
-                Vertices[2] = vec4(1, 1, 0, 1);
-                Vertices[3] = vec4(1, -1, 0, 1);
+                Vertices[0] = FVector4f(-1, 1, 0, 1);
+                Vertices[1] = FVector4f(-1, -1, 0, 1);
+                Vertices[2] = FVector4f(1, 1, 0, 1);
+                Vertices[3] = FVector4f(1, -1, 0, 1);
             }
 
         private:
-            vec4 Vertices[4];
+            FVector4f Vertices[4];
         };
 
         class FScreenQuadUVVertexBuffer : public FVertexBuffer
@@ -107,14 +107,14 @@ namespace nilou {
         public:
             FScreenQuadUVVertexBuffer()
             {
-                Vertices[0] = vec2(0, 1);
-                Vertices[1] = vec2(0, 0);
-                Vertices[2] = vec2(1, 1);
-                Vertices[3] = vec2(1, 0);
+                Vertices[0] = FVector2f(0, 1);
+                Vertices[1] = FVector2f(0, 0);
+                Vertices[2] = FVector2f(1, 1);
+                Vertices[3] = FVector2f(1, 0);
             }
  
         private:
-            vec2 Vertices[4];
+            FVector2f Vertices[4];
         };
 
         // template <typename TResource, typename TCreateInfo>
@@ -188,7 +188,7 @@ namespace nilou {
 
         struct FSceneTextures
         {
-            ivec2 Viewport;
+            FIntVector2 Viewport;
             RDGTexture* SceneColor;
             RDGTexture* DepthStencil;
 

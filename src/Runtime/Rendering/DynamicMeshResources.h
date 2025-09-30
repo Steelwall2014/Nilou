@@ -8,23 +8,23 @@ namespace nilou {
     {
         FDynamicMeshVertex();
         
-        FDynamicMeshVertex( const vec3& InPosition );
+        FDynamicMeshVertex( const FVector3f& InPosition );
 
-        FDynamicMeshVertex(const vec3& InPosition, const vec2& InTexCoord, const vec3& InColor);
+        FDynamicMeshVertex(const FVector3f& InPosition, const FVector2f& InTexCoord, const FVector3f& InColor);
 
-        FDynamicMeshVertex(const vec3& InPosition,const vec4& InTangentX,const vec4& InTangentZ,const vec2& InTexCoord, const vec3& InColor);
+        FDynamicMeshVertex(const FVector3f& InPosition,const FVector4f& InTangentX,const FVector4f& InTangentZ,const FVector2f& InTexCoord, const FVector3f& InColor);
 
-        FDynamicMeshVertex(const vec3& InPosition, const vec3& LayerTexcoords, const vec2& WeightmapTexcoords);
+        FDynamicMeshVertex(const FVector3f& InPosition, const FVector3f& LayerTexcoords, const FVector2f& WeightmapTexcoords);
 
-        void SetTangents( const vec3& InTangentX, const vec3& InTangentY, const vec3& InTangentZ );
+        void SetTangents( const FVector3f& InTangentX, const FVector3f& InTangentY, const FVector3f& InTangentZ );
 
-        vec3 GetTangentY() const;
+        FVector3f GetTangentY() const;
 
-        vec3 Position;
-        vec2 TextureCoordinate[MAX_STATIC_TEXCOORDS];
-        vec4 Tangent;
-        vec4 Normal;
-        vec3 Color;
+        FVector3f Position;
+        FVector2f TextureCoordinate[MAX_STATIC_TEXCOORDS];
+        FVector4f Tangent;
+        FVector4f Normal;
+        FVector3f Color;
     };
 
 

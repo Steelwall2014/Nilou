@@ -36,14 +36,14 @@ namespace nilou {
         return ECullingResult::CR_Intersecting;
     }
 
-    FBoundingSphere FBoundingSphere::TransformBy(const dmat4 &Transform) const
+    FBoundingSphere FBoundingSphere::TransformBy(const FMatrix &Transform) const
     {
-        dvec4 center = Transform * dvec4(Center, 1);
+        FVector4 center = Transform * FVector4(Center, 1);
         FBoundingSphere NewSphere(center, Radius);
         return NewSphere;
     }
 
-    void NormalizePlane(glm::dvec4 &plane)
+    void NormalizePlane(FVector4 &plane)
     {
         float mag;
         mag = sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
@@ -192,14 +192,14 @@ namespace nilou {
     {
         FBox AABB = Bound.GetBox();
         return 
-            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Min.z)) && 
-            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Min.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Max.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Min.x, AABB.Max.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Min.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Min.y, AABB.Max.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Max.y, AABB.Min.z)) &&
-            IsOutSidePlane(plane, vec3(AABB.Max.x, AABB.Max.y, AABB.Max.z));
+            IsOutSidePlane(plane, FVector3f(AABB.Min.x, AABB.Min.y, AABB.Min.z)) && 
+            IsOutSidePlane(plane, FVector3f(AABB.Min.x, AABB.Min.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Min.x, AABB.Max.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Min.x, AABB.Max.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Max.x, AABB.Min.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Max.x, AABB.Min.y, AABB.Max.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Max.x, AABB.Max.y, AABB.Min.z)) &&
+            IsOutSidePlane(plane, FVector3f(AABB.Max.x, AABB.Max.y, AABB.Max.z));
     }
     bool FViewFrustum::IsBoxOutSidePlane(const FPlane &plane, const FOrientedBoundingBox &OBB) const
     {
@@ -225,7 +225,7 @@ namespace nilou {
             IsBoxOutSidePlane(Planes[4], OBB) || 
             IsBoxOutSidePlane(Planes[5], OBB);
     }
-    bool FViewFrustum::IsBoxOutSideFrustum(const dvec3 &Center, const dmat3& HalfAxes) const
+    bool FViewFrustum::IsBoxOutSideFrustum(const FVector &Center, const FMatrix33& HalfAxes) const
     {
         FOrientedBoundingBox OBB{Center, HalfAxes};
         return IsBoxOutSideFrustum(OBB);
@@ -246,7 +246,7 @@ namespace nilou {
             IsBoxOutSidePlane(Planes[2], OBB) || 
             IsBoxOutSidePlane(Planes[3], OBB);
     }
-    bool FViewFrustum::IsBoxOutSideFrustumFast(const dvec3 &Center, const dmat3& HalfAxes) const
+    bool FViewFrustum::IsBoxOutSideFrustumFast(const FVector &Center, const FMatrix33& HalfAxes) const
     {
         FOrientedBoundingBox OBB{Center, HalfAxes};
         return IsBoxOutSideFrustumFast(OBB);

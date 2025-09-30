@@ -62,15 +62,15 @@ namespace nilou {
     struct FStaticMeshVertexBuffers
     {
     public:
-        FStaticMeshVertexBuffer<vec3> Positions;
+        FStaticMeshVertexBuffer<FVector3f> Positions;
         
-        FStaticMeshVertexBuffer<vec3> Normals;
+        FStaticMeshVertexBuffer<FVector3f> Normals;
         
-        FStaticMeshVertexBuffer<vec4> Tangents;
+        FStaticMeshVertexBuffer<FVector4f> Tangents;
         
-        FStaticMeshVertexBuffer<vec4> Colors;
+        FStaticMeshVertexBuffer<FVector4f> Colors;
         
-        FStaticMeshVertexBuffer<vec2> TexCoords[MAX_STATIC_TEXCOORDS];
+        FStaticMeshVertexBuffer<FVector2f> TexCoords[MAX_STATIC_TEXCOORDS];
 
         void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
 
@@ -158,7 +158,7 @@ namespace nilou {
         GENERATED_STRUCT_BODY()
 
         NPROPERTY()
-        FBinaryBuffer Data;
+        TArray<uint8> Data;
 
         NPROPERTY()
         uint32 Stride;
@@ -168,16 +168,14 @@ namespace nilou {
         explicit FVertexIndexBufferData(const FStaticMeshVertexBuffer<T> &InBuffer)
         {
             Stride = InBuffer.GetStride();
-            Data.BufferSize = InBuffer.GetStride() * InBuffer.GetNumVertices();
-            Data.Buffer = std::make_shared<uint8[]>(Data.BufferSize);
-            std::memcpy(Data.Buffer.get(), InBuffer.GetVertexData(), Data.BufferSize);
+            Data.SetNum(InBuffer.GetStride() * InBuffer.GetNumVertices());
+            std::memcpy(Data.GetData(), InBuffer.GetVertexData(), Data.Num());
         }
         explicit FVertexIndexBufferData(const FStaticMeshIndexBuffer &InBuffer)
         {
             Stride = InBuffer.GetStride();
-            Data.BufferSize = InBuffer.GetStride() * InBuffer.GetNumIndices();
-            Data.Buffer = std::make_shared<uint8[]>(Data.BufferSize);
-            std::memcpy(Data.Buffer.get(), InBuffer.GetIndiceData(), Data.BufferSize);
+            Data.SetNum(InBuffer.GetStride() * InBuffer.GetNumIndices());
+            std::memcpy(Data.GetData(), InBuffer.GetIndiceData(), Data.Num());
         }
     };
 
@@ -255,18 +253,18 @@ namespace nilou {
     {
         struct Primitive
         {
-            std::vector<vec3> Positions;
-            std::vector<vec3> Normals;
-            std::vector<vec4> Tangents;
-            std::vector<vec4> Colors;
-            std::vector<vec2> TexCoords[MAX_STATIC_TEXCOORDS];
+            std::vector<FVector3f> Positions;
+            std::vector<FVector3f> Normals;
+            std::vector<FVector4f> Tangents;
+            std::vector<FVector4f> Colors;
+            std::vector<FVector2f> TexCoords[MAX_STATIC_TEXCOORDS];
             std::vector<uint32> Indices;
             int32 MaterialIndex;
         };
         std::vector<Primitive> Primitives;
     };
 
-    class NCLASS UStaticMesh : public NAsset
+    class NCLASS UStaticMesh : public NObject
     {
         GENERATED_BODY()
     public:
@@ -291,8 +289,7 @@ namespace nilou {
 
         void Build(const FMeshDescription& MeshDesc);
 
-        virtual void PostSerialize(FArchive& Ar) override;
-        virtual void PostDeserialize(FArchive& Ar) override;
+        virtual void PostLoad() override;
 
         virtual ~UStaticMesh() { ReleaseResources(); }
         void ReleaseResources();

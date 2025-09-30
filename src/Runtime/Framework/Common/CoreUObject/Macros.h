@@ -27,20 +27,20 @@
 #define GENERATED_BODY() \
     private: \
         template<typename T>  \
-        friend class ::TClassRegistry; \
-        static std::unique_ptr<::NClass> Z_StaticClass; \
+        friend class TClassRegistry; \
+        static std::unique_ptr<NClass> Z_StaticClass; \
     public: \
-        virtual const ::NClass *GetClass() const override; \
-        static const ::NClass *StaticClass();
+        virtual NClass *GetClass() const override; \
+        static NClass *StaticClass();
 
 #define GENERATED_STRUCT_BODY() \
     private: \
         template<typename T>  \
-        friend class ::TClassRegistry; \
-        static std::unique_ptr<::NClass> Z_StaticClass; \
+        friend class TClassRegistry; \
+        static std::unique_ptr<NClass> Z_StaticClass; \
     public: \
-        const ::NClass *GetClass() const; \
-        static const ::NClass *StaticClass(); \
+        NClass *GetClass() const; \
+        static NClass *StaticClass(); \
         NFUNCTION() \
         void Serialize(FArchive& Ar); \
         NFUNCTION() \

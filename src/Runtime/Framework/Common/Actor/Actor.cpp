@@ -89,7 +89,7 @@ namespace nilou {
 	    ActorHasBegunPlay = EActorBeginPlayState::HasBegunPlay;
     }
 
-    dquat AActor::GetActorRotation() const
+    FQuat AActor::GetActorRotation() const
     {
         return RootComponent->GetComponentToWorld().GetRotation();
     }
@@ -97,26 +97,26 @@ namespace nilou {
     {
         return RootComponent->GetComponentRotation();
     }
-    dvec3 AActor::GetActorLocation() const
+    FVector AActor::GetActorLocation() const
     {
         return RootComponent->GetComponentLocation();
     }
-    dvec3 AActor::GetActorScale3D() const 
+    FVector AActor::GetActorScale3D() const 
     {
         return RootComponent->GetComponentScale();
     }
 
-    vec3 AActor::GetActorForwardVector() const
+    FVector AActor::GetActorForwardVector() const
     {
         return RootComponent->GetForwardVector();
     }
 
-    vec3 AActor::GetActorUpVector() const
+    FVector AActor::GetActorUpVector() const
     {
         return RootComponent->GetUpVector();
     }
 
-    vec3 AActor::GetActorRightVector() const
+    FVector AActor::GetActorRightVector() const
     {
         return RootComponent->GetRightVector();
     }
@@ -126,7 +126,7 @@ namespace nilou {
         RootComponent->SetWorldTransform(InTransform);
     }
 
-    void AActor::SetActorRotation(const dquat &rotation)
+    void AActor::SetActorRotation(const FQuat &rotation)
     {
         RootComponent->SetWorldRotation(rotation);
     }
@@ -136,12 +136,12 @@ namespace nilou {
         RootComponent->SetWorldRotation(rotator);
     }
 
-    void AActor::SetActorLocation(const dvec3 &location)
+    void AActor::SetActorLocation(const FVector &location)
     {
         RootComponent->SetWorldLocation(location);
     }
 
-    void AActor::SetActorScale3D(const dvec3 &scale)
+    void AActor::SetActorScale3D(const FVector &scale)
     {
         RootComponent->SetWorldScale3D(scale);
     }

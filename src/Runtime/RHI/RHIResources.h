@@ -259,7 +259,6 @@ namespace nilou {
 		{ }
 		virtual ~RHITexture() {}
 
-		virtual uvec3 GetSizeXYZ() const { return uvec3(Desc.SizeX, Desc.SizeY, Desc.SizeZ); }
 		uint32 GetSizeX() const { return Desc.SizeX; }
 		uint32 GetSizeY() const { return Desc.SizeY; }
 		uint32 GetSizeZ() const { return Desc.SizeZ; }
@@ -281,7 +280,7 @@ namespace nilou {
 			TextureName = InTextureName;
 		}
 		ETextureDimension GetTextureType() const { return Desc.TextureType; };
-		uint32 GetNumLayers() const { return Desc.TextureType == ETextureDimension::Texture2DArray || Desc.TextureType == ETextureDimension::TextureCube ? GetSizeXYZ().z : 1; }
+		uint32 GetNumLayers() const { return Desc.ArraySize; }
 
 		RHITextureView* GetOrCreateView(const FRHITextureViewCreateInfo& CreateInfo) { return ViewCache.GetOrCreateView(this, CreateInfo); }
 
@@ -528,14 +527,14 @@ namespace nilou {
 		RHIRenderTargetLayout RTLayout;
 
 		std::array<RHITextureView*, MaxSimultaneousRenderTargets> ColorRenderTargets = { nullptr };
-		std::array<vec4, MaxSimultaneousRenderTargets> ClearColors = { vec4(0.0f) };
+		std::array<FVector4f, MaxSimultaneousRenderTargets> ClearColors = { FVector4f(0.0f) };
 
 		RHITextureView* DepthStencilRenderTarget = nullptr;
 		float ClearDepth = 1.0f;
 		uint32 ClearStencil = 0u;
 
-		ivec2 Offset = ivec2(0);
-		uvec2 Extent = uvec2(0);
+		FIntVector2 Offset = FIntVector2(0);
+		FUIntVector2 Extent = FUIntVector2(0);
 
 		FRHIRenderPassInfo() { }
 		FRHIRenderPassInfo(RHITextureView* RenderTarget, 
@@ -545,7 +544,7 @@ namespace nilou {
 			ColorRenderTargets[0] = RenderTarget;
 			RTLayout.ColorAttachments[0].LoadAction = LoadAction;
 			RTLayout.ColorAttachments[0].StoreAction = StoreAction;
-			Extent = uvec2(RenderTarget->GetSizeX(), RenderTarget->GetSizeY());
+			Extent = FUIntVector2(RenderTarget->GetSizeX(), RenderTarget->GetSizeY());
 		}
 
 

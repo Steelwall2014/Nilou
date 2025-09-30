@@ -35,7 +35,7 @@ namespace nilou {
             Tangents.SetVertexValue(VertexIndex, Vertex.Tangent);
             for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
                 TexCoords[i].SetVertexValue(VertexIndex, Vertex.TextureCoordinate[i]);
-            Colors.SetVertexValue(VertexIndex, vec4(Vertex.Color, 1));
+            Colors.SetVertexValue(VertexIndex, FVector4f(Vertex.Color, 1));
         }
 
         {
@@ -297,8 +297,8 @@ namespace nilou {
             // compute bounding box
             for (int vid = 0; vid < primitive.Positions.size(); vid++)
             {
-                LocalBoundingBox.Min = glm::min(LocalBoundingBox.Min, dvec3(primitive.Positions[vid]));
-                LocalBoundingBox.Max = glm::max(LocalBoundingBox.Max, dvec3(primitive.Positions[vid]));
+                LocalBoundingBox.Min = glm::min(LocalBoundingBox.Min, FVector(primitive.Positions[vid]));
+                LocalBoundingBox.Max = glm::max(LocalBoundingBox.Max, FVector(primitive.Positions[vid]));
             }
 
             // set section info
@@ -321,12 +321,7 @@ namespace nilou {
         RenderData->InitResources();
     }
 
-    void UStaticMesh::PostSerialize(FArchive& Ar)
-    {
-
-    }
-
-    void UStaticMesh::PostDeserialize(FArchive& Ar)
+    void UStaticMesh::PostLoad()
     {
         RenderData = new FStaticMeshRenderData;
         for (int LODIndex = 0; LODIndex < NumLODs; LODIndex++)
@@ -339,16 +334,16 @@ namespace nilou {
                 FStaticMeshSectionData& SectionData = Info.SectionData;
                 FStaticMeshSection* Section = new FStaticMeshSection;
                 Section->MaterialIndex = Info.MaterialIndex;
-                Section->IndexBuffer.Init(SectionData.IndexBuffer.Data.Buffer.get(), SectionData.IndexBuffer.Stride, SectionData.IndexBuffer.Data.BufferSize / SectionData.IndexBuffer.Stride);
+                Section->IndexBuffer.Init(SectionData.IndexBuffer.Data.GetData(), SectionData.IndexBuffer.Stride, SectionData.IndexBuffer.Data.Num() / SectionData.IndexBuffer.Stride);
                 FStaticVertexFactory::FDataType Data;
                 auto load_data = 
                     [](FVertexIndexBufferData& BufferData, FVertexStreamComponent& Component, auto& Buffer) 
                     {
-                        if (BufferData.Data.Buffer)
+                        if (!BufferData.Data.IsEmpty())
                         {
                             int Stride = BufferData.Stride;
-                            int NumVertices = BufferData.Data.BufferSize / Stride;
-                            Buffer.Init(BufferData.Data.Buffer.get(), Stride, NumVertices);
+                            int NumVertices = BufferData.Data.Num() / Stride;
+                            Buffer.Init(BufferData.Data.GetData(), Stride, NumVertices);
                             Buffer.BindToVertexFactoryData(Component);
                         }
                     };

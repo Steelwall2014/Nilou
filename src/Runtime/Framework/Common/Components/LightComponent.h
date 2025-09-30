@@ -95,8 +95,8 @@ namespace nilou {
 
         // For directional light, the unit is lux
         // For other types, the unit is cd
-        DEFINE_DYNAMIC_DATA(vec3,   LightIntensity)
-        DEFINE_DYNAMIC_DATA(ivec2,  ShadowMapResolution)
+        DEFINE_DYNAMIC_DATA(FVector3f,   LightIntensity)
+        DEFINE_DYNAMIC_DATA(FIntVector2, ShadowMapResolution)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
         DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
         // DEFINE_DYNAMIC_DATA(ELightType,  LightType)
@@ -128,14 +128,14 @@ namespace nilou {
     constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightAttenParameters)
-        SHADER_PARAMETER(vec4, AttenCurveParams)
+        SHADER_PARAMETER(FVector4f, AttenCurveParams)
         SHADER_PARAMETER(float, AttenCurveScale)
         SHADER_PARAMETER(int, AttenCurveType)
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
-        SHADER_PARAMETER(dmat4, WorldToClip)
-        SHADER_PARAMETER(ivec2, Resolution)
+        SHADER_PARAMETER(FMatrix, WorldToClip)
+        SHADER_PARAMETER(FIntVector2, Resolution)
         SHADER_PARAMETER(float, FrustumFar)
     END_UNIFORM_BUFFER_STRUCT()
 
@@ -160,9 +160,9 @@ namespace nilou {
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightDistAttenParams)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
-        SHADER_PARAMETER(dvec3, lightPosition)
-        SHADER_PARAMETER(vec3, lightIntensity)
-        SHADER_PARAMETER(vec3, lightDirection)
+        SHADER_PARAMETER(FVector, lightPosition)
+        SHADER_PARAMETER(FVector3f, lightIntensity)
+        SHADER_PARAMETER(FVector3f, lightDirection)
         SHADER_PARAMETER(int, lightType) 
         SHADER_PARAMETER(int, lightCastShadow)
     END_UNIFORM_BUFFER_STRUCT()
@@ -176,31 +176,31 @@ namespace nilou {
 
         FLightSceneInfo *GetLightSceneInfo() { return LightSceneInfo; }
 
-        void SetPositionAndDirection(const glm::dvec3 &InPosition, const vec3 &InDirection, const vec3 &InUp);
+        void SetPositionAndDirection(const FVector &InPosition, const FVector3f &InDirection, const FVector3f &InUp);
 
         void SetCastShadow(bool bCastShadow);
 
-        void SetLightIntensity(const vec3 &LightIntensity);
+        void SetLightIntensity(const FVector3f &LightIntensity);
 
         void SetLightType(ELightType LightType);
 
-        void SetShadowMapResolution(ivec2 ShadowMapResolution);
+        void SetShadowMapResolution(FIntVector2 ShadowMapResolution);
 
         void SetLightDistAttenParams(const FAttenCurve &AttenCurveParam);
 
         void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
 
-        glm::dvec3 Position;
+        FVector Position;
 
-        vec3 Direction;
+        FVector3f Direction;
 
-        vec3 Up;
+        FVector3f Up;
 
         ELightType LightType;
 
-        vec3 LightIntensity;
+        FVector3f LightIntensity;
 
-        ivec2 ShadowMapResolution;
+        FIntVector2 ShadowMapResolution;
 
         FAttenCurve DistAttenCurve;
 

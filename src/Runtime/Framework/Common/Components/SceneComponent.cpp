@@ -170,11 +170,11 @@ namespace nilou {
         }
     }
 
-    void USceneComponent::SetRelativeLocation(const dvec3 &NewLocation)
+    void USceneComponent::SetRelativeLocation(const FVector &NewLocation)
     {
         SetRelativeLocationAndRotation(NewLocation, RelativeRotation);
     }
-    void USceneComponent::SetRelativeRotation(const dquat &NewRotation)
+    void USceneComponent::SetRelativeRotation(const FQuat &NewRotation)
     {
         SetRelativeLocationAndRotation(RelativeLocation, NewRotation);
     }
@@ -182,7 +182,7 @@ namespace nilou {
     {
         SetRelativeLocationAndRotation(RelativeLocation, NewRotation.ToQuat());
     }
-    void USceneComponent::SetRelativeScale3D(const dvec3 &NewScale3D)
+    void USceneComponent::SetRelativeScale3D(const FVector &NewScale3D)
     {
         RelativeScale3D = NewScale3D;
 		UpdateComponentToWorld();
@@ -196,21 +196,21 @@ namespace nilou {
     {
         return FTransform(RelativeScale3D, RelativeRotation.ToQuat(), RelativeLocation);
     }
-    void USceneComponent::SetRelativeLocationAndRotation(const dvec3 &NewLocation, const dquat &NewRotation)
+    void USceneComponent::SetRelativeLocationAndRotation(const FVector &NewLocation, const FQuat &NewRotation)
     {
         FTransform DesiredRelTransform = FTransform(RelativeScale3D, NewRotation, NewLocation);
         FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
-        dvec3 DesiredDelta = DesiredWorldTransform.GetTranslation() - GetComponentTransform().GetTranslation();
+        FVector DesiredDelta = DesiredWorldTransform.GetTranslation() - GetComponentTransform().GetTranslation();
         MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation());
     }
-    void USceneComponent::SetRelativeLocationAndRotation(const dvec3 &NewLocation, const FRotator &NewRotation)
+    void USceneComponent::SetRelativeLocationAndRotation(const FVector &NewLocation, const FRotator &NewRotation)
     {
         SetRelativeLocationAndRotation(NewLocation, NewRotation.ToQuat());
     }
 
-    void USceneComponent::SetWorldLocation(const dvec3 &NewLocation)
+    void USceneComponent::SetWorldLocation(const FVector &NewLocation)
     {
-        dvec3 NewRelLocation = NewLocation;
+        FVector NewRelLocation = NewLocation;
         if (GetAttachParent() != nullptr && !IsUsingAbsoluteLocation())
         {
             FTransform ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
@@ -218,18 +218,18 @@ namespace nilou {
         }
         SetRelativeLocation(NewRelLocation);
     }
-    void USceneComponent::SetWorldRotation(const dquat &NewRotation)
+    void USceneComponent::SetWorldRotation(const FQuat &NewRotation)
     {
-        dquat NewRelRotation = GetRelativeRotationFromWorld(NewRotation);
+        FQuat NewRelRotation = GetRelativeRotationFromWorld(NewRotation);
         SetRelativeRotation(NewRelRotation);
     }
     void USceneComponent::SetWorldRotation(const FRotator &NewRotation)
     {
         SetWorldRotation(NewRotation.ToQuat());
     }
-    void USceneComponent::SetWorldScale3D(const dvec3 &NewScale)
+    void USceneComponent::SetWorldScale3D(const FVector &NewScale)
     {
-        dvec3 NewRelScale = NewScale;
+        FVector NewRelScale = NewScale;
 
         // If attached to something, transform into local space
         if(GetAttachParent() != nullptr && !IsUsingAbsoluteScale())
@@ -271,9 +271,9 @@ namespace nilou {
             SetRelativeTransform(NewTransform);
         }
     }
-    void USceneComponent::SetWorldLocationAndRotation(dvec3 NewLocation, const dquat &NewRotation)
+    void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat &NewRotation)
     {
-        dquat NewFinalRotation = NewRotation;
+        FQuat NewFinalRotation = NewRotation;
         if (GetAttachParent() != nullptr)
         {
             FTransform ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
@@ -286,14 +286,14 @@ namespace nilou {
             if (!IsUsingAbsoluteRotation())
             {
                 // Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-                dquat NewRelQuat = glm::inverse(ParentToWorld.GetRotation()) * NewRotation;
+                FQuat NewRelQuat = glm::inverse(ParentToWorld.GetRotation()) * NewRotation;
                 NewFinalRotation = NewRelQuat;
             }
         }
 
         SetRelativeLocationAndRotation(NewLocation, NewFinalRotation);
     }
-    void USceneComponent::SetWorldLocationAndRotation(dvec3 NewLocation, FRotator NewRotation)
+    void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation)
     {
         if (GetAttachParent() == nullptr)
         {
@@ -306,9 +306,9 @@ namespace nilou {
         }
     }
 
-    dquat USceneComponent::GetRelativeRotationFromWorld(const dquat &NewRotation)
+    FQuat USceneComponent::GetRelativeRotationFromWorld(const FQuat &NewRotation)
     {
-        dquat NewRelRotation = NewRotation;
+        FQuat NewRelRotation = NewRotation;
 
         // If already attached to something, transform into local space
         if (GetAttachParent() != nullptr && !IsUsingAbsoluteRotation())
@@ -322,29 +322,29 @@ namespace nilou {
                 // set new desired rotation
                 NewTransform.SetRotation(NewRotation);
                 // Get relative transform from ParentToWorld
-                const dquat NewRelQuat = NewTransform.GetRelativeTransform(ParentToWorld).GetRotation();
+                const FQuat NewRelQuat = NewTransform.GetRelativeTransform(ParentToWorld).GetRotation();
                 NewRelRotation = NewRelQuat;
             }
             else
             {
-                const dquat ParentToWorldQuat = ParentToWorld.GetRotation();
+                const FQuat ParentToWorldQuat = ParentToWorld.GetRotation();
                 // Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-                const dquat NewRelQuat = glm::inverse(ParentToWorldQuat) * NewRotation;
+                const FQuat NewRelQuat = glm::inverse(ParentToWorldQuat) * NewRotation;
                 NewRelRotation = NewRelQuat;
             }
         }
         return NewRelRotation;
     }
 
-    void USceneComponent::MoveComponent(const dvec3 &Delta, const FRotator &NewRotation)
+    void USceneComponent::MoveComponent(const FVector &Delta, const FRotator &NewRotation)
     {
         MoveComponent(Delta, NewRotation.ToQuat());
     }
 
-    void USceneComponent::MoveComponent(const dvec3 &Delta, const dquat &NewRotation)
+    void USceneComponent::MoveComponent(const FVector &Delta, const FQuat &NewRotation)
     {
-	    dquat NewRotationQuat(NewRotation);
-        dvec3 NewLocation = Delta + GetComponentLocation();
+	    FQuat NewRotationQuat(NewRotation);
+        FVector NewLocation = Delta + GetComponentLocation();
         if (GetAttachParent() != nullptr)
         {
             FTransform const ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
@@ -388,13 +388,13 @@ namespace nilou {
         {
             RelativeLocation = NewLocation;
 
-            // Here it is important to compute the dquaternion from the rotator and not the opposite.
-            // In some cases, similar dquaternions generate the same rotator, which create issues.
-            // When the component is loaded, the rotator is used to generate the dquaternion, which
+            // Here it is important to compute the FQuaternion from the rotator and not the opposite.
+            // In some cases, similar FQuaternions generate the same rotator, which create issues.
+            // When the component is loaded, the rotator is used to generate the FQuaternion, which
             // is then used to compute the ComponentToWorld matrix. When running a blueprint script,  
             // it is required to generate that same ComponentToWorld otherwise the FComponentInstanceDataCache
             // might fail to apply to the relevant component. In order to have the exact same transform
-            // we must enforce the dquaternion to come from the rotator (as in load)
+            // we must enforce the FQuaternion to come from the rotator (as in load)
             if (bDiffRotation)
             {
                 RelativeRotation = NewRelativeRotation;
@@ -405,15 +405,15 @@ namespace nilou {
         }
     }
 
-    vec3 USceneComponent::GetForwardVector()
+    FVector USceneComponent::GetForwardVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_FORWARD);
     }
-    vec3 USceneComponent::GetUpVector()
+    FVector USceneComponent::GetUpVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_UP);
     }
-    vec3 USceneComponent::GetRightVector()
+    FVector USceneComponent::GetRightVector()
     {
         return GetComponentToWorld().TransformVectorNoScale(WORLD_RIGHT);
     }
@@ -503,7 +503,7 @@ namespace nilou {
 			}
 			break;
 		case EAttachmentRule::SnapToTarget:
-			RelativeLocation = dvec3(0);
+			RelativeLocation = FVector(0);
 			break;
 		}
 
@@ -543,7 +543,7 @@ namespace nilou {
 			}
 			break;
 		case EAttachmentRule::SnapToTarget:
-			RelativeScale3D = dvec3(1.0f, 1.0f, 1.0f);
+			RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
 			break;
 		}
 

@@ -22,7 +22,7 @@ namespace nilou {
         Domain.ModifyCompilationEnvironment(Environment);
     }
 
-    void ComputeShadowCullingVolume(std::array<dvec3, 8> CascadeFrustumVerts, const vec3& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
+    void ComputeShadowCullingVolume(std::array<FVector, 8> CascadeFrustumVerts, const FVector3f& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
     {
 
         // Pairs of plane indices from SubFrustumPlanes whose intersections
@@ -60,7 +60,7 @@ namespace nilou {
         // Add the planes from the camera's frustum which form the back face of the frustum when in light space.
         for (int32 i = 0; i < 6; i++)
         {
-            vec3 Normal = SubFrustumPlanes[i].Normal;
+            FVector3f Normal = SubFrustumPlanes[i].Normal;
             float d = glm::dot(Normal, LightDirection);
             if (d < 0.0f)
             {
@@ -71,8 +71,8 @@ namespace nilou {
         // Now add the planes which form the silhouette edges of the camera frustum in light space.
         for (int32 i = 0; i < 12; i++)
         {
-            vec3 NormalA = SubFrustumPlanes[AdjacentPlanePairs[i][0]].Normal;
-            vec3 NormalB = SubFrustumPlanes[AdjacentPlanePairs[i][1]].Normal;
+            FVector3f NormalA = SubFrustumPlanes[AdjacentPlanePairs[i][0]].Normal;
+            FVector3f NormalB = SubFrustumPlanes[AdjacentPlanePairs[i][1]].Normal;
 
             float DotA = glm::dot(NormalA, LightDirection);
             float DotB = glm::dot(NormalB, LightDirection);
@@ -83,10 +83,10 @@ namespace nilou {
                 // Planes are opposing, so this is an edge. 
                 // Extrude the plane along the light direction, and add it to the array.
 
-                vec3 A = CascadeFrustumVerts[LineVertexIndices[i][0]];
-                vec3 B = CascadeFrustumVerts[LineVertexIndices[i][1]];
+                FVector3f A = CascadeFrustumVerts[LineVertexIndices[i][0]];
+                FVector3f B = CascadeFrustumVerts[LineVertexIndices[i][1]];
                 // Scale the 3rd vector by the length of AB for precision
-                vec3 C = A + LightDirection * glm::length(A - B);
+                FVector3f C = A + LightDirection * glm::length(A - B);
 
                 // Account for winding
                 if (DotA >= 0.0f)
@@ -147,7 +147,7 @@ namespace nilou {
             {
                 FShadowMapResource& Resources = Light.ShadowMapResources[ViewIndex];
                 FSceneView& View = Views[ViewIndex];
-                std::vector<std::array<dvec3, 8>> CascadeFrustums;
+                std::vector<std::array<FVector, 8>> CascadeFrustums;
 
                 FViewport ShadowViewport;
                 ShadowViewport.Width = LightSceneProxy->ShadowMapResolution.x;
@@ -165,21 +165,21 @@ namespace nilou {
                 const double b = -t;
                 const double r = t * View.AspectRatio;
                 const double l = -r;
-                const glm::dvec3 Right = glm::cross(View.Forward, View.Up);
+                const FVector Right = glm::cross(View.Forward, View.Up);
                 const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
                 double SplitFar = ShadowNearClip;
                 for (int FrustumIndex : FrustumsToBeUpdated)
                 {
-                    std::array<dvec3, 8> CascadeFrustumVerts;
+                    std::array<FVector, 8> CascadeFrustumVerts;
                     SplitNear = SplitFar;
                     SplitFar = Scales[FrustumIndex] * FrustumLength + SplitNear;
-                    glm::dvec3 nearCenter = View.Forward * SplitNear + View.Position;
-                    glm::dvec3 farCenter = View.Forward * SplitFar + View.Position;
-                    glm::dvec3 TopNear = View.Up * t * SplitNear;
-                    glm::dvec3 TopFar = View.Up * t * SplitFar;
-                    glm::dvec3 RightNear = Right * r * SplitNear;
-                    glm::dvec3 RightFar = Right * r * SplitFar;
+                    FVector nearCenter = View.Forward * SplitNear + View.Position;
+                    FVector farCenter = View.Forward * SplitFar + View.Position;
+                    FVector TopNear = View.Up * t * SplitNear;
+                    FVector TopFar = View.Up * t * SplitFar;
+                    FVector RightNear = Right * r * SplitNear;
+                    FVector RightFar = Right * r * SplitFar;
                     CascadeFrustumVerts[0] = nearCenter + TopNear + RightNear;
                     CascadeFrustumVerts[1] = nearCenter - TopNear + RightNear;
                     CascadeFrustumVerts[2] = nearCenter + TopNear - RightNear;
@@ -194,7 +194,7 @@ namespace nilou {
                     const double SplitFrustumLength = SplitFar-SplitNear;
                     const double OptimalOffset = (DiagonalSq_Far - DiagonalSq_Near + SplitFrustumLength*SplitFrustumLength) / (2.0 * SplitFrustumLength);
                     const double CenterZ = glm::clamp(SplitNear+OptimalOffset, SplitNear, SplitFar);
-                    dvec3 Center = View.Forward * CenterZ + View.Position;
+                    FVector Center = View.Forward * CenterZ + View.Position;
                     double Radius = glm::max(glm::distance(Center, CascadeFrustumVerts[0]), glm::distance(Center, CascadeFrustumVerts[4]));
                     FBoundingSphere Sphere(Center, Radius);
                     FConvexVolume ConvexVolume;
@@ -205,11 +205,11 @@ namespace nilou {
                         ConvexVolume, 
                         NearPlane, 
                         FarPlane);
-                    dvec3 Direction = glm::dvec3(LightSceneProxy->Direction);
-                    dmat4 ViewMatrix = glm::lookAt(
+                    FVector Direction = FVector(LightSceneProxy->Direction);
+                    FMatrix ViewMatrix = glm::lookAt(
                         Sphere.Center, 
                         Direction+Sphere.Center, 
-                        glm::dvec3(LightSceneProxy->Up));
+                        FVector(LightSceneProxy->Up));
                         
                     FSceneView LightSceneView;
                     LightSceneView.VerticalFieldOfView = LightSceneProxy->VerticalFieldOfView;
@@ -226,16 +226,16 @@ namespace nilou {
                                                         Sphere.Radius,
                                                         0.0, 2*Radius);
                     LightSceneView.ViewFrustum = FViewFrustum(ViewMatrix, LightSceneView.ProjectionMatrix);
-                    LightSceneView.ScreenResolution = ivec2(LightSceneProxy->ShadowMapResolution.x, LightSceneProxy->ShadowMapResolution.y);
+                    LightSceneView.ScreenResolution = FIntVector2(LightSceneProxy->ShadowMapResolution.x, LightSceneProxy->ShadowMapResolution.y);
                     ShadowViewFamily.Views.push_back(LightSceneView);
 
                     // {   // To remove jittering
                     //     float cascadeAABBSize = Sphere.Radius * 2.0f;
                     //     dvec2 worldUnitsPerPixel = dvec2(cascadeAABBSize) / dvec2(Light.LightSceneInfo->SceneProxy->ShadowMapResolution);
-                    //     dmat4 view_matrix = glm::lookAt(
-                    //         dvec3(0), 
+                    //     FMatrix view_matrix = glm::lookAt(
+                    //         FVector(0), 
                     //         Direction, 
-                    //         glm::dvec3(LightInfo->SceneProxy->Up));	
+                    //         FVector(LightInfo->SceneProxy->Up));	
                     //     dvec4 LightSpaceCenter = view_matrix * dvec4(Center, 1);
                     //     double offsetx = glm::modf(LightSpaceCenter.x, worldUnitsPerPixel.x);
                     //     double offsety = glm::modf(LightSpaceCenter.y, worldUnitsPerPixel.y);
@@ -243,13 +243,13 @@ namespace nilou {
                     //     Center = glm::inverse(view_matrix) * LightSpaceCenter;
                     // }
 
-                    dvec3 Position = Center - Direction * SHADOWMAP_FAR_CLIP;
+                    FVector Position = Center - Direction * SHADOWMAP_FAR_CLIP;
                     ViewMatrix = glm::lookAt(
                         Position, 
                         Center, 
-                        glm::dvec3(LightSceneProxy->Up));
+                        FVector(LightSceneProxy->Up));
                         
-                    dmat4 ProjectionMatrix = glm::ortho(
+                    FMatrix ProjectionMatrix = glm::ortho(
                         -Sphere.Radius, 
                         Sphere.Radius,
                         -Sphere.Radius,

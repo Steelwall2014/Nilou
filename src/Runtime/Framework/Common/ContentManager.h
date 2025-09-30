@@ -15,6 +15,7 @@
 
 namespace nilou {
 
+#if 0
     class FContentEntry
     {
     public:
@@ -99,7 +100,7 @@ namespace nilou {
             return static_cast<T*>(CreateAsset(Name, VirtualDirectory, T::StaticClass()));
         }
 
-        NAsset* CreateAsset(const std::string& Name, const std::string &VirtualDirectory, const NClass* Class);
+        NAsset* CreateAsset(const std::string& Name, const std::string &VirtualDirectory, const class NClass* Class);
 
         bool RenameAsset(const std::string &AssetPathToRename, const std::string &NewName);
         bool RenameAsset(NAsset* AssetToRename, const std::string &NewName);
@@ -134,5 +135,6 @@ namespace nilou {
     };
 
     FContentManager *GetContentManager();
+#endif
 
 }

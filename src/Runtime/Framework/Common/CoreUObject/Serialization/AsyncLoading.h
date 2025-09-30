@@ -17,7 +17,7 @@ struct FPackageRequest
 
 struct FAsyncPackageDesc
 {
-    int32 RequestID;
+    TArray<int32> RequestIds;
 
     int32 Priority;
 
@@ -31,9 +31,8 @@ enum EEventLoadNode : uint8
 {
 	Package_ProcessSummary,
 	Package_DependenciesReady,
-	Package_CreateLinkerLoadExports,
-	Package_ResolveLinkerLoadImports,
-	Package_PreloadLinkerLoadExports,
+	Package_LoadImports,
+	Package_LoadExports,
 	Package_ExportsSerialized,
 	Package_NumPhases,
 
@@ -51,10 +50,8 @@ enum class EAsyncPackageLoadingState : uint8
 	WaitingForDependencies,
 	DependenciesReady,
 // This is the path taken by LinkerLoad packages
-	CreateLinkerLoadExports,
-	WaitingForLinkerLoadDependencies,
-	ResolveLinkerLoadImports,
-	PreloadLinkerLoadExports,
+    LoadImports,
+    LoadExports,
 // This is the path taken by Runtime/cooked packages
 	ProcessExportBundles,
 // Both LinkerLoad and Cooked packages should converge at this point
@@ -72,7 +69,7 @@ enum class EAsyncPackageLoadingState : uint8
 
 struct FAsyncLoadEventSpec
 {
-    using FAsyncLoadEventFunc = std::function<void(FAsyncPackage*, int32)>;
+    using FAsyncLoadEventFunc = std::function<void(FAsyncPackage*)>;
     FAsyncLoadEventFunc Func = nullptr;
     FAsyncLoadEventQueue* EventQueue = nullptr;
     bool bExecuteImmediately = false;
@@ -130,8 +127,14 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
 
     EAsyncPackageLoadingState AsyncPackageLoadingState = EAsyncPackageLoadingState::NewPackage;
 
-    FAsyncPackage(const FAsyncPackageDesc& Desc, FAsyncLoadEventSpec* EventSpecs)
-        : Desc(Desc)
+    class FAsyncLoadingThread& AsyncLoadingThread;
+
+    TArray<FObjectExport> ObjectExports;
+    TArray<FObjectImport> ObjectImports;
+
+    FAsyncPackage(const FAsyncPackageDesc& InDesc, FAsyncLoadingThread& InAsyncLoadingThread, FAsyncLoadEventSpec* EventSpecs)
+        : Desc(InDesc)
+        , AsyncLoadingThread(InAsyncLoadingThread)
     {
         FEventLoadNode* Node = reinterpret_cast<FEventLoadNode*>(PackageNodesMemory);
         for (int32 Phase = 0; Phase < EEventLoadNode::Package_NumPhases; ++Phase)
@@ -141,6 +144,17 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
         PackageNodes = TArrayView<FEventLoadNode>(Node, EEventLoadNode::Package_NumPhases);
     }
 
+	FObjectExport& GetExport(FPackageIndex Index)
+	{
+		Ncheck(!Index.IsNull() && Index.IsExport());
+		return ObjectExports[Index.ToExport()];
+	}
+	FObjectImport& GetImport(FPackageIndex Index)
+	{
+        Ncheck(!Index.IsNull() && Index.IsImport());
+        return ObjectImports[Index.ToImport()];
+	}
+
     FEventLoadNode& GetPackageNode(EEventLoadNode Phase)
     {
         return PackageNodes[static_cast<int32>(Phase)];
@@ -148,25 +162,38 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
 
     int32 GetPriority() const { return Desc.Priority; }
 
-    int32 GetRequestId() const { return Desc.RequestID; }
-
     const std::string& GetPackageName() const { return Desc.PackageName; }
+
+    void StartLoading();
+
+    void ImportPackagesRecursive();
 
     void CreateLinkerLoadExports();
 
-	static void Event_ProcessExportBundle(FAsyncPackage* Package, int32 ExportBundleIndex);
-	static void Event_CreateLinkerLoadExports(FAsyncPackage* Package, int32);
-	static void Event_ResolveLinkerLoadImports(FAsyncPackage* Package, int32);
-	static void Event_PreloadLinkerLoadExports(FAsyncPackage* Package, int32);
-	static void Event_ProcessPackageSummary(FAsyncPackage* Package, int32);
-	static void Event_DependenciesReady(FAsyncPackage* Package, int32);
-	static void Event_ExportsDone(FAsyncPackage* Package, int32);
-	static void Event_PostLoadExportBundle(FAsyncPackage* Package, int32 ExportBundleIndex);
-	static void Event_DeferredPostLoadExportBundle(FAsyncPackage* Package, int32 ExportBundleIndex);
+	// static void Event_ProcessExportBundle(FAsyncPackage* Package);
+	static void Event_LoadImports(FAsyncPackage* Package);
+	static void Event_LoadExports(FAsyncPackage* Package);
+	static void Event_ProcessPackageSummary(FAsyncPackage* Package);
+	static void Event_DependenciesReady(FAsyncPackage* Package);
+	static void Event_ExportsDone(FAsyncPackage* Package);
+	static void Event_PostLoadExportBundle(FAsyncPackage* Package);
+	static void Event_DeferredPostLoadExportBundle(FAsyncPackage* Package);
 
     void DependsOn(std::weak_ptr<FAsyncPackage> ImportPackage);
 
     FAsyncPackageData Data;
+
+	struct FAllDependenciesState
+	{
+        TArray<std::weak_ptr<FAsyncPackage>> WaitingForPackages;
+        TArray<std::weak_ptr<FAsyncPackage>> PackagesWaitingForThis;
+	};
+    FAllDependenciesState AllDependenciesFullyLoadedState;
+
+    void AddPackagesWaitingForThis(std::weak_ptr<FAsyncPackage> Package)
+    {
+        AllDependenciesFullyLoadedState.PackagesWaitingForThis.Add(Package);
+    }
 
 };
 
@@ -175,7 +202,7 @@ struct FAsyncLoadEventQueue
     std::mutex EventQueueMutex;
     TIoPriorityQueue<FEventLoadNode> EventQueue;
 
-    void UpdatePackagePriority(FAsyncPackage* Package);
+    void UpdatePackagePriority(std::shared_ptr<FAsyncPackage> Package);
 
     void Push(FEventLoadNode* Node)
     {
@@ -194,7 +221,9 @@ public:
     /** From Game Thread. Returns the request id. */
     int32 LoadPackage(const std::string& PackageName, int32 Priority = 0);
 
-    FAsyncPackage* FindOrInsertPackage(const FAsyncPackageDesc& Desc);
+    void FlushAsyncLoading(const TArray<int32>& RequestIds);
+
+    std::shared_ptr<FAsyncPackage> FindOrInsertPackage(const FAsyncPackageDesc& Desc);
 
     void TickAsyncThreadFromGameThread();
 
@@ -202,18 +231,22 @@ public:
 
     std::weak_ptr<FAsyncPackage> GetPackageByRequestId(uint64 RequestId)
     {
-        std::lock_guard<std::mutex> Lock(RequestIdToPackageMutex);
+        std::lock_guard<std::mutex> Lock(RequestIdToPackageCritical);
         return RequestIdToPackage[RequestId];
     }
 
-    std::mutex PackageRequestQueueMutex;
+    void ProcessLoadedPackagesFromGameThread();
+
+    std::mutex PackageRequestQueueCritical;
     TArray<FPackageRequest> PackageRequestQueue;
 
-    std::mutex LoadingPackagesMutex;
-    TArray<std::shared_ptr<FAsyncPackage>> LoadingPackages;
+    std::mutex AsyncPackagesCritical;
+    TMap<std::string, std::shared_ptr<FAsyncPackage>> AsyncPackageLookup;
     
-    std::mutex RequestIdToPackageMutex;
+    std::mutex RequestIdToPackageCritical;
     TMap<uint64, std::weak_ptr<FAsyncPackage>> RequestIdToPackage;
+
+    TArray<FAsyncPackage*> LoadedPackagesToProcess;
 
     std::atomic<uint64> RequestId = 0;
 
@@ -222,6 +255,10 @@ public:
     FAsyncLoadEventQueue EventQueue;
 
     std::thread::id ThreadId;
+
+private:
+
+    void UpdatePackagePriorityRecursive(std::shared_ptr<FAsyncPackage> Package, int32 NewPriority);
 
 };
 

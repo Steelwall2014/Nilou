@@ -68,7 +68,7 @@ namespace nilou {
         {
             Channel = TranslatePixelFormatToChannel(PixelFormat);
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
-            Data.BufferSize = BytePerPixel * Width * Height * Depth;
+            Data.SetNum(BytePerPixel * Width * Height * Depth);
         }
 
         uint32 GetWidth() const { return Width; }
@@ -81,42 +81,28 @@ namespace nilou {
 
         uint32 GetNumLayers() const { return Depth; }
 
-        uint64 GetDataSize() const { return Data.BufferSize; }
+        uint64 GetDataSize() const { return Data.Num(); }
 
         uint64 GetAllocatedDataSize() const { return AllocatedDataSize; }
 
-        uint8* GetData() { return Data.Buffer.get(); }
+        uint8* GetData() { return Data.GetData(); }
 
         EPixelFormat GetPixelFormat() const { return PixelFormat; }
 
         EImageType GetImageType() const { return ImageType; }
 
-        void AllocateSpace()
-        {
-            Data.Buffer = std::make_shared<unsigned char[]>(Data.BufferSize);
-            AllocatedDataSize = Data.BufferSize;
-        }
-
-        void ConservativeAllocateSpace()
-        {
-            auto NewData = std::make_shared<unsigned char[]>(Data.BufferSize);
-            std::copy(Data.Buffer.get(), Data.Buffer.get()+glm::min((uint64)Data.BufferSize, AllocatedDataSize), NewData.get());
-            Data.Buffer = NewData;
-            AllocatedDataSize = Data.BufferSize;
-        }
-
         void* GetPointer(int Row, int Column, int Layer)
         {
-            if (Data.Buffer == nullptr)
+            if (Data.IsEmpty())
                 return nullptr;
             int BytePerPixel = TranslatePixelFormatToBytePerPixel(PixelFormat);
             uint64 LayerOffset = Width * Height * Channel * Layer;
             if (Row >= Height || Column >= Width || Layer >= Depth)
                 return nullptr;
             uint64 offset = (Row * Width + Column) * BytePerPixel + LayerOffset;
-            if (offset >= Data.BufferSize)
+            if (offset >= Data.Num())
                 return nullptr;
-            return Data.Buffer.get() + offset;
+            return Data.GetData() + offset;
         }
 
         /**
@@ -133,7 +119,7 @@ namespace nilou {
             Width = NewWidth;
             Height = NewHeight;
             Depth = NewDepth;
-            Data.BufferSize = BytePerPixel * Width * Height * Channel * Depth;
+            Data.SetNum(BytePerPixel * Width * Height * Channel * Depth);
         }
 
         NPROPERTY()
@@ -149,7 +135,7 @@ namespace nilou {
         uint32 Depth = 0;
 
         NPROPERTY()
-        FBinaryBuffer Data;
+        TArray<uint8> Data;
 
         NPROPERTY()
 		EPixelFormat PixelFormat;
@@ -283,7 +269,7 @@ namespace nilou {
 
     };
 
-    class NCLASS UTexture : public NAsset
+    class NCLASS UTexture : public NObject
     {
         GENERATED_BODY()
     public:
@@ -296,10 +282,7 @@ namespace nilou {
          * 
          * std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1024, 1024, EPixelFormat::PF_R8G8B8A8);
          * 
-         * Image->AllocateSpace();  // Allocates actual memory space for the image data
          * ****do something to the image data****
-         * 
-         * ****or just don't allocate the space and do nothing here****
          * 
          * // Suppose we have a pointer called Texture
          * Texture->ImageData = Image;
@@ -330,7 +313,7 @@ namespace nilou {
          * to update the number of mipmap levels
          */
         NPROPERTY()
-        uint32 NumMips;
+        int32 NumMips;
 
         UTexture()
             : TextureResource(nullptr)
@@ -433,7 +416,7 @@ namespace nilou {
          */
         virtual void ReadPixelsSync();
 
-        virtual void PostDeserialize(FArchive& Ar) override;
+        virtual void PostLoad() override;
     
     protected:
 
@@ -456,9 +439,7 @@ namespace nilou {
          */
         virtual FImage CreateImage(const ImageCreateInfo& ImageInfo) { return FImage(); }
 
-        void DeserializeImageData(FArchive& Ar);
-
-        friend UMaterial;
+        friend class UMaterial;
     };
 
 }

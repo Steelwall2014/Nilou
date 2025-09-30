@@ -17,7 +17,7 @@ namespace nilou {
         // bool bIsScreenSizeScaled;
 
         /** Updates the arrow's colour, and tells it to refresh */
-        inline vec4 GetArrowColor() const { return ArrowColor; }
+        inline FVector4f GetArrowColor() const { return ArrowColor; }
 
         /** Updates the arrow's size, and tells it to refresh */
         inline float GetArrowSize() const { return ArrowSize; }
@@ -26,7 +26,7 @@ namespace nilou {
         inline float GetArrowLength() const { return ArrowLength; }
 
         /** Updates the arrow's colour, and tells it to refresh */
-        virtual void SetArrowColor(vec4 NewColor);
+        virtual void SetArrowColor(FVector4f NewColor);
 
         /** Updates the arrow's size, and tells it to refresh */
         virtual void SetArrowSize(float NewSize);
@@ -45,7 +45,7 @@ namespace nilou {
     protected:
 
         /** Color to draw arrow */
-        vec4 ArrowColor;
+        FVector4f ArrowColor;
 
         /** Relative size to scale drawn arrow by */
         float ArrowSize;

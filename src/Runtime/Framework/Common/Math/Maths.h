@@ -13,117 +13,80 @@
 #define KINDA_SMALL_NUMBER	(1.e-4f)
 #define BIG_NUMBER			(3.4e+38f)
 
-using uvec2 = glm::uvec2;
-using uvec3 = glm::uvec3;
-using uvec4 = glm::uvec4;
-using bvec2 = glm::bvec2;
-using bvec3 = glm::bvec3;
-using bvec4 = glm::bvec4;
-using ivec2 = glm::ivec2;
-using ivec3 = glm::ivec3;
-using ivec4 = glm::ivec4;
-using vec2 = glm::vec2;
-using vec3 = glm::vec3;
-using vec4 = glm::vec4;
-using dvec2 = glm::dvec2;
-using dvec3 = glm::dvec3;
-using dvec4 = glm::dvec4;
-using mat2 = glm::mat2;
-using mat3 = glm::mat3;
-using mat4 = glm::mat4;
-using dmat2 = glm::dmat2;
-using dmat3 = glm::dmat3;
-using dmat4 = glm::dmat4;
-
-using quat = glm::quat;
-using dquat = glm::dquat;
+template<typename T> using TVector2 = glm::tvec2<T>;
+using FVector2 = TVector2<double>;
+using FVector2f = TVector2<float>;
+using FIntVector2 = TVector2<int32>;
+using FUIntVector2 = TVector2<uint32>;
 
 template<typename T> using TVector = glm::tvec3<T>;
 using FVector = TVector<double>;
 using FVector3f = TVector<float>;
+using FIntVector = TVector<int32>;
+using FUIntVector = TVector<uint32>;
+
 template<typename T> using TVector4 = glm::tvec4<T>;
 using FVector4 = TVector4<double>;
 using FVector4f = TVector4<float>;
+using FIntVector4 = TVector4<int32>;
+using FUIntVector4 = TVector4<uint32>;
+
+template<typename T> using TMatrix22 = glm::tmat2x2<T>;
+using FMatrix22 = TMatrix22<double>;
+using FMatrix22f = TMatrix22<float>;
+
+template<typename T> using TMatrix33 = glm::tmat3x3<T>;
+using FMatrix33 = TMatrix33<double>;
+using FMatrix33f = TMatrix33<float>;
+
 template<typename T> using TMatrix = glm::tmat4x4<T>;
 using FMatrix = TMatrix<double>;
 using FMatrix44f = TMatrix<float>;
 
-#define SERIALIZE_HELPER_VEC(Vec) \
-    template<> \
-    class TStaticSerializer<Vec> \
-    { \
-    public: \
-        static void Serialize(Vec& Object, FArchive& Ar) \
-        { \
-            for (int i = 0; i < Object.length(); i++) \
-                Ar.Node.push_back(Object[i]); \
-        } \
-        static void Deserialize(Vec& Object, FArchive& Ar) \
-        { \
-            if (Ar.Node.is_array()) \
-            { \
-                for (int i = 0; i < Ar.Node.size(); i++) \
-                    Object[i] = Ar.Node[i].get<Vec::value_type>(); \
-            } \
-        } \
-    };
-
-#define SERIALIZE_HELPER_MAT(Mat) \
-    template<> \
-    class TStaticSerializer<Mat> \
-    { \
-    public: \
-        static void Serialize(Mat& Object, FArchive& Ar) \
-        { \
-            int i = 0; \
-            int len = Mat::length(); \
-            for (; i < len*len; i++) \
-            { \
-                Ar.Node.push_back(Object[i/len][i%len]); \
-            } \
-        } \
-        static void Deserialize(Mat& Object, FArchive& Ar) \
-        { \
-            if (Ar.Node.is_array()) \
-            { \
-                int i = 0; \
-                int len = Mat::length(); \
-                for (auto &element : Ar.Node) \
-                { \
-                    if (element.is_number()) \
-                        Object[i/len][i%len] = element.get<Mat::value_type>(); \
-                    i++; \
-                } \
-            } \
-        } \
-    }; \
-
-SERIALIZE_HELPER_VEC(uvec2)
-SERIALIZE_HELPER_VEC(uvec3)
-SERIALIZE_HELPER_VEC(uvec4)
-SERIALIZE_HELPER_VEC(bvec2)
-SERIALIZE_HELPER_VEC(bvec3)
-SERIALIZE_HELPER_VEC(bvec4)
-SERIALIZE_HELPER_VEC(ivec2)
-SERIALIZE_HELPER_VEC(ivec3)
-SERIALIZE_HELPER_VEC(ivec4)
-SERIALIZE_HELPER_VEC(vec2)
-SERIALIZE_HELPER_VEC(vec3)
-SERIALIZE_HELPER_VEC(vec4)
-SERIALIZE_HELPER_VEC(dvec2)
-SERIALIZE_HELPER_VEC(dvec3)
-SERIALIZE_HELPER_VEC(dvec4)
-SERIALIZE_HELPER_MAT(mat2)
-SERIALIZE_HELPER_MAT(mat3)
-SERIALIZE_HELPER_MAT(mat4)
-SERIALIZE_HELPER_MAT(dmat2)
-SERIALIZE_HELPER_MAT(dmat3)
-SERIALIZE_HELPER_MAT(dmat4)
-
-SERIALIZE_HELPER_VEC(quat)
-SERIALIZE_HELPER_VEC(dquat)
+template<typename T> using TQuat = glm::tquat<T>;
+using FQuat = TQuat<double>;
 
 namespace nilou {
+
+    template <typename T>
+    void Serialize(FArchive& Ar, TVector<T>& Vec)
+    {
+        nlohmann::json& Node = Ar.GetNode();
+        if (Ar.IsLoading())
+        {
+            Ncheck(Node.is_array());
+            for (int i = 0; i < Vec.length(); i++)
+                Vec[i] = Node[i].get<T>();
+        }
+        else 
+        {
+            Node = nlohmann::json();
+            for (int i = 0; i < Vec.length(); i++)
+                Node.push_back(Vec[i]);
+        }
+    }
+
+    template <typename T>
+    void Serialize(FArchive& Ar, TQuat<T>& Quat)
+    {
+        nlohmann::json& Node = Ar.GetNode();
+        if (Ar.IsLoading())
+        {
+            Ncheck(Node.is_object());
+            Quat.x = Node["X"].get<T>();
+            Quat.y = Node["Y"].get<T>();
+            Quat.z = Node["Z"].get<T>();
+            Quat.w = Node["W"].get<T>();
+        }
+        else 
+        {
+            Node = nlohmann::json();
+            Node["X"] = Quat.x;
+            Node["Y"] = Quat.y;
+            Node["Z"] = Quat.z;
+            Node["W"] = Quat.w;
+        }
+    }
 
     const double PI = glm::pi<double>();
     const double TWO_PI = glm::two_pi<double>();

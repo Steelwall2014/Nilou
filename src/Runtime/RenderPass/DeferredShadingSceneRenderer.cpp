@@ -188,9 +188,9 @@ namespace nilou {
             
             View.ViewUniformBuffer = Graph.CreateUniformBuffer<FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
             FViewShaderParameters ViewUniformBufferData;
-            const dmat4& WorldToView = View.ViewMatrix;
-            const mat4& ViewToClip = View.ProjectionMatrix;
-            mat4 RelativeWorldToView = WorldToView;
+            const FMatrix& WorldToView = View.ViewMatrix;
+            const FMatrix44f& ViewToClip = View.ProjectionMatrix;
+            FMatrix44f RelativeWorldToView = WorldToView;
             RelativeWorldToView[3][0] = 0;
             RelativeWorldToView[3][1] = 0;
             RelativeWorldToView[3][2] = 0;
@@ -199,7 +199,7 @@ namespace nilou {
             ViewUniformBufferData.RelWorldToClip = ViewToClip * RelativeWorldToView;
             ViewUniformBufferData.ClipToView = glm::inverse(ViewToClip);
             ViewUniformBufferData.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
-            ViewUniformBufferData.AbsWorldToClip = ViewToClip * mat4(WorldToView);
+            ViewUniformBufferData.AbsWorldToClip = ViewToClip * FMatrix44f(WorldToView);
 
             ViewUniformBufferData.CameraPosition = View.Position;
             ViewUniformBufferData.CameraDirection = View.Forward;
@@ -209,7 +209,7 @@ namespace nilou {
             ViewUniformBufferData.CameraVerticalFieldOfView = View.VerticalFieldOfView;
 
             for (int i = 0; i < 6; i++)
-                ViewUniformBufferData.FrustumPlanes[i] = dvec4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
+                ViewUniformBufferData.FrustumPlanes[i] = FVector4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
             Graph.QueueBufferUpload(View.ViewUniformBuffer, &ViewUniformBufferData, sizeof(ViewUniformBufferData));
 
@@ -339,8 +339,8 @@ namespace nilou {
             float total_volume = 0;
             for (auto ReflectionProbe : Scene->ReflectionProbes)
             {
-                dvec3 Min = ReflectionProbe->SceneProxy->Location - ReflectionProbe->SceneProxy->Extent/2.0;
-                dvec3 Max = ReflectionProbe->SceneProxy->Location + ReflectionProbe->SceneProxy->Extent/2.0;
+                FVector Min = ReflectionProbe->SceneProxy->Location - ReflectionProbe->SceneProxy->Extent/2.0;
+                FVector Max = ReflectionProbe->SceneProxy->Location + ReflectionProbe->SceneProxy->Extent/2.0;
                 FBoxSphereBounds ReflectionProbeExtent(FBox(Min, Max));
                 float volume = IntersectVolume(PrimitiveExtent, ReflectionProbeExtent);
                 if (volume != 0.f)

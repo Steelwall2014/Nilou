@@ -2,15 +2,16 @@
 
 #include <ostream>
 #include "Maths.h"
+#include "Archive.h"
 
 namespace nilou {
     
-	const vec3 WORLD_UP(0.0, 0.0, 1.0);
-	const vec3 WORLD_FORWARD(1.0, 0.0, 0.0);
-	const vec3 WORLD_RIGHT(0.0, 1.0, 0.0);
+	const FVector WORLD_UP(0.0, 0.0, 1.0);
+	const FVector WORLD_FORWARD(1.0, 0.0, 0.0);
+	const FVector WORLD_RIGHT(0.0, 1.0, 0.0);
 
     template <typename T>
-    inline bool Equals(const glm::tvec3<T> &A, const glm::tvec3<T> &B, T Tolerance=KINDA_SMALL_NUMBER)
+    inline bool Equals(const TVector<T> &A, const TVector<T> &B, T Tolerance=KINDA_SMALL_NUMBER)
     {
         return glm::abs(A.x-B.x) <= Tolerance && glm::abs(A.y-B.y) <= Tolerance && glm::abs(A.z-B.z) <= Tolerance;
     }
@@ -36,13 +37,13 @@ namespace nilou {
 
         TRotator();
         TRotator(T pitch, T yaw, T roll);
-        explicit TRotator(const glm::tvec3<T> &eulerAngles);
-        explicit TRotator(const glm::tquat<T> &rotation);
+        explicit TRotator(const TVector<T> &eulerAngles);
+        explicit TRotator(const TQuat<T> &rotation);
 
         static T NormalizeAxis(T Angle);
         static T ClampAxis(T Angle);
 
-        quat ToQuat() const;
+        TQuat<T> ToQuat() const;
         bool Equals(const TRotator &B, T Tolerance=KINDA_SMALL_NUMBER) const
         {
             return glm::abs(Pitch-B.Pitch) <= Tolerance && glm::abs(Yaw-B.Yaw) <= Tolerance && glm::abs(Roll-B.Roll) <= Tolerance;
@@ -52,7 +53,7 @@ namespace nilou {
     };
 
     template <typename T>
-    glm::tvec3<T> RotateVector(const glm::tquat<T> &rotation, const glm::tvec3<T> &V);
+    TVector<T> RotateVector(const TQuat<T> &rotation, const TVector<T> &V);
 
     using FRotator = TRotator<double>;
     using FRotator3f = TRotator<float>;
@@ -65,9 +66,9 @@ namespace nilou {
     class TTransform
     {
     protected:
-        glm::tquat<T> Rotation;
-        glm::tvec3<T> Translation;
-        glm::tvec3<T> Scale3D;
+        TQuat<T> Rotation;
+        TVector<T> Translation;
+        TVector<T> Scale3D;
 
     public:
 
@@ -76,38 +77,38 @@ namespace nilou {
         friend class TClassRegistry<TTransform>;
 
         TTransform();
-        TTransform(const glm::tquat<T> &rotation);
-        TTransform(const glm::tvec3<T> &translation);
-        TTransform(const glm::tvec3<T> &scale3d, const glm::tquat<T> &rotation, const glm::tvec3<T> &translation);
-        TTransform(const glm::tmat4x4<T> &matrix);
+        TTransform(const TQuat<T> &rotation);
+        TTransform(const TVector<T> &translation);
+        TTransform(const TVector<T> &scale3d, const TQuat<T> &rotation, const TVector<T> &translation);
+        TTransform(const TMatrix<T> &matrix);
 
-        void SetFromMatrix(const glm::tmat4x4<T> &matrix);
-        glm::tvec3<T> GetUnitAxis(ECoordAxis axis) const;
-        glm::tvec3<T> GetScale3D() const;
-        glm::tquat<T> GetRotation() const;
+        void SetFromMatrix(const TMatrix<T> &matrix);
+        TVector<T> GetUnitAxis(ECoordAxis axis) const;
+        TVector<T> GetScale3D() const;
+        TQuat<T> GetRotation() const;
         TRotator<T> GetRotator() const;
-        glm::tvec3<T> GetTranslation() const;
-        glm::tvec3<T> GetLocation() const;
+        TVector<T> GetTranslation() const;
+        TVector<T> GetLocation() const;
 
-        glm::tvec3<T> TransformPosition(const glm::tvec3<T> &v) const;
-        glm::tvec3<T> TransformPositionNoScale(const glm::tvec3<T> &v) const;
-        glm::tvec3<T> TransformVector(const glm::tvec3<T> &v) const;
-        glm::tvec3<T> TransformVectorNoScale(const glm::tvec3<T> &v) const;
-        glm::tvec3<T> InverseTransformPosition(const glm::tvec3<T> &v) const;
-        glm::tvec3<T> InverseTransformPositionNoScale(const glm::tvec3<T> &v) const;
+        TVector<T> TransformPosition(const TVector<T> &v) const;
+        TVector<T> TransformPositionNoScale(const TVector<T> &v) const;
+        TVector<T> TransformVector(const TVector<T> &v) const;
+        TVector<T> TransformVectorNoScale(const TVector<T> &v) const;
+        TVector<T> InverseTransformPosition(const TVector<T> &v) const;
+        TVector<T> InverseTransformPositionNoScale(const TVector<T> &v) const;
 
-        void SetScale3D(const glm::tvec3<T> &scale);
-        void SetRotation(const glm::tquat<T> &rotation);
+        void SetScale3D(const TVector<T> &scale);
+        void SetRotation(const TQuat<T> &rotation);
         void SetRotator(const TRotator<T> &rotator);
-        void SetTranslation(const glm::tvec3<T> &translation);
+        void SetTranslation(const TVector<T> &translation);
         TTransform operator*(const TTransform &Other) const;
         TTransform GetRelativeTransform(const TTransform &Other) const;
         T GetMinimumAxisScale() const;
-        glm::tvec3<T> GetSafeScaleReciprocal(const glm::tvec3<T> &InScale, T Tolerance = SMALL_NUMBER);
+        TVector<T> GetSafeScaleReciprocal(const TVector<T> &InScale, T Tolerance = SMALL_NUMBER);
 
-        static bool AnyHasNegativeScale(const glm::tvec3<T> &InScale3D, const glm::tvec3<T> &InOtherScale3D);
+        static bool AnyHasNegativeScale(const TVector<T> &InScale3D, const TVector<T> &InOtherScale3D);
 
-        glm::tmat4x4<T> ToMatrix() const;
+        TMatrix<T> ToMatrix() const;
 
         static const TTransform<T> Identity;
     };
@@ -120,102 +121,47 @@ namespace nilou {
 
     using FTransform = TTransform<double>;
     using FTransform3f = TTransform<float>;
+
+    template <typename T>
+    void Serialize(FArchive& Ar, nilou::TRotator<T>& Rotator)
+    {
+        nlohmann::json& Node = Ar.GetNode();
+        if (Ar.IsLoading())
+        {
+            Rotator.Pitch = Node["Pitch"];
+            Rotator.Yaw = Node["Yaw"];
+            Rotator.Roll = Node["Roll"];
+        }
+        else
+        {
+            Node["Pitch"] = Rotator.Pitch;
+            Node["Yaw"] = Rotator.Yaw;
+            Node["Roll"] = Rotator.Roll;
+        }
+    }
+
+    template <typename T>
+    void Serialize(FArchive& Ar, nilou::TTransform<T>& Transform)
+    {
+        Serialize(Ar["Translation"], Transform.Translation);
+        Serialize(Ar["Rotation"], Transform.Rotation);
+        Serialize(Ar["Scale3D"], Transform.Scale3D);
+    }
 }
-
-template<typename T>
-class TStaticSerializer<nilou::TRotator<T>>
-{
-public:
-    static void Serialize(nilou::TRotator<T>& Object, FArchive& Ar)
-    {
-        {
-            FArchive local_Ar(Ar.Node["Pitch"], Ar);
-            TStaticSerializer<decltype(Object.Pitch)>::Serialize(Object.Pitch, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Yaw"], Ar);
-            TStaticSerializer<decltype(Object.Yaw)>::Serialize(Object.Yaw, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Roll"], Ar);
-            TStaticSerializer<decltype(Object.Roll)>::Serialize(Object.Roll, local_Ar);
-        }
-    }
-    static void Deserialize(nilou::TRotator<T>& Object, FArchive& Ar)
-    {
-        {
-            FArchive local_Ar(Ar.Node["Pitch"], Ar);
-            TStaticSerializer<decltype(Object.Pitch)>::Deserialize(Object.Pitch, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Yaw"], Ar);
-            TStaticSerializer<decltype(Object.Yaw)>::Deserialize(Object.Yaw, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Roll"], Ar);
-            TStaticSerializer<decltype(Object.Roll)>::Deserialize(Object.Roll, local_Ar);
-        }
-    }
-};
-
-template<typename T>
-class TStaticSerializer<nilou::TTransform<T>>
-{
-public:
-    static void Serialize(nilou::TTransform<T>& Object, FArchive& Ar)
-    {
-        auto Rotation = Object.GetRotation();
-        auto Translation = Object.GetTranslation();
-        auto Scale = Object.GetScale3D();
-        {
-            FArchive local_Ar(Ar.Node["Rotation"], Ar);
-            TStaticSerializer<decltype(Rotation)>::Serialize(Rotation, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Translation"], Ar);
-            TStaticSerializer<decltype(Translation)>::Serialize(Translation, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Scale"], Ar);
-            TStaticSerializer<decltype(Scale)>::Serialize(Scale, local_Ar);
-        }
-    }
-    static void Deserialize(nilou::TTransform<T>& Object, FArchive& Ar)
-    {
-        auto Rotation = Object.GetRotation();
-        auto Translation = Object.GetTranslation();
-        auto Scale = Object.GetScale3D();
-        {
-            FArchive local_Ar(Ar.Node["Rotation"], Ar);
-            TStaticSerializer<decltype(Rotation)>::Deserialize(Rotation, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Translation"], Ar);
-            TStaticSerializer<decltype(Translation)>::Deserialize(Translation, local_Ar);
-        }
-        {
-            FArchive local_Ar(Ar.Node["Scale"], Ar);
-            TStaticSerializer<decltype(Scale)>::Deserialize(Scale, local_Ar);
-        }
-        Object.SetRotation(Rotation);
-        Object.SetTranslation(Translation);
-        Object.SetScale3D(Scale);
-    }
-};
 
 namespace nilou {
 
     template<typename T>
     TRotator<T>::TRotator() : Pitch(0), Yaw(0), Roll(0) {}
     template<typename T>
-    TRotator<T>::TRotator(const glm::tvec3<T> &eulerAngles)
+    TRotator<T>::TRotator(const TVector<T> &eulerAngles)
         : Pitch(eulerAngles.x), Yaw(eulerAngles.y), Roll(eulerAngles.z) {}
         
     template<typename T>
     TRotator<T>::TRotator(T pitch, T yaw, T roll) : Pitch(pitch), Yaw(yaw), Roll(roll) {}
 
     template<typename T>
-    TRotator<T>::TRotator(const glm::tquat<T> &rotation)
+    TRotator<T>::TRotator(const TQuat<T> &rotation)
     {
         T X = rotation.x;
         T Y = rotation.y;
@@ -329,7 +275,7 @@ namespace nilou {
     }
 
     template<typename T>
-    quat TRotator<T>::ToQuat() const
+    TQuat<T> TRotator<T>::ToQuat() const
     {
     	const T DEG_TO_RAD = PI/(180.0);
         const T RADS_DIVIDED_BY_2 = DEG_TO_RAD/2.0;
@@ -344,7 +290,7 @@ namespace nilou {
         SinCos(&SY, &CY, YawNoWinding * RADS_DIVIDED_BY_2);
         SinCos(&SR, &CR, RollNoWinding * RADS_DIVIDED_BY_2);
 
-        glm::quat RotationQuat;
+        TQuat<T> RotationQuat;
         RotationQuat.x =  CR*SP*SY - SR*CP*CY;
         RotationQuat.y = -CR*SP*CY - SR*CP*SY;
         RotationQuat.z =  CR*CP*SY - SR*SP*CY;
@@ -354,7 +300,7 @@ namespace nilou {
     }
 
     template <typename T>
-    glm::tvec3<T> RotateVector(const glm::tquat<T> &rotation, const glm::tvec3<T> &V)
+    TVector<T> RotateVector(const TQuat<T> &rotation, const TVector<T> &V)
     {
         // http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
         // V' = V + 2w(Q x V) + (2Q x (Q x V))
@@ -368,42 +314,42 @@ namespace nilou {
         T Z = rotation.z;
         T W = rotation.w;
 
-        const glm::tvec3<T> Q(X, Y, Z);
-        const glm::tvec3<T> TT = 2.0 * glm::cross(Q, V);
-        const glm::tvec3<T> Result = V + (W * TT) + glm::cross(Q, TT);
+        const TVector<T> Q(X, Y, Z);
+        const TVector<T> TT = 2.0 * glm::cross(Q, V);
+        const TVector<T> Result = V + (W * TT) + glm::cross(Q, TT);
         return Result;
         // return rotation * V;
     }
 
     template <typename T>
     TTransform<T>::TTransform()
-        : Rotation(glm::tquat<T>(1.0, 0.0, 0.0, 0.0))
-        , Translation(glm::tvec3<T>(0.0, 0.0, 0.0))
-        , Scale3D(glm::tvec3<T>(1.0, 1.0, 1.0))
+        : Rotation(TQuat<T>(1.0, 0.0, 0.0, 0.0))
+        , Translation(TVector<T>(0.0, 0.0, 0.0))
+        , Scale3D(TVector<T>(1.0, 1.0, 1.0))
     {
 
     }
 
     template <typename T>
-    TTransform<T>::TTransform(const glm::tquat<T> &rotation)
+    TTransform<T>::TTransform(const TQuat<T> &rotation)
         : Rotation(rotation)
-        , Translation(glm::tvec3<T>(0.0, 0.0, 0.0))
-        , Scale3D(glm::tvec3<T>(1.0, 1.0, 1.0))
+        , Translation(TVector<T>(0.0, 0.0, 0.0))
+        , Scale3D(TVector<T>(1.0, 1.0, 1.0))
     {
 
     }
 
     template <typename T>
-    TTransform<T>::TTransform(const glm::tvec3<T> &translation)
-        : Rotation(glm::tquat<T>(1.0, 0.0, 0.0, 0.0))
+    TTransform<T>::TTransform(const TVector<T> &translation)
+        : Rotation(TQuat<T>(1.0, 0.0, 0.0, 0.0))
         , Translation(translation)
-        , Scale3D(glm::tvec3<T>(1.0, 1.0, 1.0))
+        , Scale3D(TVector<T>(1.0, 1.0, 1.0))
     {
 
     }
     
     template <typename T>
-    TTransform<T>::TTransform(const glm::tvec3<T> &scale3d, const glm::tquat<T> &rotation, const glm::tvec3<T> &translation)
+    TTransform<T>::TTransform(const TVector<T> &scale3d, const TQuat<T> &rotation, const TVector<T> &translation)
         : Rotation(rotation)
         , Translation(translation)
         , Scale3D(scale3d)
@@ -411,15 +357,15 @@ namespace nilou {
     }
     
     template <typename T>
-    TTransform<T>::TTransform(const glm::tmat4x4<T> &matrix)
+    TTransform<T>::TTransform(const TMatrix<T> &matrix)
     {
         SetFromMatrix(matrix);
     }
 
     template <typename T>
-    static glm::tquat<T> UEMatrixToQuat(glm::tmat3x3<T> M)
+    static TQuat<T> UEMatrixToQuat(glm::tmat3x3<T> M)
     {
-        glm::tquat<T> out;
+        TQuat<T> out;
         T s;
 
         // Check diagonal (trace)
@@ -473,15 +419,15 @@ namespace nilou {
     }
     
     template <typename T>
-    void TTransform<T>::SetFromMatrix(const glm::tmat4x4<T> &matrix)
+    void TTransform<T>::SetFromMatrix(const TMatrix<T> &matrix)
     {
-        glm::tvec3<T> translation{ matrix[3][0], matrix[3][1], matrix[3][2] };
-        glm::tvec3<T> scale3d;
+        TVector<T> translation{ matrix[3][0], matrix[3][1], matrix[3][2] };
+        TVector<T> scale3d;
         scale3d.x = sqrt(matrix[0][0]*matrix[0][0] + matrix[0][1]*matrix[0][1] + matrix[0][2]*matrix[0][2]);
         scale3d.y = sqrt(matrix[1][0]*matrix[1][0] + matrix[1][1]*matrix[1][1] + matrix[1][2]*matrix[1][2]);
         scale3d.z = sqrt(matrix[2][0]*matrix[2][0] + matrix[2][1]*matrix[2][1] + matrix[2][2]*matrix[2][2]);
 
-        mat3 rotation_mat{
+        glm::tmat3x3<T> rotation_mat{
             matrix[0][0] / scale3d.x, matrix[0][1] / scale3d.x, matrix[0][2] / scale3d.x,
             matrix[1][0] / scale3d.y, matrix[1][1] / scale3d.y, matrix[1][2] / scale3d.y,
             matrix[2][0] / scale3d.z, matrix[2][1] / scale3d.z, matrix[2][2] / scale3d.z };
@@ -490,7 +436,7 @@ namespace nilou {
             scale3d[0] *= -1;
             rotation_mat[0] = -rotation_mat[0];
         }
-        glm::tquat<T> rotation = UEMatrixToQuat(rotation_mat);
+        TQuat<T> rotation = UEMatrixToQuat(rotation_mat);
 
         Rotation = rotation;
         Translation = translation;
@@ -498,71 +444,71 @@ namespace nilou {
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::TransformPosition(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::TransformPosition(const TVector<T> &v) const
     {
         return RotateVector(Rotation, (Scale3D * v)) + Translation;
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::TransformPositionNoScale(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::TransformPositionNoScale(const TVector<T> &v) const
     {
         return RotateVector(Rotation, v + Translation);
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::TransformVector(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::TransformVector(const TVector<T> &v) const
     {
         return RotateVector(Rotation, (Scale3D * v));
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::TransformVectorNoScale(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::TransformVectorNoScale(const TVector<T> &v) const
     {
         return RotateVector(Rotation, v);
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::InverseTransformPosition(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::InverseTransformPosition(const TVector<T> &v) const
     {
         return (glm::inverse(Rotation) * (v - Translation)) / Scale3D;
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::InverseTransformPositionNoScale(const glm::tvec3<T> &v) const
+    TVector<T> TTransform<T>::InverseTransformPositionNoScale(const TVector<T> &v) const
     {
         return glm::inverse(Rotation) * (v - Translation);
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::GetUnitAxis(ECoordAxis axis) const
+    TVector<T> TTransform<T>::GetUnitAxis(ECoordAxis axis) const
     {
         if (axis == ECoordAxis::CA_X)
-            return TransformVectorNoScale(glm::tvec3<T>(1, 0, 0));
+            return TransformVectorNoScale(TVector<T>(1, 0, 0));
         else if (axis == ECoordAxis::CA_Y)
-            return TransformVectorNoScale(glm::tvec3<T>(0, 1, 0));
-        return TransformVectorNoScale(glm::tvec3<T>(0, 0, 1));
+            return TransformVectorNoScale(TVector<T>(0, 1, 0));
+        return TransformVectorNoScale(TVector<T>(0, 0, 1));
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::GetTranslation() const
+    TVector<T> TTransform<T>::GetTranslation() const
     {
         return Translation;
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::GetLocation() const
+    TVector<T> TTransform<T>::GetLocation() const
     {
         return Translation;
     }
     
     template <typename T>
-    glm::tvec3<T> TTransform<T>::GetScale3D() const
+    TVector<T> TTransform<T>::GetScale3D() const
     {
         return Scale3D;
     }
     
     template <typename T>
-    glm::tquat<T> TTransform<T>::GetRotation() const
+    TQuat<T> TTransform<T>::GetRotation() const
     {
         return Rotation;
     }
@@ -574,13 +520,13 @@ namespace nilou {
     }
     
     template <typename T>
-    void TTransform<T>::SetScale3D(const glm::tvec3<T> &scale)
+    void TTransform<T>::SetScale3D(const TVector<T> &scale)
     {
         Scale3D = scale;
     }
     
     template <typename T>
-    void TTransform<T>::SetRotation(const glm::tquat<T> &rotation)
+    void TTransform<T>::SetRotation(const TQuat<T> &rotation)
     {
         Rotation = rotation;
     }
@@ -592,7 +538,7 @@ namespace nilou {
     }
     
     template <typename T>
-    void TTransform<T>::SetTranslation(const glm::tvec3<T> &translation)
+    void TTransform<T>::SetTranslation(const TVector<T> &translation)
     {
         Translation = translation;
     }
@@ -635,8 +581,8 @@ namespace nilou {
         // Q(output) = Q(B)(-1)*Q(A)
         // S(output) = S(A)*S(B)(-1)
         // T(output) = Q(B)(-1)*S(B)(-1)*[T(A)-T(B)]*Q(B)
-        glm::tquat<T> InverseQB = inverse(Other.Rotation);
-        glm::tvec3<T> InverseSB = glm::tvec3<T>(1.0, 1.0, 1.0) / Other.Scale3D;
+        TQuat<T> InverseQB = inverse(Other.Rotation);
+        TVector<T> InverseSB = TVector<T>(1.0, 1.0, 1.0) / Other.Scale3D;
         TTransform output;
         output.Rotation = InverseQB * this->Rotation;
         output.Scale3D = InverseSB * this->Scale3D;
@@ -651,9 +597,9 @@ namespace nilou {
     }
 
     template <typename T>
-    glm::tvec3<T> TTransform<T>::GetSafeScaleReciprocal(const glm::tvec3<T> &InScale, T Tolerance)
+    TVector<T> TTransform<T>::GetSafeScaleReciprocal(const TVector<T> &InScale, T Tolerance)
     {
-        glm::tvec3<T> SafeReciprocalScale;
+        TVector<T> SafeReciprocalScale;
         if (glm::abs(InScale.x) <= Tolerance)
         {
             SafeReciprocalScale.x = 0.0;
@@ -685,23 +631,23 @@ namespace nilou {
     }
     
     template <typename T>
-    bool TTransform<T>::AnyHasNegativeScale(const glm::tvec3<T> &InScale3D, const glm::tvec3<T> &InOtherScale3D)
+    bool TTransform<T>::AnyHasNegativeScale(const TVector<T> &InScale3D, const TVector<T> &InOtherScale3D)
     {
-        glm::tvec3<T> min_scale = glm::min(InScale3D, InOtherScale3D);
+        TVector<T> min_scale = glm::min(InScale3D, InOtherScale3D);
         return min_scale.x < 0.0 || min_scale.y < 0.0 || min_scale.z < 0.0;
     }
 
     template <typename T>
-    glm::tmat4x4<T> TTransform<T>::ToMatrix() const
+    TMatrix<T> TTransform<T>::ToMatrix() const
     {
-        glm::tmat4x4<T> scale_mat{
+        TMatrix<T> scale_mat{
             Scale3D.x, 0, 0, 0,
             0, Scale3D.y, 0, 0,
             0, 0, Scale3D.z, 0,
             0, 0, 0, 1
         };
-        glm::tmat4x4<T> rotation_mat = mat4_cast(Rotation);
-        glm::tmat4x4<T> tranlation_mat{
+        TMatrix<T> rotation_mat = mat4_cast(Rotation);
+        TMatrix<T> tranlation_mat{
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
@@ -720,7 +666,7 @@ namespace nilou {
         return out;
     }
     template <typename T>
-    inline std::ostream &operator<<(std::ostream &out, const glm::tvec3<T> &obj)
+    inline std::ostream &operator<<(std::ostream &out, const TVector<T> &obj)
     {
         out << "vec3: " << obj.x << " " << obj.y << " " << obj.z << " ";
         return out;
@@ -738,7 +684,7 @@ namespace nilou {
         return out;
     }
     template <typename T>
-    inline std::ostream &operator<<(std::ostream &out, const glm::tquat<T> &obj)
+    inline std::ostream &operator<<(std::ostream &out, const TQuat<T> &obj)
     {
         out << "quat: x=" << obj.x << " y=" << obj.y << " z=" << obj.z << " w=" << obj.w << " ";
         return out;
@@ -753,7 +699,7 @@ namespace nilou {
         return out;
     }
     template <typename T>
-    inline std::ostream &operator<<(std::ostream &out, glm::tmat4x4<T> matrix)
+    inline std::ostream &operator<<(std::ostream &out, TMatrix<T> matrix)
     {
         out << matrix[0][0] << ' ' << matrix[1][0] << ' ' << matrix[2][0] << ' ' << matrix[3][0] << "\n";
         out << matrix[0][1] << ' ' << matrix[1][1] << ' ' << matrix[2][1] << ' ' << matrix[3][1] << "\n";

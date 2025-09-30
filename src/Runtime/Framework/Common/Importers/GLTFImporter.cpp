@@ -96,7 +96,6 @@ namespace nilou {
                 gltf_image.width, gltf_image.height, 
                 Format,
                 EImageType::IT_Image2D, 1);
-            image.AllocateSpace();
             memcpy(image.GetData(), gltf_image.image.data(), image.GetDataSize());
             Texture->ImageData = image;
 

@@ -7,37 +7,37 @@
 #include "Platform.h"
 
 namespace nilou {
-    // vec3 unreal_vec3_xor(const vec3& this_, const vec3& V);
-    vec3 GenerateYAxis(const vec4& XAxis, const vec4& ZAxis);
-    float GetBasisDeterminantSign( const vec3& XAxis, const vec3& YAxis, const vec3& ZAxis );
-    vec3 CalcConeVert(float Angle1, float Angle2, float AzimuthAngle);
-    void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, uint32 NumSides, vec4 Color, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
-    void BuildCylinderVerts(const vec3 &Base, const vec3 &XAxis, const vec3 &YAxis, const vec3 &ZAxis, float Radius, float HalfHeight, uint32 Sides, vec4 Color, std::vector<FDynamicMeshVertex> &OutVerts, std::vector<uint32> &OutIndices);
+    // FVector3f unreal_FVector3f_xor(const FVector3f& this_, const FVector3f& V);
+    FVector3f GenerateYAxis(const FVector4f& XAxis, const FVector4f& ZAxis);
+    float GetBasisDeterminantSign( const FVector3f& XAxis, const FVector3f& YAxis, const FVector3f& ZAxis );
+    FVector3f CalcConeVert(float Angle1, float Angle2, float AzimuthAngle);
+    void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, uint32 NumSides, FVector4f Color, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
+    void BuildCylinderVerts(const FVector3f &Base, const FVector3f &XAxis, const FVector3f &YAxis, const FVector3f &ZAxis, float Radius, float HalfHeight, uint32 Sides, FVector4f Color, std::vector<FDynamicMeshVertex> &OutVerts, std::vector<uint32> &OutIndices);
     void BuildCuboidVerts(float width, float length, float height, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
-    void BuildFlatSurfaceVerts(uvec2 NumVertsXY, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
-    void GetOrientedHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
-    void GetHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
-    void GetSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
+    void BuildFlatSurfaceVerts(FUIntVector2 NumVertsXY, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
+    void GetOrientedHalfSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
+    void GetHalfSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
+    void GetSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices);
 
-    inline vec3 GenerateYAxis(const vec4& XAxis, const vec4& ZAxis)
+    inline FVector3f GenerateYAxis(const FVector4f& XAxis, const FVector4f& ZAxis)
     {
-        vec3 x = vec3(XAxis);
-        vec3 z = vec3(ZAxis);
+        FVector3f x = FVector3f(XAxis);
+        FVector3f z = FVector3f(ZAxis);
         return glm::cross(x, z) * ZAxis.w;
     }
 
-    inline float GetBasisDeterminantSign( const vec3& XAxis, const vec3& YAxis, const vec3& ZAxis )
+    inline float GetBasisDeterminantSign( const FVector3f& XAxis, const FVector3f& YAxis, const FVector3f& ZAxis )
     {
-        mat4 Basis(
-            vec4(XAxis,0),
-            vec4(YAxis,0),
-            vec4(ZAxis,0),
-            vec4(0,0,0,1)
+        FMatrix44f Basis(
+            FVector4f(XAxis,0),
+            FVector4f(YAxis,0),
+            FVector4f(ZAxis,0),
+            FVector4f(0,0,0,1)
             );
         return (glm::determinant(Basis) < 0) ? -1.0f : +1.0f;
     }
 
-    inline void GetOrientedHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    inline void GetOrientedHalfSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
     {
         // Use a mesh builder to draw the sphere.
         //FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
@@ -61,8 +61,8 @@ namespace nilou {
                 ArcVert->Position.z = glm::cos(angle);
 
                 ArcVert->SetTangents(
-                    vec3(1, 0, 0),
-                    vec3(0.0f, -ArcVert->Position.z, ArcVert->Position.y),
+                    FVector3f(1, 0, 0),
+                    FVector3f(0.0f, -ArcVert->Position.z, ArcVert->Position.y),
                     ArcVert->Position
                     );
 
@@ -74,19 +74,19 @@ namespace nilou {
             for (int32 s = 0; s<NumSides + 1; s++)
             {
                 FRotator ArcRotator(0.0, 360.0 * s / NumSides, 0.0);
-                dmat4 ArcRot = mat4_cast(ArcRotator.ToQuat());
+                FMatrix ArcRot = mat4_cast(ArcRotator.ToQuat());
                 float XTexCoord = ((float)s / NumSides);
 
                 for (int32 v = 0; v<NumRings + 1; v++)
                 {
                     int32 VIx = (NumRings + 1)*s + v;
 
-                    Verts[VIx].Position = ArcRot * vec4(ArcVerts[v].Position, 1);
+                    Verts[VIx].Position = ArcRot * FVector4f(ArcVerts[v].Position, 1);
 
                     Verts[VIx].SetTangents(
-                        ArcRot * vec4(vec3(ArcVerts[v].Tangent), 0),
-                        ArcRot * vec4(ArcVerts[v].GetTangentY(), 0),
-                        ArcRot * vec4(vec3(ArcVerts[v].Normal), 0)
+                        ArcRot * FVector4f(FVector3f(ArcVerts[v].Tangent), 0),
+                        ArcRot * FVector4f(ArcVerts[v].GetTangentY(), 0),
+                        ArcRot * FVector4f(FVector3f(ArcVerts[v].Normal), 0)
                         );
 
                     Verts[VIx].TextureCoordinate[0].x = XTexCoord;
@@ -118,19 +118,19 @@ namespace nilou {
             }
 
             // Free our local copy of verts and arc verts
-            delete Verts;
-            delete ArcVerts;
+            delete[] Verts;
+            delete[] ArcVerts;
 
             FTransform LocalToWorldTransform(Radii, Orientation.ToQuat(), Center);
-            mat4 LocalToWorld = LocalToWorldTransform.ToMatrix();
-            mat3 mat3_LocalToWorld = mat3(LocalToWorld);
-            mat3 invtrans_LocalToWorld = mat3(glm::transpose(glm::inverse(LocalToWorld)));
+            FMatrix44f LocalToWorld = LocalToWorldTransform.ToMatrix();
+            FMatrix33f mat3_LocalToWorld = FMatrix33f(LocalToWorld);
+            FMatrix33f invtrans_LocalToWorld = FMatrix33f(glm::transpose(glm::inverse(LocalToWorld)));
             for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
             {
-                OutVerts[VertIdx].Position = LocalToWorld * vec4(OutVerts[VertIdx].Position, 1);
-                vec3 Normal = glm::normalize(invtrans_LocalToWorld * vec3(OutVerts[VertIdx].Normal));
-                vec3 Tangent = glm::normalize(mat3_LocalToWorld * vec3(OutVerts[VertIdx].Tangent));
-                vec3 TangentY = glm::cross(Normal, Tangent);
+                OutVerts[VertIdx].Position = LocalToWorld * FVector4f(OutVerts[VertIdx].Position, 1);
+                FVector3f Normal = glm::normalize(invtrans_LocalToWorld * FVector3f(OutVerts[VertIdx].Normal));
+                FVector3f Tangent = glm::normalize(mat3_LocalToWorld * FVector3f(OutVerts[VertIdx].Tangent));
+                FVector3f TangentY = glm::cross(Normal, Tangent);
                 OutVerts[VertIdx].SetTangents(Tangent, TangentY, Normal);
             }   
         }
@@ -138,17 +138,17 @@ namespace nilou {
         // MeshBuilder.GetMesh(FScaleMatrix(Radii) * FRotationMatrix(Orientation) * FTranslationMatrix(Center), MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, false, bUseSelectionOutline, ViewIndex, Collector, HitProxy);
     }
 
-    inline void GetHalfSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    inline void GetHalfSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
     {
         GetOrientedHalfSphereMesh(Center, Orientation, Radii, NumSides, NumRings, 0, PI / 2, OutVerts, OutIndices);
     }
 
-    inline void GetSphereMesh(const vec3& Center, const FRotator& Orientation, const vec3& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    inline void GetSphereMesh(const FVector3f& Center, const FRotator& Orientation, const FVector3f& Radii, int32 NumSides, int32 NumRings, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
     {
         GetOrientedHalfSphereMesh(Center, Orientation, Radii, NumSides, NumRings, 0, PI, OutVerts, OutIndices);
     }
 
-    inline vec3 CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)
+    inline FVector3f CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)
     {
         float ang1 = glm::clamp<float>(Angle1, 0.01f, (float)PI - 0.01f);
         float ang2 = glm::clamp<float>(Angle2, 0.01f, (float)PI - 0.01f);
@@ -177,7 +177,7 @@ namespace nilou {
         alpha = r*cosPhi;
         beta = r*sinPhi;
 
-        vec3 ConeVert;
+        FVector3f ConeVert;
 
         ConeVert.x = (1 - 2 * rSq);
         ConeVert.y = 2 * Sqr*alpha;
@@ -186,24 +186,24 @@ namespace nilou {
         return ConeVert;
     }
 
-    inline void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, uint32 NumSides, vec4 Color, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    inline void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, uint32 NumSides, FVector4f Color, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
     {
-        std::vector<vec3> ConeVerts;
+        std::vector<FVector3f> ConeVerts;
         ConeVerts.resize(NumSides);
 
         for (uint32 i = 0; i < NumSides; i++)
         {
             float Fraction = (float)i / (float)(NumSides);
             float Azi = 2.f*PI*Fraction;
-            ConeVerts[i] = (CalcConeVert(Angle1, Angle2, Azi) * Scale) + vec3(XOffset,0,0);
+            ConeVerts[i] = (CalcConeVert(Angle1, Angle2, Azi) * Scale) + FVector3f(XOffset,0,0);
         }
 
         for (uint32 i = 0; i < NumSides; i++)
         {
             // Normal of the current face 
-            vec3 TriTangentZ = glm::cross(ConeVerts[(i + 1) % NumSides], ConeVerts[i]); // aka triangle normal
-            vec3 TriTangentY = ConeVerts[i];
-            vec3 TriTangentX = glm::cross(TriTangentZ, TriTangentY);
+            FVector3f TriTangentZ = glm::cross(ConeVerts[(i + 1) % NumSides], ConeVerts[i]); // aka triangle normal
+            FVector3f TriTangentY = ConeVerts[i];
+            FVector3f TriTangentX = glm::cross(TriTangentZ, TriTangentY);
 
             FDynamicMeshVertex V0, V1, V2;
 
@@ -211,18 +211,18 @@ namespace nilou {
             V1.Color = Color;
             V2.Color = Color;
 
-            V0.Position = vec3(0) + vec3(XOffset,0,0);
+            V0.Position = FVector3f(0) + FVector3f(XOffset,0,0);
             V1.Position = ConeVerts[i];
             V2.Position = ConeVerts[(i + 1) % NumSides];
-            // vec3 V3_Position = ConeVerts[(i + 2) % NumSides];
-            vec3 V0V1 = V1.Position-V0.Position;
-            vec3 V0V2 = V2.Position-V0.Position;
-            // vec3 V0V3 = V3_Position-V0.Position;
-            vec3 V1V2 = V2.Position-V1.Position;
-            // vec3 V2V3 = V3_Position-V2.Position;
+            // FVector3f V3_Position = ConeVerts[(i + 2) % NumSides];
+            FVector3f V0V1 = V1.Position-V0.Position;
+            FVector3f V0V2 = V2.Position-V0.Position;
+            // FVector3f V0V3 = V3_Position-V0.Position;
+            FVector3f V1V2 = V2.Position-V1.Position;
+            // FVector3f V2V3 = V3_Position-V2.Position;
 
             // UE圆锥体生成的法线在圆锥顶是错的
-            vec3 normal = glm::cross(V0V1, V0V2);
+            FVector3f normal = glm::cross(V0V1, V0V2);
             V0.TextureCoordinate[0].x = 0.0f;
             V0.TextureCoordinate[0].y = (float)i / NumSides;
             V0.SetTangents(V1V2, glm::cross(normal, V1V2), normal);
@@ -231,14 +231,14 @@ namespace nilou {
 
             V1.TextureCoordinate[0].x = 1.0f;
             V1.TextureCoordinate[0].y = (float)i / NumSides;
-            vec3 TriTangentZPrev = glm::cross(ConeVerts[i], ConeVerts[i == 0 ? NumSides - 1 : i - 1]); // Normal of the previous face connected to this face
+            FVector3f TriTangentZPrev = glm::cross(ConeVerts[i], ConeVerts[i == 0 ? NumSides - 1 : i - 1]); // Normal of the previous face connected to this face
             V1.SetTangents(TriTangentX, TriTangentY, TriTangentZPrev + TriTangentZ);
             int32 I1 = OutVerts.size();
             OutVerts.push_back(V1);
 
             V2.TextureCoordinate[0].x = 1.0f;
             V2.TextureCoordinate[0].y = (float)((i + 1) % NumSides) / NumSides;
-            vec3 TriTangentZNext = glm::cross(ConeVerts[(i + 2) % NumSides], ConeVerts[(i + 1) % NumSides]); // Normal of the next face connected to this face
+            FVector3f TriTangentZNext = glm::cross(ConeVerts[(i + 2) % NumSides], ConeVerts[(i + 1) % NumSides]); // Normal of the next face connected to this face
             V2.SetTangents(TriTangentX, TriTangentY, TriTangentZNext + TriTangentZ);
             int32 I2 = OutVerts.size();
             OutVerts.push_back(V2);
@@ -258,29 +258,29 @@ namespace nilou {
         }
     }
 
-    inline void BuildCylinderVerts(const vec3 &Base, const vec3 &XAxis, const vec3 &YAxis, const vec3 &ZAxis, float Radius, float HalfHeight, uint32 Sides, vec4 Color, std::vector<FDynamicMeshVertex> &OutVerts, std::vector<uint32> &OutIndices)
+    inline void BuildCylinderVerts(const FVector3f &Base, const FVector3f &XAxis, const FVector3f &YAxis, const FVector3f &ZAxis, float Radius, float HalfHeight, uint32 Sides, FVector4f Color, std::vector<FDynamicMeshVertex> &OutVerts, std::vector<uint32> &OutIndices)
     {
         const float	AngleDelta = 2.0f * PI / Sides;
-        vec3 LastVertex = Base + XAxis * Radius;
+        FVector3f LastVertex = Base + XAxis * Radius;
 
-        vec2 TC = vec2(0.0f, 0.0f);
+        FVector2f TC = FVector2f(0.0f, 0.0f);
         float TCStep = 1.0f / Sides;
 
-        vec3 TopOffset = HalfHeight * ZAxis;
+        FVector3f TopOffset = HalfHeight * ZAxis;
 
         int32 BaseVertIndex = OutVerts.size();
 
         //Compute vertices for base circle.
         for (uint32 SideIndex = 0; SideIndex < Sides; SideIndex++)
         {
-            const vec3 Vertex = Base + (XAxis * glm::cos(AngleDelta * (SideIndex + 1)) + YAxis * glm::sin(AngleDelta * (SideIndex + 1))) * Radius;
-            vec3 Normal = Vertex - Base;
+            const FVector3f Vertex = Base + (XAxis * glm::cos(AngleDelta * (SideIndex + 1)) + YAxis * glm::sin(AngleDelta * (SideIndex + 1))) * Radius;
+            FVector3f Normal = Vertex - Base;
             Normal = glm::normalize(Normal);
 
             FDynamicMeshVertex MeshVertex;
 
-            MeshVertex.Position = vec3(Vertex - TopOffset);
-            MeshVertex.TextureCoordinate[0] = vec2(TC);
+            MeshVertex.Position = FVector3f(Vertex - TopOffset);
+            MeshVertex.TextureCoordinate[0] = FVector2f(TC);
 
             MeshVertex.SetTangents(
                 -ZAxis,
@@ -297,19 +297,19 @@ namespace nilou {
         }
 
         LastVertex = Base + XAxis * Radius;
-        TC = vec2(0.0f, 1.0f);
+        TC = FVector2f(0.0f, 1.0f);
 
         //Compute vertices for the top circle
         for (uint32 SideIndex = 0; SideIndex < Sides; SideIndex++)
         {
-            const vec3 Vertex = Base + (XAxis * glm::cos(AngleDelta * (SideIndex + 1)) + YAxis * glm::sin(AngleDelta * (SideIndex + 1))) * Radius;
-            vec3 Normal = Vertex - Base;
+            const FVector3f Vertex = Base + (XAxis * glm::cos(AngleDelta * (SideIndex + 1)) + YAxis * glm::sin(AngleDelta * (SideIndex + 1))) * Radius;
+            FVector3f Normal = Vertex - Base;
             Normal = glm::normalize(Normal);
 
             FDynamicMeshVertex MeshVertex;
 
-            MeshVertex.Position = vec3(Vertex + TopOffset);
-            MeshVertex.TextureCoordinate[0] = vec2(TC);
+            MeshVertex.Position = FVector3f(Vertex + TopOffset);
+            MeshVertex.TextureCoordinate[0] = FVector2f(TC);
 
             MeshVertex.SetTangents(
                 -ZAxis,
@@ -380,15 +380,15 @@ namespace nilou {
          */
 
 
-        vec3 halfAxis = vec3(width/2, length/2, height/2);
+        FVector3f halfAxis = FVector3f(width/2, length/2, height/2);
         FDynamicMeshVertex vertex0, vertex1, vertex2, vertex3;
-        vertex0.TextureCoordinate[0] = vec2(0, 1);
-        vertex1.TextureCoordinate[0] = vec2(1, 1);
-        vertex2.TextureCoordinate[0] = vec2(1, 0);
-        vertex3.TextureCoordinate[0] = vec2(0, 0);
-        vec3 normal;
-        vec3 tangentx;
-        vec3 tangenty;
+        vertex0.TextureCoordinate[0] = FVector2f(0, 1);
+        vertex1.TextureCoordinate[0] = FVector2f(1, 1);
+        vertex2.TextureCoordinate[0] = FVector2f(1, 0);
+        vertex3.TextureCoordinate[0] = FVector2f(0, 0);
+        FVector3f normal;
+        FVector3f tangentx;
+        FVector3f tangenty;
 
         for (int face_index = 0; face_index < 6; face_index++)
         {
@@ -401,16 +401,16 @@ namespace nilou {
         }
         
         {   // face 0
-            normal = vec3(-1, 0, 0);
-            tangentx = vec3(0, 1, 0);
-            tangenty = vec3(0, 0, -1);
-            vertex0.Position = halfAxis * vec3(-1, -1, -1);
+            normal = FVector3f(-1, 0, 0);
+            tangentx = FVector3f(0, 1, 0);
+            tangenty = FVector3f(0, 0, -1);
+            vertex0.Position = halfAxis * FVector3f(-1, -1, -1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(-1, 1, -1);
+            vertex1.Position = halfAxis * FVector3f(-1, 1, -1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(-1, 1, 1);
+            vertex2.Position = halfAxis * FVector3f(-1, 1, 1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(-1, -1, 1);
+            vertex3.Position = halfAxis * FVector3f(-1, -1, 1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -418,16 +418,16 @@ namespace nilou {
             OutVerts.push_back(vertex3);
         }
         {   // face 1
-            normal = vec3(0, 1, 0);
-            tangentx = vec3(1, 0, 0);
-            tangenty = vec3(0, 0, -1);
-            vertex0.Position = halfAxis * vec3(-1, 1, -1);
+            normal = FVector3f(0, 1, 0);
+            tangentx = FVector3f(1, 0, 0);
+            tangenty = FVector3f(0, 0, -1);
+            vertex0.Position = halfAxis * FVector3f(-1, 1, -1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(1, 1, -1);
+            vertex1.Position = halfAxis * FVector3f(1, 1, -1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(1, 1, 1);
+            vertex2.Position = halfAxis * FVector3f(1, 1, 1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(-1, 1, 1);
+            vertex3.Position = halfAxis * FVector3f(-1, 1, 1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -436,16 +436,16 @@ namespace nilou {
         }
 
         {   // face 2
-            normal = vec3(1, 0, 0);
-            tangentx = vec3(0, -1, 0);
-            tangenty = vec3(0, 0, -1);
-            vertex0.Position = halfAxis * vec3(1, 1, -1);
+            normal = FVector3f(1, 0, 0);
+            tangentx = FVector3f(0, -1, 0);
+            tangenty = FVector3f(0, 0, -1);
+            vertex0.Position = halfAxis * FVector3f(1, 1, -1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(1, -1, -1);
+            vertex1.Position = halfAxis * FVector3f(1, -1, -1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(1, -1, 1);
+            vertex2.Position = halfAxis * FVector3f(1, -1, 1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(1, 1, 1);
+            vertex3.Position = halfAxis * FVector3f(1, 1, 1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -454,16 +454,16 @@ namespace nilou {
         }
 
         {   // face 3
-            normal = vec3(0, -1, 0);
-            tangentx = vec3(-1, 0, 0);
-            tangenty = vec3(0, 0, -1);
-            vertex0.Position = halfAxis * vec3(1, -1, -1);
+            normal = FVector3f(0, -1, 0);
+            tangentx = FVector3f(-1, 0, 0);
+            tangenty = FVector3f(0, 0, -1);
+            vertex0.Position = halfAxis * FVector3f(1, -1, -1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(-1, -1, -1);
+            vertex1.Position = halfAxis * FVector3f(-1, -1, -1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(-1, -1, 1);
+            vertex2.Position = halfAxis * FVector3f(-1, -1, 1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(1, -1, 1);
+            vertex3.Position = halfAxis * FVector3f(1, -1, 1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -472,16 +472,16 @@ namespace nilou {
         }
 
         {   // face 4
-            normal = vec3(0, 0, -1);
-            tangentx = vec3(-1, 0, 0);
-            tangenty = vec3(0, 1, 0);
-            vertex0.Position = halfAxis * vec3(1, 1, -1);
+            normal = FVector3f(0, 0, -1);
+            tangentx = FVector3f(-1, 0, 0);
+            tangenty = FVector3f(0, 1, 0);
+            vertex0.Position = halfAxis * FVector3f(1, 1, -1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(-1, 1, -1);
+            vertex1.Position = halfAxis * FVector3f(-1, 1, -1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(-1, -1, -1);
+            vertex2.Position = halfAxis * FVector3f(-1, -1, -1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(1, -1, -1);
+            vertex3.Position = halfAxis * FVector3f(1, -1, -1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -490,16 +490,16 @@ namespace nilou {
         }
 
         {   // face 5
-            normal = vec3(0, 0, 1);
-            tangentx = vec3(1, 0, 0);
-            tangenty = vec3(0, 1, 0);
-            vertex0.Position = halfAxis * vec3(-1, 1, 1);
+            normal = FVector3f(0, 0, 1);
+            tangentx = FVector3f(1, 0, 0);
+            tangenty = FVector3f(0, 1, 0);
+            vertex0.Position = halfAxis * FVector3f(-1, 1, 1);
             vertex0.SetTangents(tangentx, tangenty, normal);
-            vertex1.Position = halfAxis * vec3(1, 1, 1);
+            vertex1.Position = halfAxis * FVector3f(1, 1, 1);
             vertex1.SetTangents(tangentx, tangenty, normal);
-            vertex2.Position = halfAxis * vec3(1, -1, 1);
+            vertex2.Position = halfAxis * FVector3f(1, -1, 1);
             vertex2.SetTangents(tangentx, tangenty, normal);
-            vertex3.Position = halfAxis * vec3(-1, -1, 1);
+            vertex3.Position = halfAxis * FVector3f(-1, -1, 1);
             vertex3.SetTangents(tangentx, tangenty, normal);
             OutVerts.push_back(vertex0);
             OutVerts.push_back(vertex1);
@@ -508,19 +508,19 @@ namespace nilou {
         }
     }
 
-    inline void BuildFlatSurfaceVerts(uvec2 NumVertsXY, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
+    inline void BuildFlatSurfaceVerts(FUIntVector2 NumVertsXY, std::vector<FDynamicMeshVertex>& OutVerts, std::vector<uint32>& OutIndices)
     {
         for (int i = 0; i < NumVertsXY.x; i++)
         {
             for (int j = 0; j < NumVertsXY.y; j++)
             {
                 FDynamicMeshVertex Vertex;
-                Vertex.Position = vec3(i, j, 0);
-                Vertex.TextureCoordinate[0] = (vec2(i, j)+ vec2(0.5)) / vec2(NumVertsXY-uvec2(1));
+                Vertex.Position = FVector3f(i, j, 0);
+                Vertex.TextureCoordinate[0] = (FVector2f(i, j)+ FVector2f(0.5)) / FVector2f(NumVertsXY-FUIntVector2(1));
                 Vertex.SetTangents(
-                    vec3(1, 0, 0), 
-                    vec3(0, -1, 0), 
-                    vec3(0, 0, 1));
+                    FVector3f(1, 0, 0), 
+                    FVector3f(0, -1, 0), 
+                    FVector3f(0, 0, 1));
                 OutVerts.push_back(Vertex);
             }
         }

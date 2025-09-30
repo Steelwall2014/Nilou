@@ -1,10 +1,12 @@
 #pragma once
 #include <utility>
 #include <iterator>
+#include <vector>
 #include "Platform.h"
-#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
+
+    class FArchive;
 
     enum class EAllowShrinking : uint8
     {
@@ -68,6 +70,15 @@ namespace nilou {
 
         void Add(const ElementType& Item) { Data.push_back(Item); }
         void Add(ElementType&& Item) { Data.push_back(std::move(Item)); }
+        void AddUnique(const ElementType& Item)
+        {
+            if (!Contains(Item))
+                Data.push_back(Item);
+        }
+        ElementType& AddDefaulted_GetRef()
+        {
+            return Data.emplace_back();
+        }
         template<typename... Args>
         void Emplace(Args&&... args) { Data.emplace_back(std::forward<Args>(args)...); }
         void Append(const TArray& Other)
@@ -94,10 +105,12 @@ namespace nilou {
             }
             return false;
         }
-        void Pop()
+        ElementType Pop()
         {
-            if (!Data.empty())
-                Data.pop_back();
+            Ncheck(!Data.empty());
+            ElementType Result = std::move(Data.back());
+            Data.pop_back();
+            return Result;
         }
         void Reset()
         {
@@ -143,6 +156,9 @@ namespace nilou {
 
         std::vector<ElementType>& InternalGetStdVector() { return Data; }
         const std::vector<ElementType>& InternalGetStdVector() const { return Data; }
+
+        template<typename T>
+        friend void Serialize(FArchive& Ar, TArray<T>& Array);
 
     private:
         std::vector<ElementType> Data;
@@ -265,16 +281,6 @@ namespace nilou {
         }
 
         int32 Num() const { return NumElements; }
-
-        void Serialize(FArchive& Ar)
-        {
-
-        }
-
-        void Deserialize(FArchive& Ar)
-        {
-            
-        }
 
     private:
         struct alignas(Alignment) TArrayStorageElementAligned

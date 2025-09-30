@@ -19,9 +19,9 @@ namespace nilou {
         static constexpr bool IsDerived = Value;
     };
 
-    template<typename T> struct MemberPointerTraits;
+    template<typename T> struct TMemberPointerTraits;
     template<typename T, typename U>
-    struct MemberPointerTraits<T U::*> {
+    struct TMemberPointerTraits<T U::*> {
         using Object = U;
         using Value = T;
     };

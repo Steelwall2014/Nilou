@@ -59,7 +59,7 @@ public: \
         USkyAtmosphereComponent();
 
 		// The solar irradiance at the top of the atmosphere.
-		SKY_DECLARE_FUNCTION(vec3, SolarIrradiance)
+		SKY_DECLARE_FUNCTION(FVector3f, SolarIrradiance)
 		// The sun's angular radius. Warning: the implementation uses approximations
 		// that are valid only if this angle is smaller than 0.1 radians.
 		SKY_DECLARE_FUNCTION(float, SunAngularRadius)
@@ -74,7 +74,7 @@ public: \
 		// density is maximum (usually the bottom of the atmosphere), as a function of
 		// wavelength. The scattering coefficient at altitude h is equal to
 		// 'rayleigh_scattering' times 'rayleigh_density' at this altitude.
-		SKY_DECLARE_FUNCTION(vec3, RayleighScattering)
+		SKY_DECLARE_FUNCTION(FVector3f, RayleighScattering)
 		// The density profile of aerosols, i.e. a function from altitude to
 		// dimensionless values between 0 (null density) and 1 (maximum density).
 		SKY_DECLARE_FUNCTION(DensityProfile, MieDensity)
@@ -82,12 +82,12 @@ public: \
 		// is maximum (usually the bottom of the atmosphere), as a function of
 		// wavelength. The scattering coefficient at altitude h is equal to
 		// 'mie_scattering' times 'mie_density' at this altitude.
-		SKY_DECLARE_FUNCTION(vec3, MieScattering)
+		SKY_DECLARE_FUNCTION(FVector3f, MieScattering)
 		// The extinction coefficient of aerosols at the altitude where their density
 		// is maximum (usually the bottom of the atmosphere), as a function of
 		// wavelength. The extinction coefficient at altitude h is equal to
 		// 'mie_extinction' times 'mie_density' at this altitude.
-		SKY_DECLARE_FUNCTION(vec3, MieExtinction)
+		SKY_DECLARE_FUNCTION(FVector3f, MieExtinction)
 		// The asymetry parameter for the Cornette-Shanks phase function for the
 		// aerosols.
 		SKY_DECLARE_FUNCTION(float, MiePhaseFunction_g)
@@ -99,9 +99,9 @@ public: \
 		// the altitude where their density is maximum, as a function of wavelength.
 		// The extinction coefficient at altitude h is equal to
 		// 'absorption_extinction' times 'absorption_density' at this altitude.
-		SKY_DECLARE_FUNCTION(vec3, AbsorptionExtinction)
+		SKY_DECLARE_FUNCTION(FVector3f, AbsorptionExtinction)
 		// The average albedo of the ground.
-		SKY_DECLARE_FUNCTION(vec3, GroundAlbedo)
+		SKY_DECLARE_FUNCTION(FVector3f, GroundAlbedo)
 		// The cosine of the maximum Sun zenith angle for which atmospheric scattering
 		// must be precomputed (for maximum precision, use the smallest Sun zenith
 		// angle yielding negligible sky light radiance values. For instance, for the
@@ -132,19 +132,19 @@ public: \
 	END_UNIFORM_BUFFER_STRUCT()
 
 	BEGIN_UNIFORM_BUFFER_STRUCT(ShaderAtmosphereParameters)
-		SHADER_PARAMETER(vec3, SolarIrradiance);
+		SHADER_PARAMETER(FVector3f, SolarIrradiance);
 		SHADER_PARAMETER(float, SunAngularRadius)
 		SHADER_PARAMETER(float, BottomRadius)
 		SHADER_PARAMETER(float, TopRadius)
 		SHADER_PARAMETER(ShaderDensityProfile, RayleighDensity)
-		SHADER_PARAMETER(vec3, RayleighScattering)
+		SHADER_PARAMETER(FVector3f, RayleighScattering)
 		SHADER_PARAMETER(ShaderDensityProfile, MieDensity)
-		SHADER_PARAMETER(vec3, MieScattering)
-		SHADER_PARAMETER(vec3, MieExtinction)
+		SHADER_PARAMETER(FVector3f, MieScattering)
+		SHADER_PARAMETER(FVector3f, MieExtinction)
 		SHADER_PARAMETER(float, MiePhaseFunction_g)
 		SHADER_PARAMETER(ShaderDensityProfile, AbsorptionDensity)
-		SHADER_PARAMETER(vec3, AbsorptionExtinction)
-		SHADER_PARAMETER(vec3, GroundAlbedo)
+		SHADER_PARAMETER(FVector3f, AbsorptionExtinction)
+		SHADER_PARAMETER(FVector3f, GroundAlbedo)
 		SHADER_PARAMETER(float, Mu_s_Min)
 	END_UNIFORM_BUFFER_STRUCT()
 
@@ -161,19 +161,19 @@ public: \
     public:
 	    FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent);
 
-		vec3 SolarIrradiance;
+		FVector3f SolarIrradiance;
 		float SunAngularRadius;
 		float BottomRadius;
 		float TopRadius;
 		ShaderDensityProfile RayleighDensity;
-		vec3 RayleighScattering;
+		FVector3f RayleighScattering;
 		ShaderDensityProfile MieDensity;
-		vec3 MieScattering;
-		vec3 MieExtinction;
+		FVector3f MieScattering;
+		FVector3f MieExtinction;
 		float MiePhaseFunction_g;
 		ShaderDensityProfile AbsorptionDensity;
-		vec3 AbsorptionExtinction;
-		vec3 GroundAlbedo;
+		FVector3f AbsorptionExtinction;
+		FVector3f GroundAlbedo;
 		float Mu_s_Min;
 
 		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }

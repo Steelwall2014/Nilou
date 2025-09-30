@@ -7,7 +7,7 @@ namespace nilou {
     class UTexture2D;
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFastFourierTransformParameters)
-        SHADER_PARAMETER(vec2, WindDirection)
+        SHADER_PARAMETER(FVector2f, WindDirection)
         SHADER_PARAMETER(uint32, N)
         SHADER_PARAMETER(float, WindSpeed)
         SHADER_PARAMETER(float, Amplitude)
@@ -38,7 +38,7 @@ namespace nilou {
 
         void SetMaterial();
 
-        void SetWindDirection(const vec2& InWindDirection) 
+        void SetWindDirection(const FVector2f& InWindDirection) 
         { 
             WindDirection = glm::normalize(InWindDirection);
         }
@@ -61,7 +61,7 @@ namespace nilou {
     protected:
 
         // Wind direction, must be normalized
-		vec2 WindDirection = glm::normalize(vec2(1));
+		FVector2f WindDirection = glm::normalize(FVector2f(1));
 
         float WindSpeed = 6.5f;
 
