@@ -257,7 +257,7 @@ public:
     {
         const glm::dvec3 normal = plane.Normal;
 
-        const dvec3 Center = (Min+Max) / 2.0;
+        const glm::dvec3 Center = (Min+Max) / 2.0;
 
         // const glm::dvec3& boxVertex1 = HalfAxes[0] + HalfAxes[1] + HalfAxes[2];
         // const glm::dvec3& boxVertex2 = -HalfAxes[0] + HalfAxes[1] + HalfAxes[2];

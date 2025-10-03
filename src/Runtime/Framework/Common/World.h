@@ -12,7 +12,7 @@
 namespace nilou {
 
     class AActor;
-    class UWorld
+    class UWorld : public NObject
     {
     public:
         friend AActor;
@@ -50,7 +50,7 @@ namespace nilou {
         void GetAllActorsOfClass(std::vector<ActorClass *> &OutActors, bool bIncludeSubclasses=true);
 
         template<class ActorClass>
-        std::shared_ptr<ActorClass> SpawnActor(const FTransform &ActorTransform, const std::string &ActorName);
+        ActorClass* SpawnActor(const FTransform &ActorTransform, const std::string &ActorName);
 
         void SendAllEndOfFrameUpdates();
 
@@ -58,7 +58,7 @@ namespace nilou {
 
     private:
         
-        std::vector<std::shared_ptr<AActor>> Actors;
+        std::vector<AActor*> Actors;
 
         std::vector<ACameraActor*> CameraActors;
 
@@ -72,33 +72,33 @@ namespace nilou {
     template<class ActorClass>
     void UWorld::GetAllActorsOfClass(std::vector<ActorClass *> &OutActors, bool bIncludeSubclasses)
     {
-        for (std::shared_ptr<AActor> Actor : Actors)
+        for (AActor* Actor : Actors)
         {
             if (bIncludeSubclasses)
             {
                 if (Actor->GetClass()->IsChildOf(ActorClass::StaticClass()))
-                    OutActors.push_back(static_cast<ActorClass*>(Actor.get()));
+                    OutActors.push_back(static_cast<ActorClass*>(Actor));
             }
             else 
             {
                 if (Actor->GetClass() == ActorClass::StaticClass())
-                    OutActors.push_back(static_cast<ActorClass*>(Actor.get()));
+                    OutActors.push_back(static_cast<ActorClass*>(Actor));
             }
         }
     }
 
     template<class ActorClass>
-    std::shared_ptr<ActorClass> UWorld::SpawnActor(const FTransform &ActorTransform, const std::string &ActorName)
+    ActorClass* UWorld::SpawnActor(const FTransform &ActorTransform, const std::string &ActorName)
     {
         static_assert(TIsDerivedFrom<ActorClass, AActor>::Value, "'ActorClass' template parameter to SpawnActor must be derived from AActor");
-        std::shared_ptr<ActorClass> Actor = std::make_shared<ActorClass>();
+        ActorClass* Actor = NewObject<ActorClass>(GetPackage(), ActorName);
         Actor->SetOwnedWorld(this);
         Actor->Rename(ActorName);
         Actor->PostSpawnInitialize(ActorTransform);
         Actors.push_back(Actor);
         if constexpr (TIsDerivedFrom<ActorClass, ACameraActor>::Value)
         {
-            CameraActors.push_back(Actor.get());
+            CameraActors.push_back(Actor);
         }
         return Actor;
     }

@@ -50,7 +50,7 @@ private:
 			}
 			if (!Head)
 			{
-				check(!Tail);
+				Ncheck(!Tail);
 				return true;
 			}
 			return false;
@@ -84,17 +84,17 @@ public:
 
 		T& operator*() const
 		{
-			check(Current);
-			check(InternalQueue);
-			check(Current->Priority == InternalQueue->Priority);
+			Ncheck(Current);
+			Ncheck(InternalQueue);
+			Ncheck(Current->Priority == InternalQueue->Priority);
 			return *Current;
 		}
 
 		T* operator->() const
 		{
-			check(Current);
-			check(InternalQueue);
-			check(Current->Priority == InternalQueue->Priority);
+			Ncheck(Current);
+			Ncheck(InternalQueue);
+			Ncheck(Current->Priority == InternalQueue->Priority);
 			return Current;
 		}
 
@@ -105,9 +105,9 @@ public:
 
 		void RemoveCurrent()
 		{
-			check(Current);
-			check(InternalQueue);
-			check(Current->Priority == InternalQueue->Priority);
+			Ncheck(Current);
+			Ncheck(InternalQueue);
+			Ncheck(Current->Priority == InternalQueue->Priority);
 			if (InternalQueue->Remove(Current))
 			{
 				Outer.RemoveQueueByPriority(InternalQueue->Priority);
@@ -153,13 +153,13 @@ public:
 
 	void Push(T* Item, int32 Priority)
 	{
-		check(!Item->Prev);
-		check(!Item->Next);
+		Ncheck(!Item->Prev);
+		Ncheck(!Item->Next);
 		Item->Priority = Priority;
 		TInternalQueue& Queue = FindOrAddQueueByPriority(Priority);
 		if (!Queue.Head)
 		{
-			check(!Queue.Tail);
+			Ncheck(!Queue.Tail);
 			Queue.Head = Queue.Tail = Item;
 		}
 		else
@@ -178,13 +178,13 @@ public:
 		}
 		int QueueIndex = InternalQueues.Num() - 1;
 		TInternalQueue* QueueWithHighestPriority = InternalQueues[QueueIndex];
-		check(QueueWithHighestPriority);
-		check(QueueWithHighestPriority->Head);
-		check(QueueWithHighestPriority->Tail);
+		Ncheck(QueueWithHighestPriority);
+		Ncheck(QueueWithHighestPriority->Head);
+		Ncheck(QueueWithHighestPriority->Tail);
 
 		T* Item = QueueWithHighestPriority->Head;
-		check(Item);
-		check(Item->Priority == QueueWithHighestPriority->Priority);
+		Ncheck(Item);
+		Ncheck(Item->Priority == QueueWithHighestPriority->Priority);
 		T* Next = Item->Next;
 		if (Next)
 		{
@@ -193,7 +193,7 @@ public:
 		}
 		else
 		{
-			check(Item == QueueWithHighestPriority->Tail);
+			Ncheck(Item == QueueWithHighestPriority->Tail);
 			QueueWithHighestPriority->Head = QueueWithHighestPriority->Tail = nullptr;
 			RemoveQueueAtIndex(QueueIndex);
 		}
@@ -221,7 +221,7 @@ public:
 		}
 		int32 QueueIndex;
 		TInternalQueue* InternalQueue = FindQueueByPriority(Item->Priority, QueueIndex);
-		check(InternalQueue);
+		Ncheck(InternalQueue);
 		if (InternalQueue->Remove(Item))
 		{
 			RemoveQueueAtIndex(QueueIndex);
@@ -245,7 +245,7 @@ public:
 		TInternalQueue& OtherQueue = Other.FindOrAddQueueByPriority(Priority);
 		if (OtherQueue.Head)
 		{
-			check(OtherQueue.Tail);
+			Ncheck(OtherQueue.Tail);
 			Queue->Head->Prev = OtherQueue.Tail;
 			OtherQueue.Tail->Next = Queue->Head;
 			OtherQueue.Tail = Queue->Tail;
@@ -335,8 +335,8 @@ private:
 
 	void FreeInternalQueue(TInternalQueue* InternalQueue)
 	{
-		check(!InternalQueue->Head);
-		check(!InternalQueue->Tail);
+		Ncheck(!InternalQueue->Head);
+		Ncheck(!InternalQueue->Tail);
 		InternalQueue->NextFree = FirstFreeQueue;
 		FirstFreeQueue = InternalQueue;
 	}

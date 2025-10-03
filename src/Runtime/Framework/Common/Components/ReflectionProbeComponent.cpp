@@ -174,7 +174,7 @@ namespace nilou {
     {
         if (SceneProxy)
         {
-            dvec3 NewLocation = GetComponentLocation();
+            FVector NewLocation = GetComponentLocation();
             auto Proxy = SceneProxy;
             ENQUEUE_RENDER_COMMAND(UReflectionProbeComponent_SendRenderTransform)(
                 [NewLocation, Proxy](RenderGraph&) 

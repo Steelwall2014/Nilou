@@ -68,16 +68,16 @@ namespace nilou {
         }
         void Shrink() { Data.shrink_to_fit(); }
 
-        void Add(const ElementType& Item) { Data.push_back(Item); }
-        void Add(ElementType&& Item) { Data.push_back(std::move(Item)); }
+        void Add(const ElementType& Item) { Emplace(Item); }
+        void Add(ElementType&& Item) { Emplace(std::move(Item)); }
         void AddUnique(const ElementType& Item)
         {
             if (!Contains(Item))
-                Data.push_back(Item);
+                Emplace(Item);
         }
         ElementType& AddDefaulted_GetRef()
         {
-            return Data.emplace_back();
+            return Emplace();
         }
         template<typename... Args>
         void Emplace(Args&&... args) { Data.emplace_back(std::forward<Args>(args)...); }
@@ -127,6 +127,10 @@ namespace nilou {
         bool Contains(const ElementType& Item) const
         {
             return std::find(Data.begin(), Data.end(), Item) != Data.end();
+        }
+        bool IsValidIndex(size_type Index) const
+        {
+            return Index < Data.size();
         }
 
         iterator begin() { return Data.begin(); }

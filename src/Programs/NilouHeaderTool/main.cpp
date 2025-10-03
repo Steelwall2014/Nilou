@@ -400,63 +400,52 @@ static const string& indent = "\t\t";
 string GenerateTypeRegistry(const TypeMetaData& NClass)
 {
     const auto ClassName = NClass.Name;
-    string CtorBody;
-    for (auto& Args : NClass.Constructors)
-    {
-        string args;
-        for (int i = 0; i < Args.size(); i++)
-        {
-            args += ", " + Args[i];
-        }
-        CtorBody += indent+std::format("Mngr.AddConstructor<{}{}>();\n", ClassName, args);
-    }
+    string BeginClassRegistry;
+    BeginClassRegistry += std::format(
+        "BEGIN_CLASS_REGISTRY({}, {}, {}, EClassFlags::Native)\n", 
+        IsReflectedClass(ClassName) ? "Object" : "Struct", 
+        ClassName, 
+        NClass.BaseClass!="" ? NClass.BaseClass : "SerializePrivate::NullSuperClass");
+    // string CtorBody;
+    // for (auto& Args : NClass.Constructors)
+    // {
+    //     string args;
+    //     for (int i = 0; i < Args.size(); i++)
+    //     {
+    //         args += ", " + Args[i];
+    //     }
+    //     CtorBody += indent+std::format("Mngr.AddConstructor<{}{}>();\n", ClassName, args);
+    // }
     string FieldsBody;
     for (auto& [FieldName, FieldType] : NClass.Fields)
     {
-        FieldsBody += indent+std::format("Mngr.AddField<&{1}::{0}>(\"{0}\");\n", 
-            FieldName, ClassName);
+        FieldsBody += std::format("\tCLASS_PROPERTY({})\n", 
+            FieldName);
     }
-    string MethodsBody;
-    for (auto& MethodName : NClass.Methods)
-    {
-        MethodsBody += indent+std::format("Mngr.AddMethod<&{1}::{0}>(\"{0}\");\n", 
-            MethodName, ClassName);
-    }
-    string ClassHierarchyBody;
-    if (NClass.BaseClass != "")
-    {
-        ClassHierarchyBody += indent+std::format("Mngr.AddBases<{}, {}>();\n", 
-            ClassName, NClass.BaseClass);
-    }
+    string EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassName);
+    // string MethodsBody;
+    // for (auto& MethodName : NClass.Methods)
+    // {
+    //     MethodsBody += indent+std::format("Mngr.AddMethod<&{1}::{0}>(\"{0}\");\n", 
+    //         MethodName, ClassName);
+    // }
     return std::format(
 R"(
 std::unique_ptr<NClass> {0}::Z_StaticClass = nullptr;
-const NClass *{0}::GetClass() const 
+NClass *{0}::GetClass() const 
 {{ 
     return {0}::StaticClass(); 
 }}
-const NClass *{0}::StaticClass()
+NClass *{0}::StaticClass()
 {{
     return {0}::Z_StaticClass.get();
 }}
 
-template<>
-struct TClassRegistry<{0}>
-{{
-    TClassRegistry(const std::string& InName)
-    {{
-        {0}::Z_StaticClass = std::make_unique<NClass>();
-        Mngr.RegisterType<{0}>();
-{1}{2}{3}{4};
-        {0}::Z_StaticClass->Type = Type_of<{0}>;
-        {0}::Z_StaticClass->TypeInfo = Mngr.GetTypeInfo(Type_of<{0}>);
-    }}
+{1}
+{2}
+{3}
 
-    static TClassRegistry<{0}> Dummy;
-}};
-TClassRegistry<{0}> Dummy = TClassRegistry<{0}>("{0}");
-
-)", ClassName, CtorBody, FieldsBody, MethodsBody, ClassHierarchyBody, NClass.BaseClass);
+)", ClassName, BeginClassRegistry, FieldsBody, EndClassRegistry);
 }
 
 pair<string, string> GenerateSerializeBody(const string& FieldName, const string& FieldType)
@@ -567,14 +556,8 @@ void GenerateCode()
     for (auto& [ClassName, NClass] : NTypes)
     {
             string TypeRegistry = GenerateTypeRegistry(NClass);
-            string Serialize = GenerateClassSerialize(NClass);
-            NClass.GeneratedFileCode = std::format(R"(#include "{}"
-#include <UDRefl/UDRefl.hpp>
-
-using namespace Ubpa;
-using namespace Ubpa::UDRefl;
-{}
-{})", NClass.FileName, TypeRegistry, Serialize);
+            NClass.GeneratedFileCode = std::format(
+                "#include \"{}\"\nnamespace nilou {{\n{}\n}}", NClass.FileName, TypeRegistry);
     }
 }
 

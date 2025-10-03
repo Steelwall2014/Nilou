@@ -24,7 +24,7 @@ namespace nilou {
             // , bIsScreenSizeScaled(Component->bIsScreenSizeScaled)
             // , ScreenSize(Component->ScreenSize)
         {
-            Material = GetContentManager()->GetMaterialByPath("/Materials/ColoredMaterial.nasset");
+            Material = LoadObject<UMaterial>("/Materials/ColoredMaterial.ColoredMaterial");
 
             const float HeadAngle = glm::radians(ARROW_HEAD_ANGLE);
             const float DefaultLength = ArrowSize * ARROW_SCALE;
@@ -32,12 +32,12 @@ namespace nilou {
             const float HeadLength = DefaultLength * ARROW_HEAD_FACTOR;
             const float ShaftRadius = DefaultLength * ARROW_RADIUS_FACTOR;
             const float ShaftLength = (TotalLength - HeadLength * 0.5); // 10% overlap between shaft and head
-            const vec3 ShaftCenter = vec3(0.5f * ShaftLength, 0, 0);
+            const FVector ShaftCenter = FVector(0.5f * ShaftLength, 0, 0);
 
             std::vector<FDynamicMeshVertex> OutVerts;
             std::vector<uint32> OutIndices;
             BuildConeVerts(HeadAngle, HeadAngle, -HeadLength, TotalLength, 32, ArrowColor, OutVerts, OutIndices);
-            BuildCylinderVerts(ShaftCenter, vec3(0, 0, 1), vec3(0, 1, 0), vec3(1, 0, 0), ShaftRadius, 0.5f * ShaftLength, 16, ArrowColor, OutVerts, OutIndices);
+            BuildCylinderVerts(ShaftCenter, FVector(0, 0, 1), FVector(0, 1, 0), FVector(1, 0, 0), ShaftRadius, 0.5f * ShaftLength, 16, ArrowColor, OutVerts, OutIndices);
             IndexBuffer.Init(OutIndices);
 
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
@@ -76,8 +76,8 @@ namespace nilou {
         FStaticVertexFactory VertexFactory;
         UMaterial *Material;
 
-        vec3 Origin;
-        vec4 ArrowColor;
+        FVector Origin;
+        FVector4f ArrowColor;
         float ArrowSize;
         float ArrowLength;
         // bool bIsScreenSizeScaled;
@@ -86,7 +86,7 @@ namespace nilou {
 
     UArrowComponent::UArrowComponent()
     {
-        ArrowColor = vec4(1, 0, 0, 1);
+        ArrowColor = FVector4f(1, 0, 0, 1);
         ArrowSize = 1.0f;
         ArrowLength = ARROW_SCALE;
         // bIsScreenSizeScaled = false;
@@ -101,10 +101,10 @@ namespace nilou {
 
     FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
-        return FBoxSphereBounds(FBox(vec3(0, -ARROW_SCALE, -ARROW_SCALE), vec3(ArrowSize * ArrowLength * 3.0f, ARROW_SCALE, ARROW_SCALE)).TransformBy(LocalToWorld));
+        return FBoxSphereBounds(FBox(FVector(0, -ARROW_SCALE, -ARROW_SCALE), FVector(ArrowSize * ArrowLength * 3.0f, ARROW_SCALE, ARROW_SCALE)).TransformBy(LocalToWorld));
     }
 
-    void UArrowComponent::SetArrowColor(vec4 NewColor)
+    void UArrowComponent::SetArrowColor(FVector4f NewColor)
     {
         ArrowColor = NewColor;
         MarkRenderStateDirty();

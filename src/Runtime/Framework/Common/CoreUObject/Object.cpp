@@ -6,7 +6,7 @@
 
 namespace nilou {
 
-void* FProperty::ContainerPtrToValuePtrInternal(NObject* ContainerPtr, int32 ArrayIndex) const
+void* FProperty::ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayIndex) const
 {
     return (uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
 }
@@ -280,42 +280,95 @@ NClass* CreateNativeClassNClass()
 
 NObject* NClass::CreateObject(const std::string& Name, NObject* Outer) const
 {
-    std::shared_ptr<NObject> Object = ClassConstructor(); 
+    void* Memory = malloc(Size);
+    ClassConstructor(Memory);
+    std::shared_ptr<NObject> Object(static_cast<NObject*>(Memory));
     InitializeObject(Object, Name, Outer); 
     return Object.get();
 }
 
-FClassRegistryBase::FClassRegistryBase(const std::string& InName, NClass* InSuperClass, EClassFlags InClassFlags, std::function<std::shared_ptr<NObject>()> InClassConstructor, std::function<void(FArchive&, void*)> InSerializeFunction)
+TArray<FClassRegistryBase*> Registrations;
+FClassRegistryBase::FClassRegistryBase(
+    EMetaClass InMetaClass, 
+    const std::string& InName, 
+    NClass* InSuperClass, 
+    int32 Size, 
+    EClassFlags InClassFlags, 
+    std::function<void(void*)> InClassConstructor)
 {
     static NPackage* NativeClassPackage = CreateNativeClassNPackage();
     static NClass* NativeClassClass = CreateNativeClassNClass();
+    std::string Name = RemoveNamespace(InName);
+    Name = RemovePrefix(InMetaClass, Name);
     FStaticConstructObjectParameters Params;
     Params.Class = NativeClassClass;
     Params.Outer = NativeClassPackage;
-    Params.Name = InName;
+    Params.Name = Name;
     Class = Cast<NClass>(StaticConstructObject_Internal(Params));
     Class->SuperStruct = InSuperClass;
     Class->ClassConstructor = InClassConstructor;
-    Class->SerializeFunction = InSerializeFunction;
     Class->SetClassFlags(InClassFlags);
+    Registrations.Add(this);
 }
 
+void FClassRegistryBase::DeferredConstructFProperty()
+{
+    for (FClassRegistryBase* Registry : Registrations)
+    {
+        Registry->ConstructFProperty();
+    }
+}
+
+std::string FClassRegistryBase::RemoveNamespace(const std::string& Name)
+{
+    auto pos = Name.find_last_of("::");
+    return pos != std::string::npos ? Name.substr(pos + 1) : Name;
+}
+
+std::string FClassRegistryBase::RemovePrefix(EMetaClass InMetaClass, const std::string& Name)
+{
+    if (InMetaClass == EMetaClass::Struct)
+    {
+        Ncheck(Name[0] == 'F');
+        return Name.substr(1);
+    }
+    else if (InMetaClass == EMetaClass::Object)
+    {
+        Ncheck(Name[0] == 'N' || Name[0] == 'U' || Name[0] == 'A');
+        return Name.substr(1);
+    }
+    return Name;
+}
+
+std::unique_ptr<NClass> NObject::Z_StaticClass = nullptr;
+NClass *NObject::GetClass() const 
+{ 
+    return NObject::StaticClass(); 
+}
+NClass *NObject::StaticClass()
+{
+    return NObject::Z_StaticClass.get();
+}
 template<>
 struct TClassRegistry<NObject> : public FClassRegistryBase
 {
     TClassRegistry<NObject>() 
-        : FClassRegistryBase("NObject", nullptr, 
+        : FClassRegistryBase(
+            EMetaClass::Object, 
+            "nilou::NObject", 
+            nullptr, 
+            sizeof(NObject),
             EClassFlags::Native | EClassFlags::Intrinsic, 
-            []() { return std::make_shared<NObject>(); }, 
-            SerializePrivate::TSelectSerializeFunction<SerializePrivate::EMetaClass::Object, NObject>::Select()) 
+            [](void* Memory) { new(Memory) NObject(); }) 
     {
+        ConstructFProperty = [this]()
         {
             FStrProperty* Property = new FStrProperty();
             Property->Name = "Name";
             Property->Offset_Internal = offsetof(NObject, NamePrivate);
             Property->ElementSize = sizeof(static_cast<NObject*>(nullptr)->NamePrivate);
             Class->Properties.Add(Property);
-        }
+        };
     }
 };
 TClassRegistry<NObject> ClassRegistry_NObject;

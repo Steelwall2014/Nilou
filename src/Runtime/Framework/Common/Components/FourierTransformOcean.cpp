@@ -204,7 +204,7 @@ namespace nilou {
         DisplaceTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("DisplaceTexture", N, N, EPixelFormat::PF_R16G16F));
         NormalTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("NormalTexture", N, N, EPixelFormat::PF_R16G16F));
         FoamTexture = std::shared_ptr<UTexture2D>(UTexture2D::CreateTransient("FoamTexture", N, N, EPixelFormat::PF_R16G16F));
-        PerlinNoise = Cast<UTexture2D>(GetContentManager()->GetTextureByPath("/Textures/PerlinNoiseTexture.nasset"));
+        PerlinNoise = LoadObject<UTexture2D>("/Textures/PerlinNoiseTexture.PerlinNoiseTexture");
 
         InitialTime = clock();
 

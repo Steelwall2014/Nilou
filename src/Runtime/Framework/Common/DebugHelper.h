@@ -5,8 +5,8 @@
 // #include <glm/gtc/quaternion.hpp>
 // #include "Common/SceneObject/SceneObjectTransform.h"
 
-void UNDDEBUG_PrintGLM(glm::quat q);
-void UNDDEBUG_PrintGLM(vec3 v);
-void UNDDEBUG_PrintGLM(vec4 v);
-void UNDDEBUG_PrintGLM(glm::mat4 v);
-void UNDDEBUG_PrintGLM(nilou::FRotator r);
+// void UNDDEBUG_PrintGLM(FQuat q);
+// void UNDDEBUG_PrintGLM(FVector3f v);
+// void UNDDEBUG_PrintGLM(FVector4f v);
+// void UNDDEBUG_PrintGLM(FMatrix44f v);
+// void UNDDEBUG_PrintGLM(nilou::FRotator r);

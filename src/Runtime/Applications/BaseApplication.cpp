@@ -16,8 +16,8 @@ namespace nilou {
     {
         m_bQuit = false;
 
+        FClassRegistryBase;
         FCrc::Init();
-        ContentManager = std::make_unique<FContentManager>(FPath::ContentDir());
         RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
         GameViewportClient = std::make_unique<UGameViewportClient>();
         while (!RenderingThread->IsRunnableInitialized()) { }
@@ -29,7 +29,6 @@ namespace nilou {
 
     void BaseApplication::Finalize()
     {
-        ContentManager->Flush();
         bShouldRenderingThreadExit = true;
         while (!RenderingThread->IsRunnableExited()) { }
     }
@@ -38,7 +37,6 @@ namespace nilou {
     {
         GameViewportClient->World = nullptr;
         GetScene()->Release_RenderThread();
-        ContentManager->ReleaseRenderResources();
     }
 
     void BaseApplication::Tick(double DeltaTime)

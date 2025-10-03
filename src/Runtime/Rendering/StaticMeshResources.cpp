@@ -172,24 +172,30 @@ namespace nilou {
         bIsInitialized = false;
         for (int SectionIndex = 0; SectionIndex < Sections.size(); SectionIndex++)
         {
-            FStaticMeshSection &Section = *Sections[SectionIndex];
-            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                BeginReleaseResource(&Section.VertexBuffers.Colors);
-            if (Section.VertexBuffers.Positions.GetVertexData() != nullptr)
-                BeginReleaseResource(&Section.VertexBuffers.Positions);
-            if (Section.VertexBuffers.Normals.GetVertexData() != nullptr)
-                BeginReleaseResource(&Section.VertexBuffers.Normals);
-            if (Section.VertexBuffers.Tangents.GetVertexData() != nullptr)
-                BeginReleaseResource(&Section.VertexBuffers.Tangents);
-            if (Section.VertexBuffers.Colors.GetVertexData() != nullptr)
-                BeginReleaseResource(&Section.VertexBuffers.Colors);
+            FStaticMeshSection* Section = Sections[SectionIndex];
+            if (Section->VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginReleaseResource(&Section->VertexBuffers.Colors);
+            if (Section->VertexBuffers.Positions.GetVertexData() != nullptr)
+                BeginReleaseResource(&Section->VertexBuffers.Positions);
+            if (Section->VertexBuffers.Normals.GetVertexData() != nullptr)
+                BeginReleaseResource(&Section->VertexBuffers.Normals);
+            if (Section->VertexBuffers.Tangents.GetVertexData() != nullptr)
+                BeginReleaseResource(&Section->VertexBuffers.Tangents);
+            if (Section->VertexBuffers.Colors.GetVertexData() != nullptr)
+                BeginReleaseResource(&Section->VertexBuffers.Colors);
             for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
             {
-                if (Section.VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
-                    BeginReleaseResource(&Section.VertexBuffers.TexCoords[i]);
+                if (Section->VertexBuffers.TexCoords[i].GetVertexData() != nullptr)
+                    BeginReleaseResource(&Section->VertexBuffers.TexCoords[i]);
             }
-            if (Section.IndexBuffer.GetIndiceData() != nullptr)
-                BeginReleaseResource(&Section.IndexBuffer);
+            if (Section->IndexBuffer.GetIndiceData() != nullptr)
+                BeginReleaseResource(&Section->IndexBuffer);
+            ENQUEUE_RENDER_COMMAND(FStaticMeshLODResources_ReleaseResources)(
+                [Section](RenderGraph&) 
+                {
+                    delete Section;
+                });
+            Sections[SectionIndex] = nullptr;
         }
     }
 

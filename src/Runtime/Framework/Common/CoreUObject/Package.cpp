@@ -11,17 +11,23 @@ void Serialize(FArchive& Ar, FPackageIndex& Value)
     Serialize(Ar, Value.Index);
 }
 
+void Serialize(FArchive& Ar, FObjectResource& Value)
+{
+    Serialize(Ar["ObjectName"], Value.ObjectName);
+    Serialize(Ar["OuterIndex"], Value.OuterIndex);
+}
+
 void Serialize(FArchive& Ar, FObjectExport& Value)
 {
     Serialize(Ar, (FObjectResource&)Value);
-    Serialize(Ar, Value.ClassName);
-    Serialize(Ar, Value.ObjectIndex);
+    Serialize(Ar["ClassName"], Value.ClassName);
+    Serialize(Ar["ObjectIndex"], Value.ObjectIndex);
 }
 
 void Serialize(FArchive& Ar, FObjectImport& Value)
 {
     Serialize(Ar, (FObjectResource&)Value);
-    Serialize(Ar, Value.PackageName);
+    Serialize(Ar["PackageName"], Value.PackageName);
 }
 
 void NPackage::Serialize(FArchive& Ar)

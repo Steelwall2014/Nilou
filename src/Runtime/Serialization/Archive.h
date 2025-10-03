@@ -27,25 +27,9 @@ public:
         return bIsLoading;
     }
 
-    FArchive& operator[](const std::string& Key)
-    {
-        if (!ObjectChildren.Contains(Key))
-        {
-            nlohmann::json& ChildNode = Node[Key];
-            ObjectChildren.Add(Key, FArchive(ChildNode, bIsLoading));
-        }
-        return ObjectChildren[Key];
-    }
+    FArchive& operator[](const std::string& Key);
 
-    FArchive& operator[](size_t Index)
-    {
-        if (!ArrayChildren.Contains(Index))
-        {
-            nlohmann::json& ChildNode = Node[Index];
-            ArrayChildren.Add(Index, FArchive(ChildNode, bIsLoading));
-        }
-        return ArrayChildren[Index];
-    }
+    FArchive& operator[](size_t Index);
 
     nlohmann::json& GetNode()
     {
@@ -56,8 +40,8 @@ private:
     nlohmann::json& Node;
     bool bIsLoading;
 
-    TMap<size_t, FArchive> ArrayChildren;
-    TMap<std::string, FArchive> ObjectChildren;
+    TArray<std::unique_ptr<FArchive>> ArrayChildren;
+    TMap<std::string, std::unique_ptr<FArchive>> ObjectChildren;
 
 };
 

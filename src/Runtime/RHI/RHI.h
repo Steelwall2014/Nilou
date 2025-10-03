@@ -374,57 +374,12 @@ namespace nilou {
 		}
 
 		NPROPERTY()
-		std::array<FRenderTarget, MaxSimultaneousRenderTargets> RenderTargets;
+		TArray<FRenderTarget> RenderTargets;
 		
 		NPROPERTY()
 		bool bUseIndependentRenderTargetBlendStates;
 		// bool bUseAlphaToCoverage;
 	};
-
-	// template<>
-	// class TStaticSerializer<FBlendStateInitializer>
-	// {
-	// public:
-	// 	static void Serialize(const FBlendStateInitializer &BlendState, nlohmann::json &json, FArchiveBuffers &Buffers)
-	// 	{
-	// 		json["ClassName"] = "FBlendStateInitializer";
-	// 		nlohmann::json &content = json["Content"];
-	// 		content["UseIndependentRenderTargetBlendStates"] = BlendState.bUseIndependentRenderTargetBlendStates;
-	// 		nlohmann::json &render_targets = content["RenderTargets"];
-	// 		for (int i = 0; i < MaxSimultaneousRenderTargets; i++)
-	// 		{
-	// 			nlohmann::json render_target;
-	// 			render_target["ColorBlendOp"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorBlendOp);
-	// 			render_target["AlphaBlendOp"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaBlendOp);
-	// 			render_target["AlphaDestBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaDestBlend);
-	// 			render_target["AlphaSrcBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].AlphaSrcBlend);
-	// 			render_target["ColorDestBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorDestBlend);
-	// 			render_target["ColorSrcBlend"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorSrcBlend);
-	// 			render_target["ColorWriteMask"] = magic_enum::enum_name(BlendState.RenderTargets[i].ColorWriteMask);
-	// 			render_targets.push_back(render_target);
-	// 		}
-	// 	}
-	// 	static void Deserialize(FBlendStateInitializer &BlendState, nlohmann::json &json, void* Buffer)
-	// 	{
-    //         if (!SerializeHelper::CheckIsType(json, "FBlendStateInitializer")) return;
-
-	// 		nlohmann::json content = json["Content"];
-	// 		BlendState.bUseIndependentRenderTargetBlendStates = content["UseIndependentRenderTargetBlendStates"];
-
-	// 		nlohmann::json render_targets = content["RenderTargets"];
-	// 		for (int i = 0; i < MaxSimultaneousRenderTargets; i++)
-	// 		{
-	// 			nlohmann::json render_target = render_targets[i];
-	// 			BlendState.RenderTargets[i].ColorBlendOp = magic_enum::enum_cast<EBlendOperation>(render_target["ColorBlendOp"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].AlphaBlendOp = magic_enum::enum_cast<EBlendOperation>(render_target["AlphaBlendOp"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].AlphaDestBlend = magic_enum::enum_cast<EBlendFactor>(render_target["AlphaDestBlend"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].AlphaSrcBlend = magic_enum::enum_cast<EBlendFactor>(render_target["AlphaSrcBlend"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].ColorDestBlend = magic_enum::enum_cast<EBlendFactor>(render_target["ColorDestBlend"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].ColorSrcBlend = magic_enum::enum_cast<EBlendFactor>(render_target["ColorSrcBlend"].get<std::string>()).value();
-	// 			BlendState.RenderTargets[i].ColorWriteMask = magic_enum::enum_cast<EColorWriteMask>(render_target["ColorWriteMask"].get<std::string>()).value();
-	// 		}
-	// 	}
-	// };
 
 	struct NSTRUCT FSamplerStateInitializer
 	{

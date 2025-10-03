@@ -1,6 +1,7 @@
 #include <fstream>
 #include "AsyncLoading.h"
 #include "Common/Path.h"
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
 
@@ -54,7 +55,7 @@ void FAsyncPackage::DependsOn(std::weak_ptr<FAsyncPackage> WeakImportPackage)
 void FAsyncPackage::Event_ProcessPackageSummary(FAsyncPackage* Package)
 {
     Package->AsyncPackageLoadingState = EAsyncPackageLoadingState::ProcessPackageSummary;
-    NPackage* LinkerRoot = NewObject<NPackage>(Package->GetPackageName());
+    NPackage* LinkerRoot = CreatePackage(Package->GetPackageName());
     Package->LinkerRoot = LinkerRoot;
     std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetPackageName());
     nlohmann::json Json;

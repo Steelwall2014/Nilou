@@ -1,4 +1,5 @@
 #include "Common/AssetImporter.h"
+#include "Common/CoreUObject/Package.h"
 #include "Material.h"
 #include "Texture2D.h"
 #include "StaticMeshResources.h"
@@ -75,7 +76,8 @@ namespace nilou {
                 texture_name = fs::path(gltf_image.uri).filename().replace_extension().generic_string();
             if (texture_name == "")
                 texture_name = "Texture_" + std::to_string(TextureIndex)+ "_"  + FilePath.filename().replace_extension().generic_string();
-            UTexture2D* Texture = GetContentManager()->CreateAsset<UTexture2D>(texture_name, OutDirectory);
+            NPackage* Pkg = CreatePackage(OutDirectory + "/" + texture_name);
+            UTexture2D* Texture = NewObject<UTexture2D>(Pkg, texture_name);
 
             // Currently only support 8-bit per channel
             EPixelFormat Format;
@@ -114,7 +116,7 @@ namespace nilou {
                 SamplerState.AddressV = _GLTFFilterToETextureWrapModes(sampler.wrapT);
             }
             Texture->UpdateResource();
-            Texture->MarkAssetDirty();
+            Texture->MarkPackageDirty();
             OutTextures.push_back(Texture);
         }
 
@@ -123,12 +125,13 @@ namespace nilou {
             tinygltf::Material &gltf_material = model.materials[MaterialIndex];
             if (gltf_material.name == "")
                 gltf_material.name = "Material_" + std::to_string(MaterialIndex) + "_" + FilePath.filename().replace_extension().generic_string();
-            UMaterial *Material = GetContentManager()->CreateAsset<UMaterial>(gltf_material.name, OutDirectory);
+            NPackage* Pkg = CreatePackage(OutDirectory + "/" + gltf_material.name);
+            UMaterial* Material = NewObject<UMaterial>(Pkg, gltf_material.name);
             Material->SetShadingModel(EShadingModel::SM_DefaultLit);
 
             {   // Generate and save the body of the shader
                 std::string uniform_block_code =    "layout (std140, binding=0) uniform MAT_UNIFORM_BLOCK {\n"
-                                                    "   vec4 baseColorFactor;\n"
+                                                    "   FVector4 baseColorFactor;\n"
                                                     "   vec3 emissiveFactor;\n"
                                                     "   float metallicFactor;\n"
                                                     "   float roughnessFactor;\n";
@@ -141,15 +144,15 @@ namespace nilou {
                 if (gltf_material.pbrMetallicRoughness.baseColorTexture.index != -1)
                 {
                     samplers_code += "layout (binding=1) uniform sampler2D baseColorTexture;\n";
-                    material_interface_code += "vec4 MaterialGetBaseColor(VS_Out vs_out)\n"
+                    material_interface_code += "FVector4 MaterialGetBaseColor(VS_Out vs_out)\n"
                                             "{\n"
                                             "   return texture(baseColorTexture, vs_out.TexCoords) * baseColorFactor;\n"
                                             "}\n";
                 }
                 else 
                 {
-                    uniform_block_code += "   vec4 baseColor;\n";
-                    material_interface_code += "vec4 MaterialGetBaseColor(VS_Out vs_out)\n"
+                    uniform_block_code += "   FVector4 baseColor;\n";
+                    material_interface_code += "FVector4 MaterialGetBaseColor(VS_Out vs_out)\n"
                                             "{\n"
                                             "   return baseColor * baseColorFactor;\n"
                                             "}\n";
@@ -238,7 +241,7 @@ namespace nilou {
                 }
                 else
                 {
-                    Material->SetVectorParameterValue("baseColor", vec4(0));
+                    Material->SetVectorParameterValue("baseColor", FVector4(0));
                 }
                 if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
                 {
@@ -259,15 +262,15 @@ namespace nilou {
                 }
                 else
                 {
-                    Material->SetVectorParameterValue("emissive", vec4(0));
+                    Material->SetVectorParameterValue("emissive", FVector4(0));
                 }
-                Material->SetVectorParameterValue("baseColorFactor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
-                Material->SetVectorParameterValue("emissiveFactor", vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                Material->SetVectorParameterValue("baseColorFactor", FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+                Material->SetVectorParameterValue("emissiveFactor", FVector4(1.0f, 1.0f, 1.0f, 1.0f));
                 Material->SetScalarParameterValue("metallicFactor", 1.0f);
                 Material->SetScalarParameterValue("roughnessFactor", 1.0f);
             }
 
-            Material->MarkAssetDirty();
+            Material->MarkPackageDirty();
             OutMaterials.push_back(Material);
         }
     }
@@ -291,7 +294,7 @@ namespace nilou {
         FTransform local_transform;
         if (!node.matrix.empty())
         {
-            mat4 transform = mat4(
+            FMatrix transform = FMatrix(
                 node.matrix[0], node.matrix[1], node.matrix[2], node.matrix[3],
                 node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7],
                 node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11],
@@ -302,16 +305,16 @@ namespace nilou {
         {
             if (!node.scale.empty())
             {
-                local_transform.SetScale3D(vec3(node.scale[0], node.scale[1], node.scale[2]));
+                local_transform.SetScale3D(FVector(node.scale[0], node.scale[1], node.scale[2]));
             }
             if (!node.rotation.empty())
             {
-                quat rotation = quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+                FQuat rotation = FQuat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
                 local_transform.SetRotation(rotation);
             }
             if (!node.translation.empty())
             {
-                local_transform.SetTranslation(vec3(node.translation[0], node.translation[1], node.translation[2]));
+                local_transform.SetTranslation(FVector(node.translation[0], node.translation[1], node.translation[2]));
             }
         }
         FTransform global_transform = parent_transform * local_transform;
@@ -342,7 +345,7 @@ namespace nilou {
         }
         // simply swap Y and Z axis
         FTransform axis_transform;
-        axis_transform.SetFromMatrix(dmat4(1.0, 0.0, 0.0, 0.0,
+        axis_transform.SetFromMatrix(FMatrix(1.0, 0.0, 0.0, 0.0,
                                                 0.0, 0.0, 1.0, 0.0,
                                                 0.0, 1.0, 0.0, 0.0,
                                                 0.0, 0.0, 0.0, 1.0));
@@ -352,7 +355,8 @@ namespace nilou {
             const FTransform& transform = mesh_transforms[MeshIndex] * axis_transform;
             if (gltf_mesh.name == "")
                 gltf_mesh.name = "Mesh_" + std::to_string(MeshIndex) + "_" + FilePath.filename().replace_extension().generic_string();
-            UStaticMesh *StaticMesh = GetContentManager()->CreateAsset<UStaticMesh>(gltf_mesh.name, OutDirectory);
+            NPackage* Pkg = CreatePackage(OutDirectory + "/" + gltf_mesh.name);
+            UStaticMesh *StaticMesh = NewObject<UStaticMesh>(Pkg, gltf_mesh.name);
 
             FMeshDescription MeshDesc;
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
@@ -413,11 +417,11 @@ namespace nilou {
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *pos_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                            primitive.Positions = BufferToVector<vec3>(pos_ptr, attr_accessor.count, attr_bufferview.byteStride);
+                            primitive.Positions = BufferToVector<FVector3f>(pos_ptr, attr_accessor.count, attr_bufferview.byteStride);
                             // GLTF defines +Y as up, +Z as forward and -X as right
                             // While Nilou defines +Z as up, +X as forward and +Y as right
                             // So we need to convert the position
-                            for (vec3 &pos : primitive.Positions)
+                            for (FVector3f &pos : primitive.Positions)
                             {
                                 pos = transform.TransformPosition(pos);
                             }
@@ -426,8 +430,8 @@ namespace nilou {
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC3 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *nrm_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                            primitive.Normals = BufferToVector<vec3>(nrm_ptr, attr_accessor.count, attr_bufferview.byteStride);
-                            for (vec3 &nrm : primitive.Normals)
+                            primitive.Normals = BufferToVector<FVector3f>(nrm_ptr, attr_accessor.count, attr_bufferview.byteStride);
+                            for (FVector3f &nrm : primitive.Normals)
                             {
                                 nrm = transform.TransformVector(nrm);
                             }
@@ -436,17 +440,17 @@ namespace nilou {
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC4 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *tng_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                            primitive.Tangents = BufferToVector<vec4>(tng_ptr, attr_accessor.count, attr_bufferview.byteStride);
-                            for (vec4 &tng : primitive.Tangents)
+                            primitive.Tangents = BufferToVector<FVector4f>(tng_ptr, attr_accessor.count, attr_bufferview.byteStride);
+                            for (FVector4f &tng : primitive.Tangents)
                             {
-                                tng = vec4(transform.TransformVector(vec3(tng)), tng.w);
+                                tng = FVector4(transform.TransformVector(FVector3f(tng)), tng.w);
                             }
                         }
                         else if (attr_name == "COLOR") 
                         {
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC4 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *color_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                            primitive.Colors = BufferToVector<vec4>(color_ptr, attr_accessor.count, attr_bufferview.byteStride);
+                            primitive.Colors = BufferToVector<FVector4f>(color_ptr, attr_accessor.count, attr_bufferview.byteStride);
                         }
                         else if (std::regex_match(attr_name, match, re))
                         {
@@ -454,7 +458,7 @@ namespace nilou {
                             Ncheck(0 <= texcoord_index && texcoord_index < MAX_STATIC_TEXCOORDS);
                             Ncheck(attr_accessor.type == TINYGLTF_TYPE_VEC2 && attr_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                             uint8 *uv_ptr = attr_buffer.data.data() + attr_bufferview.byteOffset + attr_accessor.byteOffset;
-                            primitive.TexCoords[texcoord_index] = BufferToVector<vec2>(uv_ptr, attr_accessor.count, attr_bufferview.byteStride);
+                            primitive.TexCoords[texcoord_index] = BufferToVector<FVector2f>(uv_ptr, attr_accessor.count, attr_bufferview.byteStride);
                         }
                         else 
                         {
@@ -465,7 +469,7 @@ namespace nilou {
             }
 
             StaticMesh->Build(MeshDesc);
-            StaticMesh->MarkAssetDirty();
+            StaticMesh->MarkPackageDirty();
             OutMeshes.push_back(StaticMesh);
         }
     }

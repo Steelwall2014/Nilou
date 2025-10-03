@@ -93,4 +93,23 @@ namespace nilou {
     //     Blocks.emplace_back(InJson, InBufferSize, std::move(Buffer));
     // }
 
+    FArchive& FArchive::operator[](const std::string& Key)
+    {
+        if (!ObjectChildren.Contains(Key))
+        {
+            nlohmann::json& ChildNode = Node[Key];
+            ObjectChildren.Add(Key, std::make_unique<FArchive>(ChildNode, bIsLoading));
+        }
+        return *ObjectChildren[Key];
+    }
+
+    FArchive& FArchive::operator[](size_t Index)
+    {
+        if (ArrayChildren.Num() <= Index)
+        {
+            ArrayChildren.SetNum(Index + 1);
+            ArrayChildren[Index] = std::make_unique<FArchive>(Node[Index], bIsLoading);
+        }
+        return *ArrayChildren[Index];
+    }
 }

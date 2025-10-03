@@ -39,7 +39,6 @@ namespace nilou {
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPreRenderDelegate() { return PreRenderDelegate; }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPostRenderDelegate() { return PostRenderDelegate; }
         TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
-        FContentManager *GetContentManager() { return ContentManager.get(); }
 
     protected:
         float deltaTime = 0.0f;
@@ -47,7 +46,6 @@ namespace nilou {
         static std::atomic<bool> m_bQuit;
         GfxConfiguration m_Config;
         bool CursorEnabled = false;
-        std::unique_ptr<FContentManager> ContentManager;
         std::unique_ptr<UGameViewportClient> GameViewportClient;
         TMulticastDelegate<FDynamicRHI*, FScene*> PreRenderDelegate;
         TMulticastDelegate<FDynamicRHI*, FScene*> PostRenderDelegate;

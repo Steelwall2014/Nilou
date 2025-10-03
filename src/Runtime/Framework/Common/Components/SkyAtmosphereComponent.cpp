@@ -46,7 +46,7 @@ namespace nilou {
     
 
     USkyAtmosphereComponent::USkyAtmosphereComponent()
-        : SolarIrradiance(vec3( 1 ))
+        : SolarIrradiance(FVector3f( 1 ))
         , SunAngularRadius(0.004675)
         , BottomRadius(6360.0)
         , TopRadius(6420.0)

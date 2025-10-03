@@ -2,6 +2,7 @@
 #include "CameraActor.h"
 #include "BaseApplication.h"
 #include "Common/InputManager.h"
+#include "Common/Math/Maths.h"
 
 #include "Common/Log.h"
 
@@ -9,10 +10,10 @@
 
 namespace nilou {
 
-    glm::quat ROOT_ROTATION(1.f, 0.f, 0.f, 0.f);
-    //vec3 ROOT_TRANSLATION(10120, 10120, -20);
-    vec3 ROOT_TRANSLATION(10, 10, 0);
-    //vec3 ROOT_TRANSLATION(10000, 10000, 20);
+    FQuat ROOT_ROTATION(1.f, 0.f, 0.f, 0.f);
+    //FVector ROOT_TRANSLATION(10120, 10120, -20);
+    FVector ROOT_TRANSLATION(10, 10, 0);
+    //FVector ROOT_TRANSLATION(10000, 10000, 20);
 
     float MOVEMENTSPEED = 100;
     // float SPRING_ARM_LENGTH = 0.f;
@@ -138,15 +139,15 @@ namespace nilou {
         }
 
         {
-            vec3 NewLocation = GetActorLocation();
-            vec3 forward = GetActorForwardVector();
-            vec3 right = GetActorRightVector();
-            NewLocation += forward * MovementInput.x * (float)DeltaTime * MovementSpeed;
-            NewLocation += right * MovementInput.y * (float)DeltaTime * MovementSpeed;
+            FVector NewLocation = GetActorLocation();
+            FVector forward = GetActorForwardVector();
+            FVector right = GetActorRightVector();
+            NewLocation += forward * MovementInput.x * DeltaTime * double(MovementSpeed);
+            NewLocation += right * MovementInput.y * DeltaTime * double(MovementSpeed);
             SetActorLocation(NewLocation);
         }
 
-        MovementInput = CameraInput = vec2(0.f, 0.f);
+        MovementInput = CameraInput = FVector2(0.f, 0.f);
         CameraRollInput = 0;
     }
 
@@ -161,7 +162,7 @@ namespace nilou {
             CameraComponent->GetComponentLocation(), 
             CameraComponent->GetForwardVector(), 
             CameraComponent->GetUpVector(), 
-            ivec2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height));
+            FIntVector2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height));
 
         return SceneView;
     }
@@ -204,7 +205,7 @@ namespace nilou {
     {
         if (GetAppication()->IsCursorEnabled())
             return;
-        CameraComponent->SetWorldLocation(vec3(10, 10, 0));
+        CameraComponent->SetWorldLocation(FVector(10, 10, 0));
     }
 
     void ACameraActor::SpeedUp(float AxisValue)

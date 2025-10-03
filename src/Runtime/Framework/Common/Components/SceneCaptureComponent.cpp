@@ -127,7 +127,7 @@ namespace nilou {
             GetComponentLocation(), 
             GetForwardVector(), 
             GetUpVector(),
-            ivec2(Viewport.Width, Viewport.Height));  
+            FIntVector2(Viewport.Width, Viewport.Height));  
         ViewFamily.Views.push_back(SceneView);   
 
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
@@ -194,7 +194,7 @@ namespace nilou {
         UpdateSceneCaptureContents_Internal(Scene, GetComponentLocation());
     }
 
-    void USceneCaptureComponentCube::UpdateSceneCaptureContents_Internal(FScene* Scene, dvec3 Position)
+    void USceneCaptureComponentCube::UpdateSceneCaptureContents_Internal(FScene* Scene, FVector Position)
     {
         if (TextureTarget == nullptr || TextureTarget->GetRenderTargetResource() == nullptr)
             return;
@@ -213,44 +213,44 @@ namespace nilou {
             ViewFamily.bEnableToneMapping = true;
         }
 
-        std::array<dvec3, 6> ForwardVectors, UpVectors;
+        std::array<FVector, 6> ForwardVectors, UpVectors;
         // The forward and up vectors of cube maps for vulkan and opengl are different
         if (FDynamicRHI::StaticGetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
         {
             ForwardVectors = {
-                dvec3(1, 0, 0), 
-                dvec3(-1, 0, 0), 
-                dvec3(0, 1, 0), 
-                dvec3(0, -1, 0), 
-                dvec3(0, 0, 1), 
-                dvec3(0, 0, -1), 
+                FVector(1, 0, 0), 
+                FVector(-1, 0, 0), 
+                FVector(0, 1, 0), 
+                FVector(0, -1, 0), 
+                FVector(0, 0, 1), 
+                FVector(0, 0, -1), 
             };
             UpVectors = {
-                dvec3(0, 1, 0), 
-                dvec3(0, 1, 0), 
-                dvec3(0, 0, -1), 
-                dvec3(0, 0, 1), 
-                dvec3(0, 1, 0), 
-                dvec3(0, 1, 0), 
+                FVector(0, 1, 0), 
+                FVector(0, 1, 0), 
+                FVector(0, 0, -1), 
+                FVector(0, 0, 1), 
+                FVector(0, 1, 0), 
+                FVector(0, 1, 0), 
             };
         }
         else 
         {
             ForwardVectors = {
-                dvec3(1, 0, 0), 
-                dvec3(-1, 0, 0), 
-                dvec3(0, 0, 1), 
-                dvec3(0, 0, -1), 
-                dvec3(0, 1, 0), 
-                dvec3(0, -1, 0), 
+                FVector(1, 0, 0), 
+                FVector(-1, 0, 0), 
+                FVector(0, 0, 1), 
+                FVector(0, 0, -1), 
+                FVector(0, 1, 0), 
+                FVector(0, -1, 0), 
             };
             UpVectors = {
-                dvec3(0, 0, -1), 
-                dvec3(0, 0, -1), 
-                dvec3(0, 1, 0), 
-                dvec3(0, -1, 0), 
-                dvec3(0, 0, -1), 
-                dvec3(0, 0, -1), 
+                FVector(0, 0, -1), 
+                FVector(0, 0, -1), 
+                FVector(0, 1, 0), 
+                FVector(0, -1, 0), 
+                FVector(0, 0, -1), 
+                FVector(0, 0, -1), 
             };
         }
 
@@ -264,7 +264,7 @@ namespace nilou {
                 Position, 
                 ForwardVectors[i], 
                 UpVectors[i],
-                ivec2(Viewport.Width, Viewport.Height));
+                FIntVector2(Viewport.Width, Viewport.Height));
             SceneViews.push_back(View);
         }  
 

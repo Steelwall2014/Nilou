@@ -9,7 +9,7 @@ namespace nilou {
         : VerticalFieldOfView(glm::radians(50.f))
         , NearClipDistance(0.1)
         , FarClipDistance(30000)
-        , ScreenResolution(ivec2(1024, 1024))
+        , ScreenResolution(FIntVector2(1024, 1024))
     { 
     }
 

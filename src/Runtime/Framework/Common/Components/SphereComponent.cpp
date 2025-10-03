@@ -17,7 +17,7 @@ namespace nilou {
         {
             std::vector<FDynamicMeshVertex> OutVerts;
             std::vector<uint32> OutIndices;
-            GetSphereMesh(vec3(0), FRotator::ZeroRotator, vec3(SphereRadius), 30, 30, OutVerts, OutIndices);
+            GetSphereMesh(FVector(0), FRotator::ZeroRotator, FVector(SphereRadius), 30, 30, OutVerts, OutIndices);
             IndexBuffer.Init(OutIndices);
             VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
             BeginInitResource(&IndexBuffer);
@@ -84,7 +84,7 @@ namespace nilou {
 
     FBoxSphereBounds USphereComponent::CalcBounds(const FTransform &LocalToWorld) const
     {
-	    return FBoxSphereBounds(FBox(-vec3(SphereRadius), vec3(SphereRadius)).TransformBy(LocalToWorld));
+	    return FBoxSphereBounds(FBox(-FVector(SphereRadius), FVector(SphereRadius)).TransformBy(LocalToWorld));
     }
 
 

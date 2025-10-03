@@ -61,7 +61,7 @@ namespace nilou {
         {
             if (Stride == 0 || NumVertices == 0)
                 return;
-            if constexpr (std::is_same<VertexType, vec2>::value)
+            if constexpr (std::is_same<VertexType, FVector2f>::value)
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 
@@ -69,7 +69,7 @@ namespace nilou {
                     GetStride(), 
                     EVertexElementType::Float2);
             }
-            else if constexpr (std::is_same<VertexType, vec3>::value)
+            else if constexpr (std::is_same<VertexType, FVector3f>::value)
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 
@@ -77,7 +77,7 @@ namespace nilou {
                     GetStride(), 
                     EVertexElementType::Float3);
             }
-            else if constexpr (std::is_same<VertexType, vec4>::value)
+            else if constexpr (std::is_same<VertexType, FVector4f>::value)
             {
                 OutStreamComponent = FVertexStreamComponent(
                     this, 

@@ -20,12 +20,12 @@ namespace nilou {
         std::string Name;
 
         template <typename T>
-        T* ContainerPtrToValuePtr(NObject* ContainerPtr, int32 ArrayIndex=0) const
+        T* ContainerPtrToValuePtr(void* ContainerPtr, int32 ArrayIndex=0) const
         {
             return static_cast<T*>(ContainerPtrToValuePtrInternal(ContainerPtr, ArrayIndex));
         }
 
-        void* ContainerPtrToValuePtrInternal(NObject* ContainerPtr, int32 ArrayIndex=0) const;
+        void* ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayIndex=0) const;
 
         virtual void SerializeItem(FArchive& Ar, void* Value) = 0;
 
@@ -36,6 +36,7 @@ namespace nilou {
 
         template<typename T>
         friend class TClassRegistry;
+        friend class FClassRegistryBase;
 
     };
 
@@ -94,6 +95,61 @@ namespace nilou {
         }
     };
 
+    class FArrayProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override
+        {
+            ItemSerializer(Ar[Name], Value);
+        }
+
+        std::function<void(FArchive&,void*)> ItemSerializer;
+    };
+
+    class FMapProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override
+        {
+            ItemSerializer(Ar[Name], Value);
+        }
+
+        std::function<void(FArchive&,void*)> ItemSerializer;
+    };
+
+    class FVectorProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override
+        {
+            ItemSerializer(Ar[Name], Value);
+        }
+
+        std::function<void(FArchive&,void*)> ItemSerializer;
+    };
+
+    class FQuatProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override
+        {
+            ItemSerializer(Ar[Name], Value);
+        }
+
+        std::function<void(FArchive&,void*)> ItemSerializer;
+    };
+
+    class FSetProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override
+        {
+            ItemSerializer(Ar[Name], Value);
+        }
+
+        std::function<void(FArchive&,void*)> ItemSerializer;
+    };
+
     class FStructProperty : public FProperty
     {
     public:
@@ -106,8 +162,6 @@ namespace nilou {
     {
     public:
         virtual void SerializeItem(FArchive& Ar, void* Value) override;
-
-        NClass* Class;
     };
 
     enum class EObjectFlags : uint32
@@ -119,7 +173,7 @@ namespace nilou {
     };
     ENUM_CLASS_FLAGS(EObjectFlags);
 
-    class NCLASS NObject : public std::enable_shared_from_this<NObject>
+    class NObject : public std::enable_shared_from_this<NObject>
     {
 
     private:

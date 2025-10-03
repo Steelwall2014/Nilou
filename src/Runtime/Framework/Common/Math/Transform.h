@@ -50,12 +50,23 @@ namespace nilou {
         }
 
         static const TRotator ZeroRotator;
+
+        friend void Serialize(FArchive& Ar, TRotator<T>& Rotator);
     };
 
     template <typename T>
     TVector<T> RotateVector(const TQuat<T> &rotation, const TVector<T> &V);
 
-    using FRotator = TRotator<double>;
+    class FRotator : public TRotator<double>
+    {
+    private:
+        template<typename T> 
+        friend class TClassRegistry;
+        static std::unique_ptr<class NClass> Z_StaticClass;
+    public:
+        virtual NClass *GetClass() const;
+        static NClass *StaticClass();
+    };
     using FRotator3f = TRotator<float>;
 
     // 变换
@@ -74,7 +85,8 @@ namespace nilou {
 
         template <typename U>
         friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
-        friend class TClassRegistry<TTransform>;
+        template <typename U>
+        friend class TClassRegistry;
 
         TTransform();
         TTransform(const TQuat<T> &rotation);
@@ -111,6 +123,8 @@ namespace nilou {
         TMatrix<T> ToMatrix() const;
 
         static const TTransform<T> Identity;
+
+        friend void Serialize(FArchive& Ar, TTransform<T>& Transform);
     };
 
     template<typename T> 
@@ -119,11 +133,20 @@ namespace nilou {
     template<typename T> 
     const TRotator<T> TRotator<T>::ZeroRotator = TRotator<T>();
 
-    using FTransform = TTransform<double>;
+    class FTransform : public TTransform<double>
+    {
+    private:
+        template<typename T> 
+        friend class TClassRegistry;
+        static std::unique_ptr<class NClass> Z_StaticClass;
+    public:
+        virtual NClass *GetClass() const;
+        static NClass *StaticClass();
+    };
     using FTransform3f = TTransform<float>;
 
     template <typename T>
-    void Serialize(FArchive& Ar, nilou::TRotator<T>& Rotator)
+    void Serialize(FArchive& Ar, TRotator<T>& Rotator)
     {
         nlohmann::json& Node = Ar.GetNode();
         if (Ar.IsLoading())
@@ -141,7 +164,7 @@ namespace nilou {
     }
 
     template <typename T>
-    void Serialize(FArchive& Ar, nilou::TTransform<T>& Transform)
+    void Serialize(FArchive& Ar, TTransform<T>& Transform)
     {
         Serialize(Ar["Translation"], Transform.Translation);
         Serialize(Ar["Rotation"], Transform.Rotation);

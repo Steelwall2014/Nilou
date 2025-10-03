@@ -56,9 +56,10 @@ namespace nilou {
             return Data.find(Key) != Data.end();
         }
 
-        void Add(const KeyType& Key, const ValueType& Value)
+        template <typename _KeyType, typename _ValueType>
+        void Add(_KeyType&& Key, _ValueType&& Value)
         {
-            Data[Key] = Value;
+            Data[std::forward<_KeyType>(Key)] = std::forward<_ValueType>(Value);
         }
 
         void Add(const value_type& Pair)

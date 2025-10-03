@@ -1,41 +1,40 @@
 #include "Transform.h"
-#include <UDRefl/UDRefl.hpp>
-using namespace Ubpa;
-using namespace Ubpa::UDRefl;
-
-
-template<>
-struct TClassRegistry<nilou::FRotator>
-{
-    TClassRegistry(const std::string& InName)
-    {
-        Mngr.RegisterType<nilou::FRotator>();
-		Mngr.AddField<&nilou::FRotator::Pitch>("Pitch");
-		Mngr.AddField<&nilou::FRotator::Yaw>("Yaw");
-		Mngr.AddField<&nilou::FRotator::Roll>("Roll");
-    }
-
-    static TClassRegistry<nilou::FRotator> Dummy;
-};
-TClassRegistry<nilou::FRotator> Dummy1 = TClassRegistry<nilou::FRotator>("nilou::FRotator");
-
-template<>
-struct TClassRegistry<nilou::FTransform>
-{
-    TClassRegistry(const std::string& InName)
-    {
-        Mngr.RegisterType<nilou::FTransform>();
-		Mngr.AddField<&nilou::FTransform::Rotation>("Rotation");
-		Mngr.AddField<&nilou::FTransform::Translation>("Translation");
-		Mngr.AddField<&nilou::FTransform::Scale3D>("Scale3D");
-    }
-
-    static TClassRegistry<nilou::FTransform> Dummy;
-};
-TClassRegistry<nilou::FTransform> Dummy2 = TClassRegistry<nilou::FTransform>("nilou::FTransform");
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
-    // 这里只能包在namespace里面, 如果这样写std::ostream &operator<<(std::ostream &out, const FTransform &obj)会报错
+
+std::unique_ptr<NClass> FRotator::Z_StaticClass = nullptr;
+NClass *FRotator::GetClass() const 
+{ 
+    return FRotator::StaticClass(); 
+}
+NClass *FRotator::StaticClass()
+{
+    return FRotator::Z_StaticClass.get();
+}
+BEGIN_CLASS_REGISTRY(Struct, FRotator, SerializePrivate::NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+
+    CLASS_PROPERTY(Pitch)
+    CLASS_PROPERTY(Yaw)
+    CLASS_PROPERTY(Roll)
+
+END_CLASS_REGISTRY(FRotator)
+
+std::unique_ptr<NClass> FTransform::Z_StaticClass = nullptr;
+NClass *FTransform::GetClass() const 
+{ 
+    return FTransform::StaticClass(); 
+}
+NClass *FTransform::StaticClass()
+{
+    return FTransform::Z_StaticClass.get();
+}
+BEGIN_CLASS_REGISTRY(Struct, FTransform, SerializePrivate::NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+
+    CLASS_PROPERTY(Rotation)
+    CLASS_PROPERTY(Translation)
+    CLASS_PROPERTY(Scale3D)
+
+END_CLASS_REGISTRY(FTransform)
 
 }
-

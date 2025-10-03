@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "Common/CoreUObject/Object.h"
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
 

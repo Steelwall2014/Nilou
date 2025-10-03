@@ -54,24 +54,24 @@ namespace nilou {
 
     static void LoadPBRExibition(UWorld* World)
     {
-        UStaticMesh* Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
-        if (Mesh)
-        {
-            FTransform MeshTransform;
-            MeshTransform.SetRotator(FRotator(0, 0, -90));
-            for (int i = 1; i <= 1; i++)
-            {
-                for (int j = 1; j <= 1; j++)
-                {
-                    MeshTransform.SetTranslation(vec3(i, j, 1));
-                    std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
-                    StaticMeshActor->SetStaticMesh(Mesh);
-                }
-            }
-        }
+        // UStaticMesh* Mesh = GetContentManager()->GetStaticMeshByPath("Testgltf/WaterBottle.gltf_mesh_0.nasset");
+        // if (Mesh)
+        // {
+        //     FTransform MeshTransform;
+        //     MeshTransform.SetRotator(FRotator(0, 0, -90));
+        //     for (int i = 1; i <= 1; i++)
+        //     {
+        //         for (int j = 1; j <= 1; j++)
+        //         {
+        //             MeshTransform.SetTranslation(vec3(i, j, 1));
+        //             std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "test mesh_" + std::to_string(i) + "_" + std::to_string(j));
+        //             StaticMeshActor->SetStaticMesh(Mesh);
+        //         }
+        //     }
+        // }
         
 
-        std::vector<std::shared_ptr<ASphereActor>> PBRSpheres;
+        std::vector<ASphereActor*> PBRSpheres;
         {
             NPackage* Package = CreatePackage("/Engine/Materials/PBRExhibitionMaterial");
             UMaterial* PBRExhibitionMaterial = FindObject<UMaterial>(Package, "PBRExhibitionMaterial");
@@ -100,7 +100,7 @@ namespace nilou {
                     FTransform SphereTransform;
                     SphereTransform.SetTranslation(FVector(-2, j*0.3, i*0.3));
                     SphereTransform.SetScale3D(FVector(0.1));
-                    std::shared_ptr<ASphereActor> Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
+                    ASphereActor* Sphere = World->SpawnActor<ASphereActor>(SphereTransform, "test sphere_" + std::to_string(i) + "_" + std::to_string(j));
                     Sphere->SphereComponent->SetMaterial(mat);
                     PBRSpheres.push_back(Sphere);
                 }
@@ -109,28 +109,51 @@ namespace nilou {
 
         FTransform CubeTransform;
         CubeTransform.SetScale3D(FVector(15, 15, 0.05));
-        UStaticMesh *Cube = GetContentManager()->GetStaticMeshByPath("StaticMeshes/Cube.nasset");
-        std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
+        NPackage* CubePackage = CreatePackage("/Engine/Meshes/Cube");
+        UStaticMesh* Cube = FindObject<UStaticMesh>(CubePackage, "Cube");
+        if (!Cube)
+        {
+            Cube = NewObject<UStaticMesh>(CubePackage, "Cube");
+            std::vector<FDynamicMeshVertex> OutVerts;
+            std::vector<uint32> OutIndices;
+            BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
+            NPackage* ColoredMaterialPackage = CreatePackage("/Engine/Materials/ColoredMaterial");
+            UMaterial* ColoredMaterial = FindObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
+            if (!ColoredMaterial)
+            {
+                ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
+                NPackage::SavePackage(ColoredMaterialPackage);
+            }
+            Cube->MaterialSlots.push_back(ColoredMaterial);
+            FStaticMeshLODResources* resources = new FStaticMeshLODResources();
+            FStaticMeshSection* section = new FStaticMeshSection();
+            section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
+            section->IndexBuffer.Init(OutIndices);
+            resources->Sections.push_back(section);
+            Cube->RenderData->LODResources.push_back(resources);
+        }
+        AStaticMeshActor* StaticMeshActor = World->SpawnActor<AStaticMeshActor>(CubeTransform, "test cube");
         StaticMeshActor->SetStaticMesh(Cube);
         StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Off);
 
-        std::shared_ptr<AArrowActor> ArrorActor = World->SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
+        AArrowActor* ArrowActor = World->SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         
         FTransform ReflectionProbeTransform1;
         ReflectionProbeTransform1.SetTranslation(FVector(-2, 0, 1.5));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe1 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
+        AReflectionProbe* ReflectionProbe1 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform1, "test ReflectionProbe1");
         for (auto Sphere : PBRSpheres)
-            ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere.get());
+            ReflectionProbe1->ReflectionProbeComponent->HideActorComponents(Sphere);
         ReflectionProbe1->ReflectionProbeComponent->SetExtent(FVector(1, 4, 4));
 
         FTransform ReflectionProbeTransform2;
         ReflectionProbeTransform2.SetTranslation(FVector(1, 1, 1));
-        std::shared_ptr<AReflectionProbe> ReflectionProbe2 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
+        AReflectionProbe* ReflectionProbe2 = World->SpawnActor<AReflectionProbe>(ReflectionProbeTransform2, "test ReflectionProbe2");
     }
 
     static void LoadDamagedHelmet(UWorld* World)
     {
-        UStaticMesh* Helmet = GetContentManager()->GetStaticMeshByPath("/Testgltf/DamagedHelmet.nasset");
+        NPackage* Package = CreatePackage("/Engine/Testgltf/DamagedHelmet");
+        UStaticMesh* Helmet = FindObject<UStaticMesh>(Package, "DamagedHelmet");
         if (Helmet == nullptr)
         {
             std::vector<UTexture2D*> Textures;
@@ -140,26 +163,33 @@ namespace nilou {
             Helmet = StaticMeshes[0];
         }
         FTransform MeshTransform;
-        std::shared_ptr<AStaticMeshActor> StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "damaged helmet");
+        AStaticMeshActor* StaticMeshActor = World->SpawnActor<AStaticMeshActor>(MeshTransform, "damaged helmet");
         StaticMeshActor->SetStaticMesh(Helmet);
         StaticMeshActor->StaticMeshComponent->SetReflectionProbeBlendMode(RPBM_Simple);
     }
 
     static void LoadSkyAtmosphere(UWorld* World)
     {
-        UMaterial* SkyAtmosphereMaterial = GetContentManager()->GetMaterialByPath("/Materials/SkyAtmosphereMaterial.nasset");
+        NPackage* Package = CreatePackage("/Engine/Materials/SkyAtmosphereMaterial");
+        UMaterial* SkyAtmosphereMaterial = FindObject<UMaterial>(Package, "SkyAtmosphereMaterial");
+        if (!SkyAtmosphereMaterial)
+        {
+            SkyAtmosphereMaterial = NewObject<UMaterial>(Package, "SkyAtmosphereMaterial");
+            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl");
+            NPackage::SavePackage(Package);
+        }
         SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
-        std::shared_ptr<ASphereActor> SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
+        ASphereActor* SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetCastShadow(false);
-        SphereActor->SphereComponent->SetRelativeScale3D(vec3(4000));
+        SphereActor->SphereComponent->SetRelativeScale3D(FVector(4000));
         SphereActor->SphereComponent->SetMaterial(SkyAtmosphereMaterial);
         SphereActor->SphereComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
-        std::shared_ptr<ASkyAtmosphereActor> SkyAtmosphereActor = World->SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
+        ASkyAtmosphereActor* SkyAtmosphereActor = World->SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
 
-        std::shared_ptr<AReflectionProbe> SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
-        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(dvec3(0));
-        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor.get());
-        World->SkyboxReflectionProbe = SkyboxReflectionProbe.get();
+        AReflectionProbe* SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(FVector(0));
+        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor);
+        World->SkyboxReflectionProbe = SkyboxReflectionProbe;
     }
     static void LoadVirtualHeightfieldMesh(UWorld* World)
     {
@@ -194,14 +224,14 @@ namespace nilou {
 
     static void LoadFFTOcean(UWorld* World)
     {
-        std::shared_ptr<AFFTOceanActor> FFTOceanActor = World->SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
+        AFFTOceanActor* FFTOceanActor = World->SpawnActor<AFFTOceanActor>(FTransform::Identity, "test ocean");
     }
 
     static void LoadLineBatch(UWorld* World)
     {
-        std::shared_ptr<ALineBatchActor> LineBatchActor = World->SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
+        ALineBatchActor* LineBatchActor = World->SpawnActor<ALineBatchActor>(FTransform::Identity, "test linebatch");
         std::vector<FBatchedLine> lines;
-        lines.emplace_back(dvec3(0, 0, 0), dvec3(1, 1, 1));
+        lines.emplace_back(FVector(0, 0, 0), FVector(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
     }
 
@@ -212,14 +242,14 @@ namespace nilou {
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));
         CameraActorTransform.SetRotator(FRotator(-45, 0, 0));
-        std::shared_ptr<ACameraActor> CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
+        ACameraActor* CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
         CameraActor->GetCameraComponent()->ScreenResolution = FIntVector2(GetAppication()->GetConfiguration().screenWidth, GetAppication()->GetConfiguration().screenHeight);
 
         FTransform LightActorTransform;
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
-        std::shared_ptr<ALightActor> DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
+        ALightActor* DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
-        std::shared_ptr<AArrowActor> ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
+        AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);
@@ -282,10 +312,10 @@ namespace nilou {
 
     void UWorld::Tick(double DeltaTime)
     {
-        for (std::shared_ptr<AActor> Actor : Actors)
+        for (AActor* Actor : Actors)
         {
             Actor->Tick(DeltaTime);
-            TArray<UActorComponent*> Components;
+            std::vector<UActorComponent*> Components;
             Actor->GetComponents(Components);
             for (auto Component : Components)
             {
@@ -303,7 +333,7 @@ namespace nilou {
     
     void UWorld::SendAllEndOfFrameUpdates()
     {
-        for (std::shared_ptr<AActor> Actor : Actors)
+        for (AActor* Actor : Actors)
         {
             Actor->ForEachComponent<UActorComponent>([](std::shared_ptr<UActorComponent> Component) {
                 Component->DoDeferredRenderUpdates();

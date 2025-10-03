@@ -24,18 +24,103 @@ ENUM_CLASS_FLAGS(EClassFlags);
 
 struct FClassRegistryBase
 {
-    FClassRegistryBase(const std::string& InName, NClass* InSuperClass, EClassFlags InClassFlags, std::function<std::shared_ptr<NObject>()> InDefaultClassConstructor, std::function<void(FArchive&, void*)> InSerializeFunction);
+    enum class EMetaClass { Struct, Object };
+
+    FClassRegistryBase(EMetaClass InMetaClass, const std::string& InName, NClass* InSuperClass, int32 InSize, EClassFlags InClassFlags, std::function<void(void*)> InDefaultClassConstructor);
+    
+    EMetaClass MetaClass;
 
     NClass* Class;
 
     template<typename T>
-    struct TPropertyTraits { using Type = FStructProperty; };
+    struct TConstructProperty;
+    
+    template<> struct TConstructProperty<std::string> { static FProperty* Construct() { return new FStrProperty; } };
+    template<> struct TConstructProperty<int32> { static FProperty* Construct() { return new FIntProperty; } };
+    template<> struct TConstructProperty<bool> { static FProperty* Construct() { return new FBoolProperty; } };
+    template<> struct TConstructProperty<float> { static FProperty* Construct() { return new FFloatProperty; } };
+    template<typename T> struct TConstructProperty<TArray<T>>
+    { 
+        static FProperty* Construct() 
+        { 
+            FArrayProperty* Property = new FArrayProperty; 
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TArray<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename K, typename V> struct TConstructProperty<TMap<K, V>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FMapProperty* Property = new FMapProperty; 
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TMap<K, V>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty<TSet<T>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FSetProperty* Property = new FSetProperty; 
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TSet<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty<TVector2<T>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FVectorProperty* Property = new FVectorProperty;
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector2<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty<TVector<T>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FVectorProperty* Property = new FVectorProperty;
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty<TVector4<T>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FVectorProperty* Property = new FVectorProperty;
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector4<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty<TQuat<T>> 
+    { 
+        static FProperty* Construct() 
+        { 
+            FQuatProperty* Property = new FQuatProperty;
+            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TQuat<T>*>(Value)); };
+            return Property;
+        } 
+    };
+    template<typename T> struct TConstructProperty 
+    { 
+        static FProperty* Construct() 
+        { 
+            FStructProperty* Property = new FStructProperty;
+            Property->Struct = T::StaticClass();
+            return Property;
+        } 
+    };
+    template<> struct TConstructProperty<NObject*> { static FProperty* Construct() { return new FObjectProperty; } };
 
-    template<> struct TPropertyTraits<std::string> { using Type = FStrProperty; };
-    template<> struct TPropertyTraits<int32> { using Type = FIntProperty; };
-    template<> struct TPropertyTraits<bool> { using Type = FBoolProperty; };
-    template<> struct TPropertyTraits<float> { using Type = FFloatProperty; };
-    template<> struct TPropertyTraits<NObject*> { using Type = FObjectProperty; };
+    std::function<void()> ConstructFProperty;
+
+    static void DeferredConstructFProperty();
+
+    std::string RemoveNamespace(const std::string& Name);
+
+    std::string RemovePrefix(EMetaClass InMetaClass, const std::string& Name);
+
 };
 
 template <typename T>
@@ -45,36 +130,7 @@ struct TClassRegistry : public FClassRegistryBase
 
 namespace SerializePrivate {
 
-    enum class EMetaClass { Struct, Object };
-
-    template<EMetaClass MetaClass, typename T>
-    struct TSelectSerializeFunction
-    {
-        static std::function<void(FArchive&, void*)> Select()
-        {
-            static_assert(MetaClass == EMetaClass::Struct || MetaClass == EMetaClass::Object, "MetaClass must be either Struct or Object");
-            if constexpr (MetaClass == EMetaClass::Struct)
-            {
-                return [](FArchive& Ar, void* Value) { Serialize(Ar, *static_cast<T*>(Value)); };
-            }
-            else if constexpr (MetaClass == EMetaClass::Object)
-            {
-                return [](FArchive& Ar, void* Value) {     
-                    nlohmann::json& Node = Ar.GetNode();
-                    if (Ar.IsLoading())
-                    {
-                        NObject** ppObject = (NObject**)Value;
-                        (*ppObject) = FindObject(Node.get<std::string>());
-                    }
-                    else 
-                    {
-                        NObject** ppObject = (NObject**)Value;
-                        Node = (*ppObject)->GetPathName();
-                    } 
-                };
-            }
-        }
-    };
+    struct NullSuperClass { static NClass* StaticClass() { return nullptr; } };
 }
 
 #define BEGIN_CLASS_REGISTRY(MetaClass, Class, Super, ClassFlags) \
@@ -82,25 +138,40 @@ namespace SerializePrivate {
     struct TClassRegistry<Class> : public FClassRegistryBase \
     { \
         using TClass = Class; \
-        TClassRegistry<Class>() : FClassRegistryBase(#Class, Super::StaticClass(), ClassFlags, [](){ return std::make_shared<Class>(); }, \
-            SerializePrivate::TSelectSerializeFunction<SerializePrivate::EMetaClass::MetaClass, Class>::Select()) \
-        {
+        TClassRegistry<Class>() : FClassRegistryBase( \
+            EMetaClass::MetaClass, \
+            #Class, \
+            Super::StaticClass(), \
+            sizeof(Class), \
+            ClassFlags, \
+            [](void* Memory){ new (Memory) Class(); }) \
+        { \
+            ConstructFProperty = [this]() { \
 
 #define CLASS_PROPERTY(PropertyName) \
-            using PropertyType_##PropertyName = decltype(static_cast<TClass*>(nullptr)->PropertyName); \
-            auto Property_##PropertyName = new TPropertyTraits<PropertyType_##PropertyName>::Type(); \
+            auto Property_##PropertyName = TConstructProperty<TClass>::Construct(); \
             Property_##PropertyName->Name = #PropertyName; \
             Property_##PropertyName->Offset_Internal = offsetof(TClass, PropertyName); \
-            Property_##PropertyName->ElementSize = sizeof(PropertyType_##PropertyName); \
-            this->Class->Properties.Add(Property_##PropertyName); \
+            Property_##PropertyName->ElementSize = sizeof(decltype(static_cast<TClass*>(nullptr)->PropertyName)); \
+            this->Class->Properties.Add(Property_##PropertyName);
 
 #define END_CLASS_REGISTRY(Class) \
+            }; \
         } \
     }; \
-    TClassRegistry<Class> ClassRegistry_##Class;
+    TClassRegistry<Class> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
 
 class NClass : public NObject
 {
+private:
+    template<typename T> 
+    friend class TClassRegistry;
+    static std::unique_ptr<NClass> Z_StaticClass;
+public:
+    virtual NClass *GetClass() const;
+    static NClass *StaticClass();
+    virtual void Serialize(FArchive& Ar);
+    virtual void PostLoad();
 public:
 
     template<typename T>
@@ -128,20 +199,9 @@ public:
         return bResult;
     }
 
-    TArray<FProperty*> GetProperties(bool bIncludeSuper) const
-    {
-        TArray<FProperty*> OutProperties;
-        if (bIncludeSuper)
-        {
-            NClass* SuperClass = GetSuperStruct();
-            if (SuperClass)
-            {
-                OutProperties = SuperClass->GetProperties(bIncludeSuper);
-            }
-        }
-        OutProperties.Append(Properties);
-        return OutProperties;
-    }
+    TArray<FProperty*> GetProperties(bool bIncludeSuper) const;
+
+    void SerializeProperties(FArchive& Ar, void* Data) const;
 
     NClass* GetSuperStruct() const
     {
@@ -184,15 +244,15 @@ public:
 
 private:
 
+    int32 Size;
+
     std::atomic<EClassFlags> ClassFlags;
 
     NClass* SuperStruct = nullptr;
 
     TArray<FProperty*> Properties;
 
-    std::function<std::shared_ptr<NObject>()> ClassConstructor;
-
-    std::function<void(FArchive&, void*)> SerializeFunction;
+    std::function<void(void*)> ClassConstructor;
 
     friend class FClassRegistryBase;
     template <typename T>

@@ -40,8 +40,4 @@
         static std::unique_ptr<NClass> Z_StaticClass; \
     public: \
         NClass *GetClass() const; \
-        static NClass *StaticClass(); \
-        NFUNCTION() \
-        void Serialize(FArchive& Ar); \
-        NFUNCTION() \
-        void Deserialize(FArchive& Ar);
+        static NClass *StaticClass();
