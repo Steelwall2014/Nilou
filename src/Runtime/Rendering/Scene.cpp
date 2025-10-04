@@ -209,7 +209,7 @@ namespace nilou {
         }
     }
 
-    void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const dmat4 &RenderMatrix, const FBoxSphereBounds &Bounds)
+    void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy *Proxy, const FMatrix &RenderMatrix, const FBoxSphereBounds &Bounds)
     {
         UpdatedTransforms[Proxy] = FUpdateTransformCommand(Bounds, Bounds, RenderMatrix);
     }
@@ -269,28 +269,28 @@ namespace nilou {
         {
             case EAttenCurveType::ACT_Linear:
                 OutParameter.AttenCurveParams =
-                    vec4(
+                    FVector4f(
                         AttenCurveParam.u.linear_params.begin_atten, 
                         AttenCurveParam.u.linear_params.end_atten, 
                         0, 0);
                 break;
             case EAttenCurveType::ACT_Smooth:
                 OutParameter.AttenCurveParams =
-                    vec4(
+                    FVector4f(
                         AttenCurveParam.u.smooth_params.begin_atten, 
                         AttenCurveParam.u.smooth_params.end_atten, 
                         0, 0);
                 break;
             case EAttenCurveType::ACT_Inverse:
                 OutParameter.AttenCurveParams =
-                    vec4(
+                    FVector4f(
                         AttenCurveParam.u.inverse_params.offset, 
                         AttenCurveParam.u.inverse_params.kl, 
                         AttenCurveParam.u.inverse_params.kc, 0);
                 break;
             case EAttenCurveType::ACT_InverseSquare:
                 OutParameter.AttenCurveParams =
-                    vec4(
+                    FVector4f(
                         AttenCurveParam.u.inverse_squre_params.offset,
                         AttenCurveParam.u.inverse_squre_params.kq,
                         AttenCurveParam.u.inverse_squre_params.kl,

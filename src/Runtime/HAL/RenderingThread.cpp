@@ -31,7 +31,6 @@ namespace nilou {
         FShaderCompiler::CompileGlobalShaders();
         GraphRecording = std::make_unique<RenderGraph>();
         GraphRecording->BeginFrame();
-        GetContentManager()->Init();
         return true;
     }
 
@@ -39,7 +38,7 @@ namespace nilou {
 
     uint32 FRenderingThread::Run()
     {
-        while (!GetAppication()->ShouldRenderingThreadExit())
+        while (!bShouldExit)
         {
             int size = RenderCommands.size();
             for (int i = 0; i < size; i++)
@@ -71,6 +70,11 @@ namespace nilou {
         GRenderGraphBufferPool.TickPoolElements();
         GRenderGraphTexturePool.TickPoolElements();
         FrameCount++;
+    }
+
+    void FRenderingThread::Stop()
+    {
+        bShouldExit = true;
     }
 
     void FRenderingThread::Exit()

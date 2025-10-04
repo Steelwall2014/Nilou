@@ -5,6 +5,9 @@
 
 namespace nilou {
 
+std::thread::id GAsyncLoadingThreadId;
+FAsyncLoadingThread* GAsyncLoadingThread = nullptr;
+
 void FEventLoadNode::Fire()
 {
     if (Spec->bExecuteImmediately)
@@ -33,7 +36,7 @@ void FAsyncPackage::ImportPackagesRecursive()
     for (FObjectImport& Import : ObjectImports)
     {
         FAsyncPackageDesc Desc{{INDEX_NONE}, GetPriority(), Import.PackageName};
-        std::shared_ptr<FAsyncPackage> ImportPackage = FAsyncLoadingThread::Get().FindOrInsertPackage(Desc);
+        std::shared_ptr<FAsyncPackage> ImportPackage = AsyncLoadingThread.FindOrInsertPackage(Desc);
         DependsOn(ImportPackage);
     }
 }
@@ -187,6 +190,33 @@ FAsyncLoadingThread::FAsyncLoadingThread()
 
 }
 
+bool FAsyncLoadingThread::Init()
+{
+    GAsyncLoadingThreadId = std::this_thread::get_id();
+    GAsyncLoadingThread = this;
+    return true;
+}
+
+uint32 FAsyncLoadingThread::Run()
+{
+    while (!bShouldExit)
+    {
+        EventQueue.PopAndExecute();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    return 0;
+}
+
+void FAsyncLoadingThread::Stop()
+{
+    bShouldExit = true;
+}
+
+FAsyncLoadingThread& FAsyncLoadingThread::Get()
+{
+    return *GAsyncLoadingThread;
+}
+
 int32 FAsyncLoadingThread::LoadPackage(const std::string& PackageName, int32 Priority)
 {
     int32 RequestId = this->RequestId.fetch_add(1);
@@ -284,7 +314,7 @@ void FAsyncLoadingThread::UpdatePackagePriorityRecursive(std::shared_ptr<FAsyncP
 
 bool IsInAsyncLoadingThread()
 {
-    return std::this_thread::get_id() == FAsyncLoadingThread::Get().ThreadId;
+    return std::this_thread::get_id() == GAsyncLoadingThreadId;
 }
 
 }

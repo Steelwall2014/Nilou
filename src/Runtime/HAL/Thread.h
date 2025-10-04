@@ -61,6 +61,8 @@ namespace nilou {
          * @see Init, Run, Stop
          */
         virtual void Exit() { }
+
+        virtual ~FRunnable() { }
     };
 
     class FRunnableThread

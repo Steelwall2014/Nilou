@@ -1,5 +1,5 @@
 #pragma once
-#include "Object.h"
+#include "Class.h"
 #include "Common/Containers/Array.h"
 
 namespace nilou {
@@ -148,7 +148,7 @@ struct FObjectImport : public FObjectResource
 };
 void Serialize(FArchive& Ar, FObjectImport& Value);
 
-class NPackage : public NObject
+class NCLASS NPackage : public NObject
 {
     GENERATED_BODY()
 public:

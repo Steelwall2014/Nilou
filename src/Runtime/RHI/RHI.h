@@ -97,7 +97,7 @@ namespace nilou {
 
 	struct NSTRUCT FDepthStencilStateInitializer
 	{
-		GENERATED_STRUCT_BODY()
+		GENERATED_BODY()
 
 		NPROPERTY()
 		bool bEnableDepthWrite;
@@ -257,7 +257,7 @@ namespace nilou {
 
     struct NSTRUCT FRasterizerStateInitializer
     {
-		GENERATED_STRUCT_BODY()
+		GENERATED_BODY()
 
 		NPROPERTY()
         ERasterizerFillMode FillMode;
@@ -309,11 +309,11 @@ namespace nilou {
 
 	struct NSTRUCT FBlendStateInitializer
 	{
-		GENERATED_STRUCT_BODY()
+		GENERATED_BODY()
 
 		struct NSTRUCT FRenderTarget
 		{
-			GENERATED_STRUCT_BODY()
+			GENERATED_BODY()
 
 			NPROPERTY()
 			EBlendOperation ColorBlendOp;
@@ -383,7 +383,7 @@ namespace nilou {
 
 	struct NSTRUCT FSamplerStateInitializer
 	{
-		GENERATED_STRUCT_BODY()
+		GENERATED_BODY()
 
 		FSamplerStateInitializer() {}
 		FSamplerStateInitializer(

@@ -365,7 +365,7 @@ namespace nilou {
     #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
         struct NSTRUCT TypeName \
         { \
-            GENERATED_STRUCT_BODY()
+            GENERATED_BODY()
     #define SHADER_PARAMETER(Type, MemberName) \
             alignas(TShaderParameterTypeInfo<Type>::Alignment) NPROPERTY() Type MemberName;
     #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \

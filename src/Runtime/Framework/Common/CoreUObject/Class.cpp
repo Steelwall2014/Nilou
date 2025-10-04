@@ -4,15 +4,7 @@
 
 namespace nilou {
 
-std::unique_ptr<NClass> NClass::Z_StaticClass = nullptr;
-NClass *NClass::GetClass() const 
-{ 
-    return NClass::StaticClass(); 
-}
-NClass *NClass::StaticClass()
-{
-    return NClass::Z_StaticClass.get();
-}
+NClass* NClass::Z_StaticClass = nullptr;
 
 void FStructProperty::SerializeItem(FArchive& Ar, void* Value)
 {

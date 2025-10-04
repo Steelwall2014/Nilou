@@ -4,7 +4,7 @@
 
 namespace nilou {
 
-    void FViewElementPDI::DrawLine(const dvec3 &Start, const dvec3 &End, const vec3 &Color)
+    void FViewElementPDI::DrawLine(const FVector &Start, const FVector &End, const FVector3f &Color)
     {
         LineElements.emplace_back(Start, End, Color);
     }

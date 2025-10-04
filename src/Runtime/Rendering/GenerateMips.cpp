@@ -19,7 +19,7 @@ public:
     DECLARE_SHADER_TYPE()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FParameters)
-        SHADER_PARAMETER(vec2, HalfTexelSize)
+        SHADER_PARAMETER(FVector2f, HalfTexelSize)
         SHADER_PARAMETER(float, Level)
     END_UNIFORM_BUFFER_STRUCT()
     
@@ -117,7 +117,7 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", PixelShader->GetDescriptorSetLayout(0));
             DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
             FGenerateMipsPS::FParameters Parameters;
-            Parameters.HalfTexelSize = vec2(1.0f / TextureSizeX, 1.0f / TextureSizeY);
+            Parameters.HalfTexelSize = FVector2f(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Parameters.Level = float(MipLevel);
             RDGBuffer* ParametersBuffer = RDGCreateUniformBuffer(Graph, Parameters, "GenerateMipsParameters");
             DescriptorSet->SetUniformBuffer("FParameters", ParametersBuffer);

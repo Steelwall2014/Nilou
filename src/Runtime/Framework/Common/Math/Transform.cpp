@@ -3,16 +3,8 @@
 
 namespace nilou {
 
-std::unique_ptr<NClass> FRotator::Z_StaticClass = nullptr;
-NClass *FRotator::GetClass() const 
-{ 
-    return FRotator::StaticClass(); 
-}
-NClass *FRotator::StaticClass()
-{
-    return FRotator::Z_StaticClass.get();
-}
-BEGIN_CLASS_REGISTRY(Struct, FRotator, SerializePrivate::NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+template<> NClass* FRotator::Z_StaticClass = nullptr;
+BEGIN_CLASS_REGISTRY(Struct, FRotator, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
     CLASS_PROPERTY(Pitch)
     CLASS_PROPERTY(Yaw)
@@ -20,16 +12,8 @@ BEGIN_CLASS_REGISTRY(Struct, FRotator, SerializePrivate::NullSuperClass, EClassF
 
 END_CLASS_REGISTRY(FRotator)
 
-std::unique_ptr<NClass> FTransform::Z_StaticClass = nullptr;
-NClass *FTransform::GetClass() const 
-{ 
-    return FTransform::StaticClass(); 
-}
-NClass *FTransform::StaticClass()
-{
-    return FTransform::Z_StaticClass.get();
-}
-BEGIN_CLASS_REGISTRY(Struct, FTransform, SerializePrivate::NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+template<> NClass* FTransform::Z_StaticClass = nullptr;
+BEGIN_CLASS_REGISTRY(Struct, FTransform, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
     CLASS_PROPERTY(Rotation)
     CLASS_PROPERTY(Translation)

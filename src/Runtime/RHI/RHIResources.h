@@ -23,7 +23,7 @@ namespace nilou {
 
 	struct NSTRUCT RHITextureParams
 	{
-		GENERATED_STRUCT_BODY()
+		GENERATED_BODY()
 		
 		NPROPERTY()
 		ETextureFilters Mag_Filter;

@@ -72,7 +72,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(x_vao);
 	glGenBuffers(1, &x_axis_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, x_axis_buffer);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), x_axis, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), x_axis, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -81,7 +81,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(x_vao2);
 	glGenBuffers(1, &x_axis_buffer2);
 	glBindBuffer(GL_ARRAY_BUFFER, x_axis_buffer2);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), x_axis2, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), x_axis2, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -90,7 +90,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(y_vao);
 	glGenBuffers(1, &y_axis_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, y_axis_buffer);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), y_axis, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), y_axis, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -99,7 +99,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(y_vao2);
 	glGenBuffers(1, &y_axis_buffer2);
 	glBindBuffer(GL_ARRAY_BUFFER, y_axis_buffer2);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), y_axis2, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), y_axis2, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -108,7 +108,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(z_vao);
 	glGenBuffers(1, &z_axis_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, z_axis_buffer);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), z_axis, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), z_axis, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -117,7 +117,7 @@ CoordinateAxis::CoordinateAxis(float length, float width)
 	glBindVertexArray(z_vao2);
 	glGenBuffers(1, &z_axis_buffer2);
 	glBindBuffer(GL_ARRAY_BUFFER, z_axis_buffer2);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), z_axis2, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(FVector3f), z_axis2, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(Position_location);
 	glVertexAttribPointer(Position_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glBindVertexArray(0);
@@ -129,7 +129,7 @@ void CoordinateAxis::drawAxis(glm::mat4 projection, glm::mat4 view, glm::mat4 mo
 	glDisable(GL_CULL_FACE);
 	unsigned int vao;
 	unsigned int vao2;
-	vec4 color;
+	FVector4f color;
 	switch (axis)
 	{
 	case 'x':

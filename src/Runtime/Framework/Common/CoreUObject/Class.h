@@ -25,6 +25,7 @@ ENUM_CLASS_FLAGS(EClassFlags);
 struct FClassRegistryBase
 {
     enum class EMetaClass { Struct, Object };
+    struct NullSuperClass { static NClass* StaticClass() { return nullptr; } };
 
     FClassRegistryBase(EMetaClass InMetaClass, const std::string& InName, NClass* InSuperClass, int32 InSize, EClassFlags InClassFlags, std::function<void(void*)> InDefaultClassConstructor);
     
@@ -130,21 +131,21 @@ struct TClassRegistry : public FClassRegistryBase
 
 namespace SerializePrivate {
 
-    struct NullSuperClass { static NClass* StaticClass() { return nullptr; } };
+    
 }
 
-#define BEGIN_CLASS_REGISTRY(MetaClass, Class, Super, ClassFlags) \
+#define BEGIN_CLASS_REGISTRY(MetaClass, ClassName, Super, ClassFlags) \
     template<> \
-    struct TClassRegistry<Class> : public FClassRegistryBase \
+    struct TClassRegistry<ClassName> : public FClassRegistryBase \
     { \
-        using TClass = Class; \
-        TClassRegistry<Class>() : FClassRegistryBase( \
+        using TClass = ClassName; \
+        TClassRegistry<ClassName>() : FClassRegistryBase( \
             EMetaClass::MetaClass, \
-            #Class, \
+            #ClassName, \
             Super::StaticClass(), \
-            sizeof(Class), \
+            sizeof(ClassName), \
             ClassFlags, \
-            [](void* Memory){ new (Memory) Class(); }) \
+            [](void* Memory){ new (Memory) ClassName(); }) \
         { \
             ConstructFProperty = [this]() { \
 
@@ -155,23 +156,22 @@ namespace SerializePrivate {
             Property_##PropertyName->ElementSize = sizeof(decltype(static_cast<TClass*>(nullptr)->PropertyName)); \
             this->Class->Properties.Add(Property_##PropertyName);
 
-#define END_CLASS_REGISTRY(Class) \
+#define END_CLASS_REGISTRY(ClassName) \
             }; \
+            TClass::Z_StaticClass = this->Class; \
         } \
     }; \
-    TClassRegistry<Class> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
+    TClassRegistry<ClassName> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
 
 class NClass : public NObject
 {
 private:
     template<typename T> 
     friend class TClassRegistry;
-    static std::unique_ptr<NClass> Z_StaticClass;
+    static NClass* Z_StaticClass;
 public:
-    virtual NClass *GetClass() const;
-    static NClass *StaticClass();
-    virtual void Serialize(FArchive& Ar);
-    virtual void PostLoad();
+    virtual NClass *GetClass() const { return StaticClass(); }
+    static NClass *StaticClass() { return Z_StaticClass; }
 public:
 
     template<typename T>

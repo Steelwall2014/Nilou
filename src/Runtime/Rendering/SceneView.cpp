@@ -9,10 +9,10 @@ namespace nilou {
             0,
             0.1, 
             10000, 
-            dvec3(0), 
-            dvec3(1, 0, 0),
-            dvec3(0, 0, 1),
-            ivec2(1920, 1080))
+            FVector(0), 
+            FVector(1, 0, 0),
+            FVector(0, 0, 1),
+            FIntVector2(1920, 1080))
     {
 
     }
@@ -23,10 +23,10 @@ namespace nilou {
         double InOrthoWidth,
         double InNearClipDistance, 
         double InFarClipDistance,
-        dvec3 InPosition,
-        dvec3 InForward,
-        dvec3 InUp,
-        ivec2 InScreenResolution)
+        FVector InPosition,
+        FVector InForward,
+        FVector InUp,
+        FIntVector2 InScreenResolution)
         : VerticalFieldOfView(InVerticalFieldOfView)
         , OrthoWidth(InOrthoWidth)
         , ProjectionMode(InProjectionMode)

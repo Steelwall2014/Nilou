@@ -33,6 +33,7 @@ namespace nilou {
 
     void FRunnableThread::Kill()
     {
+        Runnable->Stop();
         HANDLE handle = Thread.native_handle();
         TerminateThread(handle, 0);
     }

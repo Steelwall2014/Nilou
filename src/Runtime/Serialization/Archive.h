@@ -40,8 +40,8 @@ private:
     nlohmann::json& Node;
     bool bIsLoading;
 
-    TArray<std::unique_ptr<FArchive>> ArrayChildren;
-    TMap<std::string, std::unique_ptr<FArchive>> ObjectChildren;
+    std::vector<std::unique_ptr<FArchive>> ArrayChildren;
+    std::unordered_map<std::string, std::unique_ptr<FArchive>> ObjectChildren;
 
 };
 

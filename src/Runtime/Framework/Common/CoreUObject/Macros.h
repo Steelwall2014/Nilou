@@ -28,16 +28,7 @@
     private: \
         template<typename T>  \
         friend class TClassRegistry; \
-        static std::unique_ptr<NClass> Z_StaticClass; \
+        static NClass* Z_StaticClass; \
     public: \
-        virtual NClass *GetClass() const override; \
-        static NClass *StaticClass();
-
-#define GENERATED_STRUCT_BODY() \
-    private: \
-        template<typename T>  \
-        friend class TClassRegistry; \
-        static std::unique_ptr<NClass> Z_StaticClass; \
-    public: \
-        NClass *GetClass() const; \
-        static NClass *StaticClass();
+        NClass *GetClass() const { return StaticClass(); } \
+        static NClass *StaticClass() { return Z_StaticClass; }

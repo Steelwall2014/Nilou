@@ -55,7 +55,7 @@ namespace nilou {
 
     struct NSTRUCT FMaterialParameterInfo
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         NPROPERTY()
         std::string Name;
@@ -69,7 +69,7 @@ namespace nilou {
 
     struct NSTRUCT FScalarParameterValue
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         using ValueType = float;
         static ValueType GetValue(const FScalarParameterValue& Parameter) { return Parameter.ParameterValue; }
@@ -83,7 +83,7 @@ namespace nilou {
 
     struct NSTRUCT FVectorParameterValue
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         using ValueType = FVector4;
         static ValueType GetValue(const FVectorParameterValue& Parameter) { return Parameter.ParameterValue; }
@@ -97,7 +97,7 @@ namespace nilou {
 
     struct NSTRUCT FTextureParameterValue
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         using ValueType = UTexture*;
         static ValueType GetValue(const FTextureParameterValue& Parameter) { return Parameter.ParameterValue; }

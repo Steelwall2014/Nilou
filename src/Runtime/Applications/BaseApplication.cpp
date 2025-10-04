@@ -2,6 +2,7 @@
 #include "RHICommandList.h"
 #include "Common/Path.h"
 #include "Common/Crc.h"
+#include "Common/CoreUObject/Serialization/AsyncLoading.h"
 
 namespace nilou {
 
@@ -16,9 +17,10 @@ namespace nilou {
     {
         m_bQuit = false;
 
-        FClassRegistryBase;
+        FClassRegistryBase::DeferredConstructFProperty();
         FCrc::Init();
         RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+        AsyncLoadingThread = std::move(FRunnableThread::Create(new FAsyncLoadingThread, "Async Loading Thread"));
         GameViewportClient = std::make_unique<UGameViewportClient>();
         while (!RenderingThread->IsRunnableInitialized()) { }
         GameViewportClient->Init();
@@ -29,8 +31,10 @@ namespace nilou {
 
     void BaseApplication::Finalize()
     {
-        bShouldRenderingThreadExit = true;
+        RenderingThread->Kill();
         while (!RenderingThread->IsRunnableExited()) { }
+        AsyncLoadingThread->Kill();
+        while (!AsyncLoadingThread->IsRunnableExited()) { }
     }
 
     void BaseApplication::Finalize_RenderThread()

@@ -179,10 +179,10 @@ namespace nilou {
     private:
         template<typename T> 
         friend class TClassRegistry;
-        static std::unique_ptr<NClass> Z_StaticClass;
+        static NClass* Z_StaticClass;
     public:
-        virtual NClass *GetClass() const;
-        static NClass *StaticClass();
+        virtual NClass *GetClass() const { return StaticClass(); }
+        static NClass *StaticClass() { return Z_StaticClass; }
         virtual void Serialize(FArchive& Ar);
         virtual void PostLoad();
 

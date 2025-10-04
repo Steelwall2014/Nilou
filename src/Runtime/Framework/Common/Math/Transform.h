@@ -5,6 +5,8 @@
 #include "Archive.h"
 
 namespace nilou {
+
+    class NClass;
     
 	const FVector WORLD_UP(0.0, 0.0, 1.0);
 	const FVector WORLD_FORWARD(1.0, 0.0, 0.0);
@@ -26,6 +28,11 @@ namespace nilou {
     template <typename T>
     struct TRotator
     {
+    private:
+        static NClass* Z_StaticClass;
+    public:
+        virtual NClass *GetClass() const { return Z_StaticClass; }
+        static NClass *StaticClass() { return Z_StaticClass; }
         /** Rotation around the right axis (around Y axis), Looking up and down (0=Straight Ahead, +Up, -Down) */
 	    T Pitch;
 
@@ -52,21 +59,14 @@ namespace nilou {
         static const TRotator ZeroRotator;
 
         friend void Serialize(FArchive& Ar, TRotator<T>& Rotator);
+        template <typename U>
+        friend class TClassRegistry;
     };
 
     template <typename T>
     TVector<T> RotateVector(const TQuat<T> &rotation, const TVector<T> &V);
 
-    class FRotator : public TRotator<double>
-    {
-    private:
-        template<typename T> 
-        friend class TClassRegistry;
-        static std::unique_ptr<class NClass> Z_StaticClass;
-    public:
-        virtual NClass *GetClass() const;
-        static NClass *StaticClass();
-    };
+    using FRotator = TRotator<double>;
     using FRotator3f = TRotator<float>;
 
     // 变换
@@ -80,13 +80,11 @@ namespace nilou {
         TQuat<T> Rotation;
         TVector<T> Translation;
         TVector<T> Scale3D;
-
+    private:
+        static NClass* Z_StaticClass;
     public:
-
-        template <typename U>
-        friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
-        template <typename U>
-        friend class TClassRegistry;
+        virtual NClass *GetClass() const { return Z_StaticClass; }
+        static NClass *StaticClass() { return Z_StaticClass; }
 
         TTransform();
         TTransform(const TQuat<T> &rotation);
@@ -125,6 +123,10 @@ namespace nilou {
         static const TTransform<T> Identity;
 
         friend void Serialize(FArchive& Ar, TTransform<T>& Transform);
+        template <typename U>
+        friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
+        template <typename U>
+        friend class TClassRegistry;
     };
 
     template<typename T> 
@@ -133,16 +135,7 @@ namespace nilou {
     template<typename T> 
     const TRotator<T> TRotator<T>::ZeroRotator = TRotator<T>();
 
-    class FTransform : public TTransform<double>
-    {
-    private:
-        template<typename T> 
-        friend class TClassRegistry;
-        static std::unique_ptr<class NClass> Z_StaticClass;
-    public:
-        virtual NClass *GetClass() const;
-        static NClass *StaticClass();
-    };
+    using FTransform = TTransform<double>;
     using FTransform3f = TTransform<float>;
 
     template <typename T>

@@ -95,19 +95,19 @@ namespace nilou {
 
     FArchive& FArchive::operator[](const std::string& Key)
     {
-        if (!ObjectChildren.Contains(Key))
+        if (!ObjectChildren.contains(Key))
         {
             nlohmann::json& ChildNode = Node[Key];
-            ObjectChildren.Add(Key, std::make_unique<FArchive>(ChildNode, bIsLoading));
+            ObjectChildren[Key] = std::make_unique<FArchive>(ChildNode, bIsLoading);
         }
         return *ObjectChildren[Key];
     }
 
     FArchive& FArchive::operator[](size_t Index)
     {
-        if (ArrayChildren.Num() <= Index)
+        if (ArrayChildren.size() <= Index)
         {
-            ArrayChildren.SetNum(Index + 1);
+            ArrayChildren.resize(Index + 1);
             ArrayChildren[Index] = std::make_unique<FArchive>(Node[Index], bIsLoading);
         }
         return *ArrayChildren[Index];

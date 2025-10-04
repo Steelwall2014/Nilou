@@ -4,8 +4,8 @@ namespace nilou {
 
 struct FScreenQuadVertex
 {
-    vec4 Position;
-    vec2 TexCoord;
+    FVector4f Position;
+    FVector2f TexCoord;
 };
 
 FRHIVertexDeclaration* RDGGetScreenQuadVertexDeclaration()
@@ -15,7 +15,7 @@ FRHIVertexDeclaration* RDGGetScreenQuadVertexDeclaration()
     {
         FVertexDeclarationElementList Elements;
         Elements[0] = FVertexElement(0, 0, EVertexElementType::Float4, 0, sizeof(FScreenQuadVertex));
-        Elements[1] = FVertexElement(0, sizeof(vec4), EVertexElementType::Float2, 1, sizeof(FScreenQuadVertex));
+        Elements[1] = FVertexElement(0, sizeof(FVector4f), EVertexElementType::Float2, 1, sizeof(FScreenQuadVertex));
         ScreenQuadVertexDeclaration = RHICreateVertexDeclaration(Elements);
     }
     return ScreenQuadVertexDeclaration;
@@ -29,10 +29,10 @@ RDGBuffer* RDGGetScreenQuadVertexBuffer(RenderGraph& Graph)
         RDGBufferDesc Desc(sizeof(FScreenQuadVertex) * 4, sizeof(FScreenQuadVertex), EBufferUsageFlags::VertexBuffer);
         ScreenQuadVertexBuffer = RenderGraph::CreatePooledBuffer("ScreenQuadVertexBuffer", Desc);
         FScreenQuadVertex Data[4] = {
-            {vec4(-1.0f, -1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)},
-            {vec4(1.0f, -1.0f, 0.0f, 1.0f), vec2(1.0f, 0.0f)},
-            {vec4(-1.0f, 1.0f, 0.0f, 1.0f), vec2(0.0f, 1.0f)},
-            {vec4(1.0f, 1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)},
+            {FVector4f(-1.0f, -1.0f, 0.0f, 1.0f), FVector2f(0.0f, 0.0f)},
+            {FVector4f(1.0f, -1.0f, 0.0f, 1.0f), FVector2f(1.0f, 0.0f)},
+            {FVector4f(-1.0f, 1.0f, 0.0f, 1.0f), FVector2f(0.0f, 1.0f)},
+            {FVector4f(1.0f, 1.0f, 0.0f, 1.0f), FVector2f(1.0f, 1.0f)},
         };
         Graph.QueueBufferUpload(ScreenQuadVertexBuffer.GetReference(), Data, sizeof(Data));
     }

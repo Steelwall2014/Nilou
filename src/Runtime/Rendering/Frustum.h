@@ -50,7 +50,7 @@ namespace nilou {
     // Axis Aligned
     // struct NSTRUCT FBoundingBox
     // {
-    //     GENERATED_STRUCT_BODY()
+    //     GENERATED_BODY()
 
     //     NPROPERTY()
     //     dvec3 Min;

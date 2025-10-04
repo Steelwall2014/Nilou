@@ -155,7 +155,7 @@ namespace nilou {
     // Used for serialization
     struct NSTRUCT FVertexIndexBufferData
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         NPROPERTY()
         TArray<uint8> Data;
@@ -183,7 +183,7 @@ namespace nilou {
     struct NSTRUCT FStaticMeshSectionData
     {
 
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         NPROPERTY()
         FVertexIndexBufferData Positions;
@@ -211,7 +211,7 @@ namespace nilou {
      */
     struct NSTRUCT FMeshSectionInfo
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
         NPROPERTY()
         int32 MaterialIndex;
@@ -229,7 +229,7 @@ namespace nilou {
      */
     struct NSTRUCT FMeshSectionInfoMap
     {
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
 	    /** Maps an LOD+Section to the material it should render with. */
         NPROPERTY()

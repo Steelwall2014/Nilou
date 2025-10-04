@@ -24,7 +24,7 @@ namespace nilou {
 
 	class NSTRUCT FImage 
 	{
-        GENERATED_STRUCT_BODY()
+        GENERATED_BODY()
 
     public:
 

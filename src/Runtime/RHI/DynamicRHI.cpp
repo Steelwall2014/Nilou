@@ -15,7 +15,7 @@ namespace nilou {
 		return FDynamicRHI::DynamicRHI;
 	}
 
-	// ivec3 FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat) 
+	// FIntVector FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat) 
 	// { 
 	// 	return FDynamicRHI::SparseTextureTileSizes[(int)TextureType][(int)PixelFormat]; 
 	// }
@@ -90,5 +90,5 @@ namespace nilou {
     //     spvReflectDestroyShaderModule(&module);
     // }
 
-	ivec3 FDynamicRHI::SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
+	FIntVector FDynamicRHI::SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
 }

@@ -844,7 +844,7 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 		FRHIRenderPassInfo Info;
 		auto& ColorAttachments = Info.ColorRenderTargets;
 		auto& DepthStencilAttachment = Info.DepthStencilRenderTarget;
-		Info.Extent = ivec2(0, 0);
+		Info.Extent = FIntVector2(0, 0);
 		std::map<int, int&> map;
 		auto iter = map.begin();
 		for (auto [Index, ColorBindingPoint] : Enumerate(Pass->RenderTargets.ColorAttachments))
@@ -853,14 +853,14 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			if (ColorRDG)
 			{
 				ColorAttachments[Index] = ColorRDG->GetRHI();
-				Info.Extent = ivec2(ColorRDG->GetSizeX(), ColorRDG->GetSizeY());
+				Info.Extent = FIntVector2(ColorRDG->GetSizeX(), ColorRDG->GetSizeY());
 			}
 		}
 		auto& DepthStencilRDG = Pass->RenderTargets.DepthStencilAttachment.TextureView;
 		if (DepthStencilRDG)
 		{
 			DepthStencilAttachment = DepthStencilRDG->GetRHI();
-			Info.Extent = ivec2(DepthStencilRDG->GetSizeX(), DepthStencilRDG->GetSizeY());
+			Info.Extent = FIntVector2(DepthStencilRDG->GetSizeX(), DepthStencilRDG->GetSizeY());
 		}
 		Info.RTLayout = Pass->RenderTargets.GetRenderTargetLayout();
 		RHICmdList.BeginRenderPass(Info);

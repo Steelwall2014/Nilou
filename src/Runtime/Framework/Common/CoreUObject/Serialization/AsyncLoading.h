@@ -209,12 +209,31 @@ struct FAsyncLoadEventQueue
         std::lock_guard<std::mutex> Lock(EventQueueMutex);
         EventQueue.Push(Node, Node->Priority);
     }
+
+    bool PopAndExecute()
+    {
+        FEventLoadNode* Node = nullptr;
+        {
+            std::lock_guard<std::mutex> Lock(EventQueueMutex);
+            if (EventQueue.IsEmpty())
+            {
+                return false;
+            }
+            Node = EventQueue.Pop();
+        }
+        Node->Execute();
+        return true;
+    }
 };
 
 class FAsyncLoadingThread : public FRunnable
 {
 public:
     FAsyncLoadingThread();
+
+    virtual bool Init() override;
+    virtual uint32 Run() override;
+    virtual void Stop() override;
 
     static FAsyncLoadingThread& Get();
 
@@ -254,11 +273,11 @@ public:
     
     FAsyncLoadEventQueue EventQueue;
 
-    std::thread::id ThreadId;
-
 private:
 
     void UpdatePackagePriorityRecursive(std::shared_ptr<FAsyncPackage> Package, int32 NewPriority);
+
+    std::atomic<bool> bShouldExit = false;
 
 };
 

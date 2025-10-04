@@ -31,6 +31,7 @@ namespace nilou {
     public:
         virtual bool Init() override;
         virtual uint32 Run() override;
+        virtual void Stop() override;
         virtual void Exit() override;
 
         template <typename STR, typename Lambda>
@@ -52,6 +53,7 @@ namespace nilou {
         std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
         std::unique_ptr<RenderGraph> GraphExecuting = nullptr;
         std::unique_ptr<RenderGraph> GraphRecording = nullptr;
+        std::atomic<bool> bShouldExit = false;
         static uint32 FrameCount;
 
     };

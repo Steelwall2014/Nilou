@@ -41,7 +41,16 @@ namespace nilou {
 
     UMaterial *UMaterial::GetDefaultMaterial()
     {
-        return GetContentManager()->GetMaterialByPath("/Materials/DefaultMaterial.nasset");
+        static UMaterial* DefaultMaterial = LoadObject<UMaterial>("/Engine/Materials/DefaultMaterial.DefaultMaterial");
+        if (!DefaultMaterial)
+        {
+            NPackage* Pkg = CreatePackage("/Engine/Materials/DefaultMaterial");
+            DefaultMaterial = NewObject<UMaterial>(Pkg, "DefaultMaterial");
+            DefaultMaterial->SetShaderFileVirtualPath("/Shaders/Materials/DefaultMaterial_Mat.glsl");
+            DefaultMaterial->InitializeResources();
+            NPackage::SavePackage(Pkg);
+        }
+        return DefaultMaterial;
     }
 
     UMaterial::UMaterial()
@@ -142,7 +151,7 @@ namespace nilou {
         }
     }
 
-    void UMaterial::SetVectorParameterValue(const std::string &Name, const vec4& Value)
+    void UMaterial::SetVectorParameterValue(const std::string &Name, const FVector4& Value)
     {
 	    FMaterialParameterInfo ParameterInfo(Name);
         FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(VectorParameterValues, ParameterInfo);
@@ -155,7 +164,7 @@ namespace nilou {
             bForceUpdate = true;
         }
         
-	    vec4 ValueToSet = Value;
+	    FVector4 ValueToSet = Value;
         if (bForceUpdate || ParameterValue->ParameterValue != ValueToSet)
         {
             ParameterValue->ParameterValue = ValueToSet;
@@ -203,7 +212,7 @@ namespace nilou {
         return true;
     }
 
-    bool UMaterial::SetVectorParameterValueByIndex(int32 ParameterIndex, const vec4& Value)
+    bool UMaterial::SetVectorParameterValueByIndex(int32 ParameterIndex, const FVector4& Value)
     {
         FVectorParameterValue* ParameterValue = GameThread_FindParameterByIndex(VectorParameterValues, ParameterIndex);
 
@@ -212,7 +221,7 @@ namespace nilou {
             return false;
         }
         
-	    vec4 ValueToSet = Value;
+	    FVector4 ValueToSet = Value;
         if (ParameterValue->ParameterValue != ValueToSet)
         {
             ParameterValue->ParameterValue = ValueToSet;
@@ -294,7 +303,7 @@ namespace nilou {
 
     UMaterialInstance* UMaterial::CreateMaterialInstance(NPackage* Package, const std::string& Name)
     {
-        UMaterialInstance* MaterialInstance = CreateObject<UMaterialInstance>(Package, Name);
+        UMaterialInstance* MaterialInstance = NewObject<UMaterialInstance>(Package, Name);
 
         // Copy some properties
         MaterialInstance->Code = this->Code;

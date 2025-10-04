@@ -32,8 +32,6 @@ namespace nilou {
 
         virtual WindowContext* GetWindowContext() { return nullptr; }
 
-        bool ShouldRenderingThreadExit() const { return bShouldRenderingThreadExit; }
-
         UWorld *GetWorld() { return GameViewportClient->World.get(); }
         FScene *GetScene() { return GameViewportClient->Scene.get(); }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPreRenderDelegate() { return PreRenderDelegate; }
@@ -51,8 +49,7 @@ namespace nilou {
         TMulticastDelegate<FDynamicRHI*, FScene*> PostRenderDelegate;
         TMulticastDelegate<int, int> ScreenResizeDelegate;
         std::unique_ptr<FRunnableThread> RenderingThread;
-        std::atomic<bool> RenderingThreadInitialized = false;
-        std::atomic<bool> bShouldRenderingThreadExit = false;
+        std::unique_ptr<FRunnableThread> AsyncLoadingThread;
 
 
     private:

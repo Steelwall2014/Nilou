@@ -9,6 +9,7 @@
 #include "Common/Asset/AssetLoader.h"
 // #include "Shadinclude.h"
 #include "ShaderPreprocess.h"
+#include "Common/Path.h"
 
 namespace nilou {
 

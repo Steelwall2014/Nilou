@@ -405,7 +405,7 @@ string GenerateTypeRegistry(const TypeMetaData& NClass)
         "BEGIN_CLASS_REGISTRY({}, {}, {}, EClassFlags::Native)\n", 
         IsReflectedClass(ClassName) ? "Object" : "Struct", 
         ClassName, 
-        NClass.BaseClass!="" ? NClass.BaseClass : "SerializePrivate::NullSuperClass");
+        NClass.BaseClass!="" ? NClass.BaseClass : "NullSuperClass");
     // string CtorBody;
     // for (auto& Args : NClass.Constructors)
     // {
@@ -431,15 +431,7 @@ string GenerateTypeRegistry(const TypeMetaData& NClass)
     // }
     return std::format(
 R"(
-std::unique_ptr<NClass> {0}::Z_StaticClass = nullptr;
-NClass *{0}::GetClass() const 
-{{ 
-    return {0}::StaticClass(); 
-}}
-NClass *{0}::StaticClass()
-{{
-    return {0}::Z_StaticClass.get();
-}}
+NClass* {0}::Z_StaticClass = nullptr;
 
 {1}
 {2}
@@ -565,9 +557,10 @@ void WriteCode(string GeneratedCodePath)
 {
     for (auto& [ClassName, NClass] : NTypes)
     {
+        if (NClass.FileName == "") continue;
         auto tokens = Split(ClassName, ':');
         string raw_class_name = tokens[tokens.size()-1];
-        ofstream out_stream(GeneratedCodePath + "/" + raw_class_name + ".generated.cpp", ios::out);
+        ofstream out_stream(GeneratedCodePath + "/" + raw_class_name + ".gen.cpp", ios::out);
         out_stream << NClass.GeneratedFileCode;
     }
 }
@@ -602,7 +595,10 @@ int main(int argc, char *argv[])
             string filename;
             long long last_modified_time;
             in >> filename >> last_modified_time;
-            CachedHeaderModifiedTime[filename] = last_modified_time;
+            if (filename != "")
+            {
+                CachedHeaderModifiedTime[filename] = last_modified_time;
+            }
         }
     }
 
@@ -629,13 +625,14 @@ int main(int argc, char *argv[])
             if ((EndsWith(filepath, ".h") || EndsWith(filepath, ".hpp")) && 
                 NeedsReflection(filepath))
             {
-                long long cached_last_modified_time = CachedHeaderModifiedTime[filesystem::path(filepath).generic_string()];
+                auto path = filesystem::path(filepath).generic_string();
+                long long cached_last_modified_time = CachedHeaderModifiedTime[path];
                 long long last_modified_time = filesystem::last_write_time(filepath).time_since_epoch().count();
             
                 if (cached_last_modified_time == 0 || last_modified_time != cached_last_modified_time)
                 {
                     files.push_back(filepath);
-                    CachedHeaderModifiedTime[filesystem::path(filepath).generic_string()] = last_modified_time;
+                    CachedHeaderModifiedTime[path] = last_modified_time;
                 }
             }
         });

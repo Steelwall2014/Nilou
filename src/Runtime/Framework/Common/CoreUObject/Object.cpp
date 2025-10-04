@@ -118,7 +118,9 @@ NPackage* CreatePackage(const std::string& Name)
 {
     NPackage* Package = LoadPackage(Name);
     if (Package) return Package;
-    return NewObject<NPackage>(nullptr, Name);
+    Package = NewObject<NPackage>(nullptr, Name);
+    Package->MarkPackageDirty();
+    return Package;
 }
 
 NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params)
@@ -340,15 +342,7 @@ std::string FClassRegistryBase::RemovePrefix(EMetaClass InMetaClass, const std::
     return Name;
 }
 
-std::unique_ptr<NClass> NObject::Z_StaticClass = nullptr;
-NClass *NObject::GetClass() const 
-{ 
-    return NObject::StaticClass(); 
-}
-NClass *NObject::StaticClass()
-{
-    return NObject::Z_StaticClass.get();
-}
+NClass* NObject::Z_StaticClass = nullptr;
 template<>
 struct TClassRegistry<NObject> : public FClassRegistryBase
 {

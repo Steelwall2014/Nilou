@@ -38,6 +38,7 @@ target("Nilou")
         local exec = string.format("$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe \"%s\" \"%s\" %s", src_dir, generated_dir, include_dir)
         print(exec)
         os.exec(exec)
+        target:add("files", generated_dir .. "/*.cpp")
     end)
 
     add_packages(
