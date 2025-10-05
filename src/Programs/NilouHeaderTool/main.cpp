@@ -1,4 +1,6 @@
+#include <cassert>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,37 +15,27 @@
 #include "utils.h"
 
 using namespace std;
+namespace fs = std::filesystem;
 
-class Directory
+template <typename Func>
+void ForEachFile(const std::string &DirectoryName, bool bFindInChildren, Func&& InFunc)
 {
-public:
-    Directory(const std::string &InDirectoryName) : DirectoryName(InDirectoryName) { }
-    const std::string &GetDirectoryName() const;
-
-    template <typename Func>
-    void ForEachFile(bool bFindInChildren, Func&& InFunc)
+    if (!fs::exists(DirectoryName))
     {
-        if (!std::filesystem::exists(DirectoryName))
+        std::cout << "Directory: " + DirectoryName + " doesn't exist" << std::endl;
+        return;
+    }
+        
+    for (const fs::directory_entry & dir_entry : 
+        fs::recursive_directory_iterator(DirectoryName))
+    {
+        if (!dir_entry.is_directory())
         {
-            std::cout << "Directory: " + DirectoryName + " doesn't exist" << std::endl;
-            return;
-        }
-            
-        for (const std::filesystem::directory_entry & dir_entry : 
-            std::filesystem::recursive_directory_iterator(DirectoryName))
-        {
-            if (!dir_entry.is_directory())
-            {
-                std::string filepath = dir_entry.path().generic_string();
-                InFunc(filepath);
-            }
+            std::string filepath = dir_entry.path().generic_string();
+            InFunc(filepath);
         }
     }
-
-private:
-
-    std::string DirectoryName;
-};
+}
 
 ostream& operator<<(ostream& stream, const CXString& str)
 {
@@ -53,21 +45,14 @@ ostream& operator<<(ostream& stream, const CXString& str)
     return stream;
 }
 
-std::vector<const char*> arguments = {
-    "-x",
-    "c++",
-    "-std=c++20",
-    "-D __clang__",
-    "-D __META_PARSER__"
-};
-
 struct TypeMetaData
 {
     string FileName;
     string Name;
+    string NameWithoutNamespace;
     string BaseClass;
     set<string> DerivedClasses;
-    map<string, std::pair<bool, string>> Fields;
+    map<string, string> Fields;
     set<string> Methods;
     vector<vector<string>> Constructors;
     string GeneratedFileCode;
@@ -185,7 +170,7 @@ bool IsSupportedContainer(CXType Type)
 {
     string TypeName = GetClangString(clang_getTypeSpelling(Type));
     std::smatch match;
-    if (regex_match(TypeName, match, regex(".*(vector|array|set|map|unordered_map|unordered_set|TAlignedStaticArray)<.+>")))
+    if (regex_match(TypeName, match, regex(".*(vector|array|set|map|unordered_map|unordered_set|TAlignedStaticArray|TArray|TMap|TSet)<.+>")))
     {
         if (match[1].str() == "array" || match[1].str() == "TAlignedStaticArray")
         {
@@ -230,6 +215,18 @@ bool IsSupportedType(CXType Type)
     return false;
 }
 
+void ClangVisitChildren(CXCursor cursor, std::function<CXChildVisitResult(CXCursor, CXCursor)> callback)
+{
+    clang_visitChildren(
+        cursor,
+        [](CXCursor c, CXCursor parent, CXClientData client_data)
+        {
+            auto* callback = reinterpret_cast<std::function<CXChildVisitResult(CXCursor, CXCursor)>*>(client_data);
+            return (*callback)(c, parent);
+        },
+        &callback);
+}
+
 bool NeedsReflection(string filepath)
 {
     vector<const char*> arguments = {
@@ -249,25 +246,35 @@ bool NeedsReflection(string filepath)
     }
     CXCursor cursor = clang_getTranslationUnitCursor(unit);
     bool needs_reflection = false;
-    clang_visitChildren(
+    ClangVisitChildren(
         cursor,
-        [](CXCursor c, CXCursor parent, CXClientData client_data)
+        [&needs_reflection](CXCursor c, CXCursor parent)
         {
             string s = GetCursorSpelling(c);
             if (s == "NCLASS" || s == "NPROPERTY")
             {
-                bool* needs_reflection = reinterpret_cast<bool*>(client_data);
-                *needs_reflection = true;
+                needs_reflection = true;
                 return CXChildVisit_Break;
             }
             return CXChildVisit_Recurse;
-        },
-        &needs_reflection);
+        });
     return needs_reflection;
 }
 
-void ParseHeaderFile(string filepath)
+void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
 {
+    std::vector<const char*> arguments = {
+        "-x",
+        "c++",
+        "-std=c++20",
+        "-D __clang__",
+        "-D __META_PARSER__"
+    };
+    for (auto& path : IncludePaths)
+    {
+        arguments.push_back("-I");
+        arguments.push_back(path.c_str());
+    }
     CXIndex index = clang_createIndex(0, 0);
     CXTranslationUnit unit = clang_parseTranslationUnit(
         index,
@@ -279,13 +286,11 @@ void ParseHeaderFile(string filepath)
         cerr << "Unable to parse translation unit. Quitting." << endl;
         return;
     }
-    pair<vector<CXCursor>, string> data;
-    vector<CXCursor>& reflection_classes = data.first;
-    data.second = filepath;
+    vector<CXCursor> reflection_classes;
     CXCursor cursor = clang_getTranslationUnitCursor(unit);
-    clang_visitChildren(
+    ClangVisitChildren(
         cursor,
-        [](CXCursor c, CXCursor parent, CXClientData client_data)
+        [&](CXCursor c, CXCursor parent)
         {
             string s = GetCursorSpelling(c);
             if (clang_getCursorKind(c) == CXCursor_AnnotateAttr) 
@@ -293,12 +298,10 @@ void ParseHeaderFile(string filepath)
                 string class_name = fully_qualified(parent);
                 if ((s == "reflect-class" || s == "reflect-struct") && !NTypes.contains(class_name)) 
                 {
-                    pair<vector<CXCursor>, string>* data = reinterpret_cast<pair<vector<CXCursor>, string>*>(client_data);
-                    vector<CXCursor>& reflection_classes = data->first;
-                    string& current_filepath = data->second;
                     reflection_classes.push_back(parent);
                     NTypes[class_name].Name = class_name;
-                    NTypes[class_name].FileName = current_filepath;
+                    NTypes[class_name].NameWithoutNamespace = RemoveNamespace(class_name);
+                    NTypes[class_name].FileName = filepath;
                     if (s == "reflect-class")
                         NTypes[class_name].MetaType = "class";
                     else if (s == "reflect-struct")
@@ -307,14 +310,13 @@ void ParseHeaderFile(string filepath)
             }
             
             return CXChildVisit_Recurse;
-        },
-        &data);
+        });
 
     for (auto& cursor : reflection_classes)
     {
-        clang_visitChildren(
+        ClangVisitChildren(
             cursor,
-            [](CXCursor c, CXCursor parent, CXClientData client_data)
+            [&](CXCursor c, CXCursor parent)
             {
                 string cursor_spelling = fully_qualified(c);
                 string cursor_kind = GetCursorKindSpelling(c);
@@ -347,17 +349,8 @@ void ParseHeaderFile(string filepath)
                         string field_type = GetCursorTypeSpelling(parent);
                         if (IsReflectedType(class_name))
                         {
-                            if (IsSupportedType(clang_getCursorType(parent)))
-                            {
-                                auto& Fields = NTypes[class_name].Fields;
-                                Fields[field_name] = {true, field_type};
-                            }
-                            else 
-                            {
-                                auto& Fields = NTypes[class_name].Fields;
-                                cout << std::format("Unsupported type: {} {}, serialization code not generated, but you can still use reflection\n", field_type, field_name);
-                                Fields[field_name] = {false, field_type};
-                            }
+                            auto& Fields = NTypes[class_name].Fields;
+                            Fields[field_name] = field_type;
                         }
                     }
                     else if (cursor_spelling == "reflect-method")
@@ -385,8 +378,7 @@ void ParseHeaderFile(string filepath)
                 }
                 
                 return CXChildVisit_Recurse;
-            },
-            nullptr);
+            });
     }
 
     
@@ -423,12 +415,6 @@ string GenerateTypeRegistry(const TypeMetaData& NClass)
             FieldName);
     }
     string EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassName);
-    // string MethodsBody;
-    // for (auto& MethodName : NClass.Methods)
-    // {
-    //     MethodsBody += indent+std::format("Mngr.AddMethod<&{1}::{0}>(\"{0}\");\n", 
-    //         MethodName, ClassName);
-    // }
     return std::format(
 R"(
 NClass* {0}::Z_StaticClass = nullptr;
@@ -440,127 +426,50 @@ NClass* {0}::Z_StaticClass = nullptr;
 )", ClassName, BeginClassRegistry, FieldsBody, EndClassRegistry);
 }
 
-pair<string, string> GenerateSerializeBody(const string& FieldName, const string& FieldType)
-{
-    string SerializeBody, DeserializeBody;
-    if (IsReflectedStruct(FieldType))
-    {
-        SerializeBody += std::format(R"(
-    {{
-        FArchive local_Ar(content["{0}"], Ar);
-        this->{0}.Serialize(local_Ar);
-    }})", FieldName);
-        DeserializeBody += std::format(R"(
-    if (content.contains("{0}"))
-    {{
-        FArchive local_Ar(content["{0}"], Ar);
-        this->{0}.Deserialize(local_Ar);
-    }})", FieldName);
-    }
-    else 
-    {
-        SerializeBody += std::format(R"(
-    {{
-        FArchive local_Ar(content["{0}"], Ar);
-        TStaticSerializer<decltype(this->{0})>::Serialize(this->{0}, local_Ar);
-    }})", FieldName, FieldType);
-        DeserializeBody += std::format(R"(
-    if (content.contains("{0}"))
-    {{
-        FArchive local_Ar(content["{0}"], Ar);
-        TStaticSerializer<decltype(this->{0})>::Deserialize(this->{0}, local_Ar);
-    }})", FieldName);
-    }
-    return { SerializeBody, DeserializeBody };
-}
-
-string GenerateClassSerialize(const TypeMetaData& NClass)
-{
-    const auto ClassName = NClass.Name;
-
-    string SerializeBody, DeserializeBody;
-    for (auto& [FieldName, FieldType] : NClass.Fields)
-    {
-        if (FieldType.first)
-        {
-            auto [serialize_body, deserialize_body] = GenerateSerializeBody(FieldName, FieldType.second);
-            SerializeBody += serialize_body;
-            DeserializeBody += deserialize_body;
-        }
-    }
-
-    string BaseSerialize, BaseDeserialize;
-    if (NClass.BaseClass != "")
-    {
-        BaseSerialize = std::format("{}::Serialize(Ar);", NClass.BaseClass);
-        BaseDeserialize = std::format("{}::Deserialize(Ar);", NClass.BaseClass);
-    }
-
-    if (NClass.MetaType == "class")
-    {
-        return std::format(
-R"(
-void {0}::Serialize(FArchive& Ar)
-{{
-    {1}
-    if (this->bIsSerializing)
-        return;
-    this->bIsSerializing = true;
-    nlohmann::json& Node = Ar.Node;
-    Node["ClassName"] = "{0}";
-    nlohmann::json &content = Node["Content"];
-{2}
-    this->bIsSerializing = false;
-}}
-
-void {0}::Deserialize(FArchive& Ar)
-{{
-    {4}
-    nlohmann::json& Node = Ar.Node;
-    nlohmann::json &content = Node["Content"];
-{3}
-}}
-)", ClassName, BaseSerialize, SerializeBody, DeserializeBody, BaseDeserialize);
-    }
-    else 
-    {
-        return std::format(
-R"(
-void {0}::Serialize(FArchive& Ar)
-{{
-    {1}
-    nlohmann::json &content = Ar.Node;
-{2}
-}}
-
-void {0}::Deserialize(FArchive& Ar)
-{{
-    nlohmann::json &content = Ar.Node;
-{3}
-    {4}
-}}
-)", ClassName, BaseSerialize, SerializeBody, DeserializeBody, BaseDeserialize);
-    }
-}
-
 void GenerateCode()
 {
     for (auto& [ClassName, NClass] : NTypes)
     {
-            string TypeRegistry = GenerateTypeRegistry(NClass);
-            NClass.GeneratedFileCode = std::format(
-                "#include \"{}\"\nnamespace nilou {{\n{}\n}}", NClass.FileName, TypeRegistry);
+        string TypeRegistry = GenerateTypeRegistry(NClass);
+        NClass.GeneratedFileCode = std::format(
+            "#include \"{}\"\nnamespace nilou {{\n{}\n}}", NClass.FileName, TypeRegistry);
     }
 }
 
 void WriteCode(string GeneratedCodePath)
 {
+    std::set<string> ExpectedTypes;
+    for (auto& [ClassName, NClass] : NTypes)
+    {
+        ExpectedTypes.insert(NClass.NameWithoutNamespace);
+    }
+    ForEachFile(GeneratedCodePath, false, 
+        [&](const std::string& filepath)
+        {
+            if (EndsWith(filepath, ".gen.cpp"))
+            {
+                string filename = fs::path(filepath).filename().string();
+                string NameWithoutNamespace = filename.substr(0, filename.size()-8);    // 8 = ".gen.cpp".size()
+                if (ExpectedTypes.find(NameWithoutNamespace) == ExpectedTypes.end())
+                {
+                    fs::remove(filepath);
+                }
+            }
+        });
     for (auto& [ClassName, NClass] : NTypes)
     {
         if (NClass.FileName == "") continue;
-        auto tokens = Split(ClassName, ':');
-        string raw_class_name = tokens[tokens.size()-1];
-        ofstream out_stream(GeneratedCodePath + "/" + raw_class_name + ".gen.cpp", ios::out);
+        fs::path filepath = GeneratedCodePath + "/" + NClass.NameWithoutNamespace + ".gen.cpp";
+        if (fs::exists(filepath))
+        {
+            ifstream in_stream(filepath);
+            string content((std::istreambuf_iterator<char>(in_stream)), std::istreambuf_iterator<char>());
+            if (content == NClass.GeneratedFileCode)
+            {
+                continue;
+            }
+        }
+        ofstream out_stream(filepath, ios::out);
         out_stream << NClass.GeneratedFileCode;
     }
 }
@@ -582,12 +491,12 @@ int main(int argc, char *argv[])
         GeneratedCodePath = GeneratedCodePath.substr(0, GeneratedCodePath.size()-1);
 
     map<string, long long> CachedHeaderModifiedTime;
-    filesystem::path CachedHeaderModifiedTimePath = filesystem::path(GeneratedCodePath) / filesystem::path("CachedHeaderModifiedTime.txt");
-    if (!filesystem::exists(GeneratedCodePath))
+    fs::path CachedHeaderModifiedTimePath = fs::path(GeneratedCodePath) / fs::path("CachedHeaderModifiedTime.txt");
+    if (!fs::exists(GeneratedCodePath))
     {
-        filesystem::create_directories(GeneratedCodePath);
+        fs::create_directories(GeneratedCodePath);
     }
-    if (filesystem::exists(CachedHeaderModifiedTimePath))
+    if (fs::exists(CachedHeaderModifiedTimePath))
     {
         ifstream in{CachedHeaderModifiedTimePath.string()};
         while (!in.eof())
@@ -602,50 +511,43 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::vector<string> IncludedPaths;
     for (int i = 3; i < argc; i++)
     {
-        arguments.push_back("-I");
-        arguments.push_back(argv[i]);
+        IncludedPaths.push_back(argv[i]);
     }
 
-    std::string ImplementationBody;
-
-    std::string MarkedClassesEnumBody;
-
-    std::string IncludedPaths;
-
-    std::vector<string> ClassNames;
-
-    std::vector<string> files;
-
-    Directory dir(DirectoryName);
-    dir.ForEachFile(true, 
-    [&](const std::string& filepath) 
+    std::set<string> FilesThatNeedsReflection;
+    bool bHasChangedFiles = false;
+    ForEachFile(DirectoryName, true, 
+        [&](const std::string& filepath) 
         {
             if ((EndsWith(filepath, ".h") || EndsWith(filepath, ".hpp")) && 
                 NeedsReflection(filepath))
             {
-                auto path = filesystem::path(filepath).generic_string();
+                string path = fs::path(filepath).generic_string();
+                string filename = fs::path(filepath).filename().replace_extension("").string();
                 long long cached_last_modified_time = CachedHeaderModifiedTime[path];
-                long long last_modified_time = filesystem::last_write_time(filepath).time_since_epoch().count();
+                long long last_modified_time = fs::last_write_time(filepath).time_since_epoch().count();
+                FilesThatNeedsReflection.insert(path);
             
                 if (cached_last_modified_time == 0 || last_modified_time != cached_last_modified_time)
                 {
-                    files.push_back(filepath);
+                    bHasChangedFiles = true;
                     CachedHeaderModifiedTime[path] = last_modified_time;
                 }
             }
         });
 
-    if (files.size() > 0)
+    if (bHasChangedFiles)
     {
         mutex cout_mutex;
-        std::for_each(std::execution::par, files.begin(), files.end(), 
-            [&cout_mutex](const string& filepath) {
+        std::for_each(std::execution::par, FilesThatNeedsReflection.begin(), FilesThatNeedsReflection.end(), 
+            [&](const string& filepath) {
                 std::unique_lock<mutex> lock(cout_mutex);
                 cout << filepath << endl;
                 lock.unlock();
-                ParseHeaderFile(filepath);
+                ParseHeaderFile(filepath, IncludedPaths);
             });
         GenerateCode();
         WriteCode(GeneratedCodePath);

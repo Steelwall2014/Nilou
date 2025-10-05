@@ -30,6 +30,8 @@ void Serialize(FArchive& Ar, FObjectImport& Value)
     Serialize(Ar["PackageName"], Value.PackageName);
 }
 
+NClass* NPackage::Z_StaticClass = nullptr;
+
 void NPackage::Serialize(FArchive& Ar)
 {
     NObject::Serialize(Ar);

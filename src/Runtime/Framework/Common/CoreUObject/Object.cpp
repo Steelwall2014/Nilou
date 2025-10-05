@@ -129,8 +129,9 @@ NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& 
     return Object;
 }
 
-void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer)
+void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer, NClass* Class)
 {
+    Object->ClassPrivate = Class;
     Object->NamePrivate = Name;
     Object->OuterPrivate = Outer;
     FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
@@ -265,27 +266,51 @@ void NObject::MarkPackageDirty()
     }
 }
 
-NPackage* CreateNativeClassNPackage()
+struct FIntrinsicClassRegistry
 {
-    std::shared_ptr<NPackage> Object = std::make_shared<NPackage>();
-    InitializeObject(Object, "/Script/Engine", nullptr);
-    return Object.get();
-}
+    static void Register()
+    {
+        static bool bRegistered = false;
+        if (!bRegistered)
+        {
+            bRegistered = true;
+            std::shared_ptr<NPackage> NativeClassPackage = std::make_shared<NPackage>();
+            std::shared_ptr<NClass> NClass_StaticClass = std::make_shared<NClass>();
+            std::shared_ptr<NClass> NObject_StaticClass = std::make_shared<NClass>();
+            std::shared_ptr<NClass> NPackage_StaticClass = std::make_shared<NClass>();
+            NClass::Z_StaticClass = NClass_StaticClass.get();
+            NObject::Z_StaticClass = NObject_StaticClass.get();
+            NPackage::Z_StaticClass = NPackage_StaticClass.get();
 
-NClass* CreateNativeClassNClass()
-{
-    std::shared_ptr<NClass> Object = std::make_shared<NClass>();
-    InitializeObject(Object, "Class", CreateNativeClassNPackage());
-    Object->SetClassFlags(EClassFlags::Intrinsic);
-    return Object.get();
-}
+            InitializeObject(NativeClassPackage, "/Script/Engine", nullptr, NPackage::StaticClass());
+            InitializeObject(NClass_StaticClass, "Class", NativeClassPackage.get(), NClass::StaticClass());
+            InitializeObject(NObject_StaticClass, "Object", NativeClassPackage.get(), NClass::StaticClass());
+            InitializeObject(NPackage_StaticClass, "Package", NativeClassPackage.get(), NClass::StaticClass());
+            
+            NClass_StaticClass->Size = sizeof(NClass);
+            NClass_StaticClass->SuperStruct = NObject_StaticClass.get();
+            NClass_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NClass(); };
+            NClass_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+
+            NObject_StaticClass->Size = sizeof(NObject);
+            NObject_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NObject(); };
+            NObject_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+
+            NPackage_StaticClass->Size = sizeof(NPackage);
+            NPackage_StaticClass->SuperStruct = NObject_StaticClass.get();
+            NPackage_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NPackage(); };
+            NPackage_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+        }
+
+    }
+};
 
 NObject* NClass::CreateObject(const std::string& Name, NObject* Outer) const
 {
     void* Memory = malloc(Size);
     ClassConstructor(Memory);
     std::shared_ptr<NObject> Object(static_cast<NObject*>(Memory));
-    InitializeObject(Object, Name, Outer); 
+    InitializeObject(Object, Name, Outer, const_cast<NClass*>(this)); 
     return Object.get();
 }
 
@@ -298,13 +323,12 @@ FClassRegistryBase::FClassRegistryBase(
     EClassFlags InClassFlags, 
     std::function<void(void*)> InClassConstructor)
 {
-    static NPackage* NativeClassPackage = CreateNativeClassNPackage();
-    static NClass* NativeClassClass = CreateNativeClassNClass();
+    FIntrinsicClassRegistry::Register();
     std::string Name = RemoveNamespace(InName);
     Name = RemovePrefix(InMetaClass, Name);
     FStaticConstructObjectParameters Params;
-    Params.Class = NativeClassClass;
-    Params.Outer = NativeClassPackage;
+    Params.Class = NClass::StaticClass();
+    Params.Outer = FindObject<NPackage>("/Script/Engine");
     Params.Name = Name;
     Class = Cast<NClass>(StaticConstructObject_Internal(Params));
     Class->SuperStruct = InSuperClass;
@@ -343,28 +367,5 @@ std::string FClassRegistryBase::RemovePrefix(EMetaClass InMetaClass, const std::
 }
 
 NClass* NObject::Z_StaticClass = nullptr;
-template<>
-struct TClassRegistry<NObject> : public FClassRegistryBase
-{
-    TClassRegistry<NObject>() 
-        : FClassRegistryBase(
-            EMetaClass::Object, 
-            "nilou::NObject", 
-            nullptr, 
-            sizeof(NObject),
-            EClassFlags::Native | EClassFlags::Intrinsic, 
-            [](void* Memory) { new(Memory) NObject(); }) 
-    {
-        ConstructFProperty = [this]()
-        {
-            FStrProperty* Property = new FStrProperty();
-            Property->Name = "Name";
-            Property->Offset_Internal = offsetof(NObject, NamePrivate);
-            Property->ElementSize = sizeof(static_cast<NObject*>(nullptr)->NamePrivate);
-            Class->Properties.Add(Property);
-        };
-    }
-};
-TClassRegistry<NObject> ClassRegistry_NObject;
 
 }

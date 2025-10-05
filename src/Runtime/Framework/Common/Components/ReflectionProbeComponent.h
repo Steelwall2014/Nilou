@@ -63,11 +63,11 @@ namespace nilou {
 
         FReflectionProbeSceneProxy* SceneProxy;
   
-        BEGIN_UNIFORM_BUFFER_STRUCT(IrradianceEnvTextureShaderBlock)
+        BEGIN_UNIFORM_BUFFER_STRUCT(FIrradianceEnvTextureShaderBlock)
             alignas(16) NPROPERTY() int TextureSize;
         END_UNIFORM_BUFFER_STRUCT()
 
-        BEGIN_UNIFORM_BUFFER_STRUCT(PrefilteredEnvTextureShaderBlock)
+        BEGIN_UNIFORM_BUFFER_STRUCT(FPrefilteredEnvTextureShaderBlock)
             SHADER_PARAMETER(int, TextureSize);
             SHADER_PARAMETER(float, roughness);
         END_UNIFORM_BUFFER_STRUCT()
@@ -82,8 +82,8 @@ namespace nilou {
 
         std::vector<RHITextureCubeRef> PrefilteredTextureMips;
 
-        TRDGUniformBufferRef<IrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
-        TRDGUniformBufferRef<PrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
+        TRDGUniformBufferRef<FIrradianceEnvTextureShaderBlock> IrradianceShaderUniformBuffer;
+        TRDGUniformBufferRef<FPrefilteredEnvTextureShaderBlock> PrefilterShaderUniformBuffer;
 
     };
 

@@ -26,7 +26,7 @@ target("Nilou")
     set_languages("cxx20")
     set_kind("binary")
 
-    before_build(function (target)
+    on_prepare(function (target)
         os.cp("$(projectdir)/External/bin/*", "$(buildir)/$(os)/$(arch)/$(mode)")
         local includedirs = target:get("includedirs")
         local src_dir = path.absolute("src")
@@ -35,10 +35,15 @@ target("Nilou")
         for i, v in ipairs(includedirs) do
             include_dir = include_dir .. string.format(" \"%s\"", path.absolute(v))
         end
-        local exec = string.format("$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe \"%s\" \"%s\" %s", src_dir, generated_dir, include_dir)
-        print(exec)
-        os.exec(exec)
-        target:add("files", generated_dir .. "/*.cpp")
+        local headertool_path = "$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
+        if (os.exists(headertool_path)) then
+            local exec = string.format("%s \"%s\" \"%s\" %s", headertool_path, src_dir, generated_dir, include_dir)
+            print(exec)
+            os.exec(exec)
+            target:add("files", generated_dir .. "/*.gen.cpp")
+        else
+            print("NilouHeaderTool not found in " .. headertool_path .. ". Please build NilouHeaderTool first (xmake build NilouHeaderTool).")
+        end
     end)
 
     add_packages(
@@ -53,8 +58,7 @@ target("Nilou")
         "crossguid",
         "glad",
         "base64",
-        "VulkanSDK",
-        "NilouHeaderTool"
+        "VulkanSDK"
     )
 
     add_defines([[PROJECT_DIR=R"($(projectdir))"]])
@@ -77,8 +81,8 @@ target("Nilou")
         "src/Runtime/Cesium3DTiles",
         "src/Runtime/RenderGraph"
     )
-    add_files("src/Runtime/**.cpp")
-    add_cxflags("/bigobj")
+    add_files("src/Runtime/**.cpp|**.gen.cpp")
+    add_cxflags("/bigobj","/EHsc")
 
     add_links(
         "kernel32", 

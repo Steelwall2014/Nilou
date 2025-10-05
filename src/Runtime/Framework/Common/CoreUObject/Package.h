@@ -148,10 +148,17 @@ struct FObjectImport : public FObjectResource
 };
 void Serialize(FArchive& Ar, FObjectImport& Value);
 
-class NCLASS NPackage : public NObject
+class NPackage : public NObject
 {
-    GENERATED_BODY()
+private:
+	template<typename T> 
+	friend class TClassRegistry;
+	static NClass* Z_StaticClass;
+	friend struct FIntrinsicClassRegistry;
 public:
+	virtual NClass *GetClass() const override { return StaticClass(); }
+	static NClass *StaticClass() { return Z_StaticClass; }
+
     virtual void Serialize(FArchive& Ar) override;
 
 	static void SavePackage(NPackage* Package);

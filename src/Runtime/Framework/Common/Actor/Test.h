@@ -5,7 +5,7 @@
 
 namespace nilou {
 
-    class NCLASS A : public NObject
+    class NCLASS NTestObjectA : public NObject
     { 
         GENERATED_BODY()
     public:
@@ -13,7 +13,7 @@ namespace nilou {
         int a;
     };
 
-    class NCLASS B : public A 
+    class NCLASS NTestObjectB : public NTestObjectA 
     { 
         GENERATED_BODY()
     public:

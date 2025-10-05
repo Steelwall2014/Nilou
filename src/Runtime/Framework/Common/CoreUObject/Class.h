@@ -178,6 +178,7 @@ public:
     friend class TClassRegistry;
     friend class FStructProperty;
     friend class FObjectProperty;
+    friend struct FIntrinsicClassRegistry;
 
     NClass() = default;
 

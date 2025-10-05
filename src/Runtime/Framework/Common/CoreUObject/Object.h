@@ -180,6 +180,7 @@ namespace nilou {
         template<typename T> 
         friend class TClassRegistry;
         static NClass* Z_StaticClass;
+        friend struct FIntrinsicClassRegistry;
     public:
         virtual NClass *GetClass() const { return StaticClass(); }
         static NClass *StaticClass() { return Z_StaticClass; }
@@ -250,13 +251,15 @@ namespace nilou {
         void MarkPackageDirty();
 
     private:
-        std::string NamePrivate;
-
         std::atomic<EObjectFlags> ObjectFlags;
+
+        NClass* ClassPrivate;
+
+        std::string NamePrivate;
 
         NObject* OuterPrivate;
 
-        friend void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer);
+        friend void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer, NClass* Class);
     };
 
     template <class T>

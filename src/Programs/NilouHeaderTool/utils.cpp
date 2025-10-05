@@ -75,3 +75,11 @@ bool EndsWith(const std::string &str, const std::string &temp)
     }
     return true;
 }
+
+std::string RemoveNamespace(const std::string& name)
+{
+    size_t pos = name.find_last_of(':');
+    if (pos != std::string::npos)
+        return name.substr(pos + 1);
+    return name;
+}

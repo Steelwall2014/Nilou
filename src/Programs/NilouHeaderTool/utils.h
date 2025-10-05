@@ -16,3 +16,5 @@ std::string GetTypeSpelling(CXType t);
 std::string GetClangString(const CXString& str);
 
 bool EndsWith(const std::string &str, const std::string &temp);
+
+std::string RemoveNamespace(const std::string &str);
