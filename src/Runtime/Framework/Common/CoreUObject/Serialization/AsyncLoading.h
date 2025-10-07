@@ -132,6 +132,8 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
     TArray<FObjectExport> ObjectExports;
     TArray<FObjectImport> ObjectImports;
 
+    EAsyncLoadingResult LoadResult = EAsyncLoadingResult::Succeeded;
+
     FAsyncPackage(const FAsyncPackageDesc& InDesc, FAsyncLoadingThread& InAsyncLoadingThread, FAsyncLoadEventSpec* EventSpecs)
         : Desc(InDesc)
         , AsyncLoadingThread(InAsyncLoadingThread)
@@ -265,6 +267,7 @@ public:
     std::mutex RequestIdToPackageCritical;
     TMap<uint64, std::weak_ptr<FAsyncPackage>> RequestIdToPackage;
 
+    std::mutex LoadedPackagesToProcessCritical;
     TArray<FAsyncPackage*> LoadedPackagesToProcess;
 
     std::atomic<uint64> RequestId = 0;

@@ -81,7 +81,7 @@ namespace nilou {
             ETileGltfUpAxis TileGltfUpAxis = ETileGltfUpAxis::Y;
             glm::dvec3 RtcCenter;
 
-            std::shared_ptr<UCesium3DTileComponent> TileComponent = nullptr;
+            UCesium3DTileComponent* TileComponent = nullptr;
 
             bool IsLeaf() const { return Children.empty(); }
 

@@ -63,10 +63,4 @@ namespace nilou {
         }
     }
 
-    BEGIN_CLASS_REGISTRY(Object, UTexture, NObject, EClassFlags::Native)
-        CLASS_PROPERTY(ImageData)
-        CLASS_PROPERTY(SamplerState)
-        CLASS_PROPERTY(NumMips)
-    END_CLASS_REGISTRY(UTexture)
-
 }

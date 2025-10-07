@@ -97,8 +97,7 @@ namespace nilou {
     {
         if (!ObjectChildren.contains(Key))
         {
-            nlohmann::json& ChildNode = Node[Key];
-            ObjectChildren[Key] = std::make_unique<FArchive>(ChildNode, bIsLoading);
+            ObjectChildren[Key] = std::make_unique<FArchive>(Node[Key], bIsLoading);
         }
         return *ObjectChildren[Key];
     }

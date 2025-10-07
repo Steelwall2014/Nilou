@@ -130,6 +130,14 @@ public:
 template<typename T>
 struct TBox
 {
+private:
+    static NClass* Z_StaticClass;
+public:
+    virtual NClass *GetClass() const { return Z_StaticClass; }
+    static NClass *StaticClass() { return Z_StaticClass; }
+    template <typename U>
+    friend class TClassRegistry;
+
 public:
 
     /** Holds the box's minimum point. */

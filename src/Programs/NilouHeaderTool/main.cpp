@@ -57,6 +57,7 @@ struct TypeMetaData
     vector<vector<string>> Constructors;
     string GeneratedFileCode;
     string MetaType; // class or struct
+    vector<string> EnumValues;
 };
 map<string, TypeMetaData> NTypes;
 
@@ -82,6 +83,11 @@ bool IsReflectedStruct(const string& TypeName)
 bool IsReflectedClass(const string& TypeName)
 {
     return NTypes.contains(TypeName) && NTypes[TypeName].MetaType == "class";
+}
+
+bool IsReflectedEnum(const string& TypeName)
+{
+    return NTypes.contains(TypeName) && NTypes[TypeName].MetaType == "enum";
 }
 
 bool IsReflectedType(const std::string& TypeName)
@@ -296,7 +302,7 @@ void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
             if (clang_getCursorKind(c) == CXCursor_AnnotateAttr) 
             {
                 string class_name = fully_qualified(parent);
-                if ((s == "reflect-class" || s == "reflect-struct") && !NTypes.contains(class_name)) 
+                if ((s == "reflect-class" || s == "reflect-struct" || s == "reflect-enum") && !NTypes.contains(class_name)) 
                 {
                     reflection_classes.push_back(parent);
                     NTypes[class_name].Name = class_name;
@@ -306,6 +312,8 @@ void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
                         NTypes[class_name].MetaType = "class";
                     else if (s == "reflect-struct")
                         NTypes[class_name].MetaType = "struct";
+                    else if (s == "reflect-enum")
+                        NTypes[class_name].MetaType = "enum";
                 }
             }
             
@@ -376,6 +384,16 @@ void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
                     NTypes[base_class].DerivedClasses.insert(derived_class);
                     NTypes[derived_class].BaseClass = GetRawType(base_class);
                 }
+                else if (cursor_kind_raw == CXCursor_EnumConstantDecl)
+                {
+                    string enum_name = fully_qualified(parent);
+                    string enum_value = GetCursorSpelling(c);
+                    if (IsReflectedType(enum_name))
+                    {
+                        auto& EnumValues = NTypes[enum_name].EnumValues;
+                        EnumValues.push_back(enum_value);
+                    }
+                }
                 
                 return CXChildVisit_Recurse;
             });
@@ -387,43 +405,41 @@ void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
     
 }
 
-static const string& indent = "\t\t";
-
 string GenerateTypeRegistry(const TypeMetaData& NClass)
 {
     const auto ClassName = NClass.Name;
+    const auto ClassNameWithoutNamespace = NClass.NameWithoutNamespace;
     string BeginClassRegistry;
-    BeginClassRegistry += std::format(
-        "BEGIN_CLASS_REGISTRY({}, {}, {}, EClassFlags::Native)\n", 
-        IsReflectedClass(ClassName) ? "Object" : "Struct", 
-        ClassName, 
-        NClass.BaseClass!="" ? NClass.BaseClass : "NullSuperClass");
-    // string CtorBody;
-    // for (auto& Args : NClass.Constructors)
-    // {
-    //     string args;
-    //     for (int i = 0; i < Args.size(); i++)
-    //     {
-    //         args += ", " + Args[i];
-    //     }
-    //     CtorBody += indent+std::format("Mngr.AddConstructor<{}{}>();\n", ClassName, args);
-    // }
-    string FieldsBody;
-    for (auto& [FieldName, FieldType] : NClass.Fields)
+    string RegistryBody;
+    string EndClassRegistry;
+    if (NClass.MetaType == "enum")
     {
-        FieldsBody += std::format("\tCLASS_PROPERTY({})\n", 
-            FieldName);
+        BeginClassRegistry += std::format(
+            "BEGIN_ENUM_REGISTRY({}, EClassFlags::Native)\n", ClassNameWithoutNamespace);
+        for (auto& EnumValue : NClass.EnumValues)
+        {
+            RegistryBody += std::format("\tENUM_VALUE({});\n", EnumValue);
+        }
+        EndClassRegistry = std::format("END_ENUM_REGISTRY({})\n", ClassNameWithoutNamespace);
     }
-    string EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassName);
+    else 
+    {
+        BeginClassRegistry += std::format(
+            "BEGIN_CLASS_REGISTRY({}, {}, {}, EClassFlags::Native)\n", 
+            IsReflectedClass(ClassName) ? "Object" : IsReflectedEnum(ClassName) ? "Enum" : "Struct", 
+            ClassNameWithoutNamespace, 
+            NClass.BaseClass!="" ? NClass.BaseClass : "NullSuperClass");
+        for (auto& [FieldName, FieldType] : NClass.Fields)
+        {
+            RegistryBody += std::format("\tCLASS_PROPERTY({})\n", FieldName);
+        }
+        EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassNameWithoutNamespace);
+    }
     return std::format(
-R"(
-NClass* {0}::Z_StaticClass = nullptr;
-
-{1}
-{2}
-{3}
-
-)", ClassName, BeginClassRegistry, FieldsBody, EndClassRegistry);
+                "{0}\n"
+                "{1}\n"
+                "{2}\n", 
+                BeginClassRegistry, RegistryBody, EndClassRegistry);
 }
 
 void GenerateCode()

@@ -16,7 +16,7 @@ namespace nilou {
         }
 
         NPROPERTY()
-        std::shared_ptr<UVirtualHeightfieldMeshComponent> VHMComponent;
+        UVirtualHeightfieldMeshComponent* VHMComponent;
     };
 
 }

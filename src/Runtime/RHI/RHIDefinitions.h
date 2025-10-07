@@ -2,6 +2,7 @@
 #include "Platform.h"
 #include "Common/EnumClassFlags.h"
 #include "PixelFormat.h"
+#include "Common/CoreUObject/Macros.h"
 
 namespace nilou {
 	
@@ -164,7 +165,7 @@ enum class EIndexType : uint32
 // 	PMF_Back,
 // 	PMF_Front_and_Back
 // };
-enum ERasterizerFillMode
+enum NENUM ERasterizerFillMode
 {
 	FM_Point,
 	FM_Wireframe,
@@ -172,7 +173,7 @@ enum ERasterizerFillMode
 
 	ERasterizerFillMode_Num,
 };
-enum EBlendOperation
+enum NENUM EBlendOperation
 {
 	BO_Add,
 	BO_Subtract,
@@ -185,7 +186,7 @@ enum EBlendOperation
 };
 static_assert(EBlendOperation_Num <= (1 << EBlendOperation_NumBits), "EBlendOperation_Num will not fit on EBlendOperation_NumBits");
 
-enum EBlendFactor
+enum NENUM EBlendFactor
 {
 	BF_Zero,
 	BF_One,
@@ -209,7 +210,7 @@ enum EBlendFactor
 };
 static_assert(EBlendFactor_Num <= (1 << EBlendFactor_NumBits), "EBlendFactor_Num will not fit on EBlendFactor_NumBits");
 
-enum ESamplerFilter
+enum NENUM ESamplerFilter
 {
 	SF_Point,
 	SF_Bilinear,
@@ -222,7 +223,7 @@ enum ESamplerFilter
 };
 static_assert(ESamplerFilter_Num <= (1 << ESamplerFilter_NumBits), "ESamplerFilter_Num will not fit on ESamplerFilter_NumBits");
 
-enum ESamplerAddressMode
+enum NENUM ESamplerAddressMode
 {
 	AM_Wrap,
 	AM_Clamp,
@@ -235,12 +236,12 @@ enum ESamplerAddressMode
 };
 static_assert(ESamplerAddressMode_Num <= (1 << ESamplerAddressMode_NumBits), "ESamplerAddressMode_Num will not fit on ESamplerAddressMode_NumBits");
 
-enum ESamplerCompareFunction
+enum NENUM ESamplerCompareFunction
 {
 	SCF_Never,
 	SCF_Less
 };
-enum EColorWriteMask
+enum NENUM EColorWriteMask
 {
 	CW_RED   = 0x01,
 	CW_GREEN = 0x02,
@@ -256,7 +257,7 @@ enum EColorWriteMask
 	EColorWriteMask_NumBits = 4,
 };
 
-enum ERasterizerCullMode
+enum NENUM ERasterizerCullMode
 {
 	CM_None,
 	CM_CW,
@@ -330,7 +331,7 @@ enum ETextureWrapModes : uint8
 	TW_Clamp,
 	TW_Mirrored_Repeat
 };
-enum ECompareFunction
+enum NENUM ECompareFunction
 {
 	CF_Less,
 	CF_LessEqual,
@@ -344,7 +345,7 @@ enum ECompareFunction
 	ECompareFunction_Num,
 };
 
-enum EStencilOp
+enum NENUM EStencilOp
 {
 	SO_Keep,
 	SO_Zero,

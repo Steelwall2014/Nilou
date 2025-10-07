@@ -22,9 +22,50 @@ enum class EClassFlags
 };
 ENUM_CLASS_FLAGS(EClassFlags);
 
+#if __cplusplus >= 202002L
+template <typename T>
+concept HasStaticClass = requires {
+    { T::StaticClass() } -> std::same_as<NClass*>;
+};
+template <typename T>
+struct THasStaticClass { static constexpr bool Value = HasStaticClass<T>; };
+
+template <typename T>
+concept HasStaticEnum = requires {
+    { StaticEnum<T>() } -> std::same_as<NClass*>;
+};
+template <typename T>
+struct THasStaticEnum { static constexpr bool Value = HasStaticEnum<T>; };
+#else
+template <typename T>
+struct THasStaticClass 
+{ 
+private:
+    template <typename U>
+    static constexpr auto Test(U*) -> decltype(U::StaticClass(), std::true_type{});
+    template <typename U>
+    static constexpr std::false_type Test(...);
+public:
+    static constexpr bool Value = decltype(Test<T>(nullptr))::value; 
+};
+
+template <typename T>
+struct THasStaticEnum 
+{ 
+private:
+    template <typename U>
+    static constexpr auto Test(U*) -> decltype(StaticEnum<U>(), std::true_type{});
+    template <typename U>
+    static constexpr std::false_type Test(...);
+public:
+    static constexpr bool Value = decltype(Test<T>(nullptr))::value; 
+};
+#endif
+
+enum class EMetaClass { Struct, Object, Enum };
+
 struct FClassRegistryBase
 {
-    enum class EMetaClass { Struct, Object };
     struct NullSuperClass { static NClass* StaticClass() { return nullptr; } };
 
     FClassRegistryBase(EMetaClass InMetaClass, const std::string& InName, NClass* InSuperClass, int32 InSize, EClassFlags InClassFlags, std::function<void(void*)> InDefaultClassConstructor);
@@ -33,19 +74,74 @@ struct FClassRegistryBase
 
     NClass* Class;
 
-    template<typename T>
-    struct TConstructProperty;
+    template<typename T> 
+    struct TConstructProperty 
+    { 
+        static FProperty* Construct() 
+        {
+            if constexpr (std::is_pointer_v<T> && TIsDerivedFrom<std::remove_pointer_t<T>, NObject>::Value)
+            {
+                return new FObjectProperty;
+            }
+            else if constexpr (std::is_enum_v<T> && THasStaticEnum<T>::Value)
+            {
+                FEnumProperty* Property = new FEnumProperty;
+                Property->Enum = StaticEnum<T>();
+                return Property;
+            }
+            else if constexpr (THasStaticClass<T>::Value)
+            {
+                FStructProperty* Property = new FStructProperty;
+                Property->Struct = T::StaticClass();
+                return Property;
+            }
+            else 
+            {
+                static_assert(false, "T is not a supported reflection type.");
+                return nullptr;
+            }
+        } 
+    };
     
     template<> struct TConstructProperty<std::string> { static FProperty* Construct() { return new FStrProperty; } };
-    template<> struct TConstructProperty<int32> { static FProperty* Construct() { return new FIntProperty; } };
+    template<> struct TConstructProperty<int8> { static FProperty* Construct() { return new FInt8Property; } };
+    template<> struct TConstructProperty<int16> { static FProperty* Construct() { return new FInt16Property; } };
+    template<> struct TConstructProperty<int32> { static FProperty* Construct() { return new FInt32Property; } };
+    template<> struct TConstructProperty<int64> { static FProperty* Construct() { return new FInt64Property; } };
+    template<> struct TConstructProperty<uint8> { static FProperty* Construct() { return new FUInt8Property; } };
+    template<> struct TConstructProperty<uint16> { static FProperty* Construct() { return new FUInt16Property; } };
+    template<> struct TConstructProperty<uint32> { static FProperty* Construct() { return new FUInt32Property; } };
+    template<> struct TConstructProperty<uint64> { static FProperty* Construct() { return new FUInt64Property; } };
     template<> struct TConstructProperty<bool> { static FProperty* Construct() { return new FBoolProperty; } };
     template<> struct TConstructProperty<float> { static FProperty* Construct() { return new FFloatProperty; } };
+    template<> struct TConstructProperty<double> { static FProperty* Construct() { return new FDoubleProperty; } };
     template<typename T> struct TConstructProperty<TArray<T>>
     { 
         static FProperty* Construct() 
         { 
-            FArrayProperty* Property = new FArrayProperty; 
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TArray<T>*>(Value)); };
+            FArrayProperty* Property = new FArrayProperty;
+            Property->Inner = TConstructProperty<T>::Construct();
+            Property->ItemSerializer = [](FArchive& Ar, void* Value, FProperty* Inner)
+                {
+                    TArray<T>& Array = *reinterpret_cast<TArray<T>*>(Value);
+                    nlohmann::json& Node = Ar.GetNode();
+                    if (Ar.IsLoading())
+                    {
+                        Ncheck(Node.is_array());
+                        Array.SetNum(Node.size());
+                        for (int32 Index = 0; Index < Node.size(); ++Index)
+                        {
+                            Inner->SerializeItem(Ar[Index], &Array[Index]);
+                        }
+                    }
+                    else
+                    {
+                        for (int32 Index = 0; Index < Array.Num(); ++Index)
+                        {
+                            Inner->SerializeItem(Ar[Index], &Array[Index]);
+                        }
+                    }
+                };
             return Property;
         } 
     };
@@ -53,8 +149,38 @@ struct FClassRegistryBase
     { 
         static FProperty* Construct() 
         { 
-            FMapProperty* Property = new FMapProperty; 
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TMap<K, V>*>(Value)); };
+            FMapProperty* Property = new FMapProperty;
+            Property->KeyProp = TConstructProperty<K>::Construct();
+            Property->ValueProp = TConstructProperty<V>::Construct();
+            Property->ItemSerializer = [](FArchive& Ar, void* M, FProperty* KeyProp, FProperty* ValueProp)
+                {
+                    TMap<K, V>& Map = *reinterpret_cast<TMap<K, V>*>(M);
+                    nlohmann::json& Node = Ar.GetNode();
+                    if (Ar.IsLoading())
+                    {
+                        Ncheck(Node.is_array());
+                        Map.Empty();
+                        int32 Count = Node.size();
+                        for (int32 Index = 0; Index < Count; ++Index)
+                        {
+                            K Key;
+                            V Value;
+                            KeyProp->SerializeItem(Ar[Index]["Key"], &Key);
+                            ValueProp->SerializeItem(Ar[Index]["Value"], &Value);
+                            Map.Add(Key, Value);
+                        }
+                    }
+                    else
+                    {
+                        int32 Index = 0;
+                        for (auto& [Key, Value] : Map)
+                        {
+                            KeyProp->SerializeItem(Ar[Index]["Key"], (void*)&Key);
+                            ValueProp->SerializeItem(Ar[Index]["Value"], &Value);
+                            Index++;
+                        }
+                    }
+                };
             return Property;
         } 
     };
@@ -62,8 +188,34 @@ struct FClassRegistryBase
     { 
         static FProperty* Construct() 
         { 
-            FSetProperty* Property = new FSetProperty; 
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TSet<T>*>(Value)); };
+            FSetProperty* Property = new FSetProperty;
+            Property->Inner = TConstructProperty<T>::Construct();
+            Property->ItemSerializer = [](FArchive& Ar, void* Value, FProperty* Inner)
+                {
+                    TSet<T>& Set = *reinterpret_cast<TSet<T>*>(Value);
+                    nlohmann::json& Node = Ar.GetNode();
+                    if (Ar.IsLoading())
+                    {
+                        Ncheck(Node.is_array());
+                        Set.Empty();
+                        int32 Count = Node.size();
+                        for (int32 Index = 0; Index < Count; ++Index)
+                        {
+                            T Value;
+                            Inner->SerializeItem(Ar[Index], &Value);
+                            Set.Add(Value);
+                        }
+                    }
+                    else
+                    {
+                        int32 Index = 0;
+                        for (auto& Value : Set)
+                        {
+                            Inner->SerializeItem(Ar[Index], &Value);
+                            Index++;
+                        }
+                    }
+                };
             return Property;
         } 
     };
@@ -103,18 +255,30 @@ struct FClassRegistryBase
             return Property;
         } 
     };
-    template<typename T> struct TConstructProperty 
-    { 
-        static FProperty* Construct() 
-        { 
-            FStructProperty* Property = new FStructProperty;
-            Property->Struct = T::StaticClass();
-            return Property;
-        } 
-    };
-    template<> struct TConstructProperty<NObject*> { static FProperty* Construct() { return new FObjectProperty; } };
 
-    std::function<void()> ConstructFProperty;
+    template <typename T, typename U>
+    size_t offset_of(T U::*Member)
+    {
+        return reinterpret_cast<size_t>(
+            &(reinterpret_cast<U*>(0)->*Member)
+        );
+    }
+
+    template <typename T, typename U>
+    void AddProperty(const std::string& Name, T U::*Member)
+    {
+        ConstructFProperty.Add([this, Name, Member]() {
+            auto Property = TConstructProperty<T>::Construct();
+            Property->Name = Name; \
+            Property->Offset_Internal = offset_of(Member); \
+            Property->ElementSize = sizeof(T); \
+            AddProperty(Property);
+        });
+    }
+
+    void AddProperty(FProperty* Property);
+
+    TArray<std::function<void()>> ConstructFProperty;
 
     static void DeferredConstructFProperty();
 
@@ -135,6 +299,7 @@ namespace SerializePrivate {
 }
 
 #define BEGIN_CLASS_REGISTRY(MetaClass, ClassName, Super, ClassFlags) \
+    NClass* ClassName::Z_StaticClass = nullptr; \
     template<> \
     struct TClassRegistry<ClassName> : public FClassRegistryBase \
     { \
@@ -147,38 +312,56 @@ namespace SerializePrivate {
             ClassFlags, \
             [](void* Memory){ new (Memory) ClassName(); }) \
         { \
-            ConstructFProperty = [this]() { \
+            TClass::Z_StaticClass = this->Class;
 
 #define CLASS_PROPERTY(PropertyName) \
-            auto Property_##PropertyName = TConstructProperty<TClass>::Construct(); \
-            Property_##PropertyName->Name = #PropertyName; \
-            Property_##PropertyName->Offset_Internal = offsetof(TClass, PropertyName); \
-            Property_##PropertyName->ElementSize = sizeof(decltype(static_cast<TClass*>(nullptr)->PropertyName)); \
-            this->Class->Properties.Add(Property_##PropertyName);
+            AddProperty(#PropertyName, &TClass::PropertyName);
 
 #define END_CLASS_REGISTRY(ClassName) \
-            }; \
-            TClass::Z_StaticClass = this->Class; \
         } \
     }; \
     TClassRegistry<ClassName> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
+
+#define BEGIN_ENUM_REGISTRY(EnumName, ClassFlags) \
+    NClass* StaticEnum_##EnumName = nullptr; \
+    template<> \
+    struct TClassRegistry<EnumName> : public FClassRegistryBase \
+    { \
+        using TEnum = EnumName; \
+        TClassRegistry<EnumName>() : FClassRegistryBase( \
+            EMetaClass::Enum, \
+            #EnumName, \
+            nullptr, \
+            sizeof(EnumName), \
+            ClassFlags, \
+            [](void* Memory){ new (Memory) EnumName(); }) \
+        { \
+            StaticEnum_##EnumName = this->Class;
+
+#define ENUM_VALUE(Value) \
+            this->Class->EnumNames.Add({#Value, static_cast<int64>(TEnum::Value)});
+
+#define END_ENUM_REGISTRY(EnumName) \
+        } \
+    }; \
+    template<> NClass* StaticEnum<EnumName>() { return StaticEnum_##EnumName; } \
+    TClassRegistry<EnumName> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
 
 class NClass : public NObject
 {
 private:
     template<typename T> 
     friend class TClassRegistry;
+    friend class FClassRegistryBase;
     static NClass* Z_StaticClass;
 public:
     virtual NClass *GetClass() const { return StaticClass(); }
     static NClass *StaticClass() { return Z_StaticClass; }
 public:
-
-    template<typename T>
-    friend class TClassRegistry;
     friend class FStructProperty;
     friend class FObjectProperty;
-    friend struct FIntrinsicClassRegistry;
+    friend class FEnumProperty;
+    friend void InitUObject();
 
     NClass() = default;
 
@@ -243,9 +426,14 @@ public:
         return (ClassFlags & FlagsToCheck) == FlagsToCheck;
     }
 
+    int64 GetValueByNameString(const std::string& Name) const;
+    std::string GetNameStringByValue(int64 Value) const;
+
 private:
 
     int32 Size;
+
+    EMetaClass MetaClass;
 
     std::atomic<EClassFlags> ClassFlags;
 
@@ -253,13 +441,13 @@ private:
 
     TArray<FProperty*> Properties;
 
+	TArray<std::pair<std::string, int64>> EnumNames;
+
     std::function<void(void*)> ClassConstructor;
 
-    friend class FClassRegistryBase;
-    template <typename T>
-    friend class TClassRegistry;
-
 };
+
+template <typename T> NClass* StaticEnum();
 
 #if 0
 /** Older solution */

@@ -137,10 +137,10 @@ namespace nilou {
 		EStencilOp BackFacePassStencilOp;
 
 		NPROPERTY()
-		uint8 StencilReadMask;
+		int32 StencilReadMask;
 
 		NPROPERTY()
-		uint8 StencilWriteMask;
+		int32 StencilWriteMask;
 
 		FDepthStencilStateInitializer(
 			bool bInEnableDepthWrite = true,
@@ -307,66 +307,70 @@ namespace nilou {
 	// 	}
 	// };
 
+	struct NSTRUCT FRenderTargetBlendState
+	{
+		GENERATED_BODY()
+
+		NPROPERTY()
+		EBlendOperation ColorBlendOp;
+		NPROPERTY()
+		EBlendFactor ColorSrcBlend;
+		NPROPERTY()
+		EBlendFactor ColorDestBlend;
+		NPROPERTY()
+		EBlendOperation AlphaBlendOp;
+		NPROPERTY()
+		EBlendFactor AlphaSrcBlend;
+		NPROPERTY()
+		EBlendFactor AlphaDestBlend;
+		NPROPERTY()
+		EColorWriteMask ColorWriteMask;
+		
+		FRenderTargetBlendState(
+			EBlendOperation InColorBlendOp = BO_Add,
+			EBlendFactor InColorSrcBlend = BF_One,
+			EBlendFactor InColorDestBlend = BF_Zero,
+			EBlendOperation InAlphaBlendOp = BO_Add,
+			EBlendFactor InAlphaSrcBlend = BF_One,
+			EBlendFactor InAlphaDestBlend = BF_Zero,
+			EColorWriteMask InColorWriteMask = CW_RGBA
+			)
+		: ColorBlendOp(InColorBlendOp)
+		, ColorSrcBlend(InColorSrcBlend)
+		, ColorDestBlend(InColorDestBlend)
+		, AlphaBlendOp(InAlphaBlendOp)
+		, AlphaSrcBlend(InAlphaSrcBlend)
+		, AlphaDestBlend(InAlphaDestBlend)
+		, ColorWriteMask(InColorWriteMask)
+		{}
+	};
+
 	struct NSTRUCT FBlendStateInitializer
 	{
 		GENERATED_BODY()
 
-		struct NSTRUCT FRenderTarget
-		{
-			GENERATED_BODY()
-
-			NPROPERTY()
-			EBlendOperation ColorBlendOp;
-			NPROPERTY()
-			EBlendFactor ColorSrcBlend;
-			NPROPERTY()
-			EBlendFactor ColorDestBlend;
-			NPROPERTY()
-			EBlendOperation AlphaBlendOp;
-			NPROPERTY()
-			EBlendFactor AlphaSrcBlend;
-			NPROPERTY()
-			EBlendFactor AlphaDestBlend;
-			NPROPERTY()
-			EColorWriteMask ColorWriteMask;
-			
-			FRenderTarget(
-				EBlendOperation InColorBlendOp = BO_Add,
-				EBlendFactor InColorSrcBlend = BF_One,
-				EBlendFactor InColorDestBlend = BF_Zero,
-				EBlendOperation InAlphaBlendOp = BO_Add,
-				EBlendFactor InAlphaSrcBlend = BF_One,
-				EBlendFactor InAlphaDestBlend = BF_Zero,
-				EColorWriteMask InColorWriteMask = CW_RGBA
-				)
-			: ColorBlendOp(InColorBlendOp)
-			, ColorSrcBlend(InColorSrcBlend)
-			, ColorDestBlend(InColorDestBlend)
-			, AlphaBlendOp(InAlphaBlendOp)
-			, AlphaSrcBlend(InAlphaSrcBlend)
-			, AlphaDestBlend(InAlphaDestBlend)
-			, ColorWriteMask(InColorWriteMask)
-			{}
-		};
-
 		FBlendStateInitializer() 
 		:	bUseIndependentRenderTargetBlendStates(false)
-		{}
+		{
+			RenderTargets.SetNum(MaxSimultaneousRenderTargets);
+		}
 
-		FBlendStateInitializer(const FRenderTarget& InRenderTargetBlendState/*, bool bInUseAlphaToCoverage = false*/)
+		FBlendStateInitializer(const FRenderTargetBlendState& InRenderTargetBlendState/*, bool bInUseAlphaToCoverage = false*/)
 		:	bUseIndependentRenderTargetBlendStates(false)
 		// ,	bUseAlphaToCoverage(bInUseAlphaToCoverage)
 		{
+			RenderTargets.SetNum(MaxSimultaneousRenderTargets);
 			RenderTargets[0] = InRenderTargetBlendState;
 		}
 
 		template<uint64 NumRenderTargets>
-		FBlendStateInitializer(const std::array<FRenderTarget, NumRenderTargets>& InRenderTargetBlendStates/*, bool bInUseAlphaToCoverage = false*/)
+		FBlendStateInitializer(const std::array<FRenderTargetBlendState, NumRenderTargets>& InRenderTargetBlendStates/*, bool bInUseAlphaToCoverage = false*/)
 		:	bUseIndependentRenderTargetBlendStates(NumRenderTargets > 1)
 		// ,	bUseAlphaToCoverage(bInUseAlphaToCoverage)
 		{
 			static_assert(NumRenderTargets <= MaxSimultaneousRenderTargets, "Too many render target blend states.");
 
+			RenderTargets.SetNum(MaxSimultaneousRenderTargets);
 			for(uint32 RenderTargetIndex = 0;RenderTargetIndex < NumRenderTargets;++RenderTargetIndex)
 			{
 				RenderTargets[RenderTargetIndex] = InRenderTargetBlendStates[RenderTargetIndex];
@@ -374,7 +378,7 @@ namespace nilou {
 		}
 
 		NPROPERTY()
-		TArray<FRenderTarget> RenderTargets;
+		TArray<FRenderTargetBlendState> RenderTargets;
 		
 		NPROPERTY()
 		bool bUseIndependentRenderTargetBlendStates;

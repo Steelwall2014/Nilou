@@ -8,7 +8,7 @@ namespace nilou {
     {
     public:
         UGameViewportClient();
-        std::shared_ptr<class UWorld> World;
+        class UWorld* World;
         std::shared_ptr<class FScene> Scene;
         void Init();
         void BeginPlay();

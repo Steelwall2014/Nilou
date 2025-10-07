@@ -16,7 +16,7 @@ namespace nilou {
 
 
         NPROPERTY()
-        std::shared_ptr<UFourierTransformOceanComponent> OceanComponent;
+        UFourierTransformOceanComponent* OceanComponent;
     };
 
 }

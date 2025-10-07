@@ -1,9 +1,10 @@
 #pragma once
 #include "Platform.h"
+#include "Common/CoreUObject/Macros.h"
     
 namespace nilou {
 
-	enum EPixelFormat : uint8
+	enum NENUM EPixelFormat : uint8
 	{
 		PF_Unknown = 0,
 		PF_R8,

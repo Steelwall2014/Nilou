@@ -46,8 +46,8 @@ namespace nilou {
         {
             NPackage* Pkg = CreatePackage("/Engine/Materials/DefaultMaterial");
             DefaultMaterial = NewObject<UMaterial>(Pkg, "DefaultMaterial");
-            DefaultMaterial->SetShaderFileVirtualPath("/Shaders/Materials/DefaultMaterial_Mat.glsl");
             DefaultMaterial->InitializeResources();
+            DefaultMaterial->SetShaderFileVirtualPath("/Shaders/Materials/DefaultMaterial_Mat.glsl");
             NPackage::SavePackage(Pkg);
         }
         return DefaultMaterial;
@@ -110,6 +110,7 @@ namespace nilou {
 
     void UMaterial::UpdateCode(const std::string &InCode)
     {
+        Ncheck(GetRenderProxy());
         Code = InCode;
         ENQUEUE_RENDER_COMMAND(UMaterial_UpdateCode)(
             [InCode, Proxy=GetRenderProxy()](RenderGraph&)
@@ -136,7 +137,7 @@ namespace nilou {
         if(!ParameterValue)
         {
             // If there's no element for the named parameter in array yet, add one.
-            ParameterValue = &ScalarParameterValues.emplace_back();
+            ParameterValue = &ScalarParameterValues.AddDefaulted_GetRef();
             ParameterValue->ParameterInfo = ParameterInfo;
             bForceUpdate = true;
         }
@@ -159,7 +160,7 @@ namespace nilou {
         bool bForceUpdate = false;
         if(!ParameterValue)
         {
-            ParameterValue = &VectorParameterValues.emplace_back();
+            ParameterValue = &VectorParameterValues.AddDefaulted_GetRef();
             ParameterValue->ParameterInfo = ParameterInfo;
             bForceUpdate = true;
         }
@@ -180,7 +181,7 @@ namespace nilou {
         bool bForceUpdate = false;
         if(!ParameterValue)
         {
-            ParameterValue = &TextureParameterValues.emplace_back();
+            ParameterValue = &TextureParameterValues.AddDefaulted_GetRef();
             ParameterValue->ParameterInfo = ParameterInfo;
             bForceUpdate = true;
         }

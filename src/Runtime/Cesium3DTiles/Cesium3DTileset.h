@@ -57,7 +57,7 @@ namespace nilou {
         std::shared_ptr<Cesium3DTilesetSelection::Cesium3DTileset> TilesetForSelection;
 
         std::set<Cesium3DTilesetSelection::Cesium3DTile *> TilesToRenderThisFrame;
-        std::vector<std::shared_ptr<class UPrimitiveComponent>> RenderComponentsThisFrame;
+        std::vector<class UPrimitiveComponent*> RenderComponentsThisFrame;
 
         TLruCache<Cesium3DTilesetSelection::Cesium3DTile*, Cesium3DTilesetSelection::Cesium3DTile*> LruCache;
 

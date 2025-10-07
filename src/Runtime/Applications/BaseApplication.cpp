@@ -20,9 +20,10 @@ namespace nilou {
         FClassRegistryBase::DeferredConstructFProperty();
         FCrc::Init();
         RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
-        AsyncLoadingThread = std::move(FRunnableThread::Create(new FAsyncLoadingThread, "Async Loading Thread"));
-        GameViewportClient = std::make_unique<UGameViewportClient>();
         while (!RenderingThread->IsRunnableInitialized()) { }
+        AsyncLoadingThread = std::move(FRunnableThread::Create(new FAsyncLoadingThread, "Async Loading Thread"));
+        while (!AsyncLoadingThread->IsRunnableInitialized()) { }
+        GameViewportClient = std::make_unique<UGameViewportClient>();
         GameViewportClient->Init();
         GameViewportClient->BeginPlay();
         return true;

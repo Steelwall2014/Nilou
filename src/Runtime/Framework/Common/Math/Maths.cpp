@@ -1,6 +1,26 @@
 #include "Maths.h"
+#include "BoxSphereBounds.h"
+#include "Common/CoreUObject/Class.h"
 
 namespace nilou {
+
+template<>
+BEGIN_CLASS_REGISTRY(Struct, FBox, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+
+    CLASS_PROPERTY(Min)
+    CLASS_PROPERTY(Max)
+
+END_CLASS_REGISTRY(FBox)
+
+
+template<>
+BEGIN_CLASS_REGISTRY(Struct, FBoxSphereBounds, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+
+    CLASS_PROPERTY(Origin)
+    CLASS_PROPERTY(BoxExtent)
+    CLASS_PROPERTY(SphereRadius)
+
+END_CLASS_REGISTRY(FBoxSphereBounds)
 
 // Common colors.
 const FLinearColor FLinearColor::White(1.f,1.f,1.f);

@@ -237,15 +237,15 @@ namespace nilou {
 	public:
 		static RHIBlendStateRef CreateRHI()
 		{
-			std::array<FBlendStateInitializer::FRenderTarget, 8> RenderTargetBlendStates;
-			RenderTargetBlendStates[0] = FBlendStateInitializer::FRenderTarget(RT0ColorBlendOp,RT0ColorSrcBlend,RT0ColorDestBlend,RT0AlphaBlendOp,RT0AlphaSrcBlend,RT0AlphaDestBlend,RT0ColorWriteMask);
-			RenderTargetBlendStates[1] = FBlendStateInitializer::FRenderTarget(RT1ColorBlendOp,RT1ColorSrcBlend,RT1ColorDestBlend,RT1AlphaBlendOp,RT1AlphaSrcBlend,RT1AlphaDestBlend,RT1ColorWriteMask);
-			RenderTargetBlendStates[2] = FBlendStateInitializer::FRenderTarget(RT2ColorBlendOp,RT2ColorSrcBlend,RT2ColorDestBlend,RT2AlphaBlendOp,RT2AlphaSrcBlend,RT2AlphaDestBlend,RT2ColorWriteMask);
-			RenderTargetBlendStates[3] = FBlendStateInitializer::FRenderTarget(RT3ColorBlendOp,RT3ColorSrcBlend,RT3ColorDestBlend,RT3AlphaBlendOp,RT3AlphaSrcBlend,RT3AlphaDestBlend,RT3ColorWriteMask);
-			RenderTargetBlendStates[4] = FBlendStateInitializer::FRenderTarget(RT4ColorBlendOp,RT4ColorSrcBlend,RT4ColorDestBlend,RT4AlphaBlendOp,RT4AlphaSrcBlend,RT4AlphaDestBlend,RT4ColorWriteMask);
-			RenderTargetBlendStates[5] = FBlendStateInitializer::FRenderTarget(RT5ColorBlendOp,RT5ColorSrcBlend,RT5ColorDestBlend,RT5AlphaBlendOp,RT5AlphaSrcBlend,RT5AlphaDestBlend,RT5ColorWriteMask);
-			RenderTargetBlendStates[6] = FBlendStateInitializer::FRenderTarget(RT6ColorBlendOp,RT6ColorSrcBlend,RT6ColorDestBlend,RT6AlphaBlendOp,RT6AlphaSrcBlend,RT6AlphaDestBlend,RT6ColorWriteMask);
-			RenderTargetBlendStates[7] = FBlendStateInitializer::FRenderTarget(RT7ColorBlendOp,RT7ColorSrcBlend,RT7ColorDestBlend,RT7AlphaBlendOp,RT7AlphaSrcBlend,RT7AlphaDestBlend,RT7ColorWriteMask);
+			std::array<FRenderTargetBlendState, 8> RenderTargetBlendStates;
+			RenderTargetBlendStates[0] = FRenderTargetBlendState(RT0ColorBlendOp,RT0ColorSrcBlend,RT0ColorDestBlend,RT0AlphaBlendOp,RT0AlphaSrcBlend,RT0AlphaDestBlend,RT0ColorWriteMask);
+			RenderTargetBlendStates[1] = FRenderTargetBlendState(RT1ColorBlendOp,RT1ColorSrcBlend,RT1ColorDestBlend,RT1AlphaBlendOp,RT1AlphaSrcBlend,RT1AlphaDestBlend,RT1ColorWriteMask);
+			RenderTargetBlendStates[2] = FRenderTargetBlendState(RT2ColorBlendOp,RT2ColorSrcBlend,RT2ColorDestBlend,RT2AlphaBlendOp,RT2AlphaSrcBlend,RT2AlphaDestBlend,RT2ColorWriteMask);
+			RenderTargetBlendStates[3] = FRenderTargetBlendState(RT3ColorBlendOp,RT3ColorSrcBlend,RT3ColorDestBlend,RT3AlphaBlendOp,RT3AlphaSrcBlend,RT3AlphaDestBlend,RT3ColorWriteMask);
+			RenderTargetBlendStates[4] = FRenderTargetBlendState(RT4ColorBlendOp,RT4ColorSrcBlend,RT4ColorDestBlend,RT4AlphaBlendOp,RT4AlphaSrcBlend,RT4AlphaDestBlend,RT4ColorWriteMask);
+			RenderTargetBlendStates[5] = FRenderTargetBlendState(RT5ColorBlendOp,RT5ColorSrcBlend,RT5ColorDestBlend,RT5AlphaBlendOp,RT5AlphaSrcBlend,RT5AlphaDestBlend,RT5ColorWriteMask);
+			RenderTargetBlendStates[6] = FRenderTargetBlendState(RT6ColorBlendOp,RT6ColorSrcBlend,RT6ColorDestBlend,RT6AlphaBlendOp,RT6AlphaSrcBlend,RT6AlphaDestBlend,RT6ColorWriteMask);
+			RenderTargetBlendStates[7] = FRenderTargetBlendState(RT7ColorBlendOp,RT7ColorSrcBlend,RT7ColorDestBlend,RT7AlphaBlendOp,RT7AlphaSrcBlend,RT7AlphaDestBlend,RT7ColorWriteMask);
 
 			static RHIBlendStateRef RHI = RHICreateBlendState(FBlendStateInitializer(RenderTargetBlendStates/*, bUseAlphaToCoverage*/));
 			return RHI;

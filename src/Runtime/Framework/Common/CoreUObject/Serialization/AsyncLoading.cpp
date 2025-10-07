@@ -5,6 +5,8 @@
 
 namespace nilou {
 
+namespace fs = std::filesystem;
+
 std::thread::id GAsyncLoadingThreadId;
 FAsyncLoadingThread* GAsyncLoadingThread = nullptr;
 
@@ -58,9 +60,17 @@ void FAsyncPackage::DependsOn(std::weak_ptr<FAsyncPackage> WeakImportPackage)
 void FAsyncPackage::Event_ProcessPackageSummary(FAsyncPackage* Package)
 {
     Package->AsyncPackageLoadingState = EAsyncPackageLoadingState::ProcessPackageSummary;
-    NPackage* LinkerRoot = CreatePackage(Package->GetPackageName());
-    Package->LinkerRoot = LinkerRoot;
     std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetPackageName());
+    if (!fs::exists(MetaFileName))
+    {
+        Package->LoadResult = EAsyncLoadingResult::FailedMissing;
+        Package->AsyncPackageLoadingState = EAsyncPackageLoadingState::Finalize;
+        std::lock_guard<std::mutex> Lock(Package->AsyncLoadingThread.LoadedPackagesToProcessCritical);
+        Package->AsyncLoadingThread.LoadedPackagesToProcess.Add(Package);
+        return;
+    }
+    NPackage* LinkerRoot = NewObject<NPackage>(nullptr, Package->GetPackageName());
+    Package->LinkerRoot = LinkerRoot;
     nlohmann::json Json;
     // TODO: use async io
     std::ifstream(MetaFileName) >> Json;
@@ -161,6 +171,7 @@ void FAsyncPackage::Event_DeferredPostLoadExportBundle(FAsyncPackage* Package)
         Export.Object->ConditionalPostLoad();
     }
     Package->AsyncPackageLoadingState = EAsyncPackageLoadingState::Finalize;
+    std::lock_guard<std::mutex> Lock(Package->AsyncLoadingThread.LoadedPackagesToProcessCritical);
     Package->AsyncLoadingThread.LoadedPackagesToProcess.Add(Package);
 }
 
@@ -219,6 +230,7 @@ FAsyncLoadingThread& FAsyncLoadingThread::Get()
 
 int32 FAsyncLoadingThread::LoadPackage(const std::string& PackageName, int32 Priority)
 {
+    Ncheck(!IsInAsyncLoadingThread());
     int32 RequestId = this->RequestId.fetch_add(1);
     FAsyncPackageDesc Desc;
     Desc.RequestIds = { RequestId };
@@ -264,6 +276,7 @@ std::shared_ptr<FAsyncPackage> FAsyncLoadingThread::FindOrInsertPackage(const FA
                 *this,
                 EventSpecs.GetData());
             AsyncPackageLookup.Add(Desc.PackageName, Package);
+            Package->GetPackageNode(Package_ProcessSummary).AddBarrier();
             Package->StartLoading();
         }
     }
@@ -278,9 +291,14 @@ std::shared_ptr<FAsyncPackage> FAsyncLoadingThread::FindOrInsertPackage(const FA
 
 void FAsyncLoadingThread::ProcessLoadedPackagesFromGameThread()
 {
-    for (int32 PackageIndex = 0; PackageIndex < LoadedPackagesToProcess.Num(); ++PackageIndex)
+    TArray<FAsyncPackage*> LocalLoadedPackagesToProcess;
     {
-        std::shared_ptr<FAsyncPackage> Package = LoadedPackagesToProcess[PackageIndex]->shared_from_this();
+        std::lock_guard<std::mutex> Lock(LoadedPackagesToProcessCritical);
+        std::swap(LocalLoadedPackagesToProcess, LoadedPackagesToProcess);
+    }
+    for (int32 PackageIndex = 0; PackageIndex < LocalLoadedPackagesToProcess.Num(); ++PackageIndex)
+    {
+        std::shared_ptr<FAsyncPackage> Package = LocalLoadedPackagesToProcess[PackageIndex]->shared_from_this();
         {
             std::lock_guard<std::mutex> Lock(AsyncPackagesCritical);
             AsyncPackageLookup.Remove(Package->Desc.PackageName);

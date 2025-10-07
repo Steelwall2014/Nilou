@@ -363,19 +363,15 @@ namespace nilou {
 namespace nilou {
 
     #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
-        struct NSTRUCT TypeName \
-        { \
-            GENERATED_BODY()
+        struct TypeName \
+        {
     #define SHADER_PARAMETER(Type, MemberName) \
-            alignas(TShaderParameterTypeInfo<Type>::Alignment) NPROPERTY() Type MemberName;
+            alignas(TShaderParameterTypeInfo<Type>::Alignment) Type MemberName;
     #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \
-            NPROPERTY() \
             TAlignedStaticArray<Type, N, TShaderParameterTypeInfo<Type[N]>::Alignment> MemberName;
     #define SHADER_PARAMETER_STRUCT(Type, MemberName) \
-            NPROPERTY() \
             Type MemberName;
     #define SHADER_PARAMETER_STRUCT_ARRAY(Type, N, MemberName) \
-            NPROPERTY() \
             std::array<Type, N> MemberName;
     #define END_UNIFORM_BUFFER_STRUCT() \
         };

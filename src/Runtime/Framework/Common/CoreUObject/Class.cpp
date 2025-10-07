@@ -26,6 +26,52 @@ void FObjectProperty::SerializeItem(FArchive& Ar, void* Value)
     }
 }
 
+void FEnumProperty::SerializeItem(FArchive& Ar, void* Value)
+{
+    nlohmann::json& Node = Ar.GetNode();
+    if (Ar.IsLoading())
+    {
+        int64 value = Enum->GetValueByNameString(Node.get<std::string>());
+        if (Enum->Size == 1)
+        {
+            *reinterpret_cast<int8*>(Value) = value;
+        }
+        else if (Enum->Size == 2)
+        {
+            *reinterpret_cast<int16*>(Value) = value;
+        }
+        else if (Enum->Size == 4)
+        {
+            *reinterpret_cast<int32*>(Value) = value;
+        }
+        else if (Enum->Size == 8)
+        {
+            *reinterpret_cast<int64*>(Value) = value;
+        }
+    }
+    else 
+    {
+        int64 value = 0;
+        if (Enum->Size == 1)
+        {
+            value = *reinterpret_cast<int8*>(Value);
+        }
+        else if (Enum->Size == 2)
+        {
+            value = *reinterpret_cast<int16*>(Value);
+        }
+        else if (Enum->Size == 4)
+        {
+            value = *reinterpret_cast<int32*>(Value);
+        }
+        else if (Enum->Size == 8)
+        {
+            value = *reinterpret_cast<int64*>(Value);
+        }
+        Node = Enum->GetNameStringByValue(value);
+    }
+}
+
 TArray<FProperty*> NClass::GetProperties(bool bIncludeSuper) const
 {
     TArray<FProperty*> OutProperties;
@@ -49,6 +95,30 @@ void NClass::SerializeProperties(FArchive& Ar, void* Data) const
         void* Field = Property->ContainerPtrToValuePtrInternal(Data);
         Property->SerializeItem(Ar, Field);
     }
+}
+
+int64 NClass::GetValueByNameString(const std::string& Name) const
+{
+    for (auto& Pair : EnumNames)
+    {
+        if (Pair.first == Name)
+        {
+            return Pair.second;
+        }
+    }
+    return 0;
+}
+
+std::string NClass::GetNameStringByValue(int64 Value) const
+{
+    for (auto& Pair : EnumNames)
+    {
+        if (Pair.second == Value)
+        {
+            return Pair.first;
+        }
+    }
+    return "";
 }
 
 }

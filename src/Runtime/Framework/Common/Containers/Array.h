@@ -38,8 +38,8 @@ namespace nilou {
         TArray& operator=(const TArray& Other) = default;
         TArray& operator=(TArray&& Other) noexcept = default;
 
-        reference operator[](size_type index) { return Data[index]; }
-        const_reference operator[](size_type index) const { return Data[index]; }
+        reference operator[](size_type index) { Ncheck(IsValidIndex(index)); return Data[index]; }
+        const_reference operator[](size_type index) const { Ncheck(IsValidIndex(index)); return Data[index]; }
         reference At(size_type index) { return Data.at(index); }
         const_reference At(size_type index) const { return Data.at(index); }
         reference Front() { return Data.front(); }
@@ -80,7 +80,7 @@ namespace nilou {
             return Emplace();
         }
         template<typename... Args>
-        void Emplace(Args&&... args) { Data.emplace_back(std::forward<Args>(args)...); }
+        decltype(auto) Emplace(Args&&... args) { return Data.emplace_back(std::forward<Args>(args)...); }
         void Append(const TArray& Other)
         {
             Data.insert(Data.end(), Other.Data.begin(), Other.Data.end());

@@ -15,7 +15,7 @@ namespace nilou {
 
 		FSceneView CalcSceneView(FSceneViewFamily* ViewFamily);
 
-		UCameraComponent* GetCameraComponent() const { return CameraComponent.get(); }
+		UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 
     protected:
 
@@ -30,7 +30,7 @@ namespace nilou {
 		void SpeedUp(float AxisValue);
 
         NPROPERTY()
-        std::shared_ptr<UCameraComponent> CameraComponent;
+        UCameraComponent* CameraComponent;
 
 		/** TEST SCENE CAPTURE */
         std::shared_ptr<class USceneCaptureComponent2D> SceneCaptureComponent;

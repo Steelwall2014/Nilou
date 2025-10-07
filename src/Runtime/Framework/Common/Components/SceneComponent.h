@@ -201,7 +201,7 @@ namespace nilou {
             return ComponentToWorld;
         }
 
-        const std::vector<std::shared_ptr<USceneComponent>>& GetAttachChildren() const { return AttachChildren; }
+        const std::vector<USceneComponent*>& GetAttachChildren() const { return AttachChildren; }
 
         // 在世界参考系中移动node，将node在世界参考系中的旋转设置为NewRotation
         void MoveComponent(const FVector &Delta, const FRotator &NewRotation);
@@ -243,7 +243,7 @@ namespace nilou {
         FTransform ComponentToWorld;
 
         USceneComponent *AttachParent = nullptr;
-        std::vector<std::shared_ptr<USceneComponent>> AttachChildren;
+        std::vector<USceneComponent*> AttachChildren;
 
         FBoxSphereBounds Bounds;
 

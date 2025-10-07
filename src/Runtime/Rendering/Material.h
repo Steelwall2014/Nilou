@@ -22,7 +22,7 @@
 // The nlohmann::json here is used as a placeholder for any type of material parameter value 
 namespace nilou {
 
-    enum class EShadingModel : uint32
+    enum class NENUM EShadingModel : uint32
     {
         SM_Unlit = 0,
         SM_DefaultLit,
@@ -33,7 +33,7 @@ namespace nilou {
     };
 
     /** Defines the domain of a material. */
-    enum EMaterialDomain : int
+    enum NENUM EMaterialDomain : int
     {
         /** The material's attributes describe a 3d surface. */
         MD_Surface,
@@ -129,13 +129,13 @@ namespace nilou {
         EMaterialDomain MaterialDomain = MD_Surface;
 
         NPROPERTY()
-        std::vector<FScalarParameterValue> ScalarParameterValues;
+        TArray<FScalarParameterValue> ScalarParameterValues;
 
         NPROPERTY()
-        std::vector<FVectorParameterValue> VectorParameterValues;
+        TArray<FVectorParameterValue> VectorParameterValues;
 
         NPROPERTY()
-        std::vector<FTextureParameterValue> TextureParameterValues;
+        TArray<FTextureParameterValue> TextureParameterValues;
 
         NPROPERTY()
         FRasterizerStateInitializer RasterizerState;
@@ -282,9 +282,9 @@ namespace nilou {
 
     /** Finds a parameter by name from the game thread. */
     template <typename ParameterType>
-    ParameterType* GameThread_FindParameterByName(std::vector<ParameterType>& Parameters, const FMaterialParameterInfo& ParameterInfo)
+    ParameterType* GameThread_FindParameterByName(TArray<ParameterType>& Parameters, const FMaterialParameterInfo& ParameterInfo)
     {
-        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.size(); ParameterIndex++)
+        for (int32 ParameterIndex = 0; ParameterIndex < Parameters.Num(); ParameterIndex++)
         {
             ParameterType* Parameter = &Parameters[ParameterIndex];
             if (Parameter->ParameterInfo == ParameterInfo)
@@ -297,9 +297,9 @@ namespace nilou {
 
     /** Finds a parameter by index from the game thread. */
     template <typename ParameterType>
-    ParameterType* GameThread_FindParameterByIndex(std::vector<ParameterType>& Parameters, int32 Index)
+    ParameterType* GameThread_FindParameterByIndex(TArray<ParameterType>& Parameters, int32 Index)
     {
-        if (0 <= Index && Index < Parameters.size())
+        if (0 <= Index && Index < Parameters.Num())
         {
             return &Parameters[Index];
         }

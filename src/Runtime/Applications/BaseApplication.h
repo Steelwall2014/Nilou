@@ -32,7 +32,7 @@ namespace nilou {
 
         virtual WindowContext* GetWindowContext() { return nullptr; }
 
-        UWorld *GetWorld() { return GameViewportClient->World.get(); }
+        UWorld *GetWorld() { return GameViewportClient->World; }
         FScene *GetScene() { return GameViewportClient->Scene.get(); }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPreRenderDelegate() { return PreRenderDelegate; }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPostRenderDelegate() { return PostRenderDelegate; }

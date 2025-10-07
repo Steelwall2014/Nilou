@@ -14,7 +14,7 @@ namespace nilou {
         }
 
         NPROPERTY()
-        std::shared_ptr<ULineBatchComponent> LineBatchComponent;
+        ULineBatchComponent* LineBatchComponent;
     };
 
 }

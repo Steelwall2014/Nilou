@@ -198,7 +198,7 @@ namespace nilou {
         FVertexIndexBufferData Colors;
         
         NPROPERTY()
-        std::vector<FVertexIndexBufferData> TexCoords;
+        TArray<FVertexIndexBufferData> TexCoords;
 
         NPROPERTY()
         FVertexIndexBufferData IndexBuffer;
@@ -233,10 +233,10 @@ namespace nilou {
 
 	    /** Maps an LOD+Section to the material it should render with. */
         NPROPERTY()
-        std::map<uint32, FMeshSectionInfo> Map;
+        TMap<uint32, FMeshSectionInfo> Map;
 
         /** Clears all entries in the map resetting everything to default. */
-        void Clear() { Map.clear(); }
+        void Clear() { Map.Empty(); }
 
         /** Gets per-section settings for the specified LOD + section. */
         FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
@@ -274,10 +274,10 @@ namespace nilou {
         { }
 
         NPROPERTY()
-        std::vector<UMaterial *> MaterialSlots;
+        TArray<UMaterial *> MaterialSlots;
 
         NPROPERTY()
-        FBox LocalBoundingBox;
+        FBoxSphereBounds ExtendedBounds;
 
         NPROPERTY()
         FMeshSectionInfoMap SectionInfoMap;
@@ -286,6 +286,10 @@ namespace nilou {
         int32 NumLODs;
 
         FStaticMeshRenderData* RenderData;
+
+        FBoxSphereBounds GetBounds() const { return ExtendedBounds; }
+
+        FBox GetBoundingBox() const { return ExtendedBounds.GetBox(); }
 
         void Build(const FMeshDescription& MeshDesc);
 

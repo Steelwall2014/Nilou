@@ -14,7 +14,7 @@ namespace nilou {
         }
         
         NPROPERTY()
-        std::shared_ptr<USphereComponent> SphereComponent;
+        USphereComponent* SphereComponent;
     };
 
 }

@@ -12,8 +12,9 @@
 namespace nilou {
 
     class AActor;
-    class UWorld : public NObject
+    class NCLASS UWorld : public NObject
     {
+        GENERATED_BODY()
     public:
         friend AActor;
         UWorld();
@@ -91,9 +92,8 @@ namespace nilou {
     ActorClass* UWorld::SpawnActor(const FTransform &ActorTransform, const std::string &ActorName)
     {
         static_assert(TIsDerivedFrom<ActorClass, AActor>::Value, "'ActorClass' template parameter to SpawnActor must be derived from AActor");
-        ActorClass* Actor = NewObject<ActorClass>(GetPackage(), ActorName);
+        ActorClass* Actor = NewObject<ActorClass>(this, ActorName);
         Actor->SetOwnedWorld(this);
-        Actor->Rename(ActorName);
         Actor->PostSpawnInitialize(ActorTransform);
         Actors.push_back(Actor);
         if constexpr (TIsDerivedFrom<ActorClass, ACameraActor>::Value)

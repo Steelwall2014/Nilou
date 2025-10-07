@@ -79,7 +79,7 @@ namespace nilou {
 
 
 		// 获取根组件的裸指针
-		inline USceneComponent *GetRootComponent() const { return RootComponent.get(); }
+		inline USceneComponent *GetRootComponent() const { return RootComponent; }
 
 		inline UWorld *GetWorld() const { return OwnedWorld; }
 
@@ -97,11 +97,11 @@ namespace nilou {
 		*/
 		void AttachToComponent(USceneComponent *Parent, const FAttachmentTransformRules& AttachmentRules);
 
-		void AddOwnedComponent(std::shared_ptr<UActorComponent> InComponent);
+		void AddOwnedComponent(UActorComponent* InComponent);
 
-		void RemoveOwnedComponent(std::shared_ptr<UActorComponent> InComponent);
+		void RemoveOwnedComponent(UActorComponent* InComponent);
 
-		void SetRootComponent(std::shared_ptr<USceneComponent> InComponent);
+		void SetRootComponent(USceneComponent* InComponent);
 
 		void RegisterAllComponents();
 
@@ -113,9 +113,9 @@ namespace nilou {
 		void GetComponents(std::vector<T*> &OutComponents, bool bIncludeFromChildActors = false)
 		{
 			OutComponents.clear();
-			ForEachComponent_Internal<T>(T::StaticClass(), bIncludeFromChildActors, [&](std::shared_ptr<T> InComp)
+			ForEachComponent_Internal<T>(T::StaticClass(), bIncludeFromChildActors, [&](T* InComp)
 			{
-				OutComponents.push_back(InComp.get());
+				OutComponents.push_back(InComp);
 			});
 		}
 
@@ -167,13 +167,13 @@ namespace nilou {
 			if constexpr (bIncludeFromChildActors)
 			{
 				std::vector<AActor*> ChildActors;
-				for (std::shared_ptr<UActorComponent> OwnedComponent : OwnedComponents)
+				for (UActorComponent* OwnedComponent : OwnedComponents)
 				{
 					if (OwnedComponent)
 					{
 						if (bClassIsActorComponent || OwnedComponent->IsA(ComponentClass))
 						{
-							InFunc(std::static_pointer_cast<ComponentType>(OwnedComponent));
+							InFunc(static_cast<ComponentType*>(OwnedComponent));
 						}
 					}
 				}
@@ -185,21 +185,21 @@ namespace nilou {
 			}
 			else
 			{
-				for (std::shared_ptr<UActorComponent> OwnedComponent : OwnedComponents)
+				for (UActorComponent* OwnedComponent : OwnedComponents)
 				{
 					if (OwnedComponent)
 					{
 						if (bClassIsActorComponent || OwnedComponent->IsA(ComponentClass))
 						{
-							InFunc(std::static_pointer_cast<ComponentType>(OwnedComponent));
+							InFunc(static_cast<ComponentType*>(OwnedComponent));
 						}
 					}
 				}
 			}
 		}
 
-		std::shared_ptr<USceneComponent> RootComponent;
-		std::set<std::shared_ptr<UActorComponent>> OwnedComponents;
+		USceneComponent* RootComponent;
+		std::set<UActorComponent*> OwnedComponents;
 		UWorld *OwnedWorld;
 		bool bActorInitialized;
 

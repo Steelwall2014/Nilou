@@ -10,17 +10,17 @@ namespace nilou {
     public:
         AReflectionProbe();
 
-        std::shared_ptr<class UReflectionProbeComponent> ReflectionProbeComponent;
+        class UReflectionProbeComponent* ReflectionProbeComponent;
 
-        std::shared_ptr<class UTextureRenderTargetCube> EnvironmentTexture;
+        class UTextureRenderTargetCube* EnvironmentTexture;
 
-        std::shared_ptr<class UTextureCube> IrradianceTexture;
+        class UTextureCube* IrradianceTexture;
 
-        std::shared_ptr<class UTextureCube> PrefilteredTexture;
+        class UTextureCube* PrefilteredTexture;
 
-        std::shared_ptr<class UMaterial> DebugMat;
+        class UMaterial* DebugMat;
 
-        std::shared_ptr<class USphereComponent> DebugSphere;
+        class USphereComponent* DebugSphere;
     };
 
 }

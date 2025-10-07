@@ -3,7 +3,7 @@
 
 namespace nilou {
 
-template<> NClass* FRotator::Z_StaticClass = nullptr;
+template<>
 BEGIN_CLASS_REGISTRY(Struct, FRotator, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
     CLASS_PROPERTY(Pitch)
@@ -12,7 +12,7 @@ BEGIN_CLASS_REGISTRY(Struct, FRotator, NullSuperClass, EClassFlags::Native | ECl
 
 END_CLASS_REGISTRY(FRotator)
 
-template<> NClass* FTransform::Z_StaticClass = nullptr;
+template<>
 BEGIN_CLASS_REGISTRY(Struct, FTransform, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
     CLASS_PROPERTY(Rotation)

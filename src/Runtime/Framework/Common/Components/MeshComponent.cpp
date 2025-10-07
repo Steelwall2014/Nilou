@@ -27,7 +27,7 @@ namespace nilou {
     {
         if (StaticMesh)
         {
-            FBox &LocalBoundingBox = StaticMesh->LocalBoundingBox;
+            FBox LocalBoundingBox = StaticMesh->GetBoundingBox();
             return LocalBoundingBox.TransformBy(LocalToWorld);
         }
         else 

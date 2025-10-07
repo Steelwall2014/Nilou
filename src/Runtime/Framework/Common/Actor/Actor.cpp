@@ -160,17 +160,17 @@ namespace nilou {
         }
     }
 
-	void AActor::AddOwnedComponent(std::shared_ptr<UActorComponent> InComponent)
+	void AActor::AddOwnedComponent(UActorComponent* InComponent)
     {
         OwnedComponents.insert(InComponent);
     }
     
-	void AActor::RemoveOwnedComponent(std::shared_ptr<UActorComponent> InComponent)
+	void AActor::RemoveOwnedComponent(UActorComponent* InComponent)
     {
         OwnedComponents.erase(InComponent);
     }
     
-	void AActor::SetRootComponent(std::shared_ptr<USceneComponent> NewRootComponent)
+	void AActor::SetRootComponent(USceneComponent* NewRootComponent)
     {
         /** Only components owned by this actor can be used as a its root component. */
         if (NewRootComponent == nullptr || NewRootComponent->GetOwner() == this)

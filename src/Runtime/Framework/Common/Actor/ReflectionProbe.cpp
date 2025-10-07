@@ -21,34 +21,31 @@ namespace nilou {
 
         {
             FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
-            EnvironmentTexture = std::make_shared<UTextureRenderTargetCube>();
-            EnvironmentTexture->Rename("Test EnvironmentTexture");
+            EnvironmentTexture = NewObject<UTextureRenderTargetCube>(this, "Test EnvironmentTexture");
             EnvironmentTexture->ImageData = Image;
             EnvironmentTexture->UpdateResource();
-            ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
+            ReflectionProbeComponent->TextureTarget = EnvironmentTexture;
         }
 
         {
             FImage Image = FImage(16, 16, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
-            IrradianceTexture = std::make_shared<UTextureCube>();
-            IrradianceTexture->Rename("Test IrradianceTexture");
+            IrradianceTexture = NewObject<UTextureCube>(this, "Test IrradianceTexture");
             IrradianceTexture->ImageData = Image;
             IrradianceTexture->UpdateResource();
         }
 
         {
             FImage Image = FImage(1024, 1024, EPixelFormat::PF_R16G16B16A16F, EImageType::IT_ImageCube);
-            PrefilteredTexture = std::make_shared<UTextureCube>();
-            PrefilteredTexture->Rename("Test PrefilteredTexture");
+            PrefilteredTexture = NewObject<UTextureCube>(this, "Test PrefilteredTexture");
             PrefilteredTexture->ImageData = Image;
             PrefilteredTexture->NumMips = 5;
             PrefilteredTexture->UpdateResource();
         }
-        ReflectionProbeComponent->TextureTarget = EnvironmentTexture.get();
-        ReflectionProbeComponent->IrradianceTexture = IrradianceTexture.get();
-        ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture.get();
-
-        DebugMat = std::make_shared<UMaterial>();
+        ReflectionProbeComponent->TextureTarget = EnvironmentTexture;
+        ReflectionProbeComponent->IrradianceTexture = IrradianceTexture;
+        ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture;
+        
+        DebugMat = NewObject<UMaterial>(this, "Test DebugMat");
         DebugMat->InitializeResources();
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
         FRasterizerStateInitializer RasterizerState;
@@ -85,7 +82,7 @@ vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
     return vec3(0);
 }
         )");
-        DebugMat->SetTextureParameterValue("Cube", PrefilteredTexture.get());
+        DebugMat->SetTextureParameterValue("Cube", PrefilteredTexture);
 
         // DebugSphere = CreateComponent<USphereComponent>(this); 
         // DebugSphere->SetMaterial(DebugMat.get());

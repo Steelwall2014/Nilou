@@ -85,6 +85,8 @@ namespace nilou {
     public:
         virtual NClass *GetClass() const { return Z_StaticClass; }
         static NClass *StaticClass() { return Z_StaticClass; }
+        template <typename U>
+        friend class TClassRegistry;
 
         TTransform();
         TTransform(const TQuat<T> &rotation);
@@ -125,8 +127,6 @@ namespace nilou {
         friend void Serialize(FArchive& Ar, TTransform<T>& Transform);
         template <typename U>
         friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
-        template <typename U>
-        friend class TClassRegistry;
     };
 
     template<typename T> 

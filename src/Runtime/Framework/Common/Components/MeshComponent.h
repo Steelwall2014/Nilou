@@ -23,7 +23,7 @@ namespace nilou {
         void SetStaticMesh(UStaticMesh *StaticMesh);
 
         UStaticMesh *StaticMesh;
-        std::vector<UMaterial *> MaterialSlots;
+        TArray<UMaterial *> MaterialSlots;
 
         /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */
         virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
@@ -41,6 +41,6 @@ namespace nilou {
 
     private:
 	    FStaticMeshRenderData* RenderData;
-        std::vector<UMaterial *> MaterialSlots;
+        TArray<UMaterial *> MaterialSlots;
     };
 }

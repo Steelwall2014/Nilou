@@ -13,6 +13,12 @@
 #endif
 
 #ifdef __clang__
+#define NENUM __attribute__((annotate("reflect-enum")))
+#else
+#define NENUM
+#endif
+
+#ifdef __clang__
 #define NPROPERTY() __attribute__((annotate("reflect-property")))
 #else
 #define NPROPERTY()

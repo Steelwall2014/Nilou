@@ -367,8 +367,8 @@ namespace nilou {
                 {   // Material
                     if (gltf_prim.material != -1)
                     {
-                        primitive.MaterialIndex = StaticMesh->MaterialSlots.size();
-                        StaticMesh->MaterialSlots.push_back(Materials[gltf_prim.material]);
+                        primitive.MaterialIndex = StaticMesh->MaterialSlots.Num();
+                        StaticMesh->MaterialSlots.Add(Materials[gltf_prim.material]);
                     }
                 }
 

@@ -154,7 +154,7 @@ private:
 	template<typename T> 
 	friend class TClassRegistry;
 	static NClass* Z_StaticClass;
-	friend struct FIntrinsicClassRegistry;
+	friend void InitUObject();
 public:
 	virtual NClass *GetClass() const override { return StaticClass(); }
 	static NClass *StaticClass() { return Z_StaticClass; }
@@ -172,7 +172,21 @@ private:
 
 };
 
-NPackage GetTransientPackage();
+enum class EAsyncLoadingResult : uint8
+{
+	/** Package or object failed to load */
+	Failed,
+	/** Package or object failed to load because it is missing */
+	FailedMissing,
+	/** Package or object failed to load due to a linker error */
+	FailedLinker,
+	/** Package or object failed to load because its data is not local */
+	FailedNotInstalled,
+	/** Package or object loaded successfully */
+	Succeeded,
+	/** Async loading was canceled */
+	Canceled
+};
 
 }
 

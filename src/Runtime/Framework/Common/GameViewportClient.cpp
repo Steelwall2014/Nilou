@@ -2,6 +2,7 @@
 #include "Scene.h"
 
 #include "Common/Actor/CameraActor.h"
+#include "Common/CoreUObject/Package.h"
 #include "GameViewportClient.h"
 #include "SceneView.h"
 #include "RendererModule.h"
@@ -11,10 +12,10 @@ namespace nilou {
 
     UGameViewportClient::UGameViewportClient()
     {
-        World = std::make_shared<UWorld>();
+        World = NewObject<UWorld>(GetTransientPackage(), "World");
         Scene = std::make_shared<FScene>();
         World->Scene = Scene.get();
-        Scene->World = World.get();
+        Scene->World = World;
     }
 
     void UGameViewportClient::Init()

@@ -27,14 +27,14 @@ namespace nilou {
             AActor* Owner = GetOwner();
             if (Owner != nullptr)
             {
-                std::shared_ptr<USceneComponent> ChildToPromote = nullptr;
+                USceneComponent* ChildToPromote = nullptr;
 
-                const std::vector<std::shared_ptr<USceneComponent>>& AttachedChildren = GetAttachChildren();
+                const std::vector<USceneComponent*>& AttachedChildren = GetAttachChildren();
                 // Handle removal of the root node
                 if (this == Owner->GetRootComponent())
                 {
                     auto FindResult = std::find_if(AttachedChildren.begin(), AttachedChildren.end(), 
-                        [Owner](std::shared_ptr<USceneComponent> Child) 
+                        [Owner](USceneComponent* Child) 
                         {
                             return Child != nullptr && Child->GetOwner() == Owner;
                         });
@@ -48,7 +48,7 @@ namespace nilou {
                         // Didn't find a suitable component to promote so create a new default component
 
                         // Construct a new default root component
-                        std::shared_ptr<USceneComponent> NewRootComponent = CreateComponent<USceneComponent>(Owner, "RootComponent");
+                        USceneComponent* NewRootComponent = CreateComponent<USceneComponent>(Owner, "RootComponent");
                         NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
                         Owner->AddOwnedComponent(NewRootComponent);
                         NewRootComponent->RegisterComponent();
@@ -68,11 +68,11 @@ namespace nilou {
                     if (CachedAttachParent != nullptr)
                     {
                         // Find the our position in its AttachParent's child array
-                        const std::vector<std::shared_ptr<USceneComponent>>& AttachSiblings = CachedAttachParent->GetAttachChildren();
+                        const std::vector<USceneComponent*>& AttachSiblings = CachedAttachParent->GetAttachChildren();
                         int32 Index = -1;
                         for (int i = 0; i < AttachSiblings.size(); i++)
                         {
-                            if (AttachSiblings[i].get() == this)
+                            if (AttachSiblings[i] == this)
                             {
                                 Index = i;
                                 break;
@@ -88,7 +88,7 @@ namespace nilou {
                         {
                             // Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
                             auto FindResult = std::find_if(AttachedChildren.begin(), AttachedChildren.end(), 
-                                [Owner](std::shared_ptr<USceneComponent> Child) 
+                                [Owner](USceneComponent* Child) 
                                 {
                                     return Child != nullptr;
                                 });
@@ -123,8 +123,8 @@ namespace nilou {
                 }
 
                 // Detach child nodes from the node that's being removed and re-attach them to the child that's being promoted
-                std::vector<std::shared_ptr<USceneComponent>> AttachChildrenLocalCopy(AttachedChildren);
-                for (std::shared_ptr<USceneComponent> Child : AttachChildrenLocalCopy)
+                std::vector<USceneComponent*> AttachChildrenLocalCopy(AttachedChildren);
+                for (USceneComponent* Child : AttachChildrenLocalCopy)
                 {
                     if (Child)
                     {
@@ -132,7 +132,7 @@ namespace nilou {
                         Child->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
                         if (Child != ChildToPromote)
                         {
-                            Child->AttachToComponent(ChildToPromote.get(), FAttachmentTransformRules::KeepWorldTransform);
+                            Child->AttachToComponent(ChildToPromote, FAttachmentTransformRules::KeepWorldTransform);
                         }
                     }
                 }
@@ -438,7 +438,7 @@ namespace nilou {
 
     void USceneComponent::UpdateChildTransforms()
     {
-        for (std::shared_ptr<USceneComponent> ChildComp : AttachChildren)
+        for (USceneComponent* ChildComp : AttachChildren)
         {
             if (ChildComp)
             {
@@ -473,7 +473,7 @@ namespace nilou {
         int32 Index = -1;
         for (int i = 0; i < Parent->AttachChildren.size(); i++)
         {
-            if (Parent->AttachChildren[i].get() == this)
+            if (Parent->AttachChildren[i] == this)
             {
                 Index = i;
                 break;
@@ -481,7 +481,7 @@ namespace nilou {
         }
         if (Index == -1)
         {
-            Parent->AttachChildren.push_back(std::static_pointer_cast<USceneComponent>(this->shared_from_this()));
+            Parent->AttachChildren.push_back(this);
         }
         
 		FTransform SocketTransform = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
@@ -558,7 +558,7 @@ namespace nilou {
 
             for (int i = 0; i < GetAttachParent()->AttachChildren.size(); i++)
             {
-                if (GetAttachParent()->AttachChildren[i].get() == this)
+                if (GetAttachParent()->AttachChildren[i] == this)
                 {
                     GetAttachParent()->AttachChildren.erase(GetAttachParent()->AttachChildren.begin()+i);
                     break;

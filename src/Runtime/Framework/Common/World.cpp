@@ -124,7 +124,7 @@ namespace nilou {
                 ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
                 NPackage::SavePackage(ColoredMaterialPackage);
             }
-            Cube->MaterialSlots.push_back(ColoredMaterial);
+            Cube->MaterialSlots.Add(ColoredMaterial);
             FStaticMeshLODResources* resources = new FStaticMeshLODResources();
             FStaticMeshSection* section = new FStaticMeshSection();
             section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
@@ -175,6 +175,7 @@ namespace nilou {
         if (!SkyAtmosphereMaterial)
         {
             SkyAtmosphereMaterial = NewObject<UMaterial>(Package, "SkyAtmosphereMaterial");
+            SkyAtmosphereMaterial->InitializeResources();
             SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl");
             NPackage::SavePackage(Package);
         }
@@ -335,7 +336,7 @@ namespace nilou {
     {
         for (AActor* Actor : Actors)
         {
-            Actor->ForEachComponent<UActorComponent>([](std::shared_ptr<UActorComponent> Component) {
+            Actor->ForEachComponent<UActorComponent>([](UActorComponent* Component) {
                 Component->DoDeferredRenderUpdates();
             });
         }

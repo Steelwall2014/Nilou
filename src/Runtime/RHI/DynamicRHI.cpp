@@ -6,7 +6,7 @@
 #include "PipelineStateCache.h"
 
 namespace nilou {
-	RHITextureParams RHITextureParams::DefaultParams = RHITextureParams();
+	// RHITextureParams RHITextureParams::DefaultParams = RHITextureParams();
 
 	FDynamicRHI *FDynamicRHI::DynamicRHI = nullptr;
 

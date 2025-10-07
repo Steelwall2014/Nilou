@@ -48,23 +48,32 @@ using FQuat = TQuat<double>;
 
 namespace nilou {
 
-    template <typename T>
-    void Serialize(FArchive& Ar, TVector<T>& Vec)
-    {
-        nlohmann::json& Node = Ar.GetNode();
-        if (Ar.IsLoading())
+    namespace SerializePrivate {
+        template <typename T>
+        void SerializeVector(FArchive& Ar, T& Vec)
         {
-            Ncheck(Node.is_array());
-            for (int i = 0; i < Vec.length(); i++)
-                Vec[i] = Node[i].get<T>();
-        }
-        else 
-        {
-            Node = nlohmann::json();
-            for (int i = 0; i < Vec.length(); i++)
-                Node.push_back(Vec[i]);
+            nlohmann::json& Node = Ar.GetNode();
+            if (Ar.IsLoading())
+            {
+                Ncheck(Node.is_array());
+                for (int i = 0; i < Vec.length(); i++)
+                    Vec[i] = Node[i].get<typename T::value_type>();
+            }
+            else 
+            {
+                Node = nlohmann::json();
+                for (int i = 0; i < Vec.length(); i++)
+                    Node.push_back(Vec[i]);
+            }
         }
     }
+
+    template <typename T>
+    void Serialize(FArchive& Ar, TVector2<T>& Vec) { SerializePrivate::SerializeVector(Ar, Vec); }
+    template <typename T>
+    void Serialize(FArchive& Ar, TVector<T>& Vec) { SerializePrivate::SerializeVector(Ar, Vec); }
+    template <typename T>
+    void Serialize(FArchive& Ar, TVector4<T>& Vec) { SerializePrivate::SerializeVector(Ar, Vec); }
 
     template <typename T>
     void Serialize(FArchive& Ar, TQuat<T>& Quat)

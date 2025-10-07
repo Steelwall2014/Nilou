@@ -21,34 +21,34 @@
 
 namespace nilou {
 
-	struct NSTRUCT RHITextureParams
-	{
-		GENERATED_BODY()
+	// struct NSTRUCT RHITextureParams
+	// {
+	// 	GENERATED_BODY()
 		
-		NPROPERTY()
-		ETextureFilters Mag_Filter;
-		NPROPERTY()
-		ETextureFilters Min_Filter;
-		NPROPERTY()
-		ETextureWrapModes Wrap_S; 
-		NPROPERTY()
-		ETextureWrapModes Wrap_T; 
-		NPROPERTY()
-		ETextureWrapModes Wrap_R;
-		RHITextureParams(
-			ETextureFilters InMagFilter=ETextureFilters::TF_Linear,
-			ETextureFilters InMinFilter=ETextureFilters::TF_Linear_Mipmap_Linear,
-			ETextureWrapModes InWrap_S=ETextureWrapModes::TW_Repeat,
-			ETextureWrapModes InWrap_T=ETextureWrapModes::TW_Repeat,
-			ETextureWrapModes InWrap_R=ETextureWrapModes::TW_Repeat)
-			: Mag_Filter(InMagFilter)
-			, Min_Filter(InMinFilter)
-			, Wrap_S(InWrap_S)
-			, Wrap_T(InWrap_T)
-			, Wrap_R(InWrap_R)
-		{}
-		static RHITextureParams DefaultParams;
-	};
+	// 	NPROPERTY()
+	// 	ETextureFilters Mag_Filter;
+	// 	NPROPERTY()
+	// 	ETextureFilters Min_Filter;
+	// 	NPROPERTY()
+	// 	ETextureWrapModes Wrap_S; 
+	// 	NPROPERTY()
+	// 	ETextureWrapModes Wrap_T; 
+	// 	NPROPERTY()
+	// 	ETextureWrapModes Wrap_R;
+	// 	RHITextureParams(
+	// 		ETextureFilters InMagFilter=ETextureFilters::TF_Linear,
+	// 		ETextureFilters InMinFilter=ETextureFilters::TF_Linear_Mipmap_Linear,
+	// 		ETextureWrapModes InWrap_S=ETextureWrapModes::TW_Repeat,
+	// 		ETextureWrapModes InWrap_T=ETextureWrapModes::TW_Repeat,
+	// 		ETextureWrapModes InWrap_R=ETextureWrapModes::TW_Repeat)
+	// 		: Mag_Filter(InMagFilter)
+	// 		, Min_Filter(InMinFilter)
+	// 		, Wrap_S(InWrap_S)
+	// 		, Wrap_T(InWrap_T)
+	// 		, Wrap_R(InWrap_R)
+	// 	{}
+	// 	static RHITextureParams DefaultParams;
+	// };
 	class RHIResource : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
 	{
 	public:

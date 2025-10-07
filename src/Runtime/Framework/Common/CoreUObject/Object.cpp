@@ -32,7 +32,6 @@ NObject* NewObject(NObject* Outer, const std::string& Name, NClass* Class)
     {
         return nullptr;
     }
-    NPackage* Package = Outer ? Cast<NPackage>(Outer->GetOuter()) : nullptr;
     NObject* Object = FindObject(Outer, Name);
     if (Object) return Object;
 
@@ -123,25 +122,16 @@ NPackage* CreatePackage(const std::string& Name)
     return Package;
 }
 
+NPackage* GObjTransientPkg = nullptr;
+NPackage* GetTransientPackage()
+{
+    return GObjTransientPkg;
+}
+
 NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params)
 {    
     NObject* Object = Params.Class->CreateObject(Params.Name, Params.Outer);
     return Object;
-}
-
-void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer, NClass* Class)
-{
-    Object->ClassPrivate = Class;
-    Object->NamePrivate = Name;
-    Object->OuterPrivate = Outer;
-    FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
-    std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
-    ThreadHash.ObjectMap.Add(Name, Object);
-    NPackage* Package = Object->GetPackage();
-    if (Package)
-    {
-        ThreadHash.ObjectOuterMap.FindOrAdd(Package).Add(Object.get());
-    }
 }
 
 void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects)
@@ -186,6 +176,27 @@ TArray<NObject *> GetObjectsWithPackage(const class NPackage* Package, bool bInc
 		return true;
     }, bIncludeNestedObjects);
     return Results;
+}
+
+FObjectInitializer& FObjectInitializer::Get()
+{
+    static thread_local FObjectInitializer Instance;
+    return Instance;
+}
+
+NObject::NObject(const FObjectInitializer& Initializer)
+    : ClassPrivate(Initializer.Class)
+    , NamePrivate(Initializer.Name)
+    , OuterPrivate(Initializer.Outer)
+{
+    FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+    std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
+    ThreadHash.ObjectMap.Add(NamePrivate, std::shared_ptr<NObject>(this));
+    NPackage* Package = GetPackage();
+    if (Package)
+    {
+        ThreadHash.ObjectOuterMap.FindOrAdd(Package).Add(this);
+    }
 }
 
 bool NObject::IsA(const NClass *Class)
@@ -266,52 +277,67 @@ void NObject::MarkPackageDirty()
     }
 }
 
-struct FIntrinsicClassRegistry
+void InitUObject()
 {
-    static void Register()
+    static bool bInitialized = false;
+    if (bInitialized)
     {
-        static bool bRegistered = false;
-        if (!bRegistered)
-        {
-            bRegistered = true;
-            std::shared_ptr<NPackage> NativeClassPackage = std::make_shared<NPackage>();
-            std::shared_ptr<NClass> NClass_StaticClass = std::make_shared<NClass>();
-            std::shared_ptr<NClass> NObject_StaticClass = std::make_shared<NClass>();
-            std::shared_ptr<NClass> NPackage_StaticClass = std::make_shared<NClass>();
-            NClass::Z_StaticClass = NClass_StaticClass.get();
-            NObject::Z_StaticClass = NObject_StaticClass.get();
-            NPackage::Z_StaticClass = NPackage_StaticClass.get();
-
-            InitializeObject(NativeClassPackage, "/Script/Engine", nullptr, NPackage::StaticClass());
-            InitializeObject(NClass_StaticClass, "Class", NativeClassPackage.get(), NClass::StaticClass());
-            InitializeObject(NObject_StaticClass, "Object", NativeClassPackage.get(), NClass::StaticClass());
-            InitializeObject(NPackage_StaticClass, "Package", NativeClassPackage.get(), NClass::StaticClass());
-            
-            NClass_StaticClass->Size = sizeof(NClass);
-            NClass_StaticClass->SuperStruct = NObject_StaticClass.get();
-            NClass_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NClass(); };
-            NClass_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
-
-            NObject_StaticClass->Size = sizeof(NObject);
-            NObject_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NObject(); };
-            NObject_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
-
-            NPackage_StaticClass->Size = sizeof(NPackage);
-            NPackage_StaticClass->SuperStruct = NObject_StaticClass.get();
-            NPackage_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NPackage(); };
-            NPackage_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
-        }
-
+        return;
     }
-};
+    bInitialized = true;
+    FObjectInitializer& Initializer = FObjectInitializer::Get();
+
+    Initializer.Class = nullptr;    // deferred 1
+    Initializer.Name = "/Script/Engine";
+    Initializer.Outer = nullptr;
+    NPackage* NativeClassPackage = new NPackage;
+
+    Initializer.Class = nullptr;    // deferred 2
+    Initializer.Name = "Class";
+    Initializer.Outer = NativeClassPackage;
+    NClass* NClass_StaticClass = new NClass;
+    NClass::Z_StaticClass = NClass_StaticClass;
+    NClass_StaticClass->ClassPrivate = NClass_StaticClass;  // assgin deferred 2
+
+    Initializer.Class = NClass::StaticClass();
+    Initializer.Name = "Object";
+    Initializer.Outer = NativeClassPackage;
+    NClass* NObject_StaticClass = new NClass;
+    NObject::Z_StaticClass = NObject_StaticClass;
+
+    Initializer.Class = NClass::StaticClass();
+    Initializer.Name = "Package";
+    Initializer.Outer = NativeClassPackage;
+    NClass* NPackage_StaticClass = new NClass;
+    NPackage::Z_StaticClass = NPackage_StaticClass;
+    NativeClassPackage->ClassPrivate = NPackage_StaticClass;    // assign deferred 1
+    
+    NClass_StaticClass->Size = sizeof(NClass);
+    NClass_StaticClass->SuperStruct = NObject_StaticClass;
+    NClass_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NClass(); };
+    NClass_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+
+    NObject_StaticClass->Size = sizeof(NObject);
+    NObject_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NObject(); };
+    NObject_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+
+    NPackage_StaticClass->Size = sizeof(NPackage);
+    NPackage_StaticClass->SuperStruct = NObject_StaticClass;
+    NPackage_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NPackage(); };
+    NPackage_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+
+    GObjTransientPkg = NewObject<NPackage>(nullptr, "/Engine/Transient");
+}
 
 NObject* NClass::CreateObject(const std::string& Name, NObject* Outer) const
 {
     void* Memory = malloc(Size);
+    FObjectInitializer& Initializer = FObjectInitializer::Get();
+    Initializer.Class = const_cast<NClass*>(this);
+    Initializer.Name = Name;
+    Initializer.Outer = Outer;
     ClassConstructor(Memory);
-    std::shared_ptr<NObject> Object(static_cast<NObject*>(Memory));
-    InitializeObject(Object, Name, Outer, const_cast<NClass*>(this)); 
-    return Object.get();
+    return static_cast<NObject*>(Memory);
 }
 
 TArray<FClassRegistryBase*> Registrations;
@@ -323,7 +349,7 @@ FClassRegistryBase::FClassRegistryBase(
     EClassFlags InClassFlags, 
     std::function<void(void*)> InClassConstructor)
 {
-    FIntrinsicClassRegistry::Register();
+    InitUObject();
     std::string Name = RemoveNamespace(InName);
     Name = RemovePrefix(InMetaClass, Name);
     FStaticConstructObjectParameters Params;
@@ -331,17 +357,27 @@ FClassRegistryBase::FClassRegistryBase(
     Params.Outer = FindObject<NPackage>("/Script/Engine");
     Params.Name = Name;
     Class = Cast<NClass>(StaticConstructObject_Internal(Params));
+    Class->Size = Size;
+    Class->MetaClass = InMetaClass;
     Class->SuperStruct = InSuperClass;
     Class->ClassConstructor = InClassConstructor;
     Class->SetClassFlags(InClassFlags);
     Registrations.Add(this);
 }
 
+void FClassRegistryBase::AddProperty(FProperty* Property)
+{
+    Class->Properties.Add(Property);
+}
+
 void FClassRegistryBase::DeferredConstructFProperty()
 {
     for (FClassRegistryBase* Registry : Registrations)
     {
-        Registry->ConstructFProperty();
+        for (auto& Constructor : Registry->ConstructFProperty)
+        {
+            Constructor();
+        }
     }
 }
 

@@ -14,7 +14,7 @@
 #include "RenderGraphResources.h"
 namespace nilou {
 
-    enum class EImageType
+    enum class NENUM EImageType
     {
         IT_Image2D,
         IT_Image3D,

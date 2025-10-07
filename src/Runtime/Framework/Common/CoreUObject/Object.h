@@ -55,10 +55,17 @@ namespace nilou {
             }
         }
     }
-    inline void Serialize(FArchive& Ar, bool Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
-    inline void Serialize(FArchive& Ar, int32 Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
-    inline void Serialize(FArchive& Ar, float Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
-    inline void Serialize(FArchive& Ar, double Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, bool& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, int8& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, int16& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, int32& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, int64& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, uint8& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, uint16& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, uint32& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, uint64& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, float& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
+    inline void Serialize(FArchive& Ar, double& Value) { SerializePrivate::SerializeNumeric(Ar, Value); }
 
     template<typename T>
     class TProperty_Numeric : public FProperty
@@ -70,7 +77,14 @@ namespace nilou {
         }
     };
     using FBoolProperty = TProperty_Numeric<bool>;
-    using FIntProperty = TProperty_Numeric<int32>;
+    using FInt8Property = TProperty_Numeric<int8>;
+    using FInt16Property = TProperty_Numeric<int16>;
+    using FInt32Property = TProperty_Numeric<int32>;
+    using FInt64Property = TProperty_Numeric<int64>;
+    using FUInt8Property = TProperty_Numeric<uint8>;
+    using FUInt16Property = TProperty_Numeric<uint16>;
+    using FUInt32Property = TProperty_Numeric<uint32>;
+    using FUInt64Property = TProperty_Numeric<uint64>;
     using FFloatProperty = TProperty_Numeric<float>;
     using FDoubleProperty = TProperty_Numeric<double>;
 
@@ -100,10 +114,11 @@ namespace nilou {
     public:
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value);
+            ItemSerializer(Ar, Value, Inner);
         }
 
-        std::function<void(FArchive&,void*)> ItemSerializer;
+        std::function<void(FArchive&, void*, FProperty*)> ItemSerializer;
+        FProperty* Inner;
     };
 
     class FMapProperty : public FProperty
@@ -111,10 +126,12 @@ namespace nilou {
     public:
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value);
+            ItemSerializer(Ar, Value, KeyProp, ValueProp);
         }
 
-        std::function<void(FArchive&,void*)> ItemSerializer;
+        std::function<void(FArchive&, void*, FProperty*, FProperty*)> ItemSerializer;
+        FProperty* KeyProp;
+        FProperty* ValueProp;
     };
 
     class FVectorProperty : public FProperty
@@ -144,10 +161,11 @@ namespace nilou {
     public:
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value);
+            ItemSerializer(Ar[Name], Value, Inner);
         }
 
-        std::function<void(FArchive&,void*)> ItemSerializer;
+        std::function<void(FArchive&,void*,FProperty*)> ItemSerializer;
+        FProperty* Inner;
     };
 
     class FStructProperty : public FProperty
@@ -164,6 +182,23 @@ namespace nilou {
         virtual void SerializeItem(FArchive& Ar, void* Value) override;
     };
 
+    class FEnumProperty : public FProperty
+    {
+    public:
+        virtual void SerializeItem(FArchive& Ar, void* Value) override;
+
+        NClass* Enum;
+    };
+
+    struct FObjectInitializer
+    {
+        NClass* Class;
+        std::string Name;
+        NObject* Outer;
+
+        static FObjectInitializer& Get();
+    };
+
     enum class EObjectFlags : uint32
     {
         NoFlags	                    =0x00000000,
@@ -173,14 +208,15 @@ namespace nilou {
     };
     ENUM_CLASS_FLAGS(EObjectFlags);
 
-    class NObject : public std::enable_shared_from_this<NObject>
+    class NObject
     {
 
     private:
         template<typename T> 
         friend class TClassRegistry;
+        friend class NClass;
         static NClass* Z_StaticClass;
-        friend struct FIntrinsicClassRegistry;
+        friend void InitUObject();
     public:
         virtual NClass *GetClass() const { return StaticClass(); }
         static NClass *StaticClass() { return Z_StaticClass; }
@@ -188,6 +224,8 @@ namespace nilou {
         virtual void PostLoad();
 
     public:
+        NObject(const FObjectInitializer& Initializer=FObjectInitializer::Get());
+
         NFUNCTION()
         bool IsA(const NClass *Class);
 
@@ -258,8 +296,6 @@ namespace nilou {
         std::string NamePrivate;
 
         NObject* OuterPrivate;
-
-        friend void InitializeObject(std::shared_ptr<NObject> Object, const std::string& Name, NObject* Outer, NClass* Class);
     };
 
     template <class T>
@@ -300,6 +336,7 @@ namespace nilou {
     NPackage* LoadPackage(const std::string& Name);
     NPackage* FindPackage(const std::string& Name);
     NPackage* CreatePackage(const std::string& Name);
+    NPackage* GetTransientPackage();
 
     inline void Serialize(FArchive& Ar, NObject*& Object)
     {

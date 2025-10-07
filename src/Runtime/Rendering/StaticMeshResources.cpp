@@ -207,10 +207,10 @@ namespace nilou {
     FMeshSectionInfo FMeshSectionInfoMap::Get(int32 LODIndex, int32 SectionIndex) const
     {
         uint32 key = LODIndex << 16 | SectionIndex;
-        auto Found = Map.find(key);
-        if (Found != Map.end())
+        auto Found = Map.Find(key);
+        if (Found != nullptr)
         {
-            return Found->second;
+            return *Found;
         }
         return FMeshSectionInfo{SectionIndex};
     }
@@ -261,7 +261,7 @@ namespace nilou {
             RenderData = nullptr;
         }
         SectionInfoMap.Clear();
-        LocalBoundingBox = FBox();
+        ExtendedBounds = FBoxSphereBounds();
         // TODO: multiple LODs
         NumLODs = 1;
         RenderData = new FStaticMeshRenderData;
@@ -301,11 +301,13 @@ namespace nilou {
             Resource->Sections.push_back(Section);
 
             // compute bounding box
+            FBox LocalBoundingBox;
             for (int vid = 0; vid < primitive.Positions.size(); vid++)
             {
                 LocalBoundingBox.Min = glm::min(LocalBoundingBox.Min, FVector(primitive.Positions[vid]));
                 LocalBoundingBox.Max = glm::max(LocalBoundingBox.Max, FVector(primitive.Positions[vid]));
             }
+            ExtendedBounds = FBoxSphereBounds(LocalBoundingBox);
 
             // set section info
             FMeshSectionInfo Info;
@@ -320,7 +322,7 @@ namespace nilou {
             SectionData.Colors = FVertexIndexBufferData(Section->VertexBuffers.Colors);
             for (int i = 0; i < MAX_STATIC_TEXCOORDS; i++)
             {
-                SectionData.TexCoords.push_back(FVertexIndexBufferData(Section->VertexBuffers.TexCoords[i]));
+                SectionData.TexCoords.Add(FVertexIndexBufferData(Section->VertexBuffers.TexCoords[i]));
             }
             SectionInfoMap.Set(0, prim_index, Info);
         }
@@ -357,7 +359,7 @@ namespace nilou {
                 load_data(SectionData.Normals, Data.NormalComponent, Section->VertexBuffers.Normals);
                 load_data(SectionData.Colors, Data.ColorComponent, Section->VertexBuffers.Colors);
                 load_data(SectionData.Tangents, Data.TangentComponent, Section->VertexBuffers.Tangents);
-                for (int i = 0; i < SectionData.TexCoords.size(); i++)
+                for (int i = 0; i < SectionData.TexCoords.Num(); i++)
                 {
                     load_data(SectionData.TexCoords[i], Data.TexCoordComponent[i], Section->VertexBuffers.TexCoords[i]);
                 }
