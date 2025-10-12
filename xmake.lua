@@ -27,23 +27,26 @@ target("Nilou")
     set_kind("binary")
 
     on_prepare(function (target)
-        os.cp("$(projectdir)/External/bin/*", "$(buildir)/$(os)/$(arch)/$(mode)")
         local includedirs = target:get("includedirs")
         local src_dir = path.absolute("src")
         local generated_dir = path.absolute("src/Runtime/Generated")
         local include_dir = ""
         for i, v in ipairs(includedirs) do
-            include_dir = include_dir .. string.format(" -I\"%s\"", path.absolute(v))
+            include_dir = include_dir .. string.format(" -I \"%s\"", path.translate(path.absolute(v)))
         end
         local headertool_path = "$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
         if (os.exists(headertool_path)) then
-            local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x -c++ -std=c++20 %s", headertool_path, src_dir, generated_dir, include_dir)
+            local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s", headertool_path, src_dir, generated_dir, include_dir)
             print(exec)
             os.exec(exec)
             target:add("files", generated_dir .. "/*.gen.cpp")
         else
             print("NilouHeaderTool not found in " .. headertool_path .. ". Please build NilouHeaderTool first (xmake build NilouHeaderTool).")
         end
+    end)
+
+    after_build(function (target)
+        os.cp("$(projectdir)/External/bin/*", "$(buildir)/$(os)/$(arch)/$(mode)")
     end)
 
     add_packages(

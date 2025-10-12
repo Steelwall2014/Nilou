@@ -300,26 +300,57 @@ void FixIncompleteForwardDeclarations(TypeMetaData& CurrentType, CXCursor FieldC
     });
 }
 
-void ParseHeaderFile(std::set<string> filepaths, std::vector<const char*> arguments)
+bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const char*>& arguments)
 {
+    bool bAllSucceeded = true;
     std::vector<CXIndex> Indices;
     std::map<string, CXTranslationUnit> TranslationUnits;
     mutex TranslationUnitsMutex;
     std::for_each(std::execution::par, filepaths.begin(), filepaths.end(), [&](const string& filepath) 
     {
         CXIndex index = clang_createIndex(0, 0);
-        CXTranslationUnit unit = clang_parseTranslationUnit(
+        CXTranslationUnit unit = nullptr;
+        CXErrorCode error = clang_parseTranslationUnit2(
             index,
-            filepath.c_str(), arguments.data(), (int)arguments.size(),
+            filepath.c_str(), arguments.data(), arguments.size(),
             nullptr, 0,
-            CXTranslationUnit_None);
-        if (unit != nullptr)
+            CXTranslationUnit_None,
+            &unit);
+
+        std::lock_guard<mutex> lock(TranslationUnitsMutex);
+        Indices.push_back(index);
+        if (error == CXError_Success)
         {
-            std::lock_guard<mutex> lock(TranslationUnitsMutex);
             TranslationUnits[filepath] = unit;
-            Indices.push_back(index);
+        }
+        if (error != CXError_Success) 
+        {
+            string error_str;
+            switch (error)
+            {
+                case CXError_Failure:
+                    error_str = "CXError_Failure";
+                    break;
+                case CXError_Crashed:
+                    error_str = "CXError_Crashed";
+                    break;
+                case CXError_InvalidArguments:
+                    error_str = "CXError_InvalidArguments";
+                    break;
+                case CXError_ASTReadError:
+                    error_str = "CXError_ASTReadError";
+                    break;
+                default:
+                    break;
+            };
+            cerr << error_str << " occurred while parsing file: " << filepath << endl;
+            bAllSucceeded = false;
         }
     });
+    if (!bAllSucceeded)
+    {
+        return false;
+    }
 
     mutex NTypesMutex;
     std::for_each(std::execution::par, TranslationUnits.begin(), TranslationUnits.end(), [&](auto& pair) 
@@ -439,6 +470,7 @@ void ParseHeaderFile(std::set<string> filepaths, std::vector<const char*> argume
     {
         clang_disposeIndex(index);
     }
+    return true;
 }
 
 string GenerateIncludes(const TypeMetaData& Type)
@@ -633,7 +665,10 @@ int main(int argc, char *argv[])
         {
             cout << "[NilouHeaderTool] " << FileName << endl;
         }
-        ParseHeaderFile(FilesThatNeedsReflection, ClangArguments);
+        if (!ParseHeaderFile(FilesThatNeedsReflection, ClangArguments))
+        {
+            return -1;
+        }
         GenerateCode();
         WriteCode(OutputDirectory);
 
