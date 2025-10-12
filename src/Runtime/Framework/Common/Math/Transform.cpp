@@ -4,21 +4,21 @@
 namespace nilou {
 
 template<>
-BEGIN_CLASS_REGISTRY(Struct, FRotator, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+BEGIN_STRUCT_REGISTRY(FRotator, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
-    CLASS_PROPERTY(Pitch)
-    CLASS_PROPERTY(Yaw)
-    CLASS_PROPERTY(Roll)
+    STRUCT_PROPERTY(Pitch)
+    STRUCT_PROPERTY(Yaw)
+    STRUCT_PROPERTY(Roll)
 
-END_CLASS_REGISTRY(FRotator)
+END_STRUCT_REGISTRY(FRotator)
 
 template<>
-BEGIN_CLASS_REGISTRY(Struct, FTransform, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+BEGIN_STRUCT_REGISTRY(FTransform, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
 
-    CLASS_PROPERTY(Rotation)
-    CLASS_PROPERTY(Translation)
-    CLASS_PROPERTY(Scale3D)
+    STRUCT_PROPERTY(Rotation)
+    STRUCT_PROPERTY(Translation)
+    STRUCT_PROPERTY(Scale3D)
 
-END_CLASS_REGISTRY(FTransform)
+END_STRUCT_REGISTRY(FTransform)
 
 }

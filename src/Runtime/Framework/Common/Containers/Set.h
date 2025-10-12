@@ -60,6 +60,11 @@ public:
         return Set.empty();
     }
 
+    void Empty()
+    {
+        Set.clear();
+    }
+
     iterator begin() { return Set.begin(); }
     const_iterator begin() const { return Set.begin(); }
     const_iterator cbegin() const { return Set.cbegin(); }

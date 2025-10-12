@@ -107,6 +107,8 @@ std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Pa
 void NPackage::SavePackage(NPackage* Package)
 {
     std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetName());
+    std::string DirectoryName = std::filesystem::path(MetaFileName).parent_path().string();
+    std::filesystem::create_directories(DirectoryName);
     auto [ObjectImports, ObjectExports] = BuildLinker(Package);
     {
         nlohmann::json MetaFile;
@@ -125,16 +127,14 @@ void NPackage::SavePackage(NPackage* Package)
     TArray<NObject*> InnnerObjects = GetObjectsWithPackage(Package, true);
     nlohmann::json File;
     nlohmann::json& ObjectsJson = File["Objects"];
-    for (NObject* Obj : InnnerObjects)
+    FArchive Ar(ObjectsJson, false);
+    for (int32 ObjectIndex = 0; ObjectIndex < InnnerObjects.Num(); ++ObjectIndex)
     {
-        {
-            nlohmann::json& ObjJson = ObjectsJson.emplace_back();
-            FArchive Ar(File);
-            Obj->Serialize(Ar);
-            std::ofstream out(FileName);
-            out << File.dump(4);
-        }
+        NObject* Obj = InnnerObjects[ObjectIndex];
+        Obj->Serialize(Ar[ObjectIndex]);
     }
+    std::ofstream out(FileName);
+    out << File.dump(4);
 }
 
 

@@ -1,4 +1,4 @@
-set_xmakever("2.9.1")
+set_xmakever("3.0.0")
 set_project("Nilou")
 
 engine_version = "0.1.0"
@@ -33,11 +33,11 @@ target("Nilou")
         local generated_dir = path.absolute("src/Runtime/Generated")
         local include_dir = ""
         for i, v in ipairs(includedirs) do
-            include_dir = include_dir .. string.format(" \"%s\"", path.absolute(v))
+            include_dir = include_dir .. string.format(" -I\"%s\"", path.absolute(v))
         end
         local headertool_path = "$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
         if (os.exists(headertool_path)) then
-            local exec = string.format("%s \"%s\" \"%s\" %s", headertool_path, src_dir, generated_dir, include_dir)
+            local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x -c++ -std=c++20 %s", headertool_path, src_dir, generated_dir, include_dir)
             print(exec)
             os.exec(exec)
             target:add("files", generated_dir .. "/*.gen.cpp")

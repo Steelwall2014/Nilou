@@ -11,6 +11,11 @@ void* FProperty::ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayI
     return (uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
 }
 
+const void* FProperty::ContainerPtrToValuePtrInternal(const void* ContainerPtr, int32 ArrayIndex) const
+{
+    return (const uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
+}
+
 class FUObjectHashTables
 {
 public:
@@ -242,12 +247,7 @@ void NObject::GetObjectReferences(TSet<NObject*>& OutReferences) const
 
 void NObject::Serialize(FArchive& Ar)
 {
-    TArray<FProperty*> Properties = GetClass()->GetProperties(true);
-    for (FProperty* Property : Properties)
-    {
-        void* Pointer = Property->ContainerPtrToValuePtrInternal(this);
-        Property->SerializeItem(Ar[Property->Name], Pointer);
-    }
+    GetClass()->SerializeProperties(Ar, this);
 }
 
 void NObject::PostLoad()

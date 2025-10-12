@@ -5,12 +5,17 @@
 
 namespace nilou {
 
+    class NTestObjectC;
+
     class NCLASS NTestObjectA : public NObject
     { 
         GENERATED_BODY()
     public:
         NPROPERTY()
         int a;
+
+        NPROPERTY()
+        NTestObjectC* C;
     };
 
     class NCLASS NTestObjectB : public NTestObjectA 
@@ -19,5 +24,14 @@ namespace nilou {
     public:
         NPROPERTY()
         int b;
+
+        NPROPERTY()
+        TArray<NTestObjectC*> CArray;
+
+        NPROPERTY()
+        TMap<int, NTestObjectC*> CMap;
+
+        NPROPERTY()
+        TSet<NTestObjectC*> CSet;
     };
 }

@@ -47,6 +47,7 @@ ostream& operator<<(ostream& stream, const CXString& str)
 
 struct TypeMetaData
 {
+    CXCursor Cursor;
     string FileName;
     string Name;
     string NameWithoutNamespace;
@@ -55,9 +56,10 @@ struct TypeMetaData
     map<string, string> Fields;
     set<string> Methods;
     vector<vector<string>> Constructors;
-    string GeneratedFileCode;
+    string GeneratedCode;
     string MetaType; // class or struct
     vector<string> EnumValues;
+    vector<string> AdditionalIncludes;
 };
 map<string, TypeMetaData> NTypes;
 
@@ -208,6 +210,12 @@ string GetRawType(const string& T)
     return raw_T;
 }
 
+string StripClassStructPrefix(const string& T)
+{
+    string raw_T = regex_replace(T, regex("(class |struct )"), "");
+    return raw_T;
+}
+
 bool IsSupportedType(CXType Type)
 {
     if (IsNStructOrBuiltin(Type))
@@ -244,7 +252,7 @@ bool NeedsReflection(string filepath)
         index,
         filepath.c_str(), arguments.data(), (int)arguments.size(),
         nullptr, 0,
-        CXTranslationUnit_None);
+        CXTranslationUnit_Incomplete);
     if (unit == nullptr)
     {
         cerr << "Unable to parse translation unit. Quitting." << endl;
@@ -264,47 +272,71 @@ bool NeedsReflection(string filepath)
             }
             return CXChildVisit_Recurse;
         });
+    clang_disposeTranslationUnit(unit);
+    clang_disposeIndex(index);
     return needs_reflection;
 }
 
-void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
+void FixIncompleteForwardDeclarations(TypeMetaData& CurrentType, CXCursor FieldCursor)
 {
-    std::vector<const char*> arguments = {
-        "-x",
-        "c++",
-        "-std=c++20",
-        "-D __clang__",
-        "-D __META_PARSER__"
-    };
-    for (auto& path : IncludePaths)
+    ClangVisitChildren(FieldCursor, [&](CXCursor c, CXCursor parent)
     {
-        arguments.push_back("-I");
-        arguments.push_back(path.c_str());
-    }
-    CXIndex index = clang_createIndex(0, 0);
-    CXTranslationUnit unit = clang_parseTranslationUnit(
-        index,
-        filepath.c_str(), arguments.data(), (int)arguments.size(),
-        nullptr, 0,
-        CXTranslationUnit_None);
-    if (unit == nullptr)
+        string s = GetCursorSpelling(c);
+        if (c.kind == CXCursor_TypeRef)
+        {
+            s = StripClassStructPrefix(s);
+            if (IsReflectedType(s))
+            {
+                auto& AdditionalIncludes = CurrentType.AdditionalIncludes;
+                auto Found = std::find(AdditionalIncludes.begin(), AdditionalIncludes.end(), NTypes[s].FileName);
+                if (Found == AdditionalIncludes.end() && NTypes[s].FileName != CurrentType.FileName)
+                {
+                    CurrentType.AdditionalIncludes.push_back(NTypes[s].FileName);
+                }
+            }
+        }
+        
+        return CXChildVisit_Recurse;
+    });
+}
+
+void ParseHeaderFile(std::set<string> filepaths, std::vector<const char*> arguments)
+{
+    std::vector<CXIndex> Indices;
+    std::map<string, CXTranslationUnit> TranslationUnits;
+    mutex TranslationUnitsMutex;
+    std::for_each(std::execution::par, filepaths.begin(), filepaths.end(), [&](const string& filepath) 
     {
-        cerr << "Unable to parse translation unit. Quitting." << endl;
-        return;
-    }
-    vector<CXCursor> reflection_classes;
-    CXCursor cursor = clang_getTranslationUnitCursor(unit);
-    ClangVisitChildren(
-        cursor,
-        [&](CXCursor c, CXCursor parent)
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = clang_parseTranslationUnit(
+            index,
+            filepath.c_str(), arguments.data(), (int)arguments.size(),
+            nullptr, 0,
+            CXTranslationUnit_None);
+        if (unit != nullptr)
+        {
+            std::lock_guard<mutex> lock(TranslationUnitsMutex);
+            TranslationUnits[filepath] = unit;
+            Indices.push_back(index);
+        }
+    });
+
+    mutex NTypesMutex;
+    std::for_each(std::execution::par, TranslationUnits.begin(), TranslationUnits.end(), [&](auto& pair) 
+    {
+        auto& [filepath, unit] = pair;
+        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        ClangVisitChildren(cursor, [&](CXCursor c, CXCursor parent)
         {
             string s = GetCursorSpelling(c);
-            if (clang_getCursorKind(c) == CXCursor_AnnotateAttr) 
+            auto cursor_kind = clang_getCursorKind(c);
+            if (cursor_kind == CXCursor_AnnotateAttr) 
             {
+                std::lock_guard<std::mutex> lock(NTypesMutex);
                 string class_name = fully_qualified(parent);
                 if ((s == "reflect-class" || s == "reflect-struct" || s == "reflect-enum") && !NTypes.contains(class_name)) 
                 {
-                    reflection_classes.push_back(parent);
+                    NTypes[class_name].Cursor = parent;
                     NTypes[class_name].Name = class_name;
                     NTypes[class_name].NameWithoutNamespace = RemoveNamespace(class_name);
                     NTypes[class_name].FileName = filepath;
@@ -316,120 +348,146 @@ void ParseHeaderFile(string filepath, std::vector<string> IncludePaths)
                         NTypes[class_name].MetaType = "enum";
                 }
             }
+            else if (cursor_kind == CXCursor_CXXBaseSpecifier) 
+            {
+                std::lock_guard<std::mutex> lock(NTypesMutex);
+                string cursor_spelling = fully_qualified(c);
+                vector<string> tokens = Split(cursor_spelling, ':');
+                string base_class = regex_replace(cursor_spelling, regex("class "), "");
+                string derived_class = fully_qualified(parent);
+                NTypes[base_class].DerivedClasses.insert(derived_class);
+                NTypes[derived_class].BaseClass = GetRawType(base_class);
+            }
             
             return CXChildVisit_Recurse;
         });
+    });
 
-    for (auto& cursor : reflection_classes)
+    
+    std::for_each(std::execution::par, NTypes.begin(), NTypes.end(), [&](auto& pair) 
     {
-        ClangVisitChildren(
-            cursor,
-            [&](CXCursor c, CXCursor parent)
-            {
-                string cursor_spelling = fully_qualified(c);
-                string cursor_kind = GetCursorKindSpelling(c);
-                auto cursor_kind_raw = clang_getCursorKind(c);
+        auto& [name, CurrentType] = pair;
+        ClangVisitChildren(CurrentType.Cursor, [&](CXCursor c, CXCursor parent)
+        {
+            string cursor_spelling = fully_qualified(c);
+            string cursor_kind_str = GetCursorKindSpelling(c);
+            auto cursor_kind = clang_getCursorKind(c);
 
-                if (cursor_kind_raw == CXCursor_Constructor)
+            if (cursor_kind == CXCursor_Constructor)
+            {
+                // string class_name = cursor_spelling;
+                // string method_name = fully_qualified(parent);
+                // string method_args = GetCursorTypeSpelling(parent);
+                // if (IsReflectedType(class_name))
+                // {
+                //     vector<string> args;
+                //     int args_num = clang_Cursor_getNumArguments(c);
+                //     for (int i = 0; i < args_num; i++)
+                //     {
+                //         auto type = GetCursorTypeSpelling(clang_Cursor_getArgument(c, i));
+                //         args.push_back(type);
+                //     }
+                //     NTypes[class_name].Constructors.push_back(args);
+                // }
+            }
+            else if (cursor_kind == CXCursor_AnnotateAttr) 
+            {
+                if (cursor_spelling == "reflect-property") 
                 {
-                    string class_name = cursor_spelling;
-                    string method_name = fully_qualified(parent);
-                    string method_args = GetCursorTypeSpelling(parent);
-                    if (IsReflectedType(class_name))
+                    CXCursor class_cursor = clang_getCursorSemanticParent(parent);
+                    string class_name = fully_qualified(class_cursor);
+                    if (class_name == CurrentType.Name)
                     {
-                        vector<string> args;
-                        int args_num = clang_Cursor_getNumArguments(c);
-                        for (int i = 0; i < args_num; i++)
-                        {
-                            auto type = GetCursorTypeSpelling(clang_Cursor_getArgument(c, i));
-                            args.push_back(type);
-                        }
-                        NTypes[class_name].Constructors.push_back(args);
-                    }
-                }
-                else if (cursor_kind_raw == CXCursor_AnnotateAttr) 
-                {
-                    if (cursor_spelling == "reflect-property") 
-                    {
-                        CXCursor class_cursor = clang_getCursorSemanticParent(parent);
-                        string class_name = fully_qualified(class_cursor);
                         string field_name = GetCursorSpelling(parent);
                         string field_type = GetCursorTypeSpelling(parent);
-                        if (IsReflectedType(class_name))
-                        {
-                            auto& Fields = NTypes[class_name].Fields;
-                            Fields[field_name] = field_type;
-                        }
+                        CurrentType.Fields[field_name] = field_type;
+                        FixIncompleteForwardDeclarations(CurrentType, parent);
                     }
-                    else if (cursor_spelling == "reflect-method")
+                }
+                else if (cursor_spelling == "reflect-method")
+                {
+                    CXCursor class_cursor = clang_getCursorSemanticParent(parent);
+                    string class_name = fully_qualified(class_cursor);
+                    if (class_name == CurrentType.Name)
                     {
-                        CXCursor class_cursor = clang_getCursorSemanticParent(parent);
-                        string class_name = fully_qualified(class_cursor);
                         string method_name = GetCursorSpelling(parent);
                         string method_args = GetCursorTypeSpelling(parent);
-                        if (IsReflectedType(class_name))
-                        {
-                            auto& Methods = NTypes[class_name].Methods;
-                            Methods.insert(method_name);
-                        }
-                    }
-                    
-                }
-                else if (cursor_kind_raw == CXCursor_CXXBaseSpecifier) 
-                {
-                    vector<string> tokens = Split(cursor_spelling, ':');
-                    string base_class = cursor_spelling;
-                    base_class = regex_replace(base_class, regex("class "), "");
-                    string derived_class = fully_qualified(parent);
-                    NTypes[base_class].DerivedClasses.insert(derived_class);
-                    NTypes[derived_class].BaseClass = GetRawType(base_class);
-                }
-                else if (cursor_kind_raw == CXCursor_EnumConstantDecl)
-                {
-                    string enum_name = fully_qualified(parent);
-                    string enum_value = GetCursorSpelling(c);
-                    if (IsReflectedType(enum_name))
-                    {
-                        auto& EnumValues = NTypes[enum_name].EnumValues;
-                        EnumValues.push_back(enum_value);
+                        CurrentType.Methods.insert(method_name);
                     }
                 }
                 
-                return CXChildVisit_Recurse;
-            });
+            }
+            else if (cursor_kind == CXCursor_EnumConstantDecl)
+            {
+                string enum_name = fully_qualified(parent);
+                string enum_value = GetCursorSpelling(c);
+                if (enum_name == CurrentType.Name)
+                {
+                    CurrentType.EnumValues.push_back(enum_value);
+                }
+            }
+            
+            return CXChildVisit_Recurse;
+        });
+    });
+    
+    for (auto& [filepath, unit] : TranslationUnits)
+    {
+        clang_disposeTranslationUnit(unit);
     }
-
-    
-    clang_disposeTranslationUnit(unit);
-    clang_disposeIndex(index);
-    
+    for (auto& index : Indices)
+    {
+        clang_disposeIndex(index);
+    }
 }
 
-string GenerateTypeRegistry(const TypeMetaData& NClass)
+string GenerateIncludes(const TypeMetaData& Type)
 {
-    const auto ClassName = NClass.Name;
-    const auto ClassNameWithoutNamespace = NClass.NameWithoutNamespace;
+    string Includes;
+    Includes += std::format("#include \"{}\"\n", Type.FileName);
+    for (auto& Include : Type.AdditionalIncludes)
+    {
+        Includes += std::format("#include \"{}\"\n", Include);
+    }
+    return Includes;
+}
+
+string GenerateTypeRegistry(const TypeMetaData& Type)
+{
+    const auto ClassName = Type.Name;
+    const auto ClassNameWithoutNamespace = Type.NameWithoutNamespace;
     string BeginClassRegistry;
     string RegistryBody;
     string EndClassRegistry;
-    if (NClass.MetaType == "enum")
+    if (Type.MetaType == "enum")
     {
         BeginClassRegistry += std::format(
             "BEGIN_ENUM_REGISTRY({}, EClassFlags::Native)\n", ClassNameWithoutNamespace);
-        for (auto& EnumValue : NClass.EnumValues)
+        for (auto& EnumValue : Type.EnumValues)
         {
             RegistryBody += std::format("\tENUM_VALUE({});\n", EnumValue);
         }
         EndClassRegistry = std::format("END_ENUM_REGISTRY({})\n", ClassNameWithoutNamespace);
     }
+    else if (Type.MetaType == "struct")
+    {
+        BeginClassRegistry += std::format(
+            "BEGIN_STRUCT_REGISTRY({}, {}, EClassFlags::Native)\n", 
+            ClassNameWithoutNamespace, 
+            Type.BaseClass!="" ? Type.BaseClass : "NullSuperClass");
+        for (auto& [FieldName, FieldType] : Type.Fields)
+        {
+            RegistryBody += std::format("\tSTRUCT_PROPERTY({})\n", FieldName);
+        }
+        EndClassRegistry = std::format("END_STRUCT_REGISTRY({})\n", ClassNameWithoutNamespace);
+    }
     else 
     {
         BeginClassRegistry += std::format(
-            "BEGIN_CLASS_REGISTRY({}, {}, {}, EClassFlags::Native)\n", 
-            IsReflectedClass(ClassName) ? "Object" : IsReflectedEnum(ClassName) ? "Enum" : "Struct", 
+            "BEGIN_CLASS_REGISTRY({}, {}, EClassFlags::Native)\n", 
             ClassNameWithoutNamespace, 
-            NClass.BaseClass!="" ? NClass.BaseClass : "NullSuperClass");
-        for (auto& [FieldName, FieldType] : NClass.Fields)
+            Type.BaseClass!="" ? Type.BaseClass : "NullSuperClass");
+        for (auto& [FieldName, FieldType] : Type.Fields)
         {
             RegistryBody += std::format("\tCLASS_PROPERTY({})\n", FieldName);
         }
@@ -444,20 +502,27 @@ string GenerateTypeRegistry(const TypeMetaData& NClass)
 
 void GenerateCode()
 {
-    for (auto& [ClassName, NClass] : NTypes)
+    for (auto& [ClassName, Type] : NTypes)
     {
-        string TypeRegistry = GenerateTypeRegistry(NClass);
-        NClass.GeneratedFileCode = std::format(
-            "#include \"{}\"\nnamespace nilou {{\n{}\n}}", NClass.FileName, TypeRegistry);
+        if (Type.FileName == "") continue;
+        string Includes = GenerateIncludes(Type);
+        string TypeRegistry = GenerateTypeRegistry(Type);
+        Type.GeneratedCode = std::format(
+            "{}\n"
+            "namespace nilou {{\n"
+            "{}\n"
+            "}}", 
+            Includes, 
+            TypeRegistry);
     }
 }
 
 void WriteCode(string GeneratedCodePath)
 {
     std::set<string> ExpectedTypes;
-    for (auto& [ClassName, NClass] : NTypes)
+    for (auto& [ClassName, Type] : NTypes)
     {
-        ExpectedTypes.insert(NClass.NameWithoutNamespace);
+        ExpectedTypes.insert(Type.NameWithoutNamespace);
     }
     ForEachFile(GeneratedCodePath, false, 
         [&](const std::string& filepath)
@@ -472,21 +537,21 @@ void WriteCode(string GeneratedCodePath)
                 }
             }
         });
-    for (auto& [ClassName, NClass] : NTypes)
+    for (auto& [ClassName, Type] : NTypes)
     {
-        if (NClass.FileName == "") continue;
-        fs::path filepath = GeneratedCodePath + "/" + NClass.NameWithoutNamespace + ".gen.cpp";
+        if (Type.FileName == "") continue;
+        fs::path filepath = GeneratedCodePath + "/" + Type.NameWithoutNamespace + ".gen.cpp";
         if (fs::exists(filepath))
         {
             ifstream in_stream(filepath);
             string content((std::istreambuf_iterator<char>(in_stream)), std::istreambuf_iterator<char>());
-            if (content == NClass.GeneratedFileCode)
+            if (content == Type.GeneratedCode)
             {
                 continue;
             }
         }
         ofstream out_stream(filepath, ios::out);
-        out_stream << NClass.GeneratedFileCode;
+        out_stream << Type.GeneratedCode;
     }
 }
 
@@ -494,23 +559,36 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        cout << "Usage: HeaderTool <src directory> <generated code directory> <include path 0> <include path 1> ..." << endl;
+        cout << "Usage: NilouHeaderTool -InputDirectory=<directory> -OutputDirectory=<directory> [clang arguments...]" << endl;
         return -1;
     }
-    std::string DirectoryName = argv[1];
-    //std::string DirectoryName = "./src"; //argv[1];
-    if (DirectoryName[DirectoryName.size()-1] == '\\' || DirectoryName[DirectoryName.size()-1] == '/')
-        DirectoryName = DirectoryName.substr(0, DirectoryName.size()-1);
-    std::string GeneratedCodePath = argv[2];
-    //std::string GeneratedCodePath = "./src/Runtime/Generated"; //argv[2];
-    if (GeneratedCodePath[GeneratedCodePath.size()-1] == '\\' || GeneratedCodePath[GeneratedCodePath.size()-1] == '/')
-        GeneratedCodePath = GeneratedCodePath.substr(0, GeneratedCodePath.size()-1);
+    std::string InputDirectory;
+    std::string OutputDirectory;
+    std::vector<const char*> ClangArguments;
+
+    for (int i = 1; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        
+        if (arg.find("-InputDirectory=") == 0)
+        {
+            InputDirectory = arg.substr(16); // 16 = length of "-InputDirectory="
+        }
+        else if (arg.find("-OutputDirectory=") == 0)
+        {
+            OutputDirectory = arg.substr(17); // 17 = length of "-OutputDirectory="
+        }
+        else
+        {
+            ClangArguments.push_back(argv[i]);
+        }
+    }
 
     map<string, long long> CachedHeaderModifiedTime;
-    fs::path CachedHeaderModifiedTimePath = fs::path(GeneratedCodePath) / fs::path("CachedHeaderModifiedTime.txt");
-    if (!fs::exists(GeneratedCodePath))
+    fs::path CachedHeaderModifiedTimePath = fs::path(OutputDirectory) / fs::path("CachedHeaderModifiedTime.txt");
+    if (!fs::exists(OutputDirectory))
     {
-        fs::create_directories(GeneratedCodePath);
+        fs::create_directories(OutputDirectory);
     }
     if (fs::exists(CachedHeaderModifiedTimePath))
     {
@@ -527,15 +605,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::vector<string> IncludedPaths;
-    for (int i = 3; i < argc; i++)
-    {
-        IncludedPaths.push_back(argv[i]);
-    }
-
     std::set<string> FilesThatNeedsReflection;
     bool bHasChangedFiles = false;
-    ForEachFile(DirectoryName, true, 
+    ForEachFile(InputDirectory, true, 
         [&](const std::string& filepath) 
         {
             if ((EndsWith(filepath, ".h") || EndsWith(filepath, ".hpp")) && 
@@ -557,25 +629,18 @@ int main(int argc, char *argv[])
 
     if (bHasChangedFiles)
     {
-        mutex cout_mutex;
-        std::for_each(std::execution::par, FilesThatNeedsReflection.begin(), FilesThatNeedsReflection.end(), 
-            [&](const string& filepath) {
-                std::unique_lock<mutex> lock(cout_mutex);
-                cout << filepath << endl;
-                lock.unlock();
-                ParseHeaderFile(filepath, IncludedPaths);
-            });
+        for (auto& FileName : FilesThatNeedsReflection)
+        {
+            cout << "[NilouHeaderTool] " << FileName << endl;
+        }
+        ParseHeaderFile(FilesThatNeedsReflection, ClangArguments);
         GenerateCode();
-        WriteCode(GeneratedCodePath);
+        WriteCode(OutputDirectory);
 
         ofstream out{CachedHeaderModifiedTimePath};
-        int i = 0;
         for (auto& [filename, last_modified_time] : CachedHeaderModifiedTime)
         {
-            out << filename << " " << last_modified_time;
-            i++;
-            if (i != CachedHeaderModifiedTime.size())
-                out << "\n";
+            out << filename << " " << last_modified_time << "\n";
         }
     }
     else

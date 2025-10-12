@@ -21,15 +21,16 @@ namespace nilou {
     class FPackagePath
     {
     public:
-
+        // PackageName should start with '/'
         static std::string LongPackageNameToMetaFileName(const std::string& PackageName)
         {
-            return (FPath::ContentDir() / std::filesystem::path(PackageName + ".nasset.meta")).generic_string();
+            return (FPath::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset.meta")).generic_string();
         }
 
+        // PackageName should start with '/'
         static std::string LongPackageNameToFileName(const std::string& PackageName)
         {
-            return (FPath::ContentDir() / std::filesystem::path(PackageName + ".nasset")).generic_string();
+            return (FPath::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset")).generic_string();
         }
 
     };

@@ -24,9 +24,16 @@ namespace nilou {
         {
             return static_cast<T*>(ContainerPtrToValuePtrInternal(ContainerPtr, ArrayIndex));
         }
+        template <typename T>
+        const T* ContainerPtrToValuePtr(const void* ContainerPtr, int32 ArrayIndex=0) const
+        {
+            return static_cast<T*>(ContainerPtrToValuePtrInternal(ContainerPtr, ArrayIndex));
+        }
 
         void* ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayIndex=0) const;
+        const void* ContainerPtrToValuePtrInternal(const void* ContainerPtr, int32 ArrayIndex=0) const;
 
+        virtual bool Identical(const void* A, const void* B) const = 0;
         virtual void SerializeItem(FArchive& Ar, void* Value) = 0;
 
     private:
@@ -71,9 +78,13 @@ namespace nilou {
     class TProperty_Numeric : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return *static_cast<const T*>(A) == *static_cast<const T*>(B);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            Serialize(Ar[Name], *static_cast<T*>(Value));
+            Serialize(Ar, *static_cast<T*>(Value));
         }
     };
     using FBoolProperty = TProperty_Numeric<bool>;
@@ -103,20 +114,30 @@ namespace nilou {
     class FStrProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return *static_cast<const std::string*>(A) == *static_cast<const std::string*>(B);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            Serialize(Ar[Name], *static_cast<std::string*>(Value));
+            Serialize(Ar, *static_cast<std::string*>(Value));
         }
     };
 
     class FArrayProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return ItemIdentical(A, B, Inner);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
+            Ar.GetNode() = nlohmann::json::array();
             ItemSerializer(Ar, Value, Inner);
         }
 
+        std::function<bool(const void*, const void*, FProperty*)> ItemIdentical;
         std::function<void(FArchive&, void*, FProperty*)> ItemSerializer;
         FProperty* Inner;
     };
@@ -124,11 +145,17 @@ namespace nilou {
     class FMapProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return ItemIdentical(A, B, KeyProp, ValueProp);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
+            Ar.GetNode() = nlohmann::json::array();
             ItemSerializer(Ar, Value, KeyProp, ValueProp);
         }
 
+        std::function<bool(const void*, const void*, FProperty*, FProperty*)> ItemIdentical;
         std::function<void(FArchive&, void*, FProperty*, FProperty*)> ItemSerializer;
         FProperty* KeyProp;
         FProperty* ValueProp;
@@ -137,33 +164,49 @@ namespace nilou {
     class FVectorProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return ItemIdentical(A, B);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value);
+            ItemSerializer(Ar, Value);
         }
 
+        std::function<bool(const void*, const void*)> ItemIdentical;
         std::function<void(FArchive&,void*)> ItemSerializer;
     };
 
     class FQuatProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return ItemIdentical(A, B);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value);
+            ItemSerializer(Ar, Value);
         }
 
+        std::function<bool(const void*, const void*)> ItemIdentical;
         std::function<void(FArchive&,void*)> ItemSerializer;
     };
 
     class FSetProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override
+        {
+            return ItemIdentical(A, B, Inner);
+        }
         virtual void SerializeItem(FArchive& Ar, void* Value) override
         {
-            ItemSerializer(Ar[Name], Value, Inner);
+            Ar.GetNode() = nlohmann::json::array();
+            ItemSerializer(Ar, Value, Inner);
         }
 
+        std::function<bool(const void*, const void*, FProperty*)> ItemIdentical;
         std::function<void(FArchive&,void*,FProperty*)> ItemSerializer;
         FProperty* Inner;
     };
@@ -171,6 +214,7 @@ namespace nilou {
     class FStructProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override;
         virtual void SerializeItem(FArchive& Ar, void* Value) override;
 
         NClass* Struct;
@@ -179,12 +223,14 @@ namespace nilou {
     class FObjectProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override;
         virtual void SerializeItem(FArchive& Ar, void* Value) override;
     };
 
     class FEnumProperty : public FProperty
     {
     public:
+        virtual bool Identical(const void* A, const void* B) const override;
         virtual void SerializeItem(FArchive& Ar, void* Value) override;
 
         NClass* Enum;
@@ -202,9 +248,10 @@ namespace nilou {
     enum class EObjectFlags : uint32
     {
         NoFlags	                    =0x00000000,
+        ClassDefaultObject		    =0x00000010,
         NeedLoad		            =0x00000400,
         NeedPostLoad                =0x00001000,
-        RF_LoadCompleted			=0x00200000,
+        LoadCompleted			    =0x00200000,
     };
     ENUM_CLASS_FLAGS(EObjectFlags);
 

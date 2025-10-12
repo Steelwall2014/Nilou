@@ -6,9 +6,19 @@ namespace nilou {
 
 NClass* NClass::Z_StaticClass = nullptr;
 
+bool FStructProperty::Identical(const void* A, const void* B) const
+{
+    return Struct->IdenticalProperties(A, B);
+}
+
 void FStructProperty::SerializeItem(FArchive& Ar, void* Value)
 {
     Struct->SerializeProperties(Ar, Value);
+}
+
+bool FObjectProperty::Identical(const void* A, const void* B) const
+{
+    return *(NObject**)A == *(NObject**)B;
 }
 
 void FObjectProperty::SerializeItem(FArchive& Ar, void* Value)
@@ -24,6 +34,11 @@ void FObjectProperty::SerializeItem(FArchive& Ar, void* Value)
         NObject** ppObject = (NObject**)Value;
         Node = (*ppObject)->GetPathName();
     }
+}
+
+bool FEnumProperty::Identical(const void* A, const void* B) const
+{
+    return std::memcmp(A, B, Enum->Size) == 0;
 }
 
 void FEnumProperty::SerializeItem(FArchive& Ar, void* Value)
@@ -89,12 +104,41 @@ TArray<FProperty*> NClass::GetProperties(bool bIncludeSuper) const
 
 void NClass::SerializeProperties(FArchive& Ar, void* Data) const
 {
+    NObject* ClassDefaultObject = GetDefaultObject();
     TArray<FProperty*> Properties = GetProperties(true);
-    for (auto& Property : Properties)
+    for (FProperty* Property : Properties)
     {
-        void* Field = Property->ContainerPtrToValuePtrInternal(Data);
-        Property->SerializeItem(Ar, Field);
+        void* Pointer = Property->ContainerPtrToValuePtrInternal(Data);
+        void* PointerDefault = Property->ContainerPtrToValuePtrInternal(ClassDefaultObject);
+        if (!Property->Identical(Pointer, PointerDefault))
+        {
+            Property->SerializeItem(Ar[Property->Name], Pointer);
+        }
     }
+}
+
+bool NClass::IdenticalProperties(const void* A, const void* B) const
+{
+    TArray<FProperty*> Properties = GetProperties(true);
+    for (FProperty* Property : Properties)
+    {
+        const void* PointerA = Property->ContainerPtrToValuePtrInternal(A);
+        const void* PointerB = Property->ContainerPtrToValuePtrInternal(B);
+        if (!Property->Identical(PointerA, PointerB))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+NObject* NClass::GetDefaultObject() const
+{
+    if (ClassDefaultObject == nullptr)
+    {
+        const_cast<NClass*>(this)->CreateDefaultObject();
+    }
+    return ClassDefaultObject;
 }
 
 int64 NClass::GetValueByNameString(const std::string& Name) const
@@ -119,6 +163,16 @@ std::string NClass::GetNameStringByValue(int64 Value) const
         }
     }
     return "";
+}
+
+void NClass::CreateDefaultObject()
+{
+    FStaticConstructObjectParameters Params;
+    Params.Class = this;
+    Params.Outer = GetOuter();
+    Params.Name = "Default__" + GetName();
+    ClassDefaultObject = StaticConstructObject_Internal(Params);
+    ClassDefaultObject->SetFlags(EObjectFlags::ClassDefaultObject);
 }
 
 }

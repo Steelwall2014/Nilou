@@ -1,3 +1,4 @@
+#pragma once
 #include "Actor.h"
 #include "Common/Components/LineBatchComponent.h"
 

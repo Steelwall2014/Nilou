@@ -211,7 +211,7 @@ struct FClassRegistryBase
                         int32 Index = 0;
                         for (auto& Value : Set)
                         {
-                            Inner->SerializeItem(Ar[Index], &Value);
+                            Inner->SerializeItem(Ar[Index], (void*)&Value);
                             Index++;
                         }
                     }
@@ -298,7 +298,7 @@ namespace SerializePrivate {
     
 }
 
-#define BEGIN_CLASS_REGISTRY(MetaClass, ClassName, Super, ClassFlags) \
+#define BEGIN_CLASS_REGISTRY_INTERNAL(MetaClass, ClassName, Super, ClassFlags) \
     NClass* ClassName::Z_StaticClass = nullptr; \
     template<> \
     struct TClassRegistry<ClassName> : public FClassRegistryBase \
@@ -314,13 +314,24 @@ namespace SerializePrivate {
         { \
             TClass::Z_StaticClass = this->Class;
 
+#define BEGIN_CLASS_REGISTRY(ClassName, Super, ClassFlags) \
+    BEGIN_CLASS_REGISTRY_INTERNAL(Object, ClassName, Super, ClassFlags)
+
+#define BEGIN_STRUCT_REGISTRY(ClassName, Super, ClassFlags) \
+    BEGIN_CLASS_REGISTRY_INTERNAL(Struct, ClassName, Super, ClassFlags)
+
+
 #define CLASS_PROPERTY(PropertyName) \
             AddProperty(#PropertyName, &TClass::PropertyName);
+
+#define STRUCT_PROPERTY(PropertyName) CLASS_PROPERTY(PropertyName)
 
 #define END_CLASS_REGISTRY(ClassName) \
         } \
     }; \
     TClassRegistry<ClassName> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
+
+#define END_STRUCT_REGISTRY(ClassName) END_CLASS_REGISTRY(ClassName)
 
 #define BEGIN_ENUM_REGISTRY(EnumName, ClassFlags) \
     NClass* StaticEnum_##EnumName = nullptr; \
@@ -387,6 +398,8 @@ public:
 
     void SerializeProperties(FArchive& Ar, void* Data) const;
 
+    bool IdenticalProperties(const void* A, const void* B) const;
+
     NClass* GetSuperStruct() const
     {
         return SuperStruct;
@@ -426,8 +439,15 @@ public:
         return (ClassFlags & FlagsToCheck) == FlagsToCheck;
     }
 
+    NObject* GetDefaultObject() const;
+    template <typename T>
+    T* GetDefaultObject() const { return Cast<T>(GetDefaultObject()); }
+
     int64 GetValueByNameString(const std::string& Name) const;
     std::string GetNameStringByValue(int64 Value) const;
+
+protected:
+    void CreateDefaultObject();
 
 private:
 
@@ -444,6 +464,8 @@ private:
 	TArray<std::pair<std::string, int64>> EnumNames;
 
     std::function<void(void*)> ClassConstructor;
+
+    NObject* ClassDefaultObject;
 
 };
 
