@@ -156,7 +156,6 @@ private:
 	static NClass* Z_StaticClass;
 	friend void InitUObject();
 public:
-	virtual NClass *GetClass() const override { return StaticClass(); }
 	static NClass *StaticClass() { return Z_StaticClass; }
 
     virtual void Serialize(FArchive& Ar) override;
@@ -187,6 +186,8 @@ enum class EAsyncLoadingResult : uint8
 	/** Async loading was canceled */
 	Canceled
 };
+
+void HarvestPackage(NPackage* Package);
 
 }
 

@@ -106,6 +106,7 @@ std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Pa
 
 void NPackage::SavePackage(NPackage* Package)
 {
+    HarvestPackage(Package);
     std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetName());
     std::string DirectoryName = std::filesystem::path(MetaFileName).parent_path().string();
     std::filesystem::create_directories(DirectoryName);
@@ -135,6 +136,97 @@ void NPackage::SavePackage(NPackage* Package)
     }
     std::ofstream out(FileName);
     out << File.dump(4);
+}
+
+void HarvestPackage(NPackage* Package)
+{
+    TSet<NObject*> Imports;
+    TArray<NObject*> Exports = GetObjectsWithPackage(Package, true);
+    for (int32 i = 0; i < Exports.Num(); ++i)
+    {
+        NClass* Class = Exports[i]->GetClass();
+        Imports.Add(Class);
+        NObject* CDO = Class->GetDefaultObject();
+        Imports.Add(CDO);
+        struct FExport
+        {
+            void* Data;
+            NClass* Class;
+        };
+        TArray<FExport> Stack;
+        Stack.Add(FExport{Exports[i], Class});
+        auto VisitContainerItem = [&](void* ContainerItem, FProperty* ItemProperty)
+        {
+            if (FStructProperty* Inner = CastField<FStructProperty>(ItemProperty))
+            {
+                Stack.Add(FExport{ContainerItem, Inner->Struct});
+            }
+            else if (FObjectProperty* Inner = CastField<FObjectProperty>(ItemProperty))
+            {
+                NObject* ItemObject = *reinterpret_cast<NObject**>(ContainerItem);
+                if (ItemObject)
+                {
+                    if (ItemObject->GetPackage() != Package)
+                    {
+                        Imports.Add(ItemObject);
+                    }
+                    Stack.Add(FExport{ItemObject, ItemObject->GetClass()});
+                }
+            }
+        };
+        while (!Stack.IsEmpty())
+        {
+            FExport Export = Stack.Pop();
+            TArray<FProperty*> Properties = Export.Class->GetProperties(true);
+            for (FProperty* Property : Properties)
+            {
+                void* Field = Property->ContainerPtrToValuePtrInternal(Export.Data);
+                if (FStructProperty* StructProperty = CastField<FStructProperty>(Property))
+                {
+                    Stack.Add(FExport{Field, StructProperty->Struct});
+                }
+                else if (FObjectProperty* ObjectProperty = CastField<FObjectProperty>(Property))
+                {
+                    NObject* Object = *reinterpret_cast<NObject**>(Field);
+                    if (Object)
+                    {
+                        if (Object->GetPackage() != Package)
+                        {
+                            Imports.Add(Object);
+                        }
+                        Stack.Add(FExport{Object, Object->GetClass()});
+                    }
+                }
+                else if (FArrayProperty* ArrayProperty = CastField<FArrayProperty>(Property))
+                {
+                    for (int32 Index = 0; Index < ArrayProperty->GetNum(Field); ++Index)
+                    {
+                        void* Item = ArrayProperty->GetItem(Field, Index);
+                        VisitContainerItem(Item, ArrayProperty->Inner);
+                    }
+                }
+                else if (FMapProperty* MapProperty = CastField<FMapProperty>(Property))
+                {
+                    TArray<void*> Pairs = MapProperty->GetPairs(Field);
+                    for (void* Pair : Pairs)
+                    {
+                        void* Key = MapProperty->PairGetKey(Pair);
+                        void* Value = MapProperty->PairGetValue(Pair);
+                        VisitContainerItem(Key, MapProperty->KeyProp);
+                        VisitContainerItem(Value, MapProperty->ValueProp);
+                    }
+                }
+                else if (FSetProperty* SetProperty = CastField<FSetProperty>(Property))
+                {
+                    TArray<void*> Items = SetProperty->GetItems(Field);
+                    for (void* Item : Items)
+                    {
+                        VisitContainerItem(Item, SetProperty->Inner);
+                    }
+                }
+            }
+        }
+    }
 }
 
 

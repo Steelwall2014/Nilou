@@ -36,5 +36,4 @@
         friend class TClassRegistry; \
         static NClass* Z_StaticClass; \
     public: \
-        NClass *GetClass() const { return StaticClass(); } \
         static NClass *StaticClass() { return Z_StaticClass; }

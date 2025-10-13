@@ -6,6 +6,12 @@
 
 namespace nilou {
 
+FFieldClass* FProperty::StaticClass()
+{
+    static FFieldClass StaticClass("Property", nullptr);
+    return &StaticClass;
+}
+
 void* FProperty::ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayIndex) const
 {
     return (uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
@@ -15,6 +21,12 @@ const void* FProperty::ContainerPtrToValuePtrInternal(const void* ContainerPtr, 
 {
     return (const uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
 }
+
+IMPLEMENT_FIELD(FStructProperty)
+IMPLEMENT_FIELD(FArrayProperty)
+IMPLEMENT_FIELD(FMapProperty)
+IMPLEMENT_FIELD(FSetProperty)
+IMPLEMENT_FIELD(FObjectProperty)
 
 class FUObjectHashTables
 {
@@ -247,7 +259,7 @@ void NObject::GetObjectReferences(TSet<NObject*>& OutReferences) const
 
 void NObject::Serialize(FArchive& Ar)
 {
-    GetClass()->SerializeProperties(Ar, this);
+    GetClass()->SerializeTaggedProperties(Ar, this);
 }
 
 void NObject::PostLoad()

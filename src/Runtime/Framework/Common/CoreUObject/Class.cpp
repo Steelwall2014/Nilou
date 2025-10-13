@@ -13,7 +13,7 @@ bool FStructProperty::Identical(const void* A, const void* B) const
 
 void FStructProperty::SerializeItem(FArchive& Ar, void* Value)
 {
-    Struct->SerializeProperties(Ar, Value);
+    Struct->SerializeTaggedProperties(Ar, Value);
 }
 
 bool FObjectProperty::Identical(const void* A, const void* B) const
@@ -102,7 +102,7 @@ TArray<FProperty*> NClass::GetProperties(bool bIncludeSuper) const
     return OutProperties;
 }
 
-void NClass::SerializeProperties(FArchive& Ar, void* Data) const
+void NClass::SerializeTaggedProperties(FArchive& Ar, void* Data) const
 {
     NObject* ClassDefaultObject = GetDefaultObject();
     TArray<FProperty*> Properties = GetProperties(true);

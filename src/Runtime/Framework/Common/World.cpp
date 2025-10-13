@@ -26,6 +26,8 @@
 #include "Common/Actor/VirtualHeightfieldMeshActor.h"
 #include "Common/Actor/FFTOceanActor.h"
 #include "Common/Actor/ReflectionProbe.h"
+#include "Common/Actor/Test.h"
+#include "Common/Actor/Test2.h"
 
 #include "Texture2D.h"
 
@@ -234,6 +236,10 @@ namespace nilou {
         std::vector<FBatchedLine> lines;
         lines.emplace_back(FVector(0, 0, 0), FVector(1, 1, 1));
         LineBatchActor->LineBatchComponent->DrawLines(lines);
+    }
+
+    static void TestSerialization()
+    {
     }
 
     void UWorld::BeginPlay()

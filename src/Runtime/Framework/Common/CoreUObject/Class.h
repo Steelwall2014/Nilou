@@ -121,27 +121,10 @@ struct FClassRegistryBase
         { 
             FArrayProperty* Property = new FArrayProperty;
             Property->Inner = TConstructProperty<T>::Construct();
-            Property->ItemSerializer = [](FArchive& Ar, void* Value, FProperty* Inner)
-                {
-                    TArray<T>& Array = *reinterpret_cast<TArray<T>*>(Value);
-                    nlohmann::json& Node = Ar.GetNode();
-                    if (Ar.IsLoading())
-                    {
-                        Ncheck(Node.is_array());
-                        Array.SetNum(Node.size());
-                        for (int32 Index = 0; Index < Node.size(); ++Index)
-                        {
-                            Inner->SerializeItem(Ar[Index], &Array[Index]);
-                        }
-                    }
-                    else
-                    {
-                        for (int32 Index = 0; Index < Array.Num(); ++Index)
-                        {
-                            Inner->SerializeItem(Ar[Index], &Array[Index]);
-                        }
-                    }
-                };
+            Property->GetNum = [](const void* Array) { return reinterpret_cast<const TArray<T>*>(Array)->Num(); };
+            Property->GetItem = [](void* Array, size_t Index) { return &(reinterpret_cast<TArray<T>*>(Array)->GetData()[Index]); };
+            Property->ItemIdentical = &FArrayProperty::ItemIdenticalTemplate<T>;
+            Property->ItemSerializer = &FArrayProperty::ItemSerializerTemplate<T>;
             return Property;
         } 
     };
@@ -152,35 +135,21 @@ struct FClassRegistryBase
             FMapProperty* Property = new FMapProperty;
             Property->KeyProp = TConstructProperty<K>::Construct();
             Property->ValueProp = TConstructProperty<V>::Construct();
-            Property->ItemSerializer = [](FArchive& Ar, void* M, FProperty* KeyProp, FProperty* ValueProp)
+            Property->GetNum = [](const void* pMap) { return reinterpret_cast<const TMap<K, V>*>(pMap)->Num(); };
+            Property->GetPairs = [](const void* pMap) 
+            { 
+                const TMap<K, V>& Map = *reinterpret_cast<const TMap<K, V>*>(pMap);
+                TArray<void*> Pairs;
+                for (auto& Pair : Map)
                 {
-                    TMap<K, V>& Map = *reinterpret_cast<TMap<K, V>*>(M);
-                    nlohmann::json& Node = Ar.GetNode();
-                    if (Ar.IsLoading())
-                    {
-                        Ncheck(Node.is_array());
-                        Map.Empty();
-                        int32 Count = Node.size();
-                        for (int32 Index = 0; Index < Count; ++Index)
-                        {
-                            K Key;
-                            V Value;
-                            KeyProp->SerializeItem(Ar[Index]["Key"], &Key);
-                            ValueProp->SerializeItem(Ar[Index]["Value"], &Value);
-                            Map.Add(Key, Value);
-                        }
-                    }
-                    else
-                    {
-                        int32 Index = 0;
-                        for (auto& [Key, Value] : Map)
-                        {
-                            KeyProp->SerializeItem(Ar[Index]["Key"], (void*)&Key);
-                            ValueProp->SerializeItem(Ar[Index]["Value"], &Value);
-                            Index++;
-                        }
-                    }
-                };
+                    Pairs.Add((void*)&Pair);
+                }
+                return Pairs;
+            };
+            Property->PairGetKey = [](void* Pair) -> void* { return (void*)&(reinterpret_cast<TMap<K, V>::value_type*>(Pair)->first); };
+            Property->PairGetValue = [](void* Pair) -> void* { return &(reinterpret_cast<TMap<K, V>::value_type*>(Pair)->second); };
+            Property->ItemIdentical = &FMapProperty::ItemIdenticalTemplate<K, V>;
+            Property->ItemSerializer = &FMapProperty::ItemSerializerTemplate<K, V>;
             return Property;
         } 
     };
@@ -190,32 +159,19 @@ struct FClassRegistryBase
         { 
             FSetProperty* Property = new FSetProperty;
             Property->Inner = TConstructProperty<T>::Construct();
-            Property->ItemSerializer = [](FArchive& Ar, void* Value, FProperty* Inner)
+            Property->GetItems = [](const void* pSet)
+            {
+                const TSet<T>& Set = *reinterpret_cast<const TSet<T>*>(pSet);
+                TArray<void*> Items;
+                for (auto& Item : Set)
                 {
-                    TSet<T>& Set = *reinterpret_cast<TSet<T>*>(Value);
-                    nlohmann::json& Node = Ar.GetNode();
-                    if (Ar.IsLoading())
-                    {
-                        Ncheck(Node.is_array());
-                        Set.Empty();
-                        int32 Count = Node.size();
-                        for (int32 Index = 0; Index < Count; ++Index)
-                        {
-                            T Value;
-                            Inner->SerializeItem(Ar[Index], &Value);
-                            Set.Add(Value);
-                        }
-                    }
-                    else
-                    {
-                        int32 Index = 0;
-                        for (auto& Value : Set)
-                        {
-                            Inner->SerializeItem(Ar[Index], (void*)&Value);
-                            Index++;
-                        }
-                    }
-                };
+                    Items.Add((void*)&Item);
+                }
+                return Items;
+            };
+            Property->GetNum = [](const void* Set) { return reinterpret_cast<const TSet<T>*>(Set)->Num(); };
+            Property->ItemIdentical = &FSetProperty::ItemIdenticalTemplate<T>;
+            Property->ItemSerializer = &FSetProperty::ItemSerializerTemplate<T>;
             return Property;
         } 
     };
@@ -224,7 +180,8 @@ struct FClassRegistryBase
         static FProperty* Construct() 
         { 
             FVectorProperty* Property = new FVectorProperty;
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector2<T>*>(Value)); };
+            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector2<T>>;
+            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector2<T>>;
             return Property;
         } 
     };
@@ -233,7 +190,8 @@ struct FClassRegistryBase
         static FProperty* Construct() 
         { 
             FVectorProperty* Property = new FVectorProperty;
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector<T>*>(Value)); };
+            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector<T>>;
+            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector<T>>;
             return Property;
         } 
     };
@@ -242,7 +200,8 @@ struct FClassRegistryBase
         static FProperty* Construct() 
         { 
             FVectorProperty* Property = new FVectorProperty;
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TVector4<T>*>(Value)); };
+            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector4<T>>;
+            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector4<T>>;
             return Property;
         } 
     };
@@ -251,7 +210,8 @@ struct FClassRegistryBase
         static FProperty* Construct() 
         { 
             FQuatProperty* Property = new FQuatProperty;
-            Property->ItemSerializer = [](FArchive& Ar, void* Value){ Serialize(Ar, *reinterpret_cast<TQuat<T>*>(Value)); };
+            Property->ItemIdentical = &FQuatProperty::ItemIdenticalTemplate<TQuat<T>>;
+            Property->ItemSerializer = &FQuatProperty::ItemSerializerTemplate<TQuat<T>>;
             return Property;
         } 
     };
@@ -366,7 +326,6 @@ private:
     friend class FClassRegistryBase;
     static NClass* Z_StaticClass;
 public:
-    virtual NClass *GetClass() const { return StaticClass(); }
     static NClass *StaticClass() { return Z_StaticClass; }
 public:
     friend class FStructProperty;
@@ -396,7 +355,7 @@ public:
 
     TArray<FProperty*> GetProperties(bool bIncludeSuper) const;
 
-    void SerializeProperties(FArchive& Ar, void* Data) const;
+    void SerializeTaggedProperties(FArchive& Ar, void* Data) const;
 
     bool IdenticalProperties(const void* A, const void* B) const;
 

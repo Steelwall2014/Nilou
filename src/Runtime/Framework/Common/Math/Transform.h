@@ -31,7 +31,6 @@ namespace nilou {
     private:
         static NClass* Z_StaticClass;
     public:
-        virtual NClass *GetClass() const { return Z_StaticClass; }
         static NClass *StaticClass() { return Z_StaticClass; }
         /** Rotation around the right axis (around Y axis), Looking up and down (0=Straight Ahead, +Up, -Down) */
 	    T Pitch;
@@ -83,7 +82,6 @@ namespace nilou {
     private:
         static NClass* Z_StaticClass;
     public:
-        virtual NClass *GetClass() const { return Z_StaticClass; }
         static NClass *StaticClass() { return Z_StaticClass; }
         template <typename U>
         friend class TClassRegistry;
