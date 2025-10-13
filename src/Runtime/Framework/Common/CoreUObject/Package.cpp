@@ -39,10 +39,11 @@ void NPackage::Serialize(FArchive& Ar)
 
 std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Package)
 {
+    TSet<NObject*> ImportObjects;
+    HarvestPackage(Package, ImportObjects);
     TArray<FObjectImport> ObjectImports;
     TArray<FObjectExport> ObjectExports;
     TArray<NObject*> InnnerObjects = GetObjectsWithPackage(Package, true);
-    TSet<NObject*> ImportObjects;
     TSet<NObject*> ExportObjects;
     for (NObject* Obj : InnnerObjects)
     {
@@ -106,7 +107,6 @@ std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Pa
 
 void NPackage::SavePackage(NPackage* Package)
 {
-    HarvestPackage(Package);
     std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetName());
     std::string DirectoryName = std::filesystem::path(MetaFileName).parent_path().string();
     std::filesystem::create_directories(DirectoryName);
@@ -138,9 +138,8 @@ void NPackage::SavePackage(NPackage* Package)
     out << File.dump(4);
 }
 
-void HarvestPackage(NPackage* Package)
+void HarvestPackage(NPackage* Package, TSet<NObject*>& Imports)
 {
-    TSet<NObject*> Imports;
     TArray<NObject*> Exports = GetObjectsWithPackage(Package, true);
     for (int32 i = 0; i < Exports.Num(); ++i)
     {

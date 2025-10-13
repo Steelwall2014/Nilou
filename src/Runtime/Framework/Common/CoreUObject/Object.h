@@ -52,7 +52,8 @@ namespace nilou {
     #define DECLARE_FIELD_API(TClass, TSuperClass) \
         public: \
             using Super = TSuperClass; \
-            static FFieldClass *StaticClass();
+            static FFieldClass *StaticClass(); \
+            TClass() { ClassPrivate = StaticClass(); }
 
     #define IMPLEMENT_FIELD(TClass) \
         FFieldClass *TClass::StaticClass() \
@@ -91,12 +92,13 @@ namespace nilou {
         template <typename T>
         bool IsA() const { return IsA(T::StaticClass()); }
 
+    protected:
+        FFieldClass* ClassPrivate = nullptr;
+
     private:
         int32 Offset_Internal;
 
         int32 ElementSize;
-
-        FFieldClass* ClassPrivate = nullptr;
 
         template<typename T>
         friend class TClassRegistry;

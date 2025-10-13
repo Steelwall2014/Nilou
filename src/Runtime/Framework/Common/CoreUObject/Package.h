@@ -187,7 +187,7 @@ enum class EAsyncLoadingResult : uint8
 	Canceled
 };
 
-void HarvestPackage(NPackage* Package);
+void HarvestPackage(NPackage* Package, TSet<NObject*>& Imports);
 
 }
 

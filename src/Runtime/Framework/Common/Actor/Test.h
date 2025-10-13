@@ -81,4 +81,7 @@ namespace nilou {
 
         static NTestObjectB* Construct();
     };
+
+    // 单元测试入口函数
+    void TestSerialization();
 }

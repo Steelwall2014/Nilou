@@ -238,13 +238,10 @@ namespace nilou {
         LineBatchActor->LineBatchComponent->DrawLines(lines);
     }
 
-    static void TestSerialization()
-    {
-    }
-
     void UWorld::BeginPlay()
     {
         bHasBegunPlay = true;
+        TestSerialization();
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));
