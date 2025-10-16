@@ -125,14 +125,14 @@ struct FObjectResource
     std::string ObjectName;
 
     FPackageIndex OuterIndex;
+
+    std::string ClassName;
 };
 void Serialize(FArchive& Ar, FObjectResource& Value);
 
 struct FObjectExport : public FObjectResource
 {
     FPackageIndex ClassIndex;
-
-    std::string ClassName;
 
     FPackageIndex ObjectIndex;
 
@@ -187,7 +187,7 @@ enum class EAsyncLoadingResult : uint8
 	Canceled
 };
 
-void HarvestPackage(NPackage* Package, TSet<NObject*>& Imports);
+void HarvestPackage(NPackage* Package, TSet<NObject*>& Imports, TSet<NObject*>& Exports);
 
 }
 

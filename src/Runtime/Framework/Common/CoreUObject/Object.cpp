@@ -3,52 +3,15 @@
 #include "Package.h"
 #include "Class.h"
 #include "Serialization/AsyncLoading.h"
+#include "NilouType.h"
 
 namespace nilou {
-
-FFieldClass* FProperty::StaticClass()
-{
-    static FFieldClass StaticClass("Property", nullptr);
-    return &StaticClass;
-}
-
-void* FProperty::ContainerPtrToValuePtrInternal(void* ContainerPtr, int32 ArrayIndex) const
-{
-    return (uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
-}
-
-const void* FProperty::ContainerPtrToValuePtrInternal(const void* ContainerPtr, int32 ArrayIndex) const
-{
-    return (const uint8*)ContainerPtr + Offset_Internal + ElementSize * ArrayIndex;
-}
-
-IMPLEMENT_FIELD(FNumericProperty)
-IMPLEMENT_FIELD(FBoolProperty)
-IMPLEMENT_FIELD(FInt8Property)
-IMPLEMENT_FIELD(FInt16Property)
-IMPLEMENT_FIELD(FInt32Property)
-IMPLEMENT_FIELD(FInt64Property)
-IMPLEMENT_FIELD(FUInt8Property)
-IMPLEMENT_FIELD(FUInt16Property)
-IMPLEMENT_FIELD(FUInt32Property)
-IMPLEMENT_FIELD(FUInt64Property)
-IMPLEMENT_FIELD(FFloatProperty)
-IMPLEMENT_FIELD(FDoubleProperty)
-IMPLEMENT_FIELD(FStrProperty)
-IMPLEMENT_FIELD(FStructProperty)
-IMPLEMENT_FIELD(FArrayProperty)
-IMPLEMENT_FIELD(FMapProperty)
-IMPLEMENT_FIELD(FSetProperty)
-IMPLEMENT_FIELD(FObjectProperty)
-IMPLEMENT_FIELD(FVectorProperty)
-IMPLEMENT_FIELD(FQuatProperty)
-IMPLEMENT_FIELD(FEnumProperty)
 
 class FUObjectHashTables
 {
 public:
     std::mutex CriticalSection;
-    TMap<std::string, std::shared_ptr<NObject>> ObjectMap;
+    TMap<std::string, NObject*> ObjectMap;
     /** Map of object to the objects they contain */
     TMap<NObject*, TArray<NObject*>> ObjectOuterMap;
 
@@ -101,7 +64,9 @@ NObject* FindObject(const std::string& Path)
     auto& ObjectMap = ThreadHash.ObjectMap;
     auto Found = ObjectMap.Find(Path);
     if (Found)
-        return Found->get();
+    {
+        return *Found;
+    }
 
     return nullptr;
 }
@@ -228,15 +193,19 @@ NObject::NObject(const FObjectInitializer& Initializer)
 {
     FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
-    ThreadHash.ObjectMap.Add(NamePrivate, std::shared_ptr<NObject>(this));
-    NPackage* Package = GetPackage();
-    if (Package)
+    ThreadHash.ObjectMap.Add(NamePrivate, this);
+    if (OuterPrivate)
     {
-        ThreadHash.ObjectOuterMap.FindOrAdd(Package).Add(this);
+        ThreadHash.ObjectOuterMap.FindOrAdd(OuterPrivate).Add(this);
     }
 }
 
-bool NObject::IsA(const NClass *Class)
+NObject::~NObject()
+{
+
+}
+
+bool NObject::IsA(const NClass *Class) const
 {
     return GetClass()->IsChildOf(Class);
 }
@@ -279,6 +248,7 @@ void NObject::GetObjectReferences(TSet<NObject*>& OutReferences) const
 
 void NObject::Serialize(FArchive& Ar)
 {
+    nilou::Serialize(Ar["NamePrivate"], NamePrivate);   // This is necessary in case the object is the same with CDO.
     GetClass()->SerializeTaggedProperties(Ar, this);
 }
 
@@ -372,7 +342,7 @@ NObject* NClass::CreateObject(const std::string& Name, NObject* Outer) const
     return static_cast<NObject*>(Memory);
 }
 
-TArray<FClassRegistryBase*> Registrations;
+TArray<FClassRegistryBase*> FClassRegistryBase::Registrations;
 FClassRegistryBase::FClassRegistryBase(
     EMetaClass InMetaClass, 
     const std::string& InName, 
@@ -395,43 +365,6 @@ FClassRegistryBase::FClassRegistryBase(
     Class->ClassConstructor = InClassConstructor;
     Class->SetClassFlags(InClassFlags);
     Registrations.Add(this);
-}
-
-void FClassRegistryBase::AddProperty(FProperty* Property)
-{
-    Class->Properties.Add(Property);
-}
-
-void FClassRegistryBase::DeferredConstructFProperty()
-{
-    for (FClassRegistryBase* Registry : Registrations)
-    {
-        for (auto& Constructor : Registry->ConstructFProperty)
-        {
-            Constructor();
-        }
-    }
-}
-
-std::string FClassRegistryBase::RemoveNamespace(const std::string& Name)
-{
-    auto pos = Name.find_last_of("::");
-    return pos != std::string::npos ? Name.substr(pos + 1) : Name;
-}
-
-std::string FClassRegistryBase::RemovePrefix(EMetaClass InMetaClass, const std::string& Name)
-{
-    if (InMetaClass == EMetaClass::Struct)
-    {
-        Ncheck(Name[0] == 'F');
-        return Name.substr(1);
-    }
-    else if (InMetaClass == EMetaClass::Object)
-    {
-        Ncheck(Name[0] == 'N' || Name[0] == 'U' || Name[0] == 'A');
-        return Name.substr(1);
-    }
-    return Name;
 }
 
 NClass* NObject::Z_StaticClass = nullptr;

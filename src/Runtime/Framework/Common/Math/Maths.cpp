@@ -1,6 +1,6 @@
 #include "Maths.h"
 #include "BoxSphereBounds.h"
-#include "Common/CoreUObject/Class.h"
+#include "CoreMinimal.h"
 
 namespace nilou {
 

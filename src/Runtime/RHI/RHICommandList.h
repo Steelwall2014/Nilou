@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CoreMinimal.h"
 #include "RHIDefinitions.h"
 #include "RHIResources.h"
 #include "RHICommandContext.h"

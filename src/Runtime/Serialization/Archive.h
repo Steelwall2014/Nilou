@@ -12,12 +12,12 @@ class FArchive
 {
 public:
 
-    FArchive(nlohmann::json& InNode, bool bInIsLoading = false)
+    FArchive(nlohmann::json& InNode, bool bInIsLoading = false) noexcept
         : Node(InNode)
         , bIsLoading(bInIsLoading)
     { }
 
-    FArchive(FArchive&& Other)
+    FArchive(FArchive&& Other) noexcept
         : Node(Other.Node)
         , bIsLoading(Other.bIsLoading)
     { }
@@ -40,8 +40,8 @@ private:
     nlohmann::json& Node;
     bool bIsLoading;
 
-    std::vector<std::unique_ptr<FArchive>> ArrayChildren;
-    std::unordered_map<std::string, std::unique_ptr<FArchive>> ObjectChildren;
+    TArray<std::unique_ptr<FArchive>> ArrayChildren;
+    TMap<std::string, std::unique_ptr<FArchive>> ObjectChildren;
 
 };
 
@@ -51,6 +51,7 @@ void Serialize(FArchive& Ar, TArray<T>& Array)
     nlohmann::json& Node = Ar.GetNode();
     if (Ar.IsLoading())
     {
+        Ncheck(Node.is_array());
         Array.SetNum(Node.size());
         for (int32 i = 0; i < Node.size(); ++i)
         {
@@ -59,9 +60,9 @@ void Serialize(FArchive& Ar, TArray<T>& Array)
     }
     else 
     {
+        Node = nlohmann::json::array();
         for (int32 i = 0; i < Array.Num(); ++i)
         {
-            Node.emplace_back();
             Serialize(Ar[i], Array[i]);
         }
     }
@@ -73,6 +74,7 @@ void Serialize(FArchive& Ar, TMap<TKey, TValue>& Map)
     nlohmann::json& Node = Ar.GetNode();
     if (Ar.IsLoading())
     {
+        Ncheck(Node.is_array());
         Map.Empty();
         for (int32 i = 0; i < Node.size(); ++i)
         {
@@ -85,10 +87,10 @@ void Serialize(FArchive& Ar, TMap<TKey, TValue>& Map)
     }
     else 
     {
+        Node = nlohmann::json::array();
         int32 i = 0;
         for (auto& Pair : Map)
         {
-            Node.emplace_back();
             Serialize(Ar[i]["Key"], Pair.Key);
             Serialize(Ar[i]["Value"], Pair.Value);
             i++;

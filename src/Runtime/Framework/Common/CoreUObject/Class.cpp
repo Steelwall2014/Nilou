@@ -1,6 +1,6 @@
 #include "Class.h"
 #include "Object.h"
-#include "base64.h"
+#include "NilouType.h"
 
 namespace nilou {
 

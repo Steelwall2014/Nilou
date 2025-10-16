@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "Common/CoreUObject/Class.h"
+#include "CoreMinimal.h"
 #include "Common/Math/Transform.h"
 
 namespace nilou {
@@ -32,6 +32,9 @@ namespace nilou {
         NPROPERTY()
         FTestStructA A;
 
+        NPROPERTY()
+        TArray<uint8> Binary;
+
         static FTestStructB Construct();
     };
 
@@ -41,6 +44,9 @@ namespace nilou {
     public:
         NPROPERTY()
         int Int;
+
+        NPROPERTY()
+        float Float;
 
         NPROPERTY()
         std::string String;
@@ -58,7 +64,13 @@ namespace nilou {
         TArray<FTestStructB> StructArray;
 
         NPROPERTY()
-        NTestObjectC* C;
+        NTestObjectA* Self;
+
+        NPROPERTY()
+        NTestObjectB* Null = nullptr;
+
+        NPROPERTY()
+        NTestObjectC* Recursive;
 
         static NTestObjectA* Construct();
     };
@@ -70,18 +82,9 @@ namespace nilou {
         NPROPERTY()
         int b;
 
-        NPROPERTY()
-        TArray<NTestObjectC*> CArray;
-
-        NPROPERTY()
-        TMap<int, NTestObjectC*> CMap;
-
-        NPROPERTY()
-        TSet<NTestObjectC*> CSet;
-
         static NTestObjectB* Construct();
     };
 
-    // 单元测试入口函数
-    void TestSerialization();
+    void TestSavePackage();
+    void TestLoadPackage();
 }

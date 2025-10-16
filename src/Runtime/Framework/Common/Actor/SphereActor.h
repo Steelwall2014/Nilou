@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Actor.h"
 #include "Common/Components/SphereComponent.h"
 

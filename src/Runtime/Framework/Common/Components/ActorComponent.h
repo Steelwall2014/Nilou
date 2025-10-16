@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "Common/CoreUObject/Class.h"
+#include "CoreMinimal.h"
 #include "Common/Log.h"
 // #include "ActorComponent.generated.h"
 

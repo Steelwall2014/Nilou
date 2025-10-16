@@ -1,4 +1,5 @@
 #include "BaseApplication.h"
+#include "CoreMinimal.h"
 #include "RHICommandList.h"
 #include "Common/Path.h"
 #include "Common/Crc.h"

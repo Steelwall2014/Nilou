@@ -4,6 +4,7 @@
 #include "Common/CoreUObject/Class.h"
 
 namespace nilou {
+    class NTestObjectA;
 
     class NCLASS NTestObjectC : public NObject
     { 
@@ -11,5 +12,8 @@ namespace nilou {
     public:
         NPROPERTY()
         int c;
+
+        NPROPERTY()
+        NTestObjectA* Recursive;
     };
 }

@@ -241,7 +241,7 @@ namespace nilou {
     void UWorld::BeginPlay()
     {
         bHasBegunPlay = true;
-        TestSerialization();
+        TestSavePackage();
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));

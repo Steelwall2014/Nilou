@@ -38,8 +38,8 @@ namespace nilou {
         TArray& operator=(const TArray& Other) = default;
         TArray& operator=(TArray&& Other) noexcept = default;
 
-        reference operator[](size_type index) { Ncheck(IsValidIndex(index)); return Data[index]; }
-        const_reference operator[](size_type index) const { Ncheck(IsValidIndex(index)); return Data[index]; }
+        reference operator[](size_type index) noexcept { Ncheck(IsValidIndex(index)); return Data[index]; }
+        const_reference operator[](size_type index) const noexcept { Ncheck(IsValidIndex(index)); return Data[index]; }
         reference At(size_type index) { return Data.at(index); }
         const_reference At(size_type index) const { return Data.at(index); }
         reference Front() { return Data.front(); }
@@ -53,13 +53,7 @@ namespace nilou {
         size_type Num() const { return Data.size(); }
         size_type Max() const { return Data.capacity(); }
         void Reserve(size_type NewCapacity) { Data.reserve(NewCapacity); }
-        void SetNum(size_type NewNum)
-        {
-            if (NewNum < Data.size())
-                Data.resize(NewNum);
-            else
-                Data.resize(NewNum, ElementType());
-        }
+        void SetNum(size_type NewNum) { Data.resize(NewNum); }
         void Empty(size_type Slack = 0)
         {
             Data.clear();

@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 
+#include "CoreMinimal.h"
 #include "Scene.h"
 #include "Common/Math/Transform.h"
 #include "Common/Actor/Actor.h"

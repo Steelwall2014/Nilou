@@ -5,7 +5,7 @@
 #include "RHIDefinitions.h"
 #include "Templates/EnumAsByte.h"
 #include "SerializeHelper.h"
-#include "Common/CoreUObject/Class.h"
+#include "CoreMinimal.h"
 
 namespace nilou {
         
