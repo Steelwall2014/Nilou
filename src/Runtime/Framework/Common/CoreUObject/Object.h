@@ -55,24 +55,25 @@ namespace nilou {
         }
     }
 
-    struct FObjectInitializer
-    {
-        NClass* Class;
-        std::string Name;
-        NObject* Outer;
-
-        static FObjectInitializer& Get();
-    };
-
     enum class EObjectFlags : uint32
     {
         NoFlags	                    =0x00000000,
         ClassDefaultObject		    =0x00000010,
         NeedLoad		            =0x00000400,
         NeedPostLoad                =0x00001000,
-        LoadCompleted			    =0x00200000,
+        WasLoaded			        =0x00080000,
     };
     ENUM_CLASS_FLAGS(EObjectFlags);
+
+    struct FObjectInitializer
+    {
+        NClass* Class;
+        std::string Name;
+        NObject* Outer;
+        EObjectFlags Flags;
+
+        static FObjectInitializer& Get();
+    };
 
     class NObject
     {
@@ -94,6 +95,12 @@ namespace nilou {
 
         NFUNCTION()
         bool IsA(const NClass *Class) const;
+
+        template <typename T>
+        bool IsA() const
+        {
+            return IsA(T::StaticClass());
+        }
 
         std::string GetName() const
         {
@@ -216,6 +223,8 @@ namespace nilou {
         NObject* Outer;
 
         std::string Name;
+        
+        EObjectFlags Flags;
     };
     NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params);
 

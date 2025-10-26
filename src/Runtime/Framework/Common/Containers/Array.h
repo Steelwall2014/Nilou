@@ -99,6 +99,8 @@ namespace nilou {
             }
             return false;
         }
+        void Push(const ElementType& Item) { Emplace(Item); }
+        void Push(ElementType&& Item) { Emplace(std::move(Item)); }
         ElementType Pop()
         {
             Ncheck(!Data.empty());

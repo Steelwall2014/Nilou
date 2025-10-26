@@ -171,8 +171,8 @@ void NClass::CreateDefaultObject()
     Params.Class = this;
     Params.Outer = GetOuter();
     Params.Name = "Default__" + GetName();
+    Params.Flags = EObjectFlags::ClassDefaultObject;
     ClassDefaultObject = StaticConstructObject_Internal(Params);
-    ClassDefaultObject->SetFlags(EObjectFlags::ClassDefaultObject);
 }
 
 }

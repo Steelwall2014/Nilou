@@ -73,6 +73,10 @@ NObject* FindObject(const std::string& Path)
 
 NObject* FindObject(NObject* Outer, const std::string& Name)
 {
+    if (Outer == nullptr)
+    {
+        return FindObject(Name);
+    }
     FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     auto& ObjectOuterMap = ThreadHash.ObjectOuterMap;
@@ -187,7 +191,8 @@ FObjectInitializer& FObjectInitializer::Get()
 }
 
 NObject::NObject(const FObjectInitializer& Initializer)
-    : ClassPrivate(Initializer.Class)
+    : ObjectFlags(Initializer.Flags)
+    , ClassPrivate(Initializer.Class)
     , NamePrivate(Initializer.Name)
     , OuterPrivate(Initializer.Outer)
 {
@@ -248,6 +253,7 @@ void NObject::GetObjectReferences(TSet<NObject*>& OutReferences) const
 
 void NObject::Serialize(FArchive& Ar)
 {
+    ClearFlags(EObjectFlags::NeedLoad);
     nilou::Serialize(Ar["NamePrivate"], NamePrivate);   // This is necessary in case the object is the same with CDO.
     GetClass()->SerializeTaggedProperties(Ar, this);
 }
@@ -318,15 +324,18 @@ void InitUObject()
     NClass_StaticClass->SuperStruct = NObject_StaticClass;
     NClass_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NClass(); };
     NClass_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+    NClass_StaticClass->CreateDefaultObject();
 
     NObject_StaticClass->Size = sizeof(NObject);
     NObject_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NObject(); };
     NObject_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+    NObject_StaticClass->CreateDefaultObject();
 
     NPackage_StaticClass->Size = sizeof(NPackage);
     NPackage_StaticClass->SuperStruct = NObject_StaticClass;
     NPackage_StaticClass->ClassConstructor = [](void* Memory) { new (Memory) NPackage(); };
     NPackage_StaticClass->SetClassFlags(EClassFlags::Native | EClassFlags::Intrinsic);
+    NPackage_StaticClass->CreateDefaultObject();
 
     GObjTransientPkg = NewObject<NPackage>(nullptr, "/Engine/Transient");
 }

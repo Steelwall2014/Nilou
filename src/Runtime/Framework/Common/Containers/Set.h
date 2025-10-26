@@ -36,6 +36,15 @@ public:
         Set.insert(std::forward<ElementType>(Element));
     }
 
+    void Append(const TSet& OtherSet)
+    {
+        Set.insert(OtherSet.begin(), OtherSet.end());
+    }
+    void Append(TSet&& OtherSet)
+    {
+        Set.insert(std::make_move_iterator(OtherSet.begin()), std::make_move_iterator(OtherSet.end()));
+    }
+
     // Removes an element from the set
     void Remove(const ElementType& Element)
     {
@@ -63,6 +72,21 @@ public:
     void Empty()
     {
         Set.clear();
+    }
+
+    TSet Difference(const TSet& OtherSet) const
+    {
+		TSet Result;
+		Result.Reserve(Num()); // Worst case is no elements of this are in Other
+
+		for(auto& Element : Set)
+		{
+			if(!OtherSet.Contains(Element))
+			{
+				Result.Add(Element);
+			}
+		}
+		return Result;
     }
 
     iterator begin() { return Set.begin(); }

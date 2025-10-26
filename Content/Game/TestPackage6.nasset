@@ -1,0 +1,10 @@
+{
+    "Objects": [
+        {
+            "Children": [
+                "/Game/TestPackage4.TestPackage4"
+            ],
+            "NamePrivate": "TestPackage6"
+        }
+    ]
+}

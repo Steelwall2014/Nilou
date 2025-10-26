@@ -34,7 +34,7 @@ target("Nilou")
         for i, v in ipairs(includedirs) do
             include_dir = include_dir .. string.format(" -I \"%s\"", path.translate(path.absolute(v)))
         end
-        local headertool_path = "$(buildir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
+        local headertool_path = "$(builddir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
         if (os.exists(headertool_path)) then
             local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s", headertool_path, src_dir, generated_dir, include_dir)
             print(exec)
@@ -46,7 +46,7 @@ target("Nilou")
     end)
 
     after_build(function (target)
-        os.cp("$(projectdir)/External/bin/*", "$(buildir)/$(os)/$(arch)/$(mode)")
+        os.cp("$(projectdir)/External/bin/*", "$(builddir)/$(os)/$(arch)/$(mode)")
     end)
 
     add_packages(
@@ -61,7 +61,8 @@ target("Nilou")
         "crossguid",
         "glad",
         "base64",
-        "VulkanSDK"
+        "VulkanSDK",
+        "microprofile"
     )
 
     add_defines([[PROJECT_DIR=R"($(projectdir))"]])

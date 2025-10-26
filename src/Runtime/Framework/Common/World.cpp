@@ -241,7 +241,10 @@ namespace nilou {
     void UWorld::BeginPlay()
     {
         bHasBegunPlay = true;
-        TestSavePackage();
+        // TestSavePackage();
+        // TestLoadPackage();
+        // TestSaveDependencyPackage();
+        TestLoadDependencyPackage();
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));

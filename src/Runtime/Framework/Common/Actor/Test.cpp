@@ -1,6 +1,7 @@
 #include "Test.h"
 #include "Test2.h"
 #include "Common/CoreUObject/Package.h"
+#include "Common/Paths.h"
 
 namespace nilou {
 
@@ -76,6 +77,68 @@ void TestSavePackage()
 void TestLoadPackage()
 {
     NILOU_LOG(Display, "=== Starting Deserialization Test ===");
+    NPackage* PackageA = LoadPackage("/Test/Serialization/NTestObjectA/Package");
+    NTestObjectA* ObjectA = FindObject<NTestObjectA>(PackageA, "TestObjectA");
+}
+
+NTestObject* CreateTestObject(std::string PackagePath)
+{
+	std::string ObjectName = FPaths::GetBaseFilename(PackagePath);
+	NPackage* TestPackage = CreatePackage(PackagePath);
+	NTestObject* TestObject = NewObject<NTestObject>(TestPackage, ObjectName);
+	TestPackage->MarkPackageDirty();
+	return TestObject;
+}
+
+void TestSaveDependencyPackage()
+{
+    /*
+
+    N0
+    |
+    ↓
+    N1<----
+    |     |
+    ↓     |
+    N2--->N3
+    |
+    ↓
+    N4<----
+    |     |
+    ↓     |
+    N5--->N6
+
+    */
+
+	NTestObject* N0 = CreateTestObject("/Game/TestPackage0");
+	NTestObject* N1 = CreateTestObject("/Game/TestPackage1");
+	NTestObject* N2 = CreateTestObject("/Game/TestPackage2");
+	NTestObject* N3 = CreateTestObject("/Game/TestPackage3");
+	NTestObject* N4 = CreateTestObject("/Game/TestPackage4");
+	NTestObject* N5 = CreateTestObject("/Game/TestPackage5");
+	NTestObject* N6 = CreateTestObject("/Game/TestPackage6");
+
+	N0->Children.Add(N1);
+	N1->Children.Add(N2);
+	N2->Children.Add(N3);
+	N3->Children.Add(N1);
+	N2->Children.Add(N4);
+	N4->Children.Add(N5);
+	N5->Children.Add(N6);
+	N6->Children.Add(N4);
+
+	NPackage::SavePackage(N0->GetPackage());
+	NPackage::SavePackage(N1->GetPackage());
+	NPackage::SavePackage(N2->GetPackage());
+	NPackage::SavePackage(N3->GetPackage());
+	NPackage::SavePackage(N4->GetPackage());
+	NPackage::SavePackage(N5->GetPackage());
+	NPackage::SavePackage(N6->GetPackage());
+}
+
+void TestLoadDependencyPackage()
+{
+    LoadPackage("/Game/TestPackage1");
 }
 
 }

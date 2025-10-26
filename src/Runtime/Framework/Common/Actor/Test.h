@@ -85,6 +85,17 @@ namespace nilou {
         static NTestObjectB* Construct();
     };
 
+    class NCLASS NTestObject : public NObject
+    {
+        GENERATED_BODY()
+    public:
+        NPROPERTY()
+        TArray<NTestObject*> Children;
+    };
+
     void TestSavePackage();
     void TestLoadPackage();
+
+    void TestSaveDependencyPackage();
+    void TestLoadDependencyPackage();
 }

@@ -22,6 +22,7 @@ void Serialize(FArchive& Ar, FObjectResource& Value)
 void Serialize(FArchive& Ar, FObjectExport& Value)
 {
     Serialize(Ar, (FObjectResource&)Value);
+    Serialize(Ar["ClassIndex"], Value.ClassIndex);
     Serialize(Ar["ObjectIndex"], Value.ObjectIndex);
 }
 
@@ -62,6 +63,7 @@ std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Pa
         Export.ClassName = Obj->GetClass()->GetName();
         Export.Object = Obj;
         Export.ObjectIndex = FPackageIndex::FromExport(ObjectExports.Num());
+        Export.ClassIndex = ObjectIndexMap[Obj->GetClass()];
         ObjectIndexMap.Add(Obj, Export.ObjectIndex);
         ObjectExports.Add(Export);
     }
@@ -153,7 +155,6 @@ struct FPackageHarvester
             Exports.Add(Ref);
             NClass* Class = Ref->GetClass();
             AddReference(Class);
-            AddReference(Class->GetDefaultObject());
             TArray<FProperty*> Properties = Class->GetProperties(true);
             for (FProperty* Property : Properties)
             {
@@ -169,7 +170,10 @@ struct FPackageHarvester
     void Push(void* Field, FProperty* Property)
     {
         if (Property->IsA<FStructProperty>() ||
-            Property->IsA<FObjectProperty>())
+            Property->IsA<FObjectProperty>() ||
+            Property->IsA<FArrayProperty>() ||
+            Property->IsA<FMapProperty>() ||
+            Property->IsA<FSetProperty>())
         {
             if (!Visited.Contains(Field))
             {

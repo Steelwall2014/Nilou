@@ -28,6 +28,13 @@
             "type": "cppvsdbg",
             "request": "attach",
             "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Nilou Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/Nilou.exe",
         }
     ]
 }

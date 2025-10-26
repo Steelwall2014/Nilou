@@ -1,0 +1,49 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObject",
+            "ObjectIndex": 1,
+            "ObjectName": "TestPackage2",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Game/TestPackage3",
+            "OuterIndex": 0,
+            "PackageName": "/Game/TestPackage3"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObject",
+            "OuterIndex": -4,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Game/TestPackage4",
+            "OuterIndex": 0,
+            "PackageName": "/Game/TestPackage4"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "TestObject",
+            "ObjectName": "TestPackage3",
+            "OuterIndex": -1,
+            "PackageName": "/Game/TestPackage3"
+        },
+        {
+            "ClassName": "TestObject",
+            "ObjectName": "TestPackage4",
+            "OuterIndex": -3,
+            "PackageName": "/Game/TestPackage4"
+        }
+    ]
+}

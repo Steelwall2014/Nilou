@@ -2,6 +2,7 @@
 #include "Templates/IoPriorityQueue.h"
 #include "Common/Containers/Map.h"
 #include "Common/CoreUObject/Package.h"
+#include <coroutine>
 
 namespace nilou {
 
@@ -31,15 +32,13 @@ enum EEventLoadNode : uint8
 {
 	Package_ProcessSummary,
 	Package_DependenciesReady,
-	Package_LoadImports,
-	Package_LoadExports,
+	Package_CreateLinkerLoadExports,
+	Package_ResolveLinkerLoadImports,
+	Package_PreloadLinkerLoadExports,
 	Package_ExportsSerialized,
+	// Package_PostLoad,
+	Package_DeferredPostLoad,
 	Package_NumPhases,
-
-	ExportBundle_Process = 0,
-	ExportBundle_PostLoad,
-	ExportBundle_DeferredPostLoad,
-	ExportBundle_NumPhases,
 };
 
 enum class EAsyncPackageLoadingState : uint8
@@ -50,21 +49,24 @@ enum class EAsyncPackageLoadingState : uint8
 	WaitingForDependencies,
 	DependenciesReady,
 // This is the path taken by LinkerLoad packages
-    LoadImports,
-    LoadExports,
+    CreateLinkerLoadExports,
+    WaitingForLinkerLoadDependencies,
+    ResolveLinkerLoadImports,
+    PreloadLinkerLoadExports,
 // This is the path taken by Runtime/cooked packages
-	ProcessExportBundles,
+	// ProcessExportBundles,
 // Both LinkerLoad and Cooked packages should converge at this point
-	WaitingForExternalReads,
+	// WaitingForExternalReads,
 	ExportsDone,
-	PostLoad,
+	// PostLoad,
 	DeferredPostLoad,
-	DeferredPostLoadDone,
+	// DeferredPostLoadDone,
 	Finalize,
-	PostLoadInstances,
-	CreateClusters,
+	// PostLoadInstances,
+	// CreateClusters,
 	Complete,
 	DeferredDelete,
+    NumLoadingStates,
 };
 
 struct FAsyncLoadEventSpec
@@ -73,6 +75,7 @@ struct FAsyncLoadEventSpec
     FAsyncLoadEventFunc Func = nullptr;
     FAsyncLoadEventQueue* EventQueue = nullptr;
     bool bExecuteImmediately = false;
+    const char* Name = nullptr;
 };
 
 struct FEventLoadNode
@@ -83,32 +86,24 @@ struct FEventLoadNode
 
     const FAsyncLoadEventSpec* Spec = nullptr;
     FAsyncPackage* Package = nullptr;
+    FEventLoadNode() = default;
     FEventLoadNode(const FAsyncLoadEventSpec* InSpec, FAsyncPackage* InPackage, int32 InPriority)
         : Spec(InSpec), Package(InPackage), Priority(InPriority)
     {
 
     }
 
+
     void Fire();
 
     void Execute();
 
-    void ReleaseBarrier()
-    {
-        Ncheck(BarrierCount > 0);
-        if (--BarrierCount == 0)
-        {
-            Fire();
-        }
-    }
+    void ReleaseBarrier();
 
-    void AddBarrier()
-    {
-        ++BarrierCount;
-    }
+    void AddBarrier();
 
 private:
-	std::atomic<int32> BarrierCount { 0 };
+	std::atomic<int32> BarrierCount { 1 };
 };
 
 struct FAsyncPackageData
@@ -120,8 +115,8 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
 {
     FAsyncPackageDesc Desc;
 
-	uint8 PackageNodesMemory[Package_NumPhases * sizeof(FEventLoadNode)];
-    TArrayView<FEventLoadNode> PackageNodes;
+    std::array<FEventLoadNode, EEventLoadNode::Package_NumPhases> PackageNodes;
+    TArray<std::function<void(FAsyncPackage*)>> OnPackageReachState[int32(EAsyncPackageLoadingState::NumLoadingStates)];
 
     NPackage* LinkerRoot = nullptr;
 
@@ -134,17 +129,7 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
 
     EAsyncLoadingResult LoadResult = EAsyncLoadingResult::Succeeded;
 
-    FAsyncPackage(const FAsyncPackageDesc& InDesc, FAsyncLoadingThread& InAsyncLoadingThread, FAsyncLoadEventSpec* EventSpecs)
-        : Desc(InDesc)
-        , AsyncLoadingThread(InAsyncLoadingThread)
-    {
-        FEventLoadNode* Node = reinterpret_cast<FEventLoadNode*>(PackageNodesMemory);
-        for (int32 Phase = 0; Phase < EEventLoadNode::Package_NumPhases; ++Phase)
-        {
-            new (Node + Phase) FEventLoadNode(&EventSpecs[Phase], this, Desc.Priority);
-        }
-        PackageNodes = TArrayView<FEventLoadNode>(Node, EEventLoadNode::Package_NumPhases);
-    }
+    FAsyncPackage(const FAsyncPackageDesc& InDesc, FAsyncLoadingThread& InAsyncLoadingThread, FAsyncLoadEventSpec* EventSpecs);
 
 	FObjectExport& GetExport(FPackageIndex Index)
 	{
@@ -170,33 +155,19 @@ struct FAsyncPackage : public std::enable_shared_from_this<FAsyncPackage>
 
     void ImportPackagesRecursive();
 
-    void CreateLinkerLoadExports();
-
 	// static void Event_ProcessExportBundle(FAsyncPackage* Package);
-	static void Event_LoadImports(FAsyncPackage* Package);
-	static void Event_LoadExports(FAsyncPackage* Package);
+	static void Event_CreateLinkerLoadExports(FAsyncPackage* Package);
+	static void Event_ResolveLinkerLoadImports(FAsyncPackage* Package);
+	static void Event_PreloadLinkerLoadExports(FAsyncPackage* Package);
 	static void Event_ProcessPackageSummary(FAsyncPackage* Package);
 	static void Event_DependenciesReady(FAsyncPackage* Package);
 	static void Event_ExportsDone(FAsyncPackage* Package);
-	static void Event_PostLoadExportBundle(FAsyncPackage* Package);
+	// static void Event_PostLoadExportBundle(FAsyncPackage* Package);
 	static void Event_DeferredPostLoadExportBundle(FAsyncPackage* Package);
 
-    void DependsOn(std::weak_ptr<FAsyncPackage> ImportPackage);
+    void DependsOn(std::shared_ptr<FAsyncPackage> ImportPackage);
 
     FAsyncPackageData Data;
-
-	struct FAllDependenciesState
-	{
-        TArray<std::weak_ptr<FAsyncPackage>> WaitingForPackages;
-        TArray<std::weak_ptr<FAsyncPackage>> PackagesWaitingForThis;
-	};
-    FAllDependenciesState AllDependenciesFullyLoadedState;
-
-    void AddPackagesWaitingForThis(std::weak_ptr<FAsyncPackage> Package)
-    {
-        AllDependenciesFullyLoadedState.PackagesWaitingForThis.Add(Package);
-    }
-
 };
 
 struct FAsyncLoadEventQueue
@@ -244,6 +215,7 @@ public:
 
     void FlushAsyncLoading(const TArray<int32>& RequestIds);
 
+    std::shared_ptr<FAsyncPackage> FindPackage(const std::string& PackageName);
     std::shared_ptr<FAsyncPackage> FindOrInsertPackage(const FAsyncPackageDesc& Desc);
 
     void TickAsyncThreadFromGameThread();
@@ -275,6 +247,7 @@ public:
     TArray<FAsyncLoadEventSpec> EventSpecs;
     
     FAsyncLoadEventQueue EventQueue;
+	FAsyncLoadEventQueue MainThreadEventQueue;
 
 private:
 
@@ -285,5 +258,10 @@ private:
 };
 
 bool IsInAsyncLoadingThread();
+
+inline bool operator==(const std::weak_ptr<FAsyncPackage>& A, const std::weak_ptr<FAsyncPackage>& B)
+{
+    return !A.owner_before(B) && !B.owner_before(A);
+}
 
 }

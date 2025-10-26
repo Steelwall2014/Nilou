@@ -1,0 +1,53 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 1,
+            "ObjectName": "ObjectB_Map_0",
+            "OuterIndex": 0
+        },
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 2,
+            "ObjectName": "ObjectB_Set_2",
+            "OuterIndex": 0
+        },
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 3,
+            "ObjectName": "ObjectB_Map_1",
+            "OuterIndex": 0
+        },
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 4,
+            "ObjectName": "ObjectB_Set_0",
+            "OuterIndex": 0
+        },
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 5,
+            "ObjectName": "ObjectB_Set_1",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObjectB",
+            "OuterIndex": -1,
+            "PackageName": "/Script/Engine"
+        }
+    ]
+}
