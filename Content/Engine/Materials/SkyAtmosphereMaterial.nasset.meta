@@ -1,0 +1,25 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -1,
+            "ClassName": "Material",
+            "ObjectIndex": 1,
+            "ObjectName": "SkyAtmosphereMaterial",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "Class",
+            "ObjectName": "Material",
+            "OuterIndex": -2,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        }
+    ]
+}

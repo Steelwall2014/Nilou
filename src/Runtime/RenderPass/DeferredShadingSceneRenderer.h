@@ -63,14 +63,14 @@ namespace nilou {
     {
     public:
 
-        FSceneRenderer(FSceneViewFamily& InViewFamily);
+        FSceneRenderer(const FSceneViewFamily& InViewFamily);
         virtual ~FSceneRenderer() { }
 
         /** The scene being rendered. */
         FScene* Scene;
 
         /** The view family being rendered.  This references the Views array. */
-        FSceneViewFamily& ViewFamily;
+        FSceneViewFamily ViewFamily;
 
         /** The views being rendered. */
         std::vector<FSceneView>& Views;
@@ -85,7 +85,7 @@ namespace nilou {
 
         virtual void Render(RenderGraph& Graph) = 0;
 
-        static FSceneRenderer *CreateSceneRenderer(FSceneViewFamily& ViewFamily);
+        static FSceneRenderer *CreateSceneRenderer(const FSceneViewFamily& ViewFamily);
 
         class FScreenQuadPositionVertexBuffer : public FVertexBuffer
         {
@@ -200,7 +200,7 @@ namespace nilou {
             RDGTexture* ShadingModel;
         };
 
-        FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily);
+        FDeferredShadingSceneRenderer(const FSceneViewFamily& ViewFamily);
 
         virtual void Render(RenderGraph& Graph) override;
 

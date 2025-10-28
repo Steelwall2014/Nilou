@@ -151,7 +151,7 @@ namespace nilou {
         CameraRollInput = 0;
     }
 
-    FSceneView ACameraActor::CalcSceneView(FSceneViewFamily* ViewFamily)
+    FSceneView ACameraActor::CalcSceneView(const FSceneViewFamily& ViewFamily)
     {
         FSceneView SceneView = FSceneView(
             CameraComponent->ProjectionMode,
@@ -162,7 +162,7 @@ namespace nilou {
             CameraComponent->GetComponentLocation(), 
             CameraComponent->GetForwardVector(), 
             CameraComponent->GetUpVector(), 
-            FIntVector2(ViewFamily->Viewport.Width, ViewFamily->Viewport.Height));
+            FIntVector2(ViewFamily.Viewport.Width, ViewFamily.Viewport.Height));
 
         return SceneView;
     }

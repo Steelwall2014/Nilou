@@ -667,13 +667,14 @@ ENUM_CLASS_FLAGS(ERHIAccess)
 
 enum class ERHIPipeline : uint8
 {
-	Graphics = 0,
-	AsyncCompute = 1,
-	Copy = 2,
+	Graphics = 1 << 0,
+	AsyncCompute = 1 << 1,
+	Copy = 1 << 2,
 
+	All = Graphics | AsyncCompute | Copy,
 	Num = 3,
-	None = Num,
 };
+ENUM_CLASS_FLAGS(ERHIPipeline)
 
 inline constexpr uint32 GetRHIPipelineCount()
 {

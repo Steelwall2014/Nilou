@@ -119,14 +119,7 @@ namespace nilou {
             std::vector<FDynamicMeshVertex> OutVerts;
             std::vector<uint32> OutIndices;
             BuildCuboidVerts(1, 1, 1, OutVerts, OutIndices);
-            NPackage* ColoredMaterialPackage = CreatePackage("/Engine/Materials/ColoredMaterial");
-            UMaterial* ColoredMaterial = FindObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
-            if (!ColoredMaterial)
-            {
-                ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
-                NPackage::SavePackage(ColoredMaterialPackage);
-            }
-            Cube->MaterialSlots.Add(ColoredMaterial);
+            Cube->MaterialSlots.Add(GetColoredMaterial());
             FStaticMeshLODResources* resources = new FStaticMeshLODResources();
             FStaticMeshSection* section = new FStaticMeshSection();
             section->VertexBuffers.InitFromDynamicVertex(&section->VertexFactory, OutVerts);
@@ -178,10 +171,10 @@ namespace nilou {
         {
             SkyAtmosphereMaterial = NewObject<UMaterial>(Package, "SkyAtmosphereMaterial");
             SkyAtmosphereMaterial->InitializeResources();
+            SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
             SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl");
             NPackage::SavePackage(Package);
         }
-        SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
         ASphereActor* SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
         SphereActor->SphereComponent->SetCastShadow(false);
         SphereActor->SphereComponent->SetRelativeScale3D(FVector(4000));
@@ -244,7 +237,7 @@ namespace nilou {
         // TestSavePackage();
         // TestLoadPackage();
         // TestSaveDependencyPackage();
-        TestLoadDependencyPackage();
+        // TestLoadDependencyPackage();
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));

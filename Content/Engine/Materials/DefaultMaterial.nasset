@@ -1,0 +1,8 @@
+{
+    "Objects": [
+        {
+            "NamePrivate": "DefaultMaterial",
+            "ShaderVirtualPath": "/Shaders/Materials/DefaultMaterial_Mat.glsl"
+        }
+    ]
+}

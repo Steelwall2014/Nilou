@@ -4,6 +4,7 @@
 #include "Class.h"
 #include "Serialization/AsyncLoading.h"
 #include "NilouType.h"
+#include "Common/Paths.h"
 
 namespace nilou {
 
@@ -98,6 +99,8 @@ NPackage* LoadPackage(const std::string& Name)
     NObject* Object = FindObject(Name);
     if (Object) return Cast<NPackage>(Object);
 
+    if (!FPackageName::DoesPackageExist(Name)) return nullptr;
+
     int32 RequestId = FAsyncLoadingThread::Get().LoadPackage(Name);
     FAsyncLoadingThread::Get().FlushAsyncLoading( { RequestId } );
 
@@ -132,7 +135,7 @@ NPackage* GetTransientPackage()
 
 NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params)
 {    
-    NObject* Object = Params.Class->CreateObject(Params.Name, Params.Outer);
+    NObject* Object = Params.Class->CreateObject(Params.Name, Params.Outer, Params.Flags);
     return Object;
 }
 
@@ -340,13 +343,14 @@ void InitUObject()
     GObjTransientPkg = NewObject<NPackage>(nullptr, "/Engine/Transient");
 }
 
-NObject* NClass::CreateObject(const std::string& Name, NObject* Outer) const
+NObject* NClass::CreateObject(const std::string& Name, NObject* Outer, EObjectFlags Flags) const
 {
     void* Memory = malloc(Size);
     FObjectInitializer& Initializer = FObjectInitializer::Get();
     Initializer.Class = const_cast<NClass*>(this);
     Initializer.Name = Name;
     Initializer.Outer = Outer;
+    Initializer.Flags = Flags;
     ClassConstructor(Memory);
     return static_cast<NObject*>(Memory);
 }

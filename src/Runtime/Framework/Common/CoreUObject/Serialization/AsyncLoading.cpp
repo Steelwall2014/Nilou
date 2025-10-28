@@ -1,7 +1,7 @@
 #include <fstream>
 #include <stack>
 #include "AsyncLoading.h"
-#include "Common/Path.h"
+#include "Common/Paths.h"
 #include "Common/CoreUObject/Class.h"
 #include "PlatformMisc.h"
 
@@ -69,7 +69,6 @@ void FAsyncPackage::ImportPackagesRecursive()
         {
             if (NPackage* PackageObject = FindPackage(Import.PackageName))
             {
-                Ncheck(PackageObject->HasAnyFlags(EObjectFlags::WasLoaded));
                 continue;
             }
             else 
@@ -112,7 +111,7 @@ void FAsyncPackage::DependsOn(std::shared_ptr<FAsyncPackage> ImportPackage)
 void FAsyncPackage::Event_ProcessPackageSummary(FAsyncPackage* Package)
 {
     Package->AsyncPackageLoadingState = EAsyncPackageLoadingState::ProcessPackageSummary;
-    std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetPackageName());
+    std::string MetaFileName = FPackageName::LongPackageNameToMetaFileName(Package->GetPackageName());
     if (!fs::exists(MetaFileName))
     {
         Package->LoadResult = EAsyncLoadingResult::FailedMissing;
@@ -230,7 +229,7 @@ void FAsyncPackage::Event_ResolveLinkerLoadImports(FAsyncPackage* Package)
 
 void FAsyncPackage::Event_PreloadLinkerLoadExports(FAsyncPackage* Package)
 {
-    std::string FileName = FPackagePath::LongPackageNameToFileName(Package->GetPackageName());
+    std::string FileName = FPackageName::LongPackageNameToFileName(Package->GetPackageName());
     nlohmann::json Json;
     std::ifstream(FileName) >> Json;
     for (int Index = 0; Index < Package->ObjectExports.Num(); ++Index)
@@ -402,6 +401,7 @@ void FAsyncLoadingThread::ProcessLoadedPackagesFromGameThread()
     for (int32 PackageIndex = 0; PackageIndex < LocalLoadedPackagesToProcess.Num(); ++PackageIndex)
     {
         std::shared_ptr<FAsyncPackage> Package = LocalLoadedPackagesToProcess[PackageIndex]->shared_from_this();
+        Ncheck(Package->LoadResult == EAsyncLoadingResult::Succeeded);
         {
             std::lock_guard<std::mutex> Lock(AsyncPackagesCritical);
             AsyncPackageLookup.Remove(Package->Desc.PackageName);
@@ -416,7 +416,9 @@ void FAsyncLoadingThread::ProcessLoadedPackagesFromGameThread()
         for (FObjectExport& Export : Package->ObjectExports)
         {
             Export.Object->ClearFlags(EObjectFlags::NeedLoad);
+            Export.Object->SetFlags(EObjectFlags::WasLoaded);
         }
+        Package->LinkerRoot->SetFlags(EObjectFlags::WasLoaded);
     }
 }
 

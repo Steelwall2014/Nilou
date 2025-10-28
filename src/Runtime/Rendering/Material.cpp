@@ -123,9 +123,12 @@ namespace nilou {
     void UMaterial::SetShaderFileVirtualPath(const std::string& VirtualPath)
     {
         ShaderVirtualPath = VirtualPath;
-        std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(ShaderVirtualPath).generic_string();
-        Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
-        UpdateCode(Code);
+        if (!ShaderVirtualPath.empty())
+        {
+            std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(ShaderVirtualPath).generic_string();
+            Code = GetAssetLoader()->SyncOpenAndReadText(ShaderAbsPath.c_str());
+            UpdateCode(Code);
+        }
     }
 
     void UMaterial::SetScalarParameterValue(const std::string &Name, float Value)
@@ -259,7 +262,6 @@ namespace nilou {
             {
                 Proxy->ShadingModel = InShadingModel;
             });
-        UpdateCode(Code);
     }
 
     void UMaterial::SetBlendState(FBlendStateInitializer InBlendState)
@@ -302,6 +304,20 @@ namespace nilou {
             });
     }
 
+    UMaterial* GetColoredMaterial()
+    {
+        NPackage* ColoredMaterialPackage = CreatePackage("/Engine/Materials/ColoredMaterial");
+        UMaterial* ColoredMaterial = FindObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
+        if (!ColoredMaterial)
+        {
+            ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
+            ColoredMaterial->InitializeResources();
+            ColoredMaterial->SetShaderFileVirtualPath("/Shaders/Materials/ColoredMaterial_Mat.glsl");
+            NPackage::SavePackage(ColoredMaterialPackage);
+        }
+        return ColoredMaterial;
+    }
+
     UMaterialInstance* UMaterial::CreateMaterialInstance(NPackage* Package, const std::string& Name)
     {
         UMaterialInstance* MaterialInstance = NewObject<UMaterialInstance>(Package, Name);
@@ -319,6 +335,11 @@ namespace nilou {
         MaterialInstance->InitializeResources();
 
         return MaterialInstance;
+    }
+
+    void UMaterial::Serialize(FArchive& Ar)
+    {
+        NObject::Serialize(Ar);
     }
 
     void UMaterial::PostLoad()

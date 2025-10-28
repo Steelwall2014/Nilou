@@ -3,7 +3,7 @@
 #include "NilouType.h"
 #include "Common/Containers/Map.h"
 #include "Common/Containers/Set.h"
-#include "Common/Path.h"
+#include "Common/Paths.h"
 
 namespace nilou {
 
@@ -91,7 +91,7 @@ std::pair<TArray<FObjectImport>, TArray<FObjectExport>> BuildLinker(NPackage* Pa
 
 void NPackage::SavePackage(NPackage* Package)
 {
-    std::string MetaFileName = FPackagePath::LongPackageNameToMetaFileName(Package->GetName());
+    std::string MetaFileName = FPackageName::LongPackageNameToMetaFileName(Package->GetName());
     std::string DirectoryName = std::filesystem::path(MetaFileName).parent_path().string();
     std::filesystem::create_directories(DirectoryName);
     auto [ObjectImports, ObjectExports] = BuildLinker(Package);
@@ -108,7 +108,7 @@ void NPackage::SavePackage(NPackage* Package)
         std::ofstream out(MetaFileName);
         out << MetaFile.dump(4);
     }
-    std::string FileName = FPackagePath::LongPackageNameToFileName(Package->GetName());
+    std::string FileName = FPackageName::LongPackageNameToFileName(Package->GetName());
     nlohmann::json File;
     nlohmann::json& ObjectsJson = File["Objects"];
     FArchive Ar(ObjectsJson, false);

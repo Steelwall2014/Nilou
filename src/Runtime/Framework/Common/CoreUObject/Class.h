@@ -131,7 +131,7 @@ public:
         return SuperStruct;
     }
 
-    NObject* CreateObject(const std::string& Name, NObject* Outer) const;
+    NObject* CreateObject(const std::string& Name, NObject* Outer, EObjectFlags Flags=EObjectFlags::NoFlags) const;
 
     void SetClassFlags(EClassFlags FlagsToAdd)
     {

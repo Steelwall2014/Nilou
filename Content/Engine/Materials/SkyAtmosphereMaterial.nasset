@@ -1,0 +1,9 @@
+{
+    "Objects": [
+        {
+            "NamePrivate": "SkyAtmosphereMaterial",
+            "ShaderVirtualPath": "/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl",
+            "ShadingModel": "SM_SkyAtmosphere"
+        }
+    ]
+}

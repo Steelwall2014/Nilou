@@ -1,0 +1,8 @@
+{
+    "Objects": [
+        {
+            "NamePrivate": "ColoredMaterial",
+            "ShaderVirtualPath": "/Shaders/Materials/ColoredMaterial_Mat.glsl"
+        }
+    ]
+}

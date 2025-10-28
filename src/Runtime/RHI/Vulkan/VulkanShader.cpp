@@ -99,8 +99,9 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
     if (status != shaderc_compilation_status_success) {
         const char* msg = shaderc_result_get_error_message(result);
-        NILOU_LOG(Error, "Shader compilation error! Error message: {}, Dump the code to log", msg);
-        NILOU_LOG(Error, "\n{}", code);
+        NILOU_LOG(Error, "Shader compilation error! Error message: {}", msg);
+        NILOU_LOG(Error, "Dump the code to log\n{}", code);
+        Ncheck(false);
         return {};
     }
 

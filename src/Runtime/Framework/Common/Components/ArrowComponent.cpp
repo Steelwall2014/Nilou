@@ -24,7 +24,7 @@ namespace nilou {
             // , bIsScreenSizeScaled(Component->bIsScreenSizeScaled)
             // , ScreenSize(Component->ScreenSize)
         {
-            Material = LoadObject<UMaterial>("/Materials/ColoredMaterial.ColoredMaterial");
+            Material = GetColoredMaterial();
 
             const float HeadAngle = glm::radians(ARROW_HEAD_ANGLE);
             const float DefaultLength = ArrowSize * ARROW_SCALE;

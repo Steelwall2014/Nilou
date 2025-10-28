@@ -804,7 +804,7 @@ void RenderGraph::Execute()
 
 void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 {
-	for (auto& Barrier : Pass->MemoryBarriers)
+	for (auto& Barrier : Pass->PrologueMemoryBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
 			GetAccessName(Barrier.SrcAccess),
@@ -812,7 +812,7 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			GetPipelineStageName(Barrier.SrcStage),
 			GetPipelineStageName(Barrier.DstStage));
 	}
-	for (auto& Barrier : Pass->ImageBarriers)
+	for (auto& Barrier : Pass->PrologueImageBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[ImageBarrier] RHITexture: 0x{:x}, Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}", 
 			(size_t)Barrier.Texture, 
@@ -826,7 +826,7 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			GetTextureLayoutName(Barrier.OldLayout),
 			GetTextureLayoutName(Barrier.NewLayout));
 	}
-	for (auto& Barrier : Pass->BufferBarriers)
+	for (auto& Barrier : Pass->PrologueBufferBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
 			(size_t)Barrier.Buffer, 
@@ -837,7 +837,7 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			Barrier.Offset,
 			Barrier.Size);
 	}
-	RHICmdList.PipelineBarrier(Pass->MemoryBarriers, Pass->ImageBarriers, Pass->BufferBarriers);
+	RHICmdList.PipelineBarrier(Pass->PrologueMemoryBarriers, Pass->PrologueImageBarriers, Pass->PrologueBufferBarriers);
 	if (Pass->Pipeline == ERHIPipeline::Graphics &&
 		Pass != PresentPass)
 	{
@@ -873,6 +873,40 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 	{
 		RHICmdList.EndRenderPass();
 	}
+	for (auto& Barrier : Pass->EpilogueMemoryBarriers)
+	{
+		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
+			GetAccessName(Barrier.SrcAccess),
+			GetAccessName(Barrier.DstAccess),
+			GetPipelineStageName(Barrier.SrcStage),
+			GetPipelineStageName(Barrier.DstStage));
+	}
+	for (auto& Barrier : Pass->EpilogueImageBarriers)
+	{
+		RDG_DEBUG_LOG(Display, "[ImageBarrier] RHITexture: 0x{:x}, Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}", 
+			(size_t)Barrier.Texture, 
+			Barrier.Subresource.GetMipIndex(),
+			Barrier.Subresource.GetArraySlice(),
+			Barrier.Subresource.GetPlaneSlice(),
+			GetAccessName(Barrier.SrcAccess), 
+			GetAccessName(Barrier.DstAccess),
+			GetPipelineStageName(Barrier.SrcStage),
+			GetPipelineStageName(Barrier.DstStage),
+			GetTextureLayoutName(Barrier.OldLayout),
+			GetTextureLayoutName(Barrier.NewLayout));
+	}
+	for (auto& Barrier : Pass->EpilogueBufferBarriers)
+	{
+		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
+			(size_t)Barrier.Buffer, 
+			GetAccessName(Barrier.SrcAccess), 
+			GetAccessName(Barrier.DstAccess),
+			GetPipelineStageName(Barrier.SrcStage),
+			GetPipelineStageName(Barrier.DstStage),
+			Barrier.Offset,
+			Barrier.Size);
+	}
+	RHICmdList.PipelineBarrier(Pass->EpilogueMemoryBarriers, Pass->EpilogueImageBarriers, Pass->EpilogueBufferBarriers);
 }
 
 /******************** Collect Resources ********************/
@@ -1190,6 +1224,48 @@ void RenderGraph::CollectPassBarriers()
 	}
 }
 
+ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags Flags)
+{
+	constexpr EPipelineStageFlags AllGraphicsBits = 
+		EPipelineStageFlags::TopOfPipe |
+		EPipelineStageFlags::DrawIndirect | 
+		EPipelineStageFlags::VertexInput | 
+		EPipelineStageFlags::VertexShader | 
+		EPipelineStageFlags::TessellationControlShader | 
+		EPipelineStageFlags::TessellationEvaluationShader | 
+		EPipelineStageFlags::GeometryShader | 
+		EPipelineStageFlags::FragmentShader | 
+		EPipelineStageFlags::EarlyFragmentTests | 
+		EPipelineStageFlags::LateFragmentTests | 
+		EPipelineStageFlags::ColorAttachmentOutput | 
+		EPipelineStageFlags::Host |
+		EPipelineStageFlags::AllGraphics |
+		EPipelineStageFlags::AllCommands;
+	if (EnumHasAnyFlags(Flags, AllGraphicsBits))
+	{
+		return ERHIPipeline::Graphics;
+	}
+	if (EnumHasAnyFlags(Flags, EPipelineStageFlags::ComputeShader))
+	{
+		return ERHIPipeline::AsyncCompute;
+	}
+	return ERHIPipeline::Copy;
+}
+
+ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags SrcFlags, EPipelineStageFlags DstFlags)
+{
+	ERHIPipeline Pipeline = GetLeastCompatiblePipeline(SrcFlags) | GetLeastCompatiblePipeline(DstFlags);
+	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::Graphics))
+	{
+		return ERHIPipeline::Graphics;
+	}
+	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::AsyncCompute))
+	{
+		return ERHIPipeline::AsyncCompute;
+	}
+	return ERHIPipeline::Copy;
+}
+
 void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 {
 	FRDGPass* CurrentPass = Passes[PassHandle];
@@ -1219,7 +1295,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			
 			if (LastAccess != CurrentAccess)
 			{
-				const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::None;
+				const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::Graphics;
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
@@ -1238,7 +1314,16 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 					GetPipelineStageName(Barrier.DstStage),
 					GetTextureLayoutName(Barrier.OldLayout),
 					GetTextureLayoutName(Barrier.NewLayout));
-				CurrentPass->ImageBarriers.push_back(Barrier);
+				ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+				if (CompatiblePipeline == CurrentPipeline || LastState.Pass == NullPassHandle)
+				{
+					CurrentPass->PrologueImageBarriers.push_back(Barrier);
+				}
+				else if (CompatiblePipeline == LastPipeline)
+				{
+					FRDGPass* LastPass = Passes[LastState.Pass];
+					LastPass->EpilogueImageBarriers.push_back(Barrier);
+				}
 				if (LastState.Pass != NullPassHandle)
 				{
 					FRDGPass* LastPass = Passes[LastState.Pass];
@@ -1270,7 +1355,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 
 		if (LastAccess != CurrentAccess)
 		{
-			const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::None;
+			const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::Graphics;
 			RHIBufferMemoryBarrier Barrier = RHIBufferMemoryBarrier(
 				Buffer->GetRHI(), 
 				LastAccess, CurrentAccess, 
@@ -1286,7 +1371,16 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 				GetPipelineStageName(Barrier.SrcStage), 
 				GetPipelineStageName(Barrier.DstStage), 
 				Barrier.Offset, Barrier.Size);
-			CurrentPass->BufferBarriers.push_back(Barrier);
+			ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (CompatiblePipeline == CurrentPipeline || LastState.Pass == NullPassHandle)
+			{
+				CurrentPass->PrologueBufferBarriers.push_back(Barrier);
+			}
+			else if (CompatiblePipeline == LastPipeline)
+			{
+				FRDGPass* LastPass = Passes[LastState.Pass];
+				LastPass->EpilogueBufferBarriers.push_back(Barrier);
+			}
 			if (LastState.Pass != NullPassHandle)
 			{
 				FRDGPass* LastPass = Passes[LastState.Pass];

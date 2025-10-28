@@ -110,9 +110,19 @@ void NClass::SerializeTaggedProperties(FArchive& Ar, void* Data) const
     {
         void* Pointer = Property->ContainerPtrToValuePtrInternal(Data);
         void* PointerDefault = Property->ContainerPtrToValuePtrInternal(ClassDefaultObject);
-        if (!Property->Identical(Pointer, PointerDefault))
+        if (Ar.IsLoading())
         {
-            Property->SerializeItem(Ar[Property->Name], Pointer);
+            if (Ar.GetNode().contains(Property->Name))
+            {
+                Property->SerializeItem(Ar[Property->Name], Pointer);
+            }
+        }
+        else 
+        {
+            if (!Property->Identical(Pointer, PointerDefault))
+            {
+                Property->SerializeItem(Ar[Property->Name], Pointer);
+            }
         }
     }
 }

@@ -31,7 +31,7 @@ namespace nilou {
 
     FDeferredShadingSceneRenderer *Renderer = nullptr;
 
-    FSceneRenderer *FSceneRenderer::CreateSceneRenderer(FSceneViewFamily& ViewFamily)
+    FSceneRenderer *FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily& ViewFamily)
     {
         return new FDeferredShadingSceneRenderer(ViewFamily);
     }
@@ -102,15 +102,15 @@ namespace nilou {
         return DescriptorSets;
     }
 
-    FSceneRenderer::FSceneRenderer(FSceneViewFamily& InViewFamily)
+    FSceneRenderer::FSceneRenderer(const FSceneViewFamily& InViewFamily)
         : Scene(InViewFamily.Scene)
         , ViewFamily(InViewFamily)
-        , Views(InViewFamily.Views)
+        , Views(ViewFamily.Views)
     {
 
     }
 
-    FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(FSceneViewFamily& ViewFamily)
+    FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFamily& ViewFamily)
         : FSceneRenderer(ViewFamily)
     {
 

@@ -17,21 +17,4 @@ namespace nilou {
         static std::filesystem::path VirtualPathToAbsPath(const std::string &VirtualPath);
         static std::filesystem::path GetBaseFilename(const std::filesystem::path &InPath);
     };
-
-    class FPackagePath
-    {
-    public:
-        // PackageName should start with '/'
-        static std::string LongPackageNameToMetaFileName(const std::string& PackageName)
-        {
-            return (FPath::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset.meta")).generic_string();
-        }
-
-        // PackageName should start with '/'
-        static std::string LongPackageNameToFileName(const std::string& PackageName)
-        {
-            return (FPath::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset")).generic_string();
-        }
-
-    };
 }

@@ -187,6 +187,8 @@ namespace nilou {
 
         std::string GetMateiralCode() const { return Code; }
 
+        virtual void Serialize(FArchive& Ar) override;
+
         virtual void PostLoad() override;
 
         void InitializeResources();
@@ -198,6 +200,8 @@ namespace nilou {
         std::string Code;
         FMaterialRenderProxy* MaterialRenderProxy = nullptr;  // It's called "DefaultMaterialInstance" in UE5
     };
+
+    UMaterial* GetColoredMaterial();
 
     class NCLASS UMaterialInstance : public UMaterial
     {

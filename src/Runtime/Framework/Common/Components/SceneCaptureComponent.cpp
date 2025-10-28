@@ -133,15 +133,9 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_UpdateSceneCaptureContents)(
-            [SceneRenderer](RenderGraph&) 
+            [SceneRenderer](RenderGraph& Graph) 
             {
-                // for (auto& View : SceneRenderer->Views)
-                // {
-                //     View.ViewUniformBuffer->UpdateUniformBuffer();
-                // }
-                RenderGraph& Graph = FRenderingThread::GetRenderGraph();
                 SceneRenderer->Render(Graph);
-                
                 delete SceneRenderer;
             });
 
@@ -271,16 +265,9 @@ namespace nilou {
         FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily);
 
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_UpdateSceneCaptureContents)(
-            [SceneRenderer](RenderGraph&) 
+            [SceneRenderer](RenderGraph& Graph) 
             {
-                // for (FViewInfo& View : SceneRenderer->Views)
-                // {
-                //     View.ViewUniformBuffer->UpdateUniformBuffer();
-                // }
-
-                RenderGraph& Graph = FRenderingThread::GetRenderGraph();
                 SceneRenderer->Render(Graph);
-                
                 delete SceneRenderer;
             });
 

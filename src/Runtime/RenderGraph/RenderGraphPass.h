@@ -45,9 +45,12 @@ public:
     std::set<FRDGPass*> Producers;
     std::set<FRDGPass*> Consumers;
 
-    std::vector<RHIMemoryBarrier> MemoryBarriers;
-    std::vector<RHIBufferMemoryBarrier> BufferBarriers;
-    std::vector<RHIImageMemoryBarrier> ImageBarriers;
+    std::vector<RHIMemoryBarrier> PrologueMemoryBarriers;
+    std::vector<RHIBufferMemoryBarrier> PrologueBufferBarriers;
+    std::vector<RHIImageMemoryBarrier> PrologueImageBarriers;
+    std::vector<RHIMemoryBarrier> EpilogueMemoryBarriers;
+    std::vector<RHIBufferMemoryBarrier> EpilogueBufferBarriers;
+    std::vector<RHIImageMemoryBarrier> EpilogueImageBarriers;
     std::vector<RHISemaphoreRef> SemaphoresToSignal;
     std::vector<RHISemaphoreRef> SemaphoresToWait;
 
