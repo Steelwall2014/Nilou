@@ -2,6 +2,7 @@
 #include "Vulkan/VulkanDynamicRHI.h"
 #include "VulkanQueue.h"
 #include "Common/Log.h"
+#include "VulkanSemaphore.h"
 
 namespace nilou {
 
@@ -72,7 +73,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevic
 
     for (int i = 0; i < ImageAcquiredSemaphore.size(); i++)
     {
-        ImageAcquiredSemaphore[i] = CreateSemephore(Device);
+        ImageAcquiredSemaphore[i] = RHICreateSemaphore();
     }
 
     ImageAcquiredFences.resize(imageCount);
@@ -104,7 +105,7 @@ int32 FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
         VK_NULL_HANDLE, 
         ImageAcquiredFences[SemaphoreIndex], &ImageIndex);
     CurrentImageIndex = ImageIndex;
-    *OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex]->Handle;
+    *OutSemaphore = ResourceCast(ImageAcquiredSemaphore[SemaphoreIndex].GetReference())->Handle;
     vkWaitForFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex], VK_TRUE, UINT64_MAX);
     VK_CHECK_RESULT(vkResetFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex]));
     return CurrentImageIndex;

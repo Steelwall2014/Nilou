@@ -8,6 +8,11 @@
 namespace nilou {
 
     std::atomic<bool> BaseApplication::m_bQuit = false;
+    
+    FRunnable* GRenderingThreadRunnable = nullptr;
+    FRunnable* GAsyncLoadingThreadRunnable = nullptr;
+    std::unique_ptr<FRunnableThread> RenderingThread;
+    std::unique_ptr<FRunnableThread> AsyncLoadingThread;
 
     BaseApplication::BaseApplication(GfxConfiguration &cfg) :
         m_Config(cfg)
@@ -20,9 +25,11 @@ namespace nilou {
 
         FClassRegistryBase::DeferredConstructFProperty();
         FCrc::Init();
-        RenderingThread = std::move(FRunnableThread::Create(new FRenderingThread, "Rendering Thread"));
+        GRenderingThreadRunnable = new FRenderingThread;
+        GAsyncLoadingThreadRunnable = new FAsyncLoadingThread;
+        RenderingThread = FRunnableThread::Create(GRenderingThreadRunnable, "Rendering Thread");
         while (!RenderingThread->IsRunnableInitialized()) { }
-        AsyncLoadingThread = std::move(FRunnableThread::Create(new FAsyncLoadingThread, "Async Loading Thread"));
+        AsyncLoadingThread = FRunnableThread::Create(GAsyncLoadingThreadRunnable, "Async Loading Thread");
         while (!AsyncLoadingThread->IsRunnableInitialized()) { }
         GameViewportClient = std::make_unique<UGameViewportClient>();
         GameViewportClient->Init();
@@ -34,9 +41,7 @@ namespace nilou {
     void BaseApplication::Finalize()
     {
         RenderingThread->Kill();
-        while (!RenderingThread->IsRunnableExited()) { }
         AsyncLoadingThread->Kill();
-        while (!AsyncLoadingThread->IsRunnableExited()) { }
     }
 
     void BaseApplication::Finalize_RenderThread()

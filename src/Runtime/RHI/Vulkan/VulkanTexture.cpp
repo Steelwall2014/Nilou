@@ -165,6 +165,23 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
         CreateInfo));
 }
 
+VulkanTextureView::VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
+    : RHITextureView(InDesc, InTexture) 
+    , Handle(InHandle)
+    , Device(InDevice)
+{
+
+}
+
+VulkanTextureView::~VulkanTextureView()
+{
+    if (Handle)
+    {
+        vkDestroyImageView(Device->Handle, Handle, nullptr);
+        Handle = VK_NULL_HANDLE;
+    }
+}
+
 RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name)
 {
     VulkanTexture* Texture = ResourceCast(InTexture);
@@ -195,11 +212,10 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     viewInfo.subresourceRange.baseArrayLayer = CreateInfo.BaseArrayLayer;
     viewInfo.subresourceRange.layerCount = CreateInfo.LayerCount;
     
-    TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(CreateInfo, InTexture));
-    VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &TextureView->Handle));
-
+    VkImageView Handle{};
+    VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &Handle));
+    TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(Device, Handle, CreateInfo, InTexture));
     return TextureView;
-
 }
 
 }

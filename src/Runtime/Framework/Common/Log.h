@@ -21,6 +21,10 @@ namespace nilou {
 
         std::string wideToUtf8(std::wstring_view sourceWStr);
         std::string wideToOme(std::wstring_view sourceWStr);
+
+        std::wstring multiToWide(std::string_view sourceStr, unsigned int pagecode);
+        std::wstring utf8ToWide(std::string_view sourceStr);
+        std::wstring omeToWide(std::string_view sourceStr);
     }
 
     // ostream 特化, 针对 std::cout, std::cerr 等转换为本机 codepage 后以多字节编码输出

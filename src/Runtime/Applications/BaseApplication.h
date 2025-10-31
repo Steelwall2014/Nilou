@@ -37,19 +37,17 @@ namespace nilou {
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPreRenderDelegate() { return PreRenderDelegate; }
         TMulticastDelegate<FDynamicRHI*, FScene*> &GetPostRenderDelegate() { return PostRenderDelegate; }
         TMulticastDelegate<int, int> &GetScreenResizeDelegate() { return ScreenResizeDelegate; }
+        static std::atomic<bool> m_bQuit;
 
     protected:
         float deltaTime = 0.0f;
         float accumTime = 0.0f;
-        static std::atomic<bool> m_bQuit;
         GfxConfiguration m_Config;
         bool CursorEnabled = false;
         std::unique_ptr<UGameViewportClient> GameViewportClient;
         TMulticastDelegate<FDynamicRHI*, FScene*> PreRenderDelegate;
         TMulticastDelegate<FDynamicRHI*, FScene*> PostRenderDelegate;
         TMulticastDelegate<int, int> ScreenResizeDelegate;
-        std::unique_ptr<FRunnableThread> RenderingThread;
-        std::unique_ptr<FRunnableThread> AsyncLoadingThread;
 
 
     private:

@@ -30,6 +30,7 @@ class VulkanQueue;
 class VulkanTexture;
 class VulkanDevice;
 class VulkanCommandBufferPool;
+class VulkanSemaphore;
 
 }
 
@@ -149,7 +150,7 @@ private:
     std::vector<VkSemaphore> ImageAvailableSemaphores;
     std::vector<VkSemaphore> RenderFinishedSemaphores;
     uint32 CurrentSwapChainImageIndex = 0;
-    std::shared_ptr<FVulkanSemaphore> CurrentImageAcquiredSemaphore;
+    TRefCountPtr<VulkanSemaphore> CurrentImageAcquiredSemaphore;
 
     FVulkanRenderPass* RenderToScreenPass{};
     

@@ -286,4 +286,4 @@ void FVulkanDynamicRHI::RHIUnmapMemory(RHIBuffer* buffer)
     vkUnmapMemory(Device->Handle, vkBuffer->Memory);
 }
 
-}
+} // namespace nilou

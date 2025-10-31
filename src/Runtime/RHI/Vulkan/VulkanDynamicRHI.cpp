@@ -312,7 +312,7 @@ int FVulkanDynamicRHI::Initialize()
 
     StagingManager = std::make_unique<FVulkanStagingManager>(Device->Handle);
 
-    CurrentImageAcquiredSemaphore = std::make_shared<FVulkanSemaphore>();
+    CurrentImageAcquiredSemaphore = new VulkanSemaphore();
 
     /** Create swap chain */
     {        
@@ -335,7 +335,7 @@ int FVulkanDynamicRHI::Initialize()
             Desc.Usage = ETextureUsageFlags::ColorAttachment;
             
             auto Texture = new VulkanTexture(
-                Device,
+                nullptr,
                 TempSwapChainImages[i], VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
                 "SwapChainImage"+std::to_string(i), Desc);
             // RHIImageMemoryBarrier SwapChainImageBarrier{
@@ -364,18 +364,6 @@ int FVulkanDynamicRHI::Initialize()
         CreateInfo.BaseArrayLayer = 0;
         CreateInfo.LayerCount = 1;
         DepthImageView = RHICreateTextureView(DepthImage.GetReference(), CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
-        // auto VkDepthImage = ResourceCast(DepthImage);
-        // RHIImageMemoryBarrier SwapChainImageBarrier{
-        //     DepthImage, 
-        //     ERHIAccess::None, ERHIAccess::None, 
-        //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
-        //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
-        //     RHITextureSubresource()};
-        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 0);
-        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        // SwapChainImageBarrier.Subresource = RHITextureSubresource(0, 0, 1);
-        // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-        // RHISubmitCommandList(RHICmdList, {}, {});
     }
 
     /** Create image views */
@@ -389,21 +377,6 @@ int FVulkanDynamicRHI::Initialize()
         swapChainFramebuffers.resize(swapChainImages.size());
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
-            // VkImageViewCreateInfo createInfo{};
-            // createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            // createInfo.image = ResourceCast(swapChainImages[i])->GetHandle();
-            // createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            // createInfo.format = TranslatePixelFormatToVKFormat(swapChainImageFormat);
-            // createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            // createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            // createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            // createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            // createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            // createInfo.subresourceRange.baseMipLevel = 0;
-            // createInfo.subresourceRange.levelCount = 1;
-            // createInfo.subresourceRange.baseArrayLayer = 0;
-            // createInfo.subresourceRange.layerCount = 1;
-
             FRHITextureViewCreateInfo CreateInfo;
             CreateInfo.ViewType = ETextureDimension::Texture2D;
             CreateInfo.Format = swapChainImageFormat;
@@ -455,25 +428,27 @@ RHITexture* FVulkanDynamicRHI::RHIGetSwapChainTexture()
 
 void FVulkanDynamicRHI::Finalize()
 {
-    SamplerMap.clear();
-    RenderPassManager = nullptr;
-    StagingManager = nullptr;
-    SwapChain = nullptr;
-    swapChainFramebuffers.clear();
-    DepthImage = nullptr;
-    FPipelineStateCache::ClearCacheGraphicsPSO();
-    FPipelineStateCache::ClearCacheVertexDeclarations();
-    for (auto ImageView : swapChainImageViews)
-        vkDestroyImageView(Device->Handle, ResourceCast(ImageView.GetReference())->GetHandle(), nullptr);
+    // Let the OS destroy the resources
+    
+    // SamplerMap.clear();
+    // RenderPassManager = nullptr;
+    // StagingManager = nullptr;
+    // SwapChain = nullptr;
+    // swapChainFramebuffers.clear();
+    // DepthImage = nullptr;
+    // FPipelineStateCache::ClearCacheGraphicsPSO();
+    // FPipelineStateCache::ClearCacheVertexDeclarations();
+    // for (auto ImageView : swapChainImageViews)
+    //     vkDestroyImageView(Device->Handle, ResourceCast(ImageView.GetReference())->GetHandle(), nullptr);
 
-    shaderc_compiler_release(shader_compiler);
+    // shaderc_compiler_release(shader_compiler);
 
-    vkDestroyDevice(Device->Handle, nullptr);
+    // Device = nullptr;
 
-    DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    // DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyInstance(instance, nullptr);
+    // vkDestroySurfaceKHR(instance, surface, nullptr);
+    // vkDestroyInstance(instance, nullptr);
 
     FDynamicRHI::Finalize();
 }

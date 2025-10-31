@@ -34,6 +34,7 @@ namespace nilou {
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
+        vkDestroyFence(Device, Fence, nullptr);
         vkFreeCommandBuffers(Device, Pool, 1, &Handle);
     }
 

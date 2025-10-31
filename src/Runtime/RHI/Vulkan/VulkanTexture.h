@@ -49,13 +49,14 @@ inline VulkanTexture* ResourceCast(RHITexture* Texture)
 class VulkanTextureView : public RHITextureView
 {
 public:
-    VulkanTextureView(const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
-        : RHITextureView(InDesc, InTexture) 
-    { }
+    VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture);
+
+    virtual ~VulkanTextureView();
 
     VkImageView GetHandle() const { return Handle; }
 
     VkImageView Handle;
+    VulkanDevice* Device = nullptr;
 };
 
 inline VulkanTextureView* ResourceCast(RHITextureView* Texture)

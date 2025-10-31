@@ -1,14 +1,9 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include "RHIResources.h"
-#include "VulkanSemaphore.h"
 
 namespace nilou {
 
-inline std::shared_ptr<FVulkanSemaphore> CreateSemephore(VkDevice Device)
-{
-    return std::make_shared<FVulkanSemaphore>(Device);
-}
 
 struct FVulkanRenderPass
 {

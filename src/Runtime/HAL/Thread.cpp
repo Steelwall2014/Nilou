@@ -1,8 +1,13 @@
 #include <windows.h>
 #include <processthreadsapi.h>
+#include <windows.h>
 
 #include "Thread.h"
 
+void SetThreadName(HANDLE hThread, const wchar_t* name) 
+{
+    ::SetThreadDescription(hThread, name);
+}
 
 namespace nilou {
 
@@ -29,13 +34,16 @@ namespace nilou {
             this->bRunnableExited = true;
         };
         Thread = std::thread(f);
+        SetThreadName(Thread.native_handle(), encode::utf8ToWide(InThreadName).c_str());
     }
 
     void FRunnableThread::Kill()
     {
-        Runnable->Stop();
-        HANDLE handle = Thread.native_handle();
-        TerminateThread(handle, 0);
+        if (Runnable)
+        {
+            Runnable->Stop();
+        }
+        Thread.join();
     }
 
     void FRunnableThread::WaitForCompletion()

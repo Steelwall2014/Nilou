@@ -1292,10 +1292,11 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			RDGSubresourceState& LastState = Texture->SubresourceStates[Index];
 			ERHIAccess LastAccess = LastState.Access;
 			ERHIAccess CurrentAccess = PassState.Access[Index];
-			
+			FRDGPass* LastPass = LastState.Pass != NullPassHandle ? Passes[LastState.Pass] : nullptr;
+
 			if (LastAccess != CurrentAccess)
 			{
-				const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::Graphics;
+				const ERHIPipeline LastPipeline = LastPass ? LastPass->Pipeline : ERHIPipeline::Graphics;
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
@@ -1305,7 +1306,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "\tRDGTexture: {} (0x{:x}), LastPass: {}, CurrentPass: {}, Subresource: {}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}", 
 					Texture->Name, 
 					(size_t)Texture, 
-					LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->GetName() : "None",
+					LastPass ? LastPass->GetName() : "None",
 					CurrentPass->GetName(),
 					Index, 
 					GetAccessName(Barrier.SrcAccess), 
@@ -1315,24 +1316,19 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 					GetTextureLayoutName(Barrier.OldLayout),
 					GetTextureLayoutName(Barrier.NewLayout));
 				ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
-				if (CompatiblePipeline == CurrentPipeline || LastState.Pass == NullPassHandle)
+				if (CompatiblePipeline == CurrentPipeline || LastPass == nullptr)
 				{
 					CurrentPass->PrologueImageBarriers.push_back(Barrier);
 				}
 				else if (CompatiblePipeline == LastPipeline)
 				{
-					FRDGPass* LastPass = Passes[LastState.Pass];
 					LastPass->EpilogueImageBarriers.push_back(Barrier);
 				}
-				if (LastState.Pass != NullPassHandle)
+				if (LastPass && LastPass->Pipeline != CurrentPipeline)
 				{
-					FRDGPass* LastPass = Passes[LastState.Pass];
-					if (LastPass->Pipeline != CurrentPipeline)
-					{
-						RHISemaphoreRef Semaphore = RHICreateSemaphore();
-						LastPass->SemaphoresToSignal.push_back(Semaphore);
-						CurrentPass->SemaphoresToWait.push_back(Semaphore);
-					}
+					RHISemaphoreRef Semaphore = RHICreateSemaphore();
+					LastPass->SemaphoresToSignal.push_back(Semaphore);
+					CurrentPass->SemaphoresToWait.push_back(Semaphore);
 				}
 			}
 
@@ -1352,10 +1348,11 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 		RDGSubresourceState& LastState = Buffer->State;
 		ERHIAccess LastAccess = LastState.Access;
 		ERHIAccess CurrentAccess = PassState.Access;
+		FRDGPass* LastPass = LastState.Pass != NullPassHandle ? Passes[LastState.Pass] : nullptr;
 
 		if (LastAccess != CurrentAccess)
 		{
-			const ERHIPipeline LastPipeline = LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->Pipeline : ERHIPipeline::Graphics;
+			const ERHIPipeline LastPipeline = LastPass ? LastPass->Pipeline : ERHIPipeline::Graphics;
 			RHIBufferMemoryBarrier Barrier = RHIBufferMemoryBarrier(
 				Buffer->GetRHI(), 
 				LastAccess, CurrentAccess, 
@@ -1364,7 +1361,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			RDG_DEBUG_LOG(Display, "\tRDGBuffer: {} (0x{:x}), LastPass: {}, CurrentPass: {}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
 				Buffer->Name, 
 				(size_t)Buffer, 
-				LastState.Pass != NullPassHandle ? Passes[LastState.Pass]->GetName() : "None",
+				LastPass ? LastPass->GetName() : "None",
 				CurrentPass->GetName(),
 				GetAccessName(Barrier.SrcAccess), 
 				GetAccessName(Barrier.DstAccess), 
@@ -1372,24 +1369,19 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 				GetPipelineStageName(Barrier.DstStage), 
 				Barrier.Offset, Barrier.Size);
 			ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
-			if (CompatiblePipeline == CurrentPipeline || LastState.Pass == NullPassHandle)
+			if (CompatiblePipeline == CurrentPipeline || LastPass == nullptr)
 			{
 				CurrentPass->PrologueBufferBarriers.push_back(Barrier);
 			}
 			else if (CompatiblePipeline == LastPipeline)
 			{
-				FRDGPass* LastPass = Passes[LastState.Pass];
 				LastPass->EpilogueBufferBarriers.push_back(Barrier);
 			}
-			if (LastState.Pass != NullPassHandle)
+			if (LastPass && LastPass->Pipeline != CurrentPipeline)
 			{
-				FRDGPass* LastPass = Passes[LastState.Pass];
-				if (LastPass->Pipeline != CurrentPipeline)
-				{
-					RHISemaphoreRef Semaphore = RHICreateSemaphore();
-					LastPass->SemaphoresToSignal.push_back(Semaphore);
-					CurrentPass->SemaphoresToWait.push_back(Semaphore);
-				}
+				RHISemaphoreRef Semaphore = RHICreateSemaphore();
+				LastPass->SemaphoresToSignal.push_back(Semaphore);
+				CurrentPass->SemaphoresToWait.push_back(Semaphore);
 			}
 		}
 

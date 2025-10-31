@@ -28,6 +28,27 @@ namespace nilou {
         {
             return wideToMulti(sourceWStr, CP_OEMCP);
         }
+
+        std::wstring multiToWide(std::string_view sourceStr, UINT pagecode)
+        {
+            auto newLen = MultiByteToWideChar(pagecode, 0, sourceStr.data(), sourceStr.size(), 
+                                            nullptr, 0);
+            std::wstring targetWStr;
+            targetWStr.resize(newLen);
+            MultiByteToWideChar(pagecode, 0, sourceStr.data(), sourceStr.size(), 
+                                &targetWStr[0], targetWStr.size());
+            return targetWStr;
+        }
+
+        std::wstring utf8ToWide(std::string_view sourceStr)
+        {
+            return multiToWide(sourceStr, CP_UTF8);
+        }
+
+        std::wstring omeToWide(std::string_view sourceStr)
+        {
+            return multiToWide(sourceStr, CP_ACP);
+        }
     }
 
     std::ostream &operator<<(std::ostream &os, const wchar_t *strPt)
