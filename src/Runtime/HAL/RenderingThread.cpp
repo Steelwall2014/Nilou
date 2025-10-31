@@ -11,6 +11,7 @@
 namespace nilou {
 
     std::thread::id GRenderThreadId;
+    uint32 GFrameNumberRenderThread = 0;
     
     FRenderingThread *FRenderingThread::RenderingThread = nullptr;
 
@@ -33,8 +34,6 @@ namespace nilou {
         GraphRecording->BeginFrame();
         return true;
     }
-
-    uint32 FRenderingThread::FrameCount = 0;
 
     uint32 FRenderingThread::Run()
     {
@@ -69,7 +68,7 @@ namespace nilou {
         GraphExecuting->EndFrame();
         GRenderGraphBufferPool.TickPoolElements();
         GRenderGraphTexturePool.TickPoolElements();
-        FrameCount++;
+        GFrameNumberRenderThread++;
     }
 
     void FRenderingThread::Stop()

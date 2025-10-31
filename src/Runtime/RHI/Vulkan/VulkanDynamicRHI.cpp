@@ -22,6 +22,7 @@
 #include "VulkanBarriers.h"
 #include "RHIStaticStates.h"
 #include "Common/Log.h"
+#include "PlatformMisc.h"
 
 namespace nilou {
 
@@ -137,8 +138,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
 
-    NILOU_LOG(Warning, "validation layer: {}", pCallbackData->pMessage);
-    __debugbreak();
+    NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
+    if (FPlatformMisc::IsDebuggerPresent()) 
+    {
+        NILOU_DEBUG_BREAK();
+    }
 
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         // Message is important enough to show

@@ -1,3 +1,4 @@
+#include <windows.h>
 #include "PlatformMisc.h"
 #include "Common/Math/Maths.h"
 
@@ -13,6 +14,11 @@ void FWindowsPlatformMisc::EndNamedEvent()
 {
     // Not implemented
     // Steelwall2014: TODO: Implement this
+}
+
+bool FWindowsPlatformMisc::IsDebuggerPresent()
+{
+    return ::IsDebuggerPresent();
 }
 
 }

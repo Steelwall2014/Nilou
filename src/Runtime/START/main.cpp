@@ -3,7 +3,8 @@
 #include <vector>
 #include <GLFWApplication.h>
 #include <time.h>
-#include <windows.h>
+#include "CrashHandler.h"
+#include "PlatformMisc.h"
 
 using namespace nilou;
 namespace nilou {
@@ -24,11 +25,13 @@ BaseApplication *GetAppication()
 
 int main(int argc, char* argv[])
 {        
+    FCrashHandler::Initialize();
+
     for (int i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "-waitfordebugger") == 0)
         {
-            while (!IsDebuggerPresent()) 
+            while (!FPlatformMisc::IsDebuggerPresent()) 
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
@@ -53,6 +56,8 @@ int main(int argc, char* argv[])
     }
 
     GetAppication()->Finalize();
+
+    FCrashHandler::Shutdown();
 
     return 0;
 }

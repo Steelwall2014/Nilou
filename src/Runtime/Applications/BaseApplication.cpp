@@ -14,6 +14,8 @@ namespace nilou {
     std::unique_ptr<FRunnableThread> RenderingThread;
     std::unique_ptr<FRunnableThread> AsyncLoadingThread;
 
+    uint32 GFrameNumber = 0;
+
     BaseApplication::BaseApplication(GfxConfiguration &cfg) :
         m_Config(cfg)
     {
@@ -73,6 +75,7 @@ namespace nilou {
                 fence.notify_one();
             });
         fence.wait(lock);
+        GFrameNumber++;
     }
 
     void BaseApplication::Tick_RenderThread()

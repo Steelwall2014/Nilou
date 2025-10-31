@@ -2,6 +2,9 @@
     "Objects": [
         {
             "NamePrivate": "ColoredMaterial",
+            "RasterizerState": {
+                "CullMode": "CM_None"
+            },
             "ShaderVirtualPath": "/Shaders/Materials/ColoredMaterial_Mat.glsl"
         }
     ]

@@ -11,6 +11,7 @@ struct FWindowsPlatformMisc
 {
     static void BeginNamedEvent(const struct FColor& Color, const std::string& Text);
     static void EndNamedEvent();
+	static bool IsDebuggerPresent();
 };
 using FPlatformMisc = FWindowsPlatformMisc;
 

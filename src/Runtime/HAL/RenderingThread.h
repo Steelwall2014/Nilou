@@ -44,7 +44,6 @@ namespace nilou {
         void NotifyStartOfFrame();
 
         static FRenderingThread *RenderingThread;
-        static uint32 GetFrameCount() { return FRenderingThread::FrameCount; }
         static RenderGraph& GetRenderGraph() { return *RenderingThread->GraphRecording; }
 
     private:
@@ -54,7 +53,6 @@ namespace nilou {
         std::unique_ptr<RenderGraph> GraphExecuting = nullptr;
         std::unique_ptr<RenderGraph> GraphRecording = nullptr;
         std::atomic<bool> bShouldExit = false;
-        static uint32 FrameCount;
 
     };
 

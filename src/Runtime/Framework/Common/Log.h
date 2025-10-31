@@ -48,7 +48,7 @@ namespace nilou {
     }
 
 #if defined(_MSC_VER)
-    #define NILOU_DEBUG_BREAK() __debugbreak()
+    #define NILOU_DEBUG_BREAK() (__nop(), __debugbreak())
 #elif defined(__clang__)
     #define NILOU_DEBUG_BREAK() __builtin_debugtrap()
 #elif defined(__GNUC__)
