@@ -171,6 +171,7 @@ namespace nilou {
         {
             SkyAtmosphereMaterial = NewObject<UMaterial>(Package, "SkyAtmosphereMaterial");
             SkyAtmosphereMaterial->InitializeResources();
+            SkyAtmosphereMaterial->SetRasterizerState(FRasterizerStateInitializer(FM_Solid, CM_None));
             SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
             SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl");
             NPackage::SavePackage(Package);

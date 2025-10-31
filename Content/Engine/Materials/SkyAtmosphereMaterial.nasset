@@ -2,6 +2,9 @@
     "Objects": [
         {
             "NamePrivate": "SkyAtmosphereMaterial",
+            "RasterizerState": {
+                "CullMode": "CM_None"
+            },
             "ShaderVirtualPath": "/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl",
             "ShadingModel": "SM_SkyAtmosphere"
         }
