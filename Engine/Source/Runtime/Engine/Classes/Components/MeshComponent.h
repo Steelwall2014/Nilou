@@ -1,0 +1,46 @@
+#pragma once
+
+#include "Components/PrimitiveComponent.h"
+// #include "Components/PrimitiveSceneProxy.h"
+#include "StaticMeshResources.h"
+#include "Materials/Material.h"
+
+// #include "MeshComponent.generated.h"
+
+namespace nilou {
+
+    class NCLASS UStaticMeshComponent : public UPrimitiveComponent
+    {
+        GENERATED_BODY()
+    public:
+
+        UStaticMeshComponent()
+            : StaticMesh(nullptr)
+        { 
+            // Material = std::make_shared<FDefaultMaterial>();
+        }
+
+        void SetStaticMesh(UStaticMesh *StaticMesh);
+
+        UStaticMesh *StaticMesh;
+        TArray<UMaterial *> MaterialSlots;
+
+        /** Calculate the bounds of the component. Default behavior is a bounding box/sphere of zero size. */
+        virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+
+        virtual FPrimitiveSceneProxy *CreateSceneProxy() override;
+    };
+
+    class FStaticMeshSceneProxy : public FPrimitiveSceneProxy
+    {
+    public:
+        FStaticMeshSceneProxy(UStaticMeshComponent *Component);
+
+        virtual void GetDynamicMeshElements(const std::vector<FSceneView>& Views, uint32 VisibilityMap, FMeshElementCollector &Collector) override;
+        // virtual void GetDynamicMeshElement(FMeshBatch &OutMeshBatch, const FSceneView &SceneView) override;
+
+    private:
+	    FStaticMeshRenderData* RenderData;
+        TArray<UMaterial *> MaterialSlots;
+    };
+}

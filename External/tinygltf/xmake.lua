@@ -1,0 +1,6 @@
+target("tinygltf")
+    set_kind("static")
+    set_languages("clatest")
+    set_languages("cxx20")
+    add_files("./Private/tinygltf_impl.cpp")
+    add_includedirs("./", {public = true})

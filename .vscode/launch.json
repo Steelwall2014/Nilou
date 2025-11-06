@@ -35,6 +35,20 @@
             "request": "launch",
             "cwd": "${workspaceFolder}/build/windows/x64/debug/",
             "program": "${workspaceFolder}/build/windows/x64/debug/Nilou.exe",
+        },
+        {
+            "name": "NilouHeaderTool Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/NilouHeaderTool.exe",
+            "args": [
+                "-InputDirectory=D:\\Nilou\\Engine\\Source\\Runtime\\RHI", 
+                "-OutputDirectory=D:\\Nilou\\Engine\\Source\\Runtime\\RHI\\Generated", 
+                "-x", "c++", "-std=c++20", 
+                "-I", "D:\\Nilou\\Engine\\Source\\Runtime\\RHI\\Public", 
+                "-I", "D:\\Nilou\\External\\include"
+            ]
         }
     ]
 }

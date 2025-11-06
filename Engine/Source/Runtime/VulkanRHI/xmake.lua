@@ -1,0 +1,5 @@
+module_rules("VulkanRHI")
+    add_deps("RHI")
+    add_deps("VulkanSDK")
+    add_packages("glfw")
+    add_packages("spirv-reflect")

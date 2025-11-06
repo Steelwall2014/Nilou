@@ -13,3 +13,5 @@ src/Runtime/Generated
 
 *.zip
 Saved
+
+*.gen.cpp

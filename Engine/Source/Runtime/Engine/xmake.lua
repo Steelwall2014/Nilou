@@ -1,0 +1,7 @@
+module_rules("Engine")
+    add_deps("Core")
+    add_deps("CoreUObject")
+    add_deps("RHI")
+    add_deps("RenderCore")
+    add_deps("tinygltf")
+    add_includedirs("./Classes", {public = true})

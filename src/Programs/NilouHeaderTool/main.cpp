@@ -476,6 +476,7 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
 string GenerateIncludes(const TypeMetaData& Type)
 {
     string Includes;
+    Includes += std::format("#include \"NObject/NilouType.h\"\n");
     Includes += std::format("#include \"{}\"\n", Type.FileName);
     for (auto& Include : Type.AdditionalIncludes)
     {
