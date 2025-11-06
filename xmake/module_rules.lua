@@ -16,6 +16,9 @@ function module_rules(module_name, kind)
             function get_includedirs_recursive(target)
                 local deps = target:get("deps")
                 local includedirs = target:get("includedirs")
+                if type(includedirs) == "string" then
+                    includedirs = {includedirs}
+                end
                 for i, dep in ipairs(deps) do
                     local dep_includedirs = get_includedirs_recursive(target:dep(dep))
                     for j, dep_includedir in ipairs(dep_includedirs) do

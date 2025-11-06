@@ -1,0 +1,8 @@
+target("tiny3dtiles")
+    set_kind("static")
+    add_deps("json")
+    set_languages("clatest")
+    set_languages("cxx20")
+    add_files("./tiny3dtiles_impl.cpp")
+    add_includedirs("$(projectdir)/External/include", {public = true})
+    add_includedirs("./", {public = true})

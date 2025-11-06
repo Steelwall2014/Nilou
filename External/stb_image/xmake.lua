@@ -1,4 +1,4 @@
-target("stb")
+target("stb_image")
     set_optimize("fastest")
     set_languages("clatest")
     set_kind("static")

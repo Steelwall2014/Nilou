@@ -4,10 +4,8 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
-
-#include "json.hpp"
-
-#include "../glm/glm.hpp"
+#include "json/json.hpp"
+#include "glm/glm.hpp"
 
 namespace tiny3dtiles {
 struct B3DM

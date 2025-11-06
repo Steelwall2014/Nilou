@@ -1,5 +1,5 @@
 target("microprofile")
-    add_deps("stb")
+    add_deps("stb_image")
     add_defines("MICROPROFILE_SYSTEM_STB")
     set_optimize("fastest")
     set_languages("cxx20")
