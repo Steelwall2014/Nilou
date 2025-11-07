@@ -1,7 +1,7 @@
 #pragma once
 #include <queue>
 #include <string>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 #include <base64.h>
 #include "NObject/Object.h"
