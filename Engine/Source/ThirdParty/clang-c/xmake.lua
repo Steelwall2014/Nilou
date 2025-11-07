@@ -1,0 +1,7 @@
+target("clang-c")
+    set_kind("static")
+    add_includedirs("./", {public = true})
+    add_links("$(projectdir)/Engine/Source/ThirdParty/clang-c/lib/libclang", {public = true})
+    after_build(function (target)
+        os.cp("$(scriptdir)/bin/libclang.dll", "$(builddir)/$(os)/$(arch)/$(mode)")
+    end)
