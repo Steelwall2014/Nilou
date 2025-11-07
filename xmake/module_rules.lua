@@ -8,7 +8,7 @@ function module_rules(module_name, kind)
         set_languages("cxx20")
         add_files("./Private/**.cpp")
         add_includedirs("./Public", {public = true})
-        add_includedirs("$(projectdir)/External/include")
+        add_includedirs("$(projectdir)/Engine/Source/ThirdParty/include")
         add_cxflags("/utf-8")
         add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
 
