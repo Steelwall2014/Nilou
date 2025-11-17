@@ -36,6 +36,11 @@ public:
 	int32 AcquireImageIndex(VkSemaphore* OutSemaphore);
 
     int32 CurrentImageIndex;
+    std::vector<RHITextureRef> Images;
+    std::vector<RHITextureViewRef> ImageViews;
+    RHITextureRef DepthImage;
+    RHITextureViewRef DepthImageView;
+    VkExtent2D Extent{};
 
 private:
 

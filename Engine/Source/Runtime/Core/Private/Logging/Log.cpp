@@ -3,7 +3,7 @@
 #include <fstream>
 #include <windows.h>
 #include "Logging/LogMacros.h"
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 
 namespace nilou {
 
@@ -62,7 +62,7 @@ namespace nilou {
 
     std::ofstream CreateLogFile()
     {
-        std::filesystem::path LogsDir = FPath::ProjectDir() / "Saved/Logs";
+        std::filesystem::path LogsDir = FPaths::EngineSavedDir() + "/Logs";
         std::filesystem::path CurrentPath = LogsDir / "Nilou.log";
         if (std::filesystem::exists(CurrentPath))
         {

@@ -38,6 +38,7 @@ namespace nilou {
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
 		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return Get()->GetCurrentGraphicsAPI(); }
 
+		virtual RHIViewportRef RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY) = 0;
 		virtual void RHIBeginFrame() = 0;
 		virtual void RHIEndFrame() = 0;
 		virtual RHITexture* RHIGetSwapChainTexture() = 0;
@@ -100,7 +101,6 @@ namespace nilou {
 		virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
 
 	protected:
-		static FDynamicRHI *DynamicRHI;
 		static FIntVector SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
 		RHIFramebufferRef RenderToScreenFramebuffer{};
 		GfxConfiguration Config;
@@ -135,6 +135,8 @@ namespace nilou {
 	// {
 	// 	return FDynamicRHI::Get()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
+
+	extern FDynamicRHI* GDynamicRHI;
 
 	inline void RHIBeginFrame()
 	{

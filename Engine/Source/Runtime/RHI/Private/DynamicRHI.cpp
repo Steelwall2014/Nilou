@@ -2,13 +2,13 @@
 #include "PipelineStateCache.h"
 
 namespace nilou {
-	// RHITextureParams RHITextureParams::DefaultParams = RHITextureParams();
 
-	FDynamicRHI *FDynamicRHI::DynamicRHI = nullptr;
+    GfxConfiguration GGfxConfig;
 
+    FDynamicRHI* GDynamicRHI = nullptr;
 	FDynamicRHI *FDynamicRHI::Get()
 	{
-		return FDynamicRHI::DynamicRHI;
+		return GDynamicRHI;
 	}
 
 	// FIntVector FDynamicRHI::RHIGetSparseTexturePageSize(ETextureDimension TextureType, EPixelFormat PixelFormat) 

@@ -1,11 +1,10 @@
 #include <fstream>
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 #include "NObject/Package.h"
 #include "Materials/Material.h"
 
 #include "RHIDefinitions.h"
 #include "NObject/ObjectMacros.h"
-#include "Misc/Path.h"
 #include "RenderingThread.h"
 #include "RenderGraph.h"
 #include "ShaderPreprocess.h"
@@ -14,8 +13,6 @@
 namespace fs = std::filesystem;
 
 namespace nilou {
-
-    const fs::path MATERIAL_STATIC_PARENT_DIR = FPath::MaterialDir();
     
     const std::string MATERIAL_UNIFORM_BLOCK_NAME = "MAT_UNIFORM_BLOCK";
 
@@ -121,7 +118,7 @@ namespace nilou {
         ShaderVirtualPath = VirtualPath;
         if (!ShaderVirtualPath.empty())
         {
-            std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(ShaderVirtualPath).generic_string();
+            std::string ShaderAbsPath = FPaths::EngineDir() + "/" + ShaderVirtualPath;
             FFileHelper::LoadFileToString(Code, ShaderAbsPath);
             UpdateCode(Code);
         }
@@ -308,6 +305,7 @@ namespace nilou {
         {
             ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
             ColoredMaterial->InitializeResources();
+            ColoredMaterial->SetRasterizerState(FRasterizerStateInitializer(ERasterizerFillMode::FM_Solid, ERasterizerCullMode::CM_None));
             ColoredMaterial->SetShaderFileVirtualPath("/Shaders/Materials/ColoredMaterial_Mat.glsl");
             NPackage::SavePackage(ColoredMaterialPackage);
         }
@@ -368,7 +366,7 @@ namespace nilou {
         {
             ShaderMap = std::make_shared<FMaterialShaderMap>();
         }
-        std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, MATERIAL_STATIC_PARENT_DIR.generic_string(), {});
+        std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, FPaths::EngineDir() + "/Shaders/Materials", {});
         NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
         FShaderCompilerEnvironment Environment;
         Environment.SetDefine("MATERIAL_SHADINGMODEL", (int32)Owner->ShadingModel);

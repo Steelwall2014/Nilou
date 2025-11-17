@@ -1,0 +1,37 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectC",
+            "ObjectIndex": 1,
+            "ObjectName": "TestObjectC",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObjectC",
+            "OuterIndex": -1,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Engine/Test/Serialization/NTestObjectA/Package",
+            "OuterIndex": 0,
+            "PackageName": "/Engine/Test/Serialization/NTestObjectA/Package"
+        },
+        {
+            "ClassName": "TestObjectA",
+            "ObjectName": "TestObjectA",
+            "OuterIndex": -3,
+            "PackageName": "/Engine/Test/Serialization/NTestObjectA/Package"
+        }
+    ]
+}

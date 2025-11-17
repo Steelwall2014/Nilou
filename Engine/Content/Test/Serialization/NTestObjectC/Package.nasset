@@ -1,0 +1,9 @@
+{
+    "Objects": [
+        {
+            "NamePrivate": "TestObjectC",
+            "Recursive": "/Engine/Test/Serialization/NTestObjectA/Package.TestObjectA",
+            "c": 100
+        }
+    ]
+}

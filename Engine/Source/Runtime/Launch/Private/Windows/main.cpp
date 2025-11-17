@@ -9,14 +9,12 @@
 using namespace nilou;
 namespace nilou {
 
-GfxConfiguration config(EPixelFormat::PF_B8G8R8A8, EPixelFormat::PF_D32FS8, 0, 1600, 900, L"Nilou");
-
 BaseApplication *GetAppication()
 {
     static BaseApplication *g_pApp;
     if (g_pApp == nullptr)
     {
-        g_pApp = new GLFWApplication(config);
+        g_pApp = new GLFWApplication();
     }
     return g_pApp;
 }
@@ -37,8 +35,12 @@ int main(int argc, char* argv[])
             }
         }
     }
-    const char* DefaultRHI = "vulkan";
-    config.defaultRHI = DefaultRHI;
+    GGfxConfig.defaultRHI = "vulkan";
+    GGfxConfig.SwapChainFormat = EPixelFormat::PF_B8G8R8A8;
+    GGfxConfig.DepthFormat = EPixelFormat::PF_D32FS8;
+    GGfxConfig.screenWidth = 1600;
+    GGfxConfig.screenHeight = 900;
+    GGfxConfig.appName = L"Nilou";
     
     int ret;
 

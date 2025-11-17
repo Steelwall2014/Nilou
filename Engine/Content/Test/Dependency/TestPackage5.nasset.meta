@@ -1,0 +1,37 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObject",
+            "ObjectIndex": 1,
+            "ObjectName": "TestPackage5",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "TestObject",
+            "ObjectName": "TestPackage6",
+            "OuterIndex": -4,
+            "PackageName": "/Engine/Test/Dependency/TestPackage6"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObject",
+            "OuterIndex": -3,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Engine/Test/Dependency/TestPackage6",
+            "OuterIndex": 0,
+            "PackageName": "/Engine/Test/Dependency/TestPackage6"
+        }
+    ]
+}

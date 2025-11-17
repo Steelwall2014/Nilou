@@ -7,7 +7,7 @@
 #include "RenderResource.h"
 #include "Shader.h"
 #include "NObject/ObjectMacros.h"
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 #include "PipelineStateCache.h"
 #include "DynamicMeshResources.h"
 

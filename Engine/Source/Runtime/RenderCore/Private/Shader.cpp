@@ -4,7 +4,7 @@
 #include "Shader.h"
 #include "NObject/ObjectMacros.h"
 #include "ShaderMap.h"
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 #include "ShaderPreprocess.h"
 #include "Misc/FileHelper.h"
 
@@ -79,13 +79,13 @@ namespace nilou {
     {
         if (VirtualFilePath != "")
         {
-            FileAbsolutePath = FPath::VirtualPathToAbsPath(VirtualFilePath);
+            FileAbsolutePath = FPaths::EngineDir() + "/" + VirtualFilePath;
             NILOU_LOG(Display, "Preprocessing {}", FileAbsolutePath.generic_string());
             std::string RawSourceCode;
             FFileHelper::LoadFileToString(RawSourceCode, FileAbsolutePath.generic_string());
             PreprocessedCode = shader_preprocess::PreprocessInclude(RawSourceCode, FileAbsolutePath.parent_path().generic_string(), {});
-            auto Filename = FPath::GetBaseFilename(FileAbsolutePath);
-            FFileHelper::SaveStringToFile(PreprocessedCode, Filename.generic_string());
+            std::string Filename = FPaths::GetBaseFilename(FileAbsolutePath.generic_string());
+            FFileHelper::SaveStringToFile(PreprocessedCode, Filename);
             HashedName = FHashedName(Name+FileAbsolutePath.generic_string());
         }
     }

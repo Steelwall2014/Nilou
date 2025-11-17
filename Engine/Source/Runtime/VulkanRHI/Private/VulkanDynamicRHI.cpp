@@ -1,6 +1,5 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "VulkanShaderReflection.h"
 #include "VulkanDynamicRHI.h"
 #include "VulkanDevice.h"
 #include "VulkanSwapChain.h"
@@ -146,69 +145,73 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-FVulkanDynamicRHI::QueueFamilyIndices FVulkanDynamicRHI::findQueueFamilies(VkPhysicalDevice device) {
-    QueueFamilyIndices indices;
+// FVulkanDynamicRHI::QueueFamilyIndices FVulkanDynamicRHI::findQueueFamilies(VkPhysicalDevice device) {
+//     QueueFamilyIndices indices;
 
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+//     uint32_t queueFamilyCount = 0;
+//     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-    queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+//     queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
+//     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-    int i = 0;
-    for (const auto& queueFamily : queueFamilies) {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = i;
-        }
+//     int i = 0;
+//     for (const auto& queueFamily : queueFamilies) {
+//         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+//             indices.graphicsFamily = i;
+//         }
 
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+//         VkBool32 presentSupport = false;
+//         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-        if (presentSupport) {
-            indices.presentFamily = i;
-        }
+//         if (presentSupport) {
+//             indices.presentFamily = i;
+//         }
 
-        if (indices.isComplete()) {
-            break;
-        }
+//         if (indices.isComplete()) {
+//             break;
+//         }
 
-        i++;
-    }
+//         i++;
+//     }
 
-    return indices;
-}
+//     return indices;
+// }
 
 
-FVulkanDynamicRHI::SwapChainSupportDetails FVulkanDynamicRHI::querySwapChainSupport(VkPhysicalDevice device) {
-    SwapChainSupportDetails details;
+// FVulkanDynamicRHI::SwapChainSupportDetails FVulkanDynamicRHI::querySwapChainSupport(VkPhysicalDevice device) {
+//     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+//     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-    uint32 formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+//     uint32 formatCount;
+//     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
-    if (formatCount != 0) {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-    }
+//     if (formatCount != 0) {
+//         details.formats.resize(formatCount);
+//         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+//     }
 
-    uint32 presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+//     uint32 presentModeCount;
+//     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
-    if (presentModeCount != 0) {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-    }
+//     if (presentModeCount != 0) {
+//         details.presentModes.resize(presentModeCount);
+//         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+//     }
 
-    return details;
-}
+//     return details;
+// }
+
+// bool FVulkanDynamicRHI::isDeviceSuitable(VkPhysicalDevice device) {
+//     QueueFamilyIndices indices = findQueueFamilies(device);
+//     bool swapChainAdequate = false;
+//     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+//     swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+//     return indices.graphicsFamily.has_value() && swapChainAdequate;
+// }
 
 bool FVulkanDynamicRHI::isDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = findQueueFamilies(device);
-    bool swapChainAdequate = false;
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-    swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-    return indices.graphicsFamily.has_value() && swapChainAdequate;
+    return true;
 }
 }
 
@@ -217,8 +220,8 @@ namespace nilou {
 FVulkanDynamicRHI::FVulkanDynamicRHI(const GfxConfiguration& Config)
     : FDynamicRHI(Config)
 {
-    swapChainImageFormat = Config.SwapChainFormat;
-    depthImageFormat = Config.DepthFormat;
+    // swapChainImageFormat = Config.SwapChainFormat;
+    // depthImageFormat = Config.DepthFormat;
 }
 
 int FVulkanDynamicRHI::Initialize()
@@ -227,16 +230,24 @@ int FVulkanDynamicRHI::Initialize()
     uint32 extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
+    CurrentImageAcquiredSemaphore = new VulkanSemaphore();
+
+    shader_compiler = shaderc_compiler_initialize();
+
+    return 0;
+}
+
+void FVulkanDynamicRHI::InitInstance()
+{
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     char AppName[256];
     sprintf(AppName, "%ws", Config.appName);
     appInfo.pApplicationName = AppName;
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
+    appInfo.pEngineName = AppName;
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = NILOU_VK_API_VERSION;
-
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
@@ -269,20 +280,13 @@ int FVulkanDynamicRHI::Initialize()
         NILOU_LOG(Display, "Setup debug messenger")
     }
 
-    /** Create window surface */
-    {
-        GLFWwindow* window = reinterpret_cast<GLFWwindow*>(Config.windowContext);
-        VK_CHECK_RESULT(glfwCreateWindowSurface(instance, window, nullptr, &surface))
-        NILOU_LOG(Display, "Create window surface")
-    }
-
     /** Pick physical device */
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
         if (deviceCount == 0) {
             NILOU_LOG(Fatal, "failed to find GPUs with Vulkan support!")
-            return 1;
+            return;
         }
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
@@ -295,7 +299,7 @@ int FVulkanDynamicRHI::Initialize()
 
         if (physicalDevice == VK_NULL_HANDLE) {
             NILOU_LOG(Fatal, "failed to find a suitable GPU!")
-            return 1;
+            return;
         }
         NILOU_LOG(Display, "Pick physical device")
         Device = new VulkanDevice(this, physicalDevice);
@@ -312,118 +316,39 @@ int FVulkanDynamicRHI::Initialize()
 
     StagingManager = std::make_unique<FVulkanStagingManager>(Device->Handle);
 
-    CurrentImageAcquiredSemaphore = new VulkanSemaphore();
-
-    /** Create swap chain */
-    {        
-        VkExtent2D extent{Config.screenWidth, Config.screenHeight};
-        std::vector<VkImage> TempSwapChainImages;
-        SwapChain = std::unique_ptr<FVulkanSwapChain>(new FVulkanSwapChain(
-            physicalDevice, Device->Handle, surface, extent, 
-            swapChainImageFormat, 
-            1, &Device->GfxQueue->FamilyIndex, TempSwapChainImages));
-        swapChainImages.resize(TempSwapChainImages.size());
-
-        RHICommandList* RHICmdList = RHICreateCommandList(Device->TransferCmdBufferPool);
-        for (int i = 0; i < swapChainImages.size(); i++)
-        {
-            RHITextureDesc Desc;
-            Desc.SizeX = extent.width;
-            Desc.SizeY = extent.height;
-            Desc.Format = swapChainImageFormat;
-            Desc.TextureType = ETextureDimension::Texture2D;
-            Desc.Usage = ETextureUsageFlags::ColorAttachment;
-            
-            auto Texture = new VulkanTexture(
-                nullptr,
-                TempSwapChainImages[i], VK_NULL_HANDLE, GetFullAspectMask(swapChainImageFormat), 
-                "SwapChainImage"+std::to_string(i), Desc);
-            // RHIImageMemoryBarrier SwapChainImageBarrier{
-            //     Texture, 
-            //     ERHIAccess::None, ERHIAccess::None, 
-            //     EPipelineStageFlags::BottomOfPipe, EPipelineStageFlags::BottomOfPipe,
-            //     ETextureLayout::Undefined, ETextureLayout::PresentSrc,
-            //     RHITextureSubresource()};
-            // RHICmdList->PipelineBarrier({}, {SwapChainImageBarrier}, {});
-            swapChainImages[i] = Texture;
-        }
-
-        swapChainExtent = extent;
-        FRHITextureCreateInfo TextureInfo;
-        TextureInfo.TextureType = ETextureDimension::Texture2D;
-        TextureInfo.SizeX = swapChainExtent.width;
-        TextureInfo.SizeY = swapChainExtent.height;
-        TextureInfo.Format = depthImageFormat;
-        TextureInfo.Usage = ETextureUsageFlags::DepthStencilAttachment;
-        DepthImage = RHICreateTexture(TextureInfo, "Vulkan Render to Screen DepthStencil");
-        FRHITextureViewCreateInfo CreateInfo;
-        CreateInfo.ViewType = ETextureDimension::Texture2D;
-        CreateInfo.Format = depthImageFormat;
-        CreateInfo.BaseMipLevel = 0;
-        CreateInfo.LevelCount = 1;
-        CreateInfo.BaseArrayLayer = 0;
-        CreateInfo.LayerCount = 1;
-        DepthImageView = RHICreateTextureView(DepthImage.GetReference(), CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
-    }
-
-    /** Create image views */
-    {
-        RHIRenderTargetLayout RTLayout;
-        RTLayout.ColorAttachments[0].Format = swapChainImageFormat;
-        RTLayout.DepthStencilAttachment.Format = depthImageFormat;
-        VkRenderPass RenderPass = RenderPassManager->GetOrCreateRenderPass(RTLayout);
-        
-        swapChainImageViews.resize(swapChainImages.size());
-        swapChainFramebuffers.resize(swapChainImages.size());
-
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            FRHITextureViewCreateInfo CreateInfo;
-            CreateInfo.ViewType = ETextureDimension::Texture2D;
-            CreateInfo.Format = swapChainImageFormat;
-            CreateInfo.BaseMipLevel = 0;
-            CreateInfo.LevelCount = 1;
-            CreateInfo.BaseArrayLayer = 0;
-            CreateInfo.LayerCount = 1;
-            swapChainImageViews[i] = RHICreateTextureView(swapChainImages[i].GetReference(), CreateInfo, "SwapChainImageView");
-            swapChainFramebuffers[i] = RenderPassManager->GetOrCreateFramebuffer(RenderPass, { swapChainImageViews[i].GetReference() }, DepthImageView.GetReference());
-        }
-
-    }
-    
-    {
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    }
-
     vkGetPhysicalDeviceProperties(physicalDevice, &GpuProps);
+}
 
-    shader_compiler = shaderc_compiler_initialize();
-
-    return 0;
+RHIViewportRef FVulkanDynamicRHI::RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY)
+{
+    VulkanViewport* Viewport = new VulkanViewport(this, WindowHandle, SizeX, SizeY);
+    if (MainViewport == nullptr)
+    {
+        MainViewport = Viewport;
+        MainSwapChain = Viewport->SwapChain.get();
+    }
+    return TRefCountPtr(Viewport);
 }
 
 void FVulkanDynamicRHI::RHIBeginFrame()
 {
-    CurrentSwapChainImageIndex = SwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore->Handle);
+    CurrentSwapChainImageIndex = MainSwapChain->AcquireImageIndex(&CurrentImageAcquiredSemaphore->Handle);
 }
 
 void FVulkanDynamicRHI::RHIEndFrame()
 {
-    SwapChain->Present(Device->GfxQueue, Device->PresentQueue);
+    MainSwapChain->Present(Device->GfxQueue, Device->PresentQueue);
     Device->GfxCmdBufferPool->FreeUnusedCmdBuffers();
     Device->ComputeCmdBufferPool->FreeUnusedCmdBuffers();
     Device->TransferCmdBufferPool->FreeUnusedCmdBuffers();
 
-    NILOU_LOG(Display, "Free Staging Buffers Count: {}", StagingManager->FreeStagingBuffers.size());
-    NILOU_LOG(Display, "Used Staging Buffers Count: {}", StagingManager->UsedStagingBuffers.size());
+    // NILOU_LOG(Display, "Free Staging Buffers Count: {}", StagingManager->FreeStagingBuffers.size());
+    // NILOU_LOG(Display, "Used Staging Buffers Count: {}", StagingManager->UsedStagingBuffers.size());
 }
 
 RHITexture* FVulkanDynamicRHI::RHIGetSwapChainTexture()
 {
-    return swapChainImages[CurrentSwapChainImageIndex].GetReference();
+    return MainSwapChain->Images[CurrentSwapChainImageIndex].GetReference();
 }
 
 void FVulkanDynamicRHI::Finalize()

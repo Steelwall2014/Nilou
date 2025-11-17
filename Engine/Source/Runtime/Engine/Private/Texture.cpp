@@ -1,6 +1,6 @@
 #include <magic_enum/magic_enum_utility.hpp>
 #include <fstream>
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 
 #include "DynamicRHI.h"
 #include "Logging/LogMacros.h"

@@ -5,7 +5,7 @@
 #include "Materials/Material.h"
 #include "Engine/Texture2D.h"
 #include "StaticMeshResources.h"
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 
 namespace fs = std::filesystem;
 
@@ -228,11 +228,12 @@ namespace nilou {
                                         uniform_block_code +
                                         samplers_code +
                                         material_interface_code;
-                std::string ShaderAbsPath = FPath::VirtualPathToAbsPath(OutDirectory + "/" + Material->GetName() + ".glsl").generic_string();
+                std::string ShaderFileVirtualPath = "/Shaders/Materials/" + OutDirectory + "/" + Material->GetName() + ".glsl";
+                std::string ShaderAbsPath = FPaths::EngineDir() + ShaderFileVirtualPath;
                 std::ofstream out_stream(ShaderAbsPath);
                 out_stream << glsl_code;
                 out_stream.close();
-                Material->SetShaderFileVirtualPath(OutDirectory + "/" + Material->GetName() + ".glsl");
+                Material->SetShaderFileVirtualPath(ShaderFileVirtualPath);
             }
 
             

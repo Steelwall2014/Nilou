@@ -4,6 +4,20 @@
 
 namespace nilou {
 
+class VulkanDevice;
+class FVulkanDynamicRHI;
+class FVulkanSwapChain;
+
+class VulkanViewport : public RHIViewport
+{
+public:
+    VulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, uint32 SizeX, uint32 SizeY);
+    FVulkanDynamicRHI* RHI = nullptr;
+    VkSurfaceKHR Surface{};
+    std::unique_ptr<FVulkanSwapChain> SwapChain;
+
+    void CreateSwapChain();
+};
 
 struct FVulkanRenderPass
 {

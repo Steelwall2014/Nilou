@@ -1,0 +1,10 @@
+{
+    "Objects": [
+        {
+            "Children": [
+                "/Engine/Test/Dependency/TestPackage6.TestPackage6"
+            ],
+            "NamePrivate": "TestPackage5"
+        }
+    ]
+}

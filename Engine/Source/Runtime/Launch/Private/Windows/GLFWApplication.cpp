@@ -137,15 +137,19 @@ namespace nilou {
         //GetInputManager()->MouseScroll(static_cast<float>(yoffset));
     }
 
-    GLFWApplication::GLFWApplication(GfxConfiguration &config)
-        : BaseApplication(config)
+    GLFWApplication::GLFWApplication()
     {
         // lastX = config.screenWidth / 2.0;
         // lastY = config.screenHeight / 2.0;
     }
     bool GLFWApplication::Initialize()
     {
+        // FRenderingThread::PreRenderThreadInitDelegate = [this]() { Initialize_RenderThread(); };
+        CreateWindow();
         BaseApplication::Initialize();
+        InputActionMapping EnableCursor_mapping("EnableCursor");
+        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
+        GetInputManager()->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
  
         // Setup Dear ImGui context
         // IMGUI_CHECKVERSION();
@@ -195,30 +199,30 @@ namespace nilou {
         }
     }
 
-    bool GLFWApplication::Initialize_RenderThread()
+    bool GLFWApplication::CreateWindow()
     {
-        int result;
+        GfxConfiguration& config = GetConfiguration();
         glfwInit();
-        auto RHI_API = FDynamicRHI::Get()->GetCurrentGraphicsAPI();
-        if (RHI_API == EGraphicsAPI::Vulkan) {
+        // auto RHI_API = FDynamicRHI::Get()->GetCurrentGraphicsAPI();
+        // if (RHI_API == EGraphicsAPI::Vulkan) {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
-        else if (RHI_API == EGraphicsAPI::OpenGL) {
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        }
+        // }
+        // else if (RHI_API == EGraphicsAPI::OpenGL) {
+        //     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        //     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        //     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        // }
         uint8 redBits, greenBits, blueBits, alphaBits, depthBits;
-        GetChannelsBit(m_Config.SwapChainFormat, redBits, greenBits, blueBits, alphaBits);
-        GetDepthBit(m_Config.DepthFormat, depthBits);
+        GetChannelsBit(config.SwapChainFormat, redBits, greenBits, blueBits, alphaBits);
+        GetDepthBit(config.DepthFormat, depthBits);
         glfwWindowHint(GLFW_RED_BITS, redBits);
         glfwWindowHint(GLFW_GREEN_BITS, greenBits);
         glfwWindowHint(GLFW_BLUE_BITS, blueBits);
         glfwWindowHint(GLFW_ALPHA_BITS, alphaBits);
         glfwWindowHint(GLFW_DEPTH_BITS, depthBits);
 
-
-        window = glfwCreateWindow(m_Config.screenWidth, m_Config.screenHeight, "Nilou", NULL, NULL);
+        std::string appName = encode::wideToUtf8(config.appName);
+        window = glfwCreateWindow(config.screenWidth, config.screenHeight, appName.c_str(), nullptr, nullptr);
         if (window == NULL)
         {
             std::cout << "Failed to create GLFW window" << std::endl;
@@ -233,7 +237,13 @@ namespace nilou {
         glfwSetWindowPos(window, 100, 100);
         // tell GLFW to capture our mouse
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        GGfxConfig.windowContext = window;
+        return true;
+    }
 
+    bool GLFWApplication::Initialize_RenderThread()
+    {
+        BaseApplication::Initialize_RenderThread();
         // Setup Dear ImGui context
         // IMGUI_CHECKVERSION();
         // ImGui::CreateContext();
@@ -243,9 +253,6 @@ namespace nilou {
         // ImGui_ImplGlfw_InitForOpenGL(window, true);
         // ImGui_ImplOpenGL3_Init("#version 460");
 
-        InputActionMapping EnableCursor_mapping("EnableCursor");
-        EnableCursor_mapping.AddGroup(InputKey::KEY_LEFT_CONTROL);
-        GetInputManager()->BindAction(EnableCursor_mapping, InputEvent::IE_Pressed, this, &GLFWApplication::EnableCursor);
         return true;
     }
 
@@ -254,10 +261,7 @@ namespace nilou {
         deltaTime = DeltaTime;
         accumTime += deltaTime;
 
-        DispatchScreenResizeMessage();
-        DispatchMouseMoveMessage();
-        DispatchKeyMessage();
-
+        glfwPollEvents();
         BaseApplication::Tick(DeltaTime);
     }
 
@@ -265,7 +269,7 @@ namespace nilou {
     {
         if (ScreenResized)
         {
-            GetScreenResizeDelegate().Broadcast(m_Config.screenWidth, m_Config.screenHeight);
+            GetScreenResizeDelegate().Broadcast(GetConfiguration().screenWidth, GetConfiguration().screenHeight);
             ScreenResized = false;
         }
     }
@@ -330,8 +334,6 @@ namespace nilou {
 
     void GLFWApplication::Tick_RenderThread()
     {
-        glfwPollEvents();
-        ProcessInput_RenderThread();
 
         // ImGui_ImplOpenGL3_NewFrame();
         // ImGui_ImplGlfw_NewFrame();
@@ -356,7 +358,7 @@ namespace nilou {
         glfwTerminate();
     }
 
-    void GLFWApplication::ProcessInput_RenderThread()
+    void GLFWApplication::ProcessInput()
     {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
@@ -398,19 +400,19 @@ namespace nilou {
         DISPATCH_KEY_STATE(GLFW_KEY_PAGE_DOWN)
         DISPATCH_KEY_STATE(GLFW_KEY_LEFT_CONTROL)
         DISPATCH_KEY_STATE(GLFW_KEY_LEFT_ALT)
+
+        DispatchScreenResizeMessage();
+        DispatchMouseMoveMessage();
+        DispatchKeyMessage();
     }
 
     void GLFWApplication::EnableCursor()
     {
-        ENQUEUE_RENDER_COMMAND(GLFWApplication_EnableCursor)(
-            [this](RenderGraph& Graph) 
-            {
-                CursorEnabled = !CursorEnabled;
-                if (CursorEnabled)
-                    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                else
-                    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            });
+        CursorEnabled = !CursorEnabled;
+        if (CursorEnabled)
+            glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else
+            glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
 }

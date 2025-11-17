@@ -2,6 +2,7 @@
 #include "RenderGraph.h"
 #include "RenderGraphResourcePool.h"
 #include "ShaderCompiler.h"
+#include "VulkanDynamicRHI.h"
 
 namespace nilou {
 
@@ -9,6 +10,9 @@ namespace nilou {
     uint32 GFrameNumberRenderThread = 0;
     
     FRenderingThread *FRenderingThread::RenderingThread = nullptr;
+    std::mutex FRenderingThread::mutex;
+    std::queue<EnqueueUniqueRenderCommandType> FRenderingThread::RenderCommands;
+    std::function<void()> FRenderingThread::PreRenderThreadInitDelegate;
 
     void EnqueueUniqueRenderCommandType::DoTask()
     {
@@ -20,13 +24,10 @@ namespace nilou {
     {
         RenderingThread = this;
         GRenderThreadId = std::this_thread::get_id();
-        // FDynamicRHI::CreateDynamicRHI_RenderThread(GetAppication()->GetConfiguration());
-        // GetAppication()->Initialize_RenderThread();
-        FDynamicRHI::Get()->Initialize();
-        // AddShaderSourceDirectoryMapping("/Shaders", FPath::ShaderDir().generic_string());
-        FShaderCompiler::CompileGlobalShaders();
+        // PreRenderThreadInitDelegate();
+        GDynamicRHI = new FVulkanDynamicRHI(GGfxConfig);
+        GDynamicRHI->Initialize();
         GraphRecording = std::make_unique<RenderGraph>();
-        GraphRecording->BeginFrame();
         return true;
     }
 
@@ -34,13 +35,17 @@ namespace nilou {
     {
         while (!bShouldExit)
         {
-            int size = RenderCommands.size();
-            for (int i = 0; i < size; i++)
+            EnqueueUniqueRenderCommandType RenderCommand;
             {
-                EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
                 std::unique_lock<std::mutex> lock(mutex);
-                RenderCommands.pop();
-                lock.unlock();
+                if (!RenderCommands.empty())
+                {
+                    RenderCommand = std::move(RenderCommands.front());
+                    RenderCommands.pop();
+                }
+            }
+            if (RenderCommand.IsValid())
+            {
                 RenderCommand.DoTask();
             }
         }
@@ -52,8 +57,8 @@ namespace nilou {
         if (!GraphRecording)
         {
             GraphRecording = std::make_unique<RenderGraph>();
-            GraphRecording->BeginFrame();
         }
+        GraphRecording->BeginFrame();
     }
 
     void FRenderingThread::NotifyEndOfFrame()
@@ -74,13 +79,21 @@ namespace nilou {
     void FRenderingThread::Exit()
     {
         // Some release works may be done in the for loop.
-        for (int i = 0; i < RenderCommands.size(); i++)
+        while (!RenderCommands.empty())
         {
-            EnqueueUniqueRenderCommandType RenderCommand = RenderCommands.front();
-            std::unique_lock<std::mutex> lock(mutex);
-            RenderCommands.pop();
-            lock.unlock();
-            RenderCommand.DoTask();
+            EnqueueUniqueRenderCommandType RenderCommand;
+            {
+                std::unique_lock<std::mutex> lock(mutex);
+                if (!RenderCommands.empty())
+                {
+                    RenderCommand = std::move(RenderCommands.front());
+                    RenderCommands.pop();
+                }
+            }
+            if (RenderCommand.IsValid())
+            {
+                RenderCommand.DoTask();
+            }
         }
         std::vector<FRenderResource*>& ResourceList = FRenderResource::GetResourceList();
         for (int i = 0; i < ResourceList.size(); i++)

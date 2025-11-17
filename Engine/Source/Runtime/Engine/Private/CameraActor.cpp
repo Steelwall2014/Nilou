@@ -1,5 +1,6 @@
 #include <sstream>
 #include "GameFramework/CameraActor.h"
+#include "BaseApplication.h"
 #include "InputManager.h"
 #include "Math/Maths.h"
 
@@ -178,15 +179,15 @@ namespace nilou {
 
     void ACameraActor::PitchCamera(float AxisValue)
     {
-        // if (GetAppication()->IsCursorEnabled())
-        //     return;
+        if (GetAppication()->IsCursorEnabled())
+            return;
         CameraInput.y += AxisValue;
     }
 
     void ACameraActor::YawCamera(float AxisValue)
     {
-        // if (GetAppication()->IsCursorEnabled())
-        //     return;
+        if (GetAppication()->IsCursorEnabled())
+            return;
         CameraInput.x += AxisValue;
     }
 
@@ -202,8 +203,8 @@ namespace nilou {
 
     void ACameraActor::ToOrigin()
     {
-        // if (GetAppication()->IsCursorEnabled())
-        //     return;
+        if (GetAppication()->IsCursorEnabled())
+            return;
         CameraComponent->SetWorldLocation(FVector(10, 10, 0));
     }
 

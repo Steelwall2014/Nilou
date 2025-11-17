@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\GlobalShaders",
+    "\\include",
+    "\\SkyAtmosphere",
+    "\\waterbody"
+  ],
+  "SelectedNode": "\\GlobalShaders\\PrefilteredEnvTextureShader.comp",
+  "PreviewInSolutionExplorer": false
+}

@@ -233,9 +233,9 @@ namespace nilou {
     {
         bHasBegunPlay = true;
         // TestSavePackage();
-        // TestLoadPackage();
+        TestLoadPackage();
         // TestSaveDependencyPackage();
-        // TestLoadDependencyPackage();
+        TestLoadDependencyPackage();
 
         FTransform CameraActorTransform;
         CameraActorTransform.SetTranslation(FVector(-2, 0, 2));

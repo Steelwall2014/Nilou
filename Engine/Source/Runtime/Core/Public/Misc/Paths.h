@@ -8,8 +8,10 @@ class FPaths
 {
 public:
     static std::string GetBaseFilename(const std::string &InPath);
-    static std::string ContentDir();
-    static std::string ProjectDir();
+    static std::string EngineDir();
+    static std::string EngineContentDir();
+    static std::string EngineSavedDir();
+    static std::string VirtualPathToAbsPath(const std::string &VirtualPath);
 };
 
 class FPackageName
@@ -18,13 +20,25 @@ public:
     // PackageName should start with '/'
     static std::string LongPackageNameToMetaFileName(const std::string& PackageName)
     {
-        return (FPaths::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset.meta")).generic_string();
+        if (PackageName.starts_with("/Engine"))
+        {
+            std::string LocalPackageName = PackageName.substr(7);   // remove "/Engine"
+            std::string Path = FPaths::EngineDir() + "/Content" + LocalPackageName + ".nasset.meta";
+            return Path;
+        }
+        return "";
     }
 
     // PackageName should start with '/'
     static std::string LongPackageNameToFileName(const std::string& PackageName)
     {
-        return (FPaths::ContentDir() / std::filesystem::path(PackageName.substr(1) + ".nasset")).generic_string();
+        if (PackageName.starts_with("/Engine"))
+        {
+            std::string LocalPackageName = PackageName.substr(7);   // remove "/Engine"
+            std::string Path = FPaths::EngineDir() + "/Content" + LocalPackageName + ".nasset";
+            return Path;
+        }
+        return "";
     }
 
     static bool DoesPackageExist(const std::string& PackageName);

@@ -1,5 +1,10 @@
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include "Misc/Crc.h"
+#include "VulkanDevice.h"
 #include "VulkanDynamicRHI.h"
+#include "VulkanQueue.h"
+#include "VulkanSwapChain.h"
 #include "VulkanTexture.h"
 #include "Containers/Array.h"
 
@@ -506,6 +511,74 @@ VkFormat TranslatePixelFormatToVKFormat(EPixelFormat Format)
     default:
         throw "Unknown PixelFormat!";
     }
+}
+
+VulkanViewport::VulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, uint32 SizeX, uint32 SizeY)
+    : RHIViewport(WindowHandle, SizeX, SizeY)
+    , RHI(InRHI)
+{
+    RHI->InitInstance();
+    /** Create window surface */
+    {
+        GLFWwindow* window = reinterpret_cast<GLFWwindow*>(WindowHandle);
+        VK_CHECK_RESULT(glfwCreateWindowSurface(RHI->instance, window, nullptr, &Surface))
+        NILOU_LOG(Display, "Create window surface")
+    }
+    CreateSwapChain();
+}
+
+void VulkanViewport::CreateSwapChain()
+{
+    EPixelFormat SwapChainFormat = EPixelFormat::PF_B8G8R8A8;
+    EPixelFormat DepthImageFormat = EPixelFormat::PF_D32FS8;
+
+    VkExtent2D extent{SizeX, SizeY};
+    std::vector<VkImage> TempSwapChainImages;
+    SwapChain = std::unique_ptr<FVulkanSwapChain>(new FVulkanSwapChain(
+        RHI->Device->Gpu, RHI->Device->Handle, Surface, extent, 
+        SwapChainFormat, 
+        1, &RHI->Device->GfxQueue->FamilyIndex, TempSwapChainImages));
+    SwapChain->Images.resize(TempSwapChainImages.size());
+    SwapChain->ImageViews.resize(TempSwapChainImages.size());
+
+    for (int i = 0; i < SwapChain->Images.size(); i++)
+    {
+        RHITextureDesc Desc;
+        Desc.SizeX = extent.width;
+        Desc.SizeY = extent.height;
+        Desc.Format = SwapChainFormat;
+        Desc.TextureType = ETextureDimension::Texture2D;
+        Desc.Usage = ETextureUsageFlags::ColorAttachment;
+        SwapChain->Images[i] = new VulkanTexture(
+            nullptr,
+            TempSwapChainImages[i], VK_NULL_HANDLE, GetFullAspectMask(SwapChainFormat), 
+            "SwapChainImage"+std::to_string(i), Desc);
+        FRHITextureViewCreateInfo CreateInfo;
+        CreateInfo.ViewType = ETextureDimension::Texture2D;
+        CreateInfo.Format = SwapChainFormat;
+        CreateInfo.BaseMipLevel = 0;
+        CreateInfo.LevelCount = 1;
+        CreateInfo.BaseArrayLayer = 0;
+        CreateInfo.LayerCount = 1;
+        SwapChain->ImageViews[i] = RHICreateTextureView(SwapChain->Images[i].GetReference(), CreateInfo, "SwapChainImageView");
+    }
+
+    FRHITextureCreateInfo TextureInfo;
+    TextureInfo.TextureType = ETextureDimension::Texture2D;
+    TextureInfo.SizeX = SwapChain->Extent.width;
+    TextureInfo.SizeY = SwapChain->Extent.height;
+    TextureInfo.Format = DepthImageFormat;
+    TextureInfo.Usage = ETextureUsageFlags::DepthStencilAttachment;
+    SwapChain->DepthImage = RHICreateTexture(TextureInfo, "Vulkan Render to Screen DepthStencil");
+    FRHITextureViewCreateInfo CreateInfo;
+    CreateInfo.ViewType = ETextureDimension::Texture2D;
+    CreateInfo.Format = DepthImageFormat;
+    CreateInfo.BaseMipLevel = 0;
+    CreateInfo.LevelCount = 1;
+    CreateInfo.BaseArrayLayer = 0;
+    CreateInfo.LayerCount = 1;
+    SwapChain->DepthImageView = RHICreateTextureView(SwapChain->DepthImage.GetReference(), CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
+    
 }
 
 }

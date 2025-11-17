@@ -14,6 +14,8 @@ namespace nilou {
         void BeginPlay();
         void Tick(double DeltaTime);
         void Draw(FViewport InViewport);
+
+        TRefCountPtr<RHIViewport> Viewport;
     };
 
 }

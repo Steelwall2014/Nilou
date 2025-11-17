@@ -4,7 +4,6 @@
 #include "HAL/Thread.h"
 #include "DynamicRHI.h"
 #include "RHICommandList.h"
-
 #include "Logging/LogMacros.h"
 
 namespace nilou {
@@ -14,11 +13,13 @@ namespace nilou {
     {
     public:
         using Lambda = std::function<void(RenderGraph&)>;
+        EnqueueUniqueRenderCommandType() = default;
         EnqueueUniqueRenderCommandType(Lambda &&InLambda, const char *InTraceBackString) 
             : lambda(std::forward<Lambda>(InLambda)) 
             , TraceBackString(InTraceBackString)
         { }
 
+        bool IsValid() const { return lambda != nullptr; }
         void DoTask();
 
     private:
@@ -35,7 +36,7 @@ namespace nilou {
         virtual void Exit() override;
 
         template <typename STR, typename Lambda>
-        void EnqueueRenderCommand(Lambda &&lambda)
+        static void EnqueueRenderCommand(Lambda &&lambda)
         {
             std::lock_guard<std::mutex> lock(mutex);
             RenderCommands.emplace(std::forward<Lambda>(lambda), STR::Str());
@@ -46,10 +47,11 @@ namespace nilou {
         static FRenderingThread *RenderingThread;
         static RenderGraph& GetRenderGraph() { return *RenderingThread->GraphRecording; }
 
-    private:
+        static std::function<void()> PreRenderThreadInitDelegate;
 
-        std::mutex mutex;
-        std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
+    private:
+        static std::mutex mutex;
+        static std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
         std::unique_ptr<RenderGraph> GraphExecuting = nullptr;
         std::unique_ptr<RenderGraph> GraphRecording = nullptr;
         std::atomic<bool> bShouldExit = false;
@@ -66,7 +68,7 @@ namespace nilou {
         }
         else
         {
-            FRenderingThread::RenderingThread->EnqueueRenderCommand<STR>(std::forward<Lambda>(lambda));
+            FRenderingThread::EnqueueRenderCommand<STR>(std::forward<Lambda>(lambda));
         }
     }
 

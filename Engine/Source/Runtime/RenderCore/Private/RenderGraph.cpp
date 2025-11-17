@@ -11,7 +11,7 @@
 
 namespace nilou {
 
-bool GRenderGraphDebug = true;
+bool GRenderGraphDebug = false;
 #define RDG_DEBUG_LOG(Verbosity, Format, ...) NILOU_CLOG(GRenderGraphDebug, Verbosity, Format, __VA_ARGS__)
 
 std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> RenderGraph::DescriptorSetPools;

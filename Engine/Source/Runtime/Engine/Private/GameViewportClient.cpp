@@ -20,6 +20,7 @@ namespace nilou {
 
     void UGameViewportClient::Init()
     {
+        Viewport = FDynamicRHI::Get()->RHICreateViewport(GGfxConfig.windowContext, GGfxConfig.screenWidth, GGfxConfig.screenHeight);
         World->InitWorld();
     }
 

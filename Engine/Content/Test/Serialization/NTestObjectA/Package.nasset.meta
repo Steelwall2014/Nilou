@@ -1,0 +1,50 @@
+{
+    "ObjectExports": [
+        {
+            "ClassIndex": -2,
+            "ClassName": "TestObjectA",
+            "ObjectIndex": 1,
+            "ObjectName": "TestObjectA",
+            "OuterIndex": 0
+        },
+        {
+            "ClassIndex": -4,
+            "ClassName": "TestObjectB",
+            "ObjectIndex": 2,
+            "ObjectName": "ObjectB_Array_0",
+            "OuterIndex": 0
+        }
+    ],
+    "ObjectImports": [
+        {
+            "ClassName": "TestObjectC",
+            "ObjectName": "TestObjectC",
+            "OuterIndex": -5,
+            "PackageName": "/Engine/Test/Serialization/NTestObjectC/Package"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObjectA",
+            "OuterIndex": -3,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Script/Engine",
+            "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "TestObjectB",
+            "OuterIndex": -3,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Package",
+            "ObjectName": "/Engine/Test/Serialization/NTestObjectC/Package",
+            "OuterIndex": 0,
+            "PackageName": "/Engine/Test/Serialization/NTestObjectC/Package"
+        }
+    ]
+}

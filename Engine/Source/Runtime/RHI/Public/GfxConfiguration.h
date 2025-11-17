@@ -34,7 +34,7 @@ namespace nilou {
 		uint32_t screenHeight;
 		std::filesystem::path workDir;
 		const wchar_t *appName;
-		const char* defaultRHI = "opengl";
+		const char* defaultRHI = "vulkan";
 		void* windowContext = nullptr;
 
 		friend std::ostream &operator<<(std::ostream &out, const GfxConfiguration &conf)
@@ -50,4 +50,6 @@ namespace nilou {
 			return out;
 		}
 	};
+
+	extern GfxConfiguration GGfxConfig;
 }

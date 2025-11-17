@@ -7,14 +7,14 @@ namespace nilou {
 
 FTestStructA FTestStructA::Construct()
 {
-    NPackage* Package = FindPackage("/Test/Serialization/NTestObjectA/Package");
+    NPackage* Package = FindPackage("/Engine/Test/Serialization/NTestObjectA/Package");
     FTestStructA Struct;
     for (int i = 0; i < 1; i++)
     {
         NTestObjectB* Object = NewObject<NTestObjectB>(Package, "ObjectB_Array_" + std::to_string(i));
         Struct.BArray.Add(Object);
     }
-    Package = CreatePackage("/Test/Serialization/NTestObjectB/Package");
+    Package = CreatePackage("/Engine/Test/Serialization/NTestObjectB/Package");
     for (int i = 0; i < 2; i++)
     {
         NTestObjectB* Object = NewObject<NTestObjectB>(Package, "ObjectB_Map_" + std::to_string(i));
@@ -38,7 +38,7 @@ FTestStructB FTestStructB::Construct()
 
 NTestObjectA* NTestObjectA::Construct()
 {
-    NPackage* PackageA = CreatePackage("/Test/Serialization/NTestObjectA/Package");
+    NPackage* PackageA = CreatePackage("/Engine/Test/Serialization/NTestObjectA/Package");
     NTestObjectA* ObjectA = NewObject<NTestObjectA>(PackageA, "TestObjectA");
     
     // 设置基本属性
@@ -56,7 +56,7 @@ NTestObjectA* NTestObjectA::Construct()
         ObjectA->StructArray.Add(FTestStructB::Construct());
     }
     
-    NPackage* PackageC = CreatePackage("/Test/Serialization/NTestObjectC/Package");
+    NPackage* PackageC = CreatePackage("/Engine/Test/Serialization/NTestObjectC/Package");
     ObjectA->Recursive = NewObject<NTestObjectC>(PackageC, "TestObjectC");
     ObjectA->Recursive->c = 100;
     ObjectA->Recursive->Recursive = ObjectA;
@@ -69,15 +69,15 @@ void TestSavePackage()
 {
     NILOU_LOG(Display, "=== Starting Serialization Test ===");
     NTestObjectA::Construct();
-    NPackage::SavePackage(FindPackage("/Test/Serialization/NTestObjectA/Package"));
-    NPackage::SavePackage(FindPackage("/Test/Serialization/NTestObjectB/Package"));
-    NPackage::SavePackage(FindPackage("/Test/Serialization/NTestObjectC/Package"));
+    NPackage::SavePackage(FindPackage("/Engine/Test/Serialization/NTestObjectA/Package"));
+    NPackage::SavePackage(FindPackage("/Engine/Test/Serialization/NTestObjectB/Package"));
+    NPackage::SavePackage(FindPackage("/Engine/Test/Serialization/NTestObjectC/Package"));
 }
 
 void TestLoadPackage()
 {
     NILOU_LOG(Display, "=== Starting Deserialization Test ===");
-    NPackage* PackageA = LoadPackage("/Test/Serialization/NTestObjectA/Package");
+    NPackage* PackageA = LoadPackage("/Engine/Test/Serialization/NTestObjectA/Package");
     NTestObjectA* ObjectA = FindObject<NTestObjectA>(PackageA, "TestObjectA");
 }
 
@@ -110,13 +110,13 @@ void TestSaveDependencyPackage()
 
     */
 
-	NTestObject* N0 = CreateTestObject("/Game/TestPackage0");
-	NTestObject* N1 = CreateTestObject("/Game/TestPackage1");
-	NTestObject* N2 = CreateTestObject("/Game/TestPackage2");
-	NTestObject* N3 = CreateTestObject("/Game/TestPackage3");
-	NTestObject* N4 = CreateTestObject("/Game/TestPackage4");
-	NTestObject* N5 = CreateTestObject("/Game/TestPackage5");
-	NTestObject* N6 = CreateTestObject("/Game/TestPackage6");
+	NTestObject* N0 = CreateTestObject("/Engine/Test/Dependency/TestPackage0");
+	NTestObject* N1 = CreateTestObject("/Engine/Test/Dependency/TestPackage1");
+	NTestObject* N2 = CreateTestObject("/Engine/Test/Dependency/TestPackage2");
+	NTestObject* N3 = CreateTestObject("/Engine/Test/Dependency/TestPackage3");
+	NTestObject* N4 = CreateTestObject("/Engine/Test/Dependency/TestPackage4");
+	NTestObject* N5 = CreateTestObject("/Engine/Test/Dependency/TestPackage5");
+	NTestObject* N6 = CreateTestObject("/Engine/Test/Dependency/TestPackage6");
 
 	N0->Children.Add(N1);
 	N1->Children.Add(N2);
@@ -138,7 +138,7 @@ void TestSaveDependencyPackage()
 
 void TestLoadDependencyPackage()
 {
-    LoadPackage("/Game/TestPackage1");
+    LoadPackage("/Engine/Test/Dependency/TestPackage1");
 }
 
 }

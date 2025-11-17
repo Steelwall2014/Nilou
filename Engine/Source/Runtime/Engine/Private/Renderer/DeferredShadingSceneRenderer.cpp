@@ -252,7 +252,7 @@ namespace nilou {
         std::vector<FSceneView>& Views = ViewFamily.Views;
         OutViewMeshBatches.resize(Views.size());
         OutViewPDIs.resize(Views.size());
-        NILOU_LOG(Display, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
+        // NILOU_LOG(Display, "Primitive count: {}", Scene->AddedPrimitiveSceneInfos.size())
 
         for (FPrimitiveSceneInfo* PrimitiveInfo : Scene->AddedPrimitiveSceneInfos)
         {

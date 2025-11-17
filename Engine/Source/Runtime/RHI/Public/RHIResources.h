@@ -618,6 +618,20 @@ namespace nilou {
 	};
 	using RHIDescriptorPoolRef = TRefCountPtr<RHIDescriptorPool>;
 
+	class RHIViewport : public RHIResource
+	{
+	public:
+		RHIViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY)
+			: RHIResource(ERHIResourceType::RRT_Viewport)
+			, WindowHandle(WindowHandle)
+			, SizeX(SizeX)
+			, SizeY(SizeY)
+		{ }
+		void* WindowHandle;
+		uint32 SizeX;
+		uint32 SizeY;
+	};
+	using RHIViewportRef = TRefCountPtr<RHIViewport>;
 
 }
 

@@ -46,6 +46,7 @@ public:
     virtual void GetError(const char *file, int line) override;
     virtual EGraphicsAPI GetCurrentGraphicsAPI() override { return EGraphicsAPI::Vulkan; }
 
+    virtual RHIViewportRef RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY) override;
     virtual void RHIBeginFrame() override;
     virtual void RHIEndFrame() override;
     virtual RHITexture* RHIGetSwapChainTexture() override;
@@ -110,8 +111,9 @@ public:
     static std::string ErrorString(VkResult Result);
     
 private:
+    void InitInstance();
     std::pair<VkShaderModule, shaderc_compilation_result_t> RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
-    
+    bool RHIReflectShaderInternal(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);
@@ -130,19 +132,20 @@ private:
 
     std::map<uint32, RHISamplerStateRef> SamplerMap;
 
+    std::vector<TRefCountPtr<VulkanViewport>> Viewports;
+    VulkanViewport* MainViewport = nullptr;
+    FVulkanSwapChain* MainSwapChain = nullptr;
     VkInstance instance{};
-    VkSurfaceKHR surface{};
     VkPhysicalDevice physicalDevice{};
     VkDebugUtilsMessengerEXT debugMessenger{};
-    std::unique_ptr<class FVulkanSwapChain> SwapChain;
-    std::vector<RHITextureRef> swapChainImages;
-    std::vector<RHITextureViewRef> swapChainImageViews;
-    EPixelFormat swapChainImageFormat;
-    EPixelFormat depthImageFormat;
-    VkExtent2D swapChainExtent{};
-    RHITextureRef DepthImage;
-    RHITextureViewRef DepthImageView;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    // std::vector<RHITextureRef> swapChainImages;
+    // std::vector<RHITextureViewRef> swapChainImageViews;
+    // EPixelFormat swapChainImageFormat;
+    // EPixelFormat depthImageFormat;
+    // VkExtent2D swapChainExtent{};
+    // RHITextureRef DepthImage;
+    // RHITextureViewRef DepthImageView;
+    // std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkQueueFamilyProperties> queueFamilies;
     uint64 CurrentStreamSourceOffsets[MAX_VERTEX_ELEMENTS] = { 0 };
     VkBuffer CurrentStreamSourceBuffers[MAX_VERTEX_ELEMENTS] = { nullptr };
@@ -186,6 +189,7 @@ private:
 
     friend FVulkanStagingManager;
     friend class VulkanCommandBuffer;
+    friend class VulkanViewport;
 };
 
 }

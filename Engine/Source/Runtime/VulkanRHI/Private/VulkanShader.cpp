@@ -2,7 +2,6 @@
 #include "VulkanShader.h"
 #include "VulkanDynamicRHI.h"
 #include "Logging/LogMacros.h"
-#include "VulkanShaderReflection.h"
 
 namespace nilou {
 
@@ -18,7 +17,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
@@ -44,7 +43,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
@@ -70,7 +69,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
         VulkanShader->DebugName = DebugName;
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = ReflectShader(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);

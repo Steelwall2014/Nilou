@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "Engine/VirtualTexture2D.h"
-#include "Misc/Path.h"
+#include "Misc/Paths.h"
 #if NILOU_ENABLE_VIRTUAL_TEXTURE
 
 namespace nilou {
