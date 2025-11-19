@@ -46,7 +46,7 @@ NObject* LoadObject(const std::string& Path)
     if (Object)
         return Object;
 
-    constexpr std::string Delimiter = ".";
+    constexpr const char* Delimiter = ".";
     auto LastDot = Path.find_last_of(Delimiter);
     std::string PackageName = Path.substr(0, LastDot);
     std::string ObjectName = Path.substr(LastDot + 1);
