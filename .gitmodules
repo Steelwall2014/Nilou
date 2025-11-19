@@ -2,3 +2,11 @@
 	path = NilouHeaderTool
 	url = https://github.com/Steelwall2014/NilouHeaderTool.git
 	branch = nilou
+[submodule "External/UDRefl"]
+	path = External/UDRefl
+	url = https://github.com/Ubpa/UDRefl.git
+	branch = master
+[submodule "External/thread-pool"]
+	path = External/thread-pool
+	url = https://github.com/bshoshany/thread-pool
+	branch = master
