@@ -45,6 +45,15 @@ xmake build -v Nilou
 xmake run Nilou
 ```
 如果想要使用Vulkan，需要在可执行程序后面加上参数 ```-rhi vulkan```。
+
+- 通过CMake构建项目，需要先安装vcpkg，然后在项目根目录下执行以下命令：
+
+```sh
+cmake --preset windows-msvc-vcpkg
+cd build
+cmake --build . --config Debug
+```
+
 ## Features
 - 一个比较完备的场景管理架构。参照虚幻引擎搭建了Actor和Component的架构，使得整个项目更有扩展性。
 - 简单的侵入式反射，可以查询类的继承关系，可以根据名称创建类的对象，可以根据名称获取成员变量和成员函数，可以自动生成序列化和反序列化代码。通过NilouHeaderTool解析头文件，为打上NCLASS标记的类生成反射信息，然后写入*.generated.cpp中，加入编译。

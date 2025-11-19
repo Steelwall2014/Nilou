@@ -1,4 +1,4 @@
-#include <glad.h>
+#include <glad/glad.h>
 
 #include "CoordinateAxis.h"
 

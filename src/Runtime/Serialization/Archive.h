@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 #include "Common/Containers/Array.h"
 #include "Common/Containers/Map.h"
 #include "Platform.h"

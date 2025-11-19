@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include "Archive.h"
 

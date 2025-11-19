@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <tinygltf/tiny_gltf.h>
+#include <tiny_gltf.h>
 #include "UniformBuffer.h"
 
 namespace nilou {

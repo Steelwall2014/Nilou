@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include <thread_pool/BS_thread_pool.hpp>
+#include <thread-pool/BS_thread_pool.hpp>
 
 #include "Platform.h"
 

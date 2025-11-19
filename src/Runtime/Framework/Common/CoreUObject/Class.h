@@ -2,7 +2,7 @@
 #include <queue>
 #include <string>
 #include <UDRefl/UDRefl.hpp>
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 #include <magic_enum/magic_enum_utility.hpp>
 #include <base64.h>
 #include "Object.h"

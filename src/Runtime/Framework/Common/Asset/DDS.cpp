@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <glad.h>
+#include <glad/glad.h>
 #include "dds.h"
 //#	include "gl4ext.h"
 

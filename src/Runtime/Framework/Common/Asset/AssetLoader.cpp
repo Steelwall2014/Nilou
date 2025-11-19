@@ -1,12 +1,12 @@
 #include "GameStatics.h"
 #include "Templates/ObjectMacros.h"
 #include <filesystem>
-#include <glad.h>
+#include <glad/glad.h>
 // #define TINYGLTF_ENABLE_DRACO
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <tinygltf/tiny_gltf.h>
+#include <tiny_gltf.h>
 // #define STBI_MSC_SECURE_CRT
 
 #include <iostream>

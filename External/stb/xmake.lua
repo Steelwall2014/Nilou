@@ -1,6 +1,0 @@
-target("stb")
-    set_optimize("fastest")
-    set_languages("clatest")
-    set_kind("static")
-    add_includedirs("./", {public = true})
-    add_files("stb_vorbis.c")

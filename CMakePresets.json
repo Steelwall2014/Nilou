@@ -1,0 +1,68 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+			"name": "common",
+			"hidden": true,
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"VCPKG_ROOT_DIR": "$env{VCPKG_ROOT}",
+        "VK_SDK_PATH": "$env{VK_SDK_PATH}",
+				"THIRD_PARTY_DIR": "$env{THIRD_PARTY_DIR}",
+
+				"CMAKE_CXX_STANDARD": "20",
+				"CMAKE_CXX_STANDARD_REQUIRED": "ON",
+				"CMAKE_CXX_EXTENSIONS": "OFF",
+
+				"CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}/bin",
+				"CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}/bin",
+				"CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/build/${presetName}/lib",
+
+				"BUILD_SHARED_LIBS": "ON"
+			}
+		},
+		{
+			"name": "vcpkg-common",
+			"hidden": true,
+			"inherits": "common",
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+			}
+		},
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC x64",
+      "inherits": "vcpkg-common",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64"
+      },
+      "condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+      "binaryDir": "build",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "/utf-8"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release"
+    }
+  ]
+}

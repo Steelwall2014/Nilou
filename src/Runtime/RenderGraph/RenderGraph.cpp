@@ -1289,6 +1289,20 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			{
 				continue;
 			}
+
+			int NumSubresources = Texture->GetSubresourceCount();
+            int SubresourceStatesSize =
+                Texture->SubresourceStates.size();
+
+            if (NumSubresources != SubresourceStatesSize)
+            {
+				RDG_DEBUG_LOG(Error,"Texture [] has [] subresources but "
+						"SubresourceStates size is []!",
+						"Texture->GetName()", NumSubresources,
+						SubresourceStatesSize);
+                continue;
+            }
+
 			RDGSubresourceState& LastState = Texture->SubresourceStates[Index];
 			ERHIAccess LastAccess = LastState.Access;
 			ERHIAccess CurrentAccess = PassState.Access[Index];

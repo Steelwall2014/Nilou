@@ -1,6 +1,0 @@
-target("glad")
-    set_optimize("fastest")
-    set_languages("clatest")
-    set_kind("static")
-    add_includedirs("./", {public = true})
-    add_files("glad.c", "glad_wgl.c")

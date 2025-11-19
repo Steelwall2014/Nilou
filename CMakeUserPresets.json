@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-msvc-vcpkg",
+      "inherits": "windows-msvc",
+      "environment": {
+        "VCPKG_ROOT": "C:/env/vcpkg",
+        "VK_SDK_PATH": "C:/env/VulkanSDK/1.3.275.0",
+				"THIRD_PARTY_DIR": "C:/env/libc++",
+				"CMAKE_PREFIX_PATH": "C:/env/Qt/6.8.3/msvc2022_64"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-vcpkg",
+      "configurePreset": "windows-msvc-vcpkg",
+      "configuration": "Debug"
+    }
+  ]
+}

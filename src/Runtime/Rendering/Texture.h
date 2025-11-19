@@ -1,7 +1,7 @@
 #pragma once
-#include <half/half.hpp>
+#include <half.hpp>
 #include <string>
-#include <thread_pool/BS_thread_pool.hpp>
+#include <thread-pool/BS_thread_pool.hpp>
 #include <variant>
 
 #include "Common/CoreUObject/Object.h"

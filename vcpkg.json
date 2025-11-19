@@ -1,0 +1,81 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "dependencies": [
+        {
+            "name": "fmt",
+            "version>=": "11.0.2",
+            "platform": "x64"
+        },
+        {
+            "name": "spdlog",
+            "version>=": "1.15.3",
+            "platform": "x64"
+        },
+        {
+            "name": "magic-enum",
+            "version>=": "0.9.7#1",
+            "platform": "x64"
+        },
+        {
+            "name": "crossguid",
+            "version>=": "2021-10-22#3",
+            "platform": "x64"
+        },
+        {
+            "name": "nlohmann-json",
+            "version>=": "3.12.0#1",
+            "platform": "x64"
+        },
+        {
+            "name": "stb",
+            "version>=": "2024-07-29#1",
+            "platform": "x64"
+        },
+        {
+            "name": "half",
+            "version>=": "2.2.1#0",
+            "platform": "x64"
+        },
+        {
+            "name": "glm",
+            "platform": "x64"
+        },
+        {
+            "name": "spirv-reflect",
+            "version>=": "1.4.309.0#0",
+            "platform": "x64"
+        },
+        {
+            "name": "glad",
+            "version>=": "0.1.36#0",
+            "platform": "x64",
+            "features": ["extensions","wgl"]
+        },
+        {
+            "name": "glfw3",
+            "version>=": "3.4#1",
+            "platform": "x64"
+        },
+        {
+            "name": "imgui",
+            "version>=": "1.91.9#0",
+            "platform": "x64",
+            "features": ["glfw-binding", "opengl3-binding", "vulkan-binding", "docking-experimental"]
+        },
+        {
+            "name": "tinygltf",
+            "platform": "x64"
+        }
+    ],
+    "overrides": [
+        {
+            "name": "glm",
+            "version": "0.9.8.5#0"
+        },
+        {
+            "name": "tinygltf",
+            "version": "2.5.0#0"
+        }
+    ]
+
+}
