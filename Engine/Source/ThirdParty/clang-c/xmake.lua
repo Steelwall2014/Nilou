@@ -1,5 +1,5 @@
 target("clang-c")
-    set_kind("static")
+    set_kind("phony")
     add_includedirs("./", {public = true})
     add_links("$(projectdir)/Engine/Source/ThirdParty/clang-c/lib/libclang", {public = true})
     after_build(function (target)
