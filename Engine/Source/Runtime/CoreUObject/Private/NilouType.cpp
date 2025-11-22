@@ -43,39 +43,82 @@ IMPLEMENT_FIELD(FQuatProperty)
 IMPLEMENT_FIELD(FEnumProperty)
 
 template<>
-BEGIN_STRUCT_REGISTRY(FRotator, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
-
-    STRUCT_PROPERTY(Pitch)
-    STRUCT_PROPERTY(Yaw)
-    STRUCT_PROPERTY(Roll)
-
-END_STRUCT_REGISTRY(FRotator)
-
-template<>
-BEGIN_STRUCT_REGISTRY(FTransform, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
-
-    STRUCT_PROPERTY(Rotation)
-    STRUCT_PROPERTY(Translation)
-    STRUCT_PROPERTY(Scale3D)
-
-END_STRUCT_REGISTRY(FTransform)
-
-template<>
-BEGIN_STRUCT_REGISTRY(FBox, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
-
-    STRUCT_PROPERTY(Min)
-    STRUCT_PROPERTY(Max)
-
-END_STRUCT_REGISTRY(FBox)
-
+struct TClassRegistry<FRotator> : public FClassRegistryBase
+{
+    using TClass = FRotator;
+    TClassRegistry<FRotator>() : FClassRegistryBase(
+        EMetaClass::Struct,
+        "FRotator",
+        nullptr,
+        sizeof(FRotator),
+        EClassFlags::Native | EClassFlags::Intrinsic,
+        [](void* Memory){ new (Memory) FRotator(); })
+    {
+        TClass::Z_StaticClass = this->Class;
+        STRUCT_PROPERTY(Pitch)
+        STRUCT_PROPERTY(Yaw)
+        STRUCT_PROPERTY(Roll)
+    }
+};
+TClassRegistry<FRotator> ClassRegistry_FRotator;
 
 template<>
-BEGIN_STRUCT_REGISTRY(FBoxSphereBounds, NullSuperClass, EClassFlags::Native | EClassFlags::Intrinsic)
+struct TClassRegistry<FTransform> : public FClassRegistryBase
+{
+    using TClass = FTransform;
+    TClassRegistry<FTransform>() : FClassRegistryBase(
+        EMetaClass::Struct,
+        "FTransform",
+        nullptr,
+        sizeof(FTransform),
+        EClassFlags::Native | EClassFlags::Intrinsic,
+        [](void* Memory){ new (Memory) FTransform(); })
+    {
+        TClass::Z_StaticClass = this->Class;
+        STRUCT_PROPERTY(Rotation)
+        STRUCT_PROPERTY(Translation)
+        STRUCT_PROPERTY(Scale3D)
+    }
+};
+TClassRegistry<FTransform> ClassRegistry_FTransform;
 
-    STRUCT_PROPERTY(Origin)
-    STRUCT_PROPERTY(BoxExtent)
-    STRUCT_PROPERTY(SphereRadius)
+template<>
+struct TClassRegistry<FBox> : public FClassRegistryBase
+{
+    using TClass = FBox;
+    TClassRegistry<FBox>() : FClassRegistryBase(
+        EMetaClass::Struct,
+        "FBox",
+        nullptr,
+        sizeof(FBox),
+        EClassFlags::Native | EClassFlags::Intrinsic,
+        [](void* Memory){ new (Memory) FBox(); })
+    {
+        TClass::Z_StaticClass = this->Class;
+        STRUCT_PROPERTY(Min)
+        STRUCT_PROPERTY(Max)
+    }
+};
+TClassRegistry<FBox> ClassRegistry_FBox;
 
-END_STRUCT_REGISTRY(FBoxSphereBounds)
+template<>
+struct TClassRegistry<FBoxSphereBounds> : public FClassRegistryBase
+{
+    using TClass = FBoxSphereBounds;
+    TClassRegistry<FBoxSphereBounds>() : FClassRegistryBase(
+        EMetaClass::Struct,
+        "FBoxSphereBounds",
+        nullptr,
+        sizeof(FBoxSphereBounds),
+        EClassFlags::Native | EClassFlags::Intrinsic,
+        [](void* Memory){ new (Memory) FBoxSphereBounds(); })
+    {
+        TClass::Z_StaticClass = this->Class;
+        STRUCT_PROPERTY(Origin)
+        STRUCT_PROPERTY(BoxExtent)
+        STRUCT_PROPERTY(SphereRadius)
+    }
+};
+TClassRegistry<FBoxSphereBounds> ClassRegistry_FBoxSphereBounds;
 
 }

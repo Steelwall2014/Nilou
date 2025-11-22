@@ -315,7 +315,7 @@ public:
 template <typename T>
 using TRDGUniformBufferRef = TRefCountPtr<TRDGUniformBuffer<T>>;
 
-struct RDGRenderTargets
+struct RENDERCORE_API RDGRenderTargets
 {
     struct FBindingPoint
     {

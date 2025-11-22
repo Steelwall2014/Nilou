@@ -1,11 +1,12 @@
 #pragma once
+#include "HAL/Platform.h"
 
 namespace nilou {
 
     /**
      * 崩溃处理器类
      */
-    class FCrashHandler
+    class CORE_API FCrashHandler
     {
     public:
         /**

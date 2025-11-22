@@ -68,12 +68,12 @@ namespace nilou {
     class FRunnableThread
     {
     public:
-        static std::unique_ptr<FRunnableThread> Create(FRunnable* InRunnable, const std::string &InThreadName/*, EThreadPriority InThreadPri*/);
+        CORE_API static std::unique_ptr<FRunnableThread> Create(FRunnable* InRunnable, const std::string &InThreadName/*, EThreadPriority InThreadPri*/);
 
         // virtual void SetThreadPriority( EThreadPriority NewPriority );
         // virtual void Suspend( bool bShouldPause = true );
-        void Kill();
-        void WaitForCompletion();
+        CORE_API void Kill();
+        CORE_API void WaitForCompletion();
         
         const std::thread::id GetThreadID() const { return ThreadID; }
         const std::string& GetThreadName() const { return ThreadName; }
@@ -100,7 +100,5 @@ namespace nilou {
         // virtual void Tick();
     };
 
-    bool IsInGameThread();
-
-    bool IsInRenderingThread();
+    CORE_API bool IsInGameThread();
 }

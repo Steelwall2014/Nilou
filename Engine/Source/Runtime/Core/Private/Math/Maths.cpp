@@ -130,4 +130,15 @@ float FLinearColor::sRGBToLinearTable[256] =
 	0.964686244552961f, 0.973445287039244f, 0.982250546956257f, 0.991102093719252f, 1.0f
 };
 
+template<> NClass* FRotator::Z_StaticClass = nullptr;
+template<> NClass* FRotator3f::Z_StaticClass = nullptr;
+template<> NClass* FTransform::Z_StaticClass = nullptr;
+template<> NClass* FTransform3f::Z_StaticClass = nullptr;
+template<> NClass* FBox::Z_StaticClass = nullptr;
+template<> NClass* FBoxSphereBounds::Z_StaticClass = nullptr;
+template<> const FRotator FRotator::ZeroRotator = FRotator(0.0, 0.0, 0.0);
+template<> const FRotator3f FRotator3f::ZeroRotator = FRotator3f(0.0f, 0.0f, 0.0f);
+template<> const FTransform FTransform::Identity = FTransform();
+template<> const FTransform3f FTransform3f::Identity = FTransform3f();
+
 }

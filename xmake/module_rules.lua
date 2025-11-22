@@ -1,9 +1,6 @@
-function module_rules(module_name, kind)
-    if kind == nil then
-        kind = "static"
-    end
+function module_rules(module_name)
     target(module_name)
-        set_kind(kind)
+        set_kind("shared")
         set_languages("clatest")
         set_languages("cxx20")
         add_files("./Private/**.cpp")
@@ -12,22 +9,37 @@ function module_rules(module_name, kind)
         add_cxflags("/utf-8")
         add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
 
+        on_load(function (target)
+            target.is_module = true
+        end)
+
         on_prepare(function (target)
-            function get_includedirs_recursive(target)
-                local deps = target:get("deps")
-                local includedirs = target:get("includedirs")
-                if type(includedirs) == "string" then
-                    includedirs = {includedirs}
-                end
-                for i, dep in ipairs(deps) do
-                    local dep_includedirs = get_includedirs_recursive(target:dep(dep))
-                    for j, dep_includedir in ipairs(dep_includedirs) do
-                        table.insert(includedirs, dep_includedir)
-                    end
-                end
-                return includedirs
+            local api_export = "DLLEXPORT"
+            local api_import = "DLLIMPORT"
+            if target:get("kind") == "static" then
+                api_export = ""
+                api_import = ""
             end
-            local includedirs = get_includedirs_recursive(target)
+            target:add("defines", target:name():upper() .. "_API=" .. api_export)
+            local dep_names = {}
+            for dep_name, dep in pairs(target:deps()) do
+                if dep.is_module then
+                    table.insert(dep_names, dep_name)
+                end
+            end
+            table.sort(dep_names)
+            for _, dep_name in ipairs(dep_names) do
+                target:add("defines", dep_name:upper() .. "_API=" .. api_import)
+            end
+            
+            local includedirs = target:get("includedirs")
+            local deps = target:deps()
+            for dep_name, dep in pairs(deps) do
+                local dep_includedirs = dep:get("includedirs")
+                for j, dep_includedir in ipairs(dep_includedirs) do
+                    table.insert(includedirs, dep_includedir)
+                end
+            end
             local src_dir = path.absolute(target:scriptdir())
             local generated_dir = path.absolute(target:scriptdir() .. "/Generated")
             local include_dir = ""

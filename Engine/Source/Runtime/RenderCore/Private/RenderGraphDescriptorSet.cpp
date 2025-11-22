@@ -1,3 +1,4 @@
+#include "RenderGraph.h"
 #include "RenderGraphDescriptorSet.h"
 #include "DynamicRHI.h"
 

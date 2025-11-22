@@ -16,7 +16,7 @@
 
 namespace nilou {
 
-    class FVertexFactory : public FRenderResource
+    class RENDERCORE_API FVertexFactory : public FRenderResource
     {
     /*==============FVertexFactoryType Interface============*/
     public: 

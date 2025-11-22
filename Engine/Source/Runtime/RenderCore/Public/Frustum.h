@@ -5,7 +5,7 @@
 
 namespace nilou {
 
-    struct FOrientedBoundingBox
+    struct RENDERCORE_API FOrientedBoundingBox
     {  
         FOrientedBoundingBox() { }
         /**
@@ -26,7 +26,7 @@ namespace nilou {
         glm::dmat3 HalfAxes;
     };
 
-    struct FBoundingSphere
+    struct RENDERCORE_API FBoundingSphere
     {  
         /**
         * @brief Construct a new instance.
@@ -97,7 +97,7 @@ namespace nilou {
     //     }
     // };
 
-    class FViewFrustum
+    class RENDERCORE_API FViewFrustum
     {
     public:
         FPlane Planes[6];
@@ -162,7 +162,7 @@ namespace nilou {
         bool IsOutSidePlane(const FPlane &plane, FVector position) const;
     };
 
-    class FConvexVolume
+    class RENDERCORE_API FConvexVolume
     {
     public:
         

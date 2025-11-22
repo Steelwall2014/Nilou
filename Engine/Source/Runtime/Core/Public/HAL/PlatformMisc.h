@@ -7,7 +7,7 @@ namespace nilou {
 /**
 * Windows implementation of the misc OS functions
 **/
-struct FWindowsPlatformMisc
+struct CORE_API FWindowsPlatformMisc
 {
     static void BeginNamedEvent(const struct FColor& Color, const std::string& Text);
     static void EndNamedEvent();

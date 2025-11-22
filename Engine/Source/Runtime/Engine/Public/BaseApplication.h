@@ -11,7 +11,7 @@ namespace nilou {
 
     using WindowContext = void;
 
-    class BaseApplication
+    class ENGINE_API BaseApplication
     {
     public:
         BaseApplication();
@@ -50,5 +50,5 @@ namespace nilou {
 
     };
 
-    BaseApplication *GetAppication();
+    ENGINE_API extern BaseApplication *GApplication;
 }

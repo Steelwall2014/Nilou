@@ -1,4 +1,5 @@
 #include "DynamicRHI.h"
+#include "RenderGraph.h"
 #include "Shader.h"
 // #include "Shadinclude.h"
 #include "Shader.h"

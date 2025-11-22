@@ -123,4 +123,6 @@ namespace nilou {
         return CursorEnabled;
     }
 
+    BaseApplication *GApplication = nullptr;
+
 }

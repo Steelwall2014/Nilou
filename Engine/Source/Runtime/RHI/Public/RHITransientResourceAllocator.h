@@ -364,7 +364,7 @@ public:
 // Steelwall2014: This is a simplified implementation of IRHITransientResourceAllocator.
 // In Unreal Engine, an implementation of IRHITransientResourceAllocator requires memory aliasing support on different RHI backends
 // which is kind of complicated. So I just implement a simple version here, and it's basically an object pool.
-class RHITransientResourceAllocator : public IRHITransientResourceAllocator
+class RHI_API RHITransientResourceAllocator : public IRHITransientResourceAllocator
 {
 public:
 

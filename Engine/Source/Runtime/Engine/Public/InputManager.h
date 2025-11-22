@@ -151,7 +151,7 @@ namespace nilou {
 	// 	}
 	// };
 
-    class InputManager
+    class ENGINE_API InputManager
     {
     public:
 		void KeyPressed(InputKey key);
@@ -201,5 +201,5 @@ namespace nilou {
 		std::map<InputKey, KeyState>			m_KeyStates;
     };
 
-   InputManager *GetInputManager();
+	ENGINE_API InputManager *GetInputManager();
 }

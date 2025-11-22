@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include "HAL/Thread.h"
+#include "Logging/LogMacros.h"
 
 void SetThreadName(HANDLE hThread, const wchar_t* name) 
 {

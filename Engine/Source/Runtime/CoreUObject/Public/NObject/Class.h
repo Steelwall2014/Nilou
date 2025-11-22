@@ -84,7 +84,7 @@ enum class EMetaClass { Struct, Object, Enum };
     template<> NClass* StaticEnum<EnumName>() { return StaticEnum_##EnumName; } \
     TClassRegistry<EnumName> PREPROCESSOR_JOIN(ClassRegistry, __LINE__);
 
-class NClass : public NObject
+class COREUOBJECT_API NClass : public NObject
 {
 private:
     template<typename T> 

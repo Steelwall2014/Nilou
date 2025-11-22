@@ -131,9 +131,9 @@ template<typename T>
 struct TBox
 {
 private:
-    static NClass* Z_StaticClass;
+    CORE_API static NClass* Z_StaticClass;
 public:
-    static NClass *StaticClass() { return Z_StaticClass; }
+    CORE_API static NClass *StaticClass() { return Z_StaticClass; }
     template <typename U>
     friend class TClassRegistry;
 

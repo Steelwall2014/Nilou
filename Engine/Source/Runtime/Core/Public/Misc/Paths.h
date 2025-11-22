@@ -1,10 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include "HAL/Platform.h"
 
 namespace nilou {
 
-class FPaths
+class CORE_API FPaths
 {
 public:
     static std::string GetBaseFilename(const std::string &InPath);
@@ -14,7 +15,7 @@ public:
     static std::string VirtualPathToAbsPath(const std::string &VirtualPath);
 };
 
-class FPackageName
+class CORE_API FPackageName
 {
 public:
     // PackageName should start with '/'

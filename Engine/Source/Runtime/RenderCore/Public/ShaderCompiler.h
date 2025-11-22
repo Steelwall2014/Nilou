@@ -16,7 +16,7 @@ namespace nilou {
     class FShaderPermutationParameters;
 
 
-    class FShaderCompiler 
+    class RENDERCORE_API FShaderCompiler 
     {   
     public:
         static void CompileGlobalShaders();

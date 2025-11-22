@@ -1,9 +1,5 @@
 #pragma once
 #include <cstdint>
-// Put it here to always include Ncheck. (Platform.h is included by almost every file)
-// Ncheck is IMPORTANT! Use it frequently!
-// For example, bounds checking
-#include "Logging/LogMacros.h" 
 
 typedef std::int8_t int8;
 typedef std::int16_t int16;
@@ -18,3 +14,6 @@ typedef std::uint64_t uint64;
 #define FORCEINLINE __forceinline
 
 constexpr int32 INDEX_NONE = -1;
+
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)

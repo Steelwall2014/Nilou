@@ -5,23 +5,14 @@
 #include "GLFWApplication.h"
 #include "HAL/CrashHandler.h"
 #include "HAL/PlatformMisc.h"
+#include "Windows/Entry.h"
 
 using namespace nilou;
 namespace nilou {
 
-BaseApplication *GetAppication()
-{
-    static BaseApplication *g_pApp;
-    if (g_pApp == nullptr)
-    {
-        g_pApp = new GLFWApplication();
-    }
-    return g_pApp;
 }
 
-}
-
-int main(int argc, char* argv[])
+int EngineEntry(int argc, char* argv[])
 {        
     FCrashHandler::Initialize();
 
@@ -42,22 +33,23 @@ int main(int argc, char* argv[])
     GGfxConfig.screenHeight = 900;
     GGfxConfig.appName = L"Nilou";
     
+    GApplication = new GLFWApplication();
     int ret;
 
-    if ((ret = GetAppication()->Initialize()) != true) {
+    if ((ret = GApplication->Initialize()) != true) {
         printf("App Initialize failed, will exit now.");
         return ret;
     }
 
     clock_t DeltaTime, lastFrame = 0;
-    while (!GetAppication()->IsQuit()) {
+    while (!GApplication->IsQuit()) {
         clock_t currentFrame = clock();
         DeltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        GetAppication()->Tick(DeltaTime/1000.f);
+        GApplication->Tick(DeltaTime/1000.f);
     }
 
-    GetAppication()->Finalize();
+    GApplication->Finalize();
 
     FCrashHandler::Shutdown();
 

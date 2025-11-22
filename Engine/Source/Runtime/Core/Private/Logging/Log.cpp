@@ -51,15 +51,6 @@ namespace nilou {
         }
     }
 
-    std::ostream &operator<<(std::ostream &os, const wchar_t *strPt)
-    {
-        return os << std::wstring_view(strPt);
-    }
-    std::ostream &operator<<(std::ostream &os, std::wstring_view str)
-    {
-        return os << encode::wideToOme(str);
-    }
-
     std::ofstream CreateLogFile()
     {
         std::filesystem::path LogsDir = FPaths::EngineSavedDir() + "/Logs";

@@ -5,10 +5,11 @@
 #include "Containers/Array.h"
 #include "Containers/Map.h"
 #include "HAL/Platform.h"
+#include "Logging/LogMacros.h"
 
 namespace nilou {
 
-class FArchive
+class CORE_API FArchive
 {
 public:
 

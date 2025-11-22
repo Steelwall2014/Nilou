@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <type_traits>
 #include "HAL/Platform.h"
 
 namespace nilou {

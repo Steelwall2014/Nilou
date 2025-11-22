@@ -4,7 +4,7 @@
 
 namespace nilou {
 
-class FPipelineStateCache
+class RHI_API FPipelineStateCache
 {
 public:
     static void CacheGraphicsPSO(const FGraphicsPipelineStateInitializer& Initializer, RHIGraphicsPipelineStateRef CacheState);

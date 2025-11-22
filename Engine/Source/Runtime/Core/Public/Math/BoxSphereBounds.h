@@ -9,7 +9,7 @@ template<typename T, typename TExtent>
 struct TBoxSphereBounds
 {
 private:
-    static NClass* Z_StaticClass;
+    CORE_API static NClass* Z_StaticClass;
 public:
     static NClass *StaticClass() { return Z_StaticClass; }
     template <typename U>

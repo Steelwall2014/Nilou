@@ -6,7 +6,7 @@
 
 namespace nilou {
 
-class RDGDescriptorSet : public RDGResource
+class RENDERCORE_API RDGDescriptorSet : public RDGResource
 {
 public:
 

@@ -108,6 +108,11 @@ namespace nilou {
         FDynamicRHI::Get()->Finalize();
     }
 
+    FRenderingThread::~FRenderingThread()
+    {
+        
+    }
+
     bool IsInRenderingThread()
     {
         return std::this_thread::get_id() == GRenderThreadId;

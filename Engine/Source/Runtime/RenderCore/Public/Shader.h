@@ -19,9 +19,9 @@ namespace nilou {
 
     class RHIDescriptorSetLayout;
 
-    std::vector<class FShaderType *> &GetAllShaderTypes();
+    RENDERCORE_API std::vector<class FShaderType *> &GetAllShaderTypes();
 
-    std::vector<class FVertexFactoryType *> &GetAllVertexFactoryTypes();
+    RENDERCORE_API std::vector<class FVertexFactoryType *> &GetAllVertexFactoryTypes();
 
     enum class EShaderFrequency
     {
@@ -62,7 +62,7 @@ namespace nilou {
     //     std::string SourceCodeBody;
     // };
 
-    class FShaderTypeBase
+    class RENDERCORE_API FShaderTypeBase
     {
     public:
         friend class FShaderCompiler;
@@ -209,9 +209,9 @@ namespace nilou {
         DECLARE_SHADER_TYPE()
     };
 
-    void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap=false);
+    RENDERCORE_API void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap=false);
 
-    FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
+    RENDERCORE_API FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
 
     template <typename T>
     FShaderInstance *GetGlobalShader(int PermutationId=0)

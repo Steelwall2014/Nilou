@@ -20,14 +20,14 @@ namespace nilou {
         { }
 
         bool IsValid() const { return lambda != nullptr; }
-        void DoTask();
+        RENDERCORE_API void DoTask();
 
     private:
         Lambda lambda;
         const char *TraceBackString;
     };
 
-    class FRenderingThread : public FRunnable
+    class RENDERCORE_API FRenderingThread final : public FRunnable
     {
     public:
         virtual bool Init() override;
@@ -49,6 +49,8 @@ namespace nilou {
 
         static std::function<void()> PreRenderThreadInitDelegate;
 
+        ~FRenderingThread();
+
     private:
         static std::mutex mutex;
         static std::queue<EnqueueUniqueRenderCommandType> RenderCommands;
@@ -57,6 +59,8 @@ namespace nilou {
         std::atomic<bool> bShouldExit = false;
 
     };
+
+    RENDERCORE_API bool IsInRenderingThread();
 
     template <typename STR, typename Lambda>
     void EnqueueUniqueRenderCommand(Lambda &&lambda)

@@ -148,7 +148,7 @@ struct FObjectImport : public FObjectResource
 };
 void Serialize(FArchive& Ar, FObjectImport& Value);
 
-class NPackage : public NObject
+class COREUOBJECT_API NPackage : public NObject
 {
 private:
 	template<typename T> 

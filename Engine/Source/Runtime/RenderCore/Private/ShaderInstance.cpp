@@ -1,3 +1,4 @@
+#include "RenderGraph.h"
 #include "ShaderInstance.h"
 #include "DynamicRHI.h"
 #include "Logging/LogMacros.h"

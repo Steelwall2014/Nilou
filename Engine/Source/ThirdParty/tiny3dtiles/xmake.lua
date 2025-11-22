@@ -1,3 +1,4 @@
+-- This is a small library to read 3dtiles files writen by myself (Steelwall2014).
 target("tiny3dtiles")
     set_kind("static")
     add_deps("headeronlys")

@@ -51,5 +51,5 @@ namespace nilou {
 		}
 	};
 
-	extern GfxConfiguration GGfxConfig;
+	RHI_API extern GfxConfiguration GGfxConfig;
 }

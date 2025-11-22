@@ -6,7 +6,7 @@
  * CRC hash generation for different types of input data
  * From Unreal Engine 5.0 Engine\Source\Runtime\Core\Public\Misc\Crc.h
  **/
-struct FCrc
+struct CORE_API FCrc
 {
 	/** lookup table with precalculated CRC values - slicing by 8 implementation */
 	static uint32 CRCTablesSB8[8][256];

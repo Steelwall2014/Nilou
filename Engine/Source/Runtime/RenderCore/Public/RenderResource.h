@@ -28,14 +28,14 @@ namespace nilou {
         virtual void ReleaseRHI() { }
         
         // used to create non-persistent resources
-        virtual void InitResource(RenderGraph&);
+        RENDERCORE_API virtual void InitResource(RenderGraph&);
         // used to create persistent resources
-        virtual void InitResource();
-        virtual void ReleaseResource();
+        RENDERCORE_API virtual void InitResource();
+        RENDERCORE_API virtual void ReleaseResource();
         virtual ~FRenderResource() { ReleaseResource(); }
         bool IsInitialized() { return ListIndex != INDEX_NONE; }
-        void UpdateRHI();
-        static std::vector<FRenderResource*>& GetResourceList();
+        RENDERCORE_API void UpdateRHI();
+        RENDERCORE_API static std::vector<FRenderResource*>& GetResourceList();
 
     private:
         int32 ListIndex = INDEX_NONE;
@@ -50,8 +50,8 @@ namespace nilou {
 
         uint32 NumVertices;
 
-        RHIBuffer* GetRHI() const;
-        virtual void ReleaseRHI() override;
+        RENDERCORE_API RHIBuffer* GetRHI() const;
+        RENDERCORE_API virtual void ReleaseRHI() override;
 
     };
 
@@ -64,16 +64,16 @@ namespace nilou {
 
         uint32 NumIndices;
 
-        RHIBuffer* GetRHI() const;
-        virtual void ReleaseRHI() override;
+        RENDERCORE_API RHIBuffer* GetRHI() const;
+        RENDERCORE_API virtual void ReleaseRHI() override;
     };
 
     #define BeginInitResource(Resource) BeginInitResource_Internal(Resource, __FILE__, __LINE__)
 
     #define BeginReleaseResource(Resource) BeginReleaseResource_Internal(Resource, __FILE__, __LINE__)
 
-    void BeginInitResource_Internal(FRenderResource* Resource, const char *file, int line);
-    void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line);
+    RENDERCORE_API void BeginInitResource_Internal(FRenderResource* Resource, const char *file, int line);
+    RENDERCORE_API void BeginReleaseResource_Internal(FRenderResource* Resource, const char *file, int line);
 
     std::vector<int32>& GetFreeIndicesList();
 

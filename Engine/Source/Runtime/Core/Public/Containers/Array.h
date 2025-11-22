@@ -3,6 +3,7 @@
 #include <iterator>
 #include <vector>
 #include "HAL/Platform.h"
+#include "Logging/LogMacros.h"
 
 namespace nilou {
 

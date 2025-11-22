@@ -4,7 +4,7 @@
 
 namespace nilou {
 
-class FFieldClass
+class COREUOBJECT_API FFieldClass
 {
 public:
     FFieldClass(const std::string& InName, FFieldClass *InSuperStruct) 
@@ -52,7 +52,7 @@ private:
         return &StaticFieldClass; \
     }
 
-class FProperty
+class COREUOBJECT_API FProperty
 {
 public:
     FProperty(const std::string& InName) : Name(InName) {}
@@ -107,7 +107,7 @@ T* CastField(FProperty* Property)
     return nullptr;
 }
 
-class FNumericProperty : public FProperty
+class COREUOBJECT_API FNumericProperty : public FProperty
 {
     DECLARE_FIELD_API(FNumericProperty, FProperty)
 };
@@ -128,52 +128,52 @@ protected:
     TProperty_Numeric(const std::string& InName) : FNumericProperty(InName) {}
 };
 
-class FBoolProperty : public TProperty_Numeric<bool>
+class COREUOBJECT_API FBoolProperty : public TProperty_Numeric<bool>
 {
     DECLARE_FIELD_API(FBoolProperty, TProperty_Numeric<bool>)
 };
-class FInt8Property : public TProperty_Numeric<int8>
+class COREUOBJECT_API FInt8Property : public TProperty_Numeric<int8>
 {
     DECLARE_FIELD_API(FInt8Property, TProperty_Numeric<int8>)
 };
-class FInt16Property : public TProperty_Numeric<int16>
+class COREUOBJECT_API FInt16Property : public TProperty_Numeric<int16>
 {
     DECLARE_FIELD_API(FInt16Property, TProperty_Numeric<int16>)
 };
-class FInt32Property : public TProperty_Numeric<int32>
+class COREUOBJECT_API FInt32Property : public TProperty_Numeric<int32>
 {
     DECLARE_FIELD_API(FInt32Property, TProperty_Numeric<int32>)
 };
-class FInt64Property : public TProperty_Numeric<int64>
+class COREUOBJECT_API FInt64Property : public TProperty_Numeric<int64>
 {
     DECLARE_FIELD_API(FInt64Property, TProperty_Numeric<int64>)
 };
-class FUInt8Property : public TProperty_Numeric<uint8>
+class COREUOBJECT_API FUInt8Property : public TProperty_Numeric<uint8>
 {
     DECLARE_FIELD_API(FUInt8Property, TProperty_Numeric<uint8>)
 };
-class FUInt16Property : public TProperty_Numeric<uint16>
+class COREUOBJECT_API FUInt16Property : public TProperty_Numeric<uint16>
 {
     DECLARE_FIELD_API(FUInt16Property, TProperty_Numeric<uint16>)
 };
-class FUInt32Property : public TProperty_Numeric<uint32>
+class COREUOBJECT_API FUInt32Property : public TProperty_Numeric<uint32>
 {
     DECLARE_FIELD_API(FUInt32Property, TProperty_Numeric<uint32>)
 };
-class FUInt64Property : public TProperty_Numeric<uint64>
+class COREUOBJECT_API FUInt64Property : public TProperty_Numeric<uint64>
 {
     DECLARE_FIELD_API(FUInt64Property, TProperty_Numeric<uint64>)
 };
-class FFloatProperty : public TProperty_Numeric<float>
+class COREUOBJECT_API FFloatProperty : public TProperty_Numeric<float>
 {
     DECLARE_FIELD_API(FFloatProperty, TProperty_Numeric<float>)
 };
-class FDoubleProperty : public TProperty_Numeric<double>
+class COREUOBJECT_API FDoubleProperty : public TProperty_Numeric<double>
 {
     DECLARE_FIELD_API(FDoubleProperty, TProperty_Numeric<double>)
 };
 
-class FStrProperty : public FProperty
+class COREUOBJECT_API FStrProperty : public FProperty
 {
     DECLARE_FIELD_API(FStrProperty, FProperty)
 public:
@@ -187,7 +187,7 @@ public:
     }
 };
 
-class FArrayProperty : public FProperty
+class COREUOBJECT_API FArrayProperty : public FProperty
 {
     DECLARE_FIELD_API(FArrayProperty, FProperty)
 public:
@@ -252,7 +252,7 @@ public:
     FProperty* Inner;
 };
 
-class FMapProperty : public FProperty
+class COREUOBJECT_API FMapProperty : public FProperty
 {
     DECLARE_FIELD_API(FMapProperty, FProperty)
 public:
@@ -338,7 +338,7 @@ public:
     FProperty* ValueProp;
 };
 
-class FSetProperty : public FProperty
+class COREUOBJECT_API FSetProperty : public FProperty
 {
     DECLARE_FIELD_API(FSetProperty, FProperty)
 public:
@@ -417,7 +417,7 @@ public:
     FProperty* Inner;
 };
 
-class FVectorProperty : public FProperty
+class COREUOBJECT_API FVectorProperty : public FProperty
 {
     DECLARE_FIELD_API(FVectorProperty, FProperty)
 public:
@@ -449,7 +449,7 @@ public:
     std::function<void(FArchive&,void*)> ItemSerializer;
 };
 
-class FQuatProperty : public FProperty
+class COREUOBJECT_API FQuatProperty : public FProperty
 {
     DECLARE_FIELD_API(FQuatProperty, FProperty)
 public:
@@ -481,7 +481,7 @@ public:
     std::function<void(FArchive&,void*)> ItemSerializer;
 };
 
-class FStructProperty : public FProperty
+class COREUOBJECT_API FStructProperty : public FProperty
 {
     DECLARE_FIELD_API(FStructProperty, FProperty)
 public:
@@ -491,7 +491,7 @@ public:
     NClass* Struct;
 };
 
-class FObjectProperty : public FProperty
+class COREUOBJECT_API FObjectProperty : public FProperty
 {
     DECLARE_FIELD_API(FObjectProperty, FProperty)
 public:
@@ -499,7 +499,7 @@ public:
     virtual void SerializeItem(FArchive& Ar, void* Value) override;
 };
 
-class FEnumProperty : public FProperty
+class COREUOBJECT_API FEnumProperty : public FProperty
 {
     DECLARE_FIELD_API(FEnumProperty, FProperty)
 public:
@@ -550,7 +550,7 @@ public:
 };
 #endif
 
-struct FClassRegistryBase
+struct COREUOBJECT_API FClassRegistryBase
 {
     struct NullSuperClass { static NClass* StaticClass() { return nullptr; } };
 

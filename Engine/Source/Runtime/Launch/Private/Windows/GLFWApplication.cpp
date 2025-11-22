@@ -103,8 +103,8 @@ namespace nilou {
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     {
-        GetAppication()->SetWindowWidth(width);
-        GetAppication()->SetWindowHeight(height);
+        GApplication->SetWindowWidth(width);
+        GApplication->SetWindowHeight(height);
         ScreenResized = true;
     }
 
@@ -225,7 +225,7 @@ namespace nilou {
         window = glfwCreateWindow(config.screenWidth, config.screenHeight, appName.c_str(), nullptr, nullptr);
         if (window == NULL)
         {
-            std::cout << "Failed to create GLFW window" << std::endl;
+            NILOU_LOG(Fatal, "Failed to create GLFW window");
             glfwTerminate();
             return false;
         }

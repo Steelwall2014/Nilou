@@ -8,6 +8,8 @@
 
 #include "DynamicRHI.h"
 #include "VulkanResources.h"
+#include "VulkanBuffer.h"
+#include "VulkanSemaphore.h"
 #include "Containers/Array.h"
 
 #define VK_CHECK_RESULT(f)																				\
@@ -25,18 +27,16 @@ namespace nilou {
 
 class FVulkanCommandBufferManager;
 class FVulkanMemoryManager;
-class FVulkanStagingManager;
 class VulkanQueue;
 class VulkanTexture;
 class VulkanDevice;
 class VulkanCommandBufferPool;
-class VulkanSemaphore;
 
 }
 
 namespace nilou {
     
-class FVulkanDynamicRHI : public FDynamicRHI
+class VULKANRHI_API FVulkanDynamicRHI : public FDynamicRHI
 {
 public:
     static FVulkanDynamicRHI *Get() { return static_cast<FVulkanDynamicRHI*>(FDynamicRHI::Get()); }
@@ -153,7 +153,7 @@ private:
     std::vector<VkSemaphore> ImageAvailableSemaphores;
     std::vector<VkSemaphore> RenderFinishedSemaphores;
     uint32 CurrentSwapChainImageIndex = 0;
-    TRefCountPtr<VulkanSemaphore> CurrentImageAcquiredSemaphore;
+    std::unique_ptr<VulkanSemaphore> CurrentImageAcquiredSemaphore = nullptr;
 
     FVulkanRenderPass* RenderToScreenPass{};
     

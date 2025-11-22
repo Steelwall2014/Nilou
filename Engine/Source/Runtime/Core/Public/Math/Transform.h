@@ -29,7 +29,7 @@ namespace nilou {
     struct TRotator
     {
     private:
-        static NClass* Z_StaticClass;
+        CORE_API static NClass* Z_StaticClass;
     public:
         static NClass *StaticClass() { return Z_StaticClass; }
         /** Rotation around the right axis (around Y axis), Looking up and down (0=Straight Ahead, +Up, -Down) */
@@ -55,7 +55,7 @@ namespace nilou {
             return glm::abs(Pitch-B.Pitch) <= Tolerance && glm::abs(Yaw-B.Yaw) <= Tolerance && glm::abs(Roll-B.Roll) <= Tolerance;
         }
 
-        static const TRotator ZeroRotator;
+        CORE_API static const TRotator ZeroRotator;
 
         friend void Serialize(FArchive& Ar, TRotator<T>& Rotator);
         template <typename U>
@@ -80,7 +80,7 @@ namespace nilou {
         TVector<T> Translation;
         TVector<T> Scale3D;
     private:
-        static NClass* Z_StaticClass;
+        CORE_API static NClass* Z_StaticClass;
     public:
         static NClass *StaticClass() { return Z_StaticClass; }
         template <typename U>
@@ -120,18 +120,12 @@ namespace nilou {
 
         TMatrix<T> ToMatrix() const;
 
-        static const TTransform<T> Identity;
+        CORE_API static const TTransform<T> Identity;
 
         friend void Serialize(FArchive& Ar, TTransform<T>& Transform);
         template <typename U>
         friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
     };
-
-    template<typename T> 
-    const TTransform<T> TTransform<T>::Identity = TTransform<T>();
-    
-    template<typename T> 
-    const TRotator<T> TRotator<T>::ZeroRotator = TRotator<T>();
 
     using FTransform = TTransform<double>;
     using FTransform3f = TTransform<float>;

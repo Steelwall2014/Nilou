@@ -366,7 +366,7 @@ namespace nilou {
     /**
      * A linear, 32-bit/component floating point RGBA color.
      */
-    struct FLinearColor
+    struct CORE_API FLinearColor
     {
         float R,G,B,A;
 
@@ -397,7 +397,7 @@ namespace nilou {
         static const FLinearColor Yellow;
     };
 
-    struct FColor
+    struct CORE_API FColor
     {
 	    uint8 B,G,R,A;
         FColor() : B(0), G(0), R(0), A(0) {}

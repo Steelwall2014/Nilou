@@ -13,7 +13,7 @@ class FDynamicRHI;
 class RHICommandList;
 class IRHITransientResourceAllocator;
 
-class RenderGraph
+class RENDERCORE_API RenderGraph
 {
 public:
 

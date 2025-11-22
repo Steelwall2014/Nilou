@@ -242,7 +242,7 @@ namespace nilou {
 	{
 	public:
 		// Finds a UAV matching the descriptor in the cache or creates a new one and updates the cache.
-		class RHITextureView* GetOrCreateView(class RHITexture* Texture, const FRHITextureViewCreateInfo& CreateInfo);
+		RHI_API class RHITextureView* GetOrCreateView(class RHITexture* Texture, const FRHITextureViewCreateInfo& CreateInfo);
 
 	private:
 		std::vector<std::pair<FRHITextureViewCreateInfo, TRefCountPtr<RHITextureView>>> TextureViews;
@@ -354,7 +354,7 @@ namespace nilou {
 	class FGraphicsPipelineStateInitializer
 	{
 	public: 
-		FGraphicsPipelineStateInitializer();
+		RHI_API FGraphicsPipelineStateInitializer();
 
 		RHIVertexShader *VertexShader;
 		RHIPixelShader *PixelShader;

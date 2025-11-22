@@ -24,7 +24,7 @@ namespace nilou {
 		Vulkan,
 	};
 
-	class FDynamicRHI
+	class RHI_API FDynamicRHI
 	{
 	public:
 		static FDynamicRHI *Get();
@@ -136,7 +136,7 @@ namespace nilou {
 	// 	return FDynamicRHI::Get()->RHICreateTextureCube(name, Format, NumMips, InSizeX, InSizeY, InTexCreateFlags);
 	// }
 
-	extern FDynamicRHI* GDynamicRHI;
+	RHI_API extern FDynamicRHI* GDynamicRHI;
 
 	inline void RHIBeginFrame()
 	{

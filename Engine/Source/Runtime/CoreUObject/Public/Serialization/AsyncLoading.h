@@ -199,7 +199,7 @@ struct FAsyncLoadEventQueue
     }
 };
 
-class FAsyncLoadingThread : public FRunnable
+class COREUOBJECT_API FAsyncLoadingThread : public FRunnable
 {
 public:
     FAsyncLoadingThread();

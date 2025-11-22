@@ -6,7 +6,7 @@
 
 namespace nilou {
 
-    class FDelegateHandle
+    class ENGINE_API FDelegateHandle
     {
     public:
         enum EGenerateNewHandleType

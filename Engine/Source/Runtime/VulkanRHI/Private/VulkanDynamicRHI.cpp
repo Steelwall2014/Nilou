@@ -230,7 +230,7 @@ int FVulkanDynamicRHI::Initialize()
     uint32 extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
-    CurrentImageAcquiredSemaphore = new VulkanSemaphore();
+    CurrentImageAcquiredSemaphore = std::make_unique<VulkanSemaphore>();
 
     shader_compiler = shaderc_compiler_initialize();
 

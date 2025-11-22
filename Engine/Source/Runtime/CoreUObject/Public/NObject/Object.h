@@ -64,7 +64,7 @@ namespace nilou {
     };
     ENUM_CLASS_FLAGS(EObjectFlags);
 
-    struct FObjectInitializer
+    struct COREUOBJECT_API FObjectInitializer
     {
         NClass* Class;
         std::string Name;
@@ -74,7 +74,7 @@ namespace nilou {
         static FObjectInitializer& Get();
     };
 
-    class NObject
+    class COREUOBJECT_API NObject
     {
 
     private:
@@ -183,37 +183,37 @@ namespace nilou {
         return nullptr;
     }
 
-    NObject* NewObject(NObject* Outer, const std::string& Name, NClass* Class);
+    COREUOBJECT_API NObject* NewObject(NObject* Outer, const std::string& Name, NClass* Class);
     template <typename T>
     T* NewObject(NObject* Outer, const std::string& Name, NClass* Class=T::StaticClass())
     {
         return Cast<T>(NewObject(Outer, Name, Class));
     }
 
-    NObject* LoadObject(const std::string& Path);
+    COREUOBJECT_API NObject* LoadObject(const std::string& Path);
     template <typename T>
     T* LoadObject(const std::string& Path)
     {
         return Cast<T>(LoadObject(Path));
     }
 
-    NObject* FindObject(const std::string& Path);
+    COREUOBJECT_API NObject* FindObject(const std::string& Path);
     template <typename T>
     T* FindObject(const std::string& Path)
     {
         return Cast<T>(FindObject(Path));
     }
-    NObject* FindObject(NObject* Outer, const std::string& Name);
+    COREUOBJECT_API NObject* FindObject(NObject* Outer, const std::string& Name);
     template <typename T>
     T* FindObject(NObject* Outer, const std::string& Name)
     {
         return Cast<T>(FindObject(Outer, Name));
     }
 
-    NPackage* LoadPackage(const std::string& Name);
-    NPackage* FindPackage(const std::string& Name);
-    NPackage* CreatePackage(const std::string& Name);
-    NPackage* GetTransientPackage();
+    COREUOBJECT_API NPackage* LoadPackage(const std::string& Name);
+    COREUOBJECT_API NPackage* FindPackage(const std::string& Name);
+    COREUOBJECT_API NPackage* CreatePackage(const std::string& Name);
+    COREUOBJECT_API NPackage* GetTransientPackage();
 
     struct FStaticConstructObjectParameters
     {
@@ -225,9 +225,9 @@ namespace nilou {
         
         EObjectFlags Flags;
     };
-    NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params);
+    COREUOBJECT_API NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params);
 
-    void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects = true);
-    TArray<NObject *> GetObjectsWithPackage(const class NPackage* Package, bool bIncludeNestedObjects = true);
+    COREUOBJECT_API void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects = true);
+    COREUOBJECT_API TArray<NObject *> GetObjectsWithPackage(const class NPackage* Package, bool bIncludeNestedObjects = true);
 
 }

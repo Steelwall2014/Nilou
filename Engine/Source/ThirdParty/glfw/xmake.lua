@@ -1,0 +1,5 @@
+target("glfw")
+    set_kind("static")
+    add_includedirs("./include", {public = true})
+    add_links("$(projectdir)/Engine/Source/ThirdParty/glfw/lib/glfw3", {public = true})
+    add_links("kernel32", "User32", "Gdi32", "Shell32", {public = true})
