@@ -130,13 +130,6 @@ public:
 template<typename T>
 struct TBox
 {
-private:
-    CORE_API static NClass* Z_StaticClass;
-public:
-    CORE_API static NClass *StaticClass() { return Z_StaticClass; }
-    template <typename U>
-    friend class TClassRegistry;
-
 public:
 
     /** Holds the box's minimum point. */
@@ -151,6 +144,9 @@ public:
 
     TBox(const TVector<T> &InMin, const TVector<T> &InMax)
         : Min(InMin), Max(InMax) { }
+
+    bool operator==(const TBox &Other) const = default;
+    bool operator!=(const TBox &Other) const = default;
 
     TBox TransformBy(const TTransform<T> &Transform) const
     {
@@ -302,6 +298,13 @@ public:
     }
 
 };
+
+template<typename T>
+void Serialize(FArchive& Ar, TBox<T>& Box)
+{
+    Serialize(Ar["Min"], Box.Min);
+    Serialize(Ar["Max"], Box.Max);
+}
 
 using FBox = TBox<double>;
 

@@ -1,9 +1,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <glad.h>
 #include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+// #include <imgui.h>
+// #include <imgui_impl_glfw.h>
+// #include <imgui_impl_opengl3.h>
 #include <memory>
 
 // #include "DynamicRHI.h"
@@ -99,7 +99,7 @@ namespace nilou {
 
     // Our state
     bool show_demo_window = true;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     {

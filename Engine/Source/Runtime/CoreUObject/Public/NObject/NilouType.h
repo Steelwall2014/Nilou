@@ -1,4 +1,7 @@
 #pragma once
+#include "Math/Box.h"
+#include "Math/BoxSphereBounds.h"
+#include "Math/Transform.h"
 #include "NObject/Object.h"
 #include "NObject/Class.h"
 
@@ -417,9 +420,9 @@ public:
     FProperty* Inner;
 };
 
-class COREUOBJECT_API FVectorProperty : public FProperty
+class COREUOBJECT_API FMathProperty : public FProperty
 {
-    DECLARE_FIELD_API(FVectorProperty, FProperty)
+    DECLARE_FIELD_API(FMathProperty, FProperty)
 public:
     virtual bool Identical(const void* A, const void* B) const override
     {
@@ -430,55 +433,53 @@ public:
         ItemSerializer(Ar, Value);
     }
 
-    template <typename TVector>
+    template <typename T>
     static bool ItemIdenticalTemplate(const void* pA, const void* pB)
     {
-        const TVector& A = *reinterpret_cast<const TVector*>(pA);
-        const TVector& B = *reinterpret_cast<const TVector*>(pB);
+        const T& A = *reinterpret_cast<const T*>(pA);
+        const T& B = *reinterpret_cast<const T*>(pB);
         return A == B;
     }
 
-    template <typename TVector>
+    template <typename T>
     static void ItemSerializerTemplate(FArchive& Ar, void* Value)
     {
-        TVector& Vec = *reinterpret_cast<TVector*>(Value);
-        Serialize(Ar, Vec);
+        T& Math = *reinterpret_cast<T*>(Value);
+        Serialize(Ar, Math);
     }
 
     std::function<bool(const void*, const void*)> ItemIdentical;
     std::function<void(FArchive&,void*)> ItemSerializer;
 };
 
-class COREUOBJECT_API FQuatProperty : public FProperty
+class COREUOBJECT_API FVectorProperty : public FMathProperty
 {
-    DECLARE_FIELD_API(FQuatProperty, FProperty)
-public:
-    virtual bool Identical(const void* A, const void* B) const override
-    {
-        return ItemIdentical(A, B);
-    }
-    virtual void SerializeItem(FArchive& Ar, void* Value) override
-    {
-        ItemSerializer(Ar, Value);
-    }
+    DECLARE_FIELD_API(FVectorProperty, FMathProperty)
+};
 
-    template <typename TQuat>
-    static bool ItemIdenticalTemplate(const void* pA, const void* pB)
-    {
-        const TQuat& A = *reinterpret_cast<const TQuat*>(pA);
-        const TQuat& B = *reinterpret_cast<const TQuat*>(pB);
-        return A == B;
-    }
+class COREUOBJECT_API FQuatProperty : public FMathProperty
+{
+    DECLARE_FIELD_API(FQuatProperty, FMathProperty)
+};
 
-    template <typename TQuat>
-    static void ItemSerializerTemplate(FArchive& Ar, void* Value)
-    {
-        TQuat& Quat = *reinterpret_cast<TQuat*>(Value);
-        Serialize(Ar, Quat);
-    }
+class COREUOBJECT_API FRotatorProperty : public FMathProperty
+{
+    DECLARE_FIELD_API(FRotatorProperty, FMathProperty)
+};
 
-    std::function<bool(const void*, const void*)> ItemIdentical;
-    std::function<void(FArchive&,void*)> ItemSerializer;
+class COREUOBJECT_API FTransformProperty : public FMathProperty
+{
+    DECLARE_FIELD_API(FTransformProperty, FMathProperty)
+};
+
+class COREUOBJECT_API FBoxProperty : public FMathProperty
+{
+    DECLARE_FIELD_API(FBoxProperty, FMathProperty)
+};
+
+class COREUOBJECT_API FBoxSphereBoundsProperty : public FMathProperty
+{
+    DECLARE_FIELD_API(FBoxSphereBoundsProperty, FMathProperty)
 };
 
 class COREUOBJECT_API FStructProperty : public FProperty
@@ -691,44 +692,70 @@ struct COREUOBJECT_API FClassRegistryBase
             return Property;
         } 
     };
+
+    template<typename TPropertyType, typename TMathType>
+    static FProperty* ConstructMathProperty(const std::string& Name)
+    {
+        TPropertyType* Property = new TPropertyType(Name);
+        Property->ItemIdentical = &FMathProperty::ItemIdenticalTemplate<TMathType>;
+        Property->ItemSerializer = &FMathProperty::ItemSerializerTemplate<TMathType>;
+        return Property;
+    }
+
     template<typename T> struct TConstructProperty<TVector2<T>> 
     { 
         static FProperty* Construct(const std::string& Name) 
         { 
-            FVectorProperty* Property = new FVectorProperty(Name);
-            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector2<T>>;
-            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector2<T>>;
-            return Property;
+            return ConstructMathProperty<FVectorProperty, TVector2<T>>(Name);
         } 
     };
     template<typename T> struct TConstructProperty<TVector<T>> 
     { 
         static FProperty* Construct(const std::string& Name) 
         { 
-            FVectorProperty* Property = new FVectorProperty(Name);
-            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector<T>>;
-            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector<T>>;
-            return Property;
+            return ConstructMathProperty<FVectorProperty, TVector<T>>(Name);
         } 
     };
     template<typename T> struct TConstructProperty<TVector4<T>> 
     { 
         static FProperty* Construct(const std::string& Name) 
         { 
-            FVectorProperty* Property = new FVectorProperty(Name);
-            Property->ItemIdentical = &FVectorProperty::ItemIdenticalTemplate<TVector4<T>>;
-            Property->ItemSerializer = &FVectorProperty::ItemSerializerTemplate<TVector4<T>>;
-            return Property;
+            return ConstructMathProperty<FVectorProperty, TVector4<T>>(Name);
         } 
     };
     template<typename T> struct TConstructProperty<TQuat<T>> 
     { 
         static FProperty* Construct(const std::string& Name) 
         { 
-            FQuatProperty* Property = new FQuatProperty(Name);
-            Property->ItemIdentical = &FQuatProperty::ItemIdenticalTemplate<TQuat<T>>;
-            Property->ItemSerializer = &FQuatProperty::ItemSerializerTemplate<TQuat<T>>;
-            return Property;
+            return ConstructMathProperty<FQuatProperty, TQuat<T>>(Name);
+        } 
+    };
+    template<typename T> struct TConstructProperty<TRotator<T>> 
+    { 
+        static FProperty* Construct(const std::string& Name) 
+        { 
+            return ConstructMathProperty<FRotatorProperty, TRotator<T>>(Name);
+        } 
+    };
+    template<typename T> struct TConstructProperty<TTransform<T>> 
+    { 
+        static FProperty* Construct(const std::string& Name) 
+        { 
+            return ConstructMathProperty<FTransformProperty, TTransform<T>>(Name);
+        } 
+    };
+    template<typename T> struct TConstructProperty<TBox<T>> 
+    { 
+        static FProperty* Construct(const std::string& Name) 
+        { 
+            return ConstructMathProperty<FBoxProperty, TBox<T>>(Name);
+        } 
+    };
+    template<typename T> struct TConstructProperty<TBoxSphereBounds<T, T>> 
+    { 
+        static FProperty* Construct(const std::string& Name) 
+        { 
+            return ConstructMathProperty<FBoxSphereBoundsProperty, TBoxSphereBounds<T, T>>(Name);
         } 
     };
 

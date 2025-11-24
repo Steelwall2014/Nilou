@@ -8,10 +8,8 @@ namespace nilou {
 template<typename T, typename TExtent>
 struct TBoxSphereBounds
 {
-private:
-    CORE_API static NClass* Z_StaticClass;
 public:
-    static NClass *StaticClass() { return Z_StaticClass; }
+    CORE_API static NClass *StaticClass();
     template <typename U>
     friend class TClassRegistry;
 
@@ -39,7 +37,18 @@ public:
         return TBox<T>(Origin - BoxExtent, Origin + BoxExtent); 
     }
 
+    bool operator==(const TBoxSphereBounds &Other) const = default;
+    bool operator!=(const TBoxSphereBounds &Other) const = default;
+
 };
+
+template<typename T, typename TExtent>
+void Serialize(FArchive& Ar, TBoxSphereBounds<T, TExtent>& BoxSphereBounds)
+{
+    Serialize(Ar["Origin"], BoxSphereBounds.Origin);
+    Serialize(Ar["BoxExtent"], BoxSphereBounds.BoxExtent);
+    Serialize(Ar["SphereRadius"], BoxSphereBounds.SphereRadius);
+}
 
 using FBoxSphereBounds = TBoxSphereBounds<double, double>;
 

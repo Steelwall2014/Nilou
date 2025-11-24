@@ -30,11 +30,18 @@
             "processId": "${command:pickProcess}"
         },
         {
-            "name": "Nilou Debug",
+            "name": "NilouEditor",
             "type": "cppvsdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}/build/windows/x64/debug/",
             "program": "${workspaceFolder}/build/windows/x64/debug/NilouEditor.exe",
+        },
+        {
+            "name": "NilouGame",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/NilouGame.exe",
         },
         {
             "name": "NilouHeaderTool Debug",

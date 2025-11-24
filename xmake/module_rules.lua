@@ -11,6 +11,9 @@ function module_rules(module_name)
 
         on_load(function (target)
             target.is_module = true
+            local scriptdir = path.absolute(target:scriptdir())
+            target.definitions_file = scriptdir .. "/Generated/Definitions." .. target:name() .. ".h"
+            target:add("cxflags", "/FI " .. target.definitions_file, { force = true })
         end)
 
         on_prepare(function (target)
@@ -20,7 +23,8 @@ function module_rules(module_name)
                 api_export = ""
                 api_import = ""
             end
-            target:add("defines", target:name():upper() .. "_API=" .. api_export)
+            local new_api_defines = "#pragma once\n"
+            new_api_defines = new_api_defines .. "#define " .. target:name():upper() .. "_API " .. api_export .. "\n"
             local dep_names = {}
             for dep_name, dep in pairs(target:deps()) do
                 if dep.is_module then
@@ -29,7 +33,15 @@ function module_rules(module_name)
             end
             table.sort(dep_names)
             for _, dep_name in ipairs(dep_names) do
-                target:add("defines", dep_name:upper() .. "_API=" .. api_import)
+                new_api_defines = new_api_defines .. "#define " .. dep_name:upper() .. "_API " .. api_import .. "\n"
+            end
+
+            local old_api_defines = ""
+            if os.exists(target.definitions_file) then
+                old_api_defines = io.readfile(target.definitions_file)
+            end
+            if old_api_defines ~= new_api_defines then
+                io.writefile(target.definitions_file, new_api_defines)
             end
             
             local includedirs = target:get("includedirs")

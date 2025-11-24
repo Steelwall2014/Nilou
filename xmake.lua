@@ -14,7 +14,7 @@ end
 -- add_requires("vcpkg::glfw3")
 -- add_requires("glfw")
 -- add_requires("imgui[glfw-binding,opengl3-binding,vulkan-binding]", { alias = "imgui" })
-add_requires("imgui", {configs = {glfw = true, opengl3 = true, vulkan = true}})
+-- add_requires("imgui", {configs = {glfw = true, opengl3 = true, vulkan = true}})
 -- add_requires("draco")
 add_requires("fmt")
 -- add_requires("vcpkg::llvm")

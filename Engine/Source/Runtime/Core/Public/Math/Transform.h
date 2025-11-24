@@ -28,10 +28,7 @@ namespace nilou {
     template <typename T>
     struct TRotator
     {
-    private:
-        CORE_API static NClass* Z_StaticClass;
     public:
-        static NClass *StaticClass() { return Z_StaticClass; }
         /** Rotation around the right axis (around Y axis), Looking up and down (0=Straight Ahead, +Up, -Down) */
 	    T Pitch;
 
@@ -57,9 +54,8 @@ namespace nilou {
 
         CORE_API static const TRotator ZeroRotator;
 
-        friend void Serialize(FArchive& Ar, TRotator<T>& Rotator);
-        template <typename U>
-        friend class TClassRegistry;
+        bool operator==(const TRotator &Other) const = default;
+        bool operator!=(const TRotator &Other) const = default;
     };
 
     template <typename T>
@@ -79,13 +75,7 @@ namespace nilou {
         TQuat<T> Rotation;
         TVector<T> Translation;
         TVector<T> Scale3D;
-    private:
-        CORE_API static NClass* Z_StaticClass;
     public:
-        static NClass *StaticClass() { return Z_StaticClass; }
-        template <typename U>
-        friend class TClassRegistry;
-
         TTransform();
         TTransform(const TQuat<T> &rotation);
         TTransform(const TVector<T> &translation);
@@ -112,6 +102,8 @@ namespace nilou {
         void SetRotator(const TRotator<T> &rotator);
         void SetTranslation(const TVector<T> &translation);
         TTransform operator*(const TTransform &Other) const;
+        bool operator==(const TTransform &Other) const = default;
+        bool operator!=(const TTransform &Other) const = default;
         TTransform GetRelativeTransform(const TTransform &Other) const;
         T GetMinimumAxisScale() const;
         TVector<T> GetSafeScaleReciprocal(const TVector<T> &InScale, T Tolerance = SMALL_NUMBER);
@@ -122,7 +114,8 @@ namespace nilou {
 
         CORE_API static const TTransform<T> Identity;
 
-        friend void Serialize(FArchive& Ar, TTransform<T>& Transform);
+        template <typename U>
+        friend void Serialize(FArchive& Ar, TTransform<U>& Transform);
         template <typename U>
         friend std::ostream &operator<<(std::ostream &out, const TTransform<U> &obj);
     };
@@ -133,19 +126,9 @@ namespace nilou {
     template <typename T>
     void Serialize(FArchive& Ar, TRotator<T>& Rotator)
     {
-        nlohmann::json& Node = Ar.GetNode();
-        if (Ar.IsLoading())
-        {
-            Rotator.Pitch = Node["Pitch"];
-            Rotator.Yaw = Node["Yaw"];
-            Rotator.Roll = Node["Roll"];
-        }
-        else
-        {
-            Node["Pitch"] = Rotator.Pitch;
-            Node["Yaw"] = Rotator.Yaw;
-            Node["Roll"] = Rotator.Roll;
-        }
+        Serialize(Ar["Pitch"], Rotator.Pitch);
+        Serialize(Ar["Yaw"], Rotator.Yaw);
+        Serialize(Ar["Roll"], Rotator.Roll);
     }
 
     template <typename T>
