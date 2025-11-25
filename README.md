@@ -51,6 +51,8 @@ xmake build -w NilouEditor
 - 支持双精度世界坐标，在渲染时世界坐标会变换到Relative to Eye的坐标。
 - 实现了Scene capture和反射探针，实现了IBL。
 ~~- 同时支持OpenGL和Vulkan（vulkan暂时不支持虚拟纹理）~~目前已不打算支持OpenGL，由于它和现代图形API相差比较大。
+## 近期
+近期在重构整个项目，已完成的有反射、序列化、模块化等。正在进行中的是重构Shader语言（预计使用slang或HLSL）
 ## TODO
 - HBAO
 - Virtual Shadow Map
