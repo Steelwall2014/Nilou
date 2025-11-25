@@ -1,0 +1,7 @@
+target("shaderc")
+    set_kind("phony")
+    add_includedirs("./include", {public = true})
+    add_links("$(projectdir)/Engine/Source/ThirdParty/shaderc/lib/shaderc_shared", {public = true})
+    after_build(function (target)
+        os.cp("$(scriptdir)/bin/shaderc_shared.dll", "$(builddir)/$(os)/$(arch)/$(mode)")
+    end)

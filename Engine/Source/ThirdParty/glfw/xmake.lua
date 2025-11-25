@@ -1,9 +1,10 @@
 target("glfw")
     set_kind("phony")
     add_includedirs("./include", {public = true})
-    -- add_defines("GLFW_DLL", {public = true})
+    add_defines("GLFW_DLL", {public = true})
     add_links("$(projectdir)/Engine/Source/ThirdParty/glfw/lib/glfw3dll", {public = true})
     add_links("kernel32", "User32", "Gdi32", "Shell32", {public = true})
+    add_packages("vulkansdk", {public = true})
 
 -- package("my_glfw")
 --     set_kind("library")

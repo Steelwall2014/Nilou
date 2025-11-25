@@ -1,5 +1,6 @@
 module_rules("VulkanRHI")
     add_deps("RHI")
-    add_deps("VulkanSDK")
+    add_packages("vulkansdk", {public = true})
     add_deps("glfw")
-    add_packages("spirv-reflect")
+    add_deps("spirv-reflect")
+    add_deps("shaderc")
