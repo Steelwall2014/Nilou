@@ -8,7 +8,7 @@
 
 namespace nilou {
 
-class FUObjectHashTables
+class FNObjectHashTables
 {
 public:
     std::mutex CriticalSection;
@@ -16,9 +16,9 @@ public:
     /** Map of object to the objects they contain */
     TMap<NObject*, TArray<NObject*>> ObjectOuterMap;
 
-    static FUObjectHashTables& Get()
+    static FNObjectHashTables& Get()
     {
-        static FUObjectHashTables Instance;
+        static FNObjectHashTables Instance;
         return Instance;
     }
 };
@@ -60,7 +60,7 @@ NObject* LoadObject(const std::string& Path)
 
 NObject* FindObject(const std::string& Path)
 {
-	FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+	FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     auto& ObjectMap = ThreadHash.ObjectMap;
     auto Found = ObjectMap.Find(Path);
@@ -78,7 +78,7 @@ NObject* FindObject(NObject* Outer, const std::string& Name)
     {
         return FindObject(Name);
     }
-    FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+    FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     auto& ObjectOuterMap = ThreadHash.ObjectOuterMap;
     auto Found = ObjectOuterMap.Find(Outer);
@@ -141,7 +141,7 @@ NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& 
 
 void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects)
 {
-	FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+	FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     TArray<TArray<NObject*>*> AllInners;
 
@@ -199,7 +199,7 @@ NObject::NObject(const FObjectInitializer& Initializer)
     , NamePrivate(Initializer.Name)
     , OuterPrivate(Initializer.Outer)
 {
-    FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+    FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     ThreadHash.ObjectMap.Add(NamePrivate, this);
     if (OuterPrivate)

@@ -1,6 +1,4 @@
 #pragma once
-#include <iostream>
-
 #include "NObject/NilouType.h"
 #include "Math/Transform.h"
 

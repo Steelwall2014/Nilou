@@ -50,32 +50,17 @@ struct TypeMetaData
     CXCursor Cursor;
     string FileName;
     string Name;
-    string NameWithoutNamespace;
     string BaseClass;
     set<string> DerivedClasses;
     map<string, string> Fields;
     set<string> Methods;
-    vector<vector<string>> Constructors;
+    // vector<vector<string>> Constructors;
     string GeneratedCode;
     string MetaType; // class or struct
     vector<string> EnumValues;
     vector<string> AdditionalIncludes;
 };
 map<string, TypeMetaData> NTypes;
-
-string fully_qualified(CXCursor c)
-{
-    if (clang_getCursorKind(c) == CXCursorKind::CXCursor_TranslationUnit || 
-        clang_getCursorKind(c) == CXCursorKind::CXCursor_FirstInvalid)
-        return "";
-    else
-    {
-        string res = fully_qualified(clang_getCursorSemanticParent(c));
-        if (res != "")
-            return res + "::" + GetCursorSpelling(c);
-    }
-    return GetCursorSpelling(c);
-}
 
 bool IsReflectedStruct(const string& TypeName)
 {
@@ -284,7 +269,7 @@ void FixIncompleteForwardDeclarations(TypeMetaData& CurrentType, CXCursor FieldC
         string s = GetCursorSpelling(c);
         if (c.kind == CXCursor_TypeRef)
         {
-            s = StripClassStructPrefix(s);
+            s = RemoveNamespace(StripClassStructPrefix(s));
             if (IsReflectedType(s))
             {
                 auto& AdditionalIncludes = CurrentType.AdditionalIncludes;
@@ -352,6 +337,14 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
         return false;
     }
 
+    // Intrinsic types
+    NTypes["NObject"].Name = "NObject";
+    NTypes["NObject"].MetaType = "class";
+    NTypes["NPackage"].Name = "NPackage";
+    NTypes["NPackage"].MetaType = "class";
+    NTypes["NClass"].Name = "NClass";
+    NTypes["NClass"].MetaType = "class";
+
     mutex NTypesMutex;
     std::for_each(std::execution::par, TranslationUnits.begin(), TranslationUnits.end(), [&](auto& pair) 
     {
@@ -359,35 +352,48 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
         CXCursor cursor = clang_getTranslationUnitCursor(unit);
         ClangVisitChildren(cursor, [&](CXCursor c, CXCursor parent)
         {
-            string s = GetCursorSpelling(c);
             auto cursor_kind = clang_getCursorKind(c);
             if (cursor_kind == CXCursor_AnnotateAttr) 
             {
                 std::lock_guard<std::mutex> lock(NTypesMutex);
-                string class_name = fully_qualified(parent);
-                if ((s == "reflect-class" || s == "reflect-struct" || s == "reflect-enum") && !NTypes.contains(class_name)) 
+                string annotation = GetCursorSpelling(c);
+                string class_name = GetCursorSpelling(parent);
+                if ((annotation == "reflect-class" || annotation == "reflect-struct" || annotation == "reflect-enum") && !NTypes.contains(class_name)) 
                 {
                     NTypes[class_name].Cursor = parent;
                     NTypes[class_name].Name = class_name;
-                    NTypes[class_name].NameWithoutNamespace = RemoveNamespace(class_name);
                     NTypes[class_name].FileName = filepath;
-                    if (s == "reflect-class")
+                    if (annotation == "reflect-class")
                         NTypes[class_name].MetaType = "class";
-                    else if (s == "reflect-struct")
+                    else if (annotation == "reflect-struct")
                         NTypes[class_name].MetaType = "struct";
-                    else if (s == "reflect-enum")
+                    else if (annotation == "reflect-enum")
                         NTypes[class_name].MetaType = "enum";
                 }
             }
-            else if (cursor_kind == CXCursor_CXXBaseSpecifier) 
+            
+            return CXChildVisit_Recurse;
+        });
+    });
+
+    std::for_each(std::execution::par, TranslationUnits.begin(), TranslationUnits.end(), [&](auto& pair) 
+    {
+        auto& [filepath, unit] = pair;
+        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        ClangVisitChildren(cursor, [&](CXCursor c, CXCursor parent)
+        {
+            auto cursor_kind = clang_getCursorKind(c);
+            if (cursor_kind == CXCursor_CXXBaseSpecifier) 
             {
                 std::lock_guard<std::mutex> lock(NTypesMutex);
-                string cursor_spelling = fully_qualified(c);
-                vector<string> tokens = Split(cursor_spelling, ':');
-                string base_class = regex_replace(cursor_spelling, regex("class "), "");
-                string derived_class = fully_qualified(parent);
-                NTypes[base_class].DerivedClasses.insert(derived_class);
-                NTypes[derived_class].BaseClass = GetRawType(base_class);
+                string cursor_spelling = GetCursorSpelling(c);
+                string base_class = RemoveNamespace(StripClassStructPrefix(cursor_spelling));
+                string derived_class = GetCursorSpelling(parent);
+                if (IsReflectedType(base_class) && IsReflectedType(derived_class))
+                {
+                    NTypes[base_class].DerivedClasses.insert(derived_class);
+                    NTypes[derived_class].BaseClass = base_class;
+                }
             }
             
             return CXChildVisit_Recurse;
@@ -400,14 +406,14 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
         auto& [name, CurrentType] = pair;
         ClangVisitChildren(CurrentType.Cursor, [&](CXCursor c, CXCursor parent)
         {
-            string cursor_spelling = fully_qualified(c);
+            string cursor_spelling = GetCursorSpelling(c);
             string cursor_kind_str = GetCursorKindSpelling(c);
             auto cursor_kind = clang_getCursorKind(c);
 
             if (cursor_kind == CXCursor_Constructor)
             {
                 // string class_name = cursor_spelling;
-                // string method_name = fully_qualified(parent);
+                // string method_name = GetCursorSpelling(parent);
                 // string method_args = GetCursorTypeSpelling(parent);
                 // if (IsReflectedType(class_name))
                 // {
@@ -426,7 +432,7 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
                 if (cursor_spelling == "reflect-property") 
                 {
                     CXCursor class_cursor = clang_getCursorSemanticParent(parent);
-                    string class_name = fully_qualified(class_cursor);
+                    string class_name = GetCursorSpelling(class_cursor);
                     if (class_name == CurrentType.Name)
                     {
                         string field_name = GetCursorSpelling(parent);
@@ -438,7 +444,7 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
                 else if (cursor_spelling == "reflect-method")
                 {
                     CXCursor class_cursor = clang_getCursorSemanticParent(parent);
-                    string class_name = fully_qualified(class_cursor);
+                    string class_name = GetCursorSpelling(class_cursor);
                     if (class_name == CurrentType.Name)
                     {
                         string method_name = GetCursorSpelling(parent);
@@ -450,7 +456,7 @@ bool ParseHeaderFile(const std::set<string>& filepaths, const std::vector<const 
             }
             else if (cursor_kind == CXCursor_EnumConstantDecl)
             {
-                string enum_name = fully_qualified(parent);
+                string enum_name = GetCursorSpelling(parent);
                 string enum_value = GetCursorSpelling(c);
                 if (enum_name == CurrentType.Name)
                 {
@@ -488,43 +494,42 @@ string GenerateIncludes(const TypeMetaData& Type)
 string GenerateTypeRegistry(const TypeMetaData& Type)
 {
     const auto ClassName = Type.Name;
-    const auto ClassNameWithoutNamespace = Type.NameWithoutNamespace;
     string BeginClassRegistry;
     string RegistryBody;
     string EndClassRegistry;
     if (Type.MetaType == "enum")
     {
         BeginClassRegistry += std::format(
-            "BEGIN_ENUM_REGISTRY({}, EClassFlags::Native)\n", ClassNameWithoutNamespace);
+            "BEGIN_ENUM_REGISTRY({}, EClassFlags::Native)\n", ClassName);
         for (auto& EnumValue : Type.EnumValues)
         {
             RegistryBody += std::format("\tENUM_VALUE({});\n", EnumValue);
         }
-        EndClassRegistry = std::format("END_ENUM_REGISTRY({})\n", ClassNameWithoutNamespace);
+        EndClassRegistry = std::format("END_ENUM_REGISTRY({})\n", ClassName);
     }
     else if (Type.MetaType == "struct")
     {
         BeginClassRegistry += std::format(
             "BEGIN_STRUCT_REGISTRY({}, {}, EClassFlags::Native)\n", 
-            ClassNameWithoutNamespace, 
+            ClassName, 
             Type.BaseClass!="" ? Type.BaseClass : "NullSuperClass");
         for (auto& [FieldName, FieldType] : Type.Fields)
         {
             RegistryBody += std::format("\tSTRUCT_PROPERTY({})\n", FieldName);
         }
-        EndClassRegistry = std::format("END_STRUCT_REGISTRY({})\n", ClassNameWithoutNamespace);
+        EndClassRegistry = std::format("END_STRUCT_REGISTRY({})\n", ClassName);
     }
-    else 
+    else if (Type.MetaType == "class")
     {
         BeginClassRegistry += std::format(
             "BEGIN_CLASS_REGISTRY({}, {}, EClassFlags::Native)\n", 
-            ClassNameWithoutNamespace, 
+            ClassName, 
             Type.BaseClass!="" ? Type.BaseClass : "NullSuperClass");
         for (auto& [FieldName, FieldType] : Type.Fields)
         {
             RegistryBody += std::format("\tCLASS_PROPERTY({})\n", FieldName);
         }
-        EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassNameWithoutNamespace);
+        EndClassRegistry = std::format("END_CLASS_REGISTRY({})\n", ClassName);
     }
     return std::format(
                 "{0}\n"
@@ -555,7 +560,7 @@ void WriteCode(string GeneratedCodePath)
     std::set<string> ExpectedTypes;
     for (auto& [ClassName, Type] : NTypes)
     {
-        ExpectedTypes.insert(Type.NameWithoutNamespace);
+        ExpectedTypes.insert(Type.Name);
     }
     ForEachFile(GeneratedCodePath, false, 
         [&](const std::string& filepath)
@@ -573,7 +578,7 @@ void WriteCode(string GeneratedCodePath)
     for (auto& [ClassName, Type] : NTypes)
     {
         if (Type.FileName == "") continue;
-        fs::path filepath = GeneratedCodePath + "/" + Type.NameWithoutNamespace + ".gen.cpp";
+        fs::path filepath = GeneratedCodePath + "/" + Type.Name + ".gen.cpp";
         if (fs::exists(filepath))
         {
             ifstream in_stream(filepath);

@@ -5,7 +5,6 @@ function module_rules(module_name)
         set_languages("cxx20")
         add_files("./Private/**.cpp")
         add_includedirs("./Public", {public = true})
-        add_includedirs("$(projectdir)/Engine/Source/ThirdParty/include")
         add_cxflags("/utf-8")
         add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
 
@@ -45,6 +44,9 @@ function module_rules(module_name)
             end
             
             local includedirs = target:get("includedirs")
+            if type(includedirs) ~= "table" then
+                includedirs = { includedirs }
+            end
             local deps = target:deps()
             for dep_name, dep in pairs(deps) do
                 local dep_includedirs = dep:get("includedirs")
@@ -58,9 +60,10 @@ function module_rules(module_name)
             for i, v in ipairs(includedirs) do
                 include_dir = include_dir .. string.format(" -I \"%s\"", path.translate(path.absolute(v)))
             end
+            local force_include_file = "-include \"" .. target.definitions_file .. "\""
             local headertool_path = "$(builddir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
             if (os.exists(headertool_path)) then
-                local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s", headertool_path, src_dir, generated_dir, include_dir)
+                local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s %s", headertool_path, src_dir, generated_dir, include_dir, force_include_file)
                 print(exec)
                 os.exec(exec)
                 target:add("files", generated_dir .. "/*.gen.cpp")
