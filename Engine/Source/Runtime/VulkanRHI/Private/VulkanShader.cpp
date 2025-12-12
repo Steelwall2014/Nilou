@@ -13,11 +13,11 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = TRefCountPtr(new VulkanVertexShader(Device->Handle));
-        VulkanShader->DebugName = DebugName;
+        VulkanVertexShaderRef VulkanShader = TRefCountPtr(new VulkanVertexShader(Device->Handle, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
+        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
@@ -39,11 +39,11 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = TRefCountPtr(new VulkanPixelShader(Device->Handle));
-        VulkanShader->DebugName = DebugName;
+        VulkanPixelShaderRef VulkanShader = TRefCountPtr(new VulkanPixelShader(Device->Handle, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
+        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
@@ -65,11 +65,11 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = TRefCountPtr(new VulkanComputeShader(Device->Handle));
-        VulkanShader->DebugName = DebugName;
+        VulkanComputeShaderRef VulkanShader = TRefCountPtr(new VulkanComputeShader(Device->Handle, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
-        bool bSuccess = RHIReflectShaderInternal(result, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
+        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
         if (!bSuccess)
         {
             NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);
@@ -82,6 +82,41 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     NILOU_LOG(Error, "failed to create compute shader!");
     return nullptr;
+}
+
+template<typename TShader>
+TRefCountPtr<TShader> FVulkanDynamicRHI::RHICreateShaderInternal(TArrayView<uint8> ByteCode, const std::string& DebugName)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = ByteCode.Num();
+    createInfo.pCode = reinterpret_cast<const uint32*>(ByteCode.GetData());
+    VkShaderModule Module{};
+    VK_CHECK_RESULT(vkCreateShaderModule(Device->Handle, &createInfo, nullptr, &Module));
+    TRefCountPtr<TShader> Shader = TRefCountPtr(new TShader(Device->Handle, DebugName));
+    Shader->Module = Module;
+    std::string OutMessage;
+    bool bSuccess = RHIReflectShaderInternal(ByteCode, Shader->DescriptorSetLayouts, Shader->PushConstantRange, OutMessage);
+    if (!bSuccess)
+    {
+        NILOU_LOG(Fatal, "failed to reflect shader! {}", OutMessage);
+        return nullptr;
+    }
+    return Shader;
+}
+
+RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+{
+    return RHICreateShaderInternal<VulkanVertexShader>(ByteCode, DebugName);
+}
+
+RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+{
+    return RHICreateShaderInternal<VulkanPixelShader>(ByteCode, DebugName);
+}
+RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+{
+    return RHICreateShaderInternal<VulkanComputeShader>(ByteCode, DebugName);
 }
 
 std::pair<VkShaderModule, shaderc_compilation_result_t> 

@@ -1,14 +1,14 @@
-#include "Renderer/PreZPassRendering.h"
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/RenderPass.h"
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
 #include "Renderer/DeferredShadingSceneRenderer.h"
 #include "RHICommandList.h"
+#include "DepthRendering.h"
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FPreZPassVS, "/Shaders/MaterialShaders/PreZPassVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FPreZPassPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
 
-    void FDeferredShadingSceneRenderer::RenderPreZPass(RenderGraph& Graph)
+    void FDeferredShadingSceneRenderer::RenderPrePass(RenderGraph& Graph)
     {
         RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
         RHIRasterizerState* RasterizerState = TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
@@ -28,12 +28,12 @@ namespace nilou {
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                    FShaderPermutationParameters PermutationParametersVS(&FPreZPassVS::StaticType, 0);
-                    FShaderPermutationParameters PermutationParametersPS(&FPreZPassPS::StaticType, 0);
+                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
+                    FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
 
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                    ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-                    ShaderBindings.SetBuffer("FPrimitiveShaderParameters", Element.PrimitiveUniformBuffer);
+                    ShaderBindings.SetBuffer("ViewParameters", View.ViewUniformBuffer);
+                    ShaderBindings.SetBuffer("PrimitiveParameters", Element.PrimitiveUniformBuffer);
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(

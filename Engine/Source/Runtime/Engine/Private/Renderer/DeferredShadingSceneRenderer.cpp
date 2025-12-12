@@ -26,8 +26,8 @@
 
 namespace nilou {
 
-    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", EShaderFrequency::SF_Vertex, Global)
-    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", EShaderFrequency::SF_Pixel, Global)
+    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", "Main", EShaderFrequency::Vertex)
+    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", "Main", EShaderFrequency::Pixel)
 
     FDeferredShadingSceneRenderer *Renderer = nullptr;
 
@@ -284,7 +284,7 @@ namespace nilou {
 
         InitViews(Graph);
 
-        RenderPreZPass(Graph);
+        RenderPrePass(Graph);
 
         RenderCSMShadowPass(Graph);
 
@@ -371,11 +371,11 @@ namespace nilou {
         // construct PSO initializer and create PSO
         FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
         FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
-        FShaderInstance *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
-        FShaderInstance *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
+        RHIShader *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
+        RHIShader *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
         FGraphicsPipelineStateInitializer PSOInitializer;
-        PSOInitializer.VertexShader = RenderToScreenVS->GetVertexShaderRHI();
-        PSOInitializer.PixelShader = RenderToScreenPS->GetPixelShaderRHI();
+        PSOInitializer.VertexShader = static_cast<RHIVertexShader*>(RenderToScreenVS);
+        PSOInitializer.PixelShader = static_cast<RHIPixelShader*>(RenderToScreenPS);
         PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
         PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
         PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();

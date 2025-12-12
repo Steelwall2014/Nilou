@@ -54,7 +54,7 @@ namespace nilou {
     private:
         FStaticMeshVertexBuffers VertexBuffers;
         FStaticMeshIndexBuffer IndexBuffer;
-        FStaticVertexFactory VertexFactory;
+        FStaticMeshVertexFactory VertexFactory;
         UMaterial *Material;
 
         float SphereRadius;

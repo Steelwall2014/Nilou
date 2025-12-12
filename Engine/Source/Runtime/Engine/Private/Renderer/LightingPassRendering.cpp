@@ -4,7 +4,7 @@
 #include "RenderGraphUtils.h"
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/GlobalShaders/LightingPassPixelShader.frag", EShaderFrequency::SF_Pixel, Global);
+    IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/GlobalShaders/LightingPassPixelShader.frag", "Main", EShaderFrequency::Pixel);
     
     void FLightingPassPS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
@@ -38,13 +38,13 @@ namespace nilou {
                 PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
                 FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
 
-                FShaderInstance *LightPassVS = GetGlobalShader(PermutationParametersVS);
-                FShaderInstance *LightPassPS = GetGlobalShader(PermutationParametersPS);
+                RHIShader *LightPassVS = GetGlobalShader(PermutationParametersVS);
+                RHIShader *LightPassPS = GetGlobalShader(PermutationParametersPS);
                 
                 FGraphicsPipelineStateInitializer PSOInitializer;
 
-                PSOInitializer.VertexShader = LightPassVS->GetVertexShaderRHI();
-                PSOInitializer.PixelShader = LightPassPS->GetPixelShaderRHI();
+                PSOInitializer.VertexShader = static_cast<RHIVertexShader*>(LightPassVS);
+                PSOInitializer.PixelShader = static_cast<RHIPixelShader*>(LightPassPS);
 
                 PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();

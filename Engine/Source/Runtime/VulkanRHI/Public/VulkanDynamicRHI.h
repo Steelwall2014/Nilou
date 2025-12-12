@@ -62,6 +62,9 @@ public:
     virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName) override;
     virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName) override;
     virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName) override;
+    virtual RHIVertexShaderRef RHICreateVertexShader(TArrayView<uint8> ByteCode, const std::string& DebugName) override;
+    virtual RHIPixelShaderRef RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName) override;
+    virtual RHIComputeShaderRef RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName) override;
     virtual bool RHIReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage) override;
     virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) override;
     virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
@@ -113,7 +116,8 @@ public:
 private:
     void InitInstance();
     std::pair<VkShaderModule, shaderc_compilation_result_t> RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
-    bool RHIReflectShaderInternal(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
+    template<typename TShader> TRefCountPtr<TShader> RHICreateShaderInternal(TArrayView<uint8> ByteCode, const std::string& DebugName);
+    bool RHIReflectShaderInternal(TArrayView<uint8> ByteCode, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
     RHITextureRef RHICreateTextureInternal(
         const std::string &name, EPixelFormat Format, 
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);

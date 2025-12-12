@@ -220,13 +220,13 @@ namespace nilou {
     public:
         FMaterialRenderProxy(UMaterial* InMaterial);
 
-        FShaderInstance *GetShader(
+        RHIShader *GetShader(
             const FVertexFactoryPermutationParameters VFParameter, 
             const FShaderPermutationParameters &ShaderParameter) const
         {
             return ShaderMap->GetShader(VFParameter, ShaderParameter);
         }
-        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter) const
+        RHIShader *GetShader(const FShaderPermutationParameters &ShaderParameter) const
         {
             return ShaderMap->GetShader(ShaderParameter);
         }

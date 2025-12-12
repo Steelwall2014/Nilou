@@ -10,7 +10,7 @@ class TVulkanShader : public BaseType
 {
 public:
     friend class FVulkanDynamicRHI;
-    TVulkanShader(VkDevice InDevice) : Device(InDevice) { }
+    TVulkanShader(VkDevice InDevice, const std::string& InName) : BaseType(InName), Device(InDevice) { }
 
     virtual bool Success() override
     {

@@ -75,6 +75,13 @@
                 "-I", "D:\\Nilou\\Engine\\Source\\ThirdParty\\tinygltf", 
                 "-include", "D:\\Nilou\\Engine\\Source\\Runtime\\Launch\\Generated\\Definitions.Launch.h"
             ]
+        },
+        {
+            "name": "TestSlang",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/test-slang.exe",
         }
     ]
 }

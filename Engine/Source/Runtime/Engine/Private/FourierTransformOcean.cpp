@@ -9,10 +9,10 @@ namespace nilou {
     constexpr int MAX_RENDERING_NODES = 500;
 
     DECLARE_GLOBAL_SHADER(FOceanGaussionSpectrumShader)
-    IMPLEMENT_SHADER_TYPE(FOceanGaussionSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanGaussianSpectrum.comp", EShaderFrequency::SF_Compute, Global);
+    IMPLEMENT_SHADER_TYPE(FOceanGaussionSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanGaussianSpectrum.comp", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanDisplacementSpectrumShader)
-    IMPLEMENT_SHADER_TYPE(FOceanDisplacementSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanDisplacementSpectrum.comp", EShaderFrequency::SF_Compute, Global);
+    IMPLEMENT_SHADER_TYPE(FOceanDisplacementSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanDisplacementSpectrum.comp", "Main", EShaderFrequency::Compute);
 
 	class FOceanFastFourierTransformShader : public FGlobalShader
 	{
@@ -26,20 +26,20 @@ namespace nilou {
             Domain.ModifyCompilationEnvironment(Environment);
         }
 	};
-    IMPLEMENT_SHADER_TYPE(FOceanFastFourierTransformShader, "/Shaders/FastFourierTransformOcean/OceanFastFourierTransform.comp", EShaderFrequency::SF_Compute, Global);
+    IMPLEMENT_SHADER_TYPE(FOceanFastFourierTransformShader, "/Shaders/FastFourierTransformOcean/OceanFastFourierTransform.comp", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanDisplacementShader)
-    IMPLEMENT_SHADER_TYPE(FOceanDisplacementShader, "/Shaders/FastFourierTransformOcean/OceanCreateDisplacement.comp", EShaderFrequency::SF_Compute, Global);
+    IMPLEMENT_SHADER_TYPE(FOceanDisplacementShader, "/Shaders/FastFourierTransformOcean/OceanCreateDisplacement.comp", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
-    IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", EShaderFrequency::SF_Compute, Global);
+    IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", "Main", EShaderFrequency::Compute);
 
     static void CreateGaussianRandom(RenderGraph& Graph, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutGaussianRandomRT)
     {
         int32 group_num = OutGaussianRandomRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
-        FShaderInstance *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(GaussionSpectrumShader->GetComputeShaderRHI());
+        RHIShader *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(GaussionSpectrumShader));
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GaussionSpectrumShader DescriptorSet", GaussionSpectrumShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
@@ -65,8 +65,8 @@ namespace nilou {
         RDGTexture* DisplaceYSpectrumRT = Graph.CreateTexture("FastFourierTransform DisplaceYSpectrumRT", GaussianRandomRT->Desc);
 
         FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
-        FShaderInstance *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementSpectrumShader->GetComputeShaderRHI());
+        RHIShader *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DisplacementSpectrumShader));
         
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementSpectrumShader DescriptorSet", DisplacementSpectrumShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
@@ -95,8 +95,8 @@ namespace nilou {
         FOceanFastFourierTransformShader::FPermutationDomain PermutationVector;
         PermutationVector.Set<FOceanFastFourierTransformShader::FDimensionHorizontalPass>(bHorizontalPass);
         FShaderPermutationParameters PermutationParameters(&FOceanFastFourierTransformShader::StaticType, PermutationVector.ToDimensionValueId());
-        FShaderInstance *FFTShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(FFTShader->GetComputeShaderRHI());
+        RHIShader *FFTShader = GetGlobalShader(PermutationParameters);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(FFTShader));
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));
@@ -123,8 +123,8 @@ namespace nilou {
     {
         int32 group_num = HeightSpectrumRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanDisplacementShader::StaticType, 0);
-        FShaderInstance *DisplacementShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(DisplacementShader->GetComputeShaderRHI());
+        RHIShader *DisplacementShader = GetGlobalShader(PermutationParameters);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DisplacementShader));
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementShader DescriptorSet", DisplacementShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
@@ -150,8 +150,8 @@ namespace nilou {
     {
         int32 group_num = DisplaceRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
-        FShaderInstance *NormalFoamShader = GetGlobalShader(PermutationParameters);
-        RHIComputePipelineState* PSO = RHICreateComputePipelineState(NormalFoamShader->GetComputeShaderRHI());
+        RHIShader *NormalFoamShader = GetGlobalShader(PermutationParameters);
+        RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(NormalFoamShader));
 
         RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("NormalFoamShader DescriptorSet", NormalFoamShader->GetDescriptorSetLayout(0));
         DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());

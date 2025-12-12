@@ -211,7 +211,7 @@ namespace nilou {
 
         void ComputeViewVisibility(FSceneViewFamily& ViewFamily, std::vector<std::vector<FMeshBatch>>& OutViewMeshBatches, std::vector<FViewElementPDI>& OutViewPDIs);
         
-        void RenderPreZPass(RenderGraph& Graph);
+        void RenderPrePass(RenderGraph& Graph);
         
         void RenderCSMShadowPass(RenderGraph& Graph);
 

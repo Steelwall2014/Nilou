@@ -16,7 +16,7 @@ namespace nilou {
 
     namespace fs = std::filesystem;
 
-    void FStaticMeshVertexBuffers::InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<FDynamicMeshVertex> &Vertices)
+    void FStaticMeshVertexBuffers::InitFromDynamicVertex(FStaticMeshVertexFactory *VertexFactory, const std::vector<FDynamicMeshVertex> &Vertices)
     {
         Positions.Init(Vertices.size());
         Normals.Init(Vertices.size());
@@ -44,7 +44,7 @@ namespace nilou {
                 BeginInitResource(&TexCoords[i]);
             BeginInitResource(&Colors);
             
-            FStaticVertexFactory::FDataType Data;
+            FStaticMeshVertexFactory::FDataType Data;
             Positions.BindToVertexFactoryData(Data.PositionComponent);
             Normals.BindToVertexFactoryData(Data.NormalComponent);
             Tangents.BindToVertexFactoryData(Data.TangentComponent);
@@ -56,12 +56,12 @@ namespace nilou {
         }
     }
 
-    void FStaticVertexFactory::SetData(const FDataType &InData)
+    void FStaticMeshVertexFactory::SetData(const FDataType &InData)
     {
         Data = InData;
     }
 
-    void FStaticVertexFactory::InitRHI(RenderGraph& Graph)
+    void FStaticMeshVertexFactory::InitRHI(RenderGraph& Graph)
     {
         if (Data.PositionComponent.VertexBuffer != nullptr)
         {
@@ -89,7 +89,7 @@ namespace nilou {
         Declaration = RHICreateVertexDeclaration(Elements);
     }
 
-    // FRHIVertexInputList* FStaticVertexFactory::GetVertexInputList() const
+    // FRHIVertexInputList* FStaticMeshVertexFactory::GetVertexInputList() const
     // {
     //     OutVertexInputs.clear();
     //     if (Data.PositionComponent.VertexBuffer != nullptr)
@@ -118,25 +118,25 @@ namespace nilou {
     //     return &OutVertexInputs;
     // }
 
-    int32 FStaticVertexFactory::GetPermutationId() const
+    int32 FStaticMeshVertexFactory::GetPermutationId() const
     {
         FPermutationDomain Domain;
         Domain.Set<FDimensionEnableColorComponent>(Data.ColorComponent.VertexBuffer != nullptr);
         return Domain.ToDimensionValueId();
     }
 
-    bool FStaticVertexFactory::ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters)
+    bool FStaticMeshVertexFactory::ShouldCompilePermutation(const FVertexFactoryPermutationParameters &Parameters)
     {
         return true;
     }
 
-    void FStaticVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
+    void FStaticMeshVertexFactory::ModifyCompilationEnvironment(const FVertexFactoryPermutationParameters &Parameters, FShaderCompilerEnvironment &OutEnvironment) 
     { 
         FPermutationDomain Domain(Parameters.PermutationId);
         Domain.ModifyCompilationEnvironment(OutEnvironment);
     }
 
-    IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.glsl")
+    IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticMeshVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.slang")
 
     void FStaticMeshLODResources::InitResources()
     {
@@ -268,7 +268,7 @@ namespace nilou {
         for (int prim_index = 0; prim_index < MeshDesc.Primitives.size(); prim_index++)
         {
             auto& primitive = MeshDesc.Primitives[prim_index];
-            FStaticVertexFactory::FDataType Data;
+            FStaticMeshVertexFactory::FDataType Data;
             FStaticMeshSection* Section = new FStaticMeshSection;
             Section->MaterialIndex = primitive.MaterialIndex;
 
@@ -341,7 +341,7 @@ namespace nilou {
                 FStaticMeshSection* Section = new FStaticMeshSection;
                 Section->MaterialIndex = Info.MaterialIndex;
                 Section->IndexBuffer.Init(SectionData.IndexBuffer.Data.GetData(), SectionData.IndexBuffer.Stride, SectionData.IndexBuffer.Data.Num() / SectionData.IndexBuffer.Stride);
-                FStaticVertexFactory::FDataType Data;
+                FStaticMeshVertexFactory::FDataType Data;
                 auto load_data = 
                     [](FVertexIndexBufferData& BufferData, FVertexStreamComponent& Component, auto& Buffer) 
                     {

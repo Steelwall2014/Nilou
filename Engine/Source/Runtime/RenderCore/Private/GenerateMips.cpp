@@ -8,10 +8,10 @@
 namespace nilou {
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsCS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/GlobalShaders/ComputeGenerateMips.glsl", EShaderFrequency::SF_Compute, Global);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/GlobalShaders/ComputeGenerateMips.glsl", "Main", EShaderFrequency::Compute);
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsVS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/GlobalShaders/RasterGenerateMipsVertexShader.glsl", EShaderFrequency::SF_Vertex, Global);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/GlobalShaders/RasterGenerateMipsVertexShader.glsl", "Main", EShaderFrequency::Vertex);
 
 class FGenerateMipsPS : public FGlobalShader
 {
@@ -24,7 +24,7 @@ public:
     END_UNIFORM_BUFFER_STRUCT()
     
 };
-IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/GlobalShaders/RasterGenerateMipsPixelShader.glsl", EShaderFrequency::SF_Pixel, Global);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/GlobalShaders/RasterGenerateMipsPixelShader.glsl", "Main", EShaderFrequency::Pixel);
 
 constexpr int GroupSize = 8;
 
@@ -52,8 +52,8 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 
     const RDGTextureDesc& Desc = Texture->Desc;
 
-    FShaderInstance* Shader = GetGlobalShader<FGenerateMipsCS>();
-    RHIComputePipelineState* PSO = RHICreateComputePipelineState(Shader->GetComputeShaderRHI());
+    RHIShader *Shader = GetGlobalShader<FGenerateMipsCS>();
+    RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(Shader));
 
     for (int MipLevel = 1; MipLevel < Desc.NumMips; MipLevel++)
     {
@@ -104,12 +104,12 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                 ERenderTargetStoreAction::Store 
             };
 
-            FShaderInstance* VertexShader = GetGlobalShader<FGenerateMipsVS>();
-            FShaderInstance* PixelShader = GetGlobalShader<FGenerateMipsPS>();
+            RHIShader *VertexShader = GetGlobalShader<FGenerateMipsVS>();
+            RHIShader *PixelShader = GetGlobalShader<FGenerateMipsPS>();
 
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
-            GraphicsPSOInit.VertexShader = VertexShader->GetVertexShaderRHI();
-            GraphicsPSOInit.PixelShader = PixelShader->GetPixelShaderRHI();
+            GraphicsPSOInit.VertexShader = static_cast<RHIVertexShader*>(VertexShader);
+            GraphicsPSOInit.PixelShader = static_cast<RHIPixelShader*>(PixelShader);
             GraphicsPSOInit.RTLayout = RenderTargets.GetRenderTargetLayout();
             GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);

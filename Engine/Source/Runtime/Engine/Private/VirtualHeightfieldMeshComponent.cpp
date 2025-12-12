@@ -14,10 +14,10 @@
 namespace nilou {
     
     DECLARE_GLOBAL_SHADER(FVHMBuildNormalTangentTextureShader)
-    IMPLEMENT_SHADER_TYPE(FVHMBuildNormalTangentTextureShader, "/Shaders/VirtualHeightfieldMesh/VHM_build_normal.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMBuildNormalTangentTextureShader, "/Shaders/VirtualHeightfieldMesh/VHM_build_normal.comp", EShaderFrequency::Compute, Global)
     
     DECLARE_GLOBAL_SHADER(FVHMCreateLodTextureShader)
-    IMPLEMENT_SHADER_TYPE(FVHMCreateLodTextureShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_lod_texture.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMCreateLodTextureShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_lod_texture.comp", EShaderFrequency::Compute, Global)
 
     class FVHMCreateMinMaxShader : public FGlobalShader
 	{
@@ -31,16 +31,16 @@ namespace nilou {
             Domain.ModifyCompilationEnvironment(Environment);
         }
 	};
-    IMPLEMENT_SHADER_TYPE(FVHMCreateMinMaxShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_minmax.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMCreateMinMaxShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_minmax.comp", EShaderFrequency::Compute, Global)
 
     DECLARE_GLOBAL_SHADER(FVHMCreateMinMaxFirstPassShader)
-    IMPLEMENT_SHADER_TYPE(FVHMCreateMinMaxFirstPassShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_minmax_first.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMCreateMinMaxFirstPassShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_minmax_first.comp", EShaderFrequency::Compute, Global)
     
     DECLARE_GLOBAL_SHADER(FVHMCreateNodeListShader)
-    IMPLEMENT_SHADER_TYPE(FVHMCreateNodeListShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_nodelist.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMCreateNodeListShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_nodelist.comp", EShaderFrequency::Compute, Global)
 
     DECLARE_GLOBAL_SHADER(FVHMCreatePatchShader)
-    IMPLEMENT_SHADER_TYPE(FVHMCreatePatchShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_patch.comp", EShaderFrequency::SF_Compute, Global)
+    IMPLEMENT_SHADER_TYPE(FVHMCreatePatchShader, "/Shaders/VirtualHeightfieldMesh/VHM_create_patch.comp", EShaderFrequency::Compute, Global)
 
     IMPLEMENT_VERTEX_FACTORY_TYPE(FVHMVertexFactory, "/Shaders/VertexFactories/VirtualHeightfieldMeshVertexFactory.glsl")
     
@@ -101,7 +101,7 @@ namespace nilou {
                 Elements.push_back(AccessStreamComponent(Data.TexCoordComponent[i], 4+i, Streams));
             }
         }
-        ENQUEUE_RENDER_COMMAND(FStaticVertexFactory_InitVertexFactory)(
+        ENQUEUE_RENDER_COMMAND(FStaticMeshVertexFactory_InitVertexFactory)(
             [this](FDynamicRHI* RHICmdList) 
             {
                 Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration(Elements);

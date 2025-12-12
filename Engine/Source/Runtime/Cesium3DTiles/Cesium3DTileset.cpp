@@ -172,7 +172,7 @@ namespace nilou {
             for (int prim_index = 0; prim_index < gltf_mesh.primitives.size(); prim_index++)
             {
                 tinygltf::Primitive &gltf_prim = gltf_mesh.primitives[prim_index];
-                FStaticVertexFactory::FDataType Data;
+                FStaticMeshVertexFactory::FDataType Data;
                 FStaticMeshSection* Section = new FStaticMeshSection;
                 
                 {   // Material

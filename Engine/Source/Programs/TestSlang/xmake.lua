@@ -1,0 +1,6 @@
+target("test-slang")
+    set_kind("binary")
+    add_files("*.cpp")
+    add_deps("slang")
+    set_languages("clatest")
+    set_languages("cxx20")

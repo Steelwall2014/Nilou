@@ -25,19 +25,19 @@ namespace nilou {
 
     enum class EShaderFrequency
     {
-        SF_None,
-        SF_Vertex,
-        SF_Pixel,
-        SF_Compute
+        None,
+        Vertex,
+        Pixel,
+        Compute
     };
 
 
 
     enum class EShaderMetaType
     {
-        SMT_None,
-        SMT_Global,
-        SMT_Material
+        None,
+        Global,
+        Material
     };
 
     class FShaderParameterCode
@@ -72,12 +72,21 @@ namespace nilou {
         FHashedName HashedName;
         std::string PreprocessedCode;
         int32 PermutationCount;
-        
+        std::string EntryPointName;
+
         FShaderTypeBase() { }
 
-        FShaderTypeBase(const std::string &InClassName, const std::string &InFileName, int32 InPermutationCount);
+        FShaderTypeBase(const std::string &InClassName, const std::string &InFileName, const std::string &InEntryPointName, int32 InPermutationCount);
 
-        void UpdateCode();
+        std::string GetName() const
+        {
+            return Name;
+        }
+
+        std::string GetEntryPointName() const
+        {
+            return EntryPointName;
+        }
 
         FHashedName GetHashedFileName() const
         {
@@ -108,13 +117,14 @@ namespace nilou {
         FShaderType(
             const std::string &InShaderClassName, 
             const std::string &InShaderFileName, 
+            const std::string &InEntryPointName,
             EShaderFrequency InShaderFrequency, 
             EShaderMetaType InShaderMetaType,
             std::function<bool(const FShaderPermutationParameters&)> InShouldCompilePermutation,
             std::function<void(const FShaderPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
             int32 InPermutationCount
         )
-            : FShaderTypeBase(InShaderClassName, InShaderFileName, InPermutationCount)
+            : FShaderTypeBase(InShaderClassName, InShaderFileName, InEntryPointName, InPermutationCount)
             , ShaderFrequency(InShaderFrequency)
             , ShaderMetaType(InShaderMetaType)
             , ShouldCompilePermutation(InShouldCompilePermutation)
@@ -152,7 +162,7 @@ namespace nilou {
             std::function<bool(const FVertexFactoryPermutationParameters&)> InShouldCompilePermutation,
             std::function<void(const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
             int32 InPermutationCount)
-            : FShaderTypeBase(InFactoryName, InShaderFileName, InPermutationCount)
+            : FShaderTypeBase(InFactoryName, InShaderFileName, "", InPermutationCount)
             , ShouldCompilePermutation(InShouldCompilePermutation)
             , ModifyCompilationEnvironment(InModifyCompilationEnvironment)
         {
@@ -173,7 +183,7 @@ namespace nilou {
     template<EShaderFrequency ShaderFrequency>
     struct TShaderFrequencyAssertHelper<ShaderFrequency, true>
     { 
-        static_assert(ShaderFrequency != EShaderFrequency::SF_Compute, "If the shader is derived from FMaterialShader, the ShaderFrequency MUST NOT be SF_Compute. ");
+        static_assert(ShaderFrequency != EShaderFrequency::Compute, "If the shader is derived from FMaterialShader, the ShaderFrequency MUST NOT be SF_Compute. ");
     };
 
     class FShader
@@ -209,12 +219,12 @@ namespace nilou {
         DECLARE_SHADER_TYPE()
     };
 
-    RENDERCORE_API void AddGlobalShader(const FShaderPermutationParameters &Parameters, std::shared_ptr<FShaderInstance> ShaderRHI, bool overlap=false);
+    RENDERCORE_API void AddGlobalShader(const FShaderPermutationParameters &Parameters, RHIShaderRef ShaderRHI, bool overlap=false);
 
-    RENDERCORE_API FShaderInstance *GetGlobalShader(const FShaderPermutationParameters &Parameters);
+    RENDERCORE_API RHIShader *GetGlobalShader(const FShaderPermutationParameters &Parameters);
 
     template <typename T>
-    FShaderInstance *GetGlobalShader(int PermutationId=0)
+    RHIShader *GetGlobalShader(int PermutationId=0)
     {
         FShaderPermutationParameters PermutationParameters(&T::StaticType, PermutationId);
         return GetGlobalShader(PermutationParameters);

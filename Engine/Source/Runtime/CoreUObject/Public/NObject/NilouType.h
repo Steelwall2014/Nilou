@@ -604,19 +604,6 @@ struct COREUOBJECT_API FClassRegistryBase
     template<> struct TConstructProperty<bool> { static FProperty* Construct(const std::string& Name) { return new FBoolProperty(Name); } };
     template<> struct TConstructProperty<float> { static FProperty* Construct(const std::string& Name) { return new FFloatProperty(Name); } };
     template<> struct TConstructProperty<double> { static FProperty* Construct(const std::string& Name) { return new FDoubleProperty(Name); } };
-    template<typename T> struct TConstructProperty<TArray<T>>
-    { 
-        static FProperty* Construct(const std::string& Name) 
-        { 
-            FArrayProperty* Property = new FArrayProperty(Name);
-            Property->Inner = TConstructProperty<T>::Construct(Name + ".Inner");
-            Property->GetNum = [](const void* Array) { return reinterpret_cast<const TArray<T>*>(Array)->Num(); };
-            Property->GetItem = [](void* Array, size_t Index) { return &(reinterpret_cast<TArray<T>*>(Array)->GetData()[Index]); };
-            Property->ItemIdentical = &FArrayProperty::ItemIdenticalTemplate<T>;
-            Property->ItemSerializer = &FArrayProperty::ItemSerializerTemplate<T>;
-            return Property;
-        } 
-    };
     template<> struct TConstructProperty<TArray<uint8>>
     { 
         static FProperty* Construct(const std::string& Name) 
@@ -645,6 +632,22 @@ struct COREUOBJECT_API FClassRegistryBase
             return Property;
         } 
     };
+
+    /******** Begin Partial specialization of TConstructProperty *********/ 
+    template<typename T> struct TConstructProperty<TArray<T>>
+    { 
+        static FProperty* Construct(const std::string& Name) 
+        { 
+            FArrayProperty* Property = new FArrayProperty(Name);
+            Property->Inner = TConstructProperty<T>::Construct(Name + ".Inner");
+            Property->GetNum = [](const void* Array) { return reinterpret_cast<const TArray<T>*>(Array)->Num(); };
+            Property->GetItem = [](void* Array, size_t Index) { return &(reinterpret_cast<TArray<T>*>(Array)->GetData()[Index]); };
+            Property->ItemIdentical = &FArrayProperty::ItemIdenticalTemplate<T>;
+            Property->ItemSerializer = &FArrayProperty::ItemSerializerTemplate<T>;
+            return Property;
+        } 
+    };
+
     template<typename K, typename V> struct TConstructProperty<TMap<K, V>> 
     { 
         static FProperty* Construct(const std::string& Name) 
@@ -758,6 +761,7 @@ struct COREUOBJECT_API FClassRegistryBase
             return ConstructMathProperty<FBoxSphereBoundsProperty, TBoxSphereBounds<T, T>>(Name);
         } 
     };
+    /******** End Partial specialization of TConstructProperty *********/
 
     template <typename T, typename U>
     size_t offset_of(T U::*Member)

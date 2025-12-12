@@ -5,13 +5,10 @@
 
 namespace nilou {
 
-bool FVulkanDynamicRHI::RHIReflectShaderInternal(shaderc_compilation_result_t compile_result, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage)
+bool FVulkanDynamicRHI::RHIReflectShaderInternal(TArrayView<uint8> ByteCode, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage)
 {
-    size_t codeSize = shaderc_result_get_length(compile_result);
-    const char* pCode = shaderc_result_get_bytes(compile_result);
-
     SpvReflectShaderModule module;
-    if (spvReflectCreateShaderModule(codeSize, pCode, &module) != SPV_REFLECT_RESULT_SUCCESS)
+    if (spvReflectCreateShaderModule(ByteCode.Num(), ByteCode.GetData(), &module) != SPV_REFLECT_RESULT_SUCCESS)
     {
         OutMessage = "Failed to create shader module!";
         return false;
@@ -133,7 +130,8 @@ bool FVulkanDynamicRHI::RHIReflectShader(
         return false;
     }
     
-    bool bSuccess = RHIReflectShaderInternal(compile_result, OutLayouts, OutPushConstantRange, OutMessage);
+    TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(compile_result), shaderc_result_get_length(compile_result));
+    bool bSuccess = RHIReflectShaderInternal(ByteCode, OutLayouts, OutPushConstantRange, OutMessage);
     shaderc_result_release(compile_result);
     shaderc_compiler_release(shader_compiler);
 

@@ -25,7 +25,7 @@ namespace nilou {
                 "TShaderMap template parameters MUST be FShaderPermutationParameters or FVertexFactoryPermutationParameters");
         }
 
-        FShaderInstance *GetShader(const TPermutationParameters &InParameters, const Ts&... Args) const 
+        RHIShader *GetShader(const TPermutationParameters &InParameters, const Ts&... Args) const 
         {
             const FHashedName HashedName = InParameters.Type->GetHashedFileName();
 
@@ -38,8 +38,8 @@ namespace nilou {
             return nullptr;
         }
 
-        /** Add a FShaderInstanceRef to the shader map. If already exists, the existing FShaderInstanceRef will be replaced. */
-        void AddShader(FShaderInstanceRef InShaderRHI, const TPermutationParameters &InParameters, const Ts&... Args)
+        /** Add a RHIShaderRef to the shader map. If already exists, the existing RHIShaderRef will be replaced. */
+        void AddShader(RHIShaderRef InShaderRHI, const TPermutationParameters &InParameters, const Ts&... Args)
         {
 
             const FHashedName HashedName = InParameters.Type->GetHashedFileName();
@@ -67,27 +67,27 @@ namespace nilou {
     {  
     public:
 
-        FShaderInstance *GetShader(const FShaderPermutationParameters &InParameters) const 
+        RHIShader *GetShader(const FShaderPermutationParameters &InParameters) const 
         {
             const FHashedName HashedName = InParameters.Type->GetHashedFileName();
 
             auto iter = Shaders.find(HashedName);
             if (iter != Shaders.end())
             {
-                const std::vector<FShaderInstanceRef> &ShaderInstances = iter->second;
-                return ShaderInstances[InParameters.PermutationId].get();
+                const std::vector<RHIShaderRef> &ShaderInstances = iter->second;
+                return ShaderInstances[InParameters.PermutationId].GetReference();
             }
             return nullptr;
         }
 
-        /** Add a FShaderInstanceRef to the shader map. If already exists, the existing FShaderInstanceRef will be replaced. */
-        void AddShader(FShaderInstanceRef InShaderRHI, const FShaderPermutationParameters &InParameters)
+        /** Add a RHIShaderRef to the shader map. If already exists, the existing RHIShaderRef will be replaced. */
+        void AddShader(RHIShaderRef InShaderRHI, const FShaderPermutationParameters &InParameters)
         {
 
             const FHashedName HashedName = InParameters.Type->GetHashedFileName();
             if (Shaders.find(HashedName) == Shaders.end())
             {
-                Shaders[HashedName] = std::vector<FShaderInstanceRef>(InParameters.Type->PermutationCount, nullptr);
+                Shaders[HashedName] = std::vector<RHIShaderRef>(InParameters.Type->PermutationCount, nullptr);
             }
 
             Shaders[HashedName][InParameters.PermutationId] = InShaderRHI;
@@ -101,33 +101,33 @@ namespace nilou {
             Shaders.clear();
         }
 
-        std::unordered_map<FHashedName, std::vector<FShaderInstanceRef>> Shaders;
+        std::unordered_map<FHashedName, std::vector<RHIShaderRef>> Shaders;
     };
 
     class FMaterialShaderMap
     {
         friend class FShaderCompiler;
     public:
-        FShaderInstance *GetShader(
+        RHIShader *GetShader(
             const FVertexFactoryPermutationParameters &VFParameter, 
             const FShaderPermutationParameters &ShaderParameter)
         {
             return VertexShaderMap.GetShader(VFParameter, ShaderParameter);
         }
-        FShaderInstance *GetShader(const FShaderPermutationParameters &ShaderParameter)
+        RHIShader *GetShader(const FShaderPermutationParameters &ShaderParameter)
         {
             return PixelShaderMap.GetShader(ShaderParameter);
         }
 
         void AddShader(
-            FShaderInstanceRef Shader,
+            RHIShaderRef Shader,
             const FVertexFactoryPermutationParameters &VFParameter, 
             const FShaderPermutationParameters &ShaderParameter)
         {
             VertexShaderMap.AddShader(Shader, VFParameter, ShaderParameter);
         }
         void AddShader(
-            FShaderInstanceRef Shader,
+            RHIShaderRef Shader,
             const FShaderPermutationParameters &ShaderParameter)
         {
             PixelShaderMap.AddShader(Shader, ShaderParameter);

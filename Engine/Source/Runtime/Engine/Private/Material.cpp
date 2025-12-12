@@ -370,7 +370,7 @@ namespace nilou {
         NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
         FShaderCompilerEnvironment Environment;
         Environment.SetDefine("MATERIAL_SHADINGMODEL", (int32)Owner->ShadingModel);
-        FShaderCompiler::CompileMaterialShader(Owner->GetName(), ShaderMap.get(), PreprocessResult, Environment);
+        FShaderCompiler::CompileMaterialShader(Owner->GetName(), FPaths::EngineDir() + "/" + Owner->ShaderVirtualPath, ShaderMap.get(), PreprocessResult, Environment);
 
         // Build reflection, then we can set uniforms by name.
         // This is only used for reflection, NOT the actual shader compilation.

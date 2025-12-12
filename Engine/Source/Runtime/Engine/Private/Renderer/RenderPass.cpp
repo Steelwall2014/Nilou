@@ -21,10 +21,10 @@ void BuildMeshDrawCommand(
 {
     // Fill up the pipeline state initializer
     FGraphicsPipelineStateInitializer Initializer;
-    FShaderInstance *VertexShader = MaterialProxy->GetShader(VFPermutationParameters, PermutationParametersVS);
-    Initializer.VertexShader = VertexShader->GetVertexShaderRHI();
-    FShaderInstance *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
-    Initializer.PixelShader = PixelShader->GetPixelShaderRHI();
+    RHIShader *VertexShader = MaterialProxy->GetShader(VFPermutationParameters, PermutationParametersVS);
+    Initializer.VertexShader = static_cast<RHIVertexShader*>(VertexShader);
+    RHIShader *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
+    Initializer.PixelShader = static_cast<RHIPixelShader*>(PixelShader);
     Initializer.DepthStencilState = DepthStencilState;
     Initializer.RasterizerState = RasterizerState;
     Initializer.BlendState = BlendState;

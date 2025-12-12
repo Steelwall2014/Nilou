@@ -56,6 +56,9 @@ namespace nilou {
 		virtual RHIVertexShaderRef RHICreateVertexShader(const std::string& code, const std::string& DebugName) = 0;
 		virtual RHIPixelShaderRef RHICreatePixelShader(const std::string& code, const std::string& DebugName) = 0;
 		virtual RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName) = 0;
+		virtual RHIVertexShaderRef RHICreateVertexShader(TArrayView<uint8> ByteCode, const std::string& DebugName) = 0;
+		virtual RHIPixelShaderRef RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName) = 0;
+		virtual RHIComputeShaderRef RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName) = 0;
 		virtual bool RHIReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutLayouts, std::optional<class RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage) = 0;
 		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
@@ -206,6 +209,21 @@ namespace nilou {
 	inline RHIComputeShaderRef RHICreateComputeShader(const std::string& code, const std::string& DebugName)
 	{
 		return FDynamicRHI::Get()->RHICreateComputeShader(code, DebugName);
+	}
+	
+	inline RHIVertexShaderRef RHICreateVertexShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+	{
+		return FDynamicRHI::Get()->RHICreateVertexShader(ByteCode, DebugName);
+	}
+	
+	inline RHIPixelShaderRef RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+	{
+		return FDynamicRHI::Get()->RHICreatePixelShader(ByteCode, DebugName);
+	}
+	
+	inline RHIComputeShaderRef RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName)
+	{
+		return FDynamicRHI::Get()->RHICreateComputeShader(ByteCode, DebugName);
 	}
 
 	inline EGraphicsAPI RHIGetCurrentGraphicsAPI()

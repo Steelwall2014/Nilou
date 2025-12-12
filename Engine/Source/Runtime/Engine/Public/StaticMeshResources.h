@@ -21,15 +21,15 @@ namespace nilou {
 
     class UMaterial;
 
-    class FStaticVertexFactory : public FVertexFactory
+    class FStaticMeshVertexFactory : public FVertexFactory
     {
-        DECLARE_VERTEX_FACTORY_TYPE(FStaticVertexFactory)
+        DECLARE_VERTEX_FACTORY_TYPE(FStaticMeshVertexFactory)
     public:
 
         class FDimensionEnableColorComponent : SHADER_PERMUTATION_BOOL("ENABLE_COLOR_COMPONENT");
         using FPermutationDomain = TShaderPermutationDomain<FDimensionEnableColorComponent>;
 
-        FStaticVertexFactory() { }
+        FStaticMeshVertexFactory() { }
 
         struct FDataType
         {
@@ -72,7 +72,7 @@ namespace nilou {
         
         FStaticMeshVertexBuffer<FVector2f> TexCoords[MAX_STATIC_TEXCOORDS];
 
-        void InitFromDynamicVertex(FStaticVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
+        void InitFromDynamicVertex(FStaticMeshVertexFactory *VertexFactory, const std::vector<class FDynamicMeshVertex> &Vertices);
 
         void ReleaseResource()
         {
@@ -94,7 +94,7 @@ namespace nilou {
 
         FStaticMeshIndexBuffer IndexBuffer;
 
-        FStaticVertexFactory VertexFactory;
+        FStaticMeshVertexFactory VertexFactory;
 
         /** If true, this section will cast a shadow. */
         bool bCastShadow = true;
@@ -426,7 +426,7 @@ namespace nilou {
     //                     // std::string Data = SerializeHelper::Base64Decode(section["IndexBuffer"]["Data"]);
     //                     Section->IndexBuffer.Init(static_cast<unsigned char*>(Buffer)+BufferOffset, NumIndices, Stride);
     //                 }
-    //                 FStaticVertexFactory::FDataType VFData;
+    //                 FStaticMeshVertexFactory::FDataType VFData;
     //                 if (section.contains("VertexBuffers") && section["VertexBuffers"].contains("Positions"))
     //                 {
     //                     int NumVertices = section["VertexBuffers"]["Positions"]["NumVertices"];

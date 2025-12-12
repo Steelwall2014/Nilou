@@ -13,8 +13,8 @@ constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
 
 namespace nilou {
 
-    IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
+    IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", "Main", EShaderFrequency::Vertex);
+    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", "Main", EShaderFrequency::Pixel);
 
     void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {

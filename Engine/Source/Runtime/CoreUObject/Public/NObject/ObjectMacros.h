@@ -91,12 +91,13 @@
 		DECLARE_SHADER_TYPE() \
 	};
 
-#define IMPLEMENT_SHADER_TYPE(ShaderClass, ShaderFilename, ShaderFrequency, ShaderMetaType) \
+#define IMPLEMENT_SHADER_TYPE(ShaderClass, ShaderFilename, EntryPointName, ShaderFrequency) \
 	FShaderType ShaderClass::StaticType( \
 		#ShaderClass, \
 		ShaderFilename, \
+		EntryPointName, \
 		ShaderFrequency, \
-		EShaderMetaType::SMT_##ShaderMetaType, \
+		TIsDerivedFrom<ShaderClass, FGlobalShader>::Value ? EShaderMetaType::Global : EShaderMetaType::Material, \
 		ShaderClass::ShouldCompilePermutation, \
 		ShaderClass::ModifyCompilationEnvironment, \
 		ShaderClass::FPermutationDomain::PermutationCount \

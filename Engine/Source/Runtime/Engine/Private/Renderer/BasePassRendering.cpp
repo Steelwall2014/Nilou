@@ -8,8 +8,8 @@
 
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/MaterialShaders/BasePassVertexShader.vert", EShaderFrequency::SF_Vertex, Material);
-    IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/MaterialShaders/BasePassPixelShader.frag", EShaderFrequency::SF_Pixel, Material);
+    IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/MaterialShaders/BasePassVertexShader.slang", "Main", EShaderFrequency::Vertex);
+    IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/MaterialShaders/BasePassPixelShader.slang", "Main", EShaderFrequency::Pixel);
 
     void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
     {    

@@ -13,8 +13,8 @@
 #include "RHI.h"
 #include "Templates/TypeHash.h"
 #include "Templates/RefCounting.h"
+#include <slang.h>
 
-// TODO: Use intrusive shared pointers
 
 namespace nilou {
 
@@ -72,37 +72,44 @@ namespace nilou {
 	class RHIShader : public RHIResource
 	{
 	public:
-		RHIShader(EShaderStage InShaderStage, ERHIResourceType InResourceType) 
+		RHIShader(EShaderStage InShaderStage, ERHIResourceType InResourceType, const std::string& InName) 
 			: RHIResource(InResourceType)
 			, ShaderStage(InShaderStage)
+			, Name(InName)
 		{ }
-		std::string DebugName;
+		std::string Name;
 		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
+		slang::TypeLayoutReflection* Reflection = nullptr;
 		std::optional<RHIPushConstantRange> PushConstantRange;
 		EShaderStage ShaderStage;
+		std::string GetName() const { return Name; }
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
+		virtual RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
+        {
+            return DescriptorSetLayouts.at(SetIndex).GetReference();
+        }
 	};
 	using RHIShaderRef = TRefCountPtr<RHIShader>;
 	
 	class RHIVertexShader : public RHIShader 
 	{
 	public:
-		RHIVertexShader() : RHIShader(EShaderStage::Vertex, ERHIResourceType::RRT_VertexShader) {}
+		RHIVertexShader(const std::string& InName) : RHIShader(EShaderStage::Vertex, ERHIResourceType::RRT_VertexShader, InName) {}
 	};
 	using RHIVertexShaderRef = TRefCountPtr<RHIVertexShader>;
 	
 	class RHIPixelShader : public RHIShader 
 	{
 	public:
-		RHIPixelShader() : RHIShader(EShaderStage::Pixel, ERHIResourceType::RRT_PixelShader) {}
+		RHIPixelShader(const std::string& InName) : RHIShader(EShaderStage::Pixel, ERHIResourceType::RRT_PixelShader, InName) {}
 	};
 	using RHIPixelShaderRef = TRefCountPtr<RHIPixelShader>;
 	
 	class RHIComputeShader : public RHIShader 
 	{
 	public:
-		RHIComputeShader() : RHIShader(EShaderStage::Compute, ERHIResourceType::RRT_ComputeShader) {}
+		RHIComputeShader(const std::string& InName) : RHIShader(EShaderStage::Compute, ERHIResourceType::RRT_ComputeShader, InName) {}
 	};
 	using RHIComputeShaderRef = TRefCountPtr<RHIComputeShader>;
 

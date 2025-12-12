@@ -1,0 +1,6 @@
+
+[shader("pixel")]
+void Main()
+{
+
+}
