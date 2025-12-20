@@ -1,6 +1,7 @@
+import "../Materials/IMaterial.slang";
 
 [shader("pixel")]
-void Main()
+void Main<TMaterial : IMaterial>()
 {
 
 }

@@ -1,13 +1,7 @@
-import "../include/VertexShaderCommon.slang";
 import "IMaterial.slang";
+import "../include/VertexShaderCommon.slang";
 
-struct FMaterialParameters
-{
-    float4 BaseColor;
-};
-ParameterBlock<FMaterialParameters> MaterialParameters;
-
-struct ColoredMaterial : IMaterial
+class SkyAtmosphereMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)
@@ -16,7 +10,7 @@ struct ColoredMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return MaterialParameters.BaseColor;
+        return float4(0);
     }
     float3 GetEmissive()
     {
@@ -36,10 +30,11 @@ struct ColoredMaterial : IMaterial
     }
     float3 GetWorldSpaceOffset()
     {
-        return MaterialParameters.BaseColor.xyz;
+        return float3(0);
     }
     EShadingModel GetShadingModel()
     {
-        return EShadingModel.DefaultLit;
+        return EShadingModel.SkyAtmosphere;
     }
-}
+};
+

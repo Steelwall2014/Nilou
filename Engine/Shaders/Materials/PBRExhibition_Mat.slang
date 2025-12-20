@@ -1,13 +1,13 @@
-import "../include/VertexShaderCommon.slang";
 import "IMaterial.slang";
+import "../include/VertexShaderCommon.slang";
 
-struct FMaterialParameters
-{
-    float4 BaseColor;
-};
-ParameterBlock<FMaterialParameters> MaterialParameters;
+uniform float Red;
+uniform float Green;
+uniform float Blue;
+uniform float Metallic;
+uniform float Roughness;
 
-struct ColoredMaterial : IMaterial
+class PBRExhibition : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)
@@ -16,7 +16,7 @@ struct ColoredMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return MaterialParameters.BaseColor;
+        return float4(Red, Green, Blue, 1);
     }
     float3 GetEmissive()
     {
@@ -28,18 +28,19 @@ struct ColoredMaterial : IMaterial
     }
     float GetRoughness()
     {
-        return 0.5;
+        return Roughness;
     }
     float GetMetallic()
     {
-        return 0.5;
+        return Metallic;
     }
     float3 GetWorldSpaceOffset()
     {
-        return MaterialParameters.BaseColor.xyz;
+        return float3(0);
     }
     EShadingModel GetShadingModel()
     {
         return EShadingModel.DefaultLit;
     }
-}
+};
+

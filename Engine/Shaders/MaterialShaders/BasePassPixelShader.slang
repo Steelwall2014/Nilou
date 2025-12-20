@@ -1,24 +1,26 @@
+import "BasePassCommon.slang";
 import "../include/VertexShaderCommon.slang";
 import "../Materials/IMaterial.slang";
 import "../include/functions.slang";
 import "../include/PBRFunctions.slang";
 
-struct BasePassPixelShaderParameters
+struct FPixelShaderParameters
 {
     SamplerCube IrradianceTexture;
     SamplerCube PrefilteredTexture;
     Sampler2D IBL_BRDF_LUT;
-}
-ParameterBlock<BasePassPixelShaderParameters> Parameters;
+};
+ParameterBlock<FPixelShaderParameters> PixelShaderParams;
 
-class BasePassPixelShaderOutput
+struct BasePassPixelShaderOutput
 {
+    float3 SceneColor;
     float4 BaseColor;
     float3 RelativeWorldSpacePosition;
     float3 WorldSpaceNormal;
     float2 MetallicRoughness;
     float3 Emissive;
-    uint ShadingModel;
+    EShadingModel ShadingModel;
 };
 
 float getMipLevelFromRoughness(float roughness)
@@ -40,9 +42,9 @@ float3 CalcIndirectLighting(IVertexShaderOutput vs_out, float3 baseColor, float 
     float3 R = reflect(-V, N);
     float lod = getMipLevelFromRoughness(roughness);
 
-    float3 irradiance = mytextureCube(Parameters.IrradianceTexture, R).rgb;
-    float3 prefilteredColor = mytextureCubeLod(Parameters.PrefilteredTexture, R, lod).rgb;
-    float2 envBRDF = Parameters.IBL_BRDF_LUT.Sample(float2(NdotV, roughness)).rg;
+    float3 irradiance = mytextureCube(PixelShaderParams.IrradianceTexture, R).rgb;
+    float3 prefilteredColor = mytextureCubeLod(PixelShaderParams.PrefilteredTexture, R, lod).rgb;
+    float2 envBRDF = PixelShaderParams.IBL_BRDF_LUT.Sample(float2(NdotV, roughness)).rg;
 
     float3 F0 = float3(0.04); 
     F0 = lerp(F0, baseColor, metallic);
@@ -57,7 +59,7 @@ float3 CalcIndirectLighting(IVertexShaderOutput vs_out, float3 baseColor, float 
 }
 
 [shader("pixel")]
-BasePassPixelShaderOutput Main<TMaterial : IMaterial>(IVertexShaderOutput vs_out) 
+BasePassPixelShaderOutput Main<TMaterial : IMaterial>(BasePassVertexShaderOutput vs_out) 
 {
     TMaterial material = TMaterial(vs_out);
     BasePassPixelShaderOutput output;
@@ -72,5 +74,6 @@ BasePassPixelShaderOutput Main<TMaterial : IMaterial>(IVertexShaderOutput vs_out
     output.MetallicRoughness.y = material.GetRoughness();
     output.Emissive = GammaToLinear(material.GetEmissive());
     output.ShadingModel = material.GetShadingModel();
+    output.SceneColor = CalcIndirectLighting(vs_out, output.BaseColor.rgb, output.MetallicRoughness.x, output.MetallicRoughness.y);
     return output;
 }

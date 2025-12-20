@@ -1,11 +1,12 @@
 import "Interface.slang";
 
+uniform int Value0;
+
 struct ImplementationInput : IInterfaceInput
 {
-    int value = 123456;
     int GetValue()
     {
-        return this.value;
+        return Value0;
     }
 }
 

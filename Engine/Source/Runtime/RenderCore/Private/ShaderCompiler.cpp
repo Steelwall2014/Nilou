@@ -15,9 +15,7 @@
 #include "VertexFactory.h"
 #include "Logging/LogMacros.h"
 #include "Misc/Crc.h"
-
-#include <slang.h>
-#include <slang-com-ptr.h>
+#include "SlangUtils.h"
 
 #ifdef NILOU_DEBUG
 #include <fstream>
@@ -31,6 +29,10 @@ void Write(std::string filename, std::string code)
 namespace nilou {
 
     Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession = nullptr;
+    slang::IGlobalSession* GetSlangGlobalSession()
+    {
+        return GSlangGlobalSession.get();
+    }
 
     // std::map<std::string, std::string> &GetGShaderSourceDirectoryMappings()
     // {
@@ -305,75 +307,56 @@ namespace nilou {
         if (ProgramLayout == nullptr)
             return;
 
-        // Iterate through all global parameters
-        uint32 ParameterCount = ProgramLayout->getParameterCount();
-        std::unordered_map<uint32, std::vector<RHIDescriptorSetLayoutBinding>> BindingsPerSet;
-
-        for (uint32 i = 0; i < ParameterCount; i++)
+        slang::VariableLayoutReflection* GlobalParamsVarLayout = ProgramLayout->getGlobalParamsVarLayout();
+        slang::TypeLayoutReflection* GlobalParamsTypeLayout = GlobalParamsVarLayout->getTypeLayout();
+        if (GlobalParamsTypeLayout->getKind() == slang::TypeReflection::Kind::Struct)
         {
-            slang::VariableLayoutReflection* VarLayout = ProgramLayout->getParameterByIndex(i);
-            if (VarLayout == nullptr)
-                continue;
-
-            slang::VariableReflection* Var = VarLayout->getVariable();
-            if (Var == nullptr)
-                continue;
-
-            const char* ParamName = Var->getName();
-            if (ParamName == nullptr)
-                continue;
-
-            slang::TypeLayoutReflection* TypeLayout = VarLayout->getTypeLayout();
-            if (TypeLayout == nullptr)
-                continue;
-
-            // Get binding range information
-            SlangInt BindingRangeCount = TypeLayout->getBindingRangeCount();
-            if (BindingRangeCount == 0)
-                continue;
-
-            for (SlangInt RangeIndex = 0; RangeIndex < BindingRangeCount; RangeIndex++)
+            int GlobalParamsCount = GlobalParamsTypeLayout->getFieldCount();
+            for (int i = 0; i < GlobalParamsCount; i++)
             {
-                slang::BindingType BindingType = TypeLayout->getBindingRangeType(RangeIndex);
-                SlangInt SetIndex = TypeLayout->getBindingRangeDescriptorSetIndex(RangeIndex);
-                SlangInt FirstBindingIndex = TypeLayout->getBindingRangeFirstDescriptorRangeIndex(RangeIndex);
-                SlangInt BindingCount = TypeLayout->getBindingRangeBindingCount(RangeIndex);
-
-                // Skip push constants
-                if (BindingType == slang::BindingType::PushConstant)
+                slang::VariableLayoutReflection* GlobalParamVarLayout = GlobalParamsTypeLayout->getFieldByIndex(i);
+                if (GlobalParamVarLayout == nullptr)
                     continue;
-
-                EDescriptorType DescriptorType = TranslateBindingTypeToDescriptorType(BindingType);
-
-                RHIDescriptorSetLayoutBinding Binding;
-                Binding.BindingIndex = (uint32)FirstBindingIndex;
-                Binding.DescriptorType = DescriptorType;
-                Binding.DescriptorCount = (uint32)BindingCount;
-                Binding.Name = ParamName;
-
-                // If it's a uniform buffer, parse member information
-                if (DescriptorType == EDescriptorType::UniformBuffer)
+                std::string GlobalParamName = GlobalParamVarLayout->getName();
+                slang::TypeLayoutReflection* GlobalParamTypeLayout = GlobalParamVarLayout->getTypeLayout();
+                if (GlobalParamTypeLayout == nullptr)
+                    continue;
+                std::string GlobalParamTypeName = GlobalParamTypeLayout->getName();
+                slang::TypeReflection::Kind GlobalParamTypeKind = GlobalParamTypeLayout->getKind();
+                int SetIndex = GlobalParamVarLayout->getOffset(slang::ParameterCategory::SubElementRegisterSpace);
+                if (GlobalParamTypeKind == slang::TypeReflection::Kind::ParameterBlock) // ParameterBlock<T>, while T is a struct
                 {
-                    slang::TypeLayoutReflection* LeafTypeLayout = TypeLayout->getBindingRangeLeafTypeLayout(RangeIndex);
-                    if (LeafTypeLayout != nullptr)
+                    int BindingIndex = 0;
+                    slang::TypeLayoutReflection* ElementTypeLayout = GlobalParamTypeLayout->getElementVarLayout()->getTypeLayout();
+                    std::string ElementTypeName = ElementTypeLayout->getName();
+                    if (ElementTypeLayout->getKind() == slang::TypeReflection::Kind::Struct)
                     {
-                        Binding.BlockSize = (uint32)LeafTypeLayout->getSize(slang::ParameterCategory::Uniform);
-                        ParseUniformBufferMembers(LeafTypeLayout, Binding.Members);
+                        int FieldCount = ElementTypeLayout->getFieldCount();
+                        for (int i = 0; i < FieldCount; i++)
+                        {
+                            slang::VariableLayoutReflection* FieldLayout = ElementTypeLayout->getFieldByIndex(i);
+                            if (FieldLayout == nullptr)
+                                continue;
+                                
+                            std::string fieldName = FieldLayout->getName();
+                        }
+
+                        int bindingRangeCount = ElementTypeLayout->getBindingRangeCount();
+                        for (int i = 0; i < bindingRangeCount; i++)
+                        {
+                            RHIDescriptorSetLayoutBinding Binding;
+                            Binding.BindingIndex = BindingIndex++;
+                            Binding.DescriptorType = TranslateBindingTypeToDescriptorType(ElementTypeLayout->getBindingRangeType(i));
+                            Binding.DescriptorCount = ElementTypeLayout->getBindingRangeBindingCount(i);
+                            OutDescriptorSetLayouts[SetIndex]->Bindings.push_back(Binding);
+                        }
                     }
                 }
-
-                // Check for NonWritable or NonReadable flags
-                // Note: Slang reflection API may not directly provide this information, leaving it empty for now
-                // If needed, can be obtained through other means
-
-                BindingsPerSet[(uint32)SetIndex].push_back(Binding);
+                else 
+                {
+                    NILOU_LOG(Fatal, "Nilou Engine requires all global parameters to be a ParameterBlock<T>, while T is a struct");
+                }
             }
-        }
-
-        // Create DescriptorSetLayout for each set
-        for (auto& [SetIndex, Bindings] : BindingsPerSet)
-        {
-            OutDescriptorSetLayouts[SetIndex] = RHICreateDescriptorSetLayout(Bindings);
         }
     }
 
@@ -424,6 +407,8 @@ namespace nilou {
         }
         const char* glslCodeString = (const char*)glslCode->getBufferPointer();
         NILOU_LOG(Display, "{}", glslCodeString);
+        slang::ProgramLayout* ProgramLayout = linkedProgram->getLayout();
+        FSlangUtils::PrintProgramLayout(ProgramLayout, SLANG_SPIRV);
         return {byteCode, linkedProgram};
     }
 
@@ -574,64 +559,17 @@ namespace nilou {
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
         Environment.SetDefine("SET_INDEX", 1);
 
-        Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::createGlobalSession(GSlangGlobalSession.writeRef());
-        slang::SessionDesc sessionDesc = {};
-        slang::TargetDesc targetDesc = {};
-        targetDesc.format = SLANG_SPIRV;
-        targetDesc.profile = GSlangGlobalSession->findProfile("spirv_1_5");
-        std::vector<slang::PreprocessorMacroDesc> preprocessorMacros;
-        for (auto &[key, value] : Environment.Definitions)
-        {
-            slang::PreprocessorMacroDesc preprocessorMacro = {};
-            preprocessorMacro.name = key.c_str();
-            preprocessorMacro.value = value.c_str();
-            preprocessorMacros.push_back(preprocessorMacro);
-        }
-        sessionDesc.preprocessorMacros = preprocessorMacros.data();
-        sessionDesc.preprocessorMacroCount = preprocessorMacros.size();
-        sessionDesc.targets = &targetDesc;
-        sessionDesc.targetCount = 1;
-
-        Slang::ComPtr<slang::ISession> session;
-        GSlangGlobalSession->createSession(sessionDesc, session.writeRef());
-
-        std::string ShaderModuleName = ShaderType->FileAbsolutePath.filename().generic_string();
-        std::string ShaderModulePath = ShaderType->FileAbsolutePath.generic_string();
-        slang::IModule* ShaderModule;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            ShaderModule = session->loadModuleFromSourceString(ShaderModuleName.c_str(), ShaderModulePath.c_str(), ShaderType->PreprocessedCode.c_str(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        slang::IModule* MaterialModule;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            MaterialModule = session->loadModuleFromSourceString(MaterialName.c_str(), MaterialPath.c_str(), MaterialPreprocessedResult.c_str(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        std::vector<slang::SpecializationArg> specializationArgs =
-        {
+        Slang::ComPtr<slang::ISession> session = createSession(Environment);
+        slang::IModule* ShaderModule = createModule(session, ShaderType);
+        slang::IModule* MaterialModule = createModuleFromSourceString(session, MaterialName, MaterialPath, MaterialPreprocessedResult);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
+        Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, {
             {
                 slang::SpecializationArg::Kind::Type,
                 MaterialModule->getLayout()->findTypeByName(MaterialName.c_str())
             },
-        };
-
-        Slang::ComPtr<slang::IEntryPoint> entryPoint;
-        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
-        Slang::ComPtr<slang::IComponentType> specializedEntryPoint;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = entryPoint->specialize(
-                specializationArgs.data(),
-                specializationArgs.size(),
-                specializedEntryPoint.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
+        });
 
         std::vector<slang::IComponentType*> componentTypes =
         {
@@ -640,36 +578,11 @@ namespace nilou {
             specializedEntryPoint
         };
 
-        Slang::ComPtr<slang::IComponentType> composedProgram;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = session->createCompositeComponentType(
-                componentTypes.data(),
-                componentTypes.size(),
-                composedProgram.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        Slang::ComPtr<slang::IComponentType> linkedProgram;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = composedProgram->link(
-                linkedProgram.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        Slang::ComPtr<slang::IBlob> spirvCode;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = linkedProgram->getEntryPointCode(
-                0,
-                0,
-                spirvCode.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
+        auto [spirvCode, linkedProgram] = compileFromComponents(session, {
+            ShaderModule,
+            MaterialModule,
+            specializedEntryPoint
+        });
         NILOU_LOG(Display, "Compiled {} bytes of SPIR-V", spirvCode->getBufferSize());
 
         std::string ShaderName = NFormat("{}_{}_p{}", MaterialName, ShaderType->Name, ShaderParameter.PermutationId);
@@ -752,29 +665,29 @@ namespace nilou {
                 if (ShaderType->ShaderFrequency == EShaderFrequency::Vertex)
                 {
                     // Iterate over all vertex factory types
-                    std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
-                    for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
-                    {
-                        if (VertexFactoryType->Name == "VertexFactory")    // It's the base class so skip it
-                            continue;
-                        for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
-                        {
-                            FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
-                            if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
-                                continue;
-                            NILOU_LOG(Display, "\tVertexFactory {} Permutation: {}", ShaderType->Name, VFPermutationId);
-                            CompileVertexMaterialShader(
-                                MaterialName,
-                                MaterialPath,
-                                MaterialParsedResult, VFParameters, ShaderParameter, 
-                                Environment,
-                                ShaderMap->VertexShaderMap);
-                        }
-                    }
+                    // std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
+                    // for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
+                    // {
+                    //     if (VertexFactoryType == &FVertexFactory::StaticType)    // It's the base class so skip it
+                    //         continue;
+                    //     for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
+                    //     {
+                    //         FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
+                    //         if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
+                    //             continue;
+                    //         NILOU_LOG(Display, "Material: \"{}\", VertexFactory: \"{}\", VertexShader: \"{}\", Permutation: {}", MaterialName, VertexFactoryType->Name, ShaderType->Name, VFPermutationId);
+                    //         CompileVertexMaterialShader(
+                    //             MaterialName,
+                    //             MaterialPath,
+                    //             MaterialParsedResult, VFParameters, ShaderParameter, 
+                    //             Environment,
+                    //             ShaderMap->VertexShaderMap);
+                    //     }
+                    // }
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::Pixel)
                 {
-                    NILOU_LOG(Display, "\tPixelShader {}", ShaderType->Name);
+                    NILOU_LOG(Display, "Material: \"{}\", PixelShader: \"{}\", Permutation: {}", MaterialName, ShaderType->Name, ShaderParameter.PermutationId);
                     CompilePixelMaterialShader(
                         MaterialName,
                         MaterialPath,

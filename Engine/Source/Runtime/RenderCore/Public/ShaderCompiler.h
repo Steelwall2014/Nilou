@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <set>
 #include <filesystem>
+#include <slang.h>
+#include <slang-com-ptr.h>
 
 #include "HAL/Platform.h"
 #include "ShaderMap.h"
@@ -48,4 +50,7 @@ namespace nilou {
             const FShaderPermutationParameters &ShaderParams);
 
     };
+
+    RENDERCORE_API slang::IGlobalSession* GetSlangGlobalSession();
+    
 }

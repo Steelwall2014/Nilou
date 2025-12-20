@@ -1,4 +1,8 @@
-#include "Renderer/ShadowDepthPassRendering.h"
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/DeferredShadingSceneRenderer.h"
+#include "Renderer/RenderPass.h"
+#include "DepthRendering.h"
+#include "Frustum.h"
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
 
@@ -12,15 +16,6 @@ constexpr double SHADOWMAP_FAR_CLIP = 10000.0;
 constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
 
 namespace nilou {
-
-    IMPLEMENT_SHADER_TYPE(FShadowDepthVS, "/Shaders/MaterialShaders/ShadowDepthVertexShader.vert", "Main", EShaderFrequency::Vertex);
-    IMPLEMENT_SHADER_TYPE(FShadowDepthPS, "/Shaders/MaterialShaders/DepthOnlyPixelShader.frag", "Main", EShaderFrequency::Pixel);
-
-    void FShadowDepthVS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
-    {
-        FPermutationDomain Domain(Parameter.PermutationId);
-        Domain.ModifyCompilationEnvironment(Environment);
-    }
 
     void ComputeShadowCullingVolume(std::array<FVector, 8> CascadeFrustumVerts, const FVector3f& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
     {
@@ -277,10 +272,8 @@ namespace nilou {
                         for (FMeshBatchElement& Element : Mesh.Elements)
                         {
                             FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                            FShadowDepthVS::FPermutationDomain PermutationVector;
-                            PermutationVector.Set<FShadowDepthVS::FDimensionFrustumCount>(CASCADED_SHADOWMAP_SPLIT_COUNT);
-                            FShaderPermutationParameters PermutationParametersVS(&FShadowDepthVS::StaticType, PermutationVector.ToDimensionValueId());
-                            FShaderPermutationParameters PermutationParametersPS(&FShadowDepthPS::StaticType, 0);
+                            FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
+                            FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
 
                             FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                             ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);

@@ -16,6 +16,7 @@
 #include "Engine/Texture.h"
 #include "VertexFactory.h"
 #include "ShaderParameter.h"
+#include <slang.h>
 
 // The nlohmann::json here is used as a placeholder for any type of material parameter value 
 namespace nilou {
@@ -213,6 +214,14 @@ namespace nilou {
 
     #define UNIFORMBUFFER_KEY(SetIndex, BindingIndex) (((uint64)(SetIndex) << 32) | (BindingIndex))
 
+    struct FMaterialUniformBufferInfo
+    {
+        std::string Name;
+        int32 Size;
+        int32 SetIndex;
+        int32 BindingIndex;
+    };
+
     class FMaterialRenderProxy
     {
         friend class UMaterial;
@@ -247,6 +256,11 @@ namespace nilou {
         UMaterial* Owner;
 
         void RenderThread_UpdateShader(const std::string& ShaderCode);
+
+        /**
+         * Parses uniform buffer blocks from material Slang code and returns their information.
+         */
+        std::vector<FMaterialUniformBufferInfo> ParseMaterialUniformBuffers(slang::ProgramLayout* ProgramLayout);
 
         /**
          * Updates a named parameter on the render thread.

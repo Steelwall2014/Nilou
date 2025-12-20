@@ -1,5 +1,6 @@
 import "Interface.slang";
 
+uniform int Value1;
 RWStructuredBuffer<float> result;
 
 [shader("compute")]
@@ -8,5 +9,5 @@ void computeMain<T: IInterface, TInput: IInterfaceInput>(uint3 threadId : SV_Dis
 {
     TInput input = TInput();
     T interface = T(input);
-    result[threadId.x] = interface.test();
+    result[threadId.x] = interface.test() * Value1;
 }

@@ -1,7 +1,7 @@
 import "IMaterial.slang";
 import "../include/VertexShaderCommon.slang";
 
-class DefaultMaterial : IMaterial
+class MirrorMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)
@@ -10,7 +10,7 @@ class DefaultMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return float4(0, 0, 0, 1);
+        return float4(1);
     }
     float3 GetEmissive()
     {
@@ -22,18 +22,19 @@ class DefaultMaterial : IMaterial
     }
     float GetRoughness()
     {
-        return 0.5;
+        return 0;
     }
     float GetMetallic()
     {
-        return 0.5;
+        return 1;
     }
     float3 GetWorldSpaceOffset()
     {
         return float3(0);
     }
-    uint GetShadingModel()
+    EShadingModel GetShadingModel()
     {
-        return 0;
+        return EShadingModel.DefaultLit;
     }
 };
+

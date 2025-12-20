@@ -82,6 +82,13 @@
             "request": "launch",
             "cwd": "${workspaceFolder}/build/windows/x64/debug/",
             "program": "${workspaceFolder}/build/windows/x64/debug/test-slang.exe",
+        },
+        {
+            "name": "TestSlangReflection",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/test-slang-reflection.exe",
         }
     ]
 }

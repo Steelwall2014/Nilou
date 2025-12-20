@@ -1,0 +1,6 @@
+target("test-slang-reflection")
+    set_kind("binary")
+    add_files("*.cpp")
+    add_deps("slang")
+    set_languages("clatest")
+    set_languages("cxx20")

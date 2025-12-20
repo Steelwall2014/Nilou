@@ -1,5 +1,15 @@
 import "../include/VertexShaderCommon.slang";
 
+enum EShadingModel
+{
+    Unlit = 0,
+    DefaultLit,
+    OceanSubsurface,
+    SkyAtmosphere,
+
+    ShadingModelNum
+};
+
 interface IMaterial
 {
     __init(IVertexShaderOutput vs_out);
@@ -9,5 +19,5 @@ interface IMaterial
     float GetRoughness();
     float GetMetallic();
     float3 GetWorldSpaceOffset();
-    uint GetShadingModel();
+    EShadingModel GetShadingModel();
 };

@@ -160,5 +160,34 @@ int main()
         SLANG_RETURN_ON_FAIL(result);
     }
 
+    // Test reflection
+    slang::ProgramLayout* ProgramLayout = linkedProgram->getLayout();
+    int parameterCount = ProgramLayout->getParameterCount();
+    for (int i = 0; i < parameterCount; i++)
+    {
+        slang::VariableLayoutReflection* VarLayout = ProgramLayout->getParameterByIndex(i);
+        if (VarLayout == nullptr)
+            continue;
+
+        std::string name = VarLayout->getName();
+        std::cout << "Name: " << name << std::endl;
+    }
+    slang::TypeLayoutReflection* TypeLayout = ProgramLayout->getGlobalParamsTypeLayout();
+    if (TypeLayout)
+    {
+        int fieldCount = TypeLayout->getFieldCount();
+        for (int i = 0; i < fieldCount; i++)
+        {
+            slang::VariableLayoutReflection* VarLayout = TypeLayout->getFieldByIndex(i);
+            if (VarLayout == nullptr)
+                continue;
+
+            uint32_t descriptorSetIndex = VarLayout->getOffset(slang::ParameterCategory::RegisterSpace);
+            std::string name = VarLayout->getName();
+            std::cout << "Name: " << name << ", Descriptor Set Index: " << descriptorSetIndex << std::endl;
+        }
+    }
+
+
     std::cout << "Compiled " << spirvCode->getBufferSize() << " bytes of SPIR-V" << std::endl;
 }

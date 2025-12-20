@@ -77,7 +77,7 @@ namespace nilou {
             if (!PBRExhibitionMaterial)
             {
                 PBRExhibitionMaterial = NewObject<UMaterial>(Package, "PBRExhibitionMaterial");
-                PBRExhibitionMaterial->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.glsl");
+                PBRExhibitionMaterial->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.slang");
                 PBRExhibitionMaterial->SetScalarParameterValue("Red", 1.f);
                 PBRExhibitionMaterial->SetScalarParameterValue("Green", 1.f);
                 PBRExhibitionMaterial->SetScalarParameterValue("Blue", 1.f);
@@ -170,7 +170,7 @@ namespace nilou {
             SkyAtmosphereMaterial->InitializeResources();
             SkyAtmosphereMaterial->SetRasterizerState(FRasterizerStateInitializer(FM_Solid, CM_None));
             SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
-            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.glsl");
+            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.slang");
             NPackage::SavePackage(Package);
         }
         ASphereActor* SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
@@ -247,6 +247,7 @@ namespace nilou {
         LightActorTransform.SetRotator(FRotator(-45, -45, 0));
         ALightActor* DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
+        UMaterial::GetDefaultMaterial();
         AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // LoadPBRExibition(this);
 
