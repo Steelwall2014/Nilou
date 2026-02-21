@@ -50,6 +50,26 @@ static FShaderParameterRegistry UniqueRegister_STRUCT_NAME(
 	}
 );
 )";
+
+const std::string GeneratedNonOpaqueCppStructTemplate =
+R"(// Size in shader: TYPE_SIZE bytes, alignment in shader: TYPE_ALIGNMENT bytes
+template<> struct alignas(TYPE_ALIGNMENT) FULL_STRUCT_NAME
+{
+NON_OPAQUE_FIELDS
+    bool operator==(const FULL_STRUCT_NAME& Other) const = default;
+    bool operator!=(const FULL_STRUCT_NAME& Other) const = default;
+};
+)";
+
+const std::string GeneratedOpaqueCppStructTemplate =
+R"(template<> struct STRUCT_NAME<OpaqueLayout>
+{
+OPAQUE_FIELDS
+    bool operator==(const STRUCT_NAME<OpaqueLayout>& Other) const = default;
+    bool operator!=(const STRUCT_NAME<OpaqueLayout>& Other) const = default;
+};
+)";
+
 std::string SimpleMacroReplace(const std::string& Template, const std::string& Macro, const std::string& Value)
 {
     std::string Output = Template;
@@ -150,20 +170,25 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
         }
     }
 
-    std::string NonOpaqueDecl;
-    bool bHasNonOpaqueField = false;
     const std::string StructName = TypeLayout->getType()->getName();
     const std::string FullStructName = std::format("{}<{}>", StructName, GetShaderDataLayoutName(NonOpaqueDataLayout));
-    int TypeSize = TypeLayout->getSize(slang::ParameterCategory::Uniform);
-    int TypeAlignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
-    NonOpaqueDecl += std::format("// Size in shader: {} bytes, alignment in shader: {} bytes\n", TypeSize, TypeAlignment);
-    NonOpaqueDecl += std::format("template<> struct alignas({}) {}\n", TypeAlignment, FullStructName);
-    NonOpaqueDecl += "{\n";
-    int NumFields = TypeLayout->getFieldCount();
+    const int TypeSize = TypeLayout->getSize(slang::ParameterCategory::Uniform);
+    const int TypeAlignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
+
+    // Collect field strings for both layouts in a single pass
+    std::string NonOpaqueFields;
+    std::string OpaqueFields;
+    bool bHasNonOpaqueField = false;
+    bool bHasOpaqueField = false;
+
+    const int NumFields = TypeLayout->getFieldCount();
     for (int FieldIndex = 0; FieldIndex < NumFields; FieldIndex++)
     {
         slang::VariableLayoutReflection* FieldLayout = TypeLayout->getFieldByIndex(FieldIndex);
         slang::TypeReflection* FieldType = FieldLayout->getType();
+        slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
+        const std::string FieldName = FieldLayout->getName();
+
         switch (FieldType->getKind())
         {
         case slang::TypeReflection::Kind::Scalar:
@@ -172,27 +197,32 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
         case slang::TypeReflection::Kind::Array:
         case slang::TypeReflection::Kind::Struct:
         {
-            slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
-            std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
-            std::string FieldName = FieldLayout->getName();
-            int FieldOffset = FieldLayout->getOffset(slang::ParameterCategory::Uniform);
-            int FieldSize = FieldTypeLayout->getSize(slang::ParameterCategory::Uniform);
-            NonOpaqueDecl += std::format("    {} {};    // offset in shader: {} bytes, size in shader: {} bytes\n", FieldTypeName, FieldName, FieldOffset, FieldSize);
+            const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
+            const int FieldOffset = FieldLayout->getOffset(slang::ParameterCategory::Uniform);
+            const int FieldSize = FieldTypeLayout->getSize(slang::ParameterCategory::Uniform);
+            NonOpaqueFields += std::format("    {} {};    // offset in shader: {} bytes, size in shader: {} bytes\n", FieldTypeName, FieldName, FieldOffset, FieldSize);
             bHasNonOpaqueField = true;
             break;
         }
         default:
         {
+            const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
+            OpaqueFields += std::format("    {} {};\n", FieldTypeName, FieldName);
+            bHasOpaqueField = true;
             break;
         }
         }
     }
-    NonOpaqueDecl += std::format("    bool operator==(const {}& Other) const = default;\n", FullStructName);
-    NonOpaqueDecl += std::format("    bool operator!=(const {}& Other) const = default;\n", FullStructName);
-    NonOpaqueDecl += "};\n";
 
+    // Build NonOpaque struct from template
     if (bHasNonOpaqueField)
     {
+        std::string NonOpaqueDecl = GeneratedNonOpaqueCppStructTemplate;
+        NonOpaqueDecl = SimpleMacroReplace(NonOpaqueDecl, "TYPE_SIZE",        std::to_string(TypeSize));
+        NonOpaqueDecl = SimpleMacroReplace(NonOpaqueDecl, "TYPE_ALIGNMENT",   std::to_string(TypeAlignment));
+        NonOpaqueDecl = SimpleMacroReplace(NonOpaqueDecl, "FULL_STRUCT_NAME", FullStructName);
+        NonOpaqueDecl = SimpleMacroReplace(NonOpaqueDecl, "NON_OPAQUE_FIELDS", NonOpaqueFields);
+
         if (OutCppStructs.contains(NonOpaqueDataLayout) && OutCppStructs[NonOpaqueDataLayout] != NonOpaqueDecl)
         {
             std::cout << "Ambiguous struct: " << StructName << std::endl;
@@ -202,45 +232,19 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
         }
         OutCppStructs[NonOpaqueDataLayout] = NonOpaqueDecl;
     }
-    
-    bool bHasOpaqueField = false;
-    std::string OpaqueDecl;
-    OpaqueDecl += std::format("template<> struct {}<OpaqueLayout>\n", StructName);
-    OpaqueDecl += "{\n";
-    if (bHasNonOpaqueField)
-    {
-        OpaqueDecl += std::format("    RDGBuffer* AutomaticallyIntroducedUniformBuffer;\n");
-    }
-    for (int FieldIndex = 0; FieldIndex < NumFields; FieldIndex++)
-    {
-        slang::VariableLayoutReflection* FieldLayout = TypeLayout->getFieldByIndex(FieldIndex);
-        slang::TypeReflection* FieldType = FieldLayout->getType();
-        switch (FieldType->getKind())
-        {
-        case slang::TypeReflection::Kind::Scalar:
-        case slang::TypeReflection::Kind::Vector:
-        case slang::TypeReflection::Kind::Matrix:
-        case slang::TypeReflection::Kind::Struct:
-        case slang::TypeReflection::Kind::Array:
-        {
-            break;
-        }
-        default:
-        {
-            slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
-            std::string TypeName = GetFieldTypeName(FieldTypeLayout);
-            std::string Name = FieldLayout->getName();
-            OpaqueDecl += std::format("    {} {};\n", TypeName, Name);
-            bHasOpaqueField = true;
-            break;
-        }
-        }
-    }
-    OpaqueDecl += std::format("    bool operator==(const {}<OpaqueLayout>& Other) const = default;\n", StructName);
-    OpaqueDecl += std::format("    bool operator!=(const {}<OpaqueLayout>& Other) const = default;\n", StructName);
-    OpaqueDecl += "};\n";
+
+    // Build Opaque struct from template
     if (bHasNonOpaqueField || bHasOpaqueField)
     {
+        const std::string AutoUBField = bHasNonOpaqueField
+            ? "    RDGBuffer* AutomaticallyIntroducedUniformBuffer;\n"
+            : "";
+        OpaqueFields = AutoUBField + OpaqueFields;
+
+        std::string OpaqueDecl = GeneratedOpaqueCppStructTemplate;
+        OpaqueDecl = SimpleMacroReplace(OpaqueDecl, "STRUCT_NAME",             StructName);
+        OpaqueDecl = SimpleMacroReplace(OpaqueDecl, "OPAQUE_FIELDS",           OpaqueFields);
+
         if (OutCppStructs.contains(EShaderDataLayout::Opaque) && OutCppStructs[EShaderDataLayout::Opaque] != OpaqueDecl)
         {
             std::cout << "Ambiguous struct: " << StructName << std::endl;
