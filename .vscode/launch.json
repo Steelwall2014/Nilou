@@ -77,6 +77,18 @@
             ]
         },
         {
+            "name": "NilouShaderTool Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "program": "${workspaceFolder}/build/windows/x64/debug/NilouShaderTool.exe",
+            "args": [
+                "-InputDirectory=D:\\Nilou\\Engine\\Source\\Runtime\\Engine", 
+                "-OutputDirectory=D:\\Nilou\\Engine\\Source\\Runtime\\Engine\\Generated", 
+                "-SearchDirectories=D:\\Nilou\\Engine\\Source\\Runtime\\Core\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\CoreUObject\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\RHI\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\RenderCore\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\VulkanRHI\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\Engine\\Shaders"
+            ]
+        },
+        {
             "name": "TestSlang",
             "type": "cppvsdbg",
             "request": "launch",
