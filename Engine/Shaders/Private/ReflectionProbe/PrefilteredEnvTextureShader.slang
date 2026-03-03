@@ -105,7 +105,7 @@ void Main(uint3 threadID : SV_DispatchThreadID)
             float NdotL = max(dot(N, L), 0.0);
             if (NdotL > 0.0)
             {
-                prefilteredColor += mytextureCube(Params.EnvironmentTexture, L).rgb * NdotL;
+                prefilteredColor += mytextureCubeLod(Params.EnvironmentTexture, L, 0.0).rgb * NdotL;
                 totalWeight      += NdotL;
             }
         }

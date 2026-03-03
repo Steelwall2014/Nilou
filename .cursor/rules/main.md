@@ -47,7 +47,7 @@ xmake build NilouEditor
 
 # 着色器
 
-项目使用 [Slang](https://shader-slang.com/) 着色器语言。着色器源文件按照所属的 C++ 模块存放于对应的 `Shaders` 目录下，但这仅是逻辑上的组织方式——C++ 模块之间的依赖关系**不会**影响着色器模块的可见性，所有着色器模块均全局可见。
+项目使用 [Slang](https://shader-slang.com/) 着色器语言。着色器源文件存放于 `Engine\Shaders` 目录下。其中，只有 `Engine\Shaders\Public` 目录下的着色器是全局可见的。
 
 着色器编写须遵循以下规范：
 

@@ -79,7 +79,6 @@ namespace nilou {
 		{ }
 		std::string Name;
 		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
-		std::unordered_map<std::string, int32> ParamBlockNameToSetIndex;
 		slang::TypeLayoutReflection* Reflection = nullptr;
 		std::optional<RHIPushConstantRange> PushConstantRange;
 		EShaderStage ShaderStage;
@@ -490,7 +489,6 @@ namespace nilou {
 	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
     	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
 		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
-		std::unordered_map<std::string, int32> ParamBlockNameToSetIndex;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 

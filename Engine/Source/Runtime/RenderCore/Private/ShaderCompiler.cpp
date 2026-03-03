@@ -17,6 +17,7 @@
 #include "Logging/LogMacros.h"
 #include "Misc/Crc.h"
 #include "SlangUtils.h"
+#include "Misc/Paths.h"
 
 #ifdef NILOU_DEBUG
 #include <fstream>
@@ -170,6 +171,12 @@ namespace nilou {
         sessionDesc.preprocessorMacroCount = preprocessorMacros.size();
         sessionDesc.targets = targets.data();
         sessionDesc.targetCount = targets.size();
+        const std::string SearchPath = FPaths::EngineDir() + "/Shaders/Public";
+        std::vector<const char*> searchPaths = { 
+            SearchPath.c_str(),
+        };
+        sessionDesc.searchPaths = searchPaths.data();
+        sessionDesc.searchPathCount = searchPaths.size();
 
         Slang::ComPtr<slang::ISession> session;
         GSlangGlobalSession->createSession(sessionDesc, session.writeRef());
@@ -353,10 +360,10 @@ namespace nilou {
                 diagnosticsBlob.writeRef());
             diagnoseIfNeeded(diagnosticsBlob);
         }
-        const char* glslCodeString = (const char*)glslCode->getBufferPointer();
-        NILOU_LOG(Display, "{}", glslCodeString);
-        slang::ProgramLayout* ProgramLayout = linkedProgram->getLayout();
-        FSlangUtils::PrintProgramLayout(ProgramLayout, SLANG_SPIRV);
+        // const char* glslCodeString = (const char*)glslCode->getBufferPointer();
+        // NILOU_LOG(Display, "{}", glslCodeString);
+        // slang::ProgramLayout* ProgramLayout = linkedProgram->getLayout();
+        // FSlangUtils::PrintProgramLayout(ProgramLayout, SLANG_SPIRV);
         return {byteCode, linkedProgram};
     }
 
@@ -369,56 +376,39 @@ namespace nilou {
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
         RHIShaderRef ShaderRHI = nullptr;
-        if (ShaderType->FileAbsolutePath.extension() == ".slang")
+        Ncheck(ShaderType->FileAbsolutePath.extension() == ".slang");
+        Slang::ComPtr<slang::ISession> session = createSession(Environment);
+        slang::IModule* ShaderModule = createModule(session, ShaderType);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
+        if (entryPoint == nullptr)
         {
-            Slang::ComPtr<slang::ISession> session = createSession(Environment);
-            slang::IModule* ShaderModule = createModule(session, ShaderType);
-            Slang::ComPtr<slang::IEntryPoint> entryPoint;
-            ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
-            auto [spirvCode, linkedProgram] = compileFromComponents(session, {
-                ShaderModule,
-                entryPoint
-            });
-            TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-            switch (ShaderType->ShaderFrequency) 
-            {
-            case EShaderFrequency::Vertex:
-                ShaderRHI = RHICreateVertexShader(ByteCode, ShaderType->Name);
-                break;
-            case EShaderFrequency::Pixel:
-                ShaderRHI = RHICreatePixelShader(ByteCode, ShaderType->Name);
-                break;
-            case EShaderFrequency::Compute:
-                ShaderRHI = RHICreateComputeShader(ByteCode, ShaderType->Name);
-                break;
-            default:
-                Ncheck(0);
-            }
-            
-            // Parse Slang reflection and populate DescriptorSetLayouts
-            if (ShaderRHI != nullptr && linkedProgram != nullptr)
-            {
-                ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
-            }
+            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
         }
-        else if (ShaderType->FileAbsolutePath.extension() == ".glsl")
+        auto [spirvCode, linkedProgram] = compileFromComponents(session, {
+            ShaderModule,
+            entryPoint
+        });
+        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
+        switch (ShaderType->ShaderFrequency) 
         {
-            std::string code = ConcateShaderCodeAndParameters(
-                {&ShaderType->PreprocessedCode}, Environment);
-            switch (ShaderType->ShaderFrequency) 
-            {
-            case EShaderFrequency::Vertex:
-                ShaderRHI = RHICreateVertexShader(code, ShaderType->Name);
-                break;
-            case EShaderFrequency::Pixel:
-                ShaderRHI = RHICreatePixelShader(code, ShaderType->Name);
-                break;
-            case EShaderFrequency::Compute:
-                ShaderRHI = RHICreateComputeShader(code, ShaderType->Name);
-                break;
-            default:
-                Ncheck(0);
-            }
+        case EShaderFrequency::Vertex:
+            ShaderRHI = RHICreateVertexShader(ByteCode, ShaderType->Name);
+            break;
+        case EShaderFrequency::Pixel:
+            ShaderRHI = RHICreatePixelShader(ByteCode, ShaderType->Name);
+            break;
+        case EShaderFrequency::Compute:
+            ShaderRHI = RHICreateComputeShader(ByteCode, ShaderType->Name);
+            break;
+        default:
+            Ncheck(0);
+        }
+        
+        // Parse Slang reflection and populate DescriptorSetLayouts
+        if (ShaderRHI != nullptr && linkedProgram != nullptr)
+        {
+            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
         }
         AddGlobalShader(ShaderParameter, ShaderRHI);
     }
@@ -449,6 +439,10 @@ namespace nilou {
         std::string VertexFactoryInputName = VertexFactoryType->Name + "Input";
         Slang::ComPtr<slang::IEntryPoint> entryPoint;
         ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
+        if (entryPoint == nullptr)
+        {
+            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
+        }
         Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, { 
             {
                 slang::SpecializationArg::Kind::Type,
@@ -512,6 +506,10 @@ namespace nilou {
         slang::IModule* MaterialModule = createModuleFromSourceString(session, MaterialName, MaterialPath, MaterialPreprocessedResult);
         Slang::ComPtr<slang::IEntryPoint> entryPoint;
         ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
+        if (entryPoint == nullptr)
+        {
+            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
+        }
         Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, {
             {
                 slang::SpecializationArg::Kind::Type,
@@ -540,7 +538,7 @@ namespace nilou {
         // Parse Slang reflection and populate DescriptorSetLayouts
         if (ShaderRHI != nullptr && linkedProgram != nullptr)
         {
-            // ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
+            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
         }
         
         OutShaderMap.AddShader(ShaderRHI, ShaderParameter);

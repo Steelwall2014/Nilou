@@ -13,6 +13,7 @@ ParameterBlock<FOceanFastFourierTransformTextures> Params;
 struct FOceanFFTButterflyBlock
 {
     uint Ns;
+    bool HorizontalPass;
 };
 uniform ParameterBlock<FOceanFFTButterflyBlock> OceanFFTButterflyBlock;
 
@@ -62,14 +63,14 @@ void FFTVertical(uint3 id)
 
 [shader("compute")]
 [numthreads(32, 32, 1)]
-void MainHorizontal(uint3 threadID : SV_DispatchThreadID)
+void Main(uint3 threadID : SV_DispatchThreadID)
 {
-    FFTHorizontal(threadID);
-}
-
-[shader("compute")]
-[numthreads(32, 32, 1)]
-void MainVertical(uint3 threadID : SV_DispatchThreadID)
-{
-    FFTVertical(threadID);
+    if (OceanFFTButterflyBlock.HorizontalPass)
+    {
+        FFTHorizontal(threadID);
+    }
+    else
+    {
+        FFTVertical(threadID);
+    }
 }

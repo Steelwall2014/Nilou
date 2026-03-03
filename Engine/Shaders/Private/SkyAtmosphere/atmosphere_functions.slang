@@ -104,7 +104,7 @@ public DimensionlessSpectrum GetTransmittanceToTopAtmosphereBoundary(
     SamplerState linearSampler,
     Length r, Number mu) {
   float2 uv = GetTransmittanceTextureUvFromRMu(atmosphere, r, mu);
-  return DimensionlessSpectrum(transmittance_texture.Sample(linearSampler, uv).rgb);
+  return DimensionlessSpectrum(transmittance_texture.SampleLevel(linearSampler, uv, 0.0).rgb);
 }
 
 public DimensionlessSpectrum GetTransmittance(
@@ -302,8 +302,8 @@ public AbstractSpectrum GetScattering(
       uvwz.z, uvwz.w);
   float3 uvw1 = float3((tex_x + 1.0 + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
       uvwz.z, uvwz.w);
-  return AbstractSpectrum(scattering_texture.Sample(linearSampler, uvw0).rgb * (1.0 - lerp) +
-      scattering_texture.Sample(linearSampler, uvw1).rgb * lerp);
+  return AbstractSpectrum(scattering_texture.SampleLevel(linearSampler, uvw0, 0.0).rgb * (1.0 - lerp) +
+      scattering_texture.SampleLevel(linearSampler, uvw1, 0.0).rgb * lerp);
 }
 
 public RadianceSpectrum GetScattering(
@@ -359,7 +359,7 @@ public IrradianceSpectrum GetIrradiance(
     SamplerState linearSampler,
     Length r, Number mu_s) {
   float2 uv = GetIrradianceTextureUvFromRMuS(atmosphere, r, mu_s);
-  return IrradianceSpectrum(irradiance_texture.Sample(linearSampler, uv).rgb);
+  return IrradianceSpectrum(irradiance_texture.SampleLevel(linearSampler, uv, 0.0).rgb);
 }
 
 public Length DistanceToNearestAtmosphereBoundary(AtmosphereParameters atmosphere,
@@ -403,11 +403,11 @@ public IrradianceSpectrum GetCombinedScattering(
       uvwz.z, uvwz.w);
 
   IrradianceSpectrum scattering = IrradianceSpectrum(
-      scattering_texture.Sample(linearSampler, uvw0).rgb * (1.0 - lerp) +
-      scattering_texture.Sample(linearSampler, uvw1).rgb * lerp);
+      scattering_texture.SampleLevel(linearSampler, uvw0, 0.0).rgb * (1.0 - lerp) +
+      scattering_texture.SampleLevel(linearSampler, uvw1, 0.0).rgb * lerp);
   single_mie_scattering = IrradianceSpectrum(
-      single_mie_scattering_texture.Sample(linearSampler, uvw0).rgb * (1.0 - lerp) +
-      single_mie_scattering_texture.Sample(linearSampler, uvw1).rgb * lerp);
+      single_mie_scattering_texture.SampleLevel(linearSampler, uvw0, 0.0).rgb * (1.0 - lerp) +
+      single_mie_scattering_texture.SampleLevel(linearSampler, uvw1, 0.0).rgb * lerp);
 
   return scattering;
 }

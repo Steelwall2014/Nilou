@@ -68,7 +68,7 @@ void Main(uint3 threadID : SV_DispatchThreadID)
                                  + tangentSample.y * up
                                  + tangentSample.z * N;
 
-                float3 color = mytextureCube(Params.EnvironmentTexture, sampleVec).rgb;
+                float3 color = mytextureCubeLod(Params.EnvironmentTexture, sampleVec, 0.0).rgb;
                 irradiance += color * cos(theta) * sin(theta);
                 nrSamples++;
             }
