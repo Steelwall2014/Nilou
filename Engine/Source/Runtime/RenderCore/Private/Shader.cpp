@@ -70,7 +70,7 @@ namespace nilou {
 
     FShaderTypeBase::FShaderTypeBase(const std::string &InClassName, const std::string &InFilePath, const std::string &InEntryPointName, int32 InPermutationCount)
         : Name(RemovePrefixF(InClassName))
-        , FileAbsolutePath(InFilePath)
+        , FileAbsolutePath(FPaths::EngineDir() + InFilePath)
         , EntryPointName(InEntryPointName)
         , PermutationCount(InPermutationCount)
     {

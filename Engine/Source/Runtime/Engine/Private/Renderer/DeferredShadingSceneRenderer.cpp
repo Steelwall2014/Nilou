@@ -26,8 +26,8 @@
 
 namespace nilou {
 
-    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/Private/ScreenQuadVertexShader.slang", "Main", EShaderFrequency::Vertex)
-    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/Private/RenderToScreenPixelShader.slang", "Main", EShaderFrequency::Pixel)
+    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/Private/GlobalShaders/ScreenQuadVertexShader.slang", "Main", EShaderFrequency::Vertex)
+    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/Private/GlobalShaders/RenderToScreenPixelShader.slang", "Main", EShaderFrequency::Pixel)
 
     FDeferredShadingSceneRenderer *Renderer = nullptr;
 

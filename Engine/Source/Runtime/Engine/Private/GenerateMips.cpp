@@ -11,13 +11,13 @@
 namespace nilou {
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsCS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/GenerateMips/ComputeGenerateMips.slang", "Main", EShaderFrequency::Compute);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/Private/GenerateMips/ComputeGenerateMips.slang", "Main", EShaderFrequency::Compute);
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsVS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/GenerateMips/RasterGenerateMips.slang", "MainVS", EShaderFrequency::Vertex);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/Private/GenerateMips/RasterGenerateMips.slang", "MainVS", EShaderFrequency::Vertex);
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsPS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/GenerateMips/RasterGenerateMips.slang", "MainPS", EShaderFrequency::Pixel);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/Private/GenerateMips/RasterGenerateMips.slang", "MainPS", EShaderFrequency::Pixel);
 
 constexpr int GroupSize = 8;
 

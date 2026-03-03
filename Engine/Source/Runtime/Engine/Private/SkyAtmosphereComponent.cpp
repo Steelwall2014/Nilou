@@ -34,22 +34,22 @@ namespace nilou {
     const int NUM_SCATTERING_ORDERS = 4;
 
     DECLARE_GLOBAL_SHADER(FAtmosphereTransmittanceShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereTransmittanceShader, "/Shaders/SkyAtmosphere/atmosphere_transmittance_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereTransmittanceShader, "/Shaders/Private/SkyAtmosphere/atmosphere_transmittance_pre.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FAtmosphereDirectIrradianceShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereDirectIrradianceShader, "/Shaders/SkyAtmosphere/atmosphere_direct_irradiance_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereDirectIrradianceShader, "/Shaders/Private/SkyAtmosphere/atmosphere_direct_irradiance_pre.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FAtmosphereScatteringShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereScatteringShader, "/Shaders/SkyAtmosphere/atmosphere_scattering_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereScatteringShader, "/Shaders/Private/SkyAtmosphere/atmosphere_scattering_pre.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FAtmosphereScatteringDensityShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereScatteringDensityShader, "/Shaders/SkyAtmosphere/atmosphere_scattering_density_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereScatteringDensityShader, "/Shaders/Private/SkyAtmosphere/atmosphere_scattering_density_pre.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FAtmosphereIndirectIrradianceShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereIndirectIrradianceShader, "/Shaders/SkyAtmosphere/atmosphere_indirect_irradiance_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereIndirectIrradianceShader, "/Shaders/Private/SkyAtmosphere/atmosphere_indirect_irradiance_pre.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FAtmosphereMultiScatteringShader)
-    IMPLEMENT_SHADER_TYPE(FAtmosphereMultiScatteringShader, "/Shaders/SkyAtmosphere/atmosphere_multiscattering_pre.slang", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FAtmosphereMultiScatteringShader, "/Shaders/Private/SkyAtmosphere/atmosphere_multiscattering_pre.slang", "Main", EShaderFrequency::Compute)
     
 
     USkyAtmosphereComponent::USkyAtmosphereComponent()

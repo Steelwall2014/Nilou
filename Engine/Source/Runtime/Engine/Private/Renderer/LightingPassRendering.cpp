@@ -4,7 +4,7 @@
 #include "RenderGraphUtils.h"
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/GlobalShaders/LightingPassPixelShader.frag", "Main", EShaderFrequency::Pixel);
+    IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/Private/Lighting/LightingPassPixelShader.slang", "Main", EShaderFrequency::Pixel);
     
     void FLightingPassPS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
     {
