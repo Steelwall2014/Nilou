@@ -64,12 +64,12 @@ namespace nilou {
         FReflectionProbeSceneProxy* SceneProxy;
   
         BEGIN_UNIFORM_BUFFER_STRUCT(FIrradianceEnvTextureShaderBlock)
-            alignas(16) NPROPERTY() int TextureSize;
+            SHADER_PARAMETER(int, TextureSize)
         END_UNIFORM_BUFFER_STRUCT()
 
         BEGIN_UNIFORM_BUFFER_STRUCT(FPrefilteredEnvTextureShaderBlock)
-            SHADER_PARAMETER(int, TextureSize);
-            SHADER_PARAMETER(float, roughness);
+            SHADER_PARAMETER(int, TextureSize)
+            SHADER_PARAMETER(float, roughness)
         END_UNIFORM_BUFFER_STRUCT()
 
     protected:

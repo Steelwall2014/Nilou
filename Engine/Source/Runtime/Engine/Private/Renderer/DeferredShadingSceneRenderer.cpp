@@ -26,8 +26,8 @@
 
 namespace nilou {
 
-    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/GlobalShaders/ScreenQuadVertexShader.vert", "Main", EShaderFrequency::Vertex)
-    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/GlobalShaders/RenderToScreenPixelShader.frag", "Main", EShaderFrequency::Pixel)
+    IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/Private/ScreenQuadVertexShader.slang", "Main", EShaderFrequency::Vertex)
+    IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/Private/RenderToScreenPixelShader.slang", "Main", EShaderFrequency::Pixel)
 
     FDeferredShadingSceneRenderer *Renderer = nullptr;
 
@@ -209,7 +209,7 @@ namespace nilou {
             ViewUniformBufferData.CameraVerticalFieldOfView = View.VerticalFieldOfView;
 
             for (int i = 0; i < 6; i++)
-                ViewUniformBufferData.FrustumPlanes[i] = FVector4(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
+                ViewUniformBufferData.FrustumPlanes[i] = FVector4f(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
             Graph.QueueBufferUpload(View.ViewUniformBuffer, &ViewUniformBufferData, sizeof(ViewUniformBufferData));
 

@@ -1419,6 +1419,17 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 			Ncheckf(DescriptorType == WriterInfo.DescriptorType, "Descriptor type mismatch");
 			switch (WriterInfo.DescriptorType)
 			{
+			case EDescriptorType::Sampler:
+			{
+				auto& SamplerState = WriterInfo.ImageInfo.SamplerState;
+				DescriptorSetRHI->SetSamplerState(BindingIndex, SamplerState);
+				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
+					DescriptorSet->Name, 
+					BindingIndex, 
+					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					(size_t)SamplerState);
+				break;
+			}
 			case EDescriptorType::UniformBuffer:
 			{
 				auto& BufferInfo = WriterInfo.BufferInfo;

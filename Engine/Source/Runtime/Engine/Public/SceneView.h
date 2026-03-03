@@ -1,23 +1,25 @@
 #pragma once
 
 #include <vector>
+#include <set>
 #include "Frustum.h"
 #include "UniformBuffer.h"
 #include "MeshBatch.h"
 #include "Viewport.h"
 #include "EngineTypes.h"
+#include "RenderGraphResources.h"
 
 namespace nilou {
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-        SHADER_PARAMETER_ARRAY(FVector4, 6, FrustumPlanes)
+        SHADER_PARAMETER_ARRAY(FVector4f, FrustumPlanes, [6])
         SHADER_PARAMETER(FMatrix44f, RelWorldToView)
         SHADER_PARAMETER(FMatrix44f, ViewToClip)
         SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
         SHADER_PARAMETER(FMatrix44f, ClipToView)  
         SHADER_PARAMETER(FMatrix44f, RelClipToWorld)      // Inverse of RelWorldToClip
         SHADER_PARAMETER(FMatrix44f, AbsWorldToClip)     
-        SHADER_PARAMETER(FVector, CameraPosition)
+        SHADER_PARAMETER(FVector3f, CameraPosition)
         SHADER_PARAMETER(FVector3f, CameraDirection)
         SHADER_PARAMETER(FIntVector2, CameraResolution)
         SHADER_PARAMETER(float, CameraNearClipDist)

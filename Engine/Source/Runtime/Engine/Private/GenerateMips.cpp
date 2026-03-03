@@ -1,30 +1,23 @@
 #include "GenerateMips.h"
+#include "RHIStaticStates.h"
 #include "Shader.h"
 #include "ShaderInstance.h"
 #include "UniformBuffer.h"
 #include "RHICommandList.h"
 #include "RenderGraphUtils.h"
+#include "ComputeGenerateMips.generated.h"
+#include "RasterGenerateMips.generated.h"
 
 namespace nilou {
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsCS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/GlobalShaders/ComputeGenerateMips.glsl", "Main", EShaderFrequency::Compute);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsCS, "/Shaders/GenerateMips/ComputeGenerateMips.slang", "Main", EShaderFrequency::Compute);
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsVS)
-IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/GlobalShaders/RasterGenerateMipsVertexShader.glsl", "Main", EShaderFrequency::Vertex);
+IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/GenerateMips/RasterGenerateMips.slang", "MainVS", EShaderFrequency::Vertex);
 
-class FGenerateMipsPS : public FGlobalShader
-{
-public:
-    DECLARE_SHADER_TYPE()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FParameters)
-        SHADER_PARAMETER(FVector2f, HalfTexelSize)
-        SHADER_PARAMETER(float, Level)
-    END_UNIFORM_BUFFER_STRUCT()
-    
-};
-IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/GlobalShaders/RasterGenerateMipsPixelShader.glsl", "Main", EShaderFrequency::Pixel);
+DECLARE_GLOBAL_SHADER(FGenerateMipsPS)
+IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/GenerateMips/RasterGenerateMips.slang", "MainPS", EShaderFrequency::Pixel);
 
 constexpr int GroupSize = 8;
 
@@ -48,7 +41,10 @@ void FGenerateMips::Execute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerS
 void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHISamplerState* Sampler)
 {
     Ncheck(Texture);
-    Ncheck(Sampler);
+    if (!Sampler)
+    {
+        Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+    }
 
     const RDGTextureDesc& Desc = Texture->Desc;
 
@@ -62,14 +58,16 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", Shader->GetDescriptorSetLayout(0));
-            DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
-            DescriptorSet->SetStorageImage("MipOutUAV", Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex)));
-
+            TParameterBlock<FComputeGenerateMipsInputParameters> InputParameters;
+            InputParameters.MipInSRV.TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex));
+            TParameterBlock<FComputeGenerateMipsOutputParameters> OutputParameters;
+            OutputParameters.MipOutUAV = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
+            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", InputParameters);
+            RDGDescriptorSet* OutputDescriptorSet = Graph.CreateDescriptorSet("GenerateMips Output DescriptorSet", OutputParameters);
             RDGPassDesc PassDesc{NFormat("GenerateMips for texture \"{}\" mipmap {}", Texture->Name, MipLevel)};
             Graph.AddComputePass(
                 PassDesc,
-                { DescriptorSet },
+                { DescriptorSet, OutputDescriptorSet },
                 [=](RHICommandList& RHICmdList)
                 {
                     RHICmdList.BindComputePipelineState(PSO);
@@ -86,7 +84,10 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISamplerState* Sampler)
 {
     Ncheck(Texture);
-    Ncheck(Sampler);
+    if (!Sampler)
+    {
+        Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+    }
 
     const RDGTextureDesc& Desc = Texture->Desc;
 
@@ -114,13 +115,14 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
 
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", PixelShader->GetDescriptorSetLayout(0));
-            DescriptorSet->SetSampler("MipInSRV", Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), Sampler);
-            FGenerateMipsPS::FParameters Parameters;
+            TParameterBlock<FRasterGenerateMipsParameters> Parameters;
             Parameters.HalfTexelSize = FVector2f(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Parameters.Level = float(MipLevel);
-            RDGBuffer* ParametersBuffer = RDGCreateUniformBuffer(Graph, Parameters, "GenerateMipsParameters");
-            DescriptorSet->SetUniformBuffer("FParameters", ParametersBuffer);
+            Parameters.MipInSRV = { 
+                .TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), 
+                .SamplerState = Sampler 
+            };
+            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", Parameters);
 
             RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
             RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);

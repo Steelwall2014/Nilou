@@ -43,10 +43,8 @@ namespace nilou {
         const_reference operator[](size_type index) const noexcept { Ncheck(IsValidIndex(index)); return Data[index]; }
         reference At(size_type index) { return Data.at(index); }
         const_reference At(size_type index) const { return Data.at(index); }
-        reference Front() { return Data.front(); }
-        const_reference Front() const { return Data.front(); }
-        reference Back() { return Data.back(); }
-        const_reference Back() const { return Data.back(); }
+        reference Last() { return Data.back(); }
+        const_reference Last() const { return Data.back(); }
         pointer GetData() { return Data.data(); }
         const_pointer GetData() const { return Data.data(); }
 
@@ -237,10 +235,19 @@ namespace nilou {
     };
 
     template <typename InElementType, uint32 NumElements, uint32 Alignment = alignof(InElementType)>
-    class alignas(Alignment) TAlignedStaticArray
+    class alignas(Alignment) TStaticArray
     {
     public:
-        TAlignedStaticArray() { }
+        TStaticArray() { }
+
+        TStaticArray(std::initializer_list<InElementType> init)
+        {
+            auto it = init.begin();
+            for(uint32 ElementIndex = 0; ElementIndex < NumElements && it != init.end(); ++ElementIndex, ++it)
+            {
+                Elements[ElementIndex].Element = *it;
+            }
+        }
 
         InElementType &operator[](size_t index)
         {
@@ -252,33 +259,26 @@ namespace nilou {
             return Elements[index].Element;
         }
 
-        // friend bool operator==(const TAlignedStaticArray& A,const TAlignedStaticArray& B)
-        // {
-        //     for(uint32 ElementIndex = 0;ElementIndex < NumElements;++ElementIndex)
-        //     {
-        //         if(!(A[ElementIndex] == B[ElementIndex]))
-        //         {
-        //             return false;
-        //         }
-        //     }
-        //     return true;
-        // }
-
-        // friend bool operator!=(const TAlignedStaticArray& A,const TAlignedStaticArray& B)
-        // {
-        //     for(uint32 ElementIndex = 0;ElementIndex < NumElements;++ElementIndex)
-        //     {
-        //         if(!(A[ElementIndex] == B[ElementIndex]))
-        //         {
-        //             return true;
-        //         }
-        //     }
-        //     return false;
-        // }
-
         bool IsEmpty() const
         {
             return NumElements == 0;
+        }
+
+        friend bool operator==(const TStaticArray& A, const TStaticArray& B)
+        {
+            for(uint32 ElementIndex = 0; ElementIndex < NumElements; ++ElementIndex)
+            {
+                if(!(A[ElementIndex] == B[ElementIndex]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        friend bool operator!=(const TStaticArray& A, const TStaticArray& B)
+        {
+            return !(A == B);
         }
 
         int32 Num() const { return NumElements; }

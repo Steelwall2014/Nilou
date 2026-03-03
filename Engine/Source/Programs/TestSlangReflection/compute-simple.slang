@@ -11,6 +11,14 @@ struct ImageProcessingOptions
     bool useLookupTable;
     StructuredBuffer<float4> lookupTable;
 }
+struct LayoutTestStruct
+{
+    float array[3];
+};
+uniform ParameterBlock<LayoutTestStruct>   ConstantBuffer1;
+uniform ParameterBlock<LayoutTestStruct>   ConstantBuffer2;
+uniform StructuredBuffer<LayoutTestStruct>   StructuredBuffer1;
+
 
 [shader("compute")]
 [numthreads(THREADGROUP_SIZE_X, THREADGROUP_SIZE_Y)]
@@ -20,5 +28,6 @@ void processImage(
     uniform RWTexture2D outputImage,
     uniform ImageProcessingOptions options)
 {
+    outputImage[0] = ConstantBuffer1.array[0] + ConstantBuffer2.array[1] + StructuredBuffer1[0].array[2];
     /* actual logic would go here */
 }

@@ -5,9 +5,9 @@
 #include "DynamicRHI.h"
 #include "RHICommandList.h"
 #include "Logging/LogMacros.h"
+#include "RenderGraph.h"
 
 namespace nilou {
-    class RenderGraph;
 
     class EnqueueUniqueRenderCommandType
     {

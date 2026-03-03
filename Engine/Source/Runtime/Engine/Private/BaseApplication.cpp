@@ -46,6 +46,7 @@ namespace nilou {
 
     bool BaseApplication::Initialize_RenderThread()
     {
+        FShaderParameterRegistry::RegisterTypes();
         FShaderCompiler::CompileGlobalShaders();
         return true;
     }

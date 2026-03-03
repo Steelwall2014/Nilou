@@ -9,6 +9,8 @@
 #include "ShaderPreprocess.h"
 #include "Misc/FileHelper.h"
 
+namespace fs = std::filesystem;
+
 namespace nilou {
 
 
@@ -66,20 +68,26 @@ namespace nilou {
         return Name;
     }
 
-    FShaderTypeBase::FShaderTypeBase(const std::string &InClassName, const std::string &InVirtualFilePath, const std::string &InEntryPointName, int32 InPermutationCount)
+    FShaderTypeBase::FShaderTypeBase(const std::string &InClassName, const std::string &InFilePath, const std::string &InEntryPointName, int32 InPermutationCount)
         : Name(RemovePrefixF(InClassName))
-        , VirtualFilePath(InVirtualFilePath)
+        , FileAbsolutePath(InFilePath)
         , EntryPointName(InEntryPointName)
         , PermutationCount(InPermutationCount)
     {
-        FileAbsolutePath = FPaths::EngineDir() + VirtualFilePath;
-        if (std::filesystem::exists(FileAbsolutePath))
+        if (fs::exists(FileAbsolutePath))
         {
             NILOU_LOG(Display, "Preprocessing {}", FileAbsolutePath.generic_string());
             std::string RawSourceCode;
             FFileHelper::LoadFileToString(RawSourceCode, FileAbsolutePath.generic_string());
             PreprocessedCode = shader_preprocess::PreprocessInclude(RawSourceCode, FileAbsolutePath.parent_path().generic_string(), {});
             HashedName = FHashedName(Name+FileAbsolutePath.generic_string());
+        }
+        else
+        {
+            if (InClassName != "FShader" && InClassName != "FGlobalShader" && InClassName != "FMaterialShader" && InClassName != "FVertexFactory")
+            {
+                NILOU_LOG(Error, "Shader file not found: {}", FileAbsolutePath.generic_string());
+            }
         }
     }
 }

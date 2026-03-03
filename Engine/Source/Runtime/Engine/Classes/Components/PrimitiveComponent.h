@@ -64,8 +64,8 @@ namespace nilou {
     };
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters)
-        SHADER_PARAMETER(FMatrix, LocalToWorld)
-        SHADER_PARAMETER(FMatrix, ModelToLocal)
+        SHADER_PARAMETER(FMatrix44f, LocalToWorld)
+        SHADER_PARAMETER(FMatrix44f, ModelToLocal)
     END_UNIFORM_BUFFER_STRUCT()
 
     class FPrimitiveSceneProxy

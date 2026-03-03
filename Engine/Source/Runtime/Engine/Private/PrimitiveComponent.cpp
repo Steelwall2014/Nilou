@@ -57,8 +57,8 @@ namespace nilou {
     void FPrimitiveSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)
     {
         FPrimitiveUniformShaderParameters Data;
-        Data.LocalToWorld = LocalToWorld;
-        Data.ModelToLocal = FMatrix();
+        Data.LocalToWorld = FMatrix44f(LocalToWorld);
+        Data.ModelToLocal = FMatrix44f(glm::inverse(LocalToWorld));
         Graph.QueueBufferUpload(UniformBuffer.GetReference(), &Data, sizeof(Data));
     }
 

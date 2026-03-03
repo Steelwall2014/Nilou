@@ -276,6 +276,14 @@ public:
 };
 using RDGTextureViewRef = TRefCountPtr<RDGTextureView>;
 
+struct RDGCombinedTextureSampler
+{
+    RDGTextureView* TextureView = nullptr;
+    RHISamplerState* SamplerState = nullptr;
+    bool operator==(const RDGCombinedTextureSampler& Other) const = default;
+    bool operator!=(const RDGCombinedTextureSampler& Other) const = default;
+};
+
 /************ Buffer *************/
 class RDGBuffer : public RDGResource
 {

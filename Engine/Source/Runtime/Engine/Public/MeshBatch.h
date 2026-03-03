@@ -8,6 +8,7 @@
 namespace nilou {
 
     class FPrimitiveSceneProxy;
+    class FIndexBuffer;
 
     struct FMeshBatchElement
     {

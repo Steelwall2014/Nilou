@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderGraph.h"
 #include "RenderGraphResources.h"
+#include <mutex>
 
 namespace nilou {
 

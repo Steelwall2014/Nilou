@@ -74,6 +74,11 @@ public:
         Set.clear();
     }
 
+    void Reserve(size_t NewSize)
+    {
+        Set.reserve(NewSize);
+    }
+
     TSet Difference(const TSet& OtherSet) const
     {
 		TSet Result;

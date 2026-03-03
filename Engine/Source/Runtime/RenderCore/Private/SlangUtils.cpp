@@ -1359,4 +1359,33 @@ void FSlangUtils::PrintTypeLayout(slang::TypeLayoutReflection* TypeLayout)
     NILOU_LOG(Display, "{}", reflectingPrinting.outputBuffer.str());
 }
 
+EDescriptorType FSlangUtils::TranslateBindingTypeToDescriptorType(slang::BindingType BindingType)
+{
+    // Clear MutableFlag bits
+    slang::BindingType BaseType = (slang::BindingType)((int)BindingType & (int)slang::BindingType::BaseMask);
+    
+    switch (BaseType)
+    {
+    case slang::BindingType::ConstantBuffer:
+        return EDescriptorType::UniformBuffer;
+    case slang::BindingType::RawBuffer:
+        return EDescriptorType::StorageBuffer;
+    case slang::BindingType::TypedBuffer:
+        return EDescriptorType::StorageBuffer;
+    case slang::BindingType::Texture:
+        return EDescriptorType::SampledImage;
+    case slang::BindingType::CombinedTextureSampler:
+        return EDescriptorType::CombinedImageSampler;
+    case slang::BindingType::Sampler:
+        return EDescriptorType::Sampler;
+    case slang::BindingType::MutableTexture:
+    case slang::BindingType::MutableTypedBuffer:
+    case slang::BindingType::MutableRawBuffer:
+        return EDescriptorType::StorageImage;
+    default:
+        NILOU_LOG(Warning, "Unknown binding type: {}, defaulting to UniformBuffer", (int)BaseType);
+        return EDescriptorType::UniformBuffer;
+    }
+}
+
 }

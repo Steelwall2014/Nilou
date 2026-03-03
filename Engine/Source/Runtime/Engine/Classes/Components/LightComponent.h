@@ -134,33 +134,31 @@ namespace nilou {
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
-        SHADER_PARAMETER(FMatrix, WorldToClip)
+        SHADER_PARAMETER(FMatrix44f, WorldToClip)
         SHADER_PARAMETER(FIntVector2, Resolution)
         SHADER_PARAMETER(float, FrustumFar)
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FDirectionalShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, CASCADED_SHADOWMAP_SPLIT_COUNT, Frustums)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [CASCADED_SHADOWMAP_SPLIT_COUNT])
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FPointShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, 6, Frustums)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [6])
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FSpotShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, 1, Frustums)
+        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [1])
     END_UNIFORM_BUFFER_STRUCT()
 
-    // Manually assign the alignment.
-    // There is only a single int member in the struct, so the alignment should be 16 instead of 4
     BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMapFrustumIndex)
-        alignas(16) int FrustumIndex;
+        SHADER_PARAMETER(int32, FrustumIndex)
     END_UNIFORM_BUFFER_STRUCT()
 
     BEGIN_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightDistAttenParams)
         SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
-        SHADER_PARAMETER(FVector, lightPosition)
+        SHADER_PARAMETER(FVector3f, lightPosition)
         SHADER_PARAMETER(FVector3f, lightIntensity)
         SHADER_PARAMETER(FVector3f, lightDirection)
         SHADER_PARAMETER(int, lightType) 

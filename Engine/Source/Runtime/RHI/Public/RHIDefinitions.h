@@ -770,6 +770,8 @@ enum class EDescriptorType : uint32
     UniformBufferDynamic        =  8,        // = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
     StorageBufferDynamic        =  9,        // = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
     InputAttachment             = 10,        // = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+	InlineUniformBlock			= 1000138000,// = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
+	AccelerationStructure       = 1000150000,// = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
     Max                         = 0x7FFFFFFF
 };
 

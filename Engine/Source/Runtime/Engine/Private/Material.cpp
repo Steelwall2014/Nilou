@@ -11,12 +11,14 @@
 #include "Misc/FileHelper.h"
 #include "ShaderCompiler.h"
 #include <slang.h>
+#include "SlangUtils.h"
 
 namespace fs = std::filesystem;
 
 namespace nilou {
     
-    const std::string MATERIAL_UNIFORM_BLOCK_NAME = "MAT_UNIFORM_BLOCK";
+    const std::string MATERIAL_PARAMETER_TYPE_NAME = "FMaterialParameters";
+    const std::string MATERIAL_PARAMETER_VARIABLE_NAME = "MaterialParams";
 
     /**
     * Updates a parameter on the material instance from the game thread.
@@ -371,34 +373,41 @@ namespace nilou {
         for (uint32 i = 0; i < ParameterCount; i++)
         {
             slang::VariableLayoutReflection* VarLayout = ProgramLayout->getParameterByIndex(i);
-            if (VarLayout == nullptr)
-                continue;
+            if (VarLayout == nullptr) continue;
 
             slang::VariableReflection* Var = VarLayout->getVariable();
-            if (Var == nullptr)
-                continue;
+            if (Var == nullptr) continue;
 
-            const char* ParamName = Var->getName();
-            if (ParamName == nullptr)
-                continue;
-
+            slang::TypeReflection* Type = Var->getType();
             slang::TypeLayoutReflection* TypeLayout = VarLayout->getTypeLayout();
-            if (TypeLayout == nullptr)
-                continue;
+            if (Type == nullptr || TypeLayout == nullptr) continue;
+
+            auto Kind = Type->getKind();
+            if (Kind != slang::TypeReflection::Kind::ParameterBlock) continue;
+
+            slang::TypeReflection* ElementType = Type->getElementType();
+            slang::TypeLayoutReflection* ElementTypeLayout = TypeLayout->getElementTypeLayout();
+            if (ElementType == nullptr || ElementTypeLayout == nullptr) continue;
+
+            std::string ParamName = Var->getName();
+            if (ParamName != MATERIAL_PARAMETER_VARIABLE_NAME) continue;
+            
+            std::string ElementTypeName = ElementType->getName();
+            if (ElementTypeName != MATERIAL_PARAMETER_TYPE_NAME) continue;
 
             // Get binding range information
-            SlangInt BindingRangeCount = TypeLayout->getBindingRangeCount();
-            if (BindingRangeCount == 0)
-                continue;
-
+            SlangInt BindingRangeCount = ElementTypeLayout->getBindingRangeCount();
             for (SlangInt RangeIndex = 0; RangeIndex < BindingRangeCount; RangeIndex++)
             {
-                slang::BindingType BindingType = TypeLayout->getBindingRangeType(RangeIndex);
+                slang::BindingType BindingType = ElementTypeLayout->getBindingRangeType(RangeIndex);
                 
                 // Check if it's a uniform buffer (ConstantBuffer in Slang)
-                if (BindingType == slang::BindingType::ConstantBuffer)
+                if (BindingType == slang::BindingType::CombinedTextureSampler)
                 {
-                    SlangInt SetIndex = TypeLayout->getBindingRangeDescriptorSetIndex(RangeIndex);
+
+                }
+                else if (BindingType == slang::BindingType::ConstantBuffer)
+                {
                     SlangInt FirstBindingIndex = TypeLayout->getBindingRangeFirstDescriptorRangeIndex(RangeIndex);
                     
                     // Get the leaf type layout to get the size
@@ -408,8 +417,6 @@ namespace nilou {
                         FMaterialUniformBufferInfo Info;
                         Info.Name = ParamName;
                         Info.Size = LeafTypeLayout->getSize(slang::ParameterCategory::Uniform);
-                        Info.SetIndex = SetIndex;
-                        Info.BindingIndex = FirstBindingIndex;
                         UniformBufferInfos.push_back(Info);
                     }
                 }
@@ -423,6 +430,10 @@ namespace nilou {
         : Owner(InMaterial)
     {
     }
+
+    BEGIN_SHADER_PARAMETER_STRUCT(FMaterialParameters,)
+        SHADER_PARAMETER(FVector4f, baseColorFactor)
+    END_SHADER_PARAMETER_STRUCT()
 
     void FMaterialRenderProxy::RenderThread_UpdateShader(const std::string& ShaderCode)
     {
@@ -474,7 +485,7 @@ namespace nilou {
         NILOU_LOG(Display, "Material {} has {} uniform buffer block(s):", Owner->GetName(), UniformBufferInfos.size());
         for (const auto& Info : UniformBufferInfos)
         {
-            NILOU_LOG(Display, "  - {}: Size={} bytes, Set={}, Binding={}", Info.Name, Info.Size, Info.SetIndex, Info.BindingIndex);
+            NILOU_LOG(Display, "  - {}: Size={} bytes", Info.Name, Info.Size);
         }
         
         // Build reflection, then we can set uniforms by name.
@@ -513,7 +524,7 @@ namespace nilou {
             std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
             for (auto& Binding : Layout->Bindings)
             {
-                if (Binding.Name == MATERIAL_UNIFORM_BLOCK_NAME && Binding.DescriptorType == EDescriptorType::UniformBuffer)
+                if (Binding.Name == MATERIAL_PARAMETER_TYPE_NAME && Binding.DescriptorType == EDescriptorType::UniformBuffer)
                 {
                     std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Owner->GetName(), SetIndex, Binding.BindingIndex);
                     UniformBufferRDG = RenderGraph::CreatePooledBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
@@ -526,7 +537,7 @@ namespace nilou {
     FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const
     {
         FMeshDrawShaderBindings ShaderBindings;
-        ShaderBindings.SetBuffer(MATERIAL_UNIFORM_BLOCK_NAME, UniformBufferRDG.GetReference());
+        ShaderBindings.SetBuffer(MATERIAL_PARAMETER_TYPE_NAME, UniformBufferRDG.GetReference());
         for (auto& [Name, Texture] : TextureParameterArray)
         {
             ShaderBindings.SetTexture(Name, Texture->GetResource()->TextureRDG->GetDefaultView());

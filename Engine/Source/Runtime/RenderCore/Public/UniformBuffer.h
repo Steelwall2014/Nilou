@@ -11,10 +11,9 @@
 #include "Containers/Array.h"
 #include "HAL/Platform.h"
 #include "RHIDefinitions.h"
-#include "RenderResource.h"
 #include "Math/Maths.h"
 #include "DynamicRHI.h"
-#include "RenderGraph.h"
+#include "ShaderParameter.h"
 
     
 /** Alignment of the shader parameters struct is required to be 16-byte boundaries. */
@@ -24,29 +23,6 @@
 #define SHADER_PARAMETER_ARRAY_ELEMENT_ALIGNMENT 16
 
 namespace nilou {
-
-    // /** Alignements tools because alignas() does not work on type in clang. */
-    // template<typename T, int32 Alignment>
-    // class TAlignedTypedef;
-
-    // #define IMPLEMENT_ALIGNED_TYPE(Alignment) \
-    //     template<typename T> \
-    //     class alignas(Alignment) TAlignedTypedef<T,Alignment> \
-    //     { \
-    //     public: \
-    //         T Data; \
-    //         void operator=(const T &Other) \ 
-    //         { \
-    //             Data = Other; \
-    //         } \
-    //     };
-
-    // IMPLEMENT_ALIGNED_TYPE(1);
-    // IMPLEMENT_ALIGNED_TYPE(2);
-    // IMPLEMENT_ALIGNED_TYPE(4);
-    // IMPLEMENT_ALIGNED_TYPE(8);
-    // IMPLEMENT_ALIGNED_TYPE(16);
-    // #undef IMPLEMENT_ALIGNED_TYPE
 
     /** The base type of a value in a shader parameter structure. */
     enum EUniformBufferBaseType : uint8
@@ -63,22 +39,49 @@ namespace nilou {
         UBMT_FLOAT32,
         UBMT_FLOAT64,
 
+        UBMT_TEXTURE,
+        UBMT_SAMPLER,
+        UBMT_TEXTURE_SAMPLER,
+
         // Nested structure.
         UBMT_NESTED_STRUCT,
 
         EUniformBufferBaseType_Num,
     };
 
+    class FShaderParametersMetadata;
+
+    /** Template to transcode some meta data information for a type <TypeParameter> not specific to shader parameters API. */
     template<typename TypeParameter>
     struct TShaderParameterTypeInfo
     {
+        /** Defines what the type actually is. */
         static constexpr EUniformBufferBaseType BaseType = UBMT_INVALID;
+
+        /** Defines the number rows and columns for vector or matrix based data typed. */
         static constexpr int32 NumRows = 1;
         static constexpr int32 NumColumns = 1;
+    
+        /** Defines the number of elements in an array fashion. 0 means this is not a TStaticArray,
+         * which therefor means there is 1 element.
+         */
         static constexpr int32 NumElements = 0;
-	    static constexpr int32 Alignment = 0;
+    
+        /** Defines the alignment of the elements in bytes. */
+        static constexpr int32 Alignment = alignof(TypeParameter);
+    
+        /** Defines whether this element is stored in constant buffer or not.
+         * This informations is usefull to ensure at compile time everything in the
+         * structure get defined at the end of the structure, to reduce as much as possible
+         * the size of the constant buffer.
+         */
+        static constexpr bool bIsStoredInConstantBuffer = true;
 
-	    // using TAlignedType = TypeParameter;
+        /** Type that is actually alligned. */
+        using TAlignedType = TypeParameter;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return TypeParameter::FTypeInfo::GetStructMetadata(); }
+
         static_assert(std::is_same<TypeParameter, bool>::value != true, "Boolean type for uniform buffer is not supported, you have to use int32 in cpp and bool in glsl");
     };
 
@@ -102,8 +105,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 4;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<uint32, Alignment>;
+	    using TAlignedType = TAlignedTypedef<uint32, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -114,8 +120,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 4;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<int32, Alignment>;
+	    using TAlignedType = TAlignedTypedef<int32, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -126,8 +135,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 1;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 4;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<float, Alignment>;
+	    using TAlignedType = TAlignedTypedef<float, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -138,8 +150,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 8;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec2, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector2f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -150,8 +165,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec3, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector3f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -162,8 +180,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec4, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector4f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -174,8 +195,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec2, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector2, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -186,8 +210,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 32;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec3, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -198,8 +225,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 32;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<vec4, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FVector4, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -210,8 +240,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 8;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<ivec2, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FIntVector2, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -222,8 +255,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<ivec3, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FIntVector, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -234,8 +270,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<ivec4, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FIntVector4, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -246,8 +285,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 8;
-	
-	    // using TAlignedType = TAlignedTypedef<uvec2, Alignment>;
+        static constexpr bool bIsStoredInConstantBuffer = true;
+
+	    using TAlignedType = TAlignedTypedef<FUIntVector2, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -258,8 +300,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
-	
-	    // using TAlignedType = TAlignedTypedef<uvec3, Alignment>;
+        static constexpr bool bIsStoredInConstantBuffer = true;
+        
+	    using TAlignedType = TAlignedTypedef<FUIntVector, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -270,8 +315,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
-	
-	    // using TAlignedType = TAlignedTypedef<uvec4, Alignment>;
+        static constexpr bool bIsStoredInConstantBuffer = true;
+        
+	    using TAlignedType = TAlignedTypedef<FUIntVector4, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -282,8 +330,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
-	
-	    // using TAlignedType = TAlignedTypedef<mat2, Alignment>;
+        static constexpr bool bIsStoredInConstantBuffer = true;
+        
+	    using TAlignedType = TAlignedTypedef<FMatrix22f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -294,8 +345,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<mat3, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FMatrix33f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -306,8 +360,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 16;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<mat4, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FMatrix44f, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -318,8 +375,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 2;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 32;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<mat2, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FMatrix22, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -330,8 +390,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 3;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 32;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<mat3, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FMatrix33, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<>
@@ -342,8 +405,11 @@ namespace nilou {
         static constexpr int32 NumColumns = 4;
         static constexpr int32 NumElements = 0;
         static constexpr int32 Alignment = 32;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedTypedef<mat4, Alignment>;
+	    using TAlignedType = TAlignedTypedef<FMatrix, Alignment>::Type;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return nullptr; }
     };
 
     template<typename T, size_t InNumElements>
@@ -354,25 +420,183 @@ namespace nilou {
         static constexpr int32 NumColumns = TShaderParameterTypeInfo<T>::NumColumns;
         static constexpr int32 NumElements = InNumElements;
         static constexpr int32 Alignment = SHADER_PARAMETER_ARRAY_ELEMENT_ALIGNMENT;
+        static constexpr bool bIsStoredInConstantBuffer = true;
 	
-	    // using TAlignedType = TAlignedStaticArray<T, InNumElements, Alignment>;
+	    using TAlignedType = TStaticArray<T, InNumElements, Alignment>;
+
+        static const FShaderParametersMetadata* GetStructMetadata() { return TShaderParameterTypeInfo<T>::GetStructMetadata(); }
     };
-}
+    
+    enum class EShaderPrecisionModifier : uint8
+    {
+		Float,
+		Half,
+		Fixed,
+		Invalid
+    };
 
-namespace nilou {
-
-    #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
-        struct TypeName \
+    class FShaderParametersMetadata
+    {
+    public:
+        struct FMember
         {
-    #define SHADER_PARAMETER(Type, MemberName) \
-            alignas(TShaderParameterTypeInfo<Type>::Alignment) Type MemberName;
-    #define SHADER_PARAMETER_ARRAY(Type, N, MemberName) \
-            TAlignedStaticArray<Type, N, TShaderParameterTypeInfo<Type[N]>::Alignment> MemberName;
-    #define SHADER_PARAMETER_STRUCT(Type, MemberName) \
-            Type MemberName;
-    #define SHADER_PARAMETER_STRUCT_ARRAY(Type, N, MemberName) \
-            std::array<Type, N> MemberName;
-    #define END_UNIFORM_BUFFER_STRUCT() \
+            FMember(
+                const std::string& InName,
+                const std::string& InShaderType,
+                int32 InFileLine,
+                uint32 InOffset,
+                EUniformBufferBaseType InBaseType,
+                EShaderPrecisionModifier InPrecision,
+                uint32 InNumRows,
+                uint32 InNumColumns,
+                uint32 InNumElements,
+                const FShaderParametersMetadata* InStruct)
+            : Name(InName)
+            , ShaderType(InShaderType)
+            , FileLine(InFileLine)
+            , Offset(InOffset)
+            , BaseType(InBaseType)
+            , Precision(InPrecision)
+            , NumRows(InNumRows)
+            , NumColumns(InNumColumns)
+            , NumElements(InNumElements)
+            , Struct(InStruct)
+            {
+                
+            }
+            std::string Name;
+            std::string ShaderType;
+            int32 FileLine;
+            uint32 Offset;
+            EUniformBufferBaseType BaseType;
+            EShaderPrecisionModifier Precision;
+            uint32 NumRows;
+            uint32 NumColumns;
+            uint32 NumElements;
+            const FShaderParametersMetadata* Struct;
         };
 
+        FShaderParametersMetadata(
+            const std::string& InStructTypeName, 
+            const std::string& InFileName,
+            int32 InFileLine,
+            uint32 InSize, 
+            const TArray<FMember>& InMembers)
+        : StructTypeName(InStructTypeName)
+        , FileName(InFileName)
+        , FileLine(InFileLine)
+        , Size(InSize)
+        , Members(InMembers)
+        {
+
+        }
+
+        const std::string StructTypeName; 
+        const std::string& FileName;
+        int32 FileLine;
+        uint32 Size;
+        const TArray<FMember> Members;
+    };
+
+    extern TArray<std::unique_ptr<FShaderParametersMetadata>> ShaderParametersMetadataRegistration;
+
+    #define BEGIN_UNIFORM_BUFFER_STRUCT(TypeName) \
+        BEGIN_SHADER_PARAMETER_STRUCT(TypeName, )
+    #define END_UNIFORM_BUFFER_STRUCT() \
+        END_SHADER_PARAMETER_STRUCT()
+
+    #define BEGIN_SHADER_PARAMETER_STRUCT(StructTypeName, DllStorage) \
+        MS_ALIGN(SHADER_PARAMETER_STRUCT_ALIGNMENT) class StructTypeName \
+        { \
+        public: \
+            DllStorage StructTypeName () { } \
+            struct FTypeInfo { \
+                static constexpr int32 NumRows = 1; \
+                static constexpr int32 NumColumns = 1; \
+                static constexpr int32 NumElements = 0; \
+                static constexpr int32 Alignment = SHADER_PARAMETER_STRUCT_ALIGNMENT; \
+                static constexpr bool bIsStoredInConstantBuffer = true; \
+                static constexpr const char* const FileName = __builtin_FILE(); \
+                static constexpr int32 FileLine = __builtin_LINE(); \
+                using TAlignedType = StructTypeName; \
+                static const FShaderParametersMetadata* GetStructMetadata() \
+                { \
+                    static FShaderParametersMetadata StaticStructMetadata(\
+                        #StructTypeName, \
+                        FTypeInfo::FileName, \
+                        FTypeInfo::FileLine, \
+                        sizeof(StructTypeName), \
+                        StructTypeName::zzGetMembers()); \
+                    return &StaticStructMetadata; \
+                } \
+            }; \
+        private: \
+            typedef StructTypeName zzTThisStruct; \
+            struct zzFirstMemberId { enum { HasDeclaredResource = 0 }; }; \
+            typedef void* zzFuncPtr; \
+            typedef zzFuncPtr(*zzMemberFunc)(zzFirstMemberId, TArray<FShaderParametersMetadata::FMember>*); \
+            static zzFuncPtr zzAppendMemberGetPrev(zzFirstMemberId, TArray<FShaderParametersMetadata::FMember>*) \
+            { \
+                return nullptr; \
+            } \
+            typedef zzFirstMemberId
+
+    #define SHADER_PARAMETER(MemberType, MemberName) \
+        INTERNAL_SHADER_PARAMETER_EXPLICIT(TShaderParameterTypeInfo<MemberType>::BaseType, TShaderParameterTypeInfo<MemberType>, MemberType, MemberName, , EShaderPrecisionModifier::Float, #MemberType)
+
+    #define SHADER_PARAMETER_ARRAY(MemberType, MemberName, ArrayDecl) \
+        INTERNAL_SHADER_PARAMETER_EXPLICIT(TShaderParameterTypeInfo<MemberType ArrayDecl>::BaseType, TShaderParameterTypeInfo<MemberType ArrayDecl>, MemberType, MemberName, , EShaderPrecisionModifier::Float, #MemberType)
+
+    #define SHADER_PARAMETER_STRUCT(MemberType, MemberName) \
+        INTERNAL_SHADER_PARAMETER_EXPLICIT(UBMT_NESTED_STRUCT, TShaderParameterTypeInfo<MemberType>, MemberType, MemberName, , EShaderPrecisionModifier::Float, #MemberType)
+
+    #define SHADER_PARAMETER_STRUCT_ARRAY(MemberType, MemberName, ArrayDecl) \
+        INTERNAL_SHADER_PARAMETER_EXPLICIT(UBMT_NESTED_STRUCT, TShaderParameterTypeInfo<MemberType ArrayDecl>, MemberType, MemberName, , EShaderPrecisionModifier::Float, #MemberType)
+
+    #define SHADER_PARAMETER_RDG_TEXTURE(MemberType, MemberName) \
+        INTERNAL_SHADER_PARAMETER_EXPLICIT(UBMT_TEXTURE, TShaderParameterTypeInfo<RDGTextureView*>, RDGTextureView*, MemberName, = nullptr, EShaderPrecisionModifier::Float, #MemberType)
+
+    #define INTERNAL_SHADER_PARAMETER_EXPLICIT(BaseType, TypeInfo, MemberType, MemberName, DefaultValue, Precision, OptionalShaderType) \
+        zzMemberId##MemberName; \
+        public: \
+            alignas(TypeInfo::Alignment) TypeInfo::TAlignedType MemberName DefaultValue; \
+            static_assert(BaseType != UBMT_INVALID, "Invalid type " #MemberType " of member " #MemberName "."); \
+        private: \
+            struct zzNextMemberId##MemberName { enum { HasDeclaredResource = zzMemberId##MemberName::HasDeclaredResource || !TypeInfo::bIsStoredInConstantBuffer }; }; \
+            static zzFuncPtr zzAppendMemberGetPrev(zzNextMemberId##MemberName, TArray<FShaderParametersMetadata::FMember>* Members) \
+            { \
+                Members->Add(FShaderParametersMetadata::FMember( \
+                    #MemberName, \
+                    OptionalShaderType, \
+                    __LINE__, \
+                    offsetof(zzTThisStruct,MemberName), \
+                    EUniformBufferBaseType(BaseType), \
+                    Precision, \
+                    TypeInfo::NumRows, \
+                    TypeInfo::NumColumns, \
+                    TypeInfo::NumElements, \
+                    TypeInfo::GetStructMetadata() \
+                    )); \
+                zzFuncPtr(*PrevFunc)(zzMemberId##MemberName, TArray<FShaderParametersMetadata::FMember>*); \
+                PrevFunc = zzAppendMemberGetPrev; \
+                return (zzFuncPtr)PrevFunc; \
+            } \
+            typedef zzNextMemberId##MemberName
+
+    #define END_SHADER_PARAMETER_STRUCT() \
+            zzLastMemberId; \
+        public: \
+            static TArray<FShaderParametersMetadata::FMember> zzGetMembers() { \
+                TArray<FShaderParametersMetadata::FMember> Members; \
+                zzFuncPtr(*LastFunc)(zzLastMemberId, TArray<FShaderParametersMetadata::FMember>*); \
+                LastFunc = zzAppendMemberGetPrev; \
+                zzFuncPtr Ptr = (zzFuncPtr)LastFunc; \
+                do \
+                { \
+                    Ptr = reinterpret_cast<zzMemberFunc>(Ptr)(zzFirstMemberId(), &Members); \
+                } while (Ptr); \
+                std::reverse(Members.begin(), Members.end()); \
+                return Members; \
+            } \
+        } GCC_ALIGN(SHADER_PARAMETER_STRUCT_ALIGNMENT);
 }

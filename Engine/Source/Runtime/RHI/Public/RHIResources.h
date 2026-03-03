@@ -79,6 +79,7 @@ namespace nilou {
 		{ }
 		std::string Name;
 		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
+		std::unordered_map<std::string, int32> ParamBlockNameToSetIndex;
 		slang::TypeLayoutReflection* Reflection = nullptr;
 		std::optional<RHIPushConstantRange> PushConstantRange;
 		EShaderStage ShaderStage;
@@ -403,9 +404,11 @@ namespace nilou {
 	ENUM_CLASS_FLAGS(EDescriptorDecorationFlags);
 	struct RHIDescriptorSetLayoutBinding
 	{
-		uint32 BindingIndex = 0;
+		int32 BindingIndex = -1;
 		EDescriptorType DescriptorType = EDescriptorType::Max;
 		uint32 DescriptorCount = 1;		// For now, only support 1
+		EDescriptorDecorationFlags Flags = EDescriptorDecorationFlags::None;
+		ERHIAccess Access = ERHIAccess::HostRead;
 
 		std::string Name;
 		uint32 BlockSize = 0;
@@ -415,7 +418,6 @@ namespace nilou {
 			uint32 Offset;
 		};
 		std::vector<Member> Members;
-		EDescriptorDecorationFlags Flags = EDescriptorDecorationFlags::None;
 	};
 
 	class RHIDescriptorSetLayout : public RHIResource
@@ -454,6 +456,30 @@ namespace nilou {
 			return true;
 		}
 
+		const RHIDescriptorSetLayoutBinding* GetBinding(int32 BindingIndex) const
+		{
+			for (int i = 0; i < Bindings.size(); i++)
+			{
+				if (Bindings[i].BindingIndex == BindingIndex)
+				{
+					return &Bindings[i];
+				}
+			}
+			return nullptr;
+		}
+
+		RHIDescriptorSetLayoutBinding* GetBinding(int32 BindingIndex)
+		{
+			for (int i = 0; i < Bindings.size(); i++)
+			{
+				if (Bindings[i].BindingIndex == BindingIndex)
+				{
+					return &Bindings[i];
+				}
+			}
+			return nullptr;
+		}
+
 		std::vector<RHIDescriptorSetLayoutBinding> Bindings;
 	};
 	using RHIDescriptorSetLayoutRef = TRefCountPtr<RHIDescriptorSetLayout>;
@@ -464,6 +490,7 @@ namespace nilou {
 	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
     	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
 		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
+		std::unordered_map<std::string, int32> ParamBlockNameToSetIndex;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
 
@@ -589,6 +616,8 @@ namespace nilou {
 		RHIDescriptorSet(class RHIDescriptorPool* InPool) : RHIResource(RRT_DescriptorSet), Pool(InPool) {}
 
         virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
+
+        virtual void SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState) { }
 
         virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
 

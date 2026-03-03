@@ -136,7 +136,7 @@ namespace nilou {
         Domain.ModifyCompilationEnvironment(OutEnvironment);
     }
 
-    IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticMeshVertexFactory, "/Shaders/VertexFactories/StaticMeshVertexFactory.slang")
+    IMPLEMENT_VERTEX_FACTORY_TYPE(FStaticMeshVertexFactory, "/Shaders/Private/StaticMeshVertexFactory.slang")
 
     void FStaticMeshLODResources::InitResources()
     {

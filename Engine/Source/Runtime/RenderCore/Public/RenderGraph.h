@@ -6,6 +6,7 @@
 #include "RHIResources.h"
 #include "RenderGraphDescriptorSet.h"
 #include "RenderGraphPass.h"
+#include "UniformBuffer.h"
 
 namespace nilou {
 
@@ -50,6 +51,16 @@ public:
 
     static RDGDescriptorSetRef CreatePooledDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
+    template <template<EShaderDataLayout DataLayout> typename T>
+    static RDGDescriptorSetRef CreatePooledDescriptorSet(std::string Name, const TParameterBlock<T>& ParamBlock)
+    {
+        FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
+        RHIDescriptorSetLayout* DescriptorSetLayout = Metadata->DescriptorSetLayout.GetReference();
+        RDGDescriptorSetRef DescriptorSet = TRefCountPtr(new RDGDescriptorSet(Name, DescriptorSetLayout));
+        SetDescriptorSet(ParamBlock, DescriptorSet.GetReference());
+        return DescriptorSet;
+    }
+
     RDGTexture* RegisterExternalTexture(const std::string& Name, RHITexture* TextureRHI);
 
     RDGTexture* CreateTexture(const std::string& Name, const RDGTextureDesc& TextureDesc);
@@ -74,7 +85,16 @@ public:
 
     RDGDescriptorSet* CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
-
+    template <template<EShaderDataLayout DataLayout> typename T>
+    RDGDescriptorSet* CreateDescriptorSet(std::string Name, const TParameterBlock<T>& ParamBlock)
+    {
+        FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
+        RHIDescriptorSetLayout* DescriptorSetLayout = Metadata->DescriptorSetLayout.GetReference();
+        RDGDescriptorSetRef DescriptorSet = TRefCountPtr(new RDGDescriptorSet(Name, DescriptorSetLayout));
+        DescriptorSets.push_back(DescriptorSet);
+        SetDescriptorSet(ParamBlock, DescriptorSet.GetReference());
+        return DescriptorSet.GetReference();
+    }
 
     // Add a graphics pass to the render graph
     template <typename ExecuteLambdaType>
@@ -113,6 +133,43 @@ public:
             ERHIPipeline::AsyncCompute,
             std::forward<ExecuteLambdaType>(Executor));
         Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);
+        return Pass->Handle;
+    }
+
+    struct PassBuilder
+    {
+        PassBuilder(RenderGraph& InGraph, FRDGPass* InPass)
+            : Graph(InGraph)
+            , Pass(InPass)
+        {
+
+        }
+        RenderGraph& Graph;
+        FRDGPass* Pass;
+
+        template <typename T>
+        void AddParameterBlock(const T& ParamBlock)
+        {
+
+        }
+    };
+
+    // Add a compute pass to the render graph
+    template <typename ExecuteLambdaType>
+    FRDGPassHandle AddComputePass(
+        const RDGPassDesc& PassDesc,
+        std::function<void(PassBuilder&)> BuildPass,
+        ExecuteLambdaType&& Executor)
+    {
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::AsyncCompute,
+            std::forward<ExecuteLambdaType>(Executor));
+        PassBuilder Builder(*this, Pass);
+        BuildPass(Builder);
         Passes.push_back(Pass);
         SetupParameterPass(Pass);
         return Pass->Handle;
@@ -323,6 +380,46 @@ private:
     static void EnumerateTextureAccess(FRDGPass* Pass, const std::function<void(RDGTextureView*,RDGTexture*,RHISamplerState*,ERHIAccess)>& AccessFunction);
     static void EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction);
 
+    template <template<EShaderDataLayout DataLayout> typename T>
+    static void SetDescriptorSet(const TParameterBlock<T>& ParamBlock, RDGDescriptorSet* DescriptorSet)
+    {
+        FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
+        const T<EShaderDataLayout::Opaque>& OpaqueResources = ParamBlock.GetOpaqueFields();
+        for (auto& Resource : Metadata->OpaqueResources)
+        {
+            if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::TextureView)
+            {
+                RDGTextureView* TextureView = *(RDGTextureView**)((uint8*)&OpaqueResources + Resource.Offset);
+                DescriptorSet->SetStorageImage(Resource.BindingIndex, TextureView);
+            }
+            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::CombinedTextureSampler)
+            {
+                RDGCombinedTextureSampler Sampler = *(RDGCombinedTextureSampler*)((uint8*)&OpaqueResources + Resource.Offset);
+                DescriptorSet->SetCombinedTextureSampler(Resource.BindingIndex, Sampler.TextureView, Sampler.SamplerState);
+            }
+            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::Buffer)
+            {
+                RDGBuffer* Buffer = *(RDGBuffer**)((uint8*)&OpaqueResources + Resource.Offset);
+                auto Binding = DescriptorSet->GetLayout()->GetBinding(Resource.BindingIndex);
+                if (Binding)
+                {
+                    if (Binding->DescriptorType == EDescriptorType::UniformBuffer)
+                    {
+                        DescriptorSet->SetUniformBuffer(Resource.BindingIndex, Buffer);
+                    }
+                    else if (Binding->DescriptorType == EDescriptorType::StorageBuffer)
+                    {
+                        DescriptorSet->SetStorageBuffer(Resource.BindingIndex, Buffer);
+                    }
+                }
+            }
+            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::SamplerState)
+            {
+                RHISamplerState* SamplerState = *(RHISamplerState**)((uint8*)&OpaqueResources + Resource.Offset);
+                DescriptorSet->SetSamplerState(Resource.BindingIndex, SamplerState);
+            }
+        }
+    }
 
 };
 

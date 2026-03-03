@@ -46,6 +46,15 @@ using FMatrix44f = TMatrix<float>;
 template<typename T> using TQuat = glm::tquat<T>;
 using FQuat = TQuat<double>;
 
+using float2 = FVector2f;
+using float3 = FVector3f;
+using float4 = FVector4f;
+using float3x3 = FMatrix33f;
+using float4x4 = FMatrix44f;
+using double4 = FVector4;
+using int2 = FIntVector2;
+using uint = uint32;
+
 namespace nilou {
 
     namespace SerializePrivate {

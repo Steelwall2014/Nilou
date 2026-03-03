@@ -6,13 +6,13 @@
 
 namespace nilou {
     DECLARE_GLOBAL_SHADER(FBrdfLUTShader);
-    IMPLEMENT_SHADER_TYPE(FBrdfLUTShader, "/Shaders/GlobalShaders/BrdfLUT.comp", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FBrdfLUTShader, "/Shaders/Private/ReflectionProbe/BrdfLUT.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FIrradianceEnvTextureShader);
-    IMPLEMENT_SHADER_TYPE(FIrradianceEnvTextureShader, "/Shaders/GlobalShaders/IrradianceEnvTextureShader.comp", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FIrradianceEnvTextureShader, "/Shaders/Private/ReflectionProbe/IrradianceEnvTextureShader.slang", "Main", EShaderFrequency::Compute)
 
     DECLARE_GLOBAL_SHADER(FPrefilteredEnvTextureShader);
-    IMPLEMENT_SHADER_TYPE(FPrefilteredEnvTextureShader, "/Shaders/GlobalShaders/PrefilteredEnvTextureShader.comp", "Main", EShaderFrequency::Compute)
+    IMPLEMENT_SHADER_TYPE(FPrefilteredEnvTextureShader, "/Shaders/Private/ReflectionProbe/PrefilteredEnvTextureShader.slang", "Main", EShaderFrequency::Compute)
 
 
 

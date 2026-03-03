@@ -5,8 +5,8 @@
 
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FViewElementVS, "/Shaders/GlobalShaders/ViewElementVertexShader.vert", "Main", EShaderFrequency::Vertex)
-    IMPLEMENT_SHADER_TYPE(FViewElementPS, "/Shaders/GlobalShaders/ViewElementPixelShader.frag", "Main", EShaderFrequency::Pixel)
+    IMPLEMENT_SHADER_TYPE(FViewElementVS, "/Shaders/Private/ViewElementVertexShader.slang", "Main", EShaderFrequency::Vertex)
+    IMPLEMENT_SHADER_TYPE(FViewElementPS, "/Shaders/Private/ViewElementPixelShader.slang", "Main", EShaderFrequency::Pixel)
 
     void FDeferredShadingSceneRenderer::RenderViewElementPass(RenderGraph& Graph)
     {

@@ -67,7 +67,6 @@ namespace nilou {
     public:
         friend class FShaderCompiler;
         std::string Name;
-        std::string VirtualFilePath;
         std::filesystem::path FileAbsolutePath;
         FHashedName HashedName;
         std::string PreprocessedCode;
@@ -186,6 +185,7 @@ namespace nilou {
         static_assert(ShaderFrequency != EShaderFrequency::Compute, "If the shader is derived from FMaterialShader, the ShaderFrequency MUST NOT be SF_Compute. ");
     };
 
+    class FShaderParameterBlock;
     class FShader
     {
 
@@ -206,6 +206,8 @@ namespace nilou {
 
         /** Can be overridden by FShader subclasses to determine whether a specific permutation should be compiled. */
         static bool ShouldCompilePermutation(const FShaderPermutationParameters&) { return true; }
+
+        static FShaderParameterBlock NewParameterBlock(const std::string& ParameterName);
         
     };
 

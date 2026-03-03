@@ -4,6 +4,7 @@
 #include <memory>
 #include <regex>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 #include "DynamicRHI.h"
@@ -212,35 +213,6 @@ namespace nilou {
         return specializedEntryPoint;
     }
 
-    EDescriptorType TranslateBindingTypeToDescriptorType(slang::BindingType BindingType)
-    {
-        // Clear MutableFlag bits
-        slang::BindingType BaseType = (slang::BindingType)((int)BindingType & (int)slang::BindingType::BaseMask);
-        
-        switch (BaseType)
-        {
-        case slang::BindingType::ConstantBuffer:
-            return EDescriptorType::UniformBuffer;
-        case slang::BindingType::RawBuffer:
-            return EDescriptorType::StorageBuffer;
-        case slang::BindingType::TypedBuffer:
-            return EDescriptorType::StorageBuffer;
-        case slang::BindingType::Texture:
-            return EDescriptorType::SampledImage;
-        case slang::BindingType::CombinedTextureSampler:
-            return EDescriptorType::CombinedImageSampler;
-        case slang::BindingType::Sampler:
-            return EDescriptorType::Sampler;
-        case slang::BindingType::MutableTexture:
-        case slang::BindingType::MutableTypedBuffer:
-        case slang::BindingType::MutableRawBuffer:
-            return EDescriptorType::StorageImage;
-        default:
-            NILOU_LOG(Warning, "Unknown binding type: {}, defaulting to UniformBuffer", (int)BaseType);
-            return EDescriptorType::UniformBuffer;
-        }
-    }
-
     void ParseUniformBufferMembers(
         slang::TypeLayoutReflection* TypeLayout,
         std::vector<RHIDescriptorSetLayoutBinding::Member>& OutMembers,
@@ -309,53 +281,29 @@ namespace nilou {
 
         slang::VariableLayoutReflection* GlobalParamsVarLayout = ProgramLayout->getGlobalParamsVarLayout();
         slang::TypeLayoutReflection* GlobalParamsTypeLayout = GlobalParamsVarLayout->getTypeLayout();
-        if (GlobalParamsTypeLayout->getKind() == slang::TypeReflection::Kind::Struct)
+        int GlobalParamsCount = GlobalParamsTypeLayout->getFieldCount();
+        for (int i = 0; i < GlobalParamsCount; i++)
         {
-            int GlobalParamsCount = GlobalParamsTypeLayout->getFieldCount();
-            for (int i = 0; i < GlobalParamsCount; i++)
+            slang::VariableLayoutReflection* GlobalParamVarLayout = GlobalParamsTypeLayout->getFieldByIndex(i);
+            if (GlobalParamVarLayout == nullptr)
+                continue;
+            std::string GlobalParamName = GlobalParamVarLayout->getName();
+            slang::TypeLayoutReflection* GlobalParamTypeLayout = GlobalParamVarLayout->getTypeLayout();
+            if (GlobalParamTypeLayout == nullptr)
+                continue;
+            std::string GlobalParamTypeName = GlobalParamTypeLayout->getName();
+            slang::TypeReflection::Kind GlobalParamTypeKind = GlobalParamTypeLayout->getKind();
+            if (GlobalParamTypeKind == slang::TypeReflection::Kind::ParameterBlock)
             {
-                slang::VariableLayoutReflection* GlobalParamVarLayout = GlobalParamsTypeLayout->getFieldByIndex(i);
-                if (GlobalParamVarLayout == nullptr)
-                    continue;
-                std::string GlobalParamName = GlobalParamVarLayout->getName();
-                slang::TypeLayoutReflection* GlobalParamTypeLayout = GlobalParamVarLayout->getTypeLayout();
-                if (GlobalParamTypeLayout == nullptr)
-                    continue;
-                std::string GlobalParamTypeName = GlobalParamTypeLayout->getName();
-                slang::TypeReflection::Kind GlobalParamTypeKind = GlobalParamTypeLayout->getKind();
+                slang::TypeLayoutReflection* ElementTypeLayout = GlobalParamTypeLayout->getElementTypeLayout();
+                const std::string StructName = ElementTypeLayout->getName();
+                FShaderParametersMetadata2* MetaData = GetShaderParametersMetadata(StructName);
+                if (!MetaData)
+                {
+                    NILOU_LOG(Fatal, "Failed to get metadata for struct {}", StructName);
+                }
                 int SetIndex = GlobalParamVarLayout->getOffset(slang::ParameterCategory::SubElementRegisterSpace);
-                if (GlobalParamTypeKind == slang::TypeReflection::Kind::ParameterBlock) // ParameterBlock<T>, while T is a struct
-                {
-                    int BindingIndex = 0;
-                    slang::TypeLayoutReflection* ElementTypeLayout = GlobalParamTypeLayout->getElementVarLayout()->getTypeLayout();
-                    std::string ElementTypeName = ElementTypeLayout->getName();
-                    if (ElementTypeLayout->getKind() == slang::TypeReflection::Kind::Struct)
-                    {
-                        int FieldCount = ElementTypeLayout->getFieldCount();
-                        for (int i = 0; i < FieldCount; i++)
-                        {
-                            slang::VariableLayoutReflection* FieldLayout = ElementTypeLayout->getFieldByIndex(i);
-                            if (FieldLayout == nullptr)
-                                continue;
-                                
-                            std::string fieldName = FieldLayout->getName();
-                        }
-
-                        int bindingRangeCount = ElementTypeLayout->getBindingRangeCount();
-                        for (int i = 0; i < bindingRangeCount; i++)
-                        {
-                            RHIDescriptorSetLayoutBinding Binding;
-                            Binding.BindingIndex = BindingIndex++;
-                            Binding.DescriptorType = TranslateBindingTypeToDescriptorType(ElementTypeLayout->getBindingRangeType(i));
-                            Binding.DescriptorCount = ElementTypeLayout->getBindingRangeBindingCount(i);
-                            OutDescriptorSetLayouts[SetIndex]->Bindings.push_back(Binding);
-                        }
-                    }
-                }
-                else 
-                {
-                    NILOU_LOG(Fatal, "Nilou Engine requires all global parameters to be a ParameterBlock<T>, while T is a struct");
-                }
+                OutDescriptorSetLayouts[SetIndex] = MetaData->DescriptorSetLayout;
             }
         }
     }
@@ -592,7 +540,7 @@ namespace nilou {
         // Parse Slang reflection and populate DescriptorSetLayouts
         if (ShaderRHI != nullptr && linkedProgram != nullptr)
         {
-            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
+            // ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
         }
         
         OutShaderMap.AddShader(ShaderRHI, ShaderParameter);
@@ -665,25 +613,25 @@ namespace nilou {
                 if (ShaderType->ShaderFrequency == EShaderFrequency::Vertex)
                 {
                     // Iterate over all vertex factory types
-                    // std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
-                    // for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
-                    // {
-                    //     if (VertexFactoryType == &FVertexFactory::StaticType)    // It's the base class so skip it
-                    //         continue;
-                    //     for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
-                    //     {
-                    //         FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
-                    //         if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
-                    //             continue;
-                    //         NILOU_LOG(Display, "Material: \"{}\", VertexFactory: \"{}\", VertexShader: \"{}\", Permutation: {}", MaterialName, VertexFactoryType->Name, ShaderType->Name, VFPermutationId);
-                    //         CompileVertexMaterialShader(
-                    //             MaterialName,
-                    //             MaterialPath,
-                    //             MaterialParsedResult, VFParameters, ShaderParameter, 
-                    //             Environment,
-                    //             ShaderMap->VertexShaderMap);
-                    //     }
-                    // }
+                    std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
+                    for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
+                    {
+                        if (VertexFactoryType == &FVertexFactory::StaticType)    // It's the base class so skip it
+                            continue;
+                        for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
+                        {
+                            FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
+                            if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
+                                continue;
+                            NILOU_LOG(Display, "Material: \"{}\", VertexFactory: \"{}\", VertexShader: \"{}\", Permutation: {}", MaterialName, VertexFactoryType->Name, ShaderType->Name, VFPermutationId);
+                            CompileVertexMaterialShader(
+                                MaterialName,
+                                MaterialPath,
+                                MaterialParsedResult, VFParameters, ShaderParameter, 
+                                Environment,
+                                ShaderMap->VertexShaderMap);
+                        }
+                    }
                 }
                 else if (ShaderType->ShaderFrequency == EShaderFrequency::Pixel)
                 {

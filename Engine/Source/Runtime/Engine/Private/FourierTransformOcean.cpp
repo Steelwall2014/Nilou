@@ -9,10 +9,10 @@ namespace nilou {
     constexpr int MAX_RENDERING_NODES = 500;
 
     DECLARE_GLOBAL_SHADER(FOceanGaussionSpectrumShader)
-    IMPLEMENT_SHADER_TYPE(FOceanGaussionSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanGaussianSpectrum.comp", "Main", EShaderFrequency::Compute);
+    IMPLEMENT_SHADER_TYPE(FOceanGaussionSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanGaussianSpectrum.slang", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanDisplacementSpectrumShader)
-    IMPLEMENT_SHADER_TYPE(FOceanDisplacementSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanDisplacementSpectrum.comp", "Main", EShaderFrequency::Compute);
+    IMPLEMENT_SHADER_TYPE(FOceanDisplacementSpectrumShader, "/Shaders/FastFourierTransformOcean/OceanDisplacementSpectrum.slang", "Main", EShaderFrequency::Compute);
 
 	class FOceanFastFourierTransformShader : public FGlobalShader
 	{
@@ -26,13 +26,13 @@ namespace nilou {
             Domain.ModifyCompilationEnvironment(Environment);
         }
 	};
-    IMPLEMENT_SHADER_TYPE(FOceanFastFourierTransformShader, "/Shaders/FastFourierTransformOcean/OceanFastFourierTransform.comp", "Main", EShaderFrequency::Compute);
+    IMPLEMENT_SHADER_TYPE(FOceanFastFourierTransformShader, "/Shaders/FastFourierTransformOcean/OceanFastFourierTransform.slang", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanDisplacementShader)
-    IMPLEMENT_SHADER_TYPE(FOceanDisplacementShader, "/Shaders/FastFourierTransformOcean/OceanCreateDisplacement.comp", "Main", EShaderFrequency::Compute);
+    IMPLEMENT_SHADER_TYPE(FOceanDisplacementShader, "/Shaders/FastFourierTransformOcean/OceanCreateDisplacement.slang", "Main", EShaderFrequency::Compute);
 
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
-    IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.comp", "Main", EShaderFrequency::Compute);
+    IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/FastFourierTransformOcean/OceanCreateNormalFoam.slang", "Main", EShaderFrequency::Compute);
 
     static void CreateGaussianRandom(RenderGraph& Graph, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutGaussianRandomRT)
     {
