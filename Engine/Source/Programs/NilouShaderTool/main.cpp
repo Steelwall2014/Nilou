@@ -73,9 +73,13 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (!fs::exists(OutputDirectory))
+    if (!fs::exists(OutputDirectory / "Public"))
     {
-        fs::create_directories(OutputDirectory);
+        fs::create_directories(OutputDirectory / "Public");
+    }
+    if (!fs::exists(OutputDirectory / "Private"))
+    {
+        fs::create_directories(OutputDirectory / "Private");
     }
 
     if (!fs::exists(InputDirectory))
@@ -152,23 +156,28 @@ int main(int argc, char *argv[])
 
     reflectionSession.EmitCppStructs();
 
-    std::unordered_map<std::string, std::vector<std::string>> FileToTypesMap;
+    std::unordered_map<std::string, std::vector<slang::TypeReflection*>> FileToTypesMap;
     for (auto& TypeDecl : reflectionSession.TypeDeclarations)
     {
-        FileToTypesMap[TypeDecl.SourceLocation.filePath].push_back(TypeDecl.TypeName);
+        if (TypeDecl.CppStructs.size() == 0)
+        {
+            continue;
+        }
+        FileToTypesMap[TypeDecl.SourceLocation.filePath].push_back(TypeDecl.Type);
     }
 
     for (auto& [File, TypesInThisFile] : FileToTypesMap)
     {
         std::string filename = fs::path(File).stem().string();
-        std::string outputHeaderFilePath = (OutputDirectory / (filename + ".generated.h")).generic_string();
-        std::string outputCppFilePath = (OutputDirectory / (filename + ".gen.cpp")).generic_string();
+        std::string outputHeaderFilePath = (OutputDirectory / "Public" / (filename + ".generated.h")).generic_string();
+        std::string outputCppFilePath = (OutputDirectory / "Private" / (filename + ".gen.cpp")).generic_string();
 
         {
             std::string Result;
-            for (const std::string& TypeName : TypesInThisFile)
+            for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                auto& TypeDecl = reflectionSession.GetTypeDeclaration(TypeName);
+                auto& TypeDecl = reflectionSession.GetTypeDeclaration(Type);
+                const std::string TypeName = TypeDecl.TypeName;
                 Result += std::format("// Begin {}\n", TypeName);
                 Result += std::format("template <EShaderDataLayout DataLayout> struct {} {{}};\n", TypeName);
                 for (auto& [DataLayout, CppStruct] : TypeDecl.CppStructs)
@@ -199,10 +208,11 @@ int main(int argc, char *argv[])
 
         {
             std::string Result;
-            for (const std::string& TypeName : TypesInThisFile)
+            for (slang::TypeReflection* Type : TypesInThisFile)
             {
+                auto& TypeDecl = reflectionSession.GetTypeDeclaration(Type);
+                const std::string TypeName = TypeDecl.TypeName;
                 Result += std::format("// Begin {}\n", TypeName);
-                auto& TypeDecl = reflectionSession.GetTypeDeclaration(TypeName);
                 Result += TypeDecl.CppMetadata;
                 Result += std::format("// End {}\n\n\n", TypeName);
             }

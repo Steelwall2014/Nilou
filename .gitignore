@@ -9,10 +9,14 @@ Content/Shaders/.vs
 Content/Textures/TestVirtualHeightfield.nasset
 .vscode/compile_commands.json
 compile_commands.json
-Generated/
-Generated/*
 
 *.zip
 Saved
 
 *.gen.cpp
+*.generated.h
+
+CachedShaderModifiedTime.txt
+CachedHeaderModifiedTime.txt
+
+Engine/Source/Runtime/*/Generated/

@@ -31,7 +31,8 @@ inline std::string GetShaderDataLayoutName(EShaderDataLayout DataLayout)
 struct SlangTypeDeclaration
 {
     std::string TypeName;
-    slang::ISession::SourceLocation SourceLocation;
+    slang::TypeReflection* Type;
+    slang::SourceLocation SourceLocation;
     slang::IModule* Module; // The module that this type declaration is from
     slang::DeclReflection* Decl; // The declaration that this type declaration is from
     std::unordered_map<EShaderDataLayout, std::string> CppStructs;  // Generated cpp struct declarations
@@ -50,11 +51,11 @@ public:
     // Therefore, we need to ensure the order of type declarations when storing them, we use vector instead of unordered_map.
     std::vector<SlangTypeDeclaration> TypeDeclarations;
 
-    bool HasTypeDeclaration(const std::string& TypeName) const
+    bool HasTypeDeclaration(slang::TypeReflection* Type) const
     {
         for (auto& TypeDecl : TypeDeclarations)
         {
-            if (TypeDecl.TypeName == TypeName)
+            if (TypeDecl.Type == Type)
             {
                 return true;
             }
@@ -62,11 +63,11 @@ public:
         return false;
     }
     
-    SlangTypeDeclaration& GetTypeDeclaration(const std::string& TypeName)
+    SlangTypeDeclaration& GetTypeDeclaration(slang::TypeReflection* Type)
     {
         for (auto& TypeDecl : TypeDeclarations)
         {
-            if (TypeDecl.TypeName == TypeName)
+            if (TypeDecl.Type == Type)
             {
                 return TypeDecl;
             }

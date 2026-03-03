@@ -8,13 +8,13 @@ function target_rules(target_name, target_type)
         before_prepare(function (target)
             if target_type == "Editor" then
                 for dep_name, dep in pairs(target:deps()) do
-                    if dep.is_module then
+                    if dep.is_nilou_module then
                         dep:set("kind", "shared")
                     end
                 end
             elseif target_type == "Game" then
                 for dep_name, dep in pairs(target:deps()) do
-                    if dep.is_module then
+                    if dep.is_nilou_module then
                         dep:set("kind", "static")
                     end
                 end
@@ -24,7 +24,7 @@ function target_rules(target_name, target_type)
         on_prepare(function (target)
             local dep_names = {}
             for dep_name, dep in pairs(target:deps()) do
-                if dep.is_module then
+                if dep.is_nilou_module then
                     table.insert(dep_names, dep_name)
                 end
             end

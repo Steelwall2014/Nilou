@@ -5,11 +5,12 @@ function module_rules(module_name)
         set_languages("cxx20")
         add_files("./Private/**.cpp")
         add_includedirs("./Public", {public = true})
+        add_includedirs("./Generated", {public = true})
         add_cxflags("/utf-8")
         add_defines("FMT_USE_NONTYPE_TEMPLATE_ARGS=0")
 
         on_load(function (target)
-            target.is_module = true
+            target.is_nilou_module = true
             local scriptdir = path.absolute(target:scriptdir())
             target.definitions_file = scriptdir .. "/Generated/Definitions." .. target:name() .. ".h"
             target:add("cxflags", "/FI " .. target.definitions_file, { force = true })
@@ -26,7 +27,7 @@ function module_rules(module_name)
             new_api_defines = new_api_defines .. "#define " .. target:name():upper() .. "_API " .. api_export .. "\n"
             local dep_names = {}
             for dep_name, dep in pairs(target:deps()) do
-                if dep.is_module then
+                if dep.is_nilou_module then
                     table.insert(dep_names, dep_name)
                 end
             end
@@ -47,8 +48,7 @@ function module_rules(module_name)
             if type(includedirs) ~= "table" then
                 includedirs = { includedirs }
             end
-            local deps = target:deps()
-            for dep_name, dep in pairs(deps) do
+            for dep_name, dep in pairs(target:deps()) do
                 local dep_includedirs = dep:get("includedirs")
                 for j, dep_includedir in ipairs(dep_includedirs) do
                     table.insert(includedirs, dep_includedir)

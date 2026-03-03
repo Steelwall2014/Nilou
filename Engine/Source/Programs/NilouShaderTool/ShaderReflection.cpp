@@ -14,7 +14,7 @@
 namespace fs = std::filesystem;
 
 const std::string GeneratedCppTemplate = 
-R"(static RHIDescriptorSetLayoutRef Z_CreateDescriptorSetLayout_STRUCT_NAME()
+R"(static RHIDescriptorSetLayoutRef CreateDescriptorSetLayout_STRUCT_NAME()
 {
 	std::vector<RHIDescriptorSetLayoutBinding> Bindings;
 
@@ -22,7 +22,7 @@ CREATE_DESCRIPTOR_SET_LAYOUT
 	return RHICreateDescriptorSetLayout(Bindings);
 }
 
-static std::vector<FShaderParametersMetadata2::FOpaqueResource> Z_GetOpaqueResources_STRUCT_NAME()
+static std::vector<FShaderParametersMetadata2::FOpaqueResource> GetOpaqueResources_STRUCT_NAME()
 {
 	std::vector<FShaderParametersMetadata2::FOpaqueResource> OpaqueResources;
 
@@ -31,14 +31,14 @@ GET_OPAQUE_RESOURCES
 }
 
 template <>
-FShaderParametersMetadata2* GetShaderParametersMetadata<STRUCT_NAME>()
+SHADERBINDINGS_API FShaderParametersMetadata2* GetShaderParametersMetadata<STRUCT_NAME>()
 {
 	static FShaderParametersMetadata2 Metadata(
 		"STRUCT_NAME",
 		"SOURCE_LOCATION_FILE_PATH",
 		SOURCE_LOCATION_LINE,
-		Z_CreateDescriptorSetLayout_STRUCT_NAME(),
-		Z_GetOpaqueResources_STRUCT_NAME()
+		CreateDescriptorSetLayout_STRUCT_NAME(),
+		GetOpaqueResources_STRUCT_NAME()
 	);
 	return &Metadata;
 }
@@ -498,33 +498,33 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
     }
 
     // Check if this is a struct declaration
-    if (Decl->getKind() == slang::DeclReflection::Kind::Struct)
+    auto Kind = Decl->getKind();
+    if (Kind == slang::DeclReflection::Kind::Struct)
     {
         const char* TypeName = Decl->getName(); 
-        slang::ISession::SourceLocation loc = SlangSession->getDeclSourceLocation(Decl);
-        if (TypeName != nullptr && TypeName[0] != '\0')
+        slang::TypeReflection* Type = Decl->getType();
+        slang::SourceLocation loc = SlangSession->getDeclSourceLocation(Decl);
+        // If the type declaration already exists, check if it is from the same module and declaration
+        if (HasTypeDeclaration(Type))
         {
-            // If the type declaration already exists, check if it is from the same module and declaration
-            if (HasTypeDeclaration(TypeName))
+            SlangTypeDeclaration& ExistingTypeDecl = GetTypeDeclaration(Type);
+            if (ExistingTypeDecl.Module != Module || ExistingTypeDecl.Decl != Decl)
             {
-                SlangTypeDeclaration& ExistingTypeDecl = GetTypeDeclaration(TypeName);
-                if (ExistingTypeDecl.Module != Module || ExistingTypeDecl.Decl != Decl)
-                {
-                    std::cout << "Type declaration already exists but is from a different module or declaration" << std::endl;
-                    std::cout << "Existing: " << ExistingTypeDecl.Module->getName() << " " << ExistingTypeDecl.Decl->getName() << std::endl;
-                    std::cout << "New: " << Module->getName() << " " << Decl->getName() << std::endl;
-                    assert(false);
-                }
+                std::cout << "Type declaration already exists but is from a different module or declaration" << std::endl;
+                std::cout << "Existing: " << ExistingTypeDecl.Module->getName() << " " << ExistingTypeDecl.Decl->getName() << std::endl;
+                std::cout << "New: " << Module->getName() << " " << Decl->getName() << std::endl;
             }
-            else 
-            {
-                SlangTypeDeclaration NewTypeDecl;
-                NewTypeDecl.TypeName = std::string(TypeName);
-                NewTypeDecl.SourceLocation = loc;
-                NewTypeDecl.Module = Module;
-                NewTypeDecl.Decl = Decl;
-                TypeDeclarations.push_back(NewTypeDecl);
-            }
+            assert(false);
+        }
+        else 
+        {
+            SlangTypeDeclaration NewTypeDecl;
+            NewTypeDecl.TypeName = std::string(TypeName);
+            NewTypeDecl.Type = Type;
+            NewTypeDecl.SourceLocation = loc;
+            NewTypeDecl.Module = Module;
+            NewTypeDecl.Decl = Decl;
+            TypeDeclarations.push_back(NewTypeDecl);
         }
     }
 
@@ -553,9 +553,10 @@ void SlangShaderReflectionSession::EnumerateStructTypeLayoutsRecursive(slang::Ty
         }
 
         const std::string TypeName = TypeLayout->getName();
-        if (HasTypeDeclaration(TypeName))
+        slang::TypeReflection* Type = TypeLayout->getType();
+        if (HasTypeDeclaration(Type))
         {
-            auto& TypeDecl = GetTypeDeclaration(TypeName);
+            auto& TypeDecl = GetTypeDeclaration(Type);
             EmitCppStructForThisType(TypeDecl, Container, TypeLayout);
             EmitMetadataForThisType(TypeDecl, Container, TypeLayout);
         }
