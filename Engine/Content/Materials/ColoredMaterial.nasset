@@ -5,7 +5,7 @@
             "RasterizerState": {
                 "CullMode": "CM_None"
             },
-            "ShaderVirtualPath": "/Shaders/Materials/ColoredMaterial_Mat.slang"
+            "ShaderVirtualPath": "/Shaders/Private/Materials/ColoredMaterial_Mat.slang"
         }
     ]
 }

@@ -137,18 +137,21 @@ int main(int argc, char *argv[])
     
     bool bHasChangedFiles = false;
     SlangShaderReflectionSession reflectionSession(Session.get());
+    std::unordered_map<std::string, std::vector<slang::TypeReflection*>> FileToTypesMap;
     for (const fs::directory_entry& dir_entry : fs::recursive_directory_iterator(InputDirectory))
     {
         if (!dir_entry.is_directory() && IsSlangModule(dir_entry.path()))
         {
             fs::path SlangFilePath = dir_entry.path();
-            long long cached_last_modified_time = CachedShaderModifiedTime[SlangFilePath.generic_string()];
+            std::string SlangFilePathString = SlangFilePath.generic_string();
+            long long cached_last_modified_time = CachedShaderModifiedTime[SlangFilePathString];
             long long last_modified_time = fs::last_write_time(SlangFilePath).time_since_epoch().count();
             if (cached_last_modified_time == 0 || last_modified_time != cached_last_modified_time || bForceRegenerate)
             {
                 bHasChangedFiles = true;
-                CachedShaderModifiedTime[SlangFilePath.generic_string()] = last_modified_time;
-                std::cout << "Processing: " << SlangFilePath.generic_string() << std::endl;
+                CachedShaderModifiedTime[SlangFilePathString] = last_modified_time;
+                std::cout << "Processing: " << SlangFilePathString << std::endl;
+                FileToTypesMap[SlangFilePathString] = std::vector<slang::TypeReflection*>();
                 reflectionSession.LoadModule(SlangFilePath);
             }
         }
@@ -156,7 +159,6 @@ int main(int argc, char *argv[])
 
     reflectionSession.EmitCppStructs();
 
-    std::unordered_map<std::string, std::vector<slang::TypeReflection*>> FileToTypesMap;
     for (auto& TypeDecl : reflectionSession.TypeDeclarations)
     {
         if (TypeDecl.CppStructs.size() == 0)
@@ -172,16 +174,17 @@ int main(int argc, char *argv[])
         std::string outputHeaderFilePath = (OutputDirectory / "Public" / (filename + ".generated.h")).generic_string();
         std::string outputCppFilePath = (OutputDirectory / "Private" / (filename + ".gen.cpp")).generic_string();
 
+        if (TypesInThisFile.size() > 0)
         {
             std::string Result;
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
                 Result += reflectionSession.GetCppStructDeclaration(Type);
             }
-            std::ofstream out(outputHeaderFilePath);
-            if (out.is_open())
+            std::ofstream outHeaderFile(outputHeaderFilePath);
+            if (outHeaderFile.is_open())
             {
-                out << "#pragma once\n"
+                outHeaderFile << "#pragma once\n"
                     << "#include \"RenderGraphResources.h\"\n"
                     << "#include \"ShaderParameter.h\"\n"
                     << "namespace nilou {\n"
@@ -189,38 +192,49 @@ int main(int argc, char *argv[])
                     << Result
                     << "\n"
                     << "}\n";
-                out.close();
+                outHeaderFile.close();
                 std::cout << "Generated: " << outputHeaderFilePath << std::endl;
             }
             else
             {
                 std::cout << "Failed to open output file: " << outputHeaderFilePath << std::endl;
             }
-        }
 
-        {
-            std::string Result;
+            std::string Definitions;
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                Result += reflectionSession.GetCppStructDefinition(Type);
+                Definitions += reflectionSession.GetCppStructDefinition(Type);
             }
-            std::ofstream out(outputCppFilePath);
-            if (out.is_open())
+            std::ofstream outCppFile(outputCppFilePath);
+            if (outCppFile.is_open())
             {
-                out << std::format("#include \"{}\"\n", filename + ".generated.h")
+                outCppFile << std::format("#include \"{}\"\n", filename + ".generated.h")
                     << "#include \"DynamicRHI.h\"\n"
                     << "namespace nilou {\n"
                     << "\n"
-                    << Result
+                    << Definitions
                     << "\n"
                     << "}\n";
-                out.close();
+                outCppFile.close();
                 std::cout << "Generated: " << outputCppFilePath << std::endl;
             }
             else
             {
                 std::cout << "Failed to open output file: " << outputCppFilePath << std::endl;
             }
+        }
+        else 
+        {
+            if (fs::exists(outputHeaderFilePath))
+            {
+                fs::remove(outputHeaderFilePath);
+            }
+            if (fs::exists(outputCppFilePath))
+            {
+                fs::remove(outputCppFilePath);
+            }
+            std::cout << "Removed: " << outputHeaderFilePath << std::endl;
+            std::cout << "Removed: " << outputCppFilePath << std::endl;
         }
     }
 

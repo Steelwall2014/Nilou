@@ -29,4 +29,11 @@ public struct FViewShaderParameters
     public float CameraVerticalFieldOfView;
 };
 
+public struct FPrimitiveUniformShaderParameters
+{
+    public float4x4 LocalToWorld;
+    public float4x4 WorldToLocal;
+    public float3 InvNonUniformScale;
+};
+
 public ParameterBlock<FViewShaderParameters> ViewParameters;

@@ -41,12 +41,6 @@ struct OceanLODParam
     uint2 NodeSideNum;
 };
 
-struct FPrimitiveUniformShaderParameters
-{
-    float4x4 LocalToWorld;
-    float4x4 WorldToLocal;
-    float3 InvNonUniformScale;
-};
 ParameterBlock<FPrimitiveUniformShaderParameters> PrimitiveParameters;
 
 StructuredBuffer<uint4> NodeListBuffer;

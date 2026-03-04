@@ -2,8 +2,6 @@ module StaticMeshVertexFactory;
 
 import RenderCore;
 
-namespace StaticMeshVertexFactory {
-
 struct StaticMeshVertexFactoryInput : IVertexFactoryInput
 {
     float3 Position : POSITION;
@@ -34,12 +32,6 @@ struct StaticMeshVertexFactoryInput : IVertexFactoryInput
     }
 }
 
-struct FPrimitiveUniformShaderParameters
-{
-    float4x4 LocalToWorld;
-    float4x4 WorldToLocal;
-    float3 InvNonUniformScale;
-};
 ParameterBlock<FPrimitiveUniformShaderParameters> PrimitiveParameters;
 
 struct StaticMeshVertexFactory : IVertexFactory
@@ -78,6 +70,4 @@ struct StaticMeshVertexFactory : IVertexFactory
     {
         return this.TexCoords;
     }
-}
-
 }

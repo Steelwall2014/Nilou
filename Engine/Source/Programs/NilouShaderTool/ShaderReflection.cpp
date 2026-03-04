@@ -550,6 +550,7 @@ std::string SlangShaderReflectionSession::GetCppStructDefinition(slang::TypeRefl
     const std::string TypeName = TypeDecl->TypeName;
     std::string Result;
     Result += TypeDecl->CppMetadata;
+    Result += "\n\n";
     return Result;
 }
 
