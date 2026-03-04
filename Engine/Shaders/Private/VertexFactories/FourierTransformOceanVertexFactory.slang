@@ -1,4 +1,8 @@
-import "IVertexFactory.slang";
+module FourierTransformOceanVertexFactory;
+
+import RenderCore;
+
+namespace FourierTransformOceanVertexFactory {
 
 struct FourierTransformOceanVertexFactoryInput : IVertexFactoryInput
 {
@@ -102,3 +106,4 @@ struct FourierTransformOceanVertexFactory : IVertexFactory
     }
 }
 
+}

@@ -176,15 +176,7 @@ int main(int argc, char *argv[])
             std::string Result;
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                auto& TypeDecl = reflectionSession.GetTypeDeclaration(Type);
-                const std::string TypeName = TypeDecl.TypeName;
-                Result += std::format("// Begin {}\n", TypeName);
-                Result += std::format("template <EShaderDataLayout DataLayout> struct {} {{}};\n", TypeName);
-                for (auto& [DataLayout, CppStruct] : TypeDecl.CppStructs)
-                {
-                    Result += CppStruct;
-                }
-                Result += std::format("// End {}\n\n\n", TypeName);
+                Result += reflectionSession.GetCppStructDeclaration(Type);
             }
             std::ofstream out(outputHeaderFilePath);
             if (out.is_open())
@@ -210,11 +202,7 @@ int main(int argc, char *argv[])
             std::string Result;
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                auto& TypeDecl = reflectionSession.GetTypeDeclaration(Type);
-                const std::string TypeName = TypeDecl.TypeName;
-                Result += std::format("// Begin {}\n", TypeName);
-                Result += TypeDecl.CppMetadata;
-                Result += std::format("// End {}\n\n\n", TypeName);
+                Result += reflectionSession.GetCppStructDefinition(Type);
             }
             std::ofstream out(outputCppFilePath);
             if (out.is_open())

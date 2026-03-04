@@ -14,7 +14,9 @@
 namespace fs = std::filesystem;
 
 const std::string GeneratedCppTemplate = 
-R"(static RHIDescriptorSetLayoutRef CreateDescriptorSetLayout_STRUCT_NAME()
+R"(// Begin {NAMESPACE}{STRUCT_NAME}
+{BEGIN_NAMESPACE_DECLARATIONS}
+static RHIDescriptorSetLayoutRef CreateDescriptorSetLayout_{STRUCT_NAME}()
 {
 	std::vector<RHIDescriptorSetLayoutBinding> Bindings;
 
@@ -22,7 +24,7 @@ CREATE_DESCRIPTOR_SET_LAYOUT
 	return RHICreateDescriptorSetLayout(Bindings);
 }
 
-static std::vector<FShaderParametersMetadata2::FOpaqueResource> GetOpaqueResources_STRUCT_NAME()
+static std::vector<FShaderParametersMetadata2::FOpaqueResource> GetOpaqueResources_{STRUCT_NAME}()
 {
 	std::vector<FShaderParametersMetadata2::FOpaqueResource> OpaqueResources;
 
@@ -30,25 +32,31 @@ GET_OPAQUE_RESOURCES
 	return OpaqueResources;
 }
 
+{END_NAMESPACE_DECLARATIONS}
 template <>
-SHADERBINDINGS_API FShaderParametersMetadata2* GetShaderParametersMetadata<STRUCT_NAME>()
+SHADERBINDINGS_API FShaderParametersMetadata2* GetShaderParametersMetadata<{NAMESPACE}{STRUCT_NAME}>()
 {
 	static FShaderParametersMetadata2 Metadata(
-		"STRUCT_NAME",
+		"{NAMESPACE}{STRUCT_NAME}",
 		"SOURCE_LOCATION_FILE_PATH",
 		SOURCE_LOCATION_LINE,
-		CreateDescriptorSetLayout_STRUCT_NAME(),
-		GetOpaqueResources_STRUCT_NAME()
+		{NAMESPACE}CreateDescriptorSetLayout_{STRUCT_NAME}(),
+		{NAMESPACE}GetOpaqueResources_{STRUCT_NAME}()
 	);
 	return &Metadata;
 }
 
-static FShaderParameterRegistry UniqueRegister_STRUCT_NAME(
+static FShaderParameterRegistry PREPROCESSOR_JOIN(UniqueRegister, __LINE__)(
 	[]() -> std::pair<std::string, FShaderParametersMetadata2*>
 	{
-		return std::make_pair("STRUCT_NAME", GetShaderParametersMetadata<STRUCT_NAME>());
+		return std::make_pair(
+            "{NAMESPACE}{STRUCT_NAME}", 
+            GetShaderParametersMetadata<{NAMESPACE}{STRUCT_NAME}>()
+        );
 	}
 );
+
+// End {NAMESPACE}{STRUCT_NAME}
 )";
 
 const std::string GeneratedNonOpaqueCppStructTemplate =
@@ -259,6 +267,15 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
 void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutReflection* Container, slang::TypeLayoutReflection* TypeLayout)
 {
     std::string StructName = TypeLayout->getType()->getName();
+    std::string Namespace;
+    std::string BeginNamespaceDeclarations;
+    std::string EndNamespaceDeclarations;
+    for (auto NamespaceDecl : TypeDecl.NamespaceDecls)
+    {
+        Namespace += std::string(NamespaceDecl->getName()) + "::";
+        BeginNamespaceDeclarations += std::format("namespace {} {{\n", NamespaceDecl->getName());
+        EndNamespaceDeclarations += std::format("}} // End of namespace {}\n", NamespaceDecl->getName());
+    }
 
     int BindingIndex = 0;
     std::string CreateDescriptorSetLayout;
@@ -381,9 +398,12 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
     std::string SourceLocationLine = std::to_string(TypeDecl.SourceLocation.line);
 
     std::string OutMetadata = GeneratedCppTemplate;
+    OutMetadata = SimpleMacroReplace(OutMetadata, "{NAMESPACE}", Namespace);
+    OutMetadata = SimpleMacroReplace(OutMetadata, "{BEGIN_NAMESPACE_DECLARATIONS}", BeginNamespaceDeclarations);
+    OutMetadata = SimpleMacroReplace(OutMetadata, "{END_NAMESPACE_DECLARATIONS}", EndNamespaceDeclarations);
     OutMetadata = SimpleMacroReplace(OutMetadata, "CREATE_DESCRIPTOR_SET_LAYOUT", CreateDescriptorSetLayout);
     OutMetadata = SimpleMacroReplace(OutMetadata, "GET_OPAQUE_RESOURCES", GetOpaqueResources);
-    OutMetadata = SimpleMacroReplace(OutMetadata, "STRUCT_NAME", StructName);
+    OutMetadata = SimpleMacroReplace(OutMetadata, "{STRUCT_NAME}", StructName);
     OutMetadata = SimpleMacroReplace(OutMetadata, "SOURCE_LOCATION_FILE_PATH", SourceLocationFilePath);
     OutMetadata = SimpleMacroReplace(OutMetadata, "SOURCE_LOCATION_LINE", SourceLocationLine);
 
@@ -425,7 +445,8 @@ bool SlangShaderReflectionSession::LoadModule(const std::filesystem::path& Slang
     }
     Modules[ModuleName] = Module;
 
-    CollectTypeDeclarations(Module, Module->getModuleReflection());
+    std::vector<slang::DeclReflection*> NamespaceDecls;
+    CollectTypeDeclarations(Module, NamespaceDecls, Module->getModuleReflection());
     return true;
 }
 
@@ -490,7 +511,49 @@ void SlangShaderReflectionSession::EmitCppStructs()
     }
 }
 
-void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Module, slang::DeclReflection* Decl)
+std::string SlangShaderReflectionSession::GetCppStructDeclaration(slang::TypeReflection* Type)
+{
+    auto TypeDecl = GetTypeDeclaration(Type);
+    if (TypeDecl == nullptr)
+    {
+        return "";
+    }
+    const std::string TypeName = TypeDecl->TypeName;
+    std::string Result;
+    for  (auto NamespaceDecl : TypeDecl->NamespaceDecls)
+    {
+        Result += std::format("namespace {} {{\n", NamespaceDecl->getName());
+    }
+    Result += "\n";
+    Result += std::format("// Begin {}\n", TypeName);
+    Result += std::format("template <EShaderDataLayout DataLayout> struct {} {{}};\n", TypeName);
+    for (auto& [DataLayout, CppStruct] : TypeDecl->CppStructs)
+    {
+        Result += CppStruct;
+    }
+    Result += std::format("// End {}\n", TypeName);
+    Result += "\n";
+    for (auto NamespaceDecl : TypeDecl->NamespaceDecls)
+    {
+        Result += std::format("}} // End of namespace {}\n", NamespaceDecl->getName());
+    }
+    return Result;
+}
+
+std::string SlangShaderReflectionSession::GetCppStructDefinition(slang::TypeReflection* Type)
+{
+    auto TypeDecl = GetTypeDeclaration(Type);
+    if (TypeDecl == nullptr)
+    {
+        return "";
+    }
+    const std::string TypeName = TypeDecl->TypeName;
+    std::string Result;
+    Result += TypeDecl->CppMetadata;
+    return Result;
+}
+
+void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Module, std::vector<slang::DeclReflection*>& NamespaceDecls, slang::DeclReflection* Decl)
 {
     if (Decl == nullptr)
     {
@@ -503,29 +566,20 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
     {
         const char* TypeName = Decl->getName(); 
         slang::TypeReflection* Type = Decl->getType();
-        slang::SourceLocation loc = SlangSession->getDeclSourceLocation(Decl);
-        // If the type declaration already exists, check if it is from the same module and declaration
-        if (HasTypeDeclaration(Type))
-        {
-            SlangTypeDeclaration& ExistingTypeDecl = GetTypeDeclaration(Type);
-            if (ExistingTypeDecl.Module != Module || ExistingTypeDecl.Decl != Decl)
-            {
-                std::cout << "Type declaration already exists but is from a different module or declaration" << std::endl;
-                std::cout << "Existing: " << ExistingTypeDecl.Module->getName() << " " << ExistingTypeDecl.Decl->getName() << std::endl;
-                std::cout << "New: " << Module->getName() << " " << Decl->getName() << std::endl;
-            }
-            assert(false);
-        }
-        else 
-        {
-            SlangTypeDeclaration NewTypeDecl;
-            NewTypeDecl.TypeName = std::string(TypeName);
-            NewTypeDecl.Type = Type;
-            NewTypeDecl.SourceLocation = loc;
-            NewTypeDecl.Module = Module;
-            NewTypeDecl.Decl = Decl;
-            TypeDeclarations.push_back(NewTypeDecl);
-        }
+        slang::SourceLocation SourceLocation = SlangSession->getDeclSourceLocation(Decl);
+        SlangTypeDeclaration NewTypeDecl;
+        NewTypeDecl.TypeName = std::string(TypeName);
+        NewTypeDecl.Type = Type;
+        NewTypeDecl.SourceLocation = SourceLocation;
+        NewTypeDecl.Module = Module;
+        NewTypeDecl.Decl = Decl;
+        NewTypeDecl.NamespaceDecls = NamespaceDecls;
+        TypeDeclarations.push_back(NewTypeDecl);
+    }
+
+    if (Kind == slang::DeclReflection::Kind::Namespace)
+    {
+        NamespaceDecls.push_back(Decl);
     }
 
     // Recursively process children
@@ -533,7 +587,12 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
     for (unsigned int i = 0; i < ChildCount; i++)
     {
         slang::DeclReflection* Child = Decl->getChild(i);
-        CollectTypeDeclarations(Module, Child);
+        CollectTypeDeclarations(Module, NamespaceDecls, Child);
+    }
+
+    if (Kind == slang::DeclReflection::Kind::Namespace)
+    {
+        NamespaceDecls.pop_back();
     }
 }
 
@@ -554,11 +613,10 @@ void SlangShaderReflectionSession::EnumerateStructTypeLayoutsRecursive(slang::Ty
 
         const std::string TypeName = TypeLayout->getName();
         slang::TypeReflection* Type = TypeLayout->getType();
-        if (HasTypeDeclaration(Type))
+        if (auto TypeDecl = GetTypeDeclaration(Type))
         {
-            auto& TypeDecl = GetTypeDeclaration(Type);
-            EmitCppStructForThisType(TypeDecl, Container, TypeLayout);
-            EmitMetadataForThisType(TypeDecl, Container, TypeLayout);
+            EmitCppStructForThisType(*TypeDecl, Container, TypeLayout);
+            EmitMetadataForThisType(*TypeDecl, Container, TypeLayout);
         }
 
         break;

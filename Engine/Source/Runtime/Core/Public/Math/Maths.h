@@ -54,6 +54,12 @@ using float4x4 = FMatrix44f;
 using double4 = FVector4;
 using int2 = FIntVector2;
 using uint = uint32;
+using uint2 = FUIntVector2;
+using uint4 = FUIntVector4;
+using int2 = FIntVector2;
+using int4 = FIntVector4;
+using double2 = FVector2;
+using double4 = FVector4;
 
 namespace nilou {
 

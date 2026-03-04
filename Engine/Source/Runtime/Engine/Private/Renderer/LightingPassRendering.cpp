@@ -5,16 +5,6 @@
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/Private/Lighting/LightingPassPixelShader.slang", "Main", EShaderFrequency::Pixel);
-    
-    void FLightingPassPS::ModifyCompilationEnvironment(const FShaderPermutationParameters &Parameter, FShaderCompilerEnvironment &Environment)
-    {
-        FPermutationDomain Domain(Parameter.PermutationId);
-        Domain.ModifyCompilationEnvironment(Environment);
-        magic_enum::enum_for_each<EShadingModel>(
-            [&Environment](EShadingModel ShadingModel){
-                Environment.SetDefine(std::string(magic_enum::enum_name(ShadingModel)), (int)ShadingModel);
-            });
-    }
 
     void FDeferredShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     {
@@ -34,9 +24,7 @@ namespace nilou {
                 
                 FShadowMapResource ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
                 int FrustumCount = ShadowMapResource.DepthViews.size();
-                FLightingPassPS::FPermutationDomain PermutationVector;
-                PermutationVector.Set<FLightingPassPS::FDimensionFrustumCount>(FrustumCount);
-                FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, PermutationVector.ToDimensionValueId());
+                FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, 0);
 
                 RHIShader *LightPassVS = GetGlobalShader(PermutationParametersVS);
                 RHIShader *LightPassPS = GetGlobalShader(PermutationParametersPS);

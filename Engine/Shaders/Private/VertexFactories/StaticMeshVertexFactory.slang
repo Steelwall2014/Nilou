@@ -1,4 +1,8 @@
-import "IVertexFactory.slang";
+module StaticMeshVertexFactory;
+
+import RenderCore;
+
+namespace StaticMeshVertexFactory {
 
 struct StaticMeshVertexFactoryInput : IVertexFactoryInput
 {
@@ -74,4 +78,6 @@ struct StaticMeshVertexFactory : IVertexFactory
     {
         return this.TexCoords;
     }
+}
+
 }
