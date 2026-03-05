@@ -85,7 +85,6 @@
             "args": [
                 "-InputDirectory=D:\\Nilou\\Engine\\Shaders", 
                 "-OutputDirectory=D:\\Nilou\\Engine\\Source\\Runtime\\ShaderBindings", 
-                // "-SearchDirectories=D:\\Nilou\\Engine\\Source\\Runtime\\Core\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\CoreUObject\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\RHI\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\RenderCore\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\VulkanRHI\\Shaders,D:\\Nilou\\Engine\\Source\\Runtime\\Engine\\Shaders",
                 "-SearchDirectories=D:\\Nilou\\Engine\\Shaders\\Public",
                 "-ForceRegenerate"
             ]

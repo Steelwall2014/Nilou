@@ -1,10 +1,12 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <filesystem>
 #include <map>
-#include <slang.h>
+#include <string>
+
 #include <slang-com-ptr.h>
+#include <slang.h>
+
 #include "ShaderReflection.h"
 #include "utils.h"
 
@@ -30,6 +32,40 @@ std::vector<std::string> Split(const std::string &s, char delim)
         pos = s.find(delim, lastPos);
     }
     return tokens;
+}
+
+bool MapEquals(const std::map<std::string, long long>& map1, const std::map<std::string, long long>& map2)
+{
+    if (map1.size() != map2.size())
+    {
+        return false;
+    }
+    return std::equal(map1.begin(), map1.end(), map2.begin());
+}
+
+void CompareAndEmit(const fs::path& outputFilePath, const std::string& content)
+{
+    {
+        std::ifstream existingFile(outputFilePath);
+        if (existingFile.is_open())
+        {
+            std::string existingContent((std::istreambuf_iterator<char>(existingFile)), std::istreambuf_iterator<char>());
+            if (existingContent == content)
+            {
+                return;
+            }
+        }
+    }
+    std::ofstream outFile(outputFilePath);
+    if (outFile.is_open())
+    {
+        outFile << content;
+    }
+    else
+    {
+        std::cout << "Failed to open output file: " << outputFilePath << std::endl;
+    }
+    std::cout << "Generated: " << outputFilePath << std::endl;
 }
 
 int main(int argc, char *argv[])
@@ -59,7 +95,7 @@ int main(int argc, char *argv[])
         else if (arg.find("-SearchDirectories=") == 0)
         {
             std::string SearchDirectoriesString = arg.substr(19); // 19 = length of "-SearchDirectories="
-            SearchDirectories = Split(SearchDirectoriesString, ',');
+            SearchDirectories = Split(SearchDirectoriesString, ';');
         }
         else if (arg.find("-ForceRegenerate") == 0)
         {
@@ -88,22 +124,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    std::map<std::string, long long> CachedShaderModifiedTime;
     fs::path CachedShaderModifiedTimePath = fs::path(OutputDirectory) / fs::path("CachedShaderModifiedTime.txt");
-    if (fs::exists(CachedShaderModifiedTimePath))
-    {
-        std::ifstream in{CachedShaderModifiedTimePath.string()};
-        while (!in.eof())
-        {
-            std::string filename;
-            long long last_modified_time;
-            in >> filename >> last_modified_time;
-            if (filename != "")
-            {
-                CachedShaderModifiedTime[filename] = last_modified_time;
-            }
-        }
-    }
     
     Slang::ComPtr<slang::IGlobalSession> SlangGlobalSession = nullptr;
     if (SlangGlobalSession == nullptr)
@@ -135,121 +156,136 @@ int main(int argc, char *argv[])
     SlangGlobalSession->createSession(sessionDesc, Session.writeRef());
 
     
-    bool bHasChangedFiles = false;
+    std::map<std::string, long long> CachedShaderModifiedTime;
+    std::map<std::string, long long> CurrentShaderModifiedTime;
+    if (!bForceRegenerate)
+    {
+        if (fs::exists(CachedShaderModifiedTimePath))
+        {
+            std::ifstream in{CachedShaderModifiedTimePath.string()};
+            while (!in.eof())
+            {
+                std::string filename;
+                long long last_modified_time;
+                in >> filename >> last_modified_time;
+                if (filename != "")
+                {
+                    CachedShaderModifiedTime[filename] = last_modified_time;
+                }
+            }
+        }
+    }
+
+    for (const fs::directory_entry& dir_entry : fs::recursive_directory_iterator(InputDirectory))
+    {
+        if (!dir_entry.is_directory())
+        {
+            fs::path SlangFilePath = dir_entry.path();
+            std::string SlangFilePathString = SlangFilePath.generic_string();
+            long long last_modified_time = fs::last_write_time(SlangFilePath).time_since_epoch().count();
+            CurrentShaderModifiedTime[SlangFilePathString] = last_modified_time;
+        }
+    }
+
+    if (MapEquals(CurrentShaderModifiedTime, CachedShaderModifiedTime))
+    {
+        std::cout << "[NilouShaderTool] All shader files are up-to-date.\n";
+        return 0;
+    }
+
     SlangShaderReflectionSession reflectionSession(Session.get());
-    std::unordered_map<std::string, std::vector<slang::TypeReflection*>> FileToTypesMap;
     for (const fs::directory_entry& dir_entry : fs::recursive_directory_iterator(InputDirectory))
     {
         if (!dir_entry.is_directory() && IsSlangModule(dir_entry.path()))
         {
             fs::path SlangFilePath = dir_entry.path();
             std::string SlangFilePathString = SlangFilePath.generic_string();
-            long long cached_last_modified_time = CachedShaderModifiedTime[SlangFilePathString];
-            long long last_modified_time = fs::last_write_time(SlangFilePath).time_since_epoch().count();
-            if (cached_last_modified_time == 0 || last_modified_time != cached_last_modified_time || bForceRegenerate)
-            {
-                bHasChangedFiles = true;
-                CachedShaderModifiedTime[SlangFilePathString] = last_modified_time;
-                std::cout << "Processing: " << SlangFilePathString << std::endl;
-                FileToTypesMap[SlangFilePathString] = std::vector<slang::TypeReflection*>();
-                reflectionSession.LoadModule(SlangFilePath);
-            }
+            std::cout << "Load Module: " << SlangFilePathString << std::endl;
+            reflectionSession.LoadModule(SlangFilePath);
         }
     }
 
     reflectionSession.EmitCppStructs();
 
+    std::unordered_map<std::string, std::vector<slang::TypeReflection*>> FileToTypesMap;
     for (auto& TypeDecl : reflectionSession.TypeDeclarations)
     {
-        if (TypeDecl.CppStructs.size() == 0)
-        {
-            continue;
-        }
-        FileToTypesMap[TypeDecl.SourceLocation.filePath].push_back(TypeDecl.Type);
+        std::string filename = fs::path(TypeDecl.SourceLocation.filePath).stem().string();
+        FileToTypesMap[filename].push_back(TypeDecl.Type);
     }
 
-    for (auto& [File, TypesInThisFile] : FileToTypesMap)
+    const fs::path OutputHeaderDirectory = OutputDirectory / "Public";
+    const fs::path OutputCppDirectory = OutputDirectory / "Private";
+    for (auto& [filename, TypesInThisFile] : FileToTypesMap)
     {
-        std::string filename = fs::path(File).stem().string();
-        std::string outputHeaderFilePath = (OutputDirectory / "Public" / (filename + ".generated.h")).generic_string();
-        std::string outputCppFilePath = (OutputDirectory / "Private" / (filename + ".gen.cpp")).generic_string();
+        const fs::path outputHeaderFilePath = OutputHeaderDirectory / (filename + ".generated.h");
+        const fs::path outputCppFilePath = OutputCppDirectory / (filename + ".gen.cpp");
 
-        if (TypesInThisFile.size() > 0)
         {
-            std::string Result;
+            std::stringstream Declarations;
+            Declarations << "#pragma once\n"
+                         << "#include \"RenderGraphResources.h\"\n"
+                         << "#include \"ShaderParameter.h\"\n"
+                         << "namespace nilou {\n"
+                         << "\n";
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                Result += reflectionSession.GetCppStructDeclaration(Type);
+                Declarations << reflectionSession.GetCppStructDeclaration(Type);
             }
-            std::ofstream outHeaderFile(outputHeaderFilePath);
-            if (outHeaderFile.is_open())
-            {
-                outHeaderFile << "#pragma once\n"
-                    << "#include \"RenderGraphResources.h\"\n"
-                    << "#include \"ShaderParameter.h\"\n"
-                    << "namespace nilou {\n"
-                    << "\n"
-                    << Result
-                    << "\n"
-                    << "}\n";
-                outHeaderFile.close();
-                std::cout << "Generated: " << outputHeaderFilePath << std::endl;
-            }
-            else
-            {
-                std::cout << "Failed to open output file: " << outputHeaderFilePath << std::endl;
-            }
+            Declarations << "\n"
+                         << "}\n";
+            CompareAndEmit(outputHeaderFilePath, Declarations.str());
+        }
 
-            std::string Definitions;
+        {
+            std::stringstream Definitions;
+            Definitions << std::format("#include \"{}\"\n", filename + ".generated.h")
+                        << "#include \"DynamicRHI.h\"\n"
+                        << "namespace nilou {\n"
+                        << "\n";
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
-                Definitions += reflectionSession.GetCppStructDefinition(Type);
+                Definitions << reflectionSession.GetCppStructDefinition(Type);
             }
-            std::ofstream outCppFile(outputCppFilePath);
-            if (outCppFile.is_open())
-            {
-                outCppFile << std::format("#include \"{}\"\n", filename + ".generated.h")
-                    << "#include \"DynamicRHI.h\"\n"
-                    << "namespace nilou {\n"
-                    << "\n"
-                    << Definitions
-                    << "\n"
-                    << "}\n";
-                outCppFile.close();
-                std::cout << "Generated: " << outputCppFilePath << std::endl;
-            }
-            else
-            {
-                std::cout << "Failed to open output file: " << outputCppFilePath << std::endl;
-            }
-        }
-        else 
-        {
-            if (fs::exists(outputHeaderFilePath))
-            {
-                fs::remove(outputHeaderFilePath);
-            }
-            if (fs::exists(outputCppFilePath))
-            {
-                fs::remove(outputCppFilePath);
-            }
-            std::cout << "Removed: " << outputHeaderFilePath << std::endl;
-            std::cout << "Removed: " << outputCppFilePath << std::endl;
+            Definitions << "\n"
+                        << "}\n";
+            CompareAndEmit(outputCppFilePath, Definitions.str());
         }
     }
 
-    if (bHasChangedFiles)
+    for (const fs::directory_entry& dir_entry : fs::directory_iterator(OutputHeaderDirectory))
     {
-        std::ofstream out{CachedShaderModifiedTimePath.string()};
-        for (auto& [filename, last_modified_time] : CachedShaderModifiedTime)
+        if (!dir_entry.is_directory() && dir_entry.path().string().ends_with(".generated.h"))
         {
-            out << filename << " " << last_modified_time << "\n";
+            // "TestGeneration.generated.h" -> stem() -> "TestGeneration.generated" -> stem() -> "TestGeneration"
+            std::string stem = dir_entry.path().stem().stem().string();
+            if (FileToTypesMap.find(stem) == FileToTypesMap.end())
+            {
+                fs::remove(dir_entry.path());
+                std::cout << "Removed: " << dir_entry.path() << std::endl;
+            }
         }
     }
-    else
+    for (const fs::directory_entry& dir_entry : fs::directory_iterator(OutputCppDirectory))
     {
-        std::cout << "[NilouShaderTool] All shader files are up-to-date.\n";
+        if (!dir_entry.is_directory() && dir_entry.path().string().ends_with(".gen.cpp"))
+        {
+            // "TestGeneration.gen.cpp" -> stem() -> "TestGeneration.gen" -> stem() -> "TestGeneration"
+            std::string stem = dir_entry.path().stem().stem().string();
+            if (FileToTypesMap.find(stem) == FileToTypesMap.end())
+            {
+                fs::remove(dir_entry.path());
+                std::cout << "Removed: " << dir_entry.path() << std::endl;
+            }
+        }
     }
+
+    std::ofstream outShaderModifiedTime(CachedShaderModifiedTimePath.string());
+    for (auto& [filename, last_modified_time] : CurrentShaderModifiedTime)
+    {
+        outShaderModifiedTime << filename << " " << last_modified_time << "\n";
+    }
+    outShaderModifiedTime.close();
 
     return 0;
 }
