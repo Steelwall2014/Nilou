@@ -547,11 +547,7 @@ std::string SlangShaderReflectionSession::GetCppStructDefinition(slang::TypeRefl
     {
         return "";
     }
-    const std::string TypeName = TypeDecl->TypeName;
-    std::string Result;
-    Result += TypeDecl->CppMetadata;
-    Result += "\n\n";
-    return Result;
+    return TypeDecl->CppMetadata + "\n\n";
 }
 
 void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Module, std::vector<slang::DeclReflection*>& NamespaceDecls, slang::DeclReflection* Decl)
@@ -616,6 +612,7 @@ void SlangShaderReflectionSession::EnumerateStructTypeLayoutsRecursive(slang::Ty
         slang::TypeReflection* Type = TypeLayout->getType();
         if (auto TypeDecl = GetTypeDeclaration(Type))
         {
+            TypeDecl->bUsedInParameterBlock = true;
             EmitCppStructForThisType(*TypeDecl, Container, TypeLayout);
             EmitMetadataForThisType(*TypeDecl, Container, TypeLayout);
         }

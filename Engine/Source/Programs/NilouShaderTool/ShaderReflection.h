@@ -38,6 +38,7 @@ struct SlangTypeDeclaration
     std::vector<slang::DeclReflection*> NamespaceDecls; // The namespaces that this type declaration is from
     std::unordered_map<EShaderDataLayout, std::string> CppStructs;  // Generated cpp struct declarations
     std::string CppMetadata;
+    bool bUsedInParameterBlock = false;
 };
 
 class SlangShaderReflectionSession

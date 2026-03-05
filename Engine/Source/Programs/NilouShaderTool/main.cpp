@@ -72,12 +72,13 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        std::cout << "Usage: NilouShaderTool -InputDirectory=<directory> -OutputDirectory=<directory> [-SearchDirectories=<directory>,<directory>...]" << std::endl;
+        std::cout << "Usage: NilouShaderTool -InputDirectory=<directory> -OutputHeaderDirectory=<directory> -OutputCppDirectory=<directory> [-SearchDirectories=<directory>;<directory>...]" << std::endl;
         return -1;
     }
 
     fs::path InputDirectory;
-    fs::path OutputDirectory;
+    fs::path OutputHeaderDirectory;
+    fs::path OutputCppDirectory;
     std::vector<std::string> SearchDirectories;
     bool bForceRegenerate = false;
     for (int i = 1; i < argc; i++)
@@ -88,9 +89,13 @@ int main(int argc, char *argv[])
         {
             InputDirectory = arg.substr(16); // 16 = length of "-InputDirectory="
         }
-        else if (arg.find("-OutputDirectory=") == 0)
+        else if (arg.find("-OutputHeaderDirectory=") == 0)
         {
-            OutputDirectory = arg.substr(17); // 17 = length of "-OutputDirectory="
+            OutputHeaderDirectory = arg.substr(23); // 23 = length of "-OutputHeaderDirectory="
+        }
+        else if (arg.find("-OutputCppDirectory=") == 0)
+        {
+            OutputCppDirectory = arg.substr(20); // 20 = length of "-OutputCppDirectory="
         }
         else if (arg.find("-SearchDirectories=") == 0)
         {
@@ -103,19 +108,19 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (InputDirectory.empty() || OutputDirectory.empty())
+    if (InputDirectory.empty() || OutputHeaderDirectory.empty() || OutputCppDirectory.empty())
     {
-        std::cout << "Usage: NilouShaderTool -InputDirectory=<directory> -OutputDirectory=<directory>" << std::endl;
+        std::cout << "Usage: NilouShaderTool -InputDirectory=<directory> -OutputHeaderDirectory=<directory> -OutputCppDirectory=<directory>" << std::endl;
         return -1;
     }
 
-    if (!fs::exists(OutputDirectory / "Public"))
+    if (!fs::exists(OutputHeaderDirectory))
     {
-        fs::create_directories(OutputDirectory / "Public");
+        fs::create_directories(OutputHeaderDirectory);
     }
-    if (!fs::exists(OutputDirectory / "Private"))
+    if (!fs::exists(OutputCppDirectory))
     {
-        fs::create_directories(OutputDirectory / "Private");
+        fs::create_directories(OutputCppDirectory);
     }
 
     if (!fs::exists(InputDirectory))
@@ -124,7 +129,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    fs::path CachedShaderModifiedTimePath = fs::path(OutputDirectory) / fs::path("CachedShaderModifiedTime.txt");
+    fs::path CachedShaderModifiedTimePath = OutputHeaderDirectory / "CachedShaderModifiedTime.txt";
     
     Slang::ComPtr<slang::IGlobalSession> SlangGlobalSession = nullptr;
     if (SlangGlobalSession == nullptr)
@@ -211,11 +216,12 @@ int main(int argc, char *argv[])
     for (auto& TypeDecl : reflectionSession.TypeDeclarations)
     {
         std::string filename = fs::path(TypeDecl.SourceLocation.filePath).stem().string();
-        FileToTypesMap[filename].push_back(TypeDecl.Type);
+        if (TypeDecl.bUsedInParameterBlock)
+        {
+            FileToTypesMap[filename].push_back(TypeDecl.Type);
+        }
     }
 
-    const fs::path OutputHeaderDirectory = OutputDirectory / "Public";
-    const fs::path OutputCppDirectory = OutputDirectory / "Private";
     for (auto& [filename, TypesInThisFile] : FileToTypesMap)
     {
         const fs::path outputHeaderFilePath = OutputHeaderDirectory / (filename + ".generated.h");

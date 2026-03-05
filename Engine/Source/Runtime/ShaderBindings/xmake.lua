@@ -1,15 +1,16 @@
 module_rules("ShaderBindings")
     add_deps("RHI")
     add_deps("RenderCore")
-    before_prepare(function (target)
+    on_prepare(function (target)
         local shadertool_path = "$(builddir)/$(os)/$(arch)/$(mode)/NilouShaderTool.exe"
         local shader_src_dir = "$(projectdir)/Engine/Shaders"
-        local generated_dir = "$(projectdir)/Engine/Source/Runtime/ShaderBindings"
+        local output_header_dir = "$(projectdir)/Engine/Source/Runtime/ShaderBindings/Generated"
+        local output_cpp_dir = "$(projectdir)/Engine/Source/Runtime/ShaderBindings/Generated"
         local search_dirs = "$(projectdir)/Engine/Shaders/Public"
         if (os.exists(shadertool_path)) then
-            local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -SearchDirectories=%s", shadertool_path, shader_src_dir, generated_dir, search_dirs)
+            local exec = string.format("%s -InputDirectory=\"%s\" -OutputHeaderDirectory=\"%s\" -OutputCppDirectory=\"%s\" -SearchDirectories=%s", shadertool_path, shader_src_dir, output_header_dir, output_cpp_dir, search_dirs)
             print(exec)
             os.exec(exec)
-            target:add("files", generated_dir .. "/Private/*.gen.cpp")
         end
+        target:on_prepare_impl()
     end)
