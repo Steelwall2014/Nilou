@@ -5,7 +5,7 @@
             "RasterizerState": {
                 "CullMode": "CM_None"
             },
-            "ShaderVirtualPath": "/Shaders/Private/Materials/SkyAtmosphereMaterial_Mat.glsl",
+            "ShaderVirtualPath": "/Shaders/Private/Materials/SkyAtmosphereMaterial_Mat.slang",
             "ShadingModel": "SM_SkyAtmosphere"
         }
     ]

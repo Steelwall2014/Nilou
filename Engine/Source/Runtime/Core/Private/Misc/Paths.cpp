@@ -27,6 +27,12 @@ std::string FPaths::EngineSavedDir()
     return SavedDirectory;
 }
 
+std::string FPaths::EngineShadersPublicDir()
+{
+    static std::string ShadersPublicDirectory = FPaths::EngineDir() + "/Shaders/Public";
+    return ShadersPublicDirectory;
+}
+
 bool FPackageName::DoesPackageExist(const std::string& PackageName)
 {
     return fs::exists(FPackageName::LongPackageNameToMetaFileName(PackageName));

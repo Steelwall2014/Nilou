@@ -214,12 +214,6 @@ namespace nilou {
 
     #define UNIFORMBUFFER_KEY(SetIndex, BindingIndex) (((uint64)(SetIndex) << 32) | (BindingIndex))
 
-    struct FMaterialUniformBufferInfo
-    {
-        std::string Name;
-        int32 Size;
-    };
-
     class FMaterialRenderProxy
     {
         friend class UMaterial;
@@ -255,10 +249,7 @@ namespace nilou {
 
         void RenderThread_UpdateShader(const std::string& ShaderCode);
 
-        /**
-         * Parses uniform buffer blocks from material Slang code and returns their information.
-         */
-        std::vector<FMaterialUniformBufferInfo> ParseMaterialUniformBuffers(slang::ProgramLayout* ProgramLayout);
+        FShaderParametersMetadata2* MaterialParamsMetadata = nullptr;
 
         /**
          * Updates a named parameter on the render thread.

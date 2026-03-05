@@ -1,3 +1,5 @@
+#include "ShaderCompiler.h"
+
 #include <array>
 #include <filesystem>
 #include <iostream>
@@ -8,16 +10,15 @@
 #include <vector>
 
 #include "DynamicRHI.h"
-#include "ShaderCompiler.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Crc.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "Shader.h"
 #include "ShaderInstance.h"
 #include "ShaderMap.h"
-// #include "Shadinclude.h"
-#include "VertexFactory.h"
-#include "Logging/LogMacros.h"
-#include "Misc/Crc.h"
 #include "SlangUtils.h"
-#include "Misc/Paths.h"
+#include "VertexFactory.h"
 
 #ifdef NILOU_DEBUG
 #include <fstream>
@@ -27,6 +28,8 @@ void Write(std::string filename, std::string code)
     out << code;
 }
 #endif
+
+namespace fs = std::filesystem;
 
 namespace nilou {
 
@@ -149,6 +152,7 @@ namespace nilou {
         initGlobalSessionIfNeeded();
         
         slang::SessionDesc sessionDesc = {};
+        // Targets
         std::vector<slang::TargetDesc> targets = {
             {
                 .format = SLANG_SPIRV,
@@ -156,9 +160,13 @@ namespace nilou {
             },
             {
                 .format = SLANG_GLSL,
-                .profile = GSlangGlobalSession->findProfile("glsl_460")
+                .profile = GSlangGlobalSession->findProfile("glsl_460") // for debug
             }
         };
+        sessionDesc.targets = targets.data();
+        sessionDesc.targetCount = targets.size();
+
+        // Preprocessor macros
         std::vector<slang::PreprocessorMacroDesc> preprocessorMacros;
         for (auto &[key, value] : Environment.Definitions)
         {
@@ -169,12 +177,13 @@ namespace nilou {
         }
         sessionDesc.preprocessorMacros = preprocessorMacros.data();
         sessionDesc.preprocessorMacroCount = preprocessorMacros.size();
-        sessionDesc.targets = targets.data();
-        sessionDesc.targetCount = targets.size();
-        const std::string SearchPath = FPaths::EngineDir() + "/Shaders/Public";
-        std::vector<const char*> searchPaths = { 
-            SearchPath.c_str(),
-        };
+
+        // Search paths
+        std::vector<const char*> searchPaths;
+        for (const auto &SearchPath : Environment.SearchPaths)
+        {
+            searchPaths.push_back(SearchPath.c_str());
+        }
         sessionDesc.searchPaths = searchPaths.data();
         sessionDesc.searchPathCount = searchPaths.size();
 
@@ -183,26 +192,23 @@ namespace nilou {
         return session;
     }
 
-    slang::IModule* createModule(slang::ISession* session, FShaderTypeBase* ShaderType)
+    slang::IModule* loadModuleFromSourceString(slang::ISession* session, const fs::path& moduleFilePath)
     {
+        std::string SourceString;
+        if (!FFileHelper::LoadFileToString(SourceString, moduleFilePath.generic_string()))
+        {
+            NILOU_LOG(Error, "Failed to load shader file: {}", moduleFilePath.generic_string());
+            return nullptr;
+        }
+        const std::string ModuleName = moduleFilePath.stem().string();
+        const std::string ModulePath = moduleFilePath.generic_string();
         slang::IModule* ShaderModule;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            ShaderModule = session->loadModuleFromSourceString(ShaderType->FileAbsolutePath.filename().generic_string().c_str(), ShaderType->FileAbsolutePath.generic_string().c_str(), ShaderType->PreprocessedCode.c_str(), diagnosticsBlob.writeRef());
+            ShaderModule = session->loadModuleFromSourceString(ModuleName.c_str(), ModulePath.c_str(), SourceString.c_str(), diagnosticsBlob.writeRef());
             diagnoseIfNeeded(diagnosticsBlob);
         }
         return ShaderModule;
-    }
-
-    slang::IModule* createModuleFromSourceString(slang::ISession* session, const std::string& ModuleName, const std::string& ModulePath, const std::string& ModuleCode)
-    {
-        slang::IModule* Module;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            Module = session->loadModuleFromSourceString(ModuleName.c_str(), ModulePath.c_str(), ModuleCode.c_str(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-        return Module;
     }
 
     Slang::ComPtr<slang::IComponentType> specializeEntryPoint(slang::IEntryPoint* entryPoint, const std::vector<slang::SpecializationArg> &specializationArgs)
@@ -218,6 +224,17 @@ namespace nilou {
             diagnoseIfNeeded(diagnosticsBlob);
         }
         return specializedEntryPoint;
+    }
+    
+    Slang::ComPtr<slang::IEntryPoint> findEntryPointByName(slang::IModule* module, const std::string& entryPointName)
+    {
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        module->findEntryPointByName(entryPointName.c_str(), entryPoint.writeRef());
+        if (entryPoint == nullptr)
+        {
+            NILOU_LOG(Error, "Failed to find entry point {} of shader module {}", entryPointName, module->getName());
+        }
+        return entryPoint;
     }
 
     void ParseUniformBufferMembers(
@@ -373,18 +390,14 @@ namespace nilou {
         FShaderType *ShaderType = ShaderParameter.Type;
         
         FShaderCompilerEnvironment Environment;
+        Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
         RHIShaderRef ShaderRHI = nullptr;
         Ncheck(ShaderType->FileAbsolutePath.extension() == ".slang");
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
-        slang::IModule* ShaderModule = createModule(session, ShaderType);
-        Slang::ComPtr<slang::IEntryPoint> entryPoint;
-        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
-        if (entryPoint == nullptr)
-        {
-            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
-        }
+        slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
         auto [spirvCode, linkedProgram] = compileFromComponents(session, {
             ShaderModule,
             entryPoint
@@ -432,17 +445,12 @@ namespace nilou {
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
 
-        slang::IModule* ShaderModule = createModule(session, ShaderType);
-        slang::IModule* VertexFactoryModule = createModule(session, VertexFactoryType);
-        slang::IModule* MaterialModule = createModuleFromSourceString(session, MaterialName, MaterialPath, MaterialPreprocessedResult);
+        slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
+        slang::IModule* VertexFactoryModule = loadModuleFromSourceString(session, VertexFactoryType->FileAbsolutePath);
+        slang::IModule* MaterialModule = loadModuleFromSourceString(session, MaterialPath);
 
         std::string VertexFactoryInputName = VertexFactoryType->Name + "Input";
-        Slang::ComPtr<slang::IEntryPoint> entryPoint;
-        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
-        if (entryPoint == nullptr)
-        {
-            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
-        }
+        Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
         Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, { 
             {
                 slang::SpecializationArg::Kind::Type,
@@ -477,15 +485,6 @@ namespace nilou {
         }
 
         OutShaderMap.AddShader(ShaderRHI, VertexFactoryParams, ShaderParameter);
-
-
-        // std::string code = ConcateShaderCodeAndParameters(
-        //     {&MaterialPreprocessedResult, &VertexFactoryType->PreprocessedCode, &ShaderType->PreprocessedCode}, 
-        //     Environment);
-        // FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
-        //     ShaderName, code, EShaderStage::Vertex, ShaderType->ShaderMetaType);
-        // ShaderInstance->InitRHI();
-        // OutShaderMap.AddShader(ShaderInstance, VertexFactoryParams, ShaderParameter);
     }
 
     void FShaderCompiler::CompilePixelMaterialShader(
@@ -502,14 +501,9 @@ namespace nilou {
         Environment.SetDefine("SET_INDEX", 1);
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
-        slang::IModule* ShaderModule = createModule(session, ShaderType);
-        slang::IModule* MaterialModule = createModuleFromSourceString(session, MaterialName, MaterialPath, MaterialPreprocessedResult);
-        Slang::ComPtr<slang::IEntryPoint> entryPoint;
-        ShaderModule->findEntryPointByName(ShaderType->EntryPointName.c_str(), entryPoint.writeRef());
-        if (entryPoint == nullptr)
-        {
-            NILOU_LOG(Fatal, "Failed to find entry point {} of shader {}", ShaderType->EntryPointName, ShaderType->Name);
-        }
+        slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
+        slang::IModule* MaterialModule = loadModuleFromSourceString(session, MaterialPath);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
         Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, {
             {
                 slang::SpecializationArg::Kind::Type,
@@ -542,14 +536,6 @@ namespace nilou {
         }
         
         OutShaderMap.AddShader(ShaderRHI, ShaderParameter);
-
-        // std::string code = ConcateShaderCodeAndParameters(
-        //     {&MaterialParsedResult, &ShaderType->PreprocessedCode}, 
-        //     Environment);
-        // FShaderInstanceRef ShaderInstance = std::make_shared<FShaderInstance>(
-        //     ShaderName, code, EShaderStage::Pixel, ShaderType->ShaderMetaType);
-        // ShaderInstance->InitRHI();
-        // OutShaderMap.AddShader(ShaderInstance, ShaderParameter);
     }
 
     template<typename Func, typename Filter>

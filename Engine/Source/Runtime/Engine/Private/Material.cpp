@@ -44,7 +44,7 @@ namespace nilou {
             NPackage* Pkg = CreatePackage("/Engine/Materials/DefaultMaterial");
             DefaultMaterial = NewObject<UMaterial>(Pkg, "DefaultMaterial");
             DefaultMaterial->InitializeResources();
-            DefaultMaterial->SetShaderFileVirtualPath("/Shaders/Materials/DefaultMaterial_Mat.slang");
+            DefaultMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/DefaultMaterial_Mat.slang");
             NPackage::SavePackage(Pkg);
         }
         return DefaultMaterial;
@@ -122,9 +122,15 @@ namespace nilou {
         ShaderVirtualPath = VirtualPath;
         if (!ShaderVirtualPath.empty())
         {
-            std::string ShaderAbsPath = FPaths::EngineDir() + "/" + ShaderVirtualPath;
-            FFileHelper::LoadFileToString(Code, ShaderAbsPath);
-            UpdateCode(Code);
+            std::string ShaderAbsPath = FPaths::EngineDir() + ShaderVirtualPath;
+            if (FFileHelper::LoadFileToString(Code, ShaderAbsPath))
+            {
+                UpdateCode(Code);
+            }
+            else 
+            {
+                NILOU_LOG(Error, "Failed to load shader file: {}", ShaderAbsPath);
+            }
         }
     }
 
@@ -310,7 +316,7 @@ namespace nilou {
             ColoredMaterial = NewObject<UMaterial>(ColoredMaterialPackage, "ColoredMaterial");
             ColoredMaterial->InitializeResources();
             ColoredMaterial->SetRasterizerState(FRasterizerStateInitializer(ERasterizerFillMode::FM_Solid, ERasterizerCullMode::CM_None));
-            ColoredMaterial->SetShaderFileVirtualPath("/Shaders/Materials/ColoredMaterial_Mat.slang");
+            ColoredMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/ColoredMaterial_Mat.slang");
             NPackage::SavePackage(ColoredMaterialPackage);
         }
         return ColoredMaterial;
@@ -361,71 +367,6 @@ namespace nilou {
         }
     }
 
-    std::vector<FMaterialUniformBufferInfo> FMaterialRenderProxy::ParseMaterialUniformBuffers(slang::ProgramLayout* ProgramLayout)
-    {
-        std::vector<FMaterialUniformBufferInfo> UniformBufferInfos;
-        
-        if (ProgramLayout == nullptr)
-            return UniformBufferInfos;
-
-        // Iterate through all global parameters
-        uint32 ParameterCount = ProgramLayout->getParameterCount();
-        for (uint32 i = 0; i < ParameterCount; i++)
-        {
-            slang::VariableLayoutReflection* VarLayout = ProgramLayout->getParameterByIndex(i);
-            if (VarLayout == nullptr) continue;
-
-            slang::VariableReflection* Var = VarLayout->getVariable();
-            if (Var == nullptr) continue;
-
-            slang::TypeReflection* Type = Var->getType();
-            slang::TypeLayoutReflection* TypeLayout = VarLayout->getTypeLayout();
-            if (Type == nullptr || TypeLayout == nullptr) continue;
-
-            auto Kind = Type->getKind();
-            if (Kind != slang::TypeReflection::Kind::ParameterBlock) continue;
-
-            slang::TypeReflection* ElementType = Type->getElementType();
-            slang::TypeLayoutReflection* ElementTypeLayout = TypeLayout->getElementTypeLayout();
-            if (ElementType == nullptr || ElementTypeLayout == nullptr) continue;
-
-            std::string ParamName = Var->getName();
-            if (ParamName != MATERIAL_PARAMETER_VARIABLE_NAME) continue;
-            
-            std::string ElementTypeName = ElementType->getName();
-            if (ElementTypeName != MATERIAL_PARAMETER_TYPE_NAME) continue;
-
-            // Get binding range information
-            SlangInt BindingRangeCount = ElementTypeLayout->getBindingRangeCount();
-            for (SlangInt RangeIndex = 0; RangeIndex < BindingRangeCount; RangeIndex++)
-            {
-                slang::BindingType BindingType = ElementTypeLayout->getBindingRangeType(RangeIndex);
-                
-                // Check if it's a uniform buffer (ConstantBuffer in Slang)
-                if (BindingType == slang::BindingType::CombinedTextureSampler)
-                {
-
-                }
-                else if (BindingType == slang::BindingType::ConstantBuffer)
-                {
-                    SlangInt FirstBindingIndex = TypeLayout->getBindingRangeFirstDescriptorRangeIndex(RangeIndex);
-                    
-                    // Get the leaf type layout to get the size
-                    slang::TypeLayoutReflection* LeafTypeLayout = TypeLayout->getBindingRangeLeafTypeLayout(RangeIndex);
-                    if (LeafTypeLayout != nullptr)
-                    {
-                        FMaterialUniformBufferInfo Info;
-                        Info.Name = ParamName;
-                        Info.Size = LeafTypeLayout->getSize(slang::ParameterCategory::Uniform);
-                        UniformBufferInfos.push_back(Info);
-                    }
-                }
-            }
-        }
-
-        return UniformBufferInfos;
-    }
-
     FMaterialRenderProxy::FMaterialRenderProxy(UMaterial* InMaterial)
         : Owner(InMaterial)
     {
@@ -447,12 +388,17 @@ namespace nilou {
         {
             ShaderMap = std::make_shared<FMaterialShaderMap>();
         }
-        std::string PreprocessResult = shader_preprocess::PreprocessInclude(ShaderCode, FPaths::EngineDir() + "/Shaders/Materials", {});
         NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
-        FShaderCompilerEnvironment Environment;
-        Environment.SetDefine("MATERIAL_SHADINGMODEL", (int32)Owner->ShadingModel);
-        FShaderCompiler::CompileMaterialShader(Owner->GetName(), FPaths::EngineDir() + "/" + Owner->ShaderVirtualPath, ShaderMap.get(), PreprocessResult, Environment);
 
+        const std::string SearchPath = FPaths::EngineShadersPublicDir();
+        const std::string MaterialPath = FPaths::EngineDir() + Owner->ShaderVirtualPath;
+        const std::string MaterialModuleName = FPaths::GetBaseFilename(MaterialPath);
+
+        FShaderCompilerEnvironment Environment;
+        Environment.AddSearchPath(SearchPath);
+        FShaderCompiler::CompileMaterialShader(Owner->GetName(), MaterialPath, ShaderMap.get(), ShaderCode, Environment);
+
+        // Create a session
         slang::IGlobalSession* GlobalSession = GetSlangGlobalSession();
         slang::SessionDesc sessionDesc = {};
         std::vector<slang::TargetDesc> targets = {
@@ -463,15 +409,17 @@ namespace nilou {
         };
         sessionDesc.targets = targets.data();
         sessionDesc.targetCount = targets.size();
-
+        std::vector<const char*> searchPaths = { SearchPath.c_str() };
+        sessionDesc.searchPathCount = searchPaths.size();
+        sessionDesc.searchPaths = searchPaths.data();
         Slang::ComPtr<slang::ISession> session;
         GlobalSession->createSession(sessionDesc, session.writeRef());
 
+        // Load the material module
         slang::IModule* ShaderModule;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            std::string MaterialPath = FPaths::EngineDir() + "/" + Owner->ShaderVirtualPath;
-            ShaderModule = session->loadModuleFromSourceString(Owner->GetName().c_str(), MaterialPath.c_str(), ShaderCode.c_str(), diagnosticsBlob.writeRef());
+            ShaderModule = session->loadModuleFromSourceString(MaterialModuleName.c_str(), MaterialPath.c_str(), ShaderCode.c_str(), diagnosticsBlob.writeRef());
             diagnoseIfNeeded(diagnosticsBlob);
         }
 
@@ -480,58 +428,40 @@ namespace nilou {
         if (ProgramLayout == nullptr)
             return;
 
-        // Parse uniform buffer blocks from material Slang code
-        std::vector<FMaterialUniformBufferInfo> UniformBufferInfos = ParseMaterialUniformBuffers(ProgramLayout);
-        NILOU_LOG(Display, "Material {} has {} uniform buffer block(s):", Owner->GetName(), UniformBufferInfos.size());
-        for (const auto& Info : UniformBufferInfos)
+        std::string MaterialParamBlockTypeName;
+        uint32_t ParameterCount = ProgramLayout->getParameterCount();
+        for (uint32_t i = 0; i < ParameterCount; i++)
         {
-            NILOU_LOG(Display, "  - {}: Size={} bytes", Info.Name, Info.Size);
-        }
-        
-        // Build reflection, then we can set uniforms by name.
-        // This is only used for reflection, NOT the actual shader compilation.
-        std::string PixelShaderCode = 
-            "#version 460\n"
-            "layout (location = 0) out vec4 FragColor;\n" +  
-            PreprocessResult + 
-            "\nvoid main() { FragColor = vec4(0.0, 0.0, 0.0, 1.0); }";
-        size_t pos = 0;
-        while ((pos = PixelShaderCode.find("#define BINDING_INDEX 0", pos)) != std::string::npos)
-        {
-            PixelShaderCode.replace(pos, 24, "");
-            pos += 1;
-        }
-        pos = 0;
-        int binding_index = 0;
-        while ((pos = PixelShaderCode.find("BINDING_INDEX", pos)) != std::string::npos)
-        {
-            PixelShaderCode.replace(pos, 13, std::to_string(binding_index++));
-            pos += 1;
-        }
+            slang::VariableLayoutReflection* VarLayout = ProgramLayout->getParameterByIndex(i);
+            if (VarLayout == nullptr)
+                continue;
 
-        std::string ReflectMessage;
-        std::unordered_map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
-        std::optional<RHIPushConstantRange> PushConstantRange;
-        if (!FDynamicRHI::Get()->RHIReflectShader(PixelShaderCode, EShaderStage::Pixel, DescriptorSetLayouts, PushConstantRange, ReflectMessage))
-        {
-            NILOU_LOG(Error, "Error occured during material reflection of {} : \"{}\"", Owner->GetName(), ReflectMessage);
-            NILOU_LOG(Error, "\n{}", PixelShaderCode);
-            Ncheck(false);
-        }
+            const char* ParamName = VarLayout->getName();
+            if (ParamName == nullptr || std::string(ParamName) != "MaterialParameters")
+                continue;
 
-        for (auto& [SetIndex, Layout] : DescriptorSetLayouts)
-        {
-            std::vector<RHIDescriptorSetLayoutBinding> BindingsRHI;
-            for (auto& Binding : Layout->Bindings)
+            slang::TypeLayoutReflection* TypeLayout = VarLayout->getTypeLayout();
+            if (TypeLayout->getKind() != slang::TypeReflection::Kind::ParameterBlock)
+                continue;
+
+            slang::TypeLayoutReflection* ElementTypeLayout = TypeLayout->getElementTypeLayout();
+            if (ElementTypeLayout != nullptr)
             {
-                if (Binding.Name == MATERIAL_PARAMETER_TYPE_NAME && Binding.DescriptorType == EDescriptorType::UniformBuffer)
-                {
-                    std::string BufferName = NFormat("{}_UniformBuffer_s{}_b{}", Owner->GetName(), SetIndex, Binding.BindingIndex);
-                    UniformBufferRDG = RenderGraph::CreatePooledBuffer(BufferName, RDGBufferDesc(Binding.BlockSize, Binding.BlockSize, EBufferUsageFlags::UniformBuffer));
-                }
+                MaterialParamBlockTypeName = ElementTypeLayout->getType()->getName();
             }
+            break;
         }
-        
+        if (MaterialParamBlockTypeName.empty())
+        {
+            NILOU_LOG(Error, "Failed to find material parameter block type name in shader module {}", MaterialModuleName);
+            return;
+        }
+        MaterialParamsMetadata = GetShaderParametersMetadata(MaterialParamBlockTypeName);
+        if (MaterialParamsMetadata == nullptr)
+        {
+            NILOU_LOG(Error, "Failed to get metadata for material parameter block type {}", MaterialParamBlockTypeName);
+            return;
+        }
     }
 
     FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const

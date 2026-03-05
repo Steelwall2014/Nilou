@@ -2,7 +2,7 @@
     "Objects": [
         {
             "NamePrivate": "DefaultMaterial",
-            "ShaderVirtualPath": "/Shaders/Materials/DefaultMaterial_Mat.slang"
+            "ShaderVirtualPath": "/Shaders/Private/Materials/DefaultMaterial_Mat.slang"
         }
     ]
 }

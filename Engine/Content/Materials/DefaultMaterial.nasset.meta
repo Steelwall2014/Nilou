@@ -1,7 +1,7 @@
 {
     "ObjectExports": [
         {
-            "ClassIndex": -1,
+            "ClassIndex": -2,
             "ClassName": "Material",
             "ObjectIndex": 1,
             "ObjectName": "DefaultMaterial",
@@ -10,15 +10,15 @@
     ],
     "ObjectImports": [
         {
-            "ClassName": "Class",
-            "ObjectName": "Material",
-            "OuterIndex": -2,
-            "PackageName": "/Script/Engine"
-        },
-        {
             "ClassName": "Package",
             "ObjectName": "/Script/Engine",
             "OuterIndex": 0,
+            "PackageName": "/Script/Engine"
+        },
+        {
+            "ClassName": "Class",
+            "ObjectName": "Material",
+            "OuterIndex": -1,
             "PackageName": "/Script/Engine"
         }
     ]

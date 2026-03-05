@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <map>
+#include <set>
+#include <filesystem>
 
 #include "HAL/Platform.h"
 
@@ -25,6 +27,12 @@ namespace nilou {
             Definitions[Name] = "("+std::to_string(Value)+")";
         }
 
+        void AddSearchPath(const std::string &Path)
+        {
+            SearchPaths.insert(Path);
+        }
+
         std::map<std::string, std::string> Definitions;
+        std::set<std::string> SearchPaths;
     };
 }

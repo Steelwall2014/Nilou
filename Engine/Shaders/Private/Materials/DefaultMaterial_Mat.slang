@@ -19,7 +19,7 @@ struct FDefaultMaterialParameters
     float roughnessFactor;
     StructuredBuffer<FTestStructure> test;
 };
-ParameterBlock<FDefaultMaterialParameters> MaterialParams;
+ParameterBlock<FDefaultMaterialParameters> MaterialParameters;
 
 struct DefaultMaterial : IMaterial
 {
@@ -30,25 +30,25 @@ struct DefaultMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return MaterialParams.baseColorTexture.Sample(this.vs_out.GetTexCoords()) * MaterialParams.baseColorFactor;
+        return MaterialParameters.baseColorTexture.Sample(this.vs_out.GetTexCoords()) * MaterialParameters.baseColorFactor;
     }
     float3 GetEmissive()
     {
-        return MaterialParams.emissiveTexture.Sample(this.vs_out.GetTexCoords()).rgb * MaterialParams.emissiveFactor;
+        return MaterialParameters.emissiveTexture.Sample(this.vs_out.GetTexCoords()).rgb * MaterialParameters.emissiveFactor;
     }
     float3 GetWorldSpaceNormal()
     {
-        float3 tangent_normal = MaterialParams.normalTexture.Sample(this.vs_out.GetTexCoords()).rgb;
+        float3 tangent_normal = MaterialParameters.normalTexture.Sample(this.vs_out.GetTexCoords()).rgb;
         tangent_normal = normalize(tangent_normal * 2.0 - 1.0);
         return normalize(mul(tangent_normal, this.vs_out.GetTBN()));
     }
     float GetRoughness()
     {
-        return MaterialParams.metallicRoughnessTexture.Sample(this.vs_out.GetTexCoords()).g * MaterialParams.roughnessFactor;
+        return MaterialParameters.metallicRoughnessTexture.Sample(this.vs_out.GetTexCoords()).g * MaterialParameters.roughnessFactor;
     }
     float GetMetallic()
     {
-        return MaterialParams.metallicRoughnessTexture.Sample(this.vs_out.GetTexCoords()).b * MaterialParams.metallicFactor;
+        return MaterialParameters.metallicRoughnessTexture.Sample(this.vs_out.GetTexCoords()).b * MaterialParameters.metallicFactor;
     }
     float3 GetWorldSpaceOffset()
     {

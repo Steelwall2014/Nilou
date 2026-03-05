@@ -6,7 +6,7 @@ struct FReflectionProbeDebugMaterialParameters
 {
     SamplerCube Cube;
 };
-ParameterBlock<FReflectionProbeDebugMaterialParameters> MaterialParams;
+ParameterBlock<FReflectionProbeDebugMaterialParameters> MaterialParameters;
 
 struct ReflectionProbeDebugMaterial : IMaterial
 {
@@ -17,7 +17,7 @@ struct ReflectionProbeDebugMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return mytextureCubeLod(MaterialParams.Cube, normalize(this.vs_out.GetRelativeWorldPosition()), 0);
+        return mytextureCubeLod(MaterialParameters.Cube, normalize(this.vs_out.GetRelativeWorldPosition()), 0);
     }
     float3 GetEmissive()
     {

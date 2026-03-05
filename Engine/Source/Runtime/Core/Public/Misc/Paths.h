@@ -12,6 +12,7 @@ public:
     static std::string EngineDir();
     static std::string EngineContentDir();
     static std::string EngineSavedDir();
+    static std::string EngineShadersPublicDir();
     static std::string VirtualPathToAbsPath(const std::string &VirtualPath);
 };
 

@@ -77,7 +77,7 @@ namespace nilou {
             if (!PBRExhibitionMaterial)
             {
                 PBRExhibitionMaterial = NewObject<UMaterial>(Package, "PBRExhibitionMaterial");
-                PBRExhibitionMaterial->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.slang");
+                PBRExhibitionMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/PBRExhibition_Mat.slang");
                 PBRExhibitionMaterial->SetScalarParameterValue("Red", 1.f);
                 PBRExhibitionMaterial->SetScalarParameterValue("Green", 1.f);
                 PBRExhibitionMaterial->SetScalarParameterValue("Blue", 1.f);
@@ -170,7 +170,7 @@ namespace nilou {
             SkyAtmosphereMaterial->InitializeResources();
             SkyAtmosphereMaterial->SetRasterizerState(FRasterizerStateInitializer(FM_Solid, CM_None));
             SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
-            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Materials/SkyAtmosphereMaterial_Mat.slang");
+            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/SkyAtmosphereMaterial_Mat.slang");
             NPackage::SavePackage(Package);
         }
         ASphereActor* SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
@@ -291,7 +291,7 @@ namespace nilou {
         // LUT->UpdateResource();
 
         // UMaterial* PBRExhibition = GetContentManager()->CreateAsset<UMaterial>("PBRExhibition", "/Materials");
-        // PBRExhibition->SetShaderFileVirtualPath("/Shaders/Materials/PBRExhibition_Mat.glsl");
+        // PBRExhibition->SetShaderFileVirtualPath("/Shaders/Private/Materials/PBRExhibition_Mat.glsl");
         // PBRExhibition->SetScalarParameterValue("Red", 1.f);
         // PBRExhibition->SetScalarParameterValue("Green", 1.f);
         // PBRExhibition->SetScalarParameterValue("Blue", 1.f);
@@ -300,11 +300,11 @@ namespace nilou {
         // PBRExhibition->MarkAssetDirty();
 
         // UMaterial* MirrorMaterial = GetContentManager()->CreateAsset<UMaterial>("MirrorMaterial", "/Materials");
-        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Materials/MirrorMaterial_Mat.glsl");
+        // MirrorMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/MirrorMaterial_Mat.glsl");
         // MirrorMaterial->MarkAssetDirty();
 
         // UMaterial* OceanMaterial2 = GetContentManager()->CreateAsset<UMaterial>("OceanMaterial2", "/Materials");
-        // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Materials/OceanMaterial2_Mat.glsl");
+        // OceanMaterial2->SetShaderFileVirtualPath("/Shaders/Private/Materials/OceanMaterial2_Mat.glsl");
         // OceanMaterial2->MarkAssetDirty();
 
     }

@@ -1,14 +1,16 @@
 #pragma once
+#include <filesystem>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
-#include <set>
-#include <filesystem>
-#include <slang.h>
+
 #include <slang-com-ptr.h>
+#include <slang.h>
 
 #include "HAL/Platform.h"
 #include "ShaderMap.h"
+
 
 namespace nilou {
     // void AddShaderSourceDirectoryMapping(const std::string& VirtualShaderDirectory, const std::string& RealShaderDirectory);
