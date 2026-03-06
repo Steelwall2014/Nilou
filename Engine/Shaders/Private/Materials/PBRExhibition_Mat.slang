@@ -6,7 +6,7 @@ uniform float Blue;
 uniform float Metallic;
 uniform float Roughness;
 
-class PBRExhibition : IMaterial
+struct PBRExhibition : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

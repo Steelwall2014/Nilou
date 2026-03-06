@@ -53,6 +53,7 @@ xmake build NilouEditor
 
 - **模块声明：** 每个着色器文件必须以 Slang 模块声明语句开头，即 `module` 或 `implementing`。
 - **参数封装：** 所有着色器参数必须封装在 `ParameterBlock<T>` 中。一个 `ParameterBlock<T>` 在底层通常对应一个 Vulkan Descriptor Set（或 D3D12 Descriptor Heap）。
+- **材质着色器：** 材质着色器中名为 `MaterialParameters` 的参数是一个特殊参数，材质系统会将它的类型的元数据存储在对应的材质中，这样可以用字段名设置材质参数。
 
 ## 代码生成
 

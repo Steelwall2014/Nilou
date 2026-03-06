@@ -354,7 +354,10 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
         slang::TypeReflection::Kind FieldKind = FieldTypeLayout->getKind();
         std::string FieldName = FieldLayout->getName();
-        int FieldBindingIndex = TypeLayout->getFieldBindingRangeOffset(FieldIndex);
+        SlangInt bindingRangeIdx = TypeLayout->getFieldBindingRangeOffset(FieldIndex);
+        SlangInt setIndex        = TypeLayout->getBindingRangeDescriptorSetIndex(bindingRangeIdx);
+        SlangInt descRangeIdx    = TypeLayout->getBindingRangeFirstDescriptorRangeIndex(bindingRangeIdx);
+        int FieldBindingIndex    = (int)TypeLayout->getDescriptorSetDescriptorRangeIndexOffset(setIndex, descRangeIdx);
         std::string OpaqueResourceType;
         switch (FieldKind)
         {

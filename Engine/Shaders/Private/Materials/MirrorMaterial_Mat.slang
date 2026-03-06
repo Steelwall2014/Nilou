@@ -1,6 +1,6 @@
 import RenderCore;
 
-class MirrorMaterial : IMaterial
+struct MirrorMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

@@ -1,6 +1,6 @@
 import RenderCore;
 
-class SkyAtmosphereMaterial : IMaterial
+struct SkyAtmosphereMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

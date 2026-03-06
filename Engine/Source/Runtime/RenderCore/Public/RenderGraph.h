@@ -390,7 +390,17 @@ private:
             if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::TextureView)
             {
                 RDGTextureView* TextureView = *(RDGTextureView**)((uint8*)&OpaqueResources + Resource.Offset);
-                DescriptorSet->SetStorageImage(Resource.BindingIndex, TextureView);
+                if (auto Binding = DescriptorSet->GetBindingByIndex(Resource.BindingIndex))
+                {
+                    if (Binding->DescriptorType == EDescriptorType::StorageImage)
+                    {
+                        DescriptorSet->SetStorageImage(Resource.BindingIndex, TextureView);
+                    }
+                    else if (Binding->DescriptorType == EDescriptorType::SampledImage)
+                    {
+                        DescriptorSet->SetSampledImage(Resource.BindingIndex, TextureView);
+                    }
+                }
             }
             else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::CombinedTextureSampler)
             {

@@ -79,6 +79,14 @@ void RDGDescriptorSet::SetStorageImage(int32 BindingIndex, RDGTextureView* Image
 	}
 }
 
+void RDGDescriptorSet::SetSampledImage(int32 BindingIndex, RDGTextureView* Image)
+{
+	if (auto Binding = GetBindingByIndex(BindingIndex))
+	{
+		SetSampledImageInternal(*Binding, Image);
+	}
+}
+
 void RDGDescriptorSet::SetSamplerState(int32 BindingIndex, RHISamplerState* SamplerState)
 {
 	if (auto Binding = GetBindingByIndex(BindingIndex))
@@ -163,6 +171,21 @@ void RDGDescriptorSet::SetStorageImageInternal(const RHIDescriptorSetLayoutBindi
 		WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceWrite;
 	}
 	Ncheck(WriteDescriptor.Access != ERHIAccess::None);
+	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
+}
+
+void RDGDescriptorSet::SetSampledImageInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGTextureView* Image)
+{
+	Ncheck(Binding.DescriptorType == EDescriptorType::SampledImage);
+	DescriptorImageInfo ImageInfo;
+	ImageInfo.SamplerState = nullptr;
+	ImageInfo.Texture = Image;
+	WriteDescriptorSet WriteDescriptor;
+	WriteDescriptor.DstBinding = Binding.BindingIndex;
+	WriteDescriptor.DstArrayElement = 0;
+	WriteDescriptor.DescriptorType = EDescriptorType::SampledImage;
+	WriteDescriptor.ImageInfo = ImageInfo;
+	WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
 }
 

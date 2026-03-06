@@ -13,7 +13,7 @@ ParameterBlock<FOceanMaterialParameters> Params;
 static const float BLEND_START = 10.0;    // m
 static const float BLEND_END = 300.0;  // m
 
-class OceanMaterial : IMaterial
+struct OceanMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

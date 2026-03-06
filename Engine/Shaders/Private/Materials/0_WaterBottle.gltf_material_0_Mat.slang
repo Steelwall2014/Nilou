@@ -9,7 +9,7 @@ uniform float3 emissiveFactor;
 uniform float metallicFactor;
 uniform float roughnessFactor;
 
-class WaterBottleMaterial : IMaterial
+struct WaterBottleMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

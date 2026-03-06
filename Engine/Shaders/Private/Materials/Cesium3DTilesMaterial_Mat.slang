@@ -8,7 +8,7 @@ uniform float3 emissiveFactor;
 uniform float metallicFactor;
 uniform float roughnessFactor;
 
-class Cesium3DTilesMaterial : IMaterial
+struct Cesium3DTilesMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

@@ -1,6 +1,6 @@
 import RenderCore;
 
-class WireframeMaterial : IMaterial
+struct WireframeMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
     __init(IVertexShaderOutput vs_out)

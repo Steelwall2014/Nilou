@@ -350,13 +350,6 @@ namespace nilou {
     {
         InitializeResources();
         SetShaderFileVirtualPath(ShaderVirtualPath);
-        // if (Ar.Node["Content"].contains("MaterialUniformBlock"))
-        // {
-        //     // The deserialization of MaterialUniformBlock MUST be done after the shader compilation.
-        //     nlohmann::json& json = Ar.Node["Content"]["MaterialUniformBlock"];
-        //     FArchive local_Ar(json, Ar);
-        //     MaterialUniformBlock->Deserialize(local_Ar);
-        // }
     }
 
     static void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
@@ -371,10 +364,6 @@ namespace nilou {
         : Owner(InMaterial)
     {
     }
-
-    BEGIN_SHADER_PARAMETER_STRUCT(FMaterialParameters,)
-        SHADER_PARAMETER(FVector4f, baseColorFactor)
-    END_SHADER_PARAMETER_STRUCT()
 
     void FMaterialRenderProxy::RenderThread_UpdateShader(const std::string& ShaderCode)
     {

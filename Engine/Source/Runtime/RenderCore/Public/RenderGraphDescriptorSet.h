@@ -29,6 +29,7 @@ public:
     void SetCombinedTextureSampler(int32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=nullptr);
     void SetStorageBuffer(int32 BindingIndex, RDGBuffer* Buffer);
     void SetStorageImage(int32 BindingIndex, RDGTextureView* Image);
+    void SetSampledImage(int32 BindingIndex, RDGTextureView* Image);
     void SetSamplerState(int32 BindingIndex, RHISamplerState* SamplerState);
 
     RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
@@ -40,6 +41,7 @@ private:
     void SetSamplerInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGTextureView* Texture, RHISamplerState* SamplerState=nullptr);
     void SetStorageBufferInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGBuffer* Buffer);
     void SetStorageImageInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGTextureView* Image);
+    void SetSampledImageInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGTextureView* Image);
     void SetSamplerStateInternal(const RHIDescriptorSetLayoutBinding& Binding, RHISamplerState* SamplerState);
 
     struct DescriptorBufferInfo
