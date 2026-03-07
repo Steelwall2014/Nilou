@@ -384,49 +384,38 @@ private:
     static void SetDescriptorSet(const TParameterBlock<T>& ParamBlock, RDGDescriptorSet* DescriptorSet)
     {
         FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
-        const T<EShaderDataLayout::Opaque>& OpaqueResources = ParamBlock.GetOpaqueFields();
-        for (auto& Resource : Metadata->OpaqueResources)
+        const T<EShaderDataLayout::Opaque>& OpaqueFields = ParamBlock.GetOpaqueFields();
+        const uint8* Base = reinterpret_cast<const uint8*>(&OpaqueFields);
+        for (const FShaderParametersMetadata2::FMember& Member : Metadata->Members)
         {
-            if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::TextureView)
+            switch (Member.BaseType)
             {
-                RDGTextureView* TextureView = *(RDGTextureView**)((uint8*)&OpaqueResources + Resource.Offset);
-                if (auto Binding = DescriptorSet->GetBindingByIndex(Resource.BindingIndex))
-                {
-                    if (Binding->DescriptorType == EDescriptorType::StorageImage)
-                    {
-                        DescriptorSet->SetStorageImage(Resource.BindingIndex, TextureView);
-                    }
-                    else if (Binding->DescriptorType == EDescriptorType::SampledImage)
-                    {
-                        DescriptorSet->SetSampledImage(Resource.BindingIndex, TextureView);
-                    }
-                }
+            case EUniformBufferBaseType2::Buffer:
+            {
+                RDGBuffer* Buffer = *reinterpret_cast<RDGBuffer* const*>(Base + Member.Offset);
+                DescriptorSet->SetBuffer(Member.BindingIndex, Buffer);
+                break;
             }
-            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::CombinedTextureSampler)
+            case EUniformBufferBaseType2::Texture:
             {
-                RDGCombinedTextureSampler Sampler = *(RDGCombinedTextureSampler*)((uint8*)&OpaqueResources + Resource.Offset);
-                DescriptorSet->SetCombinedTextureSampler(Resource.BindingIndex, Sampler.TextureView, Sampler.SamplerState);
+                RDGTextureView* TextureView = *reinterpret_cast<RDGTextureView* const*>(Base + Member.Offset);
+                DescriptorSet->SetTexture(Member.BindingIndex, TextureView);
+                break;
             }
-            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::Buffer)
+            case EUniformBufferBaseType2::TextureSampler:
             {
-                RDGBuffer* Buffer = *(RDGBuffer**)((uint8*)&OpaqueResources + Resource.Offset);
-                auto Binding = DescriptorSet->GetLayout()->GetBinding(Resource.BindingIndex);
-                if (Binding)
-                {
-                    if (Binding->DescriptorType == EDescriptorType::UniformBuffer)
-                    {
-                        DescriptorSet->SetUniformBuffer(Resource.BindingIndex, Buffer);
-                    }
-                    else if (Binding->DescriptorType == EDescriptorType::StorageBuffer)
-                    {
-                        DescriptorSet->SetStorageBuffer(Resource.BindingIndex, Buffer);
-                    }
-                }
+                RDGCombinedTextureSampler Sampler = *reinterpret_cast<const RDGCombinedTextureSampler*>(Base + Member.Offset);
+                DescriptorSet->SetCombinedTextureSampler(Member.BindingIndex, Sampler.TextureView, Sampler.SamplerState);
+                break;
             }
-            else if (Resource.ResourceType == FShaderParametersMetadata2::EOpaqueResourceType::SamplerState)
+            case EUniformBufferBaseType2::Sampler:
             {
-                RHISamplerState* SamplerState = *(RHISamplerState**)((uint8*)&OpaqueResources + Resource.Offset);
-                DescriptorSet->SetSamplerState(Resource.BindingIndex, SamplerState);
+                RHISamplerState* SamplerState = *reinterpret_cast<RHISamplerState* const*>(Base + Member.Offset);
+                DescriptorSet->SetSamplerState(Member.BindingIndex, SamplerState);
+                break;
+            }
+            default:
+                break;
             }
         }
     }

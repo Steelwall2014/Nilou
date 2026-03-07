@@ -31,6 +31,8 @@ public:
     void SetStorageImage(int32 BindingIndex, RDGTextureView* Image);
     void SetSampledImage(int32 BindingIndex, RDGTextureView* Image);
     void SetSamplerState(int32 BindingIndex, RHISamplerState* SamplerState);
+    void SetTexture(int32 BindingIndex, RDGTextureView* Texture);
+    void SetBuffer(int32 BindingIndex, RDGBuffer* Buffer);
 
     RHIDescriptorSet* GetRHI() const { return static_cast<RHIDescriptorSet*>(ResourceRHI.GetReference()); }
     RHIDescriptorSetLayout* GetLayout() const { return Layout; }

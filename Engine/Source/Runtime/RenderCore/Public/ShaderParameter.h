@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+
 #include "HAL/Platform.h"
 #include "RHIResources.h"
 
@@ -94,41 +95,78 @@ namespace nilou {
     constexpr EShaderDataLayout Std430Layout = EShaderDataLayout::Std430;
     constexpr EShaderDataLayout OpaqueLayout = EShaderDataLayout::Opaque;
 
+    enum class EUniformBufferBaseType2 : uint8
+    {
+        None,
+
+        // Invalid type when trying to use bool, to have explicit error message to programmer on why
+        // they shouldn't use bool in shader parameter structures.
+        Bool,
+
+        // Parameter types.
+        Int32,
+        UInt32,
+        Float32,
+        Float64,
+
+        // Resource types.
+        Texture,
+        Sampler,
+        TextureSampler,
+
+        // Buffer types.
+        Buffer,
+
+        // Nested structure.
+        NestedStruct,
+    };
+
+    enum class EShaderPrecisionModifier2 : uint8
+    {
+        Float,
+        Half,
+        Fixed,
+        Invalid,
+    };
+
     struct FShaderParametersMetadata2
     {
-        enum class EOpaqueResourceType
+        struct FMember
         {
-            None,
-            TextureView,
-            SamplerState,
-            CombinedTextureSampler,
-            Buffer,
+            // Binding index in the Vulkan descriptor set. For scalar/non-opaque members this is 0.
+            int32 BindingIndex;
+            // Member name as it appears in the shader source.
+            std::string Name;
+            // Byte offset of this member within the owning layout struct.
+            int32 Offset;
+            // Underlying data or resource category (e.g. Float32, Texture, Sampler, Buffer …).
+            EUniformBufferBaseType2 BaseType;
+            // Floating-point precision qualifier; Invalid for non-float and resource types.
+            EShaderPrecisionModifier2 Precision;
+            // Number of rows; 1 for scalars, vectors, and resource types; >1 for matrix types.
+            uint32 NumRows;
+            // Number of columns; equals the vector width for vectors; equals the column count for matrices; 1 for scalars and resources.
+            uint32 NumColumns;
+            // Array element count; 1 for non-array members.
+            uint32 NumElements;
         };
-        struct FOpaqueResource
+        FShaderParametersMetadata2(const std::string& InStructTypeName,
+                                   const std::string& InFileName,
+                                   int32 InFileLine,
+                                   RHIDescriptorSetLayoutRef InDescriptorSetLayout,
+                                   const std::vector<FMember>& InMembers)
+            : StructTypeName(InStructTypeName)
+            , FileName(InFileName)
+            , FileLine(InFileLine)
+            , DescriptorSetLayout(InDescriptorSetLayout)
+            , Members(InMembers)
         {
-            int32 BindingIndex = -1;
-            int32 Offset = -1;  // Offset in cpp struct
-            EOpaqueResourceType ResourceType = EOpaqueResourceType::None;
-        };
-        FShaderParametersMetadata2(
-            const std::string& InStructTypeName, 
-            const std::string& InFileName,
-            int32 InFileLine,
-            RHIDescriptorSetLayoutRef InDescriptorSetLayout,
-            const std::vector<FOpaqueResource>& InOpaqueResources)
-        : StructTypeName(InStructTypeName)
-        , FileName(InFileName)
-        , FileLine(InFileLine)
-        , DescriptorSetLayout(InDescriptorSetLayout)
-        , OpaqueResources(InOpaqueResources)
-        {
-    
         }
-        const std::string StructTypeName; 
+        const std::string StructTypeName;
         const std::string FileName;
         int32 FileLine;
-        
-        std::vector<FOpaqueResource> OpaqueResources;
+
+        const std::vector<FMember> Members;
         RHIDescriptorSetLayoutRef DescriptorSetLayout = nullptr;
     };
 
@@ -169,8 +207,6 @@ namespace nilou {
         {
             return *static_cast<const T<OpaqueLayout>*>(this);
         }
-
-        class RDGDescriptorSet* DescriptorSet = nullptr;
     };
 
 

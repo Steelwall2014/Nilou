@@ -95,6 +95,36 @@ void RDGDescriptorSet::SetSamplerState(int32 BindingIndex, RHISamplerState* Samp
 	}
 }
 
+void RDGDescriptorSet::SetTexture(int32 BindingIndex, RDGTextureView* Texture)
+{
+	if (auto Binding = GetBindingByIndex(BindingIndex))
+	{
+		if (Binding->DescriptorType == EDescriptorType::StorageImage)
+		{
+			SetStorageImageInternal(*Binding, Texture);
+		}
+		else if (Binding->DescriptorType == EDescriptorType::SampledImage)
+		{
+			SetSampledImageInternal(*Binding, Texture);
+		}
+	}
+}
+
+void RDGDescriptorSet::SetBuffer(int32 BindingIndex, RDGBuffer* Buffer)
+{
+	if (auto Binding = GetBindingByIndex(BindingIndex))
+	{
+		if (Binding->DescriptorType == EDescriptorType::UniformBuffer)
+		{
+			SetUniformBufferInternal(*Binding, Buffer);
+		}
+		else if (Binding->DescriptorType == EDescriptorType::StorageBuffer)
+		{
+			SetStorageBufferInternal(*Binding, Buffer);
+		}
+	}
+}
+
 void RDGDescriptorSet::SetUniformBufferInternal(const RHIDescriptorSetLayoutBinding& Binding, RDGBuffer* Buffer)
 {
 	Ncheck(Binding.DescriptorType == EDescriptorType::UniformBuffer);

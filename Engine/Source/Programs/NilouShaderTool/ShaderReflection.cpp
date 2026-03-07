@@ -1,4 +1,4 @@
-﻿#include <functional>
+#include <functional>
 #include <set>
 #include <unordered_map>
 #include <filesystem>
@@ -24,12 +24,12 @@ CREATE_DESCRIPTOR_SET_LAYOUT
 	return RHICreateDescriptorSetLayout(Bindings);
 }
 
-static std::vector<FShaderParametersMetadata2::FOpaqueResource> GetOpaqueResources_{STRUCT_NAME}()
+static std::vector<FShaderParametersMetadata2::FMember> GetMembers_{STRUCT_NAME}()
 {
-	std::vector<FShaderParametersMetadata2::FOpaqueResource> OpaqueResources;
+	std::vector<FShaderParametersMetadata2::FMember> Members;
 
-GET_OPAQUE_RESOURCES
-	return OpaqueResources;
+GET_MEMBERS
+	return Members;
 }
 
 {END_NAMESPACE_DECLARATIONS}
@@ -41,7 +41,7 @@ SHADERBINDINGS_API FShaderParametersMetadata2* GetShaderParametersMetadata<{NAME
 		"SOURCE_LOCATION_FILE_PATH",
 		SOURCE_LOCATION_LINE,
 		{NAMESPACE}CreateDescriptorSetLayout_{STRUCT_NAME}(),
-		{NAMESPACE}GetOpaqueResources_{STRUCT_NAME}()
+		{NAMESPACE}GetMembers_{STRUCT_NAME}()
 	);
 	return &Metadata;
 }
@@ -279,7 +279,27 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
 
     int BindingIndex = 0;
     std::string CreateDescriptorSetLayout;
-    std::string GetOpaqueResources;
+    std::string GetMembers;
+
+    auto GetResourcePrecisionString = [](slang::TypeReflection* ResourceType) -> std::string
+    {
+        slang::TypeReflection* ResultType = ResourceType->getResourceResultType();
+        if (!ResultType)
+            return "EShaderPrecisionModifier2::Float";
+        slang::TypeReflection* ScalarType = ResultType;
+        while (ScalarType->getKind() == slang::TypeReflection::Kind::Vector ||
+               ScalarType->getKind() == slang::TypeReflection::Kind::Matrix)
+        {
+            ScalarType = ScalarType->getElementType();
+        }
+        if (ScalarType->getKind() == slang::TypeReflection::Kind::Scalar)
+        {
+            if (ScalarType->getScalarType() == slang::TypeReflection::ScalarType::Float16)
+                return "EShaderPrecisionModifier2::Half";
+        }
+        return "EShaderPrecisionModifier2::Float";
+    };
+
     auto AppendBinding = [&](slang::BindingType BindingType, int DescriptorCount = 1)
     {
         std::string DescriptorTypeString = MapSlangBindingTypeToEDescriptorType(BindingType);
@@ -318,8 +338,13 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
     };
     if (TypeLayout->getSize(slang::ParameterCategory::Uniform) > 0)
     {
+        const int AutoUBBindingIndex = BindingIndex;
         AppendBinding(slang::BindingType::ConstantBuffer);
-        GetOpaqueResources += std::format("\tOpaqueResources.push_back( {{{}, offsetof({}<EShaderDataLayout::Opaque>, {}), {}}} );\n", 0, StructName, "AutomaticallyIntroducedUniformBuffer", "FShaderParametersMetadata2::EOpaqueResourceType::Buffer");
+        GetMembers += std::format(
+            "\tMembers.push_back( {{{}, \"AutomaticallyIntroducedUniformBuffer\", "
+            "offsetof({}<EShaderDataLayout::Opaque>, AutomaticallyIntroducedUniformBuffer), "
+            "EUniformBufferBaseType2::Buffer, EShaderPrecisionModifier2::Invalid, 1u, 1u, 1u}} );\n",
+            AutoUBBindingIndex, StructName);
     }
     int relativeSetIndex = 0;
     int rangeCount = TypeLayout->getDescriptorSetDescriptorRangeCount(relativeSetIndex);
@@ -358,42 +383,52 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         SlangInt setIndex        = TypeLayout->getBindingRangeDescriptorSetIndex(bindingRangeIdx);
         SlangInt descRangeIdx    = TypeLayout->getBindingRangeFirstDescriptorRangeIndex(bindingRangeIdx);
         int FieldBindingIndex    = (int)TypeLayout->getDescriptorSetDescriptorRangeIndexOffset(setIndex, descRangeIdx);
-        std::string OpaqueResourceType;
+        std::string BaseTypeStr;
+        std::string PrecisionStr;
         switch (FieldKind)
         {
         case slang::TypeReflection::Kind::Resource:
         {
-            if ((FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_STRUCTURED_BUFFER)
+            const SlangResourceShape BaseShape = static_cast<SlangResourceShape>(FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK);
+            const bool bIsCombined = (FieldType->getResourceShape() & SLANG_TEXTURE_COMBINED_FLAG) != 0;
+            if (BaseShape == SLANG_STRUCTURED_BUFFER)
             {
-                OpaqueResourceType = "FShaderParametersMetadata2::EOpaqueResourceType::Buffer";
+                BaseTypeStr  = "EUniformBufferBaseType2::Buffer";
+                PrecisionStr = "EShaderPrecisionModifier2::Invalid";
             }
-            else if ((FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_TEXTURE_1D || 
-                     (FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_TEXTURE_2D ||
-                     (FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_TEXTURE_3D ||
-                     (FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_TEXTURE_CUBE)
+            else if (BaseShape == SLANG_TEXTURE_1D ||
+                     BaseShape == SLANG_TEXTURE_2D ||
+                     BaseShape == SLANG_TEXTURE_3D ||
+                     BaseShape == SLANG_TEXTURE_CUBE)
             {
-                if ((FieldType->getResourceShape() & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_TEXTURE_COMBINED_FLAG)
+                if (bIsCombined)
                 {
-                    OpaqueResourceType = "FShaderParametersMetadata2::EOpaqueResourceType::CombinedTextureSampler";
+                    BaseTypeStr  = "EUniformBufferBaseType2::TextureSampler";
+                    PrecisionStr = GetResourcePrecisionString(FieldType);
                 }
-                else 
+                else
                 {
-                    OpaqueResourceType = "FShaderParametersMetadata2::EOpaqueResourceType::TextureView";
+                    BaseTypeStr  = "EUniformBufferBaseType2::Texture";
+                    PrecisionStr = GetResourcePrecisionString(FieldType);
                 }
             }
             break;
         }
         case slang::TypeReflection::Kind::SamplerState:
         {
-            OpaqueResourceType = "FShaderParametersMetadata2::EOpaqueResourceType::SamplerState";
+            BaseTypeStr  = "EUniformBufferBaseType2::Sampler";
+            PrecisionStr = "EShaderPrecisionModifier2::Invalid";
+            break;
         }
         default:
             break;
         }
-        
-        if (OpaqueResourceType != "")
+
+        if (!BaseTypeStr.empty())
         {
-            GetOpaqueResources += std::format("\tOpaqueResources.push_back( {{{}, offsetof({}<EShaderDataLayout::Opaque>, {}), {}}} );\n", FieldBindingIndex, StructName, FieldName, OpaqueResourceType);
+            GetMembers += std::format(
+                "\tMembers.push_back( {{{}, \"{}\", offsetof({}<EShaderDataLayout::Opaque>, {}), {}, {}, 1u, 1u, 1u}} );\n",
+                FieldBindingIndex, FieldName, StructName, FieldName, BaseTypeStr, PrecisionStr);
         }
     }
 
@@ -405,7 +440,7 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
     OutMetadata = SimpleMacroReplace(OutMetadata, "{BEGIN_NAMESPACE_DECLARATIONS}", BeginNamespaceDeclarations);
     OutMetadata = SimpleMacroReplace(OutMetadata, "{END_NAMESPACE_DECLARATIONS}", EndNamespaceDeclarations);
     OutMetadata = SimpleMacroReplace(OutMetadata, "CREATE_DESCRIPTOR_SET_LAYOUT", CreateDescriptorSetLayout);
-    OutMetadata = SimpleMacroReplace(OutMetadata, "GET_OPAQUE_RESOURCES", GetOpaqueResources);
+    OutMetadata = SimpleMacroReplace(OutMetadata, "GET_MEMBERS", GetMembers);
     OutMetadata = SimpleMacroReplace(OutMetadata, "{STRUCT_NAME}", StructName);
     OutMetadata = SimpleMacroReplace(OutMetadata, "SOURCE_LOCATION_FILE_PATH", SourceLocationFilePath);
     OutMetadata = SimpleMacroReplace(OutMetadata, "SOURCE_LOCATION_LINE", SourceLocationLine);
