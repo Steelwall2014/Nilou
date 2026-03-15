@@ -29,15 +29,24 @@ _pbr小球_
 _反射探针_
 ![](figures/ibl_and_shadow.png)
   
-## 运行
-1. 编译NilouHeaderTool。
-```sh
-xmake build -w NilouHeaderTool
+## 构建
+构建顺序如下：
+
+**第一步：** 构建 `NilouHeaderTool`。该工具负责解析 C++ 头文件并自动生成反射相关代码。
 ```
-2. 编译NilouEditor。目前提供两个编译目标：NilouEditor和NilouGame，目前它们还没有什么区别，只是NilouEditor的模块会编译成动态库，NilouGame的模块会编译成静态库，但是以后NilouEditor会添加编辑器界面。
-```sh
-xmake build -w NilouEditor
+xmake build NilouHeaderTool
 ```
+
+**第二步：** 构建 `NilouShaderTool`。该工具负责解析着色器代码并自动生成着色器结构体对应的 C++ 绑定。
+```
+xmake build NilouShaderTool
+```
+
+**第三步：** 构建主目标 `NilouEditor` 或 `NilouGame`。二者目前除模块链接方式不同外基本一致，未来 `NilouEditor` 将引入编辑器 UI 等专属功能。
+```
+xmake build NilouEditor
+```
+
 ## Features
 - 整体设计思路类似UE（比如用UObject实现反射和序列化，场景由Actor和Component组成，游戏线程/渲染线程，Shader设计等）
 - 支持类似UE的侵入式反射（通过NCLASS和NPROPERTY）宏。

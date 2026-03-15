@@ -11,6 +11,7 @@ Content/Textures/TestVirtualHeightfield.nasset
 compile_commands.json
 
 *.zip
+!Engine/Source/ThirdParty/slang/slang-2026.4.2-windows-x86_64.zip
 Saved
 
 *.gen.cpp
@@ -20,3 +21,11 @@ CachedShaderModifiedTime.txt
 CachedHeaderModifiedTime.txt
 
 Engine/Source/Runtime/*/Generated/
+
+Engine/Source/ThirdParty/slang/LICENSE
+Engine/Source/ThirdParty/slang/README.md
+Engine/Source/ThirdParty/slang/bin/
+Engine/Source/ThirdParty/slang/cmake/
+Engine/Source/ThirdParty/slang/include/
+Engine/Source/ThirdParty/slang/lib/
+Engine/Source/ThirdParty/slang/share/

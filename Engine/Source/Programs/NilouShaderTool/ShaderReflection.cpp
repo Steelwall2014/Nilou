@@ -601,7 +601,8 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
     {
         const char* TypeName = Decl->getName(); 
         slang::TypeReflection* Type = Decl->getType();
-        slang::SourceLocation SourceLocation = SlangSession->getDeclSourceLocation(Decl);
+        slang::SourceLocation SourceLocation;
+        SlangSession->getDeclSourceLocation(Decl, &SourceLocation);
         SlangTypeDeclaration NewTypeDecl;
         NewTypeDecl.TypeName = std::string(TypeName);
         NewTypeDecl.Type = Type;
