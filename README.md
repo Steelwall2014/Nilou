@@ -4,6 +4,8 @@
 _她真的好美_
 ## Overview
 
+**目前正在将着色器语言从glsl改为slang，详见slang分支**
+
 原先是我的毕业设计，毕业设计中实现了pbr（部分）、GPU Driven的地形系统（还没搞VT）、大气渲染（还有bug）、FFT海面（这个倒是很完整）  
 毕业项目的链接：https://pan.baidu.com/s/104S4944MNkbFUYGAdGSm5A?pwd=y4ws  
 提取码：y4ws  
