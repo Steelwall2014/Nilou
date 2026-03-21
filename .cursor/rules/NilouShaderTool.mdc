@@ -1,0 +1,124 @@
+---
+description: NilouShaderTool 设计与使用规范——Slang Shader 反射代码生成器
+globs: Engine/Source/Programs/NilouShaderTool/**,Engine/Shaders/**/*.slang
+alwaysApply: false
+---
+
+# NilouShaderTool
+
+`NilouShaderTool` 是 Nilou 引擎的 **Slang Shader 反射代码生成器**。它在编译前扫描 `.slang` 着色器文件，从 `ParameterBlock<T>` 中提取类型信息，自动生成 C++ 端类型安全的参数结构体绑定代码，省去手写样板代码的工作。
+
+## 工作原理
+
+1. 扫描 `-InputDirectory` 目录下所有 `.slang` 文件
+2. 用 `IsSlangModule()` 筛选出 **Module 文件**（首行 `module xxx;`），跳过 `implementing` 文件
+3. 通过 Slang 编译器加载并反射所有模块，递归收集用于 `ParameterBlock<T>` 的 struct 类型
+4. 对每个命中的 struct 分别生成 `.generated.h` 和 `.gen.cpp`
+
+## 命令行参数
+
+```
+NilouShaderTool
+  -InputDirectory=<shader 源码目录>
+  -OutputHeaderDirectory=<生成头文件目录>
+  -OutputCppDirectory=<生成 cpp 文件目录>
+  [-SearchDirectories=<路径1>;<路径2>;...]
+  [-ForceRegenerate]
+```
+
+## 代码生成规则
+
+### 触发条件
+
+只有出现在 `ParameterBlock<T>` 中的 struct（包括其成员 struct）才会生成 C++ 绑定：
+
+```slang
+// ✅ 会生成绑定
+struct SceneTextures {
+    Sampler2D<float4> BaseColor;
+    float3 SunDirection;
+}
+ParameterBlock<SceneTextures> gSceneTextures;
+
+// ❌ 不会生成绑定（未被 ParameterBlock 使用）
+struct Unused { float x; }
+```
+
+### 生成的布局类型
+
+工具根据字段类型将成员拆分为两个模板特化：
+
+| 布局 (`EShaderDataLayout`) | 包含字段 | 用途 |
+|---|---|---|
+| `Std140` | 标量/向量/矩阵/嵌套 struct | Uniform Buffer 数据上传 |
+| `Std430` | 同上，但 padding 规则不同 | Storage Buffer / StructuredBuffer |
+| `Opaque` | 纹理、采样器、Buffer 指针 | Descriptor Set 资源绑定 |
+
+当 struct 同时含有标量字段和资源字段时，`Opaque` 特化会自动添加 `RDGBuffer* AutomaticallyIntroducedUniformBuffer`（绑定索引 0）。
+
+### 生成的头文件（`.generated.h`）
+
+```cpp
+template <EShaderDataLayout DataLayout> struct SceneTextures {};
+
+// 资源字段特化
+template<> struct SceneTextures<EShaderDataLayout::Opaque>
+{
+    RDGBuffer*               AutomaticallyIntroducedUniformBuffer; // 自动引入
+    RDGTextureView*          BaseColor;
+    RDGCombinedTextureSampler SkyTexture;
+    bool operator==(const SceneTextures<EShaderDataLayout::Opaque>&) const = default;
+};
+
+// 标量字段特化（数据对齐封装）
+template<> struct SceneTextures<EShaderDataLayout::Std140>
+{
+    TAlignedType<FVector3f, 16> SunDirection;
+};
+```
+
+### 生成的实现文件（`.gen.cpp`）
+
+包含：
+- `CreateDescriptorSetLayout_<StructName>()`：注册所有 Descriptor 绑定（类型、绑定索引、访问权限）
+- `GetMembers_<StructName>()`：描述每个 opaque 成员的 offsetof、类型、绑定索引
+- `GetShaderParametersMetadata<T>()` 模板特化：返回静态 `FShaderParametersMetadata2` 对象
+- 全局静态注册：将 struct 注册到 `FShaderParameterRegistry`
+
+## 字段类型映射
+
+| Slang 类型 | C++ 字段类型（Opaque 布局） |
+|---|---|
+| `Sampler2D<T>` / `Texture2D<T>` | `RDGTextureView*` |
+| `SamplerState` | `RHISamplerState*` |
+| `Sampler2D<T>` + SamplerState 合并 | `RDGCombinedTextureSampler` |
+| `StructuredBuffer<T>` / `RWStructuredBuffer<T>` | `RDGBuffer*` |
+| `ConstantBuffer<T>` | `RDGBuffer*` |
+
+标量/向量字段使用 `TAlignedType<T, Alignment>` 封装，数组使用 `TStaticArray<T, N, Alignment>`。
+
+## 增量构建
+
+工具在输出目录维护 `CachedShaderModifiedTime.txt` 时间戳缓存：
+- 所有 shader 文件修改时间未变化 → 直接跳过
+- `-ForceRegenerate` → 忽略缓存强制重新生成
+- 使用 `CompareAndEmit`：文件内容无变化时不写磁盘，避免触发下游编译
+
+## 注意事项
+
+- `implementing` 文件会被跳过，不需要单独处理，Slang 编译器会自动拉入
+- `ParameterBlock<ParameterBlock<T>>` 嵌套不会被递归解析
+- 若同一 struct 在 Uniform Buffer 和 StructuredBuffer 两种上下文中都出现，布局需保持一致，否则会报错
+- `PushConstant` 类型的 ParameterBlock 不生成 `FShaderParametersMetadata2`，由其他机制处理
+- 工具运行后会自动清理无对应 shader 源文件的旧 `.generated.h` 和 `.gen.cpp`
+
+## 源码位置
+
+```
+Engine/Source/Programs/NilouShaderTool/
+├── main.cpp              # 入口点与主工作流
+├── ShaderReflection.h    # 类型定义（EShaderDataLayout、SlangTypeDeclaration 等）
+├── ShaderReflection.cpp  # 核心代码生成逻辑
+├── utils.h / utils.cpp   # IsSlangModule()、BindingType 映射、诊断工具
+└── xmake.lua             # 构建配置
+```

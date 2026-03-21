@@ -1,0 +1,167 @@
+---
+description: NilouHeaderTool 设计与使用规范——C++ 反射代码生成器
+globs: Engine/Source/Programs/NilouHeaderTool/**,Engine/Source/Runtime/CoreUObject/**
+alwaysApply: false
+---
+
+# NilouHeaderTool
+
+`NilouHeaderTool` 是 Nilou 引擎的 **C++ 反射代码生成器**，功能类似 Unreal Engine 的 UnrealHeaderTool（UHT）。它扫描标注了反射宏的头文件，借助 **libclang** 解析 AST，自动生成 `.gen.cpp` 文件，从而在不侵入业务代码的前提下实现类型注册、属性序列化和对象系统（`NClass` / `NObject`）等反射功能。
+
+## 命令行参数
+
+```
+NilouHeaderTool -InputDirectory=<扫描目录> -OutputDirectory=<输出目录> [Clang 参数...]
+```
+
+| 参数 | 含义 |
+|------|------|
+| `-InputDirectory=<path>` | 递归扫描该目录下所有 `.h` / `.hpp` 文件 |
+| `-OutputDirectory=<path>` | 生成的 `.gen.cpp` 文件写入该目录 |
+| 其余参数 | 原样传递给 libclang（如 `-I<include>`、`-D<define>`） |
+
+增量构建：输出目录中维护 `CachedHeaderModifiedTime.txt`，只有修改过的头文件才触发重新解析。
+
+## 反射宏
+
+宏定义位于 `Engine/Source/Runtime/CoreUObject/Public/NObject/ObjectMacros.h`，通过 Clang 的 `__attribute__((annotate("...")))` 注入 AST 注解，在 MSVC 下展开为空。
+
+| 宏 | 注解字符串 | 适用对象 | 命名规范 |
+|---|---|---|---|
+| `NCLASS` | `reflect-class` | 继承自 `NObject` 的类 | 前缀 `A`/`N`/`U` |
+| `NSTRUCT` | `reflect-struct` | 普通结构体 | 前缀 `F` |
+| `NENUM` | `reflect-enum` | 枚举 | 前缀 `E` |
+| `NPROPERTY()` | `reflect-property` | 成员变量 | — |
+| `NFUNCTION()` | `reflect-method` | 成员函数（仅记录名称） | — |
+| `GENERATED_BODY()` | — | 类/结构体内部 | 注入 `StaticClass()` + `Z_StaticClass` |
+
+### 使用示例
+
+```cpp
+class NCLASS NTestObjectA : public NObject
+{
+    GENERATED_BODY()
+public:
+    NPROPERTY()
+    int32 Health;
+
+    NPROPERTY()
+    TArray<FTestStructB> Inventory;
+
+    NFUNCTION()
+    void SomeMethod();
+};
+
+struct NSTRUCT FTestStructB
+{
+    GENERATED_BODY()
+
+    NPROPERTY()
+    float Value;
+};
+
+enum NENUM EPixelFormat : uint8
+{
+    PF_Unknown = 0,
+    PF_R8,
+    PF_RGBA8,
+};
+```
+
+## 支持的属性类型
+
+`NPROPERTY()` 只对以下类型生效：
+
+**内置类型：** `bool`、`int8/16/32/64`、`uint8/16/32/64`、`float`、`double`、`std::string`、GLM 数学类型（`vec2/3/4`、`mat2/3/4`、`quat` 等）、`nilou::FRotator`、`FBinaryBuffer`、所有 `CXType_Enum`
+
+**反射结构体：** 所有标注了 `NSTRUCT` 的类型
+
+**反射类指针：** `SomeNClass*`（裸指针）或智能指针（模板第一参数为反射类）
+
+**容器：** `TArray<T>`、`TMap<K,V>`、`TSet<T>`、`std::vector<T>`、`std::map<K,V>`、`std::set<T>`、`std::unordered_map<K,V>`、`std::unordered_set<T>`、`std::array<T,N>`
+
+容器的元素类型必须也是受支持的类型。不支持的类型即使加了 `NPROPERTY()` 也可能产生错误代码。
+
+## 生成代码格式
+
+每个反射类型生成一个单独的 `<TypeName>.gen.cpp`，被引擎模块的构建脚本自动包含进编译：
+
+### NCLASS
+
+```cpp
+#include "NObject/NilouType.h"
+#include "Path/To/Header.h"
+
+namespace nilou {
+
+BEGIN_CLASS_REGISTRY(NTestObjectA, NObject, EClassFlags::Native)
+    CLASS_PROPERTY(Health)
+    CLASS_PROPERTY(Inventory)
+END_CLASS_REGISTRY(NTestObjectA)
+
+}
+```
+
+### NSTRUCT
+
+```cpp
+#include "NObject/NilouType.h"
+#include "Path/To/Header.h"
+
+namespace nilou {
+
+BEGIN_STRUCT_REGISTRY(FTestStructB, NullSuperClass, EClassFlags::Native)
+    STRUCT_PROPERTY(Value)
+END_STRUCT_REGISTRY(FTestStructB)
+
+}
+```
+
+无父类时，`Super` 参数填写 `NullSuperClass`（其 `StaticClass()` 返回 `nullptr`）。
+
+### NENUM
+
+```cpp
+#include "NObject/NilouType.h"
+#include "Path/To/Header.h"
+
+namespace nilou {
+
+BEGIN_ENUM_REGISTRY(EPixelFormat, EClassFlags::Native)
+    ENUM_VALUE(PF_Unknown);
+    ENUM_VALUE(PF_R8);
+    ENUM_VALUE(PF_RGBA8);
+END_ENUM_REGISTRY(EPixelFormat)
+
+}
+```
+
+## 运行时机制
+
+生成的注册宏展开为 `TClassRegistry<T>` 的模板特化与全局静态对象。**程序启动时**，全局静态 `TClassRegistry<T>` 的构造函数自动执行，完成以下工作：
+
+1. 创建 `NClass` 实例，设置类名、父类、大小、标志、构造函数 lambda
+2. 调用 `AddProperty(name, &TClass::Field)` 为每个反射属性创建对应的 `FProperty` 子类并记录 `offsetof`
+3. 将 `ClassName::Z_StaticClass` 指向该 `NClass` 实例
+
+## 源码位置
+
+```
+Engine/Source/Programs/NilouHeaderTool/
+├── main.cpp      # 主逻辑：解析、代码生成、文件写出
+├── utils.h/cpp   # libclang 封装工具函数
+└── xmake.lua     # 构建配置
+
+Engine/Source/Runtime/CoreUObject/Public/NObject/
+├── ObjectMacros.h  # NCLASS/NSTRUCT/NENUM/NPROPERTY/NFUNCTION/GENERATED_BODY 宏定义
+├── Class.h         # BEGIN/END_CLASS_REGISTRY 等运行时注册宏
+├── NilouType.h     # FProperty 继承体系、TClassRegistry、FClassRegistryBase
+└── Object.h        # NObject 基类
+```
+
+## 注意事项
+
+- `GENERATED_BODY()` 必须放在类/结构体内部（通常紧跟 `{` 后），否则 `StaticClass()` 不可用
+- 工具内置注册了 `NObject`、`NPackage`、`NClass` 三个根类型，无需任何标注
+- 生成完成后，工具会自动删除输出目录中对应类型已不存在的孤立 `.gen.cpp` 文件
+- 解析过程使用 `std::execution::par` 多线程并行，`NTypes` 注册表有 mutex 保护

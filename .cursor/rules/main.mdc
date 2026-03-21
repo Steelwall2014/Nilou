@@ -1,3 +1,8 @@
+---
+description: Nilou 引擎项目总览——构建流程、模块系统、着色器规范
+alwaysApply: true
+---
+
 本项目是一个参照虚幻引擎架构实现的渲染引擎，在设计理念和部分代码实现上与虚幻引擎高度相似，但也存在若干差异。
 
 > **注意：** 引擎目前处于高速迭代阶段，文档存在一定的滞后性。模块的整体设计思路已基本确定，不会有重大调整。若在执行任务过程中发现文档描述与实际代码存在出入，请在终端输出警告并给出更新建议。
@@ -43,7 +48,18 @@ xmake build NilouEditor
 
 ## 代码生成
 
-编译前，`NilouHeaderTool` 会扫描 C++ 头文件，对标注了 `NCLASS`、`NSTRUCT`、`NPROPERTY` 等宏的类型自动生成反射与序列化代码。
+编译前，`NilouHeaderTool` 会扫描 C++ 头文件，对标注了反射宏的类型自动生成 `<TypeName>.gen.cpp`，实现运行时类型注册与属性序列化。支持的反射宏如下：
+
+| 宏 | 适用对象 | 命名规范 |
+|---|---|---|
+| `NCLASS` | 继承自 `NObject` 的类 | 前缀 `A` / `N` / `U` |
+| `NSTRUCT` | 普通结构体 | 前缀 `F` |
+| `NENUM` | 枚举 | 前缀 `E` |
+| `NPROPERTY()` | 成员变量（需为支持的类型） | — |
+| `NFUNCTION()` | 成员函数（仅记录名称） | — |
+| `GENERATED_BODY()` | 类/结构体内部（注入 `StaticClass()`） | — |
+
+`NPROPERTY()` 支持的字段类型：内置数值类型、GLM 数学类型、`std::string`、其他反射类型（`NSTRUCT`/`NCLASS*`/智能指针），以及 `TArray`、`TMap`、`TSet`、`std::vector`、`std::map` 等容器（元素类型须为支持类型）。详细规范见 `.cursor/rules/NilouHeaderTool.mdc`。
 
 # 着色器
 
@@ -59,6 +75,12 @@ xmake build NilouEditor
 
 编译前，`NilouShaderTool` 会扫描着色器代码并生成对应的 C++ 结构体绑定，规则如下：
 
-- 只有以模块声明语句（`module` 或 `implementing`）开头的着色器文件才会被解析。
+- 只有以 `module` 开头的着色器文件才会被解析；以 `implementing` 开头的文件会被跳过（由 Slang 编译器隐式拉入）。
 - 只有声明在 `ParameterBlock<T>` 内部的结构体类型（包括其成员的结构体类型）才会生成 C++ 绑定。
 - 嵌套的 `ParameterBlock<T>` 不会被递归解析。
+
+每个命中的结构体生成两个文件：
+- **`<filename>.generated.h`**：按字段类别生成两个模板特化——`EShaderDataLayout::Opaque`（纹理、采样器、Buffer 等资源字段，用于 Descriptor Set 绑定）和 `EShaderDataLayout::Std140` / `Std430`（标量/向量字段，用于 Uniform Buffer 数据上传）。当结构体同时含有两类字段时，Opaque 特化会自动添加 `RDGBuffer* AutomaticallyIntroducedUniformBuffer`。
+- **`<filename>.gen.cpp`**：包含 `FShaderParametersMetadata2` 的创建逻辑（Descriptor Set Layout 注册）和全局静态注册。
+
+详细规范见 `.cursor/rules/NilouShaderTool.mdc`。
