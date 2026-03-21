@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "SceneComponent.h"
 // #include "ShaderParameterBlock.h"
 #include "UniformBuffer.h"
@@ -6,38 +6,6 @@
 #include "atmosphere_definitions.generated.h"
 
 namespace nilou {
-
-	// // An atmosphere layer of width 'width', and whose density is defined as
-	// //   'exp_term' * exp('exp_scale' * h) + 'linear_term' * h + 'constant_term',
-	// // clamped to [0,1], and where h is the altitude.
-	// struct DensityProfileLayer {
-	// 	float width;
-	// 	float exp_term;
-	// 	float exp_scale;
-	// 	float linear_term;
-	// 	float constant_term;
-    //     // DensityProfileLayer() = default;
-    //     DensityProfileLayer &operator=(const DensityProfileLayer &) = default;
-    //     bool operator==(const DensityProfileLayer &Other) const = default; 
-    //     bool operator!=(const DensityProfileLayer &Other) const = default; 
-	// };
-
-	// // An atmosphere density profile made of several layers on top of each other
-	// // (from bottom to top). The width of the last layer is ignored, i.e. it always
-	// // extend to the top atmosphere boundary. The profile values vary between 0
-	// // (null density) to 1 (maximum density).
-	// struct DensityProfile {
-	// 	DensityProfileLayer layers[2];
-    //     // DensityProfile() = default;
-    //     DensityProfile(const DensityProfileLayer &layer1, const DensityProfileLayer &layer2)
-    //     {
-    //         layers[0] = layer1;
-    //         layers[1] = layer2;
-    //     }
-    //     DensityProfile &operator=(const DensityProfile &Other) = default;
-    //     bool operator==(const DensityProfile &Other) const = default; 
-    //     bool operator!=(const DensityProfile &Other) const = default; 
-	// };
 
     class NCLASS USkyAtmosphereComponent : public USceneComponent
     {
@@ -56,8 +24,8 @@ namespace nilou {
 		float TopRadius;
 		// The density profile of air molecules, i.e. a function from altitude to
 		// dimensionless values between 0 (null density) and 1 (maximum density).
-		// SKY_DECLARE_FUNCTION(DensityProfile<Std140Layout>, RayleighDensity)
-		DensityProfile<Std140Layout> RayleighDensity;
+		// SKY_DECLARE_FUNCTION(shader::DensityProfile<Std140Layout>, RayleighDensity)
+		shader::DensityProfile<Std140Layout> RayleighDensity;
 		// The scattering coefficient of air molecules at the altitude where their
 		// density is maximum (usually the bottom of the atmosphere), as a function of
 		// wavelength. The scattering coefficient at altitude h is equal to
@@ -65,7 +33,7 @@ namespace nilou {
 		FVector3f RayleighScattering;
 		// The density profile of aerosols, i.e. a function from altitude to
 		// dimensionless values between 0 (null density) and 1 (maximum density).
-		DensityProfile<Std140Layout> MieDensity;
+		shader::DensityProfile<Std140Layout> MieDensity;
 		// The scattering coefficient of aerosols at the altitude where their density
 		// is maximum (usually the bottom of the atmosphere), as a function of
 		// wavelength. The scattering coefficient at altitude h is equal to
@@ -82,7 +50,7 @@ namespace nilou {
 		// The density profile of air molecules that absorb light (e.g. ozone), i.e.
 		// a function from altitude to dimensionless values between 0 (null density)
 		// and 1 (maximum density).
-		DensityProfile<Std140Layout> AbsorptionDensity;
+		shader::DensityProfile<Std140Layout> AbsorptionDensity;
 		// The extinction coefficient of molecules that absorb light (e.g. ozone) at
 		// the altitude where their density is maximum, as a function of wavelength.
 		// The extinction coefficient at altitude h is equal to
@@ -117,7 +85,7 @@ namespace nilou {
 
 
 	protected:
-		TParameterBlockRef<AtmosphereParameters> AtmosphereParamBlock;
+		TParameterBlockRef<shader::AtmosphereParameters> AtmosphereParamBlock;
 		RDGDescriptorSetRef AtmosphereParametersDescriptorSet;
 		RDGTextureRef TransmittanceLUT;
 		RDGTextureRef IrradianceLUT;

@@ -1,4 +1,4 @@
-// #include <glm/gtc/matrix_transform.hpp>
+﻿// #include <glm/gtc/matrix_transform.hpp>
 #include "Components/CameraComponent.h"
 #include "Engine/World.h"
 
@@ -20,7 +20,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(ACameraActor_Cons)(
             [this](RenderGraph&)
             {
-                ViewUniformBuffer = RenderGraph::CreatePooledParameterBlock<FViewShaderParameters>("ViewUniformBuffer");
+                ViewUniformBuffer = RenderGraph::CreatePooledParameterBlock<shader::FViewShaderParameters>("ViewUniformBuffer");
             });
     }
 

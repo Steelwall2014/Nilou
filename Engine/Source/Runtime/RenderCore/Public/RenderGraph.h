@@ -138,7 +138,7 @@ public:
                     }
                     else
                     {
-                        RDGBufferRef AutoUB = CreatePooledUniformBuffer(Block->Name + "_AutoUB");
+                        TRDGUniformBufferRef<T<Std140Layout>> AutoUB = CreatePooledUniformBuffer<T<Std140Layout>>(Block->Name + "_AutoUB");
                         *pAutoUB = AutoUB.GetReference();
                         AutoUB->AddRef();
                     }

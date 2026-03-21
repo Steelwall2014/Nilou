@@ -42,7 +42,7 @@ namespace nilou {
                 PSOInitializer.RTLayout = RTLayout;
                 RHIGraphicsPipelineState *PSO = RHICreateGraphicsPipelineState(PSOInitializer);
 
-                auto SceneTextureParams = Graph.CreateParameterBlock<SceneTextures>("sceneTextures ParamBlock");
+                auto SceneTextureParams = Graph.CreateParameterBlock<shader::SceneTextures>("sceneTextures ParamBlock");
                 SceneTextureParams->BaseColor = { GBuffer.BaseColor->GetDefaultView() };
                 SceneTextureParams->RelativeWorldSpacePosition = { GBuffer.RelativeWorldSpacePosition->GetDefaultView() };
                 SceneTextureParams->WorldSpaceNormal = { GBuffer.WorldSpaceNormal->GetDefaultView() };
@@ -52,7 +52,7 @@ namespace nilou {
                 Graph.UpdateParameterBlock(SceneTextureParams);
 
                 FLightSceneProxy* LightProxy = Lights[LightIndex].LightSceneProxy;
-                auto LightParams = Graph.CreateParameterBlock<Light>("light ParamBlock");
+                auto LightParams = Graph.CreateParameterBlock<shader::Light>("light ParamBlock");
                 LightParams->distAttenCurve.params = *reinterpret_cast<const FVector4f*>(&LightProxy->DistAttenCurve.u);
                 LightParams->distAttenCurve.scale = LightProxy->DistAttenCurve.scale;
                 LightParams->angleAttenCurve.params = *reinterpret_cast<const FVector4f*>(&LightProxy->AngleAttenCurve.u);
@@ -64,7 +64,7 @@ namespace nilou {
                 LightParams->type = (int)LightProxy->LightType;
                 Graph.UpdateParameterBlock(LightParams);
 
-                auto ShadowParams = Graph.CreateParameterBlock<ShadowMappingParameters>("shadowMapping ParamBlock");
+                auto ShadowParams = Graph.CreateParameterBlock<shader::ShadowMappingParameters>("shadowMapping ParamBlock");
                 ShadowParams->FrustumCount = FrustumCount;
                 ShadowParams->shadowMaps = { ShadowMapResource.DepthArray->GetDefaultView(), TStaticSamplerState<SF_Point>::GetRHI() };
                 ShadowParams->frustums = ShadowMapResource.ShadowMapUniformBuffer;

@@ -1,4 +1,4 @@
-#include "Components/PrimitiveComponent.h"
+﻿#include "Components/PrimitiveComponent.h"
 // #include "PrimitiveSceneProxy.h"
 
 #include "UniformBuffer.h"
@@ -51,7 +51,7 @@ namespace nilou {
     void FPrimitiveSceneProxy::CreateUniformBuffer()
     {
         Ncheck(IsInRenderingThread());
-        UniformBuffer = RenderGraph::CreatePooledParameterBlock<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer");
+        UniformBuffer = RenderGraph::CreatePooledParameterBlock<shader::FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer");
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)

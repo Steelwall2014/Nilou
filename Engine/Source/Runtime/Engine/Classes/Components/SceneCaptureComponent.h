@@ -76,7 +76,7 @@ namespace nilou {
 
     protected:
 
-        TParameterBlockRef<FViewShaderParameters> ViewUniformBuffer;
+        TParameterBlockRef<shader::FViewShaderParameters> ViewUniformBuffer;
 
     };
 
@@ -108,7 +108,7 @@ namespace nilou {
 
     protected:
 
-        std::array<TParameterBlockRef<FViewShaderParameters>, 6> ViewParameterBlocks;
+        std::array<TParameterBlockRef<shader::FViewShaderParameters>, 6> ViewParameterBlocks;
 
         void UpdateSceneCaptureContents_Internal(FScene* Scene, FVector Position);
     };

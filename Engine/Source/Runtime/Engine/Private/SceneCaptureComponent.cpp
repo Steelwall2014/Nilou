@@ -1,4 +1,4 @@
-#include "Components/SceneCaptureComponent.h"
+﻿#include "Components/SceneCaptureComponent.h"
 #include "GameFramework/Actor.h"
 #include "Engine/TextureRenderTarget.h"
 #include "Renderer/DeferredShadingSceneRenderer.h"
@@ -146,7 +146,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnRegister)(
             [this](RenderGraph&) 
             {
-                  ViewUniformBuffer = RenderGraph::CreatePooledParameterBlock<FViewShaderParameters>("");
+                  ViewUniformBuffer = RenderGraph::CreatePooledParameterBlock<shader::FViewShaderParameters>("");
             });
     }
 
@@ -280,7 +280,7 @@ namespace nilou {
             {
                 for (int i = 0; i < ViewParameterBlocks.size(); i++)
                 {
-                    ViewParameterBlocks[i] = RenderGraph::CreatePooledParameterBlock<FViewShaderParameters>("");
+                    ViewParameterBlocks[i] = RenderGraph::CreatePooledParameterBlock<shader::FViewShaderParameters>("");
                 }
             });
     }

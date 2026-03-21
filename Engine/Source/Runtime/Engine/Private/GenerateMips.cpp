@@ -1,4 +1,4 @@
-#include "GenerateMips.h"
+﻿#include "GenerateMips.h"
 #include "RHIStaticStates.h"
 #include "Shader.h"
 #include "ShaderInstance.h"
@@ -58,13 +58,13 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
-            auto InputParams = Graph.CreateParameterBlock<FComputeGenerateMipsInputParameters>("GenerateMips Input ParamBlock");
+            auto InputParams = Graph.CreateParameterBlock<shader::FComputeGenerateMipsInputParameters>("GenerateMips Input ParamBlock");
             InputParams->MipInSRV = {
                 .TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)),
                 .SamplerState = Sampler
             };
             Graph.UpdateParameterBlock(InputParams);
-            auto OutputParams = Graph.CreateParameterBlock<FComputeGenerateMipsOutputParameters>("GenerateMips Output ParamBlock");
+            auto OutputParams = Graph.CreateParameterBlock<shader::FComputeGenerateMipsOutputParameters>("GenerateMips Output ParamBlock");
             OutputParams->MipOutUAV = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
             Graph.UpdateParameterBlock(OutputParams);
             RDGPassDesc PassDesc{NFormat("GenerateMips for texture \"{}\" mipmap {}", Texture->Name, MipLevel)};
@@ -128,7 +128,7 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
 
-            auto Params = Graph.CreateParameterBlock<FRasterGenerateMipsParameters>("GenerateMips ParamBlock");
+            auto Params = Graph.CreateParameterBlock<shader::FRasterGenerateMipsParameters>("GenerateMips ParamBlock");
             Params->GetNonOpaqueFields().HalfTexelSize = FVector2f(1.0f / TextureSizeX, 1.0f / TextureSizeY);
             Params->GetNonOpaqueFields().Level = float(MipLevel);
             Params->MipInSRV = { 

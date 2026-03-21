@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "PrimitiveComponent.h"
 #include "Materials/Material.h"
 #include "RenderGraphParameterBlock.h"
@@ -68,7 +68,7 @@ namespace nilou {
 
         UTexture2D* PerlinNoise;
 
-        TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters;
+        TParameterBlockRef<shader::FOceanFastFourierTransformParameters> FFTParameters;
 
     };
 

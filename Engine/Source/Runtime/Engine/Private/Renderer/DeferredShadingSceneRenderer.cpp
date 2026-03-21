@@ -1,4 +1,4 @@
-// #include <glm/gtc/matrix_transform.hpp>
+﻿// #include <glm/gtc/matrix_transform.hpp>
 #include "Engine/TextureRenderTarget.h"
 #include "Logging/LogMacros.h"
 #include "UniformBuffer.h"
@@ -187,7 +187,7 @@ namespace nilou {
         {
 		    FSceneView& View = Views[ViewIndex];
             
-            View.ViewUniformBuffer = Graph.CreateParameterBlock<FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
+            View.ViewUniformBuffer = Graph.CreateParameterBlock<shader::FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
             auto ViewUniformBuffer = View.ViewUniformBuffer;
             const FMatrix& WorldToView = View.ViewMatrix;
             const FMatrix44f& ViewToClip = View.ProjectionMatrix;
@@ -389,7 +389,7 @@ namespace nilou {
         {
             FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
 
-            auto Parameters = Graph.CreateParameterBlock<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
+            auto Parameters = Graph.CreateParameterBlock<shader::FRenderToScreenParameters>(NFormat("shader::FRenderToScreenParameters {}", ViewIndex));
 
             if (ViewFamily.bIsSceneCapture)
             {

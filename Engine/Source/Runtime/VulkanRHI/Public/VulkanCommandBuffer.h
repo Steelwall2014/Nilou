@@ -34,7 +34,7 @@ namespace nilou {
         virtual void SetScissor(int32 X, int32 Y, int32 Width, int32 Height) override;
         virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) override;
         virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) override;
-        virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;
+        virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<int32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) override;
         virtual void BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset) override;
         virtual void BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset) override;
         virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data) override;

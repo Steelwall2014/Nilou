@@ -1,4 +1,4 @@
-#include "Components/SkyAtmosphereComponent.h"
+﻿#include "Components/SkyAtmosphereComponent.h"
 #include "Engine/World.h"
 
 #include "RHIStaticStates.h"
@@ -93,7 +93,7 @@ namespace nilou {
 
     FSkyAtmosphereSceneProxy::FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent)
     {
-        AtmosphereParameters<EShaderDataLayout::Std140> atmosphereParams;
+        shader::AtmosphereParameters<EShaderDataLayout::Std140> atmosphereParams;
         atmosphereParams.solar_irradiance = InComponent->SolarIrradiance;
         atmosphereParams.sun_angular_radius = InComponent->SunAngularRadius;
         atmosphereParams.bottom_radius = InComponent->BottomRadius;
@@ -110,7 +110,7 @@ namespace nilou {
         atmosphereParams.mu_s_min = InComponent->Mu_s_Min;
         ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this, atmosphereParams](RenderGraph& Graph) {
 
-            AtmosphereParamBlock = RenderGraph::CreatePooledParameterBlock<AtmosphereParameters>("AtmosphereParameters");
+            AtmosphereParamBlock = RenderGraph::CreatePooledParameterBlock<shader::AtmosphereParameters>("shader::AtmosphereParameters");
             AtmosphereParamBlock->GetNonOpaqueFields() = atmosphereParams;
             Graph.UpdateParameterBlock(AtmosphereParamBlock.GetReference());
 
@@ -158,7 +158,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
         RHIShader *TransmittanceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(TransmittanceShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereTransmittanceParameters>("TransmittanceShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereTransmittanceParameters>("TransmittanceShader ParamBlock");
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         RDGPassDesc PassDesc{"DispatchTransmittancePass"};
         Graph.AddComputePass(
@@ -188,7 +188,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
         RHIShader *DirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DirectIrradianceShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereDirectIrradianceParameters>("DirectIrradianceShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereDirectIrradianceParameters>("DirectIrradianceShader ParamBlock");
         Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
@@ -221,7 +221,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
         RHIShader *ScatteringShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereScatteringParameters>("ScatteringShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereScatteringParameters>("ScatteringShader ParamBlock");
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
         Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
@@ -256,7 +256,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
         RHIShader *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringDensityShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereScatteringDensityParameters>("ScatteringDensityShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereScatteringDensityParameters>("ScatteringDensityShader ParamBlock");
         Params->ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
@@ -293,7 +293,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
         RHIShader *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(IndirectIrradianceShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereIndirectIrradianceParameters>("IndirectIrradianceShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereIndirectIrradianceParameters>("IndirectIrradianceShader ParamBlock");
         Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
         Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
         Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
@@ -328,7 +328,7 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
         RHIShader *MultiScatteringShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(MultiScatteringShader));
-        auto Params = Graph.CreateParameterBlock<FAtmosphereMultiScatteringParameters>("MultiScatteringShader ParamBlock");
+        auto Params = Graph.CreateParameterBlock<shader::FAtmosphereMultiScatteringParameters>("MultiScatteringShader ParamBlock");
         Params->DeltaScatteringLUT = DeltaScatteringRayleighLUT->GetDefaultView();
         Params->MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();

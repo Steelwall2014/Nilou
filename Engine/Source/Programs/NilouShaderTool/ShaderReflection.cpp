@@ -267,8 +267,8 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
 void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutReflection* Container, slang::TypeLayoutReflection* TypeLayout)
 {
     std::string StructName = TypeLayout->getType()->getName();
-    std::string Namespace;
-    std::string BeginNamespaceDeclarations;
+    std::string Namespace = "shader::";
+    std::string BeginNamespaceDeclarations = "namespace shader {\n";
     std::string EndNamespaceDeclarations;
     for (auto NamespaceDecl : TypeDecl.NamespaceDecls)
     {
@@ -276,6 +276,7 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         BeginNamespaceDeclarations += std::format("namespace {} {{\n", NamespaceDecl->getName());
         EndNamespaceDeclarations += std::format("}} // End of namespace {}\n", NamespaceDecl->getName());
     }
+    EndNamespaceDeclarations += "} // namespace shader\n";
 
     int BindingIndex = 0;
     std::string CreateDescriptorSetLayout;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 #include <set>
@@ -13,7 +13,7 @@
 
 namespace nilou {
 
-    // BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
+    // BEGIN_UNIFORM_BUFFER_STRUCT(shader::FViewShaderParameters)
     //     SHADER_PARAMETER_ARRAY(FVector4f, FrustumPlanes, [6])
     //     SHADER_PARAMETER(FMatrix44f, RelWorldToView)
     //     SHADER_PARAMETER(FMatrix44f, ViewToClip)
@@ -49,7 +49,7 @@ namespace nilou {
         double OrthoWidth;
         double VerticalFieldOfView;
 
-        TParameterBlock<FViewShaderParameters>* ViewUniformBuffer;
+        TParameterBlock<shader::FViewShaderParameters>* ViewUniformBuffer;
 
         FSceneView();
 
@@ -63,11 +63,11 @@ namespace nilou {
             FVector InForward,
             FVector InUp,
             FIntVector2 InScreenResolution/*,
-            TUniformBufferRef<FViewShaderParameters> InViewUniformBuffer*/);
+            TUniformBufferRef<shader::FViewShaderParameters> InViewUniformBuffer*/);
 
         // EViewType ViewType;
         
-        /*TUniformBufferRef<FViewShaderParameters> ViewUniformBuffer;
+        /*TUniformBufferRef<shader::FViewShaderParameters> ViewUniformBuffer;
         std::vector<FMeshBatch> DynamicMeshBatches;*/
     };
 

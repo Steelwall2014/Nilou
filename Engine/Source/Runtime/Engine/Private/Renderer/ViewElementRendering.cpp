@@ -1,4 +1,4 @@
-#include "Renderer/ViewElementRendering.h"
+﻿#include "Renderer/ViewElementRendering.h"
 
 #include "Renderer/DeferredShadingSceneRenderer.h"
 #include "RHIStaticStates.h"
@@ -46,8 +46,8 @@ namespace nilou {
         //     ColorElement.Type = EVertexElementType::Float3;
         //     FRHIVertexDeclaration* Declaration = FPipelineStateCache::GetOrCreateVertexDeclaration({ PositionElement, ColorElement} );
             
-        //     FSceneTextures* SceneTextures = ViewInfo.SceneTextures;
-        //     FRHIRenderPassInfo PassInfo(SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution);
+        //     FSceneTextures* shader::SceneTextures = ViewInfo.shader::SceneTextures;
+        //     FRHIRenderPassInfo PassInfo(shader::SceneTextures->LightPassFramebuffer.get(), ViewInfo.ScreenResolution);
         //     RHICmdList->RHIBeginRenderPass(PassInfo);
         //     {
         //         FShaderPermutationParameters PermutationParametersVS(&FViewElementVS::StaticType, 0);
@@ -79,7 +79,7 @@ namespace nilou {
 
         //         RHICmdList->RHISetShaderUniformBuffer(
         //             PSO, EPipelineStage::PS_Vertex, 
-        //             "FViewShaderParameters", 
+        //             "shader::FViewShaderParameters", 
         //             ViewInfo.ViewUniformBuffer->GetRHI());
 
         //         RHIGetError();

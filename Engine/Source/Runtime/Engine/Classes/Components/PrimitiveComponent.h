@@ -98,7 +98,7 @@ namespace nilou {
 
         FBoxSphereBounds GetBounds() const { return Bounds; }
 
-        TParameterBlock<FPrimitiveUniformShaderParameters>* GetUniformBuffer() const { return UniformBuffer.GetReference(); }
+        TParameterBlock<shader::FPrimitiveUniformShaderParameters>* GetUniformBuffer() const { return UniformBuffer.GetReference(); }
 
         void CreateUniformBuffer();
 
@@ -111,7 +111,7 @@ namespace nilou {
         FPrimitiveSceneInfo *PrimitiveSceneInfo;
         FScene *Scene;
 
-        TParameterBlockRef<FPrimitiveUniformShaderParameters> UniformBuffer;
+        TParameterBlockRef<shader::FPrimitiveUniformShaderParameters> UniformBuffer;
 
         EReflectionProbeBlendMode ReflectionProbeBlendMode;
 

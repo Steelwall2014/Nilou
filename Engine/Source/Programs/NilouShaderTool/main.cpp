@@ -233,13 +233,15 @@ int main(int argc, char *argv[])
                          << "#include \"RenderGraphResources.h\"\n"
                          << "#include \"ShaderParameter.h\"\n"
                          << "namespace nilou {\n"
+                         << "namespace shader {\n"
                          << "\n";
             for (slang::TypeReflection* Type : TypesInThisFile)
             {
                 Declarations << reflectionSession.GetCppStructDeclaration(Type);
             }
             Declarations << "\n"
-                         << "}\n";
+                         << "} // namespace shader\n"
+                         << "} // namespace nilou\n";
             CompareAndEmit(outputHeaderFilePath, Declarations.str());
         }
 
@@ -254,7 +256,7 @@ int main(int argc, char *argv[])
                 Definitions << reflectionSession.GetCppStructDefinition(Type);
             }
             Definitions << "\n"
-                        << "}\n";
+                        << "} // namespace nilou\n";
             CompareAndEmit(outputCppFilePath, Definitions.str());
         }
     }

@@ -172,7 +172,7 @@ namespace nilou {
         vkCmdBindPipeline(Handle, VK_PIPELINE_BIND_POINT_COMPUTE, PSO->Handle);
     }
 
-    void VulkanCommandBuffer::BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint)
+    void VulkanCommandBuffer::BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<int32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint)
     {
         VkPipelineBindPoint BindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         switch (PipelineBindPoint) 

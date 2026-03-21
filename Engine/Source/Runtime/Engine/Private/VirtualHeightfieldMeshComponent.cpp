@@ -1,4 +1,4 @@
-#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
+﻿#if NILOU_ENABLE_VIRTUAL_HEIGHT_FIELD
 #include <half/half.hpp>
 #include "VirtualHeightfieldMeshComponent.h"
 #include "BaseApplication.h"
@@ -281,7 +281,7 @@ namespace nilou {
                 });
         }
 
-        void GenerateRenderPatches(FDynamicRHI* RHICmdList, TUniformBuffer<FViewShaderParameters>* ViewShaderParameters)
+        void GenerateRenderPatches(FDynamicRHI* RHICmdList, TUniformBuffer<shader::FViewShaderParameters>* ViewShaderParameters)
         {
             // FViewSceneInfo *ViewInfo = GetAppication()->GetWorld()->MainCameraComponent->GetSceneProxy()->GetViewSceneInfo();
             CreateNodeListGPU(ViewShaderParameters);
@@ -454,7 +454,7 @@ namespace nilou {
             }
         }
 
-        void CreateNodeListGPU(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
+        void CreateNodeListGPU(TUniformBuffer<shader::FViewShaderParameters> *ViewShaderParameters)
         {
             static uint32 zero_value = 0;
             CreateNodeListBlock->Data.ScreenSizeDenominator = 2 * glm::tan(0.5*ViewShaderParameters->Data.CameraVerticalFieldOfView);
@@ -500,7 +500,7 @@ namespace nilou {
                 "FPrimitiveShaderParameters", PrimitiveUniformBuffer->GetRHI());
             FDynamicRHI::Get()->RHISetShaderUniformBuffer(
                 PSO, EPipelineStage::PS_Compute, 
-                "FViewShaderParameters", ViewShaderParameters->GetRHI());
+                "shader::FViewShaderParameters", ViewShaderParameters->GetRHI());
             
             RHIGetError();
             for (int lod = LodCount - 1; lod >= 0; lod--)
@@ -558,7 +558,7 @@ namespace nilou {
 
         }
 
-        void CreatePatch(TUniformBuffer<FViewShaderParameters> *ViewShaderParameters)
+        void CreatePatch(TUniformBuffer<shader::FViewShaderParameters> *ViewShaderParameters)
         {
             static uint32 zero_value = 0;
             AtomicPatchCounterBuffer = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, &zero_value);

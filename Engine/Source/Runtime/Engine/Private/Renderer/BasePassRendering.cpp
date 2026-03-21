@@ -1,4 +1,4 @@
-#include "Renderer/BasePassRendering.h"
+﻿#include "Renderer/BasePassRendering.h"
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
 #include "Renderer/DeferredShadingSceneRenderer.h"

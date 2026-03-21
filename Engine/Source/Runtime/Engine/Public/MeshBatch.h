@@ -15,7 +15,7 @@ namespace nilou {
     struct FMeshBatchElement
     {
 
-        TParameterBlock<FPrimitiveUniformShaderParameters>* PrimitiveUniformBuffer;
+        TParameterBlock<shader::FPrimitiveUniformShaderParameters>* PrimitiveUniformBuffer;
 
 	    const class FVertexFactory* VertexFactory;
 
