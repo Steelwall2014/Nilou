@@ -1,6 +1,5 @@
 ---
 description: NilouShaderTool 设计与使用规范——Slang Shader 反射代码生成器
-globs: Engine/Source/Programs/NilouShaderTool/**,Engine/Shaders/**/*.slang
 alwaysApply: false
 ---
 

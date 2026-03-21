@@ -29,7 +29,7 @@ namespace nilou {
 
         if (DescriptorSets.size() > 0)
         {
-            std::unordered_map<uint32, RHIDescriptorSet*> DescriptorSetsRHI;
+            std::unordered_map<int32, RHIDescriptorSet*> DescriptorSetsRHI;
             for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
             {
                 DescriptorSetsRHI[SetIndex] = DescriptorSet->GetRHI();

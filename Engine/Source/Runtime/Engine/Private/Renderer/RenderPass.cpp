@@ -33,6 +33,7 @@ void BuildMeshDrawCommand(
 
     RHIGraphicsPipelineState* PipelineState = RHICreateGraphicsPipelineState(Initializer);
     auto PipelineDescriptorSetsLayout = PipelineState->GetPipelineLayout()->DescriptorSetLayouts;
+    auto ParamBlockNameToSetIndex = PipelineState->GetPipelineLayout()->ParamBlockNameToSetIndex;
     auto PushConstantRanges = PipelineState->GetPipelineLayout()->PushConstantRanges;
 
     for (auto& [Stage, PushConstantRange] : PushConstantRanges)
@@ -41,40 +42,52 @@ void BuildMeshDrawCommand(
         OutMeshDrawCommand.PushConstants[Stage] = PushConstants;
     }
 
-    for (auto& [SetIndex, DescriptorSetLayout] : PipelineDescriptorSetsLayout)
+    for (auto& [Name, SetIndex] : ParamBlockNameToSetIndex)
     {
-        std::string DescriptorSetName = NFormat("DescriptorSet_{}_{}_set{}", VertexShader->GetName(), PixelShader->GetName(), SetIndex);
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet(DescriptorSetName, DescriptorSetLayout);
-        OutMeshDrawCommand.DescriptorSets[SetIndex] = DescriptorSet;
-        for (auto& Binding : DescriptorSetLayout->Bindings)
+        auto InputDescriptorSet = ShaderBindings.GetDescriptorSet(Name);
+        if (InputDescriptorSet)
         {
-            std::string Name = Binding.Name;
-            if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
-            {
-                RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
-                DescriptorSet->SetUniformBuffer(Name, Buffer);
-            }
-            else if (Binding.DescriptorType == EDescriptorType::StorageBuffer)
-            {
-                RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
-                DescriptorSet->SetStorageBuffer(Name, Buffer);
-            }
-            else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
-            {
-                RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
-                DescriptorSet->SetSampler(Name, Texture);
-            }
-            else if (Binding.DescriptorType == EDescriptorType::StorageImage)
-            {
-                RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
-                DescriptorSet->SetStorageImage(Name, Texture);
-            }
-            else 
-            {
-                Ncheckf(false, "Unsupported descriptor type, Name={}, Type={}", Name.c_str(), magic_enum::enum_name(Binding.DescriptorType));
-            }
+            OutMeshDrawCommand.DescriptorSets[SetIndex] = InputDescriptorSet;
+        }
+        else
+        {
+            Ncheckf(false, "Descriptor set not found, Name={}", Name.c_str());
         }
     }
+    // for (auto& [SetIndex, DescriptorSetLayout] : PipelineDescriptorSetsLayout)
+    // {
+    //     std::string DescriptorSetName = NFormat("DescriptorSet_{}_{}_set{}", VertexShader->GetName(), PixelShader->GetName(), SetIndex);
+    //     RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet(DescriptorSetName, DescriptorSetLayout);
+    //     OutMeshDrawCommand.DescriptorSets[SetIndex] = DescriptorSet;
+    //     for (auto& Binding : DescriptorSetLayout->Bindings)
+    //     {
+    //         std::string Name = Binding.Name;
+    //         if (Binding.DescriptorType == EDescriptorType::UniformBuffer)
+    //         {
+    //             RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
+    //             DescriptorSet->SetUniformBuffer(Name, Buffer);
+    //         }
+    //         else if (Binding.DescriptorType == EDescriptorType::StorageBuffer)
+    //         {
+    //             RDGBuffer* Buffer = ShaderBindings.GetBuffer(Name);
+    //             DescriptorSet->SetStorageBuffer(Name, Buffer);
+    //         }
+    //         else if (Binding.DescriptorType == EDescriptorType::CombinedImageSampler)
+    //         {
+    //             RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
+    //             DescriptorSet->SetSampler(Name, Texture);
+    //         }
+    //         else if (Binding.DescriptorType == EDescriptorType::StorageImage)
+    //         {
+    //             RDGTextureView* Texture = ShaderBindings.GetTexture(Name);
+    //             DescriptorSet->SetStorageImage(Name, Texture);
+    //         }
+    //         else 
+    //         {
+    //             Ncheckf(false, "Unsupported descriptor type, Name={}, Type={}", Name.c_str(), magic_enum::enum_name(Binding.DescriptorType));
+    //         }
+    //     }
+    // }
 
     {
         OutMeshDrawCommand.PipelineState = PipelineState;

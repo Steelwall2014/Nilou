@@ -20,15 +20,17 @@ namespace nilou {
             PushConstants[Stage].resize(Size);
             memcpy(PushConstants[Stage].data(), Data, Size);
         }
+        void SetDescriptorSet(const std::string& Name, RDGDescriptorSet* DescriptorSet) { DescriptorSets[Name] = DescriptorSet; }
 
         RDGBuffer* GetBuffer(const std::string& Name) const { return Buffers.at(Name); }
         RDGTextureView* GetTexture(const std::string& Name) const { return Textures.at(Name); }
         const std::vector<uint8>& GetPushConstant(EShaderStage Stage) const { return PushConstants.at(Stage); }
-        
+        RDGDescriptorSet* GetDescriptorSet(const std::string& Name) const { return DescriptorSets.at(Name); }
     private:
         std::map<std::string, RDGBuffer*> Buffers;
         std::map<std::string, RDGTextureView*> Textures;
         std::map<EShaderStage, std::vector<uint8>> PushConstants;
+        std::map<std::string, RDGDescriptorSet*> DescriptorSets;
     };
 
 

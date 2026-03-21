@@ -12,11 +12,6 @@
 
 namespace nilou {
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FRenderToScreenParameters)
-        SHADER_PARAMETER_STRUCT(float, GammaCorrection)
-        SHADER_PARAMETER_STRUCT(int, bEnableToneMapping)
-    END_UNIFORM_BUFFER_STRUCT()
-
     DECLARE_GLOBAL_SHADER(FScreenQuadVertexShader)
     DECLARE_GLOBAL_SHADER(FRenderToScreenPixelShader)
 

@@ -3,6 +3,12 @@
 #include "RHICommandList.h"
 #include "GenerateMips.h"
 #include "Engine/Texture2D.h"
+#include "OceanGaussianSpectrum.generated.h"
+#include "OceanDisplacementSpectrum.generated.h"
+#include "OceanFastFourierTransform.generated.h"
+#include "OceanCreateDisplacement.generated.h"
+#include "OceanCreateNormalFoam.generated.h"
+#include "OceanFastFourierTransformParameters.generated.h"
 
 namespace nilou {
 
@@ -34,30 +40,41 @@ namespace nilou {
     DECLARE_GLOBAL_SHADER(FOceanNormalFoamShader)
     IMPLEMENT_SHADER_TYPE(FOceanNormalFoamShader, "/Shaders/Private/FastFourierTransformOcean/OceanCreateNormalFoam.slang", "Main", EShaderFrequency::Compute);
 
-    static void CreateGaussianRandom(RenderGraph& Graph, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutGaussianRandomRT)
+    static void CreateGaussianRandom(RenderGraph& Graph, TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutGaussianRandomRT)
     {
         int32 group_num = OutGaussianRandomRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanGaussionSpectrumShader::StaticType, 0);
         RHIShader *GaussionSpectrumShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(GaussionSpectrumShader));
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GaussionSpectrumShader DescriptorSet", GaussionSpectrumShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetStorageBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
-        DescriptorSet->SetStorageImage("GaussianRandomRT", OutGaussianRandomRT->GetDefaultView());
+        auto Params = Graph.CreateParameterBlock<FOceanGaussianSpectrumTextures>("GaussianSpectrum ParamBlock");
+        Params->GaussianRandomRT = OutGaussianRandomRT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
 
         RDGPassDesc PassDesc{"CreateGaussionSpectrum"};
         Graph.AddComputePass(
             PassDesc,
-            { DescriptorSet },
+            [=](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(FFTParameters.GetReference());
+            },
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
     }
 
-    static std::tuple<RDGTexture*, RDGTexture*, RDGTexture*> CreateDisplacementSpectrum(RenderGraph& Graph, RDGTexture* GaussianRandomRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters)
+    static std::tuple<RDGTexture*, RDGTexture*, RDGTexture*> CreateDisplacementSpectrum(RenderGraph& Graph, RDGTexture* GaussianRandomRT, TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters)
     {
         int32 group_num = GaussianRandomRT->Desc.SizeX / 32;
         RDGTexture* HeightSpectrumRT = Graph.CreateTexture("FastFourierTransform HeightSpectrumRT", GaussianRandomRT->Desc);
@@ -67,21 +84,32 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FOceanDisplacementSpectrumShader::StaticType, 0);
         RHIShader *DisplacementSpectrumShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DisplacementSpectrumShader));
-        
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementSpectrumShader DescriptorSet", DisplacementSpectrumShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
-        DescriptorSet->SetStorageImage("GaussianRandomRT", GaussianRandomRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
+
+        auto Params = Graph.CreateParameterBlock<FOceanDisplacementSpectrumParameters>("DisplacementSpectrum ParamBlock");
+        Params->GaussianRandomRT = GaussianRandomRT->GetDefaultView();
+        Params->HeightSpectrumRT = HeightSpectrumRT->GetDefaultView();
+        Params->DisplaceXSpectrumRT = DisplaceXSpectrumRT->GetDefaultView();
+        Params->DisplaceYSpectrumRT = DisplaceYSpectrumRT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
 
         RDGPassDesc PassDesc{"CreateDisplacementSpectrum"};
         Graph.AddComputePass(
             PassDesc,
-            { DescriptorSet },
+            [=](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(FFTParameters.GetReference());
+            },
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -89,7 +117,7 @@ namespace nilou {
         return { HeightSpectrumRT, DisplaceXSpectrumRT, DisplaceYSpectrumRT };
     }
 
-    static RDGTexture* FastFourierTransform(RenderGraph& Graph, uint32 Ns, RDGTexture* InputRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, bool bHorizontalPass)
+    static RDGTexture* FastFourierTransform(RenderGraph& Graph, uint32 Ns, RDGTexture* InputRT, TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters, bool bHorizontalPass)
     {
         int32 group_num = InputRT->Desc.SizeX / 32;
         FOceanFastFourierTransformShader::FPermutationDomain PermutationVector;
@@ -99,19 +127,37 @@ namespace nilou {
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(FFTShader));
 
         RDGTexture* OutputRT = Graph.CreateTexture("FastFourierTransform OutputRT", InputRT->Desc);
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("FastFourierTransform DescriptorSet", FFTShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
-        DescriptorSet->SetStorageImage("InputRT", InputRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("OutputRT", OutputRT->GetDefaultView());
+
+        auto Params = Graph.CreateParameterBlock<FOceanFastFourierTransformTextures>("FFT Textures ParamBlock");
+        Params->InputRT = InputRT->GetDefaultView();
+        Params->OutputRT = OutputRT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
+
+        auto ButterflyBlock = Graph.CreateParameterBlock<FOceanFFTButterflyBlock>("FFT ButterflyBlock ParamBlock");
+        ButterflyBlock->GetNonOpaqueFields().Ns = Ns;
+        ButterflyBlock->GetNonOpaqueFields().HorizontalPass = bHorizontalPass;
+        Graph.UpdateParameterBlock(ButterflyBlock);
 
         RDGPassDesc PassDesc{"FastFourierTransform"};
         Graph.AddComputePass(
             PassDesc,
-            { DescriptorSet },
+            [=](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(ButterflyBlock);
+                Pass->AddParameterBlock(FFTParameters.GetReference());
+            },
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &Ns);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 ButterflyBlockSetIndex = PipelineLayout->GetSetIndex("OceanFFTButterflyBlock");
+                int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {ButterflyBlockSetIndex, ButterflyBlock->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -126,19 +172,29 @@ namespace nilou {
         RHIShader *DisplacementShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DisplacementShader));
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DisplacementShader DescriptorSet", DisplacementShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetStorageImage("HeightSpectrumRT", HeightSpectrumRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("DisplaceXSpectrumRT", DisplaceXSpectrumRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("DisplaceYSpectrumRT", DisplaceYSpectrumRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("DisplaceRT", OutDisplaceRT->GetDefaultView());
+        auto Params = Graph.CreateParameterBlock<FOceanCreateDisplacementParameters>("CreateDisplacement ParamBlock");
+        Params->HeightSpectrumRT = HeightSpectrumRT->GetDefaultView();
+        Params->DisplaceXSpectrumRT = DisplaceXSpectrumRT->GetDefaultView();
+        Params->DisplaceYSpectrumRT = DisplaceYSpectrumRT->GetDefaultView();
+        Params->DisplaceRT = OutDisplaceRT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
 
         RDGPassDesc PassDesc{"CreateDisplacement"};
         Graph.AddComputePass(
             PassDesc,
-            { DescriptorSet },
+            [=](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+            },
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -146,26 +202,37 @@ namespace nilou {
         FGenerateMips::Execute(Graph, OutDisplaceRT);
     }
 
-    static void CreateNormalFoam(RenderGraph& Graph, RDGTexture* DisplaceRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutNormalRT, RDGTexture* OutFoamRT)
+    static void CreateNormalFoam(RenderGraph& Graph, RDGTexture* DisplaceRT, TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters, RDGTexture* OutNormalRT, RDGTexture* OutFoamRT)
     {
         int32 group_num = DisplaceRT->Desc.SizeX / 32;
         FShaderPermutationParameters PermutationParameters(&FOceanNormalFoamShader::StaticType, 0);
         RHIShader *NormalFoamShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState* PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(NormalFoamShader));
 
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("NormalFoamShader DescriptorSet", NormalFoamShader->GetDescriptorSetLayout(0));
-        DescriptorSet->SetUniformBuffer("FOceanFastFourierTransformParameters", FFTParameters.GetReference());
-        DescriptorSet->SetStorageImage("DisplaceRT", DisplaceRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("NormalRT", OutNormalRT->GetDefaultView());
-        DescriptorSet->SetStorageImage("FoamRT", OutFoamRT->GetDefaultView());
+        auto Params = Graph.CreateParameterBlock<FOceanCreateNormalFoamParameters>("CreateNormalFoam ParamBlock");
+        Params->DisplaceRT = DisplaceRT->GetDefaultView();
+        Params->NormalRT = OutNormalRT->GetDefaultView();
+        Params->FoamRT = OutFoamRT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
 
         RDGPassDesc PassDesc{"CreateNormalFoam"};
         Graph.AddComputePass(
             PassDesc,
-            { DescriptorSet },
+            [=](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(FFTParameters.GetReference());
+            },
             [=](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
         );
@@ -174,7 +241,7 @@ namespace nilou {
     }
 
     static void UpdateHeightField_RenderThread(
-        RenderGraph& Graph, int32 FFTPow, RDGTexture* GaussianRandomRT, TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters,
+        RenderGraph& Graph, int32 FFTPow, RDGTexture* GaussianRandomRT, TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters,
         RDGTexture* OutDisplaceRT, RDGTexture* OutNormalRT, RDGTexture* OutFoamRT)
     {
         auto [HeightSpectrumRT, DisplaceXSpectrumRT, DisplaceYSpectrumRT] = CreateDisplacementSpectrum(Graph, GaussianRandomRT, FFTParameters);
@@ -211,7 +278,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(UFourierTransformOceanComponent_ctor)(
             [this](RenderGraph&)
             {
-                FFTParameters = RenderGraph::CreatePooledUniformBuffer<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters", nullptr);
+                FFTParameters = RenderGraph::CreatePooledParameterBlock<FOceanFastFourierTransformParameters>("OceanFastFourierTransformParameters");
             });
     }
 
@@ -233,16 +300,17 @@ namespace nilou {
              N=glm::pow(2, FFTPow),
              WindSpeed=this->WindSpeed,
              Amplitude=this->Amplitude,
+             DisplacementTextureSize=this->DisplacementTextureSize,
              Time=(clock()-this->InitialTime)/1000.f]
             (RenderGraph& Graph)
             {
-                FOceanFastFourierTransformParameters Parameters;
-                Parameters.WindDirection = WindDirection;
-                Parameters.N = N;
-                Parameters.WindSpeed = WindSpeed;
-                Parameters.Amplitude = Amplitude;
-                Parameters.Time = Time;
-                Graph.QueueBufferUpload(FFTParameters.GetReference(), &Parameters, sizeof(Parameters));
+                FFTParameters->WindDirection = WindDirection;
+                FFTParameters->N = N;
+                FFTParameters->WindSpeed = WindSpeed;
+                FFTParameters->Amplitude = Amplitude;
+                FFTParameters->DisplacementTextureSize = DisplacementTextureSize;
+                FFTParameters->Time = Time;
+                Graph.UpdateParameterBlock(FFTParameters.GetReference());
                 UpdateHeightField_RenderThread(Graph, FFTPow, GaussianRandomRT, FFTParameters, DisplaceRT, NormalRT, FoamRT);
             }
         );

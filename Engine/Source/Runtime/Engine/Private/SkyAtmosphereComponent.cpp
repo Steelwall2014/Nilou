@@ -1,6 +1,7 @@
 #include "Components/SkyAtmosphereComponent.h"
 #include "Engine/World.h"
 
+#include "RHIStaticStates.h"
 #include "RenderingThread.h"
 #include "Shader.h"
 #include "ShaderInstance.h"
@@ -92,27 +93,26 @@ namespace nilou {
 
     FSkyAtmosphereSceneProxy::FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent)
     {
-        ATMOSPHERE.solar_irradiance = InComponent->SolarIrradiance;
-        ATMOSPHERE.sun_angular_radius = InComponent->SunAngularRadius;
-        ATMOSPHERE.bottom_radius = InComponent->BottomRadius;
-        ATMOSPHERE.top_radius = InComponent->TopRadius;
-        ATMOSPHERE.rayleigh_density = InComponent->RayleighDensity;
-        ATMOSPHERE.rayleigh_scattering = InComponent->RayleighScattering;
-        ATMOSPHERE.mie_density = InComponent->MieDensity;
-        ATMOSPHERE.mie_scattering = InComponent->MieScattering;
-        ATMOSPHERE.mie_extinction = InComponent->MieExtinction;
-        ATMOSPHERE.mie_phase_function_g = InComponent->MiePhaseFunction_g;
-        ATMOSPHERE.absorption_density = InComponent->AbsorptionDensity;
-        ATMOSPHERE.absorption_extinction = InComponent->AbsorptionExtinction;
-        ATMOSPHERE.ground_albedo = InComponent->GroundAlbedo;
-        ATMOSPHERE.mu_s_min = InComponent->Mu_s_Min;
-        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this](RenderGraph& Graph) {
+        AtmosphereParameters<EShaderDataLayout::Std140> atmosphereParams;
+        atmosphereParams.solar_irradiance = InComponent->SolarIrradiance;
+        atmosphereParams.sun_angular_radius = InComponent->SunAngularRadius;
+        atmosphereParams.bottom_radius = InComponent->BottomRadius;
+        atmosphereParams.top_radius = InComponent->TopRadius;
+        atmosphereParams.rayleigh_density = InComponent->RayleighDensity;
+        atmosphereParams.rayleigh_scattering = InComponent->RayleighScattering;
+        atmosphereParams.mie_density = InComponent->MieDensity;
+        atmosphereParams.mie_scattering = InComponent->MieScattering;
+        atmosphereParams.mie_extinction = InComponent->MieExtinction;
+        atmosphereParams.mie_phase_function_g = InComponent->MiePhaseFunction_g;
+        atmosphereParams.absorption_density = InComponent->AbsorptionDensity;
+        atmosphereParams.absorption_extinction = InComponent->AbsorptionExtinction;
+        atmosphereParams.ground_albedo = InComponent->GroundAlbedo;
+        atmosphereParams.mu_s_min = InComponent->Mu_s_Min;
+        ENQUEUE_RENDER_COMMAND(FSkyAtmosphereSceneProxyConstructor)([this, atmosphereParams](RenderGraph& Graph) {
 
-            AtmosphereParameters = RenderGraph::CreatePooledUniformBuffer("AtmosphereParameters", &ATMOSPHERE.GetNonOpaqueFields());
-            ATMOSPHERE.AutomaticallyIntroducedUniformBuffer = AtmosphereParameters.GetReference();
-            Graph.QueueBufferUpload(AtmosphereParameters.GetReference(), &ATMOSPHERE.GetNonOpaqueFields(), sizeof(ATMOSPHERE.GetNonOpaqueFields()));
-
-            AtmosphereParametersDescriptorSet = RenderGraph::CreatePooledDescriptorSet("AtmosphereParametersDescriptorSet", ATMOSPHERE);
+            AtmosphereParamBlock = RenderGraph::CreatePooledParameterBlock<AtmosphereParameters>("AtmosphereParameters");
+            AtmosphereParamBlock->GetNonOpaqueFields() = atmosphereParams;
+            Graph.UpdateParameterBlock(AtmosphereParamBlock.GetReference());
 
             RDGTextureDesc Desc;
             Desc.TextureType = ETextureDimension::Texture2D;
@@ -158,17 +158,26 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
         RHIShader *TransmittanceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(TransmittanceShader));
-        TParameterBlock<FAtmosphereTransmittanceParameters> Params;
-        Params.TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("TransmittanceShader DescriptorSet", Params);
+        auto Params = Graph.CreateParameterBlock<FAtmosphereTransmittanceParameters>("TransmittanceShader ParamBlock");
+        Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         RDGPassDesc PassDesc{"DispatchTransmittancePass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
             });
     }
@@ -179,18 +188,29 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
         RHIShader *DirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DirectIrradianceShader));
-        TParameterBlock<FAtmosphereDirectIrradianceParameters> Params;
-        Params.IrradianceLUT = IrradianceLUT->GetDefaultView();
-        Params.TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("DirectIrradianceShader DescriptorSet", Params);
+        auto Params = Graph.CreateParameterBlock<FAtmosphereDirectIrradianceParameters>("DirectIrradianceShader ParamBlock");
+        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
+        Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
+        Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchDirectIrradiancePass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
             });
     }
@@ -201,20 +221,31 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
         RHIShader *ScatteringShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringShader));
-        TParameterBlock<FAtmosphereScatteringParameters> Params;
-        Params.TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        Params.SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params.SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
-        Params.MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("ScatteringShader DescriptorSet", Params);
+        auto Params = Graph.CreateParameterBlock<FAtmosphereScatteringParameters>("ScatteringShader ParamBlock");
+        Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
+        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
+        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
+        Params->MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
+        Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchScatteringPass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
     }
@@ -225,22 +256,33 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
         RHIShader *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringDensityShader));
-        TParameterBlock<FAtmosphereScatteringDensityParameters> Params;
-        Params.ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
-        Params.TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        Params.SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params.SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
-        Params.IrradianceLUT = IrradianceLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("ScatteringDensityShader DescriptorSet", Params);
+        auto Params = Graph.CreateParameterBlock<FAtmosphereScatteringDensityParameters>("ScatteringDensityShader ParamBlock");
+        Params->ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
+        Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
+        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
+        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
+        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
+        Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Params->GetNonOpaqueFields().scattering_order = scattering_order;
+        Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchScatteringDensityPass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
-                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &scattering_order);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
     }
@@ -251,20 +293,31 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
         RHIShader *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(IndirectIrradianceShader));
-        TParameterBlock<FAtmosphereIndirectIrradianceParameters> Params;
-        Params.IrradianceLUT = IrradianceLUT->GetDefaultView();
-        Params.SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params.SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("IndirectIrradianceShader DescriptorSet", Params);
+        auto Params = Graph.CreateParameterBlock<FAtmosphereIndirectIrradianceParameters>("IndirectIrradianceShader ParamBlock");
+        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
+        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
+        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
+        Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Params->GetNonOpaqueFields().scattering_order = scattering_order;
+        Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchIndirectIrradiancePass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
-                RHICmdList.PushConstants(PSO->GetPipelineLayout(), EShaderStage::Compute, 0, 4, &scattering_order);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
     }
@@ -275,20 +328,31 @@ namespace nilou {
         FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
         RHIShader *MultiScatteringShader = GetGlobalShader(PermutationParameters);
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(MultiScatteringShader));
-        TParameterBlock<FAtmosphereMultiScatteringParameters> Params;
-        Params.DeltaScatteringLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params.MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
-        Params.TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        Params.ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
-        RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("MultiScatteringShader DescriptorSet", Params);
-        RDGPassDesc PassDesc{"DispatchIndirectIrradiancePass"};
+        auto Params = Graph.CreateParameterBlock<FAtmosphereMultiScatteringParameters>("MultiScatteringShader ParamBlock");
+        Params->DeltaScatteringLUT = DeltaScatteringRayleighLUT->GetDefaultView();
+        Params->MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
+        Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
+        Params->ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
+        Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Graph.UpdateParameterBlock(Params);
+        RDGPassDesc PassDesc{"DispatchMultiScatteringPass"};
         Graph.AddComputePass(
             PassDesc,
-            { AtmosphereParametersDescriptorSet.GetReference(), DescriptorSet },
-            [=](RHICommandList& RHICmdList)
+            [=, this](FRDGPass* Pass)
+            {
+                Pass->AddParameterBlock(Params);
+                Pass->AddParameterBlock(AtmosphereParamBlock.GetReference());
+            },
+            [=, this](RHICommandList& RHICmdList)
             {
                 RHICmdList.BindComputePipelineState(PSO);
-                RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                auto PipelineLayout = PSO->GetPipelineLayout();
+                int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
+                RHICmdList.BindDescriptorSets(
+                    PipelineLayout,
+                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
     }

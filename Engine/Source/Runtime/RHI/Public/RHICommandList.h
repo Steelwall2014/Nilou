@@ -56,7 +56,7 @@ namespace nilou {
         virtual void BindGraphicsPipelineState(RHIGraphicsPipelineState *NewPipelineState) = 0;
         virtual void BindComputePipelineState(RHIComputePipelineState *NewPipelineState) = 0;
         // TODO: 测试一下到底用map还是unordered_map
-        virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<uint32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) = 0;
+        virtual void BindDescriptorSets(RHIPipelineLayout* PipelineLayout, const std::unordered_map<int32, RHIDescriptorSet*>& DescriptorSets, EPipelineBindPoint PipelineBindPoint) = 0;
         virtual void BindIndexBuffer(RHIBuffer* Buffer, uint64 Offset) = 0;
         virtual void BindVertexBuffer(int32 BindingPoint, RHIBuffer* Buffer, uint64 Offset) = 0;
         virtual void PushConstants(RHIPipelineLayout* PipelineLayout, EShaderStage StageFlags, uint32 Offset, uint32 Size, const void* Data) = 0;

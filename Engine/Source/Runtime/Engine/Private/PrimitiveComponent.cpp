@@ -51,15 +51,14 @@ namespace nilou {
     void FPrimitiveSceneProxy::CreateUniformBuffer()
     {
         Ncheck(IsInRenderingThread());
-        UniformBuffer = RenderGraph::CreatePooledUniformBuffer<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer", nullptr);
+        UniformBuffer = RenderGraph::CreatePooledParameterBlock<FPrimitiveUniformShaderParameters>(DebugActorName + "." + DebugComponentName + " UniformBuffer");
     }
 
     void FPrimitiveSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)
     {
-        FPrimitiveUniformShaderParameters Data;
-        Data.LocalToWorld = FMatrix44f(LocalToWorld);
-        Data.ModelToLocal = FMatrix44f(glm::inverse(LocalToWorld));
-        Graph.QueueBufferUpload(UniformBuffer.GetReference(), &Data, sizeof(Data));
+        UniformBuffer->LocalToWorld = FMatrix44f(LocalToWorld);
+        UniformBuffer->WorldToLocal = FMatrix44f(glm::inverse(LocalToWorld));
+        Graph.UpdateParameterBlock(UniformBuffer.GetReference());
     }
 
 }

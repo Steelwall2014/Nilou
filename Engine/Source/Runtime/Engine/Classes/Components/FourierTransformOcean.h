@@ -1,22 +1,12 @@
 #pragma once
 #include "PrimitiveComponent.h"
 #include "Materials/Material.h"
+#include "RenderGraphParameterBlock.h"
+#include "OceanFastFourierTransformParameters.generated.h"
 
 namespace nilou {
 
     class UTexture2D;
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFastFourierTransformParameters)
-        SHADER_PARAMETER(FVector2f, WindDirection)
-        SHADER_PARAMETER(uint32, N)
-        SHADER_PARAMETER(float, WindSpeed)
-        SHADER_PARAMETER(float, Amplitude)
-        SHADER_PARAMETER(float, Time)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FOceanFFTButterflyBlock)
-        SHADER_PARAMETER(uint32, Ns)
-    END_UNIFORM_BUFFER_STRUCT()
 
     class NCLASS UFourierTransformOceanComponent : public UActorComponent
     {
@@ -78,7 +68,7 @@ namespace nilou {
 
         UTexture2D* PerlinNoise;
 
-        TRDGUniformBufferRef<FOceanFastFourierTransformParameters> FFTParameters;
+        TParameterBlockRef<FOceanFastFourierTransformParameters> FFTParameters;
 
     };
 

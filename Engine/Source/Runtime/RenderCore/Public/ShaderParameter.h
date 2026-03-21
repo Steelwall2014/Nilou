@@ -187,27 +187,5 @@ namespace nilou {
     FShaderParametersMetadata2* GetShaderParametersMetadata();
     RENDERCORE_API FShaderParametersMetadata2* GetShaderParametersMetadata(const std::string& StructName);
 
-    template <template <EShaderDataLayout> typename T>
-    struct TParameterBlock : public T<Std140Layout>, public T<OpaqueLayout>
-    {
-        T<Std140Layout>& GetNonOpaqueFields()
-        {
-            return *static_cast<T<Std140Layout>*>(this);
-        }
-        T<EShaderDataLayout::Opaque>& GetOpaqueFields()
-        {
-            return *static_cast<T<OpaqueLayout>*>(this);
-        }
-
-        const T<Std140Layout>& GetNonOpaqueFields() const
-        {
-            return *static_cast<const T<Std140Layout>*>(this);
-        }
-        const T<EShaderDataLayout::Opaque>& GetOpaqueFields() const
-        {
-            return *static_cast<const T<OpaqueLayout>*>(this);
-        }
-    };
-
 
 }

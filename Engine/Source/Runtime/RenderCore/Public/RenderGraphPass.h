@@ -1,7 +1,9 @@
 #pragma once
 #include <set>
+#include "RenderGraphParameterBlock.h"
 #include "RenderGraphResources.h"
 #include "RenderGraphTransition.h"
+#include "ShaderParameter.h"
 
 namespace nilou {
 
@@ -31,6 +33,12 @@ public:
     }
 
     const std::string& GetName() const { return Desc.Name; }
+
+    template <template<EShaderDataLayout DataLayout> typename T>
+    void AddParameterBlock(TParameterBlock<T>* ParamBlock)
+    {
+        this->DescriptorSets.push_back(ParamBlock->DescriptorSet);
+    }
 
     bool bCulled = false;
     FRDGPassHandle Handle = NullPassHandle;

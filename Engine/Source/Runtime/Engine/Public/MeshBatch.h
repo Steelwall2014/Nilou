@@ -1,9 +1,11 @@
 #pragma once
 
 #include <vector>
-#include "UniformBuffer.h"
-#include "ShaderBindings.h"
+
+#include "RenderGraphParameterBlock.h"
+#include "VertexShaderCommon.generated.h"
 #include "ViewElementPDI.h"
+
 
 namespace nilou {
 
@@ -13,7 +15,7 @@ namespace nilou {
     struct FMeshBatchElement
     {
 
-        RDGBuffer* PrimitiveUniformBuffer;
+        TParameterBlock<FPrimitiveUniformShaderParameters>* PrimitiveUniformBuffer;
 
 	    const class FVertexFactory* VertexFactory;
 

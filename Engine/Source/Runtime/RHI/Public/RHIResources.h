@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 
+#include <slang.h>
+
 // #include <glm/glm.hpp>
 #include "Math/Maths.h"
 #include "Misc/Crc.h"
@@ -13,7 +15,6 @@
 #include "RHI.h"
 #include "Templates/TypeHash.h"
 #include "Templates/RefCounting.h"
-#include <slang.h>
 
 
 namespace nilou {
@@ -487,7 +488,17 @@ namespace nilou {
 	{
 	public:
 	 	RHIPipelineLayout() : RHIResource(RRT_PipelineLayout) {}
+		int32 GetSetIndex(const std::string& ParamBlockName)
+		{
+			auto Found = ParamBlockNameToSetIndex.find(ParamBlockName);
+			if (Found == ParamBlockNameToSetIndex.end())
+			{
+				return -1;
+			}
+			return Found->second;
+		}
     	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
+		std::unordered_map<std::string, uint32> ParamBlockNameToSetIndex;
 		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;

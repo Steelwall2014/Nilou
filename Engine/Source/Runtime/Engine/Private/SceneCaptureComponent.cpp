@@ -146,7 +146,7 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponent2D_OnRegister)(
             [this](RenderGraph&) 
             {
-                ViewUniformBuffer = RenderGraph::CreatePooledUniformBuffer<FViewShaderParameters>("", nullptr);
+                  ViewUniformBuffer = RenderGraph::CreatePooledParameterBlock<FViewShaderParameters>("");
             });
     }
 
@@ -249,7 +249,7 @@ namespace nilou {
         }
 
         std::vector<FSceneView>& SceneViews = ViewFamily.Views;
-        for (int i = 0; i < ViewUniformBuffers.size(); i++)
+        for (int i = 0; i < ViewParameterBlocks.size(); i++)
         {
             FSceneView View(
                 ECameraProjectionMode::Perspective,
@@ -278,9 +278,9 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnRegister)(
             [this](RenderGraph&) 
             {
-                for (int i = 0; i < ViewUniformBuffers.size(); i++)
+                for (int i = 0; i < ViewParameterBlocks.size(); i++)
                 {
-                    ViewUniformBuffers[i] = RenderGraph::CreatePooledUniformBuffer<FViewShaderParameters>("", nullptr);
+                    ViewParameterBlocks[i] = RenderGraph::CreatePooledParameterBlock<FViewShaderParameters>("");
                 }
             });
     }
@@ -290,9 +290,9 @@ namespace nilou {
         ENQUEUE_RENDER_COMMAND(USceneCaptureComponentCube_OnUnregister)(
             [this](RenderGraph&) 
             {
-                for (int i = 0; i < ViewUniformBuffers.size(); i++)
+                for (int i = 0; i < ViewParameterBlocks.size(); i++)
                 {
-                    ViewUniformBuffers[i] = nullptr;
+                    ViewParameterBlocks[i] = nullptr;
                 }
             });
     }

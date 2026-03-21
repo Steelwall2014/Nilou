@@ -58,20 +58,33 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
 
         for (int ArrayIndex = 0; ArrayIndex < Desc.ArraySize; ArrayIndex++)
         {
-            TParameterBlock<FComputeGenerateMipsInputParameters> InputParameters;
-            InputParameters.MipInSRV.TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex));
-            TParameterBlock<FComputeGenerateMipsOutputParameters> OutputParameters;
-            OutputParameters.MipOutUAV = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", InputParameters);
-            RDGDescriptorSet* OutputDescriptorSet = Graph.CreateDescriptorSet("GenerateMips Output DescriptorSet", OutputParameters);
+            auto InputParams = Graph.CreateParameterBlock<FComputeGenerateMipsInputParameters>("GenerateMips Input ParamBlock");
+            InputParams->MipInSRV = {
+                .TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)),
+                .SamplerState = Sampler
+            };
+            Graph.UpdateParameterBlock(InputParams);
+            auto OutputParams = Graph.CreateParameterBlock<FComputeGenerateMipsOutputParameters>("GenerateMips Output ParamBlock");
+            OutputParams->MipOutUAV = Graph.CreateTextureView("MipOutUAV", Texture, CreateDescForMipmap(Texture, MipLevel, ArrayIndex));
+            Graph.UpdateParameterBlock(OutputParams);
             RDGPassDesc PassDesc{NFormat("GenerateMips for texture \"{}\" mipmap {}", Texture->Name, MipLevel)};
             Graph.AddComputePass(
                 PassDesc,
-                { DescriptorSet, OutputDescriptorSet },
+                [=](FRDGPass* Pass)
+                {
+                    Pass->AddParameterBlock(InputParams);
+                    Pass->AddParameterBlock(OutputParams);
+                },
                 [=](RHICommandList& RHICmdList)
                 {
                     RHICmdList.BindComputePipelineState(PSO);
-                    RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Compute);
+                    auto PipelineLayout = PSO->GetPipelineLayout();
+                    int32 InputParamsSetIndex = PipelineLayout->GetSetIndex("InputParams");
+                    int32 OutputParamsSetIndex = PipelineLayout->GetSetIndex("OutputParams");
+                    RHICmdList.BindDescriptorSets(
+                        PipelineLayout,
+                        {{InputParamsSetIndex, InputParams->DescriptorSet->GetRHI()}, {OutputParamsSetIndex, OutputParams->DescriptorSet->GetRHI()}},
+                        EPipelineBindPoint::Compute);
                     int32 group_count_x = FMath::DivideAndRoundUp(TextureSizeX, GroupSize);
                     int32 group_count_y = FMath::DivideAndRoundUp(TextureSizeY, GroupSize);
                     RHICmdList.DispatchCompute(group_count_x, group_count_y, 1);
@@ -115,14 +128,14 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
             GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);
 
-            TParameterBlock<FRasterGenerateMipsParameters> Parameters;
-            Parameters.HalfTexelSize = FVector2f(1.0f / TextureSizeX, 1.0f / TextureSizeY);
-            Parameters.Level = float(MipLevel);
-            Parameters.MipInSRV = { 
+            auto Params = Graph.CreateParameterBlock<FRasterGenerateMipsParameters>("GenerateMips ParamBlock");
+            Params->GetNonOpaqueFields().HalfTexelSize = FVector2f(1.0f / TextureSizeX, 1.0f / TextureSizeY);
+            Params->GetNonOpaqueFields().Level = float(MipLevel);
+            Params->MipInSRV = { 
                 .TextureView = Graph.CreateTextureView("MipInSRV", Texture, CreateDescForMipmap(Texture, MipLevel - 1, ArrayIndex)), 
                 .SamplerState = Sampler 
             };
-            RDGDescriptorSet* DescriptorSet = Graph.CreateDescriptorSet("GenerateMips DescriptorSet", Parameters);
+            Graph.UpdateParameterBlock(Params);
 
             RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
             RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
@@ -134,12 +147,19 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                 RenderTargets,
                 { ScreenQuadIndexBuffer },
                 { ScreenQuadVertexBuffer },
-                { DescriptorSet },
+                [=](FRDGPass* Pass)
+                {
+                    Pass->AddParameterBlock(Params);
+                },
                 [=](RHICommandList& RHICmdList)
                 {
-
                     RHICmdList.BindGraphicsPipelineState(PSO);
-                    RHICmdList.BindDescriptorSets(PSO->GetPipelineLayout(), { {0, DescriptorSet->GetRHI()} }, EPipelineBindPoint::Graphics);
+                    auto PipelineLayout = PSO->GetPipelineLayout();
+                    int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
+                    RHICmdList.BindDescriptorSets(
+                        PipelineLayout,
+                        {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}},
+                        EPipelineBindPoint::Graphics);
                     RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                     RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
                     RHICmdList.DrawIndexed(6, 1, 0, 0, 0);

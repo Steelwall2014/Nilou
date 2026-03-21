@@ -1,9 +1,7 @@
 ---
 description: NilouHeaderTool 设计与使用规范——C++ 反射代码生成器
-globs: Engine/Source/Programs/NilouHeaderTool/**,Engine/Source/Runtime/CoreUObject/**
 alwaysApply: false
 ---
-
 # NilouHeaderTool
 
 `NilouHeaderTool` 是 Nilou 引擎的 **C++ 反射代码生成器**，功能类似 Unreal Engine 的 UnrealHeaderTool（UHT）。它扫描标注了反射宏的头文件，借助 **libclang** 解析 AST，自动生成 `.gen.cpp` 文件，从而在不侵入业务代码的前提下实现类型注册、属性序列化和对象系统（`NClass` / `NObject`）等反射功能。

@@ -3,12 +3,20 @@ target("slang")
     add_includedirs("./include", {public = true})
     add_links("$(projectdir)/Engine/Source/ThirdParty/slang/lib/slang", {public = true})
     on_load(function (target)
-        local zipfile = path.join("$(scriptdir)", "slang-2026.4.2-windows-x86_64.zip")
-        local outdir = "$(scriptdir)"
-        local slanglib = path.join("$(scriptdir)", "lib/slang.lib")
-        if os.isfile(zipfile) and not os.isfile(slanglib) then
-            import("utils.archive")
-            archive.extract(zipfile, outdir)
+        local scriptdir = path.absolute(target:scriptdir())
+        local zipfile = path.join(scriptdir, "slang-2026.4.2-windows-x86_64.zip")
+        local slanglib = path.join(scriptdir, "lib/slang.lib")
+        if os.isfile(zipfile) then
+            if not os.isfile(slanglib) then
+                import("utils.archive")
+                print("Extracting Slang to " .. scriptdir)
+                archive.extract(zipfile, scriptdir)
+                print("Slang extracted to " .. scriptdir)
+            else
+                print("Slang already extracted to " .. scriptdir)
+            end
+        else
+            print("Slang zip file not found at " .. zipfile)
         end
     end)
     after_build(function (target)

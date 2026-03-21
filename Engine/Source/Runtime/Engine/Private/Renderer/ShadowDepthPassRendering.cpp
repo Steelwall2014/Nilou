@@ -149,8 +149,6 @@ namespace nilou {
                 ShadowViewport.Height = LightSceneProxy->ShadowMapResolution.y;
                 FSceneViewFamily ShadowViewFamily(ShadowViewport, Scene);
 
-                RDGBuffer* ShadowMappingBlock = Graph.CreateUniformBuffer<FDirectionalShadowMappingBlock>(NFormat("Light {} DirectionalShadowMappingBlock", LightIndex));
-
                 std::vector<std::vector<FMeshBatch>> ShadowMeshBatches;
                 std::vector<FViewElementPDI> ShadowPDIs;
 
@@ -255,7 +253,7 @@ namespace nilou {
                     Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
                     Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
                 }
-                Graph.QueueBufferUpload(ShadowMappingBlock, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
+                Graph.QueueBufferUpload(Resources.ShadowMapUniformBuffer, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
@@ -276,9 +274,8 @@ namespace nilou {
                             FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
 
                             FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                            ShaderBindings.SetBuffer("FViewShaderParameters", View.ViewUniformBuffer);
-                            ShaderBindings.SetBuffer("FShadowMappingBlock", ShadowMappingBlock);
-                            ShaderBindings.SetBuffer("FPrimitiveShaderParameters", Element.PrimitiveUniformBuffer);
+                            ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
+                            ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->DescriptorSet);
                             ShaderBindings.SetPushConstant(EShaderStage::Vertex, sizeof(int), &FrustumIndex);
 
                             FMeshDrawCommand MeshDrawCommand;
@@ -307,8 +304,12 @@ namespace nilou {
                         RenderTargets,
                         DrawCommands.GetIndexBuffers(),
                         DrawCommands.GetVertexBuffers(),
-                        DrawCommands.GetDescriptorSets(),
-                        [=](RHICommandList& RHICmdList)
+                        [&DrawCommands](FRDGPass* Pass)
+                        {
+                            for (RDGDescriptorSet* DS : DrawCommands.GetDescriptorSets())
+                                Pass->DescriptorSets.push_back(DS);
+                        },
+                        [DrawCommands](RHICommandList& RHICmdList)
                         {
                             DrawCommands.DispatchDraw(RHICmdList);
                         }

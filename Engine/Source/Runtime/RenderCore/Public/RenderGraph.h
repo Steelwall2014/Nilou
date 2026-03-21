@@ -5,6 +5,7 @@
 #include "RenderGraphResources.h"
 #include "RHIResources.h"
 #include "RenderGraphDescriptorSet.h"
+#include "RenderGraphParameterBlock.h"
 #include "RenderGraphPass.h"
 #include "UniformBuffer.h"
 
@@ -41,7 +42,7 @@ public:
     static RDGBufferRef CreatePooledBuffer(const std::string& Name, const RDGBufferDesc& Desc);
     
     template<class T>
-    static TRDGUniformBufferRef<T> CreatePooledUniformBuffer(const std::string& Name, const T* Data)
+    static TRDGUniformBufferRef<T> CreatePooledUniformBuffer(const std::string& Name)
     {
         RDGBufferDesc Desc(sizeof(T), sizeof(T), EBufferUsageFlags::UniformBuffer);
         TRDGUniformBufferRef<T> Buffer = TRefCountPtr(new TRDGUniformBuffer<T>(Name, Desc));
@@ -50,16 +51,6 @@ public:
     }
 
     static RDGDescriptorSetRef CreatePooledDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
-
-    template <template<EShaderDataLayout DataLayout> typename T>
-    static RDGDescriptorSetRef CreatePooledDescriptorSet(std::string Name, const TParameterBlock<T>& ParamBlock)
-    {
-        FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
-        RHIDescriptorSetLayout* DescriptorSetLayout = Metadata->DescriptorSetLayout.GetReference();
-        RDGDescriptorSetRef DescriptorSet = TRefCountPtr(new RDGDescriptorSet(Name, DescriptorSetLayout));
-        SetDescriptorSet(ParamBlock, DescriptorSet.GetReference());
-        return DescriptorSet;
-    }
 
     RDGTexture* RegisterExternalTexture(const std::string& Name, RHITexture* TextureRHI);
 
@@ -85,17 +76,79 @@ public:
 
     RDGDescriptorSet* CreateDescriptorSet(std::string Name, RHIDescriptorSetLayout* Layout);
 
+    // Creates a transient TParameterBlock owned by this RenderGraph.
+    // The block (and its DS) is freed during CleanUp(). The caller's ParamBlock
+    // must remain in scope until Execute() so QueueBufferUpload data stays valid.
+    // Call UpdateParameterBlock whenever the parameter data changes.
     template <template<EShaderDataLayout DataLayout> typename T>
-    RDGDescriptorSet* CreateDescriptorSet(std::string Name, const TParameterBlock<T>& ParamBlock)
+    TParameterBlock<T>* CreateParameterBlock(const std::string& Name)
+    {
+        TParameterBlock<T>* Block = new TParameterBlock<T>();
+        Block->Name = Name;
+        Block->bTransient = true;
+        ParamBlockDeleters.emplace_back([Block]() { delete Block; });
+        return Block;
+    }
+
+    // Creates a pooled TParameterBlock whose lifetime is managed by the caller via
+    // TParameterBlockRef. The embedded DS persists as long as the ref is held.
+    // Call UpdateParameterBlock whenever the parameter data changes.
+    template <template<EShaderDataLayout DataLayout> typename T>
+    static TParameterBlockRef<T> CreatePooledParameterBlock(const std::string& Name)
+    {
+        TParameterBlockRef<T> Block = TRefCountPtr(new TParameterBlock<T>());
+        Block->Name = Name;
+        Block->bTransient = false;
+        return Block;
+    }
+
+    // Materializes (or re-materializes) the descriptor set for a parameter block.
+    // The caller must invoke this explicitly whenever fields change.
+    template <template<EShaderDataLayout DataLayout> typename T>
+    void UpdateParameterBlock(TParameterBlock<T>* Block)
     {
         FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
         RHIDescriptorSetLayout* DescriptorSetLayout = Metadata->DescriptorSetLayout.GetReference();
-        RDGDescriptorSetRef DescriptorSet = TRefCountPtr(new RDGDescriptorSet(Name, DescriptorSetLayout));
-        DescriptorSets.push_back(DescriptorSet);
-        SetDescriptorSet(ParamBlock, DescriptorSet.GetReference());
-        return DescriptorSet.GetReference();
-    }
 
+        if (!Block->DescriptorSet)
+        {
+            if (Block->bTransient)
+            {
+                Block->DescriptorSet = CreateDescriptorSet(Block->Name, DescriptorSetLayout);
+            }
+            else
+            {
+                RDGDescriptorSetRef DescriptorSet = CreatePooledDescriptorSet(Block->Name, DescriptorSetLayout);
+                Block->DescriptorSet = DescriptorSet.GetReference();
+                DescriptorSet->AddRef();
+            }
+        }
+
+        for (const FShaderParametersMetadata2::FMember& Member : Metadata->Members)
+        {
+            if (Member.Name == "AutomaticallyIntroducedUniformBuffer")
+            {
+                uint8* OpaqueBase = reinterpret_cast<uint8*>(&Block->GetOpaqueFields());
+                RDGBuffer** pAutoUB = reinterpret_cast<RDGBuffer**>(OpaqueBase + Member.Offset);
+                if (!*pAutoUB)
+                {
+                    if (Block->bTransient)
+                    {
+                        *pAutoUB = CreateUniformBuffer<T<Std140Layout>>(Block->Name + "_AutoUB");
+                    }
+                    else
+                    {
+                        RDGBufferRef AutoUB = CreatePooledUniformBuffer(Block->Name + "_AutoUB");
+                        *pAutoUB = AutoUB.GetReference();
+                        AutoUB->AddRef();
+                    }
+                }
+                T<Std140Layout>& NonOpaqueFields = Block->GetNonOpaqueFields();
+                QueueBufferUpload(*pAutoUB, reinterpret_cast<const void*>(&NonOpaqueFields), sizeof(NonOpaqueFields));
+                break;
+            }
+        }
+    }
     // Add a graphics pass to the render graph
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddGraphicsPass(
@@ -120,6 +173,30 @@ public:
         return Pass->Handle;
     }
 
+    // Add a graphics pass to the render graph
+    template <typename SetupLambdaType, typename ExecuteLambdaType>
+    FRDGPassHandle AddGraphicsPass(
+        const RDGPassDesc& PassDesc,
+        const RDGRenderTargets& RenderTargets,
+        const std::vector<RDGBuffer*>& IndexBuffer,
+        const std::vector<RDGBuffer*>& VertexBuffers,
+        SetupLambdaType&& Setup,
+        ExecuteLambdaType&& Executor)
+    {
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::Graphics,
+            std::forward<ExecuteLambdaType>(Executor));
+        Pass->RenderTargets = RenderTargets;
+        Pass->IndexBuffers = IndexBuffer;
+        Pass->VertexBuffers = VertexBuffers;
+        Setup(Pass);
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);
+        return Pass->Handle;
+    }
+
     // Add a compute pass to the render graph
     template <typename ExecuteLambdaType>
     FRDGPassHandle AddComputePass(
@@ -133,6 +210,25 @@ public:
             ERHIPipeline::AsyncCompute,
             std::forward<ExecuteLambdaType>(Executor));
         Pass->DescriptorSets = PassParameters;
+        Passes.push_back(Pass);
+        SetupParameterPass(Pass);
+        return Pass->Handle;
+    }
+
+    // Single-parameter-block overload: auto-materializes transient blocks;
+    // pooled blocks must have been materialized by the caller via UpdateParameterBlock.
+    template <typename SetupLambdaType, typename ExecuteLambdaType>
+    FRDGPassHandle AddComputePass(
+        const RDGPassDesc& PassDesc,
+        SetupLambdaType&& Setup,
+        ExecuteLambdaType&& Executor)
+    {
+        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+            Passes.size(), 
+            PassDesc, 
+            ERHIPipeline::AsyncCompute,
+            std::forward<ExecuteLambdaType>(Executor));
+        Setup(Pass);
         Passes.push_back(Pass);
         SetupParameterPass(Pass);
         return Pass->Handle;
@@ -255,6 +351,9 @@ private:
 	}
 
     // RHICommandList& RHICmdList;
+
+    // Deleters for transient TParameterBlock instances; invoked during CleanUp().
+    std::vector<std::function<void()>> ParamBlockDeleters;
 
 	/** Registry of graph objects. */
     std::vector<FRDGPass*> Passes;
@@ -381,10 +480,10 @@ private:
     static void EnumerateBufferAccess(FRDGPass* Pass, const std::function<void(RDGBuffer*,ERHIAccess)>& AccessFunction);
 
     template <template<EShaderDataLayout DataLayout> typename T>
-    static void SetDescriptorSet(const TParameterBlock<T>& ParamBlock, RDGDescriptorSet* DescriptorSet)
+    static void SetupDescriptorSet(const TParameterBlock<T>* ParamBlock, RDGDescriptorSet* DescriptorSet)
     {
         FShaderParametersMetadata2* Metadata = GetShaderParametersMetadata<T>();
-        const T<EShaderDataLayout::Opaque>& OpaqueFields = ParamBlock.GetOpaqueFields();
+        const T<EShaderDataLayout::Opaque>& OpaqueFields = ParamBlock->GetOpaqueFields();
         const uint8* Base = reinterpret_cast<const uint8*>(&OpaqueFields);
         for (const FShaderParametersMetadata2::FMember& Member : Metadata->Members)
         {

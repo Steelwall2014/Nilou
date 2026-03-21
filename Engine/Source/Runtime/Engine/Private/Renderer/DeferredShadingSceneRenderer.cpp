@@ -18,6 +18,7 @@
 #include "Renderer/LightingPassRendering.h"
 
 #include "GameFramework/ReflectionProbe.h"
+#include "RenderToScreenPixelShader.generated.h"
 
 #ifdef NILOU_DEBUG
 // #include "CoordinateAxis.h"
@@ -186,32 +187,32 @@ namespace nilou {
         {
 		    FSceneView& View = Views[ViewIndex];
             
-            View.ViewUniformBuffer = Graph.CreateUniformBuffer<FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
-            FViewShaderParameters ViewUniformBufferData;
+            View.ViewUniformBuffer = Graph.CreateParameterBlock<FViewShaderParameters>(NFormat("ViewUniformBuffer {}", ViewIndex));
+            auto ViewUniformBuffer = View.ViewUniformBuffer;
             const FMatrix& WorldToView = View.ViewMatrix;
             const FMatrix44f& ViewToClip = View.ProjectionMatrix;
             FMatrix44f RelativeWorldToView = WorldToView;
             RelativeWorldToView[3][0] = 0;
             RelativeWorldToView[3][1] = 0;
             RelativeWorldToView[3][2] = 0;
-            ViewUniformBufferData.RelWorldToView = RelativeWorldToView;
-            ViewUniformBufferData.ViewToClip = ViewToClip;
-            ViewUniformBufferData.RelWorldToClip = ViewToClip * RelativeWorldToView;
-            ViewUniformBufferData.ClipToView = glm::inverse(ViewToClip);
-            ViewUniformBufferData.RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
-            ViewUniformBufferData.AbsWorldToClip = ViewToClip * FMatrix44f(WorldToView);
+            ViewUniformBuffer->RelWorldToView = RelativeWorldToView;
+            ViewUniformBuffer->ViewToClip = ViewToClip;
+            ViewUniformBuffer->RelWorldToClip = ViewToClip * RelativeWorldToView;
+            ViewUniformBuffer->ClipToView = glm::inverse(ViewToClip);
+            ViewUniformBuffer->RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+            ViewUniformBuffer->AbsWorldToClip = ViewToClip * FMatrix44f(WorldToView);
 
-            ViewUniformBufferData.CameraPosition = View.Position;
-            ViewUniformBufferData.CameraDirection = View.Forward;
-            ViewUniformBufferData.CameraResolution = View.ScreenResolution;
-            ViewUniformBufferData.CameraNearClipDist = View.NearClipDistance;
-            ViewUniformBufferData.CameraFarClipDist = View.FarClipDistance;
-            ViewUniformBufferData.CameraVerticalFieldOfView = View.VerticalFieldOfView;
+            ViewUniformBuffer->CameraPosition = View.Position;
+            ViewUniformBuffer->CameraDirection = View.Forward;
+            ViewUniformBuffer->CameraResolution = View.ScreenResolution;
+            ViewUniformBuffer->CameraNearClipDist = View.NearClipDistance;
+            ViewUniformBuffer->CameraFarClipDist = View.FarClipDistance;
+            ViewUniformBuffer->CameraVerticalFieldOfView = View.VerticalFieldOfView;
 
             for (int i = 0; i < 6; i++)
-                ViewUniformBufferData.FrustumPlanes[i] = FVector4f(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
+                ViewUniformBuffer->FrustumPlanes[i] = FVector4f(View.ViewFrustum.Planes[i].Normal, View.ViewFrustum.Planes[i].Distance);
 
-            Graph.QueueBufferUpload(View.ViewUniformBuffer, &ViewUniformBufferData, sizeof(ViewUniformBufferData));
+            Graph.UpdateParameterBlock(ViewUniformBuffer);
 
             FSceneTextures& SceneTextures = ViewSceneTextures[ViewIndex];
             RDGTextureDesc Desc;
@@ -388,33 +389,23 @@ namespace nilou {
         {
             FSceneTextures SceneTextures = ViewSceneTextures[ViewIndex];
 
-            RDGDescriptorSet* DescriptorSetPS = Graph.CreateDescriptorSet("RenderToScreenPS DescriptorSet", RenderToScreenPS->GetDescriptorSetLayout(0));
-            FRenderToScreenParameters Parameters;
+            auto Parameters = Graph.CreateParameterBlock<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
+
             if (ViewFamily.bIsSceneCapture)
             {
-                if (ViewFamily.CaptureSource == SCS_SceneDepth)
+                if (ViewFamily.CaptureSource == SCS_LinearColor)
                 {
-                    Parameters.GammaCorrection = 1.f;
-                    Parameters.bEnableToneMapping = 0;
-                    DescriptorSetPS->SetSampler(
-                        "SceneColor", 
-                        SceneTextures.DepthStencil->GetDefaultView(), SamplerStateRHI);
-                }
-                else if (ViewFamily.CaptureSource == SCS_LinearColor)
-                {
-                    Parameters.GammaCorrection = 1.f;
-                    Parameters.bEnableToneMapping = 0;
-                    DescriptorSetPS->SetSampler(
-                        "SceneColor", 
-                        SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
+                    Parameters->GammaCorrection = 1.f;
+                    Parameters->bEnableToneMapping = 0;
+                    Parameters->SceneColor = SceneTextures.SceneColor->GetDefaultView();
+                    Parameters->SceneColorSampler = SamplerStateRHI;
                 }
                 else if (ViewFamily.CaptureSource == SCS_GammaColor)
                 {
-                    Parameters.GammaCorrection = ViewFamily.GammaCorrection;
-                    Parameters.bEnableToneMapping = 1;
-                    DescriptorSetPS->SetSampler(
-                        "SceneColor", 
-                        SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
+                    Parameters->GammaCorrection = ViewFamily.GammaCorrection;
+                    Parameters->bEnableToneMapping = 1;
+                    Parameters->SceneColor = SceneTextures.SceneColor->GetDefaultView();
+                    Parameters->SceneColorSampler = SamplerStateRHI;
                 }
                 else 
                 {
@@ -423,15 +414,12 @@ namespace nilou {
             }
             else 
             {
-                Parameters.GammaCorrection = ViewFamily.GammaCorrection;
-                Parameters.bEnableToneMapping = ViewFamily.bEnableToneMapping;
-                DescriptorSetPS->SetSampler(
-                    "SceneColor", 
-                    SceneTextures.SceneColor->GetDefaultView(), SamplerStateRHI);
+                Parameters->GammaCorrection = ViewFamily.GammaCorrection;
+                Parameters->bEnableToneMapping = ViewFamily.bEnableToneMapping;
+                Parameters->SceneColor = SceneTextures.SceneColor->GetDefaultView();
+                Parameters->SceneColorSampler = SamplerStateRHI;
             }
-            auto UniformBuffer = Graph.CreateUniformBuffer<FRenderToScreenParameters>(NFormat("FRenderToScreenParameters {}", ViewIndex));
-            Graph.QueueBufferUpload(UniformBuffer, &Parameters, sizeof(Parameters));
-            DescriptorSetPS->SetUniformBuffer("PIXEL_UNIFORM_BLOCK", UniformBuffer);
+            Graph.UpdateParameterBlock(Parameters);
 
             RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
             RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
@@ -445,7 +433,10 @@ namespace nilou {
                 RenderTargets,
                 { ScreenQuadIndexBuffer },
                 { ScreenQuadVertexBuffer },
-                { DescriptorSetPS },
+                [=](FRDGPass* Pass)
+                {
+                    Pass->AddParameterBlock(Parameters);
+                },
                 [=](RHICommandList& RHICmdList)
                 {
                     // FRHIRenderPassInfo PassInfo(OutputRenderTarget, ViewInfo.ScreenResolution, true, true, true);
@@ -458,9 +449,10 @@ namespace nilou {
                         RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                         RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);
 
+                        int32 DescriptorSetIndex = PSO->GetPipelineLayout()->GetSetIndex("Params");
                         RHICmdList.BindDescriptorSets(
                             PSO->GetPipelineLayout(), 
-                            { {0, DescriptorSetPS->GetRHI()} }, 
+                            { {DescriptorSetIndex, Parameters->DescriptorSet->GetRHI()} }, 
                             EPipelineBindPoint::Graphics);
 
                         RHICmdList.DrawIndexed(6, 1, 0, 0, 0);

@@ -8,24 +8,26 @@
 #include "Viewport.h"
 #include "EngineTypes.h"
 #include "RenderGraphResources.h"
+#include "RenderGraphParameterBlock.h"
+#include "VertexShaderCommon.generated.h"
 
 namespace nilou {
 
-    BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
-        SHADER_PARAMETER_ARRAY(FVector4f, FrustumPlanes, [6])
-        SHADER_PARAMETER(FMatrix44f, RelWorldToView)
-        SHADER_PARAMETER(FMatrix44f, ViewToClip)
-        SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
-        SHADER_PARAMETER(FMatrix44f, ClipToView)  
-        SHADER_PARAMETER(FMatrix44f, RelClipToWorld)      // Inverse of RelWorldToClip
-        SHADER_PARAMETER(FMatrix44f, AbsWorldToClip)     
-        SHADER_PARAMETER(FVector3f, CameraPosition)
-        SHADER_PARAMETER(FVector3f, CameraDirection)
-        SHADER_PARAMETER(FIntVector2, CameraResolution)
-        SHADER_PARAMETER(float, CameraNearClipDist)
-        SHADER_PARAMETER(float, CameraFarClipDist)
-        SHADER_PARAMETER(float, CameraVerticalFieldOfView)
-    END_UNIFORM_BUFFER_STRUCT()
+    // BEGIN_UNIFORM_BUFFER_STRUCT(FViewShaderParameters)
+    //     SHADER_PARAMETER_ARRAY(FVector4f, FrustumPlanes, [6])
+    //     SHADER_PARAMETER(FMatrix44f, RelWorldToView)
+    //     SHADER_PARAMETER(FMatrix44f, ViewToClip)
+    //     SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
+    //     SHADER_PARAMETER(FMatrix44f, ClipToView)  
+    //     SHADER_PARAMETER(FMatrix44f, RelClipToWorld)      // Inverse of RelWorldToClip
+    //     SHADER_PARAMETER(FMatrix44f, AbsWorldToClip)     
+    //     SHADER_PARAMETER(FVector3f, CameraPosition)
+    //     SHADER_PARAMETER(FVector3f, CameraDirection)
+    //     SHADER_PARAMETER(FIntVector2, CameraResolution)
+    //     SHADER_PARAMETER(float, CameraNearClipDist)
+    //     SHADER_PARAMETER(float, CameraFarClipDist)
+    //     SHADER_PARAMETER(float, CameraVerticalFieldOfView)
+    // END_UNIFORM_BUFFER_STRUCT()
     
     class FSceneView 
     {
@@ -47,7 +49,7 @@ namespace nilou {
         double OrthoWidth;
         double VerticalFieldOfView;
 
-        TRDGUniformBuffer<FViewShaderParameters>* ViewUniformBuffer;
+        TParameterBlock<FViewShaderParameters>* ViewUniformBuffer;
 
         FSceneView();
 

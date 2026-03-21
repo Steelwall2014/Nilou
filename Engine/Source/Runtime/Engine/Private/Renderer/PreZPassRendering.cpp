@@ -32,8 +32,8 @@ namespace nilou {
                     FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
 
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                    ShaderBindings.SetBuffer("ViewParameters", View.ViewUniformBuffer);
-                    ShaderBindings.SetBuffer("PrimitiveParameters", Element.PrimitiveUniformBuffer);
+                    ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
+                    ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->DescriptorSet);
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
@@ -62,8 +62,12 @@ namespace nilou {
                 RenderTargets,
                 DrawCommands.GetIndexBuffers(),
                 DrawCommands.GetVertexBuffers(),
-                DrawCommands.GetDescriptorSets(),
-                [=](RHICommandList& RHICmdList)
+                [&DrawCommands](FRDGPass* Pass)
+                {
+                    for (RDGDescriptorSet* DS : DrawCommands.GetDescriptorSets())
+                        Pass->DescriptorSets.push_back(DS);
+                },
+                [DrawCommands](RHICommandList& RHICmdList)
                 {
                     DrawCommands.DispatchDraw(RHICmdList);
                 }
