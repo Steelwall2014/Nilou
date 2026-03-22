@@ -645,6 +645,19 @@ int main(int argc, char *argv[])
 
     std::set<string> FilesThatNeedsReflection;
     bool bHasChangedFiles = false;
+
+    {
+        fs::path ExePath = fs::canonical(argv[0]);
+        std::string ExePathString = ExePath.generic_string();
+        long long ExeModifiedTime = fs::last_write_time(ExePath).time_since_epoch().count();
+        if (CachedHeaderModifiedTime.find(ExePathString) == CachedHeaderModifiedTime.end() ||
+            CachedHeaderModifiedTime[ExePathString] != ExeModifiedTime)
+        {
+            bHasChangedFiles = true;
+            CachedHeaderModifiedTime[ExePathString] = ExeModifiedTime;
+        }
+    }
+
     ForEachFile(InputDirectory, true, 
         [&](const std::string& filepath) 
         {
@@ -686,7 +699,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        cout << "[NilouHeaderTool] All header files are up-to-date.\n";
+        cout << "[NilouHeaderTool] All header files are up-to-date." << endl;
     }
 
     return 0;

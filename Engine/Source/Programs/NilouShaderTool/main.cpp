@@ -181,6 +181,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    {
+        fs::path ExePath = fs::canonical(argv[0]);
+        std::string ExePathString = ExePath.generic_string();
+        long long ExeModifiedTime = fs::last_write_time(ExePath).time_since_epoch().count();
+        CurrentShaderModifiedTime[ExePathString] = ExeModifiedTime;
+    }
+
     for (const fs::directory_entry& dir_entry : fs::recursive_directory_iterator(InputDirectory))
     {
         if (!dir_entry.is_directory())
@@ -194,7 +201,7 @@ int main(int argc, char *argv[])
 
     if (MapEquals(CurrentShaderModifiedTime, CachedShaderModifiedTime))
     {
-        std::cout << "[NilouShaderTool] All shader files are up-to-date.\n";
+        std::cout << "[NilouShaderTool] All shader files are up-to-date." << std::endl;
         return 0;
     }
 

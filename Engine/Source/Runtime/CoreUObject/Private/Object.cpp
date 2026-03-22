@@ -14,7 +14,7 @@ public:
     std::mutex CriticalSection;
     TMap<std::string, NObject*> ObjectMap;
     /** Map of object to the objects they contain */
-    TMap<NObject*, TArray<NObject*>> ObjectOuterMap;
+    TMap<NObject*, TMap<std::string, NObject*>> ObjectOuterMap;
 
     static FNObjectHashTables& Get()
     {
@@ -30,7 +30,11 @@ NObject* NewObject(NObject* Outer, const std::string& Name, NClass* Class)
         return nullptr;
     }
     NObject* Object = FindObject(Outer, Name);
-    if (Object) return Object;
+    if (Object)
+    {
+        NILOU_LOG(Fatal, "Object %s already exists", Object->GetPathName().c_str());
+        return nullptr;
+    }
 
     FStaticConstructObjectParameters Params;
     Params.Class = Class;
@@ -43,24 +47,53 @@ NObject* NewObject(NObject* Outer, const std::string& Name, NClass* Class)
 NObject* LoadObject(const std::string& Path)
 {
     NObject* Object = FindObject(Path);
-    if (Object)
-        return Object;
+    if (Object) return Object;
 
-    constexpr std::string Delimiter = ".";
-    auto LastDot = Path.find_last_of(Delimiter);
-    std::string PackageName = Path.substr(0, LastDot);
-    std::string ObjectName = Path.substr(LastDot + 1);
+    constexpr char Delimiter = '.';
+    auto FirstDot = Path.find_first_of(Delimiter);
+    if (FirstDot == std::string::npos)
+    {
+        return LoadPackage(Path);
+    }
 
+    // The package name is everything before the first '.'.
+    // Everything after is a '.'-separated chain of object names to traverse.
+    std::string PackageName = Path.substr(0, FirstDot);
     NPackage* Package = LoadPackage(PackageName);
     if (!Package) return nullptr;
 
-    Object = FindObject(Path);
-    return Object;
+    // Reject trailing dot (e.g. "Pkg.") — the object name portion must be non-empty.
+    if (FirstDot + 1 >= Path.size())
+    {
+        return nullptr;
+    }
+
+    NObject* Current = Package;
+    size_t Start = FirstDot + 1;
+    while (Start < Path.size())
+    {
+        size_t NextDot = Path.find(Delimiter, Start);
+        std::string SegmentName = (NextDot == std::string::npos)
+            ? Path.substr(Start)
+            : Path.substr(Start, NextDot - Start);
+
+        // Reject empty segments caused by consecutive dots (e.g. "Pkg..Object").
+        if (SegmentName.empty())
+        {
+            return nullptr;
+        }
+
+        Current = FindObject(Current, SegmentName);
+        if (!Current) return nullptr;
+
+        Start = (NextDot == std::string::npos) ? Path.size() : NextDot + 1;
+    }
+    return Current;
 }
 
 NObject* FindObject(const std::string& Path)
 {
-	FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
+    FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
     auto& ObjectMap = ThreadHash.ObjectMap;
     auto Found = ObjectMap.Find(Path);
@@ -84,10 +117,11 @@ NObject* FindObject(NObject* Outer, const std::string& Name)
     auto Found = ObjectOuterMap.Find(Outer);
     if (Found)
     {
-        for (auto Object : *Found)
+        auto& ObjectMap = *Found;
+        auto FoundObject = ObjectMap.Find(Name);
+        if (FoundObject)
         {
-            if (Object->GetName() == Name)
-                return Object;
+            return *FoundObject;
         }
     }
 
@@ -96,16 +130,16 @@ NObject* FindObject(NObject* Outer, const std::string& Name)
 
 NPackage* LoadPackage(const std::string& Name)
 {
-    NObject* Object = FindObject(Name);
-    if (Object) return Cast<NPackage>(Object);
+    NPackage* Package = FindPackage(Name);
+    if (Package) return Package;
 
     if (!FPackageName::DoesPackageExist(Name)) return nullptr;
 
     int32 RequestId = FAsyncLoadingThread::Get().LoadPackage(Name);
     FAsyncLoadingThread::Get().FlushAsyncLoading( { RequestId } );
 
-    Object = FindObject(Name);
-    if (Object) return Cast<NPackage>(Object);
+    Package = FindPackage(Name);
+    if (Package) return Package;
 
     return nullptr;
 }
@@ -139,22 +173,23 @@ NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& 
     return Object;
 }
 
-void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects)
+// DONOT lock ThreadHash.CriticalSection in Operation function
+static void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects)
 {
 	FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
-    TArray<TArray<NObject*>*> AllInners;
+    TArray<TMap<std::string, NObject*>*> AllInners;
 
 	// Add the object bucket that have this package as an outer
-	if (TArray<NObject*>* Inners = ThreadHash.ObjectOuterMap.Find(const_cast<NPackage*>(Package)))
+	if (TMap<std::string, NObject*>* Inners = ThreadHash.ObjectOuterMap.Find(const_cast<NPackage*>(Package)))
 	{
         AllInners.Add(Inners);
 	}
 
     while (AllInners.Num() > 0) 
     {
-        TArray<NObject*>* Inners = AllInners.Pop();
-        for (NObject* Object : *Inners) 
+        TMap<std::string, NObject*>* Inners = AllInners.Pop();
+        for (auto& [Name, Object] : *Inners) 
         {
             if (Object == Package)
             {
@@ -167,7 +202,7 @@ void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObjec
             }
             if (bIncludeNestedObjects)
             {
-                if (TArray<NObject*>* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
+                if (TMap<std::string, NObject*>* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
                 {
                     AllInners.Add(ObjectInners);
                 }
@@ -201,16 +236,26 @@ NObject::NObject(const FObjectInitializer& Initializer)
 {
     FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
     std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
-    ThreadHash.ObjectMap.Add(NamePrivate, this);
+    ThreadHash.ObjectMap.Add(GetPathName(), this);
     if (OuterPrivate)
     {
-        ThreadHash.ObjectOuterMap.FindOrAdd(OuterPrivate).Add(this);
+        ThreadHash.ObjectOuterMap.FindOrAdd(OuterPrivate).Add(NamePrivate, this);
     }
 }
 
 NObject::~NObject()
 {
-
+    FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
+    std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
+    ThreadHash.ObjectMap.Remove(GetPathName());
+    if (OuterPrivate)
+    {
+        if (auto* InnerMap = ThreadHash.ObjectOuterMap.Find(OuterPrivate))
+        {
+            InnerMap->Remove(NamePrivate);
+        }
+    }
+    ThreadHash.ObjectOuterMap.Remove(this);
 }
 
 bool NObject::IsA(const NClass *Class) const
@@ -220,19 +265,60 @@ bool NObject::IsA(const NClass *Class) const
 
 std::string NObject::GetPathName() const
 {
+    // Collect path segments from leaf to root, then assemble in reverse to avoid O(n²) prepending.
+    TArray<const NObject*> Chain;
+    for (const NObject* Top = this; Top; Top = Top->GetOuter())
+        Chain.Add(Top);
+
     std::string PathName;
-    const NObject* Top = this;
-    for (;;)
+    for (int32 i = Chain.Num() - 1; i >= 0; --i)
     {
-        if (Top->GetOuter() == nullptr)
-        {
-            PathName = Top->GetName() + PathName;
-            break;
-        }
-        PathName = "." + Top->GetName() + PathName;
-        Top = Top->GetOuter();
+        if (i < Chain.Num() - 1)
+            PathName += '.';
+        PathName += Chain[i]->GetName();
     }
     return PathName;
+}
+
+// Must be called while holding ThreadHash.CriticalSection.
+// Recursively updates ObjectMap for all descendants of Object after its path has changed.
+// OldPath is the path of Object before the rename that triggered this update.
+static void UpdateDescendantPaths(FNObjectHashTables& ThreadHash, NObject* Object, const std::string& OldPath)
+{
+    auto* Inners = ThreadHash.ObjectOuterMap.Find(Object);
+    if (!Inners) return;
+
+    for (auto& [ChildName, ChildObject] : *Inners)
+    {
+        std::string OldChildPath = OldPath + '.' + ChildName;
+        ThreadHash.ObjectMap.Remove(OldChildPath);
+        ThreadHash.ObjectMap.Add(ChildObject->GetPathName(), ChildObject);
+        UpdateDescendantPaths(ThreadHash, ChildObject, OldChildPath);
+    }
+}
+
+void NObject::Rename(const std::string& NewName)
+{
+    FNObjectHashTables& ThreadHash = FNObjectHashTables::Get();
+    std::lock_guard<std::mutex> Lock(ThreadHash.CriticalSection);
+
+    const std::string OldPath = GetPathName();
+
+    if (OuterPrivate)
+    {
+        if (auto* InnerMap = ThreadHash.ObjectOuterMap.Find(OuterPrivate))
+        {
+            InnerMap->Remove(NamePrivate);
+            InnerMap->Add(NewName, this);
+        }
+    }
+
+    NamePrivate = NewName;
+
+    ThreadHash.ObjectMap.Remove(OldPath);
+    ThreadHash.ObjectMap.Add(GetPathName(), this);
+
+    UpdateDescendantPaths(ThreadHash, this, OldPath);
 }
 
 NPackage* NObject::GetPackage() const
@@ -382,4 +468,4 @@ FClassRegistryBase::FClassRegistryBase(
 
 NClass* NObject::Z_StaticClass = nullptr;
 
-}
+} // namespace nilou

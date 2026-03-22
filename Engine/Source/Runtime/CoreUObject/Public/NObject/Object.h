@@ -66,10 +66,10 @@ namespace nilou {
 
     struct COREUOBJECT_API FObjectInitializer
     {
-        NClass* Class;
+        NClass* Class = nullptr;
         std::string Name;
-        NObject* Outer;
-        EObjectFlags Flags;
+        NObject* Outer = nullptr;
+        EObjectFlags Flags = EObjectFlags::NoFlags;
 
         static FObjectInitializer& Get();
     };
@@ -89,6 +89,11 @@ namespace nilou {
         virtual void PostLoad();
 
     public:
+        NObject(const NObject&) = delete;
+        NObject& operator=(const NObject&) = delete;
+        NObject(NObject&&) = delete;
+        NObject& operator=(NObject&&) = delete;
+
         NObject(const FObjectInitializer& Initializer=FObjectInitializer::Get());
         virtual ~NObject();
 
@@ -113,11 +118,7 @@ namespace nilou {
 
         std::string GetPathName() const;
 
-        NFUNCTION()
-        void Rename(const std::string& NewName)
-        {
-            NamePrivate = NewName;
-        }
+        void Rename(const std::string& NewName);
 
         NPackage* GetPackage() const;
 
@@ -131,7 +132,7 @@ namespace nilou {
 
         void SetFlags(EObjectFlags FlagsToAdd)
         {
-            EObjectFlags OldFlags = EObjectFlags::NoFlags;
+            EObjectFlags OldFlags = ObjectFlags.load();
             EObjectFlags NewFlags = EObjectFlags::NoFlags;
             do 
             {
@@ -142,7 +143,7 @@ namespace nilou {
 
         void ClearFlags(EObjectFlags FlagsToClear)
         {
-            EObjectFlags OldFlags = EObjectFlags::NoFlags;
+            EObjectFlags OldFlags = ObjectFlags.load();
             EObjectFlags NewFlags = EObjectFlags::NoFlags;
             do 
             {
@@ -180,6 +181,14 @@ namespace nilou {
     {
         if (Object && Object->IsA(T::StaticClass()))
             return static_cast<T*>(Object);
+        return nullptr;
+    }
+
+    template <class T>
+    const T* Cast(const NObject* Object)
+    {
+        if (Object && Object->IsA(T::StaticClass()))
+            return static_cast<const T*>(Object);
         return nullptr;
     }
 
@@ -227,7 +236,6 @@ namespace nilou {
     };
     COREUOBJECT_API NObject* StaticConstructObject_Internal(const FStaticConstructObjectParameters& Params);
 
-    COREUOBJECT_API void ForEachObjectWithPackage(const NPackage* Package, std::function<bool(NObject*)> Operation, bool bIncludeNestedObjects = true);
     COREUOBJECT_API TArray<NObject *> GetObjectsWithPackage(const class NPackage* Package, bool bIncludeNestedObjects = true);
 
 }

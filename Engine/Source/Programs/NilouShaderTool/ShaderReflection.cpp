@@ -37,7 +37,7 @@ template <>
 SHADERBINDINGS_API FShaderParametersMetadata2* GetShaderParametersMetadata<{NAMESPACE}{STRUCT_NAME}>()
 {
 	static FShaderParametersMetadata2 Metadata(
-		"{NAMESPACE}{STRUCT_NAME}",
+		"{LOGICAL_NAMESPACE}{STRUCT_NAME}",
 		"SOURCE_LOCATION_FILE_PATH",
 		SOURCE_LOCATION_LINE,
 		{NAMESPACE}CreateDescriptorSetLayout_{STRUCT_NAME}(),
@@ -50,7 +50,7 @@ static FShaderParameterRegistry PREPROCESSOR_JOIN(UniqueRegister, __LINE__)(
 	[]() -> std::pair<std::string, FShaderParametersMetadata2*>
 	{
 		return std::make_pair(
-            "{NAMESPACE}{STRUCT_NAME}", 
+            "{LOGICAL_NAMESPACE}{STRUCT_NAME}", 
             GetShaderParametersMetadata<{NAMESPACE}{STRUCT_NAME}>()
         );
 	}
@@ -268,11 +268,13 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
 {
     std::string StructName = TypeLayout->getType()->getName();
     std::string Namespace = "shader::";
+    std::string LogicalNamespace;  // Slang-side namespaces only, no "shader::" prefix
     std::string BeginNamespaceDeclarations = "namespace shader {\n";
     std::string EndNamespaceDeclarations;
     for (auto NamespaceDecl : TypeDecl.NamespaceDecls)
     {
         Namespace += std::string(NamespaceDecl->getName()) + "::";
+        LogicalNamespace += std::string(NamespaceDecl->getName()) + "::";
         BeginNamespaceDeclarations += std::format("namespace {} {{\n", NamespaceDecl->getName());
         EndNamespaceDeclarations += std::format("}} // End of namespace {}\n", NamespaceDecl->getName());
     }
@@ -438,6 +440,7 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
 
     std::string OutMetadata = GeneratedCppTemplate;
     OutMetadata = SimpleMacroReplace(OutMetadata, "{NAMESPACE}", Namespace);
+    OutMetadata = SimpleMacroReplace(OutMetadata, "{LOGICAL_NAMESPACE}", LogicalNamespace);
     OutMetadata = SimpleMacroReplace(OutMetadata, "{BEGIN_NAMESPACE_DECLARATIONS}", BeginNamespaceDeclarations);
     OutMetadata = SimpleMacroReplace(OutMetadata, "{END_NAMESPACE_DECLARATIONS}", EndNamespaceDeclarations);
     OutMetadata = SimpleMacroReplace(OutMetadata, "CREATE_DESCRIPTOR_SET_LAYOUT", CreateDescriptorSetLayout);
