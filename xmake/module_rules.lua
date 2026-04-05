@@ -1,4 +1,4 @@
-function module_rules(module_name)
+function module_rules(module_name, options)
     target(module_name)
         set_kind("shared")
         set_languages("clatest")
@@ -59,14 +59,18 @@ function module_rules(module_name)
                 end
                 local force_include_file = "-include \"" .. definitions_file .. "\""
                 local headertool_path = "$(builddir)/$(os)/$(arch)/$(mode)/NilouHeaderTool.exe"
-                if (os.exists(headertool_path)) then
-                    local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s %s", headertool_path, src_dir, generated_dir, include_dir, force_include_file)
-                    print(exec)
-                    os.exec(exec)
-                    self:add("files", generated_dir .. "/*.gen.cpp")
+                if options == nil or not options.skip_header_tool then
+                    if os.exists(headertool_path) then
+                        local exec = string.format("%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s %s", headertool_path, src_dir, generated_dir, include_dir, force_include_file)
+                        print(exec)
+                        os.exec(exec)
+                    else
+                        print("NilouHeaderTool not found in " .. headertool_path .. ". Please build NilouHeaderTool first (xmake build NilouHeaderTool).")
+                    end
                 else
-                    print("NilouHeaderTool not found in " .. headertool_path .. ". Please build NilouHeaderTool first (xmake build NilouHeaderTool).")
+                    print("NilouHeaderTool is skipped for module " .. module_name)
                 end
+                self:add("files", generated_dir .. "/*.gen.cpp")
             end
         end)
 

@@ -1,4 +1,4 @@
-module_rules("ShaderBindings")
+module_rules("ShaderBindings", { skip_header_tool = true })
     add_deps("RHI")
     add_deps("RenderCore")
     on_prepare(function (target)
