@@ -170,7 +170,7 @@ namespace nilou {
         RHIDescriptorSetLayoutRef DescriptorSetLayout = nullptr;
     };
 
-    struct RENDERCORE_API FShaderParameterRegistry
+    struct RHI_API FShaderParameterRegistry
     {
         static void RegisterTypes();
         FShaderParameterRegistry(std::function<std::pair<std::string, FShaderParametersMetadata2*>()> GetStructNameAndMetadata);
@@ -185,7 +185,7 @@ namespace nilou {
 
     template <template <EShaderDataLayout> typename T>
     FShaderParametersMetadata2* GetShaderParametersMetadata();
-    RENDERCORE_API FShaderParametersMetadata2* GetShaderParametersMetadata(const std::string& StructName);
+    RHI_API FShaderParametersMetadata2* GetShaderParametersMetadata(const std::string& StructName);
 
 
 }

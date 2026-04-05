@@ -23,6 +23,8 @@ namespace nilou {
 
     RENDERCORE_API std::vector<class FVertexFactoryType *> &GetAllVertexFactoryTypes();
 
+    RENDERCORE_API std::vector<class FGraphicsPipeline*>& GetAllGraphicsPipelines();
+
     enum class EShaderFrequency
     {
         None,
@@ -39,28 +41,6 @@ namespace nilou {
         Global,
         Material
     };
-
-    class FShaderParameterCode
-    {
-    public:
-        std::string Name;
-        EShaderParameterType ParameterType;
-        std::string Code;
-        bool operator<(const FShaderParameterCode &Other) const
-        {
-            return Name < Other.Name;
-        }
-        bool operator==(const FShaderParameterCode &Other) const
-        {
-            return Name == Other.Name;
-        }
-    };
-
-    // struct FShaderCodeInitializer
-    // {
-    //     std::set<FShaderParameterCode> ParameterCodes;
-    //     std::string SourceCodeBody;
-    // };
 
     class RENDERCORE_API FShaderTypeBase
     {
@@ -171,7 +151,41 @@ namespace nilou {
         std::function<void(const FVertexFactoryPermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
     };
 
-    class FShaderInstance;
+    struct FGraphicsPipelinePermutationParameters
+    {
+        class FGraphicsPipeline* Type;
+        int32 PermutationId;
+        FGraphicsPipelinePermutationParameters(FGraphicsPipeline* InType = nullptr, int32 InPermutationId = 0)
+            : Type(InType)
+            , PermutationId(InPermutationId)
+        {}
+    };
+
+    class FGraphicsPipeline
+    {
+    public:
+        friend class FShaderCompiler;
+
+        std::string Name;
+        FHashedName HashedName;
+        int32 PermutationCount;
+        FShaderType* VertexShaderType = nullptr;
+        FShaderType* PixelShaderType = nullptr;
+
+        std::function<bool(const FGraphicsPipelinePermutationParameters&)> ShouldCompilePermutation;
+        std::function<void(const FGraphicsPipelinePermutationParameters&, FShaderCompilerEnvironment&)> ModifyCompilationEnvironment;
+
+        FGraphicsPipeline() {}
+
+        RENDERCORE_API FGraphicsPipeline(
+            const std::string& InPipelineName,
+            FShaderType* InVertexShaderType,
+            FShaderType* InPixelShaderType,
+            std::function<bool(const FGraphicsPipelinePermutationParameters&)> InShouldCompilePermutation,
+            std::function<void(const FGraphicsPipelinePermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
+            int32 InPermutationCount
+        );
+    };
 
     template<EShaderFrequency ShaderFrequency, bool IsMaterialShader>
     struct TShaderFrequencyAssertHelper
@@ -206,8 +220,6 @@ namespace nilou {
 
         /** Can be overridden by FShader subclasses to determine whether a specific permutation should be compiled. */
         static bool ShouldCompilePermutation(const FShaderPermutationParameters&) { return true; }
-
-        static FShaderParameterBlock NewParameterBlock(const std::string& ParameterName);
         
     };
 
@@ -230,6 +242,22 @@ namespace nilou {
     {
         FShaderPermutationParameters PermutationParameters(&T::StaticType, PermutationId);
         return GetGlobalShader(PermutationParameters);
+    }
+
+    RENDERCORE_API void AddGlobalGraphicsPipeline(
+        const FGraphicsPipelinePermutationParameters& Params,
+        RHIVertexShaderRef VSShader,
+        RHIPixelShaderRef PSShader,
+        Slang::ComPtr<slang::ISession> SlangSession,
+        Slang::ComPtr<slang::IComponentType> SlangComponent);
+
+    RENDERCORE_API RHIGraphicsPipelineShaders* GetGlobalGraphicsPipeline(const FGraphicsPipelinePermutationParameters& Params);
+
+    template <typename T>
+    RHIGraphicsPipelineShaders* GetGlobalGraphicsPipeline(int PermutationId = 0)
+    {
+        FGraphicsPipelinePermutationParameters Params(&T::StaticType, PermutationId);
+        return GetGlobalGraphicsPipeline(Params);
     }
     
 }

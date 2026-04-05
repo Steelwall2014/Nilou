@@ -221,15 +221,13 @@ namespace nilou {
     public:
         FMaterialRenderProxy(UMaterial* InMaterial);
 
-        RHIShader *GetShader(
-            const FVertexFactoryPermutationParameters VFParameter, 
-            const FShaderPermutationParameters &ShaderParameter) const
+        RHIGraphicsPipelineShaders* GetPipeline(
+            const FGraphicsPipelinePermutationParameters& PipelineParams,
+            const FVertexFactoryPermutationParameters& VFParams) const
         {
-            return ShaderMap->GetShader(VFParameter, ShaderParameter);
-        }
-        RHIShader *GetShader(const FShaderPermutationParameters &ShaderParameter) const
-        {
-            return ShaderMap->GetShader(ShaderParameter);
+            if (!ShaderMap)
+                return nullptr;
+            return ShaderMap->GetPipeline(PipelineParams, VFParams);
         }
 
         // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances

@@ -1,4 +1,4 @@
-﻿#include "Renderer/ViewElementRendering.h"
+#include "Renderer/ViewElementRendering.h"
 
 #include "Renderer/DeferredShadingSceneRenderer.h"
 #include "RHIStaticStates.h"
@@ -58,8 +58,7 @@ namespace nilou {
                 
         //         FGraphicsPipelineStateInitializer PSOInitializer;
 
-        //         PSOInitializer.VertexShader = ViewElementVS->GetVertexShaderRHI();
-        //         PSOInitializer.PixelShader = ViewElementPS->GetPixelShaderRHI();
+        //         PSOInitializer.Shaders = ...; // from RHIGraphicsPipelineShaders
 
         //         PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_LineList;
 

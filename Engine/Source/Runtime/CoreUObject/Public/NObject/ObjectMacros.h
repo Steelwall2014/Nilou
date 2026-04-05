@@ -107,3 +107,49 @@
 		TShaderFrequencyAssertHelper<ShaderFrequency, TIsDerivedFrom<ShaderClass, FMaterialShader>::Value>(); \
 		return &StaticType; \
 	}
+
+/** 
+ * Declares a graphics pipeline type as a class, binding it to a specific VS and PS.
+ * Use in a header file. Override ShouldCompilePermutation / ModifyCompilationEnvironment as needed.
+ * 
+ * Usage:
+ *   DECLARE_GRAPHICS_PIPELINE(FMyPipeline, FMyVertexShader, FMyPixelShader)
+ *
+ * The class exposes:
+ *   using VertexShaderType = FMyVertexShader;
+ *   using PixelShaderType  = FMyPixelShader;
+ *   static FGraphicsPipeline StaticType;
+ *   using FPermutationDomain = ...;        -- defaults to FShaderPermutationNone
+ */
+#define DECLARE_GRAPHICS_PIPELINE(PipelineClass, VertexShaderClass, PixelShaderClass) \
+    class PipelineClass \
+    { \
+    public: \
+        using VertexShaderType = VertexShaderClass; \
+        using PixelShaderType  = PixelShaderClass; \
+        static FGraphicsPipeline StaticType; \
+        using FPermutationDomain = FShaderPermutationNone; \
+        static bool ShouldCompilePermutation(const FGraphicsPipelinePermutationParameters&) { return true; } \
+        static void ModifyCompilationEnvironment(const FGraphicsPipelinePermutationParameters&, FShaderCompilerEnvironment&) {} \
+    };
+
+/**
+ * Defines (registers) a graphics pipeline type declared with DECLARE_GRAPHICS_PIPELINE.
+ * Place in a .cpp file.
+ *
+ * Usage:
+ *   IMPLEMENT_GRAPHICS_PIPELINE(FMyPipeline)
+ */
+#define IMPLEMENT_GRAPHICS_PIPELINE(PipelineClass) \
+    FGraphicsPipeline PipelineClass::StaticType( \
+        #PipelineClass, \
+        &PipelineClass::VertexShaderType::StaticType, \
+        &PipelineClass::PixelShaderType::StaticType, \
+        PipelineClass::ShouldCompilePermutation, \
+        PipelineClass::ModifyCompilationEnvironment, \
+        PipelineClass::FPermutationDomain::PermutationCount \
+    );
+
+#define DEFINE_GRAPHICS_PIPELINE(PipelineClass, VertexShaderClass, PixelShaderClass) \
+	DECLARE_GRAPHICS_PIPELINE(PipelineClass, VertexShaderClass, PixelShaderClass); \
+	IMPLEMENT_GRAPHICS_PIPELINE(PipelineClass); \

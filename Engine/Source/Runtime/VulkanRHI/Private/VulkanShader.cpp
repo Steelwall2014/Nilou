@@ -17,14 +17,14 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
-        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
-        if (!bSuccess)
-        {
-            NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
-            NILOU_LOG(Error, "\n{}", code);
-            Ncheck(false);
-            return nullptr;
-        }
+        // bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        // if (!bSuccess)
+        // {
+        //     NILOU_LOG(Error, "failed to reflect vertex shader! {}, Dump the code to log", OutMessage);
+        //     NILOU_LOG(Error, "\n{}", code);
+        //     Ncheck(false);
+        //     return nullptr;
+        // }
         return VulkanShader;
     }
 
@@ -43,14 +43,14 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
-        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
-        if (!bSuccess)
-        {
-            NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
-            NILOU_LOG(Error, "\n{}", code);
-            Ncheck(false);
-            return nullptr;
-        }
+        // bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        // if (!bSuccess)
+        // {
+        //     NILOU_LOG(Error, "failed to reflect pixel shader! {}, Dump the code to log", OutMessage);
+        //     NILOU_LOG(Error, "\n{}", code);
+        //     Ncheck(false);
+        //     return nullptr;
+        // }
         return VulkanShader;
     }
 
@@ -69,14 +69,14 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
-        bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
-        if (!bSuccess)
-        {
-            NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);
-            NILOU_LOG(Error, "\n{}", code);
-            Ncheck(false);
-            return nullptr;
-        }
+        // bool bSuccess = RHIReflectShaderInternal(ByteCode, VulkanShader->DescriptorSetLayouts, VulkanShader->PushConstantRange, OutMessage);
+        // if (!bSuccess)
+        // {
+        //     NILOU_LOG(Error, "failed to reflect compute shader! {}, Dump the code to log", OutMessage);
+        //     NILOU_LOG(Error, "\n{}", code);
+        //     Ncheck(false);
+        //     return nullptr;
+        // }
         return VulkanShader;
     }
 
@@ -96,12 +96,12 @@ TRefCountPtr<TShader> FVulkanDynamicRHI::RHICreateShaderInternal(TArrayView<uint
     TRefCountPtr<TShader> Shader = TRefCountPtr(new TShader(Device->Handle, DebugName));
     Shader->Module = Module;
     std::string OutMessage;
-    bool bSuccess = RHIReflectShaderInternal(ByteCode, Shader->DescriptorSetLayouts, Shader->PushConstantRange, OutMessage);
-    if (!bSuccess)
-    {
-        NILOU_LOG(Fatal, "failed to reflect shader! {}", OutMessage);
-        return nullptr;
-    }
+    // bool bSuccess = RHIReflectShaderInternal(ByteCode, Shader->DescriptorSetLayouts, Shader->PushConstantRange, OutMessage);
+    // if (!bSuccess)
+    // {
+    //     NILOU_LOG(Fatal, "failed to reflect shader! {}", OutMessage);
+    //     return nullptr;
+    // }
     return Shader;
 }
 

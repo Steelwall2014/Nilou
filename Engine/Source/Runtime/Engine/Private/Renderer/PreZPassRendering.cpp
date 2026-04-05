@@ -8,6 +8,8 @@
 
 namespace nilou {
 
+    DEFINE_GRAPHICS_PIPELINE(FPreZPassPipeline, FBasePassVS, FDepthOnlyPS);
+
     void FDeferredShadingSceneRenderer::RenderPrePass(RenderGraph& Graph)
     {
         RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
@@ -28,8 +30,7 @@ namespace nilou {
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                    FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
+                    FGraphicsPipelinePermutationParameters PipelineParams(&FPreZPassPipeline::StaticType, 0);
 
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                     ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
@@ -40,8 +41,7 @@ namespace nilou {
                         Graph,
                         VertexFactoryParams,
                         Mesh.MaterialRenderProxy,
-                        PermutationParametersVS,
-                        PermutationParametersPS,
+                        PipelineParams,
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
                         RenderTargets.GetRenderTargetLayout(),

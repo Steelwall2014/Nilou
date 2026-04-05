@@ -41,9 +41,7 @@ namespace nilou {
 	}
 
 	FGraphicsPipelineStateInitializer::FGraphicsPipelineStateInitializer()
-		: VertexShader(nullptr)
-		, PixelShader(nullptr)
-		, DepthStencilState(GetDefaultDepthStencilState())
+		: DepthStencilState(GetDefaultDepthStencilState())
 		, RasterizerState(GetDefaultRasterizerState())
 		, BlendState(GetDefaultBlendState())
 		, VertexDeclaration(nullptr)

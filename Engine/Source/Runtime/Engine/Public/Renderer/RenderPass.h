@@ -8,10 +8,9 @@ namespace nilou {
 
 void BuildMeshDrawCommand(
     RenderGraph& Graph,
-    const FVertexFactoryPermutationParameters &VFPermutationParameters,
+    const FVertexFactoryPermutationParameters& VFParams,
     FMaterialRenderProxy *MaterialProxy,
-    const FShaderPermutationParameters &PermutationParametersVS,
-    const FShaderPermutationParameters &PermutationParametersPS,
+    const FGraphicsPipelinePermutationParameters& PipelineParams,
     FRHIVertexDeclaration* VertexDeclaration,
     const FMeshBatchElement &Element,
     const RHIRenderTargetLayout &RTLayout,

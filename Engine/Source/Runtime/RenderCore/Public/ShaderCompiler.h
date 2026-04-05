@@ -23,33 +23,31 @@ namespace nilou {
     class RENDERCORE_API FShaderCompiler 
     {   
     public:
-        static void CompileGlobalShaders();
+        static void CompileComputeShaders();
+
+        static void CompileGlobalGraphicsPipelines();
 
         static void CompileMaterialShader(
             const std::string& MaterialName,
             const std::string& MaterialPath,
             FMaterialShaderMap* ShaderMap, 
             const std::string &MaterialParsedResult,
-            FShaderCompilerEnvironment &Environment);
+            const FShaderCompilerEnvironment &Environment);
 
     private:
-        static void CompileVertexMaterialShader(
-            const std::string& MaterialName,
-            const std::string& MaterialPath,
-            const std::string &MaterialParsedResult,
-            const FVertexFactoryPermutationParameters &VertexFactoryParams,
-            const FShaderPermutationParameters &ShaderParams,
-            FShaderCompilerEnvironment &Environment,
-            TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap);
-        static void CompilePixelMaterialShader(
-            const std::string& MaterialName,
-            const std::string& MaterialPath,
-            const std::string &MaterialParsedResult,
-            const FShaderPermutationParameters &ShaderParams,
-            FShaderCompilerEnvironment &Environment,
-            TShaderMap<FShaderPermutationParameters> &OutShaderMap);
-        static void CompileGlobalShader(
+        static void CompileComputeShader(
             const FShaderPermutationParameters &ShaderParams);
+
+        static void CompileGlobalGraphicsPipeline(
+            const FGraphicsPipelinePermutationParameters &PipelineParams);
+
+        static void CompileMaterialGraphicsPipeline(
+            const std::string& MaterialName,
+            const std::string& MaterialPath,
+            const FGraphicsPipelinePermutationParameters& PipelineParams,
+            const FVertexFactoryPermutationParameters& VFParams,
+            const FShaderCompilerEnvironment& Environment,
+            FMaterialPipelineMap& OutPipelineMap);
 
     };
 

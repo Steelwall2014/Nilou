@@ -1,4 +1,4 @@
-﻿// #include <glm/gtc/matrix_transform.hpp>
+// #include <glm/gtc/matrix_transform.hpp>
 #include "Engine/TextureRenderTarget.h"
 #include "Logging/LogMacros.h"
 #include "UniformBuffer.h"
@@ -29,6 +29,7 @@ namespace nilou {
 
     IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/Private/GlobalShaders/ScreenQuadVertexShader.slang", "Main", EShaderFrequency::Vertex)
     IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/Private/GlobalShaders/RenderToScreenPixelShader.slang", "Main", EShaderFrequency::Pixel)
+    DEFINE_GRAPHICS_PIPELINE(FRenderToScreenPipeline, FScreenQuadVertexShader, FRenderToScreenPixelShader)
 
     FDeferredShadingSceneRenderer *Renderer = nullptr;
 
@@ -369,14 +370,10 @@ namespace nilou {
         // default sampler state of this pass
         RHISamplerState* SamplerStateRHI = TStaticSamplerState<>::GetRHI();
 
-        // construct PSO initializer and create PSO
-        FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
-        FShaderPermutationParameters PermutationParametersPS(&FRenderToScreenPixelShader::StaticType, 0);
-        RHIShader *RenderToScreenVS = GetGlobalShader(PermutationParametersVS);
-        RHIShader *RenderToScreenPS = GetGlobalShader(PermutationParametersPS);
+        // construct PSO initializer and create PSO (use compiled global graphics pipeline for Slang + SPIR-V pair)
+        RHIGraphicsPipelineShaders* RenderToScreenPipeline = GetGlobalGraphicsPipeline<FRenderToScreenPipeline>();
         FGraphicsPipelineStateInitializer PSOInitializer;
-        PSOInitializer.VertexShader = static_cast<RHIVertexShader*>(RenderToScreenVS);
-        PSOInitializer.PixelShader = static_cast<RHIPixelShader*>(RenderToScreenPS);
+        PSOInitializer.Shaders = *RenderToScreenPipeline;
         PSOInitializer.PrimitiveMode = EPrimitiveMode::PM_TriangleStrip;
         PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
         PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();

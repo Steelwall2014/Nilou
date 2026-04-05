@@ -19,6 +19,8 @@
 #include "VulkanBarriers.h"
 #include "Logging/LogMacros.h"
 #include "HAL/PlatformMisc.h"
+#include "ShaderParameter.h"
+#include <vector>
 
 namespace nilou {
 
@@ -400,63 +402,97 @@ static VkDescriptorType TranslateDescriptorType(EDescriptorType Type)
     }
 }
 
-RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders)
+void ParseSlangReflection(
+    slang::IComponentType* LinkedProgram,
+    std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutDescriptorSetLayouts,
+    std::unordered_map<std::string, uint32>& OutParamBlockNameToSetIndex)
 {
-    VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
-    uint32 MaxSetIndex = 0;
-    std::vector<VkPushConstantRange> VulkanPushConstantRanges;
-    for (RHIShader* shader : shaders)
+    if (LinkedProgram == nullptr)
+        return;
+
+    // Get ProgramLayout (ShaderReflection)
+    slang::ProgramLayout* ProgramLayout = LinkedProgram->getLayout();
+    if (ProgramLayout == nullptr)
+        return;
+
+    slang::VariableLayoutReflection* GlobalParamsVarLayout = ProgramLayout->getGlobalParamsVarLayout();
+    slang::TypeLayoutReflection* GlobalParamsTypeLayout = GlobalParamsVarLayout->getTypeLayout();
+    int GlobalParamsCount = GlobalParamsTypeLayout->getFieldCount();
+    for (int i = 0; i < GlobalParamsCount; i++)
     {
-        for (auto& [SetIndex, DescriptorSetLayout] : shader->DescriptorSetLayouts)
+        slang::VariableLayoutReflection* GlobalParamVarLayout = GlobalParamsTypeLayout->getFieldByIndex(i);
+        if (GlobalParamVarLayout == nullptr)
+            continue;
+        std::string GlobalParamName = GlobalParamVarLayout->getName();
+        slang::TypeLayoutReflection* GlobalParamTypeLayout = GlobalParamVarLayout->getTypeLayout();
+        if (GlobalParamTypeLayout == nullptr)
+            continue;
+        std::string GlobalParamTypeName = GlobalParamTypeLayout->getName();
+        slang::TypeReflection::Kind GlobalParamTypeKind = GlobalParamTypeLayout->getKind();
+        if (GlobalParamTypeKind == slang::TypeReflection::Kind::ParameterBlock)
         {
-            MaxSetIndex = std::max(MaxSetIndex, SetIndex);
-            auto Found = PipelineLayout->DescriptorSetLayouts.find(SetIndex);
-            if (Found != PipelineLayout->DescriptorSetLayouts.end())
+            slang::TypeLayoutReflection* ElementTypeLayout = GlobalParamTypeLayout->getElementTypeLayout();
+            const std::string StructName = ElementTypeLayout->getName();
+            FShaderParametersMetadata2* MetaData = GetShaderParametersMetadata(StructName);
+            if (!MetaData)
             {
-                RHIDescriptorSetLayout* ExistingLayout = Found->second;
-                RHIDescriptorSetLayout* NewLayout = DescriptorSetLayout.GetReference();
-                Ncheckf(ExistingLayout->IsEquivalent(NewLayout), "Descriptor set layout mismatch");
+                NILOU_LOG(Fatal, "Failed to get metadata for struct {}", StructName);
             }
-            PipelineLayout->DescriptorSetLayouts[SetIndex] = DescriptorSetLayout.GetReference();
-        }
-        if (shader->PushConstantRange)
-        {
-            VkPushConstantRange VulkanRange{};
-            if (shader->ShaderStage == EShaderStage::Vertex)
-            {
-                VulkanRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-            }
-            else if (shader->ShaderStage == EShaderStage::Pixel)
-            {
-                VulkanRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            }
-            else if (shader->ShaderStage == EShaderStage::Compute)
-            {
-                VulkanRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-            }
-            VulkanRange.offset = 0;
-            VulkanRange.size = shader->PushConstantRange->Size;
-            VulkanPushConstantRanges.push_back(VulkanRange);
-            PipelineLayout->PushConstantRanges[shader->ShaderStage] = *shader->PushConstantRange;
+            int SetIndex = GlobalParamVarLayout->getOffset(slang::ParameterCategory::SubElementRegisterSpace);
+            OutDescriptorSetLayouts[SetIndex] = MetaData->DescriptorSetLayout;
+            OutParamBlockNameToSetIndex[GlobalParamName] = SetIndex;
         }
     }
+}
 
-    // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
-    // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
+RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(RHIComputeShader* ComputeShader)
+{
+    Ncheckf(ComputeShader, "RHICreatePipelineLayout: ComputeShader is null");
+    VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
+    uint32 MaxSetIndex = 0;
+    ParseSlangReflection(
+        ComputeShader->SlangComponent.get(),
+        PipelineLayout->DescriptorSetLayouts,
+        PipelineLayout->ParamBlockNameToSetIndex);
+
     static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
-    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex+1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex + 1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
     for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
     {
-        SetLayoutHandles[SetIndex] = ResourceCast(DescriptorSetLayout)->Handle;
+        SetLayoutHandles[SetIndex] = ResourceCast(DescriptorSetLayout.GetReference())->Handle;
     }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = SetLayoutHandles.size();
     pipelineLayoutInfo.pSetLayouts = SetLayoutHandles.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    VK_CHECK_RESULT(vkCreatePipelineLayout(Device->Handle, &pipelineLayoutInfo, nullptr, &PipelineLayout->Handle));
+    return PipelineLayout;
+}
 
-    pipelineLayoutInfo.pushConstantRangeCount = VulkanPushConstantRanges.size();
-    pipelineLayoutInfo.pPushConstantRanges = VulkanPushConstantRanges.data();
+RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const RHIGraphicsPipelineShaders& Shaders)
+{
+    Ncheckf(Shaders.SlangComponent, "RHICreatePipelineLayout: RHIGraphicsPipelineShaders::SlangComponent is required");
+    VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
+    uint32 MaxSetIndex = 0;
+    ParseSlangReflection(
+        Shaders.SlangComponent.get(),
+        PipelineLayout->DescriptorSetLayouts,
+        PipelineLayout->ParamBlockNameToSetIndex);
 
+    static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
+    std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex + 1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
+    for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
+    {
+        SetLayoutHandles[SetIndex] = ResourceCast(DescriptorSetLayout.GetReference())->Handle;
+    }
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = SetLayoutHandles.size();
+    pipelineLayoutInfo.pSetLayouts = SetLayoutHandles.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
     VK_CHECK_RESULT(vkCreatePipelineLayout(Device->Handle, &pipelineLayoutInfo, nullptr, &PipelineLayout->Handle));
     return PipelineLayout;
 }
@@ -465,8 +501,8 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
 {
     VulkanGraphicsPipelineStateRef PSO = TRefCountPtr(new VulkanGraphicsPipelineState(Device->Handle, Initializer));
 
-    VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.VertexShader);
-    VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.PixelShader);
+    VulkanVertexShader* VertexShader = static_cast<VulkanVertexShader*>(Initializer.Shaders.GetVertexShader());
+    VulkanPixelShader* PixelShader = static_cast<VulkanPixelShader*>(Initializer.Shaders.GetPixelShader());
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -529,7 +565,7 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
     dynamicState.dynamicStateCount = static_cast<uint32>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {Initializer.VertexShader, Initializer.PixelShader} );
+    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout(Initializer.Shaders);
 
     PSO->PipelineLayout = PipelineLayout;
 
@@ -567,7 +603,7 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
     computeShaderStageInfo.module = vkComputeShader->Module;
     computeShaderStageInfo.pName = "main";
 
-    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout( {ComputeShader} );
+    RHIPipelineLayoutRef PipelineLayout = RHICreatePipelineLayout(ComputeShader);
 
     VulkanComputePipelineStateRef PSO = TRefCountPtr(new VulkanComputePipelineState(Device->Handle, ComputeShader));
     PSO->PipelineLayout = PipelineLayout;

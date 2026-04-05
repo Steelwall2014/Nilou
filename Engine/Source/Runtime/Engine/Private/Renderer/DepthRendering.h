@@ -5,10 +5,6 @@
 
 namespace nilou {
 
-class FDepthOnlyPS : public FMaterialShader
-{
-public:
-    DECLARE_SHADER_TYPE()
-};
+DECLARE_MATERIAL_SHADER(FDepthOnlyPS);
 
 }

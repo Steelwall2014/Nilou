@@ -377,7 +377,7 @@ namespace nilou {
         {
             ShaderMap = std::make_shared<FMaterialShaderMap>();
         }
-        NILOU_LOG(Display, "Compile the shaderMap of Material {}", Owner->ShaderVirtualPath);
+        NILOU_LOG(Display, "Compile the shaderMap of Material \"{}\"", Owner->ShaderVirtualPath);
 
         const std::string SearchPath = FPaths::EngineShadersPublicDir();
         const std::string MaterialPath = FPaths::EngineDir() + Owner->ShaderVirtualPath;

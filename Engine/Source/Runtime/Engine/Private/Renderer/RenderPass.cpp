@@ -5,10 +5,9 @@ namespace nilou {
 
 void BuildMeshDrawCommand(
     RenderGraph& Graph,
-    const FVertexFactoryPermutationParameters &VFPermutationParameters,
+    const FVertexFactoryPermutationParameters &VFParams,
     FMaterialRenderProxy *MaterialProxy,
-    const FShaderPermutationParameters &PermutationParametersVS,
-    const FShaderPermutationParameters &PermutationParametersPS,
+    const FGraphicsPipelinePermutationParameters& PipelineParams,
     FRHIVertexDeclaration* VertexDeclaration,
     const FMeshBatchElement &Element,
     const RHIRenderTargetLayout &RTLayout,
@@ -21,10 +20,8 @@ void BuildMeshDrawCommand(
 {
     // Fill up the pipeline state initializer
     FGraphicsPipelineStateInitializer Initializer;
-    RHIShader *VertexShader = MaterialProxy->GetShader(VFPermutationParameters, PermutationParametersVS);
-    Initializer.VertexShader = static_cast<RHIVertexShader*>(VertexShader);
-    RHIShader *PixelShader = MaterialProxy->GetShader(PermutationParametersPS);
-    Initializer.PixelShader = static_cast<RHIPixelShader*>(PixelShader);
+    RHIGraphicsPipelineShaders *Pipeline = MaterialProxy->GetPipeline(PipelineParams, VFParams);
+    Initializer.Shaders = *Pipeline;
     Initializer.DepthStencilState = DepthStencilState;
     Initializer.RasterizerState = RasterizerState;
     Initializer.BlendState = BlendState;

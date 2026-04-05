@@ -8,6 +8,7 @@
 
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FLightingPassPS, "/Shaders/Private/Lighting/LightingPassPixelShader.slang", "Main", EShaderFrequency::Pixel);
+    DEFINE_GRAPHICS_PIPELINE(FLightingPassPipeline, FScreenQuadVertexShader, FLightingPassPS);
 
     void FDeferredShadingSceneRenderer::RenderLightingPass(RenderGraph& Graph)
     {
@@ -23,18 +24,12 @@ namespace nilou {
 
             for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
             {
-                FShaderPermutationParameters PermutationParametersVS(&FScreenQuadVertexShader::StaticType, 0);
-
                 FShadowMapResource ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
                 int FrustumCount = ShadowMapResource.DepthViews.size();
-                FShaderPermutationParameters PermutationParametersPS(&FLightingPassPS::StaticType, 0);
-
-                RHIShader *LightPassVS = GetGlobalShader(PermutationParametersVS);
-                RHIShader *LightPassPS = GetGlobalShader(PermutationParametersPS);
+                RHIGraphicsPipelineShaders* LightPassPipeline = GetGlobalGraphicsPipeline<FLightingPassPipeline>();
 
                 FGraphicsPipelineStateInitializer PSOInitializer;
-                PSOInitializer.VertexShader = static_cast<RHIVertexShader*>(LightPassVS);
-                PSOInitializer.PixelShader = static_cast<RHIPixelShader*>(LightPassPS);
+                PSOInitializer.Shaders = *LightPassPipeline;
                 PSOInitializer.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
                 PSOInitializer.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
                 PSOInitializer.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();

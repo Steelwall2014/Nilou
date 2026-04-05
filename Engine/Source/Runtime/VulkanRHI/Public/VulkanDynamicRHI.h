@@ -123,7 +123,8 @@ private:
         int32 NumMips, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, ETextureDimension TextureType, ETextureCreateFlags InTexCreateFlags);
     RHIGraphicsPipelineStateRef RHICreateGraphicsPSO(const FGraphicsPipelineStateInitializer &Initializer);
     RHIComputePipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader);
-    RHIPipelineLayoutRef RHICreatePipelineLayout(const std::vector<RHIShader*>& shaders);
+    RHIPipelineLayoutRef RHICreatePipelineLayout(RHIComputeShader* ComputeShader);
+    RHIPipelineLayoutRef RHICreatePipelineLayout(const RHIGraphicsPipelineShaders& Shaders);
     void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
     void RHIUpdateTextureInternal(
         RHITexture* Texture, void* Data, int32 MipmapLevel, 

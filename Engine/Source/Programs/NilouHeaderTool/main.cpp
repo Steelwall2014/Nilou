@@ -557,10 +557,15 @@ void GenerateCode()
 
 void WriteCode(string GeneratedCodePath)
 {
+    // .gen.cpp files use an unqualified stem (last component after "::") so paths stay valid on all
+    // platforms; Type.Name may be fully qualified from libclang. Track both stems for stale-file cleanup.
     std::set<string> ExpectedTypes;
     for (auto& [ClassName, Type] : NTypes)
     {
-        ExpectedTypes.insert(Type.Name);
+        const string GenCppStem = RemoveNamespace(Type.Name);
+        ExpectedTypes.insert(GenCppStem);
+        if (Type.Name != GenCppStem)
+            ExpectedTypes.insert(Type.Name);
     }
     ForEachFile(GeneratedCodePath, false, 
         [&](const std::string& filepath)
@@ -568,8 +573,8 @@ void WriteCode(string GeneratedCodePath)
             if (EndsWith(filepath, ".gen.cpp"))
             {
                 string filename = fs::path(filepath).filename().string();
-                string NameWithoutNamespace = filename.substr(0, filename.size()-8);    // 8 = ".gen.cpp".size()
-                if (ExpectedTypes.find(NameWithoutNamespace) == ExpectedTypes.end())
+                const string FileStem = filename.substr(0, filename.size() - 8); // 8 = ".gen.cpp".size()
+                if (ExpectedTypes.find(FileStem) == ExpectedTypes.end())
                 {
                     fs::remove(filepath);
                 }
@@ -578,7 +583,7 @@ void WriteCode(string GeneratedCodePath)
     for (auto& [ClassName, Type] : NTypes)
     {
         if (Type.FileName == "") continue;
-        fs::path filepath = GeneratedCodePath + "/" + Type.Name + ".gen.cpp";
+        fs::path filepath = fs::path(GeneratedCodePath) / (RemoveNamespace(Type.Name) + ".gen.cpp");
         if (fs::exists(filepath))
         {
             ifstream in_stream(filepath);

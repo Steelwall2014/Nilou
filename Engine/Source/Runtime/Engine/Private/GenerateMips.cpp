@@ -1,4 +1,4 @@
-﻿#include "GenerateMips.h"
+#include "GenerateMips.h"
 #include "RHIStaticStates.h"
 #include "Shader.h"
 #include "ShaderInstance.h"
@@ -18,6 +18,8 @@ IMPLEMENT_SHADER_TYPE(FGenerateMipsVS, "/Shaders/Private/GenerateMips/RasterGene
 
 DECLARE_GLOBAL_SHADER(FGenerateMipsPS)
 IMPLEMENT_SHADER_TYPE(FGenerateMipsPS, "/Shaders/Private/GenerateMips/RasterGenerateMips.slang", "MainPS", EShaderFrequency::Pixel);
+
+DEFINE_GRAPHICS_PIPELINE(FGenerateMipsRasterPipeline, FGenerateMipsVS, FGenerateMipsPS)
 
 constexpr int GroupSize = 8;
 
@@ -118,12 +120,11 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                 ERenderTargetStoreAction::Store 
             };
 
-            RHIShader *VertexShader = GetGlobalShader<FGenerateMipsVS>();
-            RHIShader *PixelShader = GetGlobalShader<FGenerateMipsPS>();
+            RHIGraphicsPipelineShaders* RasterPipeline = GetGlobalGraphicsPipeline<FGenerateMipsRasterPipeline>();
+            Ncheck(RasterPipeline && RasterPipeline->IsValid());
 
             FGraphicsPipelineStateInitializer GraphicsPSOInit;
-            GraphicsPSOInit.VertexShader = static_cast<RHIVertexShader*>(VertexShader);
-            GraphicsPSOInit.PixelShader = static_cast<RHIPixelShader*>(PixelShader);
+            GraphicsPSOInit.Shaders = *RasterPipeline;
             GraphicsPSOInit.RTLayout = RenderTargets.GetRenderTargetLayout();
             GraphicsPSOInit.VertexDeclaration = RDGGetScreenQuadVertexDeclaration();
             RHIGraphicsPipelineState* PSO = RHICreateGraphicsPipelineState(GraphicsPSOInit);

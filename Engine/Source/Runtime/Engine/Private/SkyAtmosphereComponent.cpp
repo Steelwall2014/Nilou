@@ -160,6 +160,7 @@ namespace nilou {
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(TransmittanceShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereTransmittanceParameters>("TransmittanceShader ParamBlock");
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
+        Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchTransmittancePass"};
         Graph.AddComputePass(
             PassDesc,

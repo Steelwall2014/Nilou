@@ -52,14 +52,14 @@ namespace nilou {
         std::string ShaderName;
         std::string Code;
 
-        const std::unordered_map<uint32, RHIDescriptorSetLayoutRef>& GetDescriptorSetLayouts() const
-        {
-            return ShaderRHI->DescriptorSetLayouts;
-        }
-        RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
-        {
-            return ShaderRHI->DescriptorSetLayouts.at(SetIndex).GetReference();
-        }
+        // const std::unordered_map<uint32, RHIDescriptorSetLayoutRef>& GetDescriptorSetLayouts() const
+        // {
+        //     return ShaderRHI->DescriptorSetLayouts;
+        // }
+        // RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
+        // {
+        //     return ShaderRHI->DescriptorSetLayouts.at(SetIndex).GetReference();
+        // }
 
         virtual void InitRHI();
 

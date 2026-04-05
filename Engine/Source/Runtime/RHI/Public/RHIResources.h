@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <slang.h>
+#include <slang-com-ptr.h>
 
 // #include <glm/glm.hpp>
 #include "Math/Maths.h"
@@ -79,17 +80,17 @@ namespace nilou {
 			, Name(InName)
 		{ }
 		std::string Name;
-		std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
-		slang::TypeLayoutReflection* Reflection = nullptr;
+		// std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
+		// slang::TypeLayoutReflection* Reflection = nullptr;
 		std::optional<RHIPushConstantRange> PushConstantRange;
 		EShaderStage ShaderStage;
 		std::string GetName() const { return Name; }
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
-		virtual RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
-        {
-            return DescriptorSetLayouts.at(SetIndex).GetReference();
-        }
+		// virtual RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
+        // {
+        //     return DescriptorSetLayouts.at(SetIndex).GetReference();
+        // }
 	};
 	using RHIShaderRef = TRefCountPtr<RHIShader>;
 	
@@ -106,11 +107,27 @@ namespace nilou {
 		RHIPixelShader(const std::string& InName) : RHIShader(EShaderStage::Pixel, ERHIResourceType::RRT_PixelShader, InName) {}
 	};
 	using RHIPixelShaderRef = TRefCountPtr<RHIPixelShader>;
+
+	/** Vertex + pixel shader handles and shared Slang session / linked program for reflection and pipeline layout creation. */
+	struct RHIGraphicsPipelineShaders
+	{
+		RHIVertexShaderRef VertexShader;
+		RHIPixelShaderRef PixelShader;
+		Slang::ComPtr<slang::ISession> SlangSession;
+		Slang::ComPtr<slang::IComponentType> SlangComponent;
+		bool IsValid() const { return VertexShader != nullptr && PixelShader != nullptr; }
+		RHIVertexShader* GetVertexShader() const { return VertexShader.GetReference(); }
+		RHIPixelShader* GetPixelShader() const { return PixelShader.GetReference(); }
+		bool operator==(const RHIGraphicsPipelineShaders& Other) const = default;
+	};
 	
 	class RHIComputeShader : public RHIShader 
 	{
 	public:
 		RHIComputeShader(const std::string& InName) : RHIShader(EShaderStage::Compute, ERHIResourceType::RRT_ComputeShader, InName) {}
+		/** Slang session / linked program for reflection (global compute shaders; not used for graphics pipeline stages). */
+		Slang::ComPtr<slang::ISession> SlangSession;
+		Slang::ComPtr<slang::IComponentType> SlangComponent;
 	};
 	using RHIComputeShaderRef = TRefCountPtr<RHIComputeShader>;
 
@@ -364,8 +381,7 @@ namespace nilou {
 	public: 
 		RHI_API FGraphicsPipelineStateInitializer();
 
-		RHIVertexShader *VertexShader;
-		RHIPixelShader *PixelShader;
+		RHIGraphicsPipelineShaders Shaders;
 
 		EPrimitiveMode PrimitiveMode;
 
@@ -497,7 +513,7 @@ namespace nilou {
 			}
 			return Found->second;
 		}
-    	std::unordered_map<uint32, RHIDescriptorSetLayout*> DescriptorSetLayouts;
+    	std::unordered_map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
 		std::unordered_map<std::string, uint32> ParamBlockNameToSetIndex;
 		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
 	};

@@ -44,43 +44,13 @@ namespace nilou {
         ReflectionProbeComponent->IrradianceTexture = IrradianceTexture;
         ReflectionProbeComponent->PrefilteredTexture = PrefilteredTexture;
         
-        DebugMat = NewObject<UMaterial>(this, "Test DebugMat");
+        DebugMat = NewObject<UMaterial>(this, "ReflectionProbeDebugMaterial");
         DebugMat->InitializeResources();
         DebugMat->SetShadingModel(EShadingModel::SM_Unlit);
         FRasterizerStateInitializer RasterizerState;
         RasterizerState.CullMode = ERasterizerCullMode::CM_None;
         DebugMat->SetRasterizerState(RasterizerState);
-        DebugMat->UpdateCode(R"(
-#include "../include/Common.glsl"
-#include "../include/BasePassCommon.glsl"
-#include "../include/functions.glsl"
-layout(set=SET_INDEX, binding=BINDING_INDEX) uniform samplerCube Cube;
-
-vec4 MaterialGetBaseColor(VS_Out vs_out)
-{
-    return mytextureCubeLod(Cube, normalize(vs_out.RelativeWorldPosition), 0);
-}
-vec3 MaterialGetEmissive(VS_Out vs_out)
-{
-    return vec3(0);
-}
-vec3 MaterialGetWorldSpaceNormal(VS_Out vs_out)
-{
-    return normalize(vs_out.TBN * vec3(0, 0, 1));
-}
-float MaterialGetRoughness(VS_Out vs_out)
-{
-    return 0.5;
-}
-float MaterialGetMetallic(VS_Out vs_out)
-{
-    return 0.5;
-}
-vec3 MaterialGetWorldSpaceOffset(VS_Out vs_out)
-{
-    return vec3(0);
-}
-        )");
+        DebugMat->SetShaderFileVirtualPath("/Shaders/Private/Materials/ReflectionProbeDebug_Mat.slang");
         DebugMat->SetTextureParameterValue("Cube", PrefilteredTexture);
 
         // DebugSphere = CreateComponent<USphereComponent>(this); 

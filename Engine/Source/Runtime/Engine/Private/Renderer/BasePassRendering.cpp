@@ -1,4 +1,4 @@
-﻿#include "Renderer/BasePassRendering.h"
+#include "Renderer/BasePassRendering.h"
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
 #include "Renderer/DeferredShadingSceneRenderer.h"
@@ -10,6 +10,7 @@
 namespace nilou {
     IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/Private/MaterialShaders/BasePassShaders.slang", "MainVS", EShaderFrequency::Vertex);
     IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/Private/MaterialShaders/BasePassShaders.slang", "MainPS", EShaderFrequency::Pixel);
+    DEFINE_GRAPHICS_PIPELINE(FBasePassPipeline, FBasePassVS, FBasePassPS);
 
     void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
     {    
@@ -36,8 +37,7 @@ namespace nilou {
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                    FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                    FShaderPermutationParameters PermutationParametersPS(&FBasePassPS::StaticType, 0);
+                    FGraphicsPipelinePermutationParameters PipelineParams(&FBasePassPipeline::StaticType, 0);
 
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                     ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
@@ -48,8 +48,7 @@ namespace nilou {
                         Graph,
                         VertexFactoryParams,
                         Mesh.MaterialRenderProxy,
-                        PermutationParametersVS,
-                        PermutationParametersPS,
+                        PipelineParams,
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
                         RenderTargets.GetRenderTargetLayout(),

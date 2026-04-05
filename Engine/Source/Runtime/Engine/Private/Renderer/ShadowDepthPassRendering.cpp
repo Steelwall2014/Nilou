@@ -17,6 +17,8 @@ constexpr double SHADOWMAP_NEAR_CLIP = 0.1;
 
 namespace nilou {
 
+    DEFINE_GRAPHICS_PIPELINE(FShadowDepthPassPipeline, FBasePassVS, FDepthOnlyPS);
+
     void ComputeShadowCullingVolume(std::array<FVector, 8> CascadeFrustumVerts, const FVector3f& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
     {
 
@@ -270,8 +272,7 @@ namespace nilou {
                         for (FMeshBatchElement& Element : Mesh.Elements)
                         {
                             FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                            FShaderPermutationParameters PermutationParametersVS(&FBasePassVS::StaticType, 0);
-                            FShaderPermutationParameters PermutationParametersPS(&FDepthOnlyPS::StaticType, 0);
+                            FGraphicsPipelinePermutationParameters PipelineParams(&FShadowDepthPassPipeline::StaticType, 0);
 
                             FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
                             ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
@@ -283,8 +284,7 @@ namespace nilou {
                                 Graph,
                                 VertexFactoryParams,
                                 Mesh.MaterialRenderProxy,
-                                PermutationParametersVS,
-                                PermutationParametersPS,
+                                PipelineParams,
                                 Element.VertexFactory->GetVertexDeclaration(),
                                 Element,
                                 RenderTargets.GetRenderTargetLayout(),

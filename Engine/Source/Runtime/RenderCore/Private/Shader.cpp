@@ -90,4 +90,81 @@ namespace nilou {
             }
         }
     }
+
+    std::vector<FGraphicsPipeline*>& GetAllGraphicsPipelines()
+    {
+        static std::vector<FGraphicsPipeline*> GraphicsPipelines;
+        return GraphicsPipelines;
+    }
+
+    FGraphicsPipeline::FGraphicsPipeline(
+        const std::string& InPipelineName,
+        FShaderType* InVertexShaderType,
+        FShaderType* InPixelShaderType,
+        std::function<bool(const FGraphicsPipelinePermutationParameters&)> InShouldCompilePermutation,
+        std::function<void(const FGraphicsPipelinePermutationParameters&, FShaderCompilerEnvironment&)> InModifyCompilationEnvironment,
+        int32 InPermutationCount)
+        : Name(RemovePrefixF(InPipelineName))
+        , HashedName(FHashedName(RemovePrefixF(InPipelineName)))
+        , PermutationCount(InPermutationCount)
+        , VertexShaderType(InVertexShaderType)
+        , PixelShaderType(InPixelShaderType)
+        , ShouldCompilePermutation(InShouldCompilePermutation)
+        , ModifyCompilationEnvironment(InModifyCompilationEnvironment)
+    {
+        GetAllGraphicsPipelines().push_back(this);
+    }
+
+    /*========================Global Graphics Pipeline Map==========================*/
+    struct FGlobalGraphicsPipelineMap
+    {
+        std::unordered_map<FHashedName, std::vector<RHIGraphicsPipelineShaders>> Pipelines;
+
+        void Add(
+            const FGraphicsPipelinePermutationParameters& Params,
+            RHIVertexShaderRef VSShader,
+            RHIPixelShaderRef PSShader,
+            Slang::ComPtr<slang::ISession> SlangSession,
+            Slang::ComPtr<slang::IComponentType> SlangComponent)
+        {
+            const FHashedName Key = Params.Type->HashedName;
+            if (Pipelines.find(Key) == Pipelines.end())
+            {
+                Pipelines[Key] = std::vector<RHIGraphicsPipelineShaders>(Params.Type->PermutationCount);
+            }
+            Pipelines[Key][Params.PermutationId].VertexShader = VSShader;
+            Pipelines[Key][Params.PermutationId].PixelShader  = PSShader;
+            Pipelines[Key][Params.PermutationId].SlangSession  = std::move(SlangSession);
+            Pipelines[Key][Params.PermutationId].SlangComponent = std::move(SlangComponent);
+        }
+
+        RHIGraphicsPipelineShaders* Get(const FGraphicsPipelinePermutationParameters& Params)
+        {
+            const FHashedName Key = Params.Type->HashedName;
+            auto iter = Pipelines.find(Key);
+            if (iter != Pipelines.end())
+            {
+                return &iter->second[Params.PermutationId];
+            }
+            return nullptr;
+        }
+    };
+
+    static FGlobalGraphicsPipelineMap GGlobalGraphicsPipelines;
+
+    void AddGlobalGraphicsPipeline(
+        const FGraphicsPipelinePermutationParameters& Params,
+        RHIVertexShaderRef VSShader,
+        RHIPixelShaderRef PSShader,
+        Slang::ComPtr<slang::ISession> SlangSession,
+        Slang::ComPtr<slang::IComponentType> SlangComponent)
+    {
+        GGlobalGraphicsPipelines.Add(Params, VSShader, PSShader, std::move(SlangSession), std::move(SlangComponent));
+    }
+
+    RHIGraphicsPipelineShaders* GetGlobalGraphicsPipeline(const FGraphicsPipelinePermutationParameters& Params)
+    {
+        return GGlobalGraphicsPipelines.Get(Params);
+    }
+    /*========================Global Graphics Pipeline Map==========================*/
 }

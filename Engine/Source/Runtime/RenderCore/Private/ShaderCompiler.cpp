@@ -77,60 +77,6 @@ namespace nilou {
     //     return RealFilePath.generic_string();
     // }
 
-    void AddUniformsToSStream(const std::set<FShaderParameterCode> &ParameterCodes, std::stringstream &Out)
-    {
-        for (auto &ParameterCode : ParameterCodes)
-            Out << ParameterCode.Code << "\n";
-    }
-
-    std::stringstream &operator<<(std::stringstream &out, const std::set<FShaderParameterCode> &ParameterCodes)
-    {
-        for (auto &ParameterCode : ParameterCodes)
-            out << ParameterCode.Code << "\n";
-        return out;
-    }
-
-    std::string ConcateShaderCodeAndParameters(
-        /*std::set<FShaderParameterInfo> &OutShaderParameters, */
-        std::vector<const std::string*> PreprocessResults, 
-        const FShaderCompilerEnvironment &Environment)
-    {
-        FDynamicRHI* DynamicRHI = FDynamicRHI::Get();
-        std::stringstream stream;
-        stream << "#version 460\n";
-        stream << "#define FOR_INTELLISENSE 0\n";
-        stream << "#define RHI_OPENGL (0)\n";
-        stream << "#define RHI_VULKAN (1)\n";
-        if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::OpenGL)
-            stream << "#define RHI_API RHI_OPENGL\n";
-        else if (DynamicRHI->GetCurrentGraphicsAPI() == EGraphicsAPI::Vulkan)
-            stream << "#define RHI_API RHI_VULKAN\n";
-
-        for (auto &[key, value] : Environment.Definitions)
-            stream << "#define " << key << " " << value << "\n";
-        for (const std::string* Code : PreprocessResults)
-        {
-            stream << *Code;
-        }
-
-        std::string shaderCode = stream.str();
-        size_t pos = 0;
-        while ((pos = shaderCode.find("#define BINDING_INDEX 0", pos)) != std::string::npos)
-        {
-            shaderCode.replace(pos, 24, "");
-            pos += 1;
-        }
-
-        pos = 0;
-        int binding_index = 0;
-        while ((pos = shaderCode.find("BINDING_INDEX", pos)) != std::string::npos)
-        {
-            shaderCode.replace(pos, 13, std::to_string(binding_index++));
-            pos += 1;
-        }
-        return shaderCode;
-    }
-
     void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
     {
         if (diagnosticsBlob != nullptr)
@@ -384,7 +330,49 @@ namespace nilou {
         return {byteCode, linkedProgram};
     }
 
-    void FShaderCompiler::CompileGlobalShader(
+    Slang::ComPtr<slang::IBlob> getEntryPointCode(Slang::ComPtr<slang::IComponentType> linkedProgram, int32 entryPointIndex, int32 targetIndex)
+    {
+        Slang::ComPtr<slang::IBlob> code;
+        {
+            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
+            SlangResult result = linkedProgram->getEntryPointCode(
+                entryPointIndex,
+                targetIndex,
+                code.writeRef(),
+                diagnosticsBlob.writeRef());
+            diagnoseIfNeeded(diagnosticsBlob);
+        }
+        return code;
+    }
+
+    Slang::ComPtr<slang::IComponentType> compileComponents(
+        slang::ISession* session,
+        const std::vector<slang::IComponentType*>& componentTypes)
+    {
+        Slang::ComPtr<slang::IComponentType> composedProgram;
+        {
+            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
+            SlangResult result = session->createCompositeComponentType(
+                componentTypes.data(),
+                componentTypes.size(),
+                composedProgram.writeRef(),
+                diagnosticsBlob.writeRef());
+            diagnoseIfNeeded(diagnosticsBlob);
+        }
+
+        Slang::ComPtr<slang::IComponentType> linkedProgram;
+        {
+            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
+            SlangResult result = composedProgram->link(
+                linkedProgram.writeRef(),
+                diagnosticsBlob.writeRef());
+            diagnoseIfNeeded(diagnosticsBlob);
+        }
+
+        return linkedProgram;
+    }
+
+    void FShaderCompiler::CompileComputeShader(
         const FShaderPermutationParameters &ShaderParameter)
     {
         FShaderType *ShaderType = ShaderParameter.Type;
@@ -393,8 +381,6 @@ namespace nilou {
         Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
-        RHIShaderRef ShaderRHI = nullptr;
-        Ncheck(ShaderType->FileAbsolutePath.extension() == ".slang");
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
         slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
         Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
@@ -403,139 +389,101 @@ namespace nilou {
             entryPoint
         });
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-        switch (ShaderType->ShaderFrequency) 
-        {
-        case EShaderFrequency::Vertex:
-            ShaderRHI = RHICreateVertexShader(ByteCode, ShaderType->Name);
-            break;
-        case EShaderFrequency::Pixel:
-            ShaderRHI = RHICreatePixelShader(ByteCode, ShaderType->Name);
-            break;
-        case EShaderFrequency::Compute:
-            ShaderRHI = RHICreateComputeShader(ByteCode, ShaderType->Name);
-            break;
-        default:
-            Ncheck(0);
-        }
-        
-        // Parse Slang reflection and populate DescriptorSetLayouts
-        if (ShaderRHI != nullptr && linkedProgram != nullptr)
-        {
-            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
-        }
+        Ncheck(ShaderType->ShaderFrequency == EShaderFrequency::Compute);
+        RHIComputeShaderRef ShaderRHI = RHICreateComputeShader(ByteCode, ShaderType->Name);
+        ShaderRHI->SlangSession = session;
+        ShaderRHI->SlangComponent = linkedProgram;
         AddGlobalShader(ShaderParameter, ShaderRHI);
     }
 
-    void FShaderCompiler::CompileVertexMaterialShader(
+    void FShaderCompiler::CompileMaterialGraphicsPipeline(
         const std::string& MaterialName,
         const std::string& MaterialPath,
-        const std::string &MaterialPreprocessedResult,
-        const FVertexFactoryPermutationParameters &VertexFactoryParams,
-        const FShaderPermutationParameters &ShaderParameter,
-        FShaderCompilerEnvironment &Environment,
-        TShaderMap<FVertexFactoryPermutationParameters, FShaderPermutationParameters> &OutShaderMap)
+        const FGraphicsPipelinePermutationParameters& PipelineParams,
+        const FVertexFactoryPermutationParameters& VFParams,
+        const FShaderCompilerEnvironment& InEnvironment,
+        FMaterialPipelineMap& OutPipelineMap)
     {
-        FVertexFactoryType *VertexFactoryType = VertexFactoryParams.Type;
-        FShaderType *ShaderType = ShaderParameter.Type;
+        FGraphicsPipeline* Pipeline       = PipelineParams.Type;
+        FShaderType*       VSType         = Pipeline->VertexShaderType;
+        FShaderType*       PSType         = Pipeline->PixelShaderType;
+        FVertexFactoryType* VFType        = VFParams.Type;
 
-        // Material Vertex Shader
-        ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
-        VertexFactoryType->ModifyCompilationEnvironment(VertexFactoryParams, Environment);
-        Environment.SetDefine("SET_INDEX", 0);
+        const bool VSIsMaterial = VSType->ShaderMetaType == EShaderMetaType::Material;
+        const bool PSIsMaterial = PSType->ShaderMetaType == EShaderMetaType::Material;
+
+        FShaderCompilerEnvironment Environment = InEnvironment;
+        Pipeline->ModifyCompilationEnvironment(PipelineParams, Environment);
+        VSType->ModifyCompilationEnvironment(FShaderPermutationParameters(VSType, 0), Environment);
+        PSType->ModifyCompilationEnvironment(FShaderPermutationParameters(PSType, 0), Environment);
+        if (VSIsMaterial)
+            VFType->ModifyCompilationEnvironment(VFParams, Environment);
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
 
-        slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
-        slang::IModule* VertexFactoryModule = loadModuleFromSourceString(session, VertexFactoryType->FileAbsolutePath);
+        slang::IModule* VSModule       = loadModuleFromSourceString(session, VSType->FileAbsolutePath);
+        slang::IModule* PSModule       = loadModuleFromSourceString(session, PSType->FileAbsolutePath);
+        slang::IModule* VFModule       = VSIsMaterial ? loadModuleFromSourceString(session, VFType->FileAbsolutePath) : nullptr;
         slang::IModule* MaterialModule = loadModuleFromSourceString(session, MaterialPath);
 
-        std::string VertexFactoryInputName = VertexFactoryType->Name + "Input";
-        Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
-        Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, { 
-            {
-                slang::SpecializationArg::Kind::Type,
-                VertexFactoryModule->getLayout()->findTypeByName(VertexFactoryType->Name.c_str())
-            },
-            {
-                slang::SpecializationArg::Kind::Type,
-                MaterialModule->getLayout()->findTypeByName(MaterialName.c_str())
-            },
-            {
-                slang::SpecializationArg::Kind::Type,
-                VertexFactoryModule->getLayout()->findTypeByName(VertexFactoryInputName.c_str())
-            },
-        });
-        
-        auto [spirvCode, linkedProgram] = compileFromComponents(session, {
-            ShaderModule,
-            MaterialModule,
-            VertexFactoryModule,
-            specializedEntryPoint
-        });
-        NILOU_LOG(Display, "Compiled {} bytes of SPIR-V", spirvCode->getBufferSize());
-
-        std::string ShaderName = NFormat("{}_{}_p{}_{}_p{}", MaterialName, VertexFactoryType->Name, VertexFactoryParams.PermutationId, ShaderType->Name, ShaderParameter.PermutationId);
-        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-        RHIShaderRef ShaderRHI = RHICreateVertexShader(ByteCode, ShaderName);
-
-        // Parse Slang reflection and populate DescriptorSetLayouts
-        if (ShaderRHI != nullptr && linkedProgram != nullptr)
+        Slang::ComPtr<slang::IEntryPoint> vsEntryPoint = findEntryPointByName(VSModule, VSType->EntryPointName);
+        Slang::ComPtr<slang::IComponentType> specializedVS;
+        if (VSIsMaterial)
         {
-            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
+            std::string VFInputName = VFType->Name + "Input";
+            specializedVS = specializeEntryPoint(vsEntryPoint, {
+                { slang::SpecializationArg::Kind::Type, VFModule->getLayout()->findTypeByName(VFType->Name.c_str()) },
+                { slang::SpecializationArg::Kind::Type, MaterialModule->getLayout()->findTypeByName(MaterialName.c_str()) },
+                { slang::SpecializationArg::Kind::Type, VFModule->getLayout()->findTypeByName(VFInputName.c_str()) },
+            });
         }
 
-        OutShaderMap.AddShader(ShaderRHI, VertexFactoryParams, ShaderParameter);
-    }
-
-    void FShaderCompiler::CompilePixelMaterialShader(
-        const std::string& MaterialName,
-        const std::string& MaterialPath,
-        const std::string& MaterialPreprocessedResult,
-        const FShaderPermutationParameters &ShaderParameter,
-        FShaderCompilerEnvironment &Environment,
-        TShaderMap<FShaderPermutationParameters> &OutShaderMap)
-    {
-        FShaderType *ShaderType = ShaderParameter.Type;
-
-        ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
-        Environment.SetDefine("SET_INDEX", 1);
-
-        Slang::ComPtr<slang::ISession> session = createSession(Environment);
-        slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
-        slang::IModule* MaterialModule = loadModuleFromSourceString(session, MaterialPath);
-        Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
-        Slang::ComPtr<slang::IComponentType> specializedEntryPoint = specializeEntryPoint(entryPoint, {
-            {
-                slang::SpecializationArg::Kind::Type,
-                MaterialModule->getLayout()->findTypeByName(MaterialName.c_str())
-            },
-        });
-
-        std::vector<slang::IComponentType*> componentTypes =
+        Slang::ComPtr<slang::IEntryPoint> psEntryPoint = findEntryPointByName(PSModule, PSType->EntryPointName);
+        Slang::ComPtr<slang::IComponentType> specializedPS;
+        if (PSIsMaterial)
         {
-            ShaderModule,
-            MaterialModule,
-            specializedEntryPoint
-        };
-
-        auto [spirvCode, linkedProgram] = compileFromComponents(session, {
-            ShaderModule,
-            MaterialModule,
-            specializedEntryPoint
-        });
-        NILOU_LOG(Display, "Compiled {} bytes of SPIR-V", spirvCode->getBufferSize());
-
-        std::string ShaderName = NFormat("{}_{}_p{}", MaterialName, ShaderType->Name, ShaderParameter.PermutationId);
-        TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-        RHIShaderRef ShaderRHI = RHICreatePixelShader(ByteCode, ShaderName);
-        
-        // Parse Slang reflection and populate DescriptorSetLayouts
-        if (ShaderRHI != nullptr && linkedProgram != nullptr)
-        {
-            ParseSlangReflection(linkedProgram, ShaderRHI->DescriptorSetLayouts);
+            specializedPS = specializeEntryPoint(psEntryPoint, {
+                { slang::SpecializationArg::Kind::Type, MaterialModule->getLayout()->findTypeByName(MaterialName.c_str()) },
+            });
         }
-        
-        OutShaderMap.AddShader(ShaderRHI, ShaderParameter);
+
+        slang::IComponentType* vsComponent = VSIsMaterial ? specializedVS.get() : vsEntryPoint.get();
+        slang::IComponentType* psComponent = PSIsMaterial ? specializedPS.get() : psEntryPoint.get();
+
+        Slang::ComPtr<slang::IComponentType> linkedProgram = compileComponents(session, {
+            vsComponent,
+            psComponent,
+        });
+
+        auto spirvCode_VS = getEntryPointCode(linkedProgram, 0, 0);
+        auto spirvCode_PS = getEntryPointCode(linkedProgram, 1, 0);
+
+        NILOU_LOG(Display, "Pipeline \"{}\": Material \"{}\", VF \"{}\" p{} — VS {} bytes, PS {} bytes of SPIR-V",
+            Pipeline->Name, MaterialName, VFType->Name, VFParams.PermutationId,
+            spirvCode_VS->getBufferSize(), spirvCode_PS->getBufferSize());
+
+        std::string ShaderName_VS = VSIsMaterial
+            ? NFormat("{}_{}_{}_p{}_Pipeline_{}_p{}", MaterialName, VFType->Name, VSType->Name, VFParams.PermutationId, Pipeline->Name, PipelineParams.PermutationId)
+            : NFormat("{}_Pipeline_{}_p{}", VSType->Name, Pipeline->Name, PipelineParams.PermutationId);
+        std::string ShaderName_PS = PSIsMaterial
+            ? NFormat("{}_{}_Pipeline_{}_p{}", MaterialName, PSType->Name, Pipeline->Name, PipelineParams.PermutationId)
+            : NFormat("{}_Pipeline_{}_p{}", PSType->Name, Pipeline->Name, PipelineParams.PermutationId);
+
+        TArrayView<uint8> ByteCode_VS((uint8*)spirvCode_VS->getBufferPointer(), spirvCode_VS->getBufferSize());
+        TArrayView<uint8> ByteCode_PS((uint8*)spirvCode_PS->getBufferPointer(), spirvCode_PS->getBufferSize());
+
+        RHIVertexShaderRef ShaderRHI_VS = RHICreateVertexShader(ByteCode_VS, ShaderName_VS);
+        RHIPixelShaderRef ShaderRHI_PS = RHICreatePixelShader(ByteCode_PS, ShaderName_PS);
+
+        OutPipelineMap.AddPipeline(
+            PipelineParams,
+            VFParams,
+            RHIGraphicsPipelineShaders{
+                ShaderRHI_VS,
+                ShaderRHI_PS,
+                std::move(session),
+                std::move(linkedProgram),
+            });
     }
 
     template<typename Func, typename Filter>
@@ -559,29 +507,117 @@ namespace nilou {
 
     }
 
-    template<typename Func>
+    template <typename Func>
     void ForEachGlobalShader(Func f)
     {
         ForEachShader(
             f,
-            [](FShaderType *ShaderType) { return ShaderType->ShaderMetaType == EShaderMetaType::Global; });
+            [](FShaderType* ShaderType)
+            { 
+                return ShaderType->ShaderMetaType == EShaderMetaType::Global && ShaderType->ShaderFrequency == EShaderFrequency::Compute;
+            });
     }
 
     template<typename Func>
-    void ForEachMaterialShader(Func f)
+    void ForEachMaterialGraphicsPipeline(Func f)
     {
-        ForEachShader(
-            f,
-            [](FShaderType *ShaderType) { return ShaderType->ShaderMetaType == EShaderMetaType::Material; });
+        for (FGraphicsPipeline* Pipeline : GetAllGraphicsPipelines())
+        {
+            if (Pipeline->VertexShaderType == nullptr || Pipeline->PixelShaderType == nullptr)
+                continue;
+            if (Pipeline->VertexShaderType->ShaderMetaType != EShaderMetaType::Material &&
+                Pipeline->PixelShaderType->ShaderMetaType  != EShaderMetaType::Material)
+                continue;
+
+            for (int32 PipelinePerm = 0; PipelinePerm < Pipeline->PermutationCount; PipelinePerm++)
+            {
+                FGraphicsPipelinePermutationParameters PipelineParams(Pipeline, PipelinePerm);
+                if (!Pipeline->ShouldCompilePermutation(PipelineParams))
+                    continue;
+                f(PipelineParams);
+            }
+        }
     }
 
-    void FShaderCompiler::CompileGlobalShaders()
+    void FShaderCompiler::CompileComputeShaders()
     {
         ForEachGlobalShader(
             [](const FShaderPermutationParameters &ShaderParameter) 
             {
-                CompileGlobalShader(ShaderParameter);
+                CompileComputeShader(ShaderParameter);
             });
+    }
+
+    void FShaderCompiler::CompileGlobalGraphicsPipeline(
+        const FGraphicsPipelinePermutationParameters& PipelineParams)
+    {
+        FGraphicsPipeline* Pipeline = PipelineParams.Type;
+        FShaderType* VSType = Pipeline->VertexShaderType;
+        FShaderType* PSType = Pipeline->PixelShaderType;
+
+        FShaderCompilerEnvironment Environment;
+        Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
+        Pipeline->ModifyCompilationEnvironment(PipelineParams, Environment);
+        VSType->ModifyCompilationEnvironment(FShaderPermutationParameters(VSType, 0), Environment);
+        PSType->ModifyCompilationEnvironment(FShaderPermutationParameters(PSType, 0), Environment);
+
+        Slang::ComPtr<slang::ISession> session = createSession(Environment);
+
+        slang::IModule* VSModule = loadModuleFromSourceString(session, VSType->FileAbsolutePath);
+        slang::IModule* PSModule = loadModuleFromSourceString(session, PSType->FileAbsolutePath);
+
+        Slang::ComPtr<slang::IEntryPoint> vsEntryPoint = findEntryPointByName(VSModule, VSType->EntryPointName);
+        Slang::ComPtr<slang::IEntryPoint> psEntryPoint = findEntryPointByName(PSModule, PSType->EntryPointName);
+
+        Slang::ComPtr<slang::IComponentType> linkedProgram = compileComponents(session, {
+            VSModule,
+            vsEntryPoint,
+            PSModule,
+            psEntryPoint
+        });
+
+        auto vsSpirvCode = getEntryPointCode(linkedProgram, 0, 0);
+        auto psSpirvCode = getEntryPointCode(linkedProgram, 1, 0);
+
+        NILOU_LOG(Display, "Pipeline \"{}\": Compiled VS {} bytes, PS {} bytes of SPIR-V",
+            Pipeline->Name, vsSpirvCode->getBufferSize(), psSpirvCode->getBufferSize());
+
+        std::string VSName = NFormat("{}_VS_p{}", Pipeline->Name, PipelineParams.PermutationId);
+        std::string PSName = NFormat("{}_PS_p{}", Pipeline->Name, PipelineParams.PermutationId);
+
+        TArrayView<uint8> VSByteCode((uint8*)vsSpirvCode->getBufferPointer(), vsSpirvCode->getBufferSize());
+        TArrayView<uint8> PSByteCode((uint8*)psSpirvCode->getBufferPointer(), psSpirvCode->getBufferSize());
+
+        RHIVertexShaderRef VSShaderRHI = RHICreateVertexShader(VSByteCode, VSName);
+        RHIPixelShaderRef PSShaderRHI = RHICreatePixelShader(PSByteCode, PSName);
+
+        AddGlobalGraphicsPipeline(PipelineParams, VSShaderRHI, PSShaderRHI, std::move(session), std::move(linkedProgram));
+    }
+
+    void FShaderCompiler::CompileGlobalGraphicsPipelines()
+    {
+        std::vector<FGraphicsPipeline*>& GraphicsPipelines = GetAllGraphicsPipelines();
+        for (FGraphicsPipeline* Pipeline : GraphicsPipelines)
+        {
+            if (Pipeline->VertexShaderType == nullptr || Pipeline->PixelShaderType == nullptr)
+                continue;
+            if (Pipeline->VertexShaderType->FileAbsolutePath.empty() || Pipeline->PixelShaderType->FileAbsolutePath.empty())
+                continue;
+            // Pipelines with any Material stage are compiled per-material by CompileMaterialShader
+            if (Pipeline->VertexShaderType->ShaderMetaType == EShaderMetaType::Material ||
+                Pipeline->PixelShaderType->ShaderMetaType  == EShaderMetaType::Material)
+                continue;
+
+            for (int32 PermutationId = 0; PermutationId < Pipeline->PermutationCount; PermutationId++)
+            {
+                FGraphicsPipelinePermutationParameters PipelineParams(Pipeline, PermutationId);
+                if (!Pipeline->ShouldCompilePermutation(PipelineParams))
+                    continue;
+
+                NILOU_LOG(Display, "Compiling Graphics Pipeline \"{}\", Permutation: {}", Pipeline->Name, PermutationId);
+                CompileGlobalGraphicsPipeline(PipelineParams);
+            }
+        }
     }
     
     void FShaderCompiler::CompileMaterialShader(
@@ -589,45 +625,48 @@ namespace nilou {
         const std::string& MaterialPath,
         FMaterialShaderMap* ShaderMap,
         const std::string &MaterialParsedResult,
-        FShaderCompilerEnvironment &Environment)
+        const FShaderCompilerEnvironment &Environment)
     {
-        ForEachMaterialShader(
-            [&](const FShaderPermutationParameters &ShaderParameter) {   
-                FShaderType *ShaderType = ShaderParameter.Type;             
-                if (ShaderType->ShaderFrequency == EShaderFrequency::Vertex)
+        ForEachMaterialGraphicsPipeline(
+            [&](const FGraphicsPipelinePermutationParameters& PipelineParams)
+            {
+                FGraphicsPipeline* Pipeline = PipelineParams.Type;
+                const bool VSNeedsVF = Pipeline->VertexShaderType->ShaderMetaType == EShaderMetaType::Material;
+
+                auto compile = [&](const FVertexFactoryPermutationParameters& VFParams)
                 {
-                    // Iterate over all vertex factory types
-                    std::vector<FVertexFactoryType *> &VertexFactoryTypes = GetAllVertexFactoryTypes();
-                    for (FVertexFactoryType *VertexFactoryType : VertexFactoryTypes)
+                    NILOU_LOG(Display, "Material: \"{}\", Pipeline: \"{}\", VF: \"{}\", Permutation: {} / {}",
+                        MaterialName, Pipeline->Name, VFParams.Type->Name, PipelineParams.PermutationId, VFParams.PermutationId);
+                    CompileMaterialGraphicsPipeline(
+                        MaterialName,
+                        MaterialPath,
+                        PipelineParams,
+                        VFParams,
+                        Environment,
+                        ShaderMap->PipelineMap);
+                };
+
+                if (VSNeedsVF)
+                {
+                    std::vector<FVertexFactoryType*>& VertexFactoryTypes = GetAllVertexFactoryTypes();
+                    for (FVertexFactoryType* VFType : VertexFactoryTypes)
                     {
-                        if (VertexFactoryType == &FVertexFactory::StaticType)    // It's the base class so skip it
+                        if (VFType == &FVertexFactory::StaticType)
                             continue;
-                        for (int32 VFPermutationId = 0; VFPermutationId < VertexFactoryType->PermutationCount; VFPermutationId++)
+                        for (int32 VFPerm = 0; VFPerm < VFType->PermutationCount; VFPerm++)
                         {
-                            FVertexFactoryPermutationParameters VFParameters(VertexFactoryType, VFPermutationId);
-                            if (!VertexFactoryType->ShouldCompilePermutation(VFParameters)) // Shouldn't compile this permutation, skip it
+                            FVertexFactoryPermutationParameters VFParams(VFType, VFPerm);
+                            if (!VFType->ShouldCompilePermutation(VFParams))
                                 continue;
-                            NILOU_LOG(Display, "Material: \"{}\", VertexFactory: \"{}\", VertexShader: \"{}\", Permutation: {}", MaterialName, VertexFactoryType->Name, ShaderType->Name, VFPermutationId);
-                            CompileVertexMaterialShader(
-                                MaterialName,
-                                MaterialPath,
-                                MaterialParsedResult, VFParameters, ShaderParameter, 
-                                Environment,
-                                ShaderMap->VertexShaderMap);
+                            compile(VFParams);
                         }
                     }
                 }
-                else if (ShaderType->ShaderFrequency == EShaderFrequency::Pixel)
+                else
                 {
-                    NILOU_LOG(Display, "Material: \"{}\", PixelShader: \"{}\", Permutation: {}", MaterialName, ShaderType->Name, ShaderParameter.PermutationId);
-                    CompilePixelMaterialShader(
-                        MaterialName,
-                        MaterialPath,
-                        MaterialParsedResult, ShaderParameter, 
-                        Environment,
-                        ShaderMap->PixelShaderMap);
+                    // VS is a Global shader — no VF dimension needed; use base FVertexFactory as a sentinel key
+                    compile(FVertexFactoryPermutationParameters(&FVertexFactory::StaticType, 0));
                 }
             });
-
     }
 }
