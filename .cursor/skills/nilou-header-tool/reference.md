@@ -7,17 +7,27 @@
 ## CLI
 
 ```text
-NilouHeaderTool -InputDirectory=<scan dir> -OutputDirectory=<output dir> [clang args...]
+NilouHeaderTool -InputDirectory=<scan dir> -OutputDirectory=<output dir> [-ForceRegenerate] [clang args...]
 ```
 
 - `-InputDirectory`: recursively scan `.h`/`.hpp`.
 - `-OutputDirectory`: write generated `.gen.cpp`.
+- `-ForceRegenerate`: bypass `CachedHeaderModifiedTime.txt` and regenerate reflected outputs.
 - Other flags pass through to libclang (for include paths and defines).
 
 ## Incremental Behavior
 
 - Cache file: `CachedHeaderModifiedTime.txt`
 - Reparse only modified headers.
+
+## Xmake Integration
+
+- Normal editor/game builds do not invoke `NilouHeaderTool` manually from module `on_prepare`.
+- `NilouEditor` / `NilouGame` depend on the `NilouCodegen` phony target.
+- `NilouCodegen` depends on `NilouHeaderTool` and `NilouShaderTool` inside the same xmake build graph, then runs the generators.
+- The `build.fence` policy on `NilouCodegen` prevents generated sources from racing with C++ compilation.
+- `xmake codegen` is the manual entry point for refreshing generated files without building the editor.
+- `xmake codegen --force` passes `-ForceRegenerate` to `NilouHeaderTool`.
 
 ## Reflection Macros
 
@@ -77,4 +87,5 @@ Static registry objects initialize at startup and:
 - `GENERATED_BODY()` must be inside class/struct body.
 - Built-in root reflection types (`NObject`, `NPackage`, `NClass`) are pre-registered.
 - Orphan generated files are removed when source types disappear.
+- Modules whose `Generated` directory is owned by another generator must skip HeaderTool; for example, `ShaderBindings/Generated` is owned by `NilouShaderTool`.
 - Parsing uses parallel execution with synchronization for shared registries.

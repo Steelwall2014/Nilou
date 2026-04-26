@@ -1,7 +1,7 @@
 local codegen_ran = false
 
 function tool_path(tool_name)
-    import("core.project.config")
+    local config = import("core.project.config")
 
     local builddir = config.builddir() or "build"
     local plat = config.plat() or os.host()
@@ -94,7 +94,7 @@ function module_include_flags(target)
     return include_flags
 end
 
-function run_header_tool_for_target(target)
+function run_header_tool_for_target(target, opt)
     if not target.is_nilou_module or target.skip_header_tool then
         return
     end
@@ -103,11 +103,17 @@ function run_header_tool_for_target(target)
     local src_dir = path.absolute(target:scriptdir())
     local include_flags = module_include_flags(target)
     local force_include_file = "-include \"" .. definitions_file .. "\""
+    local force_regenerate = ""
+    if opt and opt.force then
+        force_regenerate = " -ForceRegenerate"
+    end
+
     local exec = string.format(
-        "%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\" -x c++ -std=c++20 %s %s",
+        "%s -InputDirectory=\"%s\" -OutputDirectory=\"%s\"%s -x c++ -std=c++20 %s %s",
         tool_path("NilouHeaderTool"),
         src_dir,
         generated_dir,
+        force_regenerate,
         include_flags,
         force_include_file)
 
@@ -115,31 +121,39 @@ function run_header_tool_for_target(target)
     os.exec(exec)
 end
 
-function run_shader_tool()
+function run_shader_tool(opt)
     local shader_src_dir = path.join("$(projectdir)", "Engine/Shaders")
     local output_dir = path.join("$(projectdir)", "Engine/Source/Runtime/ShaderBindings/Generated")
     local search_dirs = path.join("$(projectdir)", "Engine/Shaders/Public")
     os.mkdir(output_dir)
 
+    local force_regenerate = ""
+    if opt and opt.force then
+        force_regenerate = " -ForceRegenerate"
+    end
+
     local exec = string.format(
-        "%s -InputDirectory=\"%s\" -OutputHeaderDirectory=\"%s\" -OutputCppDirectory=\"%s\" -SearchDirectories=%s",
+        "%s -InputDirectory=\"%s\" -OutputHeaderDirectory=\"%s\" -OutputCppDirectory=\"%s\" -SearchDirectories=%s%s",
         tool_path("NilouShaderTool"),
         shader_src_dir,
         output_dir,
         output_dir,
-        search_dirs)
+        search_dirs,
+        force_regenerate)
 
     print(exec)
     os.exec(exec)
 end
 
-function run_generators()
-    if codegen_ran then
+function run_generators(opt)
+    opt = opt or {}
+
+    if codegen_ran and not opt.force then
         return
     end
     codegen_ran = true
 
-    import("core.project.project")
+    local project = import("core.project.project")
 
     local target_names = {}
     for target_name, _ in pairs(project.targets()) do
@@ -148,13 +162,13 @@ function run_generators()
     table.sort(target_names)
 
     for _, target_name in ipairs(target_names) do
-        run_header_tool_for_target(project.target(target_name))
+        run_header_tool_for_target(project.target(target_name), opt)
     end
 
-    run_shader_tool()
+    run_shader_tool(opt)
 end
 
-function run()
+function run(opt)
     build_tools()
-    run_generators()
+    run_generators(opt)
 end

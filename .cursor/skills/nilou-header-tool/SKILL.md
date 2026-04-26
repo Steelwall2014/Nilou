@@ -24,13 +24,13 @@ Use this skill for tasks related to reflection macros and generated `.gen.cpp` f
 
 ## Build Verification
 
-Run in this order:
+The main build target runs header reflection through `NilouCodegen` automatically:
 
 ```bash
-xmake build NilouHeaderTool
-xmake build NilouShaderTool
 xmake build NilouEditor
 ```
+
+Use `xmake codegen` only when you want to manually refresh generated files without building the editor. Use `xmake codegen --force` to bypass codegen caches and regenerate outputs.
 
 ## Additional Resources
 

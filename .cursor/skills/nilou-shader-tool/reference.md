@@ -46,6 +46,14 @@ Only structs used by `ParameterBlock<T>` (including member structs) produce bind
 - `GetShaderParametersMetadata<T>()` specialization
 - Static registration to `FShaderParameterRegistry`
 
+## `FShaderParametersMetadata2::Members`
+
+`GetMembers_*` fills `std::vector<FShaderParametersMetadata2::FMember>` with:
+
+- Descriptor entries: `AutomaticallyIntroducedUniformBuffer` and each resource/sampler/buffer field (`BindingIndex` is the Vulkan binding in the set).
+- **Uniform block layout**: one row per scalar/vector/matrix field inside the Std140/Std430 payload, and nested struct fields (recursive, qualified names like `Outer.Inner`). For these rows, `BindingIndex` is **0**; use `BaseType` (numeric vs resource) and `Name` to distinguish from real binding 0 when needed. `Offset` is the byte offset in the uniform block from Slang `ParameterCategory::Uniform`.
+- Uniform **arrays** are not emitted yet (tool logs and skips).
+
 ## Type Mapping (Typical)
 
 - `Sampler2D<T>` / `Texture2D<T>` -> `RDGTextureView*`
@@ -60,6 +68,15 @@ Only structs used by `ParameterBlock<T>` (including member structs) produce bind
 - Unchanged source timestamps skip generation.
 - `-ForceRegenerate` bypasses cache.
 - Content compare write avoids touching files with identical output.
+
+## Xmake Integration
+
+- Normal editor/game builds run shader binding generation through `NilouCodegen`.
+- `NilouCodegen` depends on `NilouHeaderTool` and `NilouShaderTool` inside the same xmake build graph, then runs the generators.
+- The `build.fence` policy on `NilouCodegen` prevents generated shader binding sources from racing with C++ compilation.
+- `xmake codegen` is the manual entry point for refreshing generated files without building the editor.
+- `xmake codegen --force` passes `-ForceRegenerate` to `NilouShaderTool`.
+- `ShaderBindings/Generated` is owned by `NilouShaderTool`; the `ShaderBindings` module uses `skip_header_tool = true` so `NilouHeaderTool` stale-file cleanup does not remove shader-generated `.gen.cpp` files.
 
 ## Notes
 

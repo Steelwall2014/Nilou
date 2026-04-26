@@ -24,13 +24,13 @@ Use this skill for tasks related to Nilou shader reflection code generation.
 
 ## Build Verification
 
-Run in this order:
+The main build target runs shader binding generation through `NilouCodegen` automatically:
 
 ```bash
-xmake build NilouHeaderTool
-xmake build NilouShaderTool
 xmake build NilouEditor
 ```
+
+Use `xmake codegen` only when you want to manually refresh generated files without building the editor. Use `xmake codegen --force` to bypass codegen caches and regenerate outputs.
 
 ## Additional Resources
 

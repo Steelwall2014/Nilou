@@ -10,21 +10,23 @@ alwaysApply: true
 - 若发现文档与代码不一致，需在终端输出警告并给出更新建议。
 - 若用户设计指令存在歧义，必须先澄清再实施。
 
-## 构建顺序（必须遵守）
+## 构建与 Codegen（必须遵守）
 
-1) 构建 `NilouHeaderTool`
-```
-xmake build NilouHeaderTool
-```
-
-2) 构建 `NilouShaderTool`
-```
-xmake build NilouShaderTool
-```
-
-3) 构建主目标（`NilouEditor` 或 `NilouGame`）
+主目标构建入口：
 ```
 xmake build NilouEditor
+```
+
+`NilouEditor` / `NilouGame` 必须通过 `NilouCodegen` 在同一个 xmake 构建图内先构建并运行 `NilouHeaderTool` 和 `NilouShaderTool`，不得在构建过程中递归调用 `xmake build`，避免 `.xmake/.../project.lock` 死锁。
+
+手动刷新生成文件：
+```
+xmake codegen
+```
+
+强制绕过 codegen 缓存并重新生成：
+```
+xmake codegen --force
 ```
 
 ## 模块可见性约束

@@ -602,12 +602,13 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        cout << "Usage: NilouHeaderTool -InputDirectory=<directory> -OutputDirectory=<directory> [clang arguments...]" << endl;
+        cout << "Usage: NilouHeaderTool -InputDirectory=<directory> -OutputDirectory=<directory> [-ForceRegenerate] [clang arguments...]" << endl;
         return -1;
     }
     std::string InputDirectory;
     std::string OutputDirectory;
     std::vector<const char*> ClangArguments;
+    bool bForceRegenerate = false;
 
     for (int i = 1; i < argc; i++)
     {
@@ -621,6 +622,10 @@ int main(int argc, char *argv[])
         {
             OutputDirectory = arg.substr(17); // 17 = length of "-OutputDirectory="
         }
+        else if (arg.find("-ForceRegenerate") == 0)
+        {
+            bForceRegenerate = true;
+        }
         else
         {
             ClangArguments.push_back(argv[i]);
@@ -633,7 +638,7 @@ int main(int argc, char *argv[])
     {
         fs::create_directories(OutputDirectory);
     }
-    if (fs::exists(CachedHeaderModifiedTimePath))
+    if (!bForceRegenerate && fs::exists(CachedHeaderModifiedTimePath))
     {
         ifstream in{CachedHeaderModifiedTimePath.string()};
         while (!in.eof())

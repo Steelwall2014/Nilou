@@ -9,10 +9,14 @@ target("NilouCodegen")
 
 task("codegen")
     set_menu {
-        usage = "xmake codegen",
-        description = "Build codegen tools and generate Nilou reflected/shader files."
+        usage = "xmake codegen [options]",
+        description = "Build codegen tools and generate Nilou reflected/shader files.",
+        options = {
+            {"f", "force", "k", nil, "Force regeneration by bypassing codegen caches."}
+        }
     }
 
     on_run(function ()
-        import("modules.nilou_codegen").run()
+        local option = import("core.base.option")
+        import("modules.nilou_codegen").run({force = option.get("force")})
     end)

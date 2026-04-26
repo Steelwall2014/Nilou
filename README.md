@@ -30,22 +30,30 @@ _反射探针_
 ![](figures/ibl_and_shadow.png)
   
 ## 构建
-构建顺序如下：
+主目标会自动先构建并运行代码生成工具：
 
-**第一步：** 构建 `NilouHeaderTool`。该工具负责解析 C++ 头文件并自动生成反射相关代码。
-```
-xmake build NilouHeaderTool
-```
-
-**第二步：** 构建 `NilouShaderTool`。该工具负责解析着色器代码并自动生成着色器结构体对应的 C++ 绑定。
-```
-xmake build NilouShaderTool
-```
-
-**第三步：** 构建主目标 `NilouEditor` 或 `NilouGame`。二者目前除模块链接方式不同外基本一致，未来 `NilouEditor` 将引入编辑器 UI 等专属功能。
 ```
 xmake build NilouEditor
 ```
+
+`NilouEditor` / `NilouGame` 依赖 `NilouCodegen`。`NilouCodegen` 会在同一个 xmake 构建图中先构建 `NilouHeaderTool` 和 `NilouShaderTool`，然后执行：
+
+- `NilouHeaderTool`：解析 C++ 头文件并生成反射相关 `.gen.cpp`。
+- `NilouShaderTool`：解析 Slang 着色器并生成 `ShaderBindings` 相关 C++ 绑定。
+
+如果只想手动刷新代码生成结果，可以运行：
+
+```
+xmake codegen
+```
+
+如果需要绕过代码生成缓存并强制重新生成：
+
+```
+xmake codegen --force
+```
+
+`ShaderBindings/Generated` 由 `NilouShaderTool` 维护，因此 `ShaderBindings` 模块会跳过 `NilouHeaderTool`，避免 HeaderTool 的过期文件清理删除 shader 生成的 `.gen.cpp`。
 
 ## Features
 - 整体设计思路类似UE（比如用UObject实现反射和序列化，场景由Actor和Component组成，游戏线程/渲染线程，Shader设计等）
