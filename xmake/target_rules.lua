@@ -4,6 +4,7 @@ function target_rules(target_name, target_type)
         set_languages("clatest")
         set_languages("cxx20")
         add_cxflags("/utf-8")
+        add_deps("NilouCodegen", {order = true})
 
         before_prepare(function (target)
             if target_type == "Editor" then

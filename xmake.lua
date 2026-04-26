@@ -2,6 +2,7 @@ set_xmakever("3.0.0")
 set_project("Nilou")
 
 engine_version = "0.1.0"
+add_moduledirs("xmake")
 add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
 
 add_rules("mode.release", "mode.debug")
@@ -23,6 +24,7 @@ add_requires("shaderc")
 -- add_requires("vcpkg::llvm")
 add_requireconfs("*", {external = false})
 
+includes("xmake/codegen.lua")
 includes("xmake/module_rules.lua")
 includes("xmake/target_rules.lua")
 includes("Engine/Source/ThirdParty/clang-c/xmake.lua")
