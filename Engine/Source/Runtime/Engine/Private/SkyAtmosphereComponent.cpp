@@ -1,4 +1,4 @@
-﻿#include "Components/SkyAtmosphereComponent.h"
+#include "Components/SkyAtmosphereComponent.h"
 #include "Engine/World.h"
 
 #include "RHIStaticStates.h"
@@ -118,6 +118,7 @@ namespace nilou {
             Desc.TextureType = ETextureDimension::Texture2D;
             Desc.Format = EPixelFormat::PF_R32G32B32A32F;
             Desc.NumMips = 1;
+            Desc.Usage = ETextureUsageFlags::Storage | ETextureUsageFlags::Sampled;
             Desc.SizeX = TRANSMITTANCE_TEXTURE_WIDTH;
             Desc.SizeY = TRANSMITTANCE_TEXTURE_HEIGHT;
             TransmittanceLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere TransmittanceLUT", Desc);
@@ -177,7 +178,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(TRANSMITTANCE_TEXTURE_WIDTH / 8, TRANSMITTANCE_TEXTURE_HEIGHT / 8, 1);
             });
@@ -210,7 +211,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
             });
@@ -245,7 +246,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
@@ -282,7 +283,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
@@ -317,7 +318,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
@@ -352,7 +353,7 @@ namespace nilou {
                 int32 AtmosphereSetIndex = PipelineLayout->GetSetIndex("ATMOSPHERE");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });

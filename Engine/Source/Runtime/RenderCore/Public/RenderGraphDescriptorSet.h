@@ -20,10 +20,10 @@ public:
     }
     ~RDGDescriptorSet();
 
-    void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
-    void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=nullptr);
-    void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
-    void SetStorageImage(const std::string& Name, RDGTextureView* Image);
+    // void SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer);
+    // void SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState=nullptr);
+    // void SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer);
+    // void SetStorageImage(const std::string& Name, RDGTextureView* Image);
 
     void SetUniformBuffer(int32 BindingIndex, RDGBuffer* Buffer);
     void SetCombinedTextureSampler(int32 BindingIndex, RDGTextureView* Texture, RHISamplerState* SamplerState=nullptr);

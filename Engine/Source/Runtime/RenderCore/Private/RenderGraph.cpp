@@ -11,107 +11,12 @@
 
 namespace nilou {
 
-bool GRenderGraphDebug = false;
+bool GRenderGraphDebug = true;
 #define RDG_DEBUG_LOG(Verbosity, Format, ...) NILOU_CLOG(GRenderGraphDebug, Verbosity, Format, __VA_ARGS__)
 
 std::map<RHIDescriptorSetLayout*, RHIDescriptorSetPools> RenderGraph::DescriptorSetPools;
 FRDGBufferPool GRenderGraphBufferPool;
 FRDGTexturePool GRenderGraphTexturePool;
-
-static std::string join(const std::vector<std::string>& Strings, const std::string& Separator = ", ")
-{
-	std::string Result;
-	for (int i = 0; i < Strings.size(); i++)
-	{
-		Result += Strings[i];
-		if (i < Strings.size() - 1)
-		{
-			Result += Separator;
-		}
-	}
-	return Result;
-}
-
-static std::string GetAccessName(ERHIAccess Access)
-{
-	if (Access == ERHIAccess::None)
-	{
-		return "None";
-	}
-	std::vector<std::string> AccessNames;
-	if ((Access & ERHIAccess::IndirectCommandRead) != ERHIAccess::None) AccessNames.push_back("IndirectCommandRead");
-	if ((Access & ERHIAccess::IndexRead) != ERHIAccess::None) AccessNames.push_back("IndexRead");
-	if ((Access & ERHIAccess::VertexAttributeRead) != ERHIAccess::None) AccessNames.push_back("VertexAttributeRead");
-	if ((Access & ERHIAccess::UniformRead) != ERHIAccess::None) AccessNames.push_back("UniformRead");
-	if ((Access & ERHIAccess::ShaderResourceRead) != ERHIAccess::None) AccessNames.push_back("ShaderResourceRead");
-	if ((Access & ERHIAccess::ShaderResourceWrite) != ERHIAccess::None) AccessNames.push_back("ShaderResourceWrite");
-	if ((Access & ERHIAccess::ColorAttachmentRead) != ERHIAccess::None) AccessNames.push_back("ColorAttachmentRead");
-	if ((Access & ERHIAccess::ColorAttachmentWrite) != ERHIAccess::None) AccessNames.push_back("ColorAttachmentWrite");
-	if ((Access & ERHIAccess::DepthStencilAttachmentRead) != ERHIAccess::None) AccessNames.push_back("DepthStencilAttachmentRead");
-	if ((Access & ERHIAccess::DepthStencilAttachmentWrite) != ERHIAccess::None) AccessNames.push_back("DepthStencilAttachmentWrite");
-	if ((Access & ERHIAccess::TransferRead) != ERHIAccess::None) AccessNames.push_back("TransferRead");
-	if ((Access & ERHIAccess::TransferWrite) != ERHIAccess::None) AccessNames.push_back("TransferWrite");
-	if ((Access & ERHIAccess::HostRead) != ERHIAccess::None) AccessNames.push_back("HostRead");
-	if ((Access & ERHIAccess::HostWrite) != ERHIAccess::None) AccessNames.push_back("HostWrite");
-	if ((Access & ERHIAccess::Present) != ERHIAccess::None) AccessNames.push_back("Present");
-	return join(AccessNames, " | ");
-}
-
-static std::string GetPipelineStageName(EPipelineStageFlags PipelineStage)
-{
-	if (PipelineStage == EPipelineStageFlags::None)
-	{
-		return "None";
-	}
-	std::vector<std::string> PipelineStageNames;
-	if ((PipelineStage & EPipelineStageFlags::TopOfPipe) != EPipelineStageFlags::None) PipelineStageNames.push_back("TopOfPipe");
-	if ((PipelineStage & EPipelineStageFlags::DrawIndirect) != EPipelineStageFlags::None) PipelineStageNames.push_back("DrawIndirect");
-	if ((PipelineStage & EPipelineStageFlags::VertexInput) != EPipelineStageFlags::None) PipelineStageNames.push_back("VertexInput");
-	if ((PipelineStage & EPipelineStageFlags::VertexShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("VertexShader");
-	if ((PipelineStage & EPipelineStageFlags::TessellationControlShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("TessellationControlShader");
-	if ((PipelineStage & EPipelineStageFlags::TessellationEvaluationShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("TessellationEvaluationShader");
-	if ((PipelineStage & EPipelineStageFlags::GeometryShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("GeometryShader");
-	if ((PipelineStage & EPipelineStageFlags::FragmentShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("FragmentShader");
-	if ((PipelineStage & EPipelineStageFlags::EarlyFragmentTests) != EPipelineStageFlags::None) PipelineStageNames.push_back("EarlyFragmentTests");
-	if ((PipelineStage & EPipelineStageFlags::LateFragmentTests) != EPipelineStageFlags::None) PipelineStageNames.push_back("LateFragmentTests");
-	if ((PipelineStage & EPipelineStageFlags::ColorAttachmentOutput) != EPipelineStageFlags::None) PipelineStageNames.push_back("ColorAttachmentOutput");
-	if ((PipelineStage & EPipelineStageFlags::ComputeShader) != EPipelineStageFlags::None) PipelineStageNames.push_back("ComputeShader");
-	if ((PipelineStage & EPipelineStageFlags::Transfer) != EPipelineStageFlags::None) PipelineStageNames.push_back("Transfer");
-	if ((PipelineStage & EPipelineStageFlags::BottomOfPipe) != EPipelineStageFlags::None) PipelineStageNames.push_back("BottomOfPipe");
-	if ((PipelineStage & EPipelineStageFlags::Host) != EPipelineStageFlags::None) PipelineStageNames.push_back("Host");
-	if ((PipelineStage & EPipelineStageFlags::AllGraphics) != EPipelineStageFlags::None) PipelineStageNames.push_back("AllGraphics");
-	if ((PipelineStage & EPipelineStageFlags::AllCommands) != EPipelineStageFlags::None) PipelineStageNames.push_back("AllCommands");
-	return join(PipelineStageNames, " | ");
-}
-
-static std::string GetTextureLayoutName(ETextureLayout Layout)
-{
-	switch (Layout)
-	{
-	case ETextureLayout::Undefined:
-		return "Undefined";
-	case ETextureLayout::General:
-		return "General";
-	case ETextureLayout::ColorAttachmentOptimal:
-		return "ColorAttachmentOptimal";
-	case ETextureLayout::DepthStencilAttachmentOptimal:
-		return "DepthStencilAttachmentOptimal";
-	case ETextureLayout::DepthStencilReadOnlyOptimal:
-		return "DepthStencilReadOnlyOptimal";
-	case ETextureLayout::ShaderReadOnlyOptimal:
-		return "ShaderReadOnlyOptimal";
-	case ETextureLayout::TransferSrcOptimal:
-		return "TransferSrcOptimal";
-	case ETextureLayout::TransferDstOptimal:
-		return "TransferDstOptimal";
-	case ETextureLayout::Preinitialized:
-		return "Preinitialized";
-	case ETextureLayout::PresentSrc:
-		return "PresentSrc";
-	default:
-		return "Undefined";
-	}
-}
 
 /** Enumerates all texture accesses and provides the access and subresource range info. This results in
  *  multiple invocations of the same resource, but with different access / subresource range.
@@ -122,12 +27,13 @@ void RenderGraph::EnumerateTextureAccess(FRDGPass* Pass, const std::function<voi
     {
         for (auto& [BindingIndex, Writer] : DescriptorSet->WriterInfos)
         {
-            if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler || Writer.DescriptorType == EDescriptorType::StorageImage)
+            if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler || Writer.DescriptorType == EDescriptorType::StorageImage || Writer.DescriptorType == EDescriptorType::SampledImage)
             {
 				RDGTextureView* TextureView = Writer.ImageInfo.Texture;
 				RDGTexture* Texture = TextureView->GetParent();
 				RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
-				if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler)
+				if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler ||
+					Writer.DescriptorType == EDescriptorType::SampledImage)
 				{
 					Desc.Usage |= ETextureUsageFlags::Sampled;
 				}
@@ -553,7 +459,7 @@ void RenderGraph::SetupCopyPassResource(FRDGPass* Pass, RDGResource* Resource, E
 	}
 	else 
 	{
-		Ncheckf(false, "Unsupported resource type: {}", magic_enum::enum_name(Resource->Type));
+		Ncheckf(false, "Unsupported resource type: {}", ToString(Resource->Type));
 	}
 }
 
@@ -787,7 +693,7 @@ void RenderGraph::Execute()
 			continue;
 		}
 
-		RDG_DEBUG_LOG(Display, "Executing pass: {}, Pipeline: {}", Pass->Desc.Name, magic_enum::enum_name(Pass->Pipeline));
+		RDG_DEBUG_LOG(Display, "Executing pass: '{}' ({}/{}), Pipeline: {}", Pass->Desc.Name, PassHandle, EpiloguePassHandle, ToString(Pass->Pipeline));
 		RHICommandList* RHICmdList = nullptr;
 		if (Pass->Pipeline == ERHIPipeline::Graphics)
 			RHICmdList = RHICreateGfxCommandList();
@@ -807,10 +713,10 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 	for (auto& Barrier : Pass->PrologueMemoryBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
-			GetAccessName(Barrier.SrcAccess),
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage));
+			ToString(Barrier.SrcAccess),
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage));
 	}
 	for (auto& Barrier : Pass->PrologueImageBarriers)
 	{
@@ -819,21 +725,21 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			Barrier.Subresource.GetMipIndex(),
 			Barrier.Subresource.GetArraySlice(),
 			Barrier.Subresource.GetPlaneSlice(),
-			GetAccessName(Barrier.SrcAccess), 
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage),
-			GetTextureLayoutName(Barrier.OldLayout),
-			GetTextureLayoutName(Barrier.NewLayout));
+			ToString(Barrier.SrcAccess), 
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage),
+			ToString(Barrier.OldLayout),
+			ToString(Barrier.NewLayout));
 	}
 	for (auto& Barrier : Pass->PrologueBufferBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
 			(size_t)Barrier.Buffer, 
-			GetAccessName(Barrier.SrcAccess), 
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage),
+			ToString(Barrier.SrcAccess), 
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage),
 			Barrier.Offset,
 			Barrier.Size);
 	}
@@ -876,10 +782,10 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 	for (auto& Barrier : Pass->EpilogueMemoryBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
-			GetAccessName(Barrier.SrcAccess),
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage));
+			ToString(Barrier.SrcAccess),
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage));
 	}
 	for (auto& Barrier : Pass->EpilogueImageBarriers)
 	{
@@ -888,21 +794,21 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 			Barrier.Subresource.GetMipIndex(),
 			Barrier.Subresource.GetArraySlice(),
 			Barrier.Subresource.GetPlaneSlice(),
-			GetAccessName(Barrier.SrcAccess), 
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage),
-			GetTextureLayoutName(Barrier.OldLayout),
-			GetTextureLayoutName(Barrier.NewLayout));
+			ToString(Barrier.SrcAccess), 
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage),
+			ToString(Barrier.OldLayout),
+			ToString(Barrier.NewLayout));
 	}
 	for (auto& Barrier : Pass->EpilogueBufferBarriers)
 	{
 		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
 			(size_t)Barrier.Buffer, 
-			GetAccessName(Barrier.SrcAccess), 
-			GetAccessName(Barrier.DstAccess),
-			GetPipelineStageName(Barrier.SrcStage),
-			GetPipelineStageName(Barrier.DstStage),
+			ToString(Barrier.SrcAccess), 
+			ToString(Barrier.DstAccess),
+			ToString(Barrier.SrcStage),
+			ToString(Barrier.DstStage),
 			Barrier.Offset,
 			Barrier.Size);
 	}
@@ -1277,6 +1183,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 
 	const ERHIPipeline CurrentPipeline = CurrentPass->Pipeline;
 	RDG_DEBUG_LOG(Display, "[CollectPassBarriers] Pass: {}", CurrentPass->GetName());
+	if (CurrentPass->Desc.Name == "RenderToScreen 0") __debugbreak();
 
 	for (auto& PassState : CurrentPass->TextureStates)
 	{
@@ -1297,6 +1204,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			if (LastAccess != CurrentAccess)
 			{
 				const ERHIPipeline LastPipeline = LastPass ? LastPass->Pipeline : ERHIPipeline::Graphics;
+				if (Texture->Name == "SceneColor 0") __debugbreak();
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
@@ -1309,12 +1217,12 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 					LastPass ? LastPass->GetName() : "None",
 					CurrentPass->GetName(),
 					Index, 
-					GetAccessName(Barrier.SrcAccess), 
-					GetAccessName(Barrier.DstAccess),
-					GetPipelineStageName(Barrier.SrcStage),
-					GetPipelineStageName(Barrier.DstStage),
-					GetTextureLayoutName(Barrier.OldLayout),
-					GetTextureLayoutName(Barrier.NewLayout));
+					ToString(Barrier.SrcAccess), 
+					ToString(Barrier.DstAccess),
+					ToString(Barrier.SrcStage),
+					ToString(Barrier.DstStage),
+					ToString(Barrier.OldLayout),
+					ToString(Barrier.NewLayout));
 				ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
 				if (CompatiblePipeline == CurrentPipeline || LastPass == nullptr)
 				{
@@ -1363,10 +1271,10 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 				(size_t)Buffer, 
 				LastPass ? LastPass->GetName() : "None",
 				CurrentPass->GetName(),
-				GetAccessName(Barrier.SrcAccess), 
-				GetAccessName(Barrier.DstAccess), 
-				GetPipelineStageName(Barrier.SrcStage), 
-				GetPipelineStageName(Barrier.DstStage), 
+				ToString(Barrier.SrcAccess), 
+				ToString(Barrier.DstAccess), 
+				ToString(Barrier.SrcStage), 
+				ToString(Barrier.DstStage), 
 				Barrier.Offset, Barrier.Size);
 			ERHIPipeline CompatiblePipeline = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
 			if (CompatiblePipeline == CurrentPipeline || LastPass == nullptr)
@@ -1426,7 +1334,7 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
 					DescriptorSet->Name, 
 					BindingIndex, 
-					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					ToString(WriterInfo.DescriptorType), 
 					(size_t)SamplerState);
 				break;
 			}
@@ -1437,7 +1345,7 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
 					DescriptorSet->Name, 
 					BindingIndex, 
-					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					ToString(WriterInfo.DescriptorType), 
 					(size_t)BufferInfo.Buffer->GetRHI());
 				break;
 			}
@@ -1448,7 +1356,7 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
 					DescriptorSet->Name, 
 					BindingIndex, 
-					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					ToString(WriterInfo.DescriptorType), 
 					(size_t)BufferInfo.Buffer->GetRHI());
 				break;
 			}
@@ -1459,7 +1367,7 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
 					DescriptorSet->Name, 
 					BindingIndex, 
-					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					ToString(WriterInfo.DescriptorType), 
 					(size_t)ImageInfo.Texture->GetRHI());
 				break;
 			}
@@ -1470,13 +1378,24 @@ void RenderGraph::CollectPassDescriptorSets(FRDGPassHandle PassHandle)
 				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
 					DescriptorSet->Name, 
 					BindingIndex, 
-					magic_enum::enum_name(WriterInfo.DescriptorType), 
+					ToString(WriterInfo.DescriptorType), 
+					(size_t)ImageInfo.Texture->GetRHI());
+				break;
+			}
+			case EDescriptorType::SampledImage:
+			{
+				auto& ImageInfo = WriterInfo.ImageInfo;
+				DescriptorSetRHI->SetSampledImage(BindingIndex, ImageInfo.Texture->GetRHI());
+				RDG_DEBUG_LOG(Display, "Descriptor set {} Binding {} updated, DescriptorType: {}, RHIResource: 0x{:x}", 
+					DescriptorSet->Name, 
+					BindingIndex, 
+					ToString(WriterInfo.DescriptorType), 
 					(size_t)ImageInfo.Texture->GetRHI());
 				break;
 			}
 			default:
 			{
-				Ncheckf(false, "Unknown descriptor type {}", magic_enum::enum_name(WriterInfo.DescriptorType));
+				Ncheckf(false, "Unknown descriptor type {}", ToString(WriterInfo.DescriptorType));
 				break;
 			}
 			}

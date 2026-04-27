@@ -194,10 +194,13 @@ namespace nilou {
 		uint32 GetSize() const { return Size; }
 		EBufferUsageFlags GetUsage() const { return Usage; }
 		uint32 GetCount() const { return GetSize() / GetStride(); }
+		const std::string& GetName() const { return DebugName; }
+		void SetName(const std::string& InDebugName) { DebugName = InDebugName; }
 	protected:
 		uint32 Stride;
 		uint32 Size;
 		EBufferUsageFlags Usage;
+		std::string DebugName;
 	};
 	using RHIBufferRef = TRefCountPtr<RHIBuffer>;
 
@@ -513,8 +516,8 @@ namespace nilou {
 			}
 			return Found->second;
 		}
-    	std::unordered_map<uint32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
-		std::unordered_map<std::string, uint32> ParamBlockNameToSetIndex;
+    	std::unordered_map<int32, RHIDescriptorSetLayoutRef> DescriptorSetLayouts;
+		std::unordered_map<std::string, int32> ParamBlockNameToSetIndex;
 		std::unordered_map<EShaderStage, RHIPushConstantRange> PushConstantRanges;
 	};
 	using RHIPipelineLayoutRef = TRefCountPtr<RHIPipelineLayout>;
@@ -559,10 +562,8 @@ namespace nilou {
 
 	struct RHISamplerState : public RHIResource
 	{
-		RHISamplerState(const FSamplerStateInitializer& InInitializer) 
-			: RHIResource(ERHIResourceType::RRT_SamplerState) 
-			, Initializer(InInitializer) {}
-		FSamplerStateInitializer Initializer;
+		RHISamplerState() 
+			: RHIResource(ERHIResourceType::RRT_SamplerState) {}
 	};
 	using RHISamplerStateRef = TRefCountPtr<RHISamplerState>;
 
@@ -640,15 +641,17 @@ namespace nilou {
 
 		RHIDescriptorSet(class RHIDescriptorPool* InPool) : RHIResource(RRT_DescriptorSet), Pool(InPool) {}
 
-        virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
+        virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) = 0;
 
-        virtual void SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState) { }
+        virtual void SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState) = 0;
 
-        virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) { }
+        virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) = 0;
 
-        virtual void SetSampler(uint32 BindingIndex, RHITextureView* Texture, RHISamplerState* SamplerState) { }
+        virtual void SetSampler(uint32 BindingIndex, RHITextureView* Texture, RHISamplerState* SamplerState) = 0;
 
-        virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) { }
+        virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) = 0;
+
+        virtual void SetSampledImage(uint32 BindingIndex, RHITextureView* Texture) = 0;
 
 		RHIDescriptorPool* GetPool() const { return Pool; }
 
@@ -678,6 +681,11 @@ namespace nilou {
 		virtual bool CanAllocate() const { return false; }
 	};
 	using RHIDescriptorPoolRef = TRefCountPtr<RHIDescriptorPool>;
+
+	inline RHIDescriptorSetLayout* RHIDescriptorSet::GetLayout() const
+	{
+		return Pool->Layout;
+	}
 
 	class RHIViewport : public RHIResource
 	{

@@ -16,10 +16,13 @@
 #include "Engine/Texture.h"
 #include "VertexFactory.h"
 #include "ShaderParameter.h"
+#include "RenderGraphDescriptorSet.h"
 #include <slang.h>
 
 // The nlohmann::json here is used as a placeholder for any type of material parameter value 
 namespace nilou {
+
+    class RenderGraph;
 
     enum class NENUM EShadingModel : uint32
     {
@@ -221,13 +224,13 @@ namespace nilou {
     public:
         FMaterialRenderProxy(UMaterial* InMaterial);
 
-        RHIGraphicsPipelineShaders* GetPipeline(
+        RHIGraphicsPipelineShaders* GetPipelineShaders(
             const FGraphicsPipelinePermutationParameters& PipelineParams,
             const FVertexFactoryPermutationParameters& VFParams) const
         {
             if (!ShaderMap)
                 return nullptr;
-            return ShaderMap->GetPipeline(PipelineParams, VFParams);
+            return ShaderMap->GetPipelineShaders(PipelineParams, VFParams);
         }
 
         // Since FMaterialShaderMap is the shaders for a material, so it may be SHARED by multiple materials e.g. material instances
@@ -259,9 +262,12 @@ namespace nilou {
             ValueArray[ParameterInfo.Name] = Value;
         }
 
-        FMeshDrawShaderBindings GetShaderBindings() const;
+        FMeshDrawShaderBindings GetShaderBindings(RenderGraph& Graph) const;
 
     private:
+
+        void PackMaterialUniformData(uint8* Dest, uint32 DestSize) const;
+        void WriteMaterialDescriptorBindings(RDGDescriptorSet* DescriptorSet) const;
 
         template <typename ValueType> std::map<std::string, ValueType>& GetValueArray() { return ScalarParameterArray; }
         template <typename ValueType> const std::map<std::string, ValueType>& GetValueArray() const { return ScalarParameterArray; }
@@ -274,6 +280,11 @@ namespace nilou {
         std::map<std::string, UTexture*> TextureParameterArray;
 
         RDGBufferRef UniformBufferRDG = nullptr;
+
+        RDGDescriptorSetRef MaterialParamsDescriptorSet = nullptr;
+
+        /** Byte size of the Std140/Std430 payload for the material ParameterBlock (Slang uniform size). */
+        uint32 MaterialUniformBufferSize = 0;
     };
 
     template <> inline std::map<std::string, float>& FMaterialRenderProxy::GetValueArray<float>() { return ScalarParameterArray; }

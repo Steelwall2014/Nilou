@@ -12,15 +12,6 @@
 #include "VulkanSemaphore.h"
 #include "Containers/Array.h"
 
-#define VK_CHECK_RESULT(f)																				\
-{																										\
-	VkResult _res = (f);																				\
-	if (_res != VK_SUCCESS)																				\
-	{																									\
-        NILOU_LOG(Fatal, "VkResult is \"{}\" in {} at line {}", FVulkanDynamicRHI::ErrorString(_res), __FILE__, __LINE__); \
-	}																									\
-}
-
 #define NILOU_VK_API_VERSION VK_API_VERSION_1_3
 
 namespace nilou {
@@ -66,7 +57,7 @@ public:
     virtual RHIPixelShaderRef RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName) override;
     virtual RHIComputeShaderRef RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName) override;
     virtual bool RHIReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage) override;
-    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) override;
+    virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& DebugName, const void *Data) override;
     virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) override;
     virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) override;
     virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
@@ -110,8 +101,6 @@ public:
     VulkanDevice* Device = nullptr;
     VkPhysicalDeviceProperties GpuProps;
     std::unique_ptr<FVulkanRenderPassManager> RenderPassManager;
-
-    static std::string ErrorString(VkResult Result);
     
 private:
     void InitInstance();

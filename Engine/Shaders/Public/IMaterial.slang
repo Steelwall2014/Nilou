@@ -1,6 +1,7 @@
 implementing RenderCore;
 
-public enum EShadingModel
+public
+enum class EShadingModel : uint8_t
 {
     Unlit = 0,
     DefaultLit,

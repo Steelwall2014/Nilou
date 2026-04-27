@@ -404,8 +404,8 @@ static VkDescriptorType TranslateDescriptorType(EDescriptorType Type)
 
 void ParseSlangReflection(
     slang::IComponentType* LinkedProgram,
-    std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutDescriptorSetLayouts,
-    std::unordered_map<std::string, uint32>& OutParamBlockNameToSetIndex)
+    std::unordered_map<int32, TRefCountPtr<RHIDescriptorSetLayout>>& OutDescriptorSetLayouts,
+    std::unordered_map<std::string, int32>& OutParamBlockNameToSetIndex)
 {
     if (LinkedProgram == nullptr)
         return;
@@ -449,12 +449,18 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(RHIComputeShader
 {
     Ncheckf(ComputeShader, "RHICreatePipelineLayout: ComputeShader is null");
     VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
-    uint32 MaxSetIndex = 0;
+    int32 MaxSetIndex = 0;
     ParseSlangReflection(
         ComputeShader->SlangComponent.get(),
         PipelineLayout->DescriptorSetLayouts,
         PipelineLayout->ParamBlockNameToSetIndex);
+    for (auto& [SetIndex, _] : PipelineLayout->DescriptorSetLayouts)
+    {
+        MaxSetIndex = std::max(SetIndex, MaxSetIndex);
+    }
 
+    // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
+    // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
     static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
     std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex + 1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
     for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
@@ -475,12 +481,18 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const RHIGraphic
 {
     Ncheckf(Shaders.SlangComponent, "RHICreatePipelineLayout: RHIGraphicsPipelineShaders::SlangComponent is required");
     VulkanPipelineLayoutRef PipelineLayout = TRefCountPtr(new VulkanPipelineLayout(Device->Handle));
-    uint32 MaxSetIndex = 0;
+    int32 MaxSetIndex = 0;
     ParseSlangReflection(
         Shaders.SlangComponent.get(),
         PipelineLayout->DescriptorSetLayouts,
         PipelineLayout->ParamBlockNameToSetIndex);
+    for (auto& [SetIndex, _] : PipelineLayout->DescriptorSetLayouts)
+    {
+        MaxSetIndex = std::max(SetIndex, MaxSetIndex);
+    }
 
+    // Steelwall2014: if the set indices are not contiguous, we need to fill the gaps with a dummy descriptor set layout
+    // see https://github.com/KhronosGroup/Vulkan-Docs/issues/1372
     static RHIDescriptorSetLayoutRef DummyDescriptorSetLayout = RHICreateDescriptorSetLayout({});
     std::vector<VkDescriptorSetLayout> SetLayoutHandles(MaxSetIndex + 1, ResourceCast(DummyDescriptorSetLayout.GetReference())->Handle);
     for (auto& [SetIndex, DescriptorSetLayout] : PipelineLayout->DescriptorSetLayouts)
@@ -720,7 +732,6 @@ inline VkCompareOp TranslateSamplerCompareFunction(ESamplerCompareFunction InSam
 
 RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateInitializer &Initializer)
 {
-    VulkanSamplerStateRef Sampler = TRefCountPtr(new VulkanSamplerState(Initializer, Device->Handle));
     VkSamplerCreateInfo SamplerInfo{};
     SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -746,7 +757,7 @@ RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateI
 	SamplerInfo.maxLod = Initializer.MaxMipLevel;
 	SamplerInfo.borderColor = Initializer.BorderColor == 0 ? VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK : VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     
-    VK_CHECK_RESULT(vkCreateSampler(Device->Handle, &SamplerInfo, nullptr, &Sampler->Handle));
+    VulkanSamplerStateRef Sampler = TRefCountPtr(new VulkanSamplerState(SamplerInfo, Device->Handle));
 
 	uint32 CRC = FCrc::MemCrc32(&SamplerInfo, sizeof(SamplerInfo));
     SamplerMap[CRC] = Sampler;
@@ -819,41 +830,6 @@ uint32 FVulkanDynamicRHI::RHIComputeMemorySize(RHITexture* TextureRHI)
     VkMemoryRequirements memRequirements{};
     vkGetImageMemoryRequirements(Device->Handle, ResourceCast(TextureRHI)->Handle, &memRequirements);
     return memRequirements.size;
-}
-
-std::string FVulkanDynamicRHI::ErrorString(VkResult errorCode)
-{
-    switch (errorCode)
-    {
-#define STR(r) case VK_##r: return #r
-        STR(NOT_READY);
-        STR(TIMEOUT);
-        STR(EVENT_SET);
-        STR(EVENT_RESET);
-        STR(INCOMPLETE);
-        STR(ERROR_OUT_OF_HOST_MEMORY);
-        STR(ERROR_OUT_OF_DEVICE_MEMORY);
-        STR(ERROR_INITIALIZATION_FAILED);
-        STR(ERROR_DEVICE_LOST);
-        STR(ERROR_MEMORY_MAP_FAILED);
-        STR(ERROR_LAYER_NOT_PRESENT);
-        STR(ERROR_EXTENSION_NOT_PRESENT);
-        STR(ERROR_FEATURE_NOT_PRESENT);
-        STR(ERROR_INCOMPATIBLE_DRIVER);
-        STR(ERROR_TOO_MANY_OBJECTS);
-        STR(ERROR_FORMAT_NOT_SUPPORTED);
-        STR(ERROR_SURFACE_LOST_KHR);
-        STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-        STR(SUBOPTIMAL_KHR);
-        STR(ERROR_OUT_OF_DATE_KHR);
-        STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-        STR(ERROR_VALIDATION_FAILED_EXT);
-        STR(ERROR_INVALID_SHADER_NV);
-        STR(ERROR_INCOMPATIBLE_SHADER_BINARY_EXT);
-#undef STR
-    default:
-        return "UNKNOWN_ERROR";
-    }
 }
 
 }

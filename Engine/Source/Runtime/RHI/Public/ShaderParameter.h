@@ -133,7 +133,9 @@ namespace nilou {
     {
         struct FMember
         {
-            // Binding index in the Vulkan descriptor set. For scalar/non-opaque members this is 0.
+            // Vulkan descriptor set binding index for resource entries (0,1,2,…). Uniform-block payload
+            // fields also use 0 here; tell them apart from descriptors using BaseType (numeric vs Texture/Buffer/…)
+            // and Name (e.g. AutomaticallyIntroducedUniformBuffer).
             int32 BindingIndex;
             // Member name as it appears in the shader source.
             std::string Name;

@@ -194,27 +194,29 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Si
     return Buffer;
 }
 
-RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
+RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& DebugName, const void *Data)
 {
-	return RHICreateBufferInternal(Stride, Size, InUsage, TranslateBufferUsageFlags(InUsage), TranslateMemoryPropertyFlags(InUsage));
+	RHIBufferRef Buffer = RHICreateBufferInternal(Stride, Size, InUsage, TranslateBufferUsageFlags(InUsage), TranslateMemoryPropertyFlags(InUsage));
+	Buffer->SetName(DebugName);
+	return Buffer;
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data)
 {
-    return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StorageBuffer, Data);
+    return RHICreateBuffer(DataByteLength, DataByteLength, EBufferUsageFlags::StorageBuffer, "ShaderStorageBuffer", Data);
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z)
 {
     VkDispatchIndirectCommand command{ num_groups_x, num_groups_y, num_groups_z };
-    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, &command);
+    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, "DispatchIndirectBuffer", &command);
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateDrawElementsIndirectBuffer(
     int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance)
 {
     VkDrawIndexedIndirectCommand command{ (uint32)Count, instanceCount, firstIndex, (int32)baseVertex, baseInstance };
-    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, &command);
+    return RHICreateBuffer(sizeof(command), sizeof(command), EBufferUsageFlags::IndirectBuffer, "DrawElementsIndirectBuffer", &command);
 }
 
 // void *FVulkanDynamicRHI::RHILockBuffer(RHIBuffer* buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)

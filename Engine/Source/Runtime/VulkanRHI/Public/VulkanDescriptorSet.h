@@ -64,11 +64,15 @@ public:
 
     virtual void SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
 
+    virtual void SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState) override;
+
     virtual void SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer) override;
 
     virtual void SetSampler(uint32 BindingIndex, RHITextureView* Texture, RHISamplerState* SamplerState) override;
 
     virtual void SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture) override;
+
+    virtual void SetSampledImage(uint32 BindingIndex, RHITextureView* InTexture) override;
 
     VkDescriptorSet Handle;
     VkDevice Device;

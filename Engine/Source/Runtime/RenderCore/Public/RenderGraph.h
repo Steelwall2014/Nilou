@@ -148,30 +148,32 @@ public:
                 break;
             }
         }
+
+        SetupDescriptorSet(Block, Block->DescriptorSet);
     }
     // Add a graphics pass to the render graph
-    template <typename ExecuteLambdaType>
-    FRDGPassHandle AddGraphicsPass(
-        const RDGPassDesc& PassDesc,
-        const RDGRenderTargets& RenderTargets,
-        const std::vector<RDGBuffer*>& IndexBuffer,
-        const std::vector<RDGBuffer*>& VertexBuffers,
-        const std::vector<RDGDescriptorSet*>& PassParameters,
-        ExecuteLambdaType&& Executor)
-    {
-        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
-            Passes.size(), 
-            PassDesc, 
-            ERHIPipeline::Graphics,
-            std::forward<ExecuteLambdaType>(Executor));
-        Pass->RenderTargets = RenderTargets;
-        Pass->IndexBuffers = IndexBuffer;
-        Pass->VertexBuffers = VertexBuffers;
-        Pass->DescriptorSets = PassParameters;
-        Passes.push_back(Pass);
-        SetupParameterPass(Pass);
-        return Pass->Handle;
-    }
+    // template <typename ExecuteLambdaType>
+    // FRDGPassHandle AddGraphicsPass(
+    //     const RDGPassDesc& PassDesc,
+    //     const RDGRenderTargets& RenderTargets,
+    //     const std::vector<RDGBuffer*>& IndexBuffer,
+    //     const std::vector<RDGBuffer*>& VertexBuffers,
+    //     const std::vector<RDGDescriptorSet*>& PassParameters,
+    //     ExecuteLambdaType&& Executor)
+    // {
+    //     FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+    //         Passes.size(), 
+    //         PassDesc, 
+    //         ERHIPipeline::Graphics,
+    //         std::forward<ExecuteLambdaType>(Executor));
+    //     Pass->RenderTargets = RenderTargets;
+    //     Pass->IndexBuffers = IndexBuffer;
+    //     Pass->VertexBuffers = VertexBuffers;
+    //     Pass->DescriptorSets = PassParameters;
+    //     Passes.push_back(Pass);
+    //     SetupParameterPass(Pass);
+    //     return Pass->Handle;
+    // }
 
     // Add a graphics pass to the render graph
     template <typename SetupLambdaType, typename ExecuteLambdaType>
@@ -198,22 +200,22 @@ public:
     }
 
     // Add a compute pass to the render graph
-    template <typename ExecuteLambdaType>
-    FRDGPassHandle AddComputePass(
-        const RDGPassDesc& PassDesc,
-        const std::vector<RDGDescriptorSet*>& PassParameters,
-        ExecuteLambdaType&& Executor)
-    {
-        FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
-            Passes.size(), 
-            PassDesc, 
-            ERHIPipeline::AsyncCompute,
-            std::forward<ExecuteLambdaType>(Executor));
-        Pass->DescriptorSets = PassParameters;
-        Passes.push_back(Pass);
-        SetupParameterPass(Pass);
-        return Pass->Handle;
-    }
+    // template <typename ExecuteLambdaType>
+    // FRDGPassHandle AddComputePass(
+    //     const RDGPassDesc& PassDesc,
+    //     const std::vector<RDGDescriptorSet*>& PassParameters,
+    //     ExecuteLambdaType&& Executor)
+    // {
+    //     FRDGPass* Pass = new TRDGLambdaPass<ExecuteLambdaType>(
+    //         Passes.size(), 
+    //         PassDesc, 
+    //         ERHIPipeline::AsyncCompute,
+    //         std::forward<ExecuteLambdaType>(Executor));
+    //     Pass->DescriptorSets = PassParameters;
+    //     Passes.push_back(Pass);
+    //     SetupParameterPass(Pass);
+    //     return Pass->Handle;
+    // }
 
     // Single-parameter-block overload: auto-materializes transient blocks;
     // pooled blocks must have been materialized by the caller via UpdateParameterBlock.

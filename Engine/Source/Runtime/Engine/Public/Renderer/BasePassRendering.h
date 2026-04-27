@@ -3,18 +3,30 @@
 #include "Shader.h"
 
 namespace nilou {
+
     DECLARE_MATERIAL_SHADER(FBasePassVS)
-    class FBasePassPS : public FMaterialShader
-	{
-	public:
-		DECLARE_SHADER_TYPE()
-        class FDimensionEnableReflectionProbe : SHADER_PERMUTATION_BOOL("ENABLE_REFLECTION_PROBE");
-        using FPermutationDomain = TShaderPermutationDomain<FDimensionEnableReflectionProbe>;
-        static void ModifyCompilationEnvironment(const FShaderPermutationParameters& Parameter, FShaderCompilerEnvironment& Environment)
+    DECLARE_MATERIAL_SHADER(FBasePassPS)
+
+    class FBasePassPipeline
+    {
+    public:
+        using VertexShaderType = FBasePassVS;
+        using PixelShaderType  = FBasePassPS;
+        static FGraphicsPipeline StaticType;
+
+        class FDimensionEnableIBL : SHADER_PERMUTATION_BOOL("ENABLE_IBL");
+        using FPermutationDomain = TShaderPermutationDomain<FDimensionEnableIBL>;
+
+        static bool ShouldCompilePermutation(const FGraphicsPipelinePermutationParameters&)
         {
-            FPermutationDomain Domain(Parameter.PermutationId);
+            return true;
+        }
+
+        static void ModifyCompilationEnvironment(const FGraphicsPipelinePermutationParameters& Params, FShaderCompilerEnvironment& Environment)
+        {
+            FPermutationDomain Domain(Params.PermutationId);
             Domain.ModifyCompilationEnvironment(Environment);
         }
-	};
+    };
 
 }

@@ -226,7 +226,7 @@ namespace nilou {
             VFPermVec[VFParams.PermutationId] = Shaders;
         }
 
-        RHIGraphicsPipelineShaders* GetPipeline(
+        RHIGraphicsPipelineShaders* GetPipelineShaders(
             const FGraphicsPipelinePermutationParameters& PipelineParams,
             const FVertexFactoryPermutationParameters& VFParams)
         {
@@ -267,11 +267,11 @@ namespace nilou {
     {
         friend class FShaderCompiler;
     public:
-        RHIGraphicsPipelineShaders* GetPipeline(
+        RHIGraphicsPipelineShaders* GetPipelineShaders(
             const FGraphicsPipelinePermutationParameters& PipelineParams,
             const FVertexFactoryPermutationParameters& VFParams)
         {
-            return PipelineMap.GetPipeline(PipelineParams, VFParams);
+            return PipelineMap.GetPipelineShaders(PipelineParams, VFParams);
         }
 
         void AddPipeline(

@@ -6,6 +6,63 @@
 
 namespace nilou {
 
+static std::string GetDebugNameOrUnnamed(const std::string& Name)
+{
+	return Name.empty() ? "<unnamed>" : Name;
+}
+
+static std::string GetBufferDebugName(RHIBuffer* Buffer)
+{
+	return Buffer ? GetDebugNameOrUnnamed(Buffer->GetName()) : "<null>";
+}
+
+static std::string GetTextureDebugName(RHITextureView* TextureView)
+{
+	return TextureView && TextureView->Texture ? GetDebugNameOrUnnamed(TextureView->Texture->GetName()) : "<null>";
+}
+
+static void CheckBindingIndex(
+	RHIDescriptorSet* DescriptorSet,
+	uint32 BindingIndex,
+	EDescriptorType ExpectedType)
+{
+	RHIDescriptorSetLayout* Layout = DescriptorSet->GetLayout();
+	Ncheck(Layout);
+
+	const RHIDescriptorSetLayoutBinding* Binding = Layout->GetBinding(BindingIndex);
+	Ncheckf(Binding, "Descriptor binding {} does not exist", BindingIndex);
+	Ncheckf(
+		Binding->DescriptorType == ExpectedType,
+		"Descriptor binding {} ('{}') type mismatch. Expected '{}', got '{}'",
+		BindingIndex,
+		GetDebugNameOrUnnamed(Binding->Name),
+		ToString(ExpectedType),
+		ToString(Binding->DescriptorType));
+}
+
+
+static void CheckBufferUsage(RHIBuffer* Buffer, EBufferUsageFlags ExpectedUsage)
+{
+	Ncheckf(
+		EnumHasAllFlags(Buffer->GetUsage(), ExpectedUsage),
+		"Buffer '{}' usage mismatch. Expected usage flag '{}' in buffer usage '{}'",
+		GetBufferDebugName(Buffer),
+		ToString(ExpectedUsage),
+		ToString(Buffer->GetUsage()));
+}
+
+static void CheckTextureUsage(RHITextureView* TextureView, ETextureUsageFlags ExpectedUsage)
+{
+	Ncheck(TextureView && TextureView->Texture);
+	const ETextureUsageFlags Usage = TextureView->Texture->GetDesc().Usage;
+	Ncheckf(
+		EnumHasAllFlags(Usage, ExpectedUsage),
+		"Texture '{}' usage mismatch. Expected usage flag '{}' in texture usage '{}'",
+		GetTextureDebugName(TextureView),
+		ToString(ExpectedUsage),
+		ToString(Usage));
+}
+
 RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const std::vector<RHIDescriptorSetLayoutBinding>& Bindings)
 {
 	// uint32 Hash = FCrc::MemCrc32(Bindings.data(), sizeof(RHIDescriptorSetLayoutBinding) * Bindings.size());
@@ -109,6 +166,8 @@ void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 {
 	VulkanBuffer* VulkanBuffer = ResourceCast(Buffer);
 	Ncheck(VulkanBuffer && VulkanBuffer->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::UniformBuffer);
+	CheckBufferUsage(Buffer, EBufferUsageFlags::UniformBuffer);
 
 	VkDescriptorBufferInfo BufferInfo{};
 	BufferInfo.buffer = VulkanBuffer->Handle;
@@ -127,10 +186,33 @@ void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
 }
 
+void VulkanDescriptorSet::SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState)
+{
+	VulkanSamplerState* VulkanSampler = ResourceCast(SamplerState);
+	Ncheck(VulkanSampler && VulkanSampler->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::Sampler);
+
+	VkDescriptorImageInfo ImageInfo{};
+	ImageInfo.sampler = VulkanSampler->Handle;
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pImageInfo = &ImageInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+}
+
 void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
 {
 	VulkanBuffer* VulkanBuffer = ResourceCast(Buffer);
 	Ncheck(VulkanBuffer && VulkanBuffer->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::StorageBuffer);
+	CheckBufferUsage(Buffer, EBufferUsageFlags::StorageBuffer);
 
 	VkDescriptorBufferInfo BufferInfo{};
 	BufferInfo.buffer = VulkanBuffer->Handle;
@@ -155,6 +237,8 @@ void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InText
 	VulkanTextureView* Texture = ResourceCast(InTexture);
 	Ncheck(SamplerState && SamplerState->Handle != VK_NULL_HANDLE);
 	Ncheck(Texture && Texture->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::CombinedImageSampler);
+	CheckTextureUsage(InTexture, ETextureUsageFlags::Sampled);
 
 	VkDescriptorImageInfo ImageInfo{};
 	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -177,6 +261,8 @@ void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* I
 {
 	VulkanTextureView* Texture = ResourceCast(InTexture);
 	Ncheck(Texture && Texture->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::StorageImage);
+	CheckTextureUsage(InTexture, ETextureUsageFlags::Storage);
 
 	VkDescriptorImageInfo ImageInfo{};
 	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -188,6 +274,29 @@ void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* I
 	WriteDescriptor.dstBinding = BindingIndex;
 	WriteDescriptor.dstArrayElement = 0;
 	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	WriteDescriptor.descriptorCount = 1;
+	WriteDescriptor.pImageInfo = &ImageInfo;
+
+	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+}
+
+void VulkanDescriptorSet::SetSampledImage(uint32 BindingIndex, RHITextureView* InTexture)
+{
+	VulkanTextureView* Texture = ResourceCast(InTexture);
+	Ncheck(Texture && Texture->Handle != VK_NULL_HANDLE);
+	CheckBindingIndex(this, BindingIndex, EDescriptorType::SampledImage);
+	CheckTextureUsage(InTexture, ETextureUsageFlags::Sampled);
+
+	VkDescriptorImageInfo ImageInfo{};
+	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	ImageInfo.imageView = Texture->Handle;
+
+	VkWriteDescriptorSet WriteDescriptor{};
+	WriteDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	WriteDescriptor.dstSet = Handle;
+	WriteDescriptor.dstBinding = BindingIndex;
+	WriteDescriptor.dstArrayElement = 0;
+	WriteDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pImageInfo = &ImageInfo;
 

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <fstream>
 #include "Misc/Paths.h"
 #include "NObject/Package.h"
@@ -17,8 +18,7 @@ namespace fs = std::filesystem;
 
 namespace nilou {
     
-    const std::string MATERIAL_PARAMETER_TYPE_NAME = "FMaterialParameters";
-    const std::string MATERIAL_PARAMETER_VARIABLE_NAME = "MaterialParams";
+    const std::string MATERIAL_PARAMETER_VARIABLE_NAME = "MaterialParameters";
 
     /**
     * Updates a parameter on the material instance from the game thread.
@@ -418,6 +418,7 @@ namespace nilou {
             return;
 
         std::string MaterialParamBlockTypeName;
+        slang::TypeLayoutReflection* MaterialElementTypeLayout = nullptr;
         uint32_t ParameterCount = ProgramLayout->getParameterCount();
         for (uint32_t i = 0; i < ParameterCount; i++)
         {
@@ -426,7 +427,7 @@ namespace nilou {
                 continue;
 
             const char* ParamName = VarLayout->getName();
-            if (ParamName == nullptr || std::string(ParamName) != "MaterialParameters")
+            if (ParamName == nullptr || std::string(ParamName) != MATERIAL_PARAMETER_VARIABLE_NAME)
                 continue;
 
             slang::TypeLayoutReflection* TypeLayout = VarLayout->getTypeLayout();
@@ -437,6 +438,7 @@ namespace nilou {
             if (ElementTypeLayout != nullptr)
             {
                 MaterialParamBlockTypeName = ElementTypeLayout->getType()->getName();
+                MaterialElementTypeLayout = ElementTypeLayout;
             }
             break;
         }
@@ -451,16 +453,210 @@ namespace nilou {
             NILOU_LOG(Error, "Failed to get metadata for material parameter block type {}", MaterialParamBlockTypeName);
             return;
         }
+
+        MaterialUniformBufferSize = 0;
+        if (MaterialElementTypeLayout != nullptr)
+        {
+            MaterialUniformBufferSize =
+                (uint32)MaterialElementTypeLayout->getSize(slang::ParameterCategory::Uniform);
+        }
+
+        UniformBufferRDG = nullptr;
+        MaterialParamsDescriptorSet = nullptr;
+        if (MaterialUniformBufferSize > 0)
+        {
+            RDGBufferDesc UBDesc(MaterialUniformBufferSize, EBufferUsageFlags::UniformBuffer);
+            UniformBufferRDG = RenderGraph::CreatePooledBuffer(Owner->GetName() + std::string("_MaterialUB"), UBDesc);
+        }
+        MaterialParamsDescriptorSet = RenderGraph::CreatePooledDescriptorSet(
+            Owner->GetName() + std::string("_MaterialDS"),
+            MaterialParamsMetadata->DescriptorSetLayout.GetReference());
     }
 
-    FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings() const
+    void FMaterialRenderProxy::PackMaterialUniformData(uint8* Dest, uint32 DestSize) const
+    {
+        if (!Dest || DestSize == 0 || !MaterialParamsMetadata)
+            return;
+        std::memset(Dest, 0, DestSize);
+
+        for (const FShaderParametersMetadata2::FMember& M : MaterialParamsMetadata->Members)
+        {
+            if (M.Name == "AutomaticallyIntroducedUniformBuffer")
+                continue;
+            if (M.Offset < 0 || (uint32)M.Offset >= DestSize)
+                continue;
+
+            switch (M.BaseType)
+            {
+            case EUniformBufferBaseType2::Float32:
+            {
+                if (M.NumRows == 1 && M.NumElements == 1)
+                {
+                    if (M.NumColumns == 1)
+                    {
+                        auto It = ScalarParameterArray.find(M.Name);
+                        if (It != ScalarParameterArray.end())
+                        {
+                            float v = (float)It->second;
+                            std::memcpy(Dest + M.Offset, &v, sizeof(float));
+                        }
+                    }
+                    else
+                    {
+                        auto It = VectorParameterArray.find(M.Name);
+                        if (It != VectorParameterArray.end())
+                        {
+                            const FVector4& Vec = It->second;
+                            float* Out = reinterpret_cast<float*>(Dest + M.Offset);
+                            for (uint32 c = 0; c < M.NumColumns && c < 4u; ++c)
+                                Out[c] = (float)Vec[(int)c];
+                        }
+                    }
+                }
+                break;
+            }
+            case EUniformBufferBaseType2::Float64:
+            {
+                if (M.NumRows == 1 && M.NumColumns == 1 && M.NumElements == 1)
+                {
+                    auto It = ScalarParameterArray.find(M.Name);
+                    if (It != ScalarParameterArray.end())
+                    {
+                        double v = (double)It->second;
+                        std::memcpy(Dest + M.Offset, &v, sizeof(double));
+                    }
+                }
+                break;
+            }
+            case EUniformBufferBaseType2::Int32:
+            {
+                if (M.NumRows == 1 && M.NumColumns == 1 && M.NumElements == 1)
+                {
+                    auto It = ScalarParameterArray.find(M.Name);
+                    if (It != ScalarParameterArray.end())
+                    {
+                        int v = (int)It->second;
+                        std::memcpy(Dest + M.Offset, &v, sizeof(int));
+                    }
+                }
+                break;
+            }
+            case EUniformBufferBaseType2::UInt32:
+            {
+                if (M.NumRows == 1 && M.NumColumns == 1 && M.NumElements == 1)
+                {
+                    auto It = ScalarParameterArray.find(M.Name);
+                    if (It != ScalarParameterArray.end())
+                    {
+                        unsigned v = (unsigned)It->second;
+                        std::memcpy(Dest + M.Offset, &v, sizeof(unsigned));
+                    }
+                }
+                break;
+            }
+            case EUniformBufferBaseType2::Bool:
+            {
+                if (M.NumRows == 1 && M.NumColumns == 1 && M.NumElements == 1)
+                {
+                    auto It = ScalarParameterArray.find(M.Name);
+                    if (It != ScalarParameterArray.end())
+                    {
+                        uint32_t v = It->second != 0.0f ? 1u : 0u;
+                        std::memcpy(Dest + M.Offset, &v, sizeof(uint32_t));
+                    }
+                }
+                break;
+            }
+            case EUniformBufferBaseType2::NestedStruct:
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    void FMaterialRenderProxy::WriteMaterialDescriptorBindings(RDGDescriptorSet* DescriptorSet) const
+    {
+        if (!DescriptorSet || !MaterialParamsMetadata)
+            return;
+
+        for (const FShaderParametersMetadata2::FMember& Member : MaterialParamsMetadata->Members)
+        {
+            switch (Member.BaseType)
+            {
+            case EUniformBufferBaseType2::Buffer:
+            {
+                if (Member.Name == "AutomaticallyIntroducedUniformBuffer")
+                    DescriptorSet->SetBuffer(Member.BindingIndex, UniformBufferRDG.GetReference());
+                break;
+            }
+            case EUniformBufferBaseType2::Texture:
+            {
+                RDGTextureView* View = nullptr;
+                auto It = TextureParameterArray.find(Member.Name);
+                if (It != TextureParameterArray.end() && It->second)
+                {
+                    FTextureResource* Res = It->second->GetResource();
+                    if (Res && Res->GetTextureRDG())
+                        View = Res->GetTextureRDG()->GetDefaultView();
+                }
+                DescriptorSet->SetTexture(Member.BindingIndex, View);
+                break;
+            }
+            case EUniformBufferBaseType2::TextureSampler:
+            {
+                RDGTextureView* View = nullptr;
+                RHISamplerState* Sampler = nullptr;
+                auto It = TextureParameterArray.find(Member.Name);
+                if (It != TextureParameterArray.end() && It->second)
+                {
+                    FTextureResource* Res = It->second->GetResource();
+                    if (Res && Res->GetTextureRDG())
+                    {
+                        View = Res->GetTextureRDG()->GetDefaultView();
+                        Sampler = Res->GetSamplerState();
+                    }
+                }
+                DescriptorSet->SetCombinedTextureSampler(Member.BindingIndex, View, Sampler);
+                break;
+            }
+            case EUniformBufferBaseType2::Sampler:
+            {
+                RHISamplerState* Sampler = nullptr;
+                auto It = TextureParameterArray.find(Member.Name);
+                if (It != TextureParameterArray.end() && It->second)
+                {
+                    FTextureResource* Res = It->second->GetResource();
+                    if (Res)
+                        Sampler = Res->GetSamplerState();
+                }
+                DescriptorSet->SetSamplerState(Member.BindingIndex, Sampler);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+
+    FMeshDrawShaderBindings FMaterialRenderProxy::GetShaderBindings(RenderGraph& Graph) const
     {
         FMeshDrawShaderBindings ShaderBindings;
-        ShaderBindings.SetBuffer(MATERIAL_PARAMETER_TYPE_NAME, UniformBufferRDG.GetReference());
-        for (auto& [Name, Texture] : TextureParameterArray)
+        if (!MaterialParamsMetadata || !MaterialParamsDescriptorSet)
+            return ShaderBindings;
+
+        RDGDescriptorSet* DS = MaterialParamsDescriptorSet.GetReference();
+
+        if (UniformBufferRDG && MaterialUniformBufferSize > 0)
         {
-            ShaderBindings.SetTexture(Name, Texture->GetResource()->TextureRDG->GetDefaultView());
+            std::vector<uint8> Scratch(MaterialUniformBufferSize);
+            PackMaterialUniformData(Scratch.data(), MaterialUniformBufferSize);
+            Graph.QueueBufferUpload(UniformBufferRDG.GetReference(), Scratch.data(), MaterialUniformBufferSize);
         }
+
+        WriteMaterialDescriptorBindings(DS);
+
+        ShaderBindings.SetDescriptorSet(MATERIAL_PARAMETER_VARIABLE_NAME, DS);
         return ShaderBindings;
     }
 

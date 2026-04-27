@@ -81,7 +81,7 @@ namespace nilou {
     void UTexture2D::ReadPixelsRenderThread(RHICommandList& RHICmdList)
     {
         // TODO: Texture layout
-        // RHIBufferRef StagingBuffer = RHICreateBuffer(0, ImageData.GetDataSize(), EBufferUsageFlags::None, nullptr);
+        // RHIBufferRef StagingBuffer = RHICreateBuffer(0, ImageData.GetDataSize(), EBufferUsageFlags::None, "Texture2DStagingBuffer", nullptr);
         // RHITexture* TextureRHI = GetResource()->TextureRDG->GetRHI();
         // RHICmdList.CopyImageToBuffer(TextureRHI, StagingBuffer, 
         //             0,                      // mipmap level

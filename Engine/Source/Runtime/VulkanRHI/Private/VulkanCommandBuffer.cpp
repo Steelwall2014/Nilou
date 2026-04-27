@@ -191,23 +191,21 @@ namespace nilou {
         }
 
         VulkanPipelineLayout* VulkanLayout = ResourceCast(PipelineLayout);
-        std::vector<VkWriteDescriptorSet> WriteVec;
-        std::vector<VkDescriptorSet> DescriptorSetHandles;
         for (auto& [SetIndex, DescriptorSet] : DescriptorSets)
         {
             Ncheck(DescriptorSet);
             VulkanDescriptorSet* VulkanDescriptorSet = ResourceCast(const_cast<RHIDescriptorSet*>(DescriptorSet));
-            DescriptorSetHandles.push_back(VulkanDescriptorSet->Handle);
+            VkDescriptorSet DescriptorSetHandles[] = { VulkanDescriptorSet->Handle };
+            std::vector<VkWriteDescriptorSet> WriteVec;
             for (auto& [BindingIndex, Info] : VulkanDescriptorSet->Writers)
             {
                 WriteVec.push_back(Info.WriteDescriptor);
-            }  
-        }  
-        
-        vkUpdateDescriptorSets(Device, WriteVec.size(), WriteVec.data(), 0, nullptr);
-        vkCmdBindDescriptorSets(
-            Handle, BindPoint, 
-            VulkanLayout->Handle, 0, DescriptorSetHandles.size(), DescriptorSetHandles.data(), 0, nullptr);
+            }
+            vkUpdateDescriptorSets(Device, WriteVec.size(), WriteVec.data(), 0, nullptr);
+            vkCmdBindDescriptorSets(
+                Handle, BindPoint, 
+                VulkanLayout->Handle, SetIndex, 1, DescriptorSetHandles, 0, nullptr);
+        }
     }
 
     void VulkanCommandBuffer::CopyBuffer(RHIBuffer* SrcBuffer, RHIBuffer* DstBuffer, uint32 SrcOffset, uint32 DstOffset, uint32 NumBytes)

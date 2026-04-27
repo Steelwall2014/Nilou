@@ -449,7 +449,7 @@ namespace nilou {
                         int32 DescriptorSetIndex = PSO->GetPipelineLayout()->GetSetIndex("Params");
                         RHICmdList.BindDescriptorSets(
                             PSO->GetPipelineLayout(), 
-                            { {DescriptorSetIndex, Parameters->DescriptorSet->GetRHI()} }, 
+                            { {DescriptorSetIndex, Parameters->GetDescriptorSet()->GetRHI()} }, 
                             EPipelineBindPoint::Graphics);
 
                         RHICmdList.DrawIndexed(6, 1, 0, 0, 0);

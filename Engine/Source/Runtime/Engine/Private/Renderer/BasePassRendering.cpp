@@ -8,9 +8,9 @@
 
 
 namespace nilou {
-    IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/Private/MaterialShaders/BasePassShaders.slang", "MainVS", EShaderFrequency::Vertex);
-    IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/Private/MaterialShaders/BasePassShaders.slang", "MainPS", EShaderFrequency::Pixel);
-    DEFINE_GRAPHICS_PIPELINE(FBasePassPipeline, FBasePassVS, FBasePassPS);
+    IMPLEMENT_SHADER_TYPE(FBasePassVS, "/Shaders/Private/MaterialShaders/BasePassVertexShader.slang", "MainVS", EShaderFrequency::Vertex);
+    IMPLEMENT_SHADER_TYPE(FBasePassPS, "/Shaders/Private/MaterialShaders/BasePassPixelShader.slang", "MainPS", EShaderFrequency::Pixel);
+    IMPLEMENT_GRAPHICS_PIPELINE(FBasePassPipeline)
 
     void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
     {    
@@ -24,31 +24,34 @@ namespace nilou {
             FParallelMeshDrawCommands DrawCommands;
 
             RDGRenderTargets RenderTargets;
-            RenderTargets.ColorAttachments[0] = { SceneTextures.BaseColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.ColorAttachments[1] = { SceneTextures.RelativeWorldSpacePosition->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.ColorAttachments[2] = { SceneTextures.WorldSpaceNormal->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.ColorAttachments[3] = { SceneTextures.MetallicRoughness->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.ColorAttachments[4] = { SceneTextures.Emissive->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.ColorAttachments[5] = { SceneTextures.ShadingModel->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[0] = { SceneTextures.SceneColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[1] = { SceneTextures.BaseColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[2] = { SceneTextures.RelativeWorldSpacePosition->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[3] = { SceneTextures.WorldSpaceNormal->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[4] = { SceneTextures.MetallicRoughness->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[5] = { SceneTextures.Emissive->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
+            RenderTargets.ColorAttachments[6] = { SceneTextures.ShadingModel->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
             RenderTargets.DepthStencilAttachment = { SceneTextures.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::Store };
 
             for (FMeshBatch &Mesh : MeshBatches)
             {
                 for (FMeshBatchElement& Element : Mesh.Elements)
                 {
-                    FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
-                    FGraphicsPipelinePermutationParameters PipelineParams(&FBasePassPipeline::StaticType, 0);
+                    FVertexFactoryPermutationParameters VertexFactoryPermutation(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
+                    FBasePassPipeline::FPermutationDomain Domain;
+                    Domain.Set<FBasePassPipeline::FDimensionEnableIBL>(false);
+                    FGraphicsPipelinePermutationParameters PipelinePermutation(&FBasePassPipeline::StaticType, Domain.ToDimensionValueId());
 
-                    FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                    ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
-                    ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->DescriptorSet);
+                    FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings(Graph);
+                    ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->GetDescriptorSet());
+                    ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->GetDescriptorSet());
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
                         Graph,
-                        VertexFactoryParams,
+                        VertexFactoryPermutation,
                         Mesh.MaterialRenderProxy,
-                        PipelineParams,
+                        PipelinePermutation,
                         Element.VertexFactory->GetVertexDeclaration(),
                         Element,
                         RenderTargets.GetRenderTargetLayout(),

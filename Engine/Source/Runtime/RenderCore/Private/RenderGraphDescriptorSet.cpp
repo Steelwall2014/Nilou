@@ -15,37 +15,37 @@ RDGDescriptorSet::~RDGDescriptorSet()
     }
 }
 
-void RDGDescriptorSet::SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
-{
-    if (auto Binding = GetBindingByName(Name))
-	{
-		SetUniformBufferInternal(*Binding, Buffer);
-	}
-}
+// void RDGDescriptorSet::SetUniformBuffer(const std::string& Name, RDGBuffer* Buffer)
+// {
+//     if (auto Binding = GetBindingByName(Name))
+// 	{
+// 		SetUniformBufferInternal(*Binding, Buffer);
+// 	}
+// }
 
-void RDGDescriptorSet::SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState)
-{
-	if (auto Binding = GetBindingByName(Name))
-	{
-		SetSamplerInternal(*Binding, Texture, SamplerState);
-	}
-}
+// void RDGDescriptorSet::SetSampler(const std::string& Name, RDGTextureView* Texture, RHISamplerState* SamplerState)
+// {
+// 	if (auto Binding = GetBindingByName(Name))
+// 	{
+// 		SetSamplerInternal(*Binding, Texture, SamplerState);
+// 	}
+// }
 
-void RDGDescriptorSet::SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer)
-{
-	if (auto Binding = GetBindingByName(Name))
-	{
-		SetStorageBufferInternal(*Binding, Buffer);
-	}
-}
+// void RDGDescriptorSet::SetStorageBuffer(const std::string& Name, RDGBuffer* Buffer)
+// {
+// 	if (auto Binding = GetBindingByName(Name))
+// 	{
+// 		SetStorageBufferInternal(*Binding, Buffer);
+// 	}
+// }
 
-void RDGDescriptorSet::SetStorageImage(const std::string& Name, RDGTextureView* Image)
-{
-	if (auto Binding = GetBindingByName(Name))
-	{
-		SetStorageImageInternal(*Binding, Image);
-	}
-}
+// void RDGDescriptorSet::SetStorageImage(const std::string& Name, RDGTextureView* Image)
+// {
+// 	if (auto Binding = GetBindingByName(Name))
+// 	{
+// 		SetStorageImageInternal(*Binding, Image);
+// 	}
+// }
 
 void RDGDescriptorSet::SetUniformBuffer(int32 BindingIndex, RDGBuffer* Buffer)
 {

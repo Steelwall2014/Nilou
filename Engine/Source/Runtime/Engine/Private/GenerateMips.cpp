@@ -85,7 +85,7 @@ void FGenerateMips::ExecuteCompute(RenderGraph& Graph, RDGTexture* Texture, RHIS
                     int32 OutputParamsSetIndex = PipelineLayout->GetSetIndex("OutputParams");
                     RHICmdList.BindDescriptorSets(
                         PipelineLayout,
-                        {{InputParamsSetIndex, InputParams->DescriptorSet->GetRHI()}, {OutputParamsSetIndex, OutputParams->DescriptorSet->GetRHI()}},
+                        {{InputParamsSetIndex, InputParams->GetDescriptorSet()->GetRHI()}, {OutputParamsSetIndex, OutputParams->GetDescriptorSet()->GetRHI()}},
                         EPipelineBindPoint::Compute);
                     int32 group_count_x = FMath::DivideAndRoundUp(TextureSizeX, GroupSize);
                     int32 group_count_y = FMath::DivideAndRoundUp(TextureSizeY, GroupSize);
@@ -159,7 +159,7 @@ void FGenerateMips::ExecuteRaster(RenderGraph& Graph, RDGTexture* Texture, RHISa
                     int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
                     RHICmdList.BindDescriptorSets(
                         PipelineLayout,
-                        {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}},
+                        {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}},
                         EPipelineBindPoint::Graphics);
                     RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                     RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);

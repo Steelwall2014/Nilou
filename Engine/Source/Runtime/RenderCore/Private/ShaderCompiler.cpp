@@ -7,6 +7,7 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "DynamicRHI.h"
@@ -278,58 +279,6 @@ namespace nilou {
         }
     }
 
-    std::pair<Slang::ComPtr<slang::IBlob>, Slang::ComPtr<slang::IComponentType>> compileFromComponents(
-        slang::ISession* session,
-        const std::vector<slang::IComponentType*>& componentTypes)
-    {
-        Slang::ComPtr<slang::IComponentType> composedProgram;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = session->createCompositeComponentType(
-                componentTypes.data(),
-                componentTypes.size(),
-                composedProgram.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        Slang::ComPtr<slang::IComponentType> linkedProgram;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = composedProgram->link(
-                linkedProgram.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        Slang::ComPtr<slang::IBlob> byteCode;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = linkedProgram->getEntryPointCode(
-                0,
-                0,
-                byteCode.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-
-        Slang::ComPtr<slang::IBlob> glslCode;
-        {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            SlangResult result = linkedProgram->getEntryPointCode(
-                0,
-                1,
-                glslCode.writeRef(),
-                diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
-        }
-        // const char* glslCodeString = (const char*)glslCode->getBufferPointer();
-        // NILOU_LOG(Display, "{}", glslCodeString);
-        // slang::ProgramLayout* ProgramLayout = linkedProgram->getLayout();
-        // FSlangUtils::PrintProgramLayout(ProgramLayout, SLANG_SPIRV);
-        return {byteCode, linkedProgram};
-    }
-
     Slang::ComPtr<slang::IBlob> getEntryPointCode(Slang::ComPtr<slang::IComponentType> linkedProgram, int32 entryPointIndex, int32 targetIndex)
     {
         Slang::ComPtr<slang::IBlob> code;
@@ -349,12 +298,23 @@ namespace nilou {
         slang::ISession* session,
         const std::vector<slang::IComponentType*>& componentTypes)
     {
+        std::vector<slang::IComponentType*> uniqueComponents;
+        uniqueComponents.reserve(componentTypes.size());
+        std::unordered_set<slang::IComponentType*> seen;
+        for (slang::IComponentType* c : componentTypes)
+        {
+            if (seen.insert(c).second)
+            {
+                uniqueComponents.push_back(c);
+            }
+        }
+
         Slang::ComPtr<slang::IComponentType> composedProgram;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult result = session->createCompositeComponentType(
-                componentTypes.data(),
-                componentTypes.size(),
+                uniqueComponents.data(),
+                uniqueComponents.size(),
                 composedProgram.writeRef(),
                 diagnosticsBlob.writeRef());
             diagnoseIfNeeded(diagnosticsBlob);
@@ -384,10 +344,11 @@ namespace nilou {
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
         slang::IModule* ShaderModule = loadModuleFromSourceString(session, ShaderType->FileAbsolutePath);
         Slang::ComPtr<slang::IEntryPoint> entryPoint = findEntryPointByName(ShaderModule, ShaderType->EntryPointName);
-        auto [spirvCode, linkedProgram] = compileFromComponents(session, {
+        Slang::ComPtr<slang::IComponentType> linkedProgram = compileComponents(session, {
             ShaderModule,
-            entryPoint
+            entryPoint.get(),
         });
+        Slang::ComPtr<slang::IBlob> spirvCode = getEntryPointCode(linkedProgram, 0, 0);
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
         Ncheck(ShaderType->ShaderFrequency == EShaderFrequency::Compute);
         RHIComputeShaderRef ShaderRHI = RHICreateComputeShader(ByteCode, ShaderType->Name);
@@ -414,8 +375,6 @@ namespace nilou {
 
         FShaderCompilerEnvironment Environment = InEnvironment;
         Pipeline->ModifyCompilationEnvironment(PipelineParams, Environment);
-        VSType->ModifyCompilationEnvironment(FShaderPermutationParameters(VSType, 0), Environment);
-        PSType->ModifyCompilationEnvironment(FShaderPermutationParameters(PSType, 0), Environment);
         if (VSIsMaterial)
             VFType->ModifyCompilationEnvironment(VFParams, Environment);
 
@@ -458,7 +417,7 @@ namespace nilou {
         auto spirvCode_VS = getEntryPointCode(linkedProgram, 0, 0);
         auto spirvCode_PS = getEntryPointCode(linkedProgram, 1, 0);
 
-        NILOU_LOG(Display, "Pipeline \"{}\": Material \"{}\", VF \"{}\" p{} — VS {} bytes, PS {} bytes of SPIR-V",
+        NILOU_LOG(Display, "Pipeline \"{}\": Material \"{}\", VF \"{}\" p{} - VS {} bytes, PS {} bytes of SPIR-V",
             Pipeline->Name, MaterialName, VFType->Name, VFParams.PermutationId,
             spirvCode_VS->getBufferSize(), spirvCode_PS->getBufferSize());
 
@@ -558,8 +517,6 @@ namespace nilou {
         FShaderCompilerEnvironment Environment;
         Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
         Pipeline->ModifyCompilationEnvironment(PipelineParams, Environment);
-        VSType->ModifyCompilationEnvironment(FShaderPermutationParameters(VSType, 0), Environment);
-        PSType->ModifyCompilationEnvironment(FShaderPermutationParameters(PSType, 0), Environment);
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
 
@@ -635,8 +592,8 @@ namespace nilou {
 
                 auto compile = [&](const FVertexFactoryPermutationParameters& VFParams)
                 {
-                    NILOU_LOG(Display, "Material: \"{}\", Pipeline: \"{}\", VF: \"{}\", Permutation: {} / {}",
-                        MaterialName, Pipeline->Name, VFParams.Type->Name, PipelineParams.PermutationId, VFParams.PermutationId);
+                    NILOU_LOG(Display, "Material: \"{}\", Pipeline: \"{}\", VF: \"{}\"",
+                        MaterialName, Pipeline->Name, VFParams.Type->Name);
                     CompileMaterialGraphicsPipeline(
                         MaterialName,
                         MaterialPath,
@@ -664,7 +621,7 @@ namespace nilou {
                 }
                 else
                 {
-                    // VS is a Global shader — no VF dimension needed; use base FVertexFactory as a sentinel key
+                    // VS is a Global shader - no VF dimension needed; use base FVertexFactory as a sentinel key
                     compile(FVertexFactoryPermutationParameters(&FVertexFactory::StaticType, 0));
                 }
             });

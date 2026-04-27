@@ -1,4 +1,4 @@
-﻿#include "Components/FourierTransformOcean.h"
+#include "Components/FourierTransformOcean.h"
 #include "RenderingThread.h"
 #include "RHICommandList.h"
 #include "GenerateMips.h"
@@ -67,7 +67,7 @@ namespace nilou {
                 int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
@@ -108,7 +108,7 @@ namespace nilou {
                 int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
@@ -156,7 +156,7 @@ namespace nilou {
                 int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {ButterflyBlockSetIndex, ButterflyBlock->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {ButterflyBlockSetIndex, ButterflyBlock->GetDescriptorSet()->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
@@ -193,7 +193,7 @@ namespace nilou {
                 int32 ParamsSetIndex = PipelineLayout->GetSetIndex("Params");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }
@@ -231,7 +231,7 @@ namespace nilou {
                 int32 OceanFFTParamsSetIndex = PipelineLayout->GetSetIndex("OceanFFTParameters");
                 RHICmdList.BindDescriptorSets(
                     PipelineLayout,
-                    {{ParamsSetIndex, Params->DescriptorSet->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->DescriptorSet->GetRHI()}},
+                    {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {OceanFFTParamsSetIndex, FFTParameters->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(group_num, group_num, 1);
             }

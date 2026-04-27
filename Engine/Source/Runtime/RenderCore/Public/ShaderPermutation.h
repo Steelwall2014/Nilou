@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+#include "Logging/LogMacros.h"
 #include "ShaderCompileEnvironment.h"
 
 namespace nilou {

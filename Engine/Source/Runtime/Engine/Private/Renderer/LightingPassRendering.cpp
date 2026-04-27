@@ -96,10 +96,10 @@ namespace nilou {
                         RHICmdList.BindDescriptorSets(
                             PipelineLayout,
                             {
-                                {SceneTexturesSetIndex, SceneTextureParams->DescriptorSet->GetRHI()},
-                                {ViewParamsSetIndex, View.ViewUniformBuffer->DescriptorSet->GetRHI()},
-                                {LightSetIndex, LightParams->DescriptorSet->GetRHI()},
-                                {ShadowMappingSetIndex, ShadowParams->DescriptorSet->GetRHI()}
+                                {SceneTexturesSetIndex, SceneTextureParams->GetDescriptorSet()->GetRHI()},
+                                {ViewParamsSetIndex, View.ViewUniformBuffer->GetDescriptorSet()->GetRHI()},
+                                {LightSetIndex, LightParams->GetDescriptorSet()->GetRHI()},
+                                {ShadowMappingSetIndex, ShadowParams->GetDescriptorSet()->GetRHI()}
                             },
                             EPipelineBindPoint::Graphics);
 

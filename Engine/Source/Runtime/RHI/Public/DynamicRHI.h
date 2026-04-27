@@ -60,12 +60,15 @@ namespace nilou {
 		virtual RHIPixelShaderRef RHICreatePixelShader(TArrayView<uint8> ByteCode, const std::string& DebugName) = 0;
 		virtual RHIComputeShaderRef RHICreateComputeShader(TArrayView<uint8> ByteCode, const std::string& DebugName) = 0;
 		virtual bool RHIReflectShader(const std::string& ShaderCode, EShaderStage ShaderStage, std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>>& OutLayouts, std::optional<class RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage) = 0;
-		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data) = 0;
+		virtual RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& DebugName, const void *Data) = 0;
 		virtual RHIBufferRef RHICreateShaderStorageBuffer(unsigned int DataByteLength, void *Data) = 0;
 		virtual RHIBufferRef RHICreateDispatchIndirectBuffer(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z) = 0;
 		virtual RHIBufferRef RHICreateDrawElementsIndirectBuffer(
 				int32 Count, uint32 instanceCount, uint32 firstIndex, uint32 baseVertex, uint32 baseInstance) = 0;
-		virtual RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& Name) { return RHICreateBuffer(CreateInfo.Stride, CreateInfo.Size, CreateInfo.Usage, nullptr); }
+		virtual RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& DebugName)
+		{
+			return RHICreateBuffer(CreateInfo.Stride, CreateInfo.Size, CreateInfo.Usage, DebugName, nullptr);
+		}
 		
 		// virtual RHITexture2DRef RHICreateTexture2D(
 		// 	const std::string &name, EPixelFormat Format, 
@@ -156,9 +159,9 @@ namespace nilou {
 		return FDynamicRHI::Get()->RHIGetSwapChainTexture();
 	}
 
-	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const void *Data)
+	inline RHIBufferRef RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& DebugName, const void *Data)
 	{
-		return FDynamicRHI::Get()->RHICreateBuffer(Stride, Size, InUsage, Data);
+		return FDynamicRHI::Get()->RHICreateBuffer(Stride, Size, InUsage, DebugName, Data);
 	}
 
 	inline RHIGraphicsPipelineState *RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer &Initializer)
@@ -274,9 +277,9 @@ namespace nilou {
 		return FDynamicRHI::Get()->RHICreateTextureView(Texture, CreateInfo, Name);
 	}
 
-	inline RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& Name)
+	inline RHIBufferRef RHICreateBuffer(const FRHIBufferCreateInfo& CreateInfo, const std::string& DebugName)
 	{
-		return FDynamicRHI::Get()->RHICreateBuffer(CreateInfo, Name);
+		return FDynamicRHI::Get()->RHICreateBuffer(CreateInfo, DebugName);
 	}
 
 	inline uint32 RHIComputeMemorySize(RHITexture* TextureRHI)

@@ -274,9 +274,9 @@ namespace nilou {
                             FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
                             FGraphicsPipelinePermutationParameters PipelineParams(&FShadowDepthPassPipeline::StaticType, 0);
 
-                            FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                            ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
-                            ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->DescriptorSet);
+                            FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings(Graph);
+                            ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->GetDescriptorSet());
+                            ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->GetDescriptorSet());
                             ShaderBindings.SetPushConstant(EShaderStage::Vertex, sizeof(int), &FrustumIndex);
 
                             FMeshDrawCommand MeshDrawCommand;

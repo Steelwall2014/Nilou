@@ -165,6 +165,155 @@ std::string GetFieldTypeName(slang::TypeLayoutReflection* TypeLayout)
     return Type->getName();
 }
 
+static bool MapScalarUniformType(
+    slang::TypeReflection* ScalarType,
+    std::string& OutBaseType,
+    std::string& OutPrecision)
+{
+    if (ScalarType->getKind() != slang::TypeReflection::Kind::Scalar)
+        return false;
+    switch (ScalarType->getScalarType())
+    {
+    case slang::TypeReflection::ScalarType::Float32:
+        OutBaseType = "EUniformBufferBaseType2::Float32";
+        OutPrecision = "EShaderPrecisionModifier2::Float";
+        return true;
+    case slang::TypeReflection::ScalarType::Float16:
+        OutBaseType = "EUniformBufferBaseType2::Float32";
+        OutPrecision = "EShaderPrecisionModifier2::Half";
+        return true;
+    case slang::TypeReflection::ScalarType::Int32:
+    case slang::TypeReflection::ScalarType::Int16:
+    case slang::TypeReflection::ScalarType::Int8:
+        OutBaseType = "EUniformBufferBaseType2::Int32";
+        OutPrecision = "EShaderPrecisionModifier2::Invalid";
+        return true;
+    case slang::TypeReflection::ScalarType::UInt32:
+    case slang::TypeReflection::ScalarType::UInt16:
+    case slang::TypeReflection::ScalarType::UInt8:
+        OutBaseType = "EUniformBufferBaseType2::UInt32";
+        OutPrecision = "EShaderPrecisionModifier2::Invalid";
+        return true;
+    case slang::TypeReflection::ScalarType::Bool:
+        OutBaseType = "EUniformBufferBaseType2::Bool";
+        OutPrecision = "EShaderPrecisionModifier2::Invalid";
+        return true;
+    case slang::TypeReflection::ScalarType::Float64:
+        OutBaseType = "EUniformBufferBaseType2::Float64";
+        OutPrecision = "EShaderPrecisionModifier2::Float";
+        return true;
+    default:
+        std::cerr << "EmitMetadata: unsupported scalar in uniform: " << ScalarType->getName() << std::endl;
+        return false;
+    }
+}
+
+static void AppendUniformVectorOrMatrixPrecision(
+    slang::TypeReflection* ElementScalarType,
+    std::string& OutPrecision)
+{
+    if (ElementScalarType->getKind() == slang::TypeReflection::Kind::Scalar &&
+        ElementScalarType->getScalarType() == slang::TypeReflection::ScalarType::Float16)
+        OutPrecision = "EShaderPrecisionModifier2::Half";
+    else
+        OutPrecision = "EShaderPrecisionModifier2::Float";
+}
+
+static void EmitUniformFieldMetadataRecursive(
+    std::string& GetMembers,
+    slang::TypeLayoutReflection* StructLayout,
+    int StructBaseOffsetInUB,
+    const std::string& QualifiedPrefix);
+
+static void EmitOneUniformMemberLine(
+    std::string& GetMembers,
+    const std::string& QualifiedName,
+    int AbsoluteOffsetInUB,
+    const std::string& BaseTypeStr,
+    const std::string& PrecisionStr,
+    unsigned NumRows,
+    unsigned NumColumns,
+    unsigned NumElements)
+{
+    GetMembers += std::format(
+        "\tMembers.push_back( {{0, \"{}\", {}, {}, {}, {}u, {}u, {}u}} );\n",
+        QualifiedName,
+        AbsoluteOffsetInUB,
+        BaseTypeStr,
+        PrecisionStr,
+        NumRows,
+        NumColumns,
+        NumElements);
+}
+
+static void EmitUniformFieldMetadataRecursive(
+    std::string& GetMembers,
+    slang::TypeLayoutReflection* StructLayout,
+    int StructBaseOffsetInUB,
+    const std::string& QualifiedPrefix)
+{
+    const int NumFields = StructLayout->getFieldCount();
+    for (int FieldIndex = 0; FieldIndex < NumFields; ++FieldIndex)
+    {
+        slang::VariableLayoutReflection* FieldLayout = StructLayout->getFieldByIndex(FieldIndex);
+        slang::TypeReflection* FieldType = FieldLayout->getType();
+        slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
+        const std::string FieldName = FieldLayout->getName();
+        const std::string Qualified =
+            QualifiedPrefix.empty() ? FieldName : (QualifiedPrefix + "." + FieldName);
+        const int AbsOffset =
+            StructBaseOffsetInUB + (int)FieldLayout->getOffset(slang::ParameterCategory::Uniform);
+
+        switch (FieldType->getKind())
+        {
+        case slang::TypeReflection::Kind::Resource:
+        case slang::TypeReflection::Kind::SamplerState:
+            break;
+        case slang::TypeReflection::Kind::Scalar:
+        {
+            std::string BaseStr;
+            std::string PrecStr;
+            if (MapScalarUniformType(FieldType, BaseStr, PrecStr))
+                EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, 1u, 1u, 1u);
+            break;
+        }
+        case slang::TypeReflection::Kind::Vector:
+        {
+            const unsigned Cols = (unsigned)FieldType->getColumnCount();
+            slang::TypeReflection* Elem = FieldType->getElementType();
+            std::string BaseStr;
+            std::string PrecStr;
+            if (!MapScalarUniformType(Elem, BaseStr, PrecStr))
+                break;
+            AppendUniformVectorOrMatrixPrecision(Elem, PrecStr);
+            EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, 1u, Cols, 1u);
+            break;
+        }
+        case slang::TypeReflection::Kind::Matrix:
+        {
+            const unsigned Rows = (unsigned)FieldType->getRowCount();
+            const unsigned Cols = (unsigned)FieldType->getColumnCount();
+            slang::TypeReflection* Elem = FieldType->getElementType();
+            std::string BaseStr;
+            std::string PrecStr;
+            if (!MapScalarUniformType(Elem, BaseStr, PrecStr))
+                break;
+            AppendUniformVectorOrMatrixPrecision(Elem, PrecStr);
+            EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, Rows, Cols, 1u);
+            break;
+        }
+        case slang::TypeReflection::Kind::Struct:
+            EmitUniformFieldMetadataRecursive(GetMembers, FieldTypeLayout, AbsOffset, Qualified);
+            break;
+        case slang::TypeReflection::Kind::Array:
+            std::cerr << "EmitMetadata: uniform array field skipped (not yet supported): " << Qualified << std::endl;
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutReflection* Container, slang::TypeLayoutReflection* TypeLayout)
 {
     std::unordered_map<EShaderDataLayout, std::string>& OutCppStructs = TypeDecl.CppStructs;
@@ -215,7 +364,7 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
         default:
         {
             const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
-            OpaqueFields += std::format("    {} {};\n", FieldTypeName, FieldName);
+            OpaqueFields += std::format("    {} {}{{}};\n", FieldTypeName, FieldName);
             bHasOpaqueField = true;
             break;
         }
@@ -245,7 +394,7 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
     if (bHasNonOpaqueField || bHasOpaqueField)
     {
         const std::string AutoUBField = bHasNonOpaqueField
-            ? "    RDGBuffer* AutomaticallyIntroducedUniformBuffer;\n"
+            ? "    RDGBuffer* AutomaticallyIntroducedUniformBuffer{};\n"
             : "";
         OpaqueFields = AutoUBField + OpaqueFields;
 
@@ -433,6 +582,12 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
                 "\tMembers.push_back( {{{}, \"{}\", offsetof({}<EShaderDataLayout::Opaque>, {}), {}, {}, 1u, 1u, 1u}} );\n",
                 FieldBindingIndex, FieldName, StructName, FieldName, BaseTypeStr, PrecisionStr);
         }
+    }
+
+    // Std140/Std430 uniform block: per-field byte offsets (BindingIndex 0; distinguish by BaseType at runtime).
+    if (TypeLayout->getSize(slang::ParameterCategory::Uniform) > 0)
+    {
+        EmitUniformFieldMetadataRecursive(GetMembers, TypeLayout, 0, "");
     }
 
     std::string SourceLocationFilePath = fs::path(TypeDecl.SourceLocation.filePath).generic_string();

@@ -8,20 +8,43 @@ namespace nilou {
 
 class RenderGraph;
 
-template <template <EShaderDataLayout> typename T>
-struct TParameterBlock
-    : public T<Std140Layout>
-    , public T<OpaqueLayout>
-    , public TRefCountedObject<ERefCountingMode::NotThreadSafe>
+struct FBaseParameterBlock : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
 {
     friend class RenderGraph;
 
-    ~TParameterBlock()
+    RDGDescriptorSet* GetDescriptorSet() const { return DescriptorSet; }
+
+    virtual ~FBaseParameterBlock()
     {
         // Pooled blocks own their DescriptorSet ref (AddRef'd in UpdateParameterBlock).
         // Transient blocks' DescriptorSet lifetime is managed by RenderGraph::DescriptorSets.
         if (!bTransient && DescriptorSet)
             DescriptorSet->Release();
+    }
+
+protected:
+    std::string Name;
+
+    FShaderParametersMetadata2* Metadata = nullptr;
+
+    // Transient blocks: non-owning pointer; DS lifetime managed by RenderGraph::DescriptorSets.
+    // Pooled blocks: owning pointer; one extra AddRef is held and released in the destructor.
+    RDGDescriptorSet* DescriptorSet = nullptr;
+
+    bool bTransient = false;
+};
+
+template <template <EShaderDataLayout> typename T>
+struct TParameterBlock
+    : public T<Std140Layout>
+    , public T<OpaqueLayout>
+    , public FBaseParameterBlock
+{
+    friend class RenderGraph;
+
+    TParameterBlock()
+    {
+        Metadata = GetShaderParametersMetadata<T>();
     }
 
     T<Std140Layout>& GetNonOpaqueFields()
@@ -40,14 +63,6 @@ struct TParameterBlock
     {
         return *static_cast<const T<OpaqueLayout>*>(this);
     }
-
-    std::string Name;
-
-    // Transient blocks: non-owning pointer; DS lifetime managed by RenderGraph::DescriptorSets.
-    // Pooled blocks: owning pointer; one extra AddRef is held and released in the destructor.
-    RDGDescriptorSet* DescriptorSet = nullptr;
-
-    bool bTransient = false;
 };
 
 template <template <EShaderDataLayout> typename T>

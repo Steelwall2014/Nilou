@@ -1,4 +1,4 @@
-﻿#include "Renderer/BasePassRendering.h"
+#include "Renderer/BasePassRendering.h"
 #include "Renderer/RenderPass.h"
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
@@ -32,9 +32,9 @@ namespace nilou {
                     FVertexFactoryPermutationParameters VertexFactoryParams(Element.VertexFactory->GetType(), Element.VertexFactory->GetPermutationId());
                     FGraphicsPipelinePermutationParameters PipelineParams(&FPreZPassPipeline::StaticType, 0);
 
-                    FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings();
-                    ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->DescriptorSet);
-                    ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->DescriptorSet);
+                    FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings(Graph);
+                    ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->GetDescriptorSet());
+                    ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->GetDescriptorSet());
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
