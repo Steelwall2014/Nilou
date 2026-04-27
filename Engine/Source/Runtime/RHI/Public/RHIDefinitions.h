@@ -1,11 +1,31 @@
 #pragma once
+#include <magic_enum/magic_enum.hpp>
+#include <string>
+#include <string_view>
 #include "HAL/Platform.h"
 #include "Misc/EnumClassFlags.h"
 #include "PixelFormat.h"
 #include "NObject/NilouType.h"
 
 namespace nilou {
-	
+
+template <typename EnumType>
+inline std::string_view ToStringEnum(EnumType Value)
+{
+	return magic_enum::enum_name(Value);
+}
+
+template <typename EnumType>
+inline std::string ToStringEnumOrUnknown(EnumType Value)
+{
+	std::string_view Name = ToStringEnum(Value);
+	if (!Name.empty())
+	{
+		return std::string(Name);
+	}
+	return "Unknown(" + std::to_string(static_cast<uint64>(Value)) + ")";
+}
+
 enum { MAX_TEXCOORDS = 1, MAX_STATIC_TEXCOORDS = 1 };
 
 constexpr int32 MaxSimultaneousRenderTargets = 8;
@@ -722,6 +742,11 @@ enum class ETextureLayout : uint32
 	Max = 0x7FFFFFFF,
 };
 
+inline std::string ToString(ETextureLayout Layout)
+{
+	return ToStringEnumOrUnknown(Layout);
+}
+
 // Keep the same with VkAttachmentLoadOp
 enum class ERenderTargetLoadAction : uint8
 {
@@ -774,5 +799,10 @@ enum class EDescriptorType : uint32
 	AccelerationStructure       = 1000150000,// = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
     Max                         = 0x7FFFFFFF
 };
+
+inline std::string ToString(EDescriptorType Type)
+{
+	return ToStringEnumOrUnknown(Type);
+}
 
 }

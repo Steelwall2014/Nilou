@@ -18,6 +18,11 @@ enum class ERDGResourceType
     MAX
 };
 
+inline std::string ToString(ERDGResourceType Type)
+{
+	return ToStringEnumOrUnknown(Type);
+}
+
 enum class ERDGTextureUsage
 {
     None,
