@@ -139,6 +139,21 @@ enum class EBufferUsageFlags : uint32
 };
 ENUM_CLASS_FLAGS(EBufferUsageFlags)
 
+inline std::string ToString(EBufferUsageFlags Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ EBufferUsageFlags::TransferSrc, "TransferSrc" },
+		{ EBufferUsageFlags::TransferDst, "TransferDst" },
+		{ EBufferUsageFlags::UniformTexelBuffer, "UniformTexelBuffer" },
+		{ EBufferUsageFlags::StorageTexelBuffer, "StorageTexelBuffer" },
+		{ EBufferUsageFlags::UniformBuffer, "UniformBuffer" },
+		{ EBufferUsageFlags::StorageBuffer, "StorageBuffer" },
+		{ EBufferUsageFlags::IndexBuffer, "IndexBuffer" },
+		{ EBufferUsageFlags::VertexBuffer, "VertexBuffer" },
+		{ EBufferUsageFlags::IndirectBuffer, "IndirectBuffer" },
+	});
+}
+
 enum EUniformBufferUsage
 {
 	// the uniform buffer is temporary, used for a single draw call then discarded
@@ -452,6 +467,17 @@ enum class EShaderStage : uint32
 };
 ENUM_CLASS_FLAGS(EShaderStage)
 
+inline std::string ToString(EShaderStage Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ EShaderStage::Vertex, "Vertex" },
+		{ EShaderStage::Pixel, "Pixel" },
+		{ EShaderStage::Compute, "Compute" },
+		{ EShaderStage::AllGraphics, "AllGraphics" },
+		{ EShaderStage::All, "All" },
+	});
+}
+
 enum class ETextureCreateFlags : uint64
 {
 	None                              = 0,
@@ -535,6 +561,47 @@ enum class ETextureCreateFlags : uint64
 };
 ENUM_CLASS_FLAGS(ETextureCreateFlags);
 
+inline std::string ToString(ETextureCreateFlags Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ ETextureCreateFlags::RenderTargetable, "RenderTargetable" },
+		{ ETextureCreateFlags::ResolveTargetable, "ResolveTargetable" },
+		{ ETextureCreateFlags::DepthStencilTargetable, "DepthStencilTargetable" },
+		{ ETextureCreateFlags::ShaderResource, "ShaderResource" },
+		{ ETextureCreateFlags::SRGB, "SRGB" },
+		{ ETextureCreateFlags::CPUWritable, "CPUWritable" },
+		{ ETextureCreateFlags::NoTiling, "NoTiling" },
+		{ ETextureCreateFlags::VideoDecode, "VideoDecode" },
+		{ ETextureCreateFlags::Dynamic, "Dynamic" },
+		{ ETextureCreateFlags::InputAttachmentRead, "InputAttachmentRead" },
+		{ ETextureCreateFlags::Foveation, "Foveation" },
+		{ ETextureCreateFlags::Tiling3D, "Tiling3D" },
+		{ ETextureCreateFlags::Memoryless, "Memoryless" },
+		{ ETextureCreateFlags::GenerateMipCapable, "GenerateMipCapable" },
+		{ ETextureCreateFlags::FastVRAMPartialAlloc, "FastVRAMPartialAlloc" },
+		{ ETextureCreateFlags::DisableSRVCreation, "DisableSRVCreation" },
+		{ ETextureCreateFlags::DisableDCC, "DisableDCC" },
+		{ ETextureCreateFlags::UAV, "UAV" },
+		{ ETextureCreateFlags::Presentable, "Presentable" },
+		{ ETextureCreateFlags::CPUReadback, "CPUReadback" },
+		{ ETextureCreateFlags::OfflineProcessed, "OfflineProcessed" },
+		{ ETextureCreateFlags::FastVRAM, "FastVRAM" },
+		{ ETextureCreateFlags::HideInVisualizeTexture, "HideInVisualizeTexture" },
+		{ ETextureCreateFlags::Virtual, "Virtual" },
+		{ ETextureCreateFlags::TargetArraySlicesIndependently, "TargetArraySlicesIndependently" },
+		{ ETextureCreateFlags::Shared, "Shared" },
+		{ ETextureCreateFlags::NoFastClear, "NoFastClear" },
+		{ ETextureCreateFlags::DepthStencilResolveTarget, "DepthStencilResolveTarget" },
+		{ ETextureCreateFlags::Streamable, "Streamable" },
+		{ ETextureCreateFlags::NoFastClearFinalize, "NoFastClearFinalize" },
+		{ ETextureCreateFlags::Atomic64Compatible, "Atomic64Compatible" },
+		{ ETextureCreateFlags::ReduceMemoryWithTilingMode, "ReduceMemoryWithTilingMode" },
+		{ ETextureCreateFlags::AtomicCompatible, "AtomicCompatible" },
+		{ ETextureCreateFlags::External, "External" },
+		{ ETextureCreateFlags::MultiGPUGraphIgnore, "MultiGPUGraphIgnore" },
+	});
+}
+
 // Compatibility defines
 #define TexCreate_None                           ETextureCreateFlags::None
 #define TexCreate_RenderTargetable               ETextureCreateFlags::RenderTargetable
@@ -588,6 +655,20 @@ enum class ETextureUsageFlags : uint32
 	Max = 0x7FFFFFFF
 };
 ENUM_CLASS_FLAGS(ETextureUsageFlags)
+
+inline std::string ToString(ETextureUsageFlags Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ ETextureUsageFlags::TransferSrc, "TransferSrc" },
+		{ ETextureUsageFlags::TransferDst, "TransferDst" },
+		{ ETextureUsageFlags::Sampled, "Sampled" },
+		{ ETextureUsageFlags::Storage, "Storage" },
+		{ ETextureUsageFlags::ColorAttachment, "ColorAttachment" },
+		{ ETextureUsageFlags::DepthStencilAttachment, "DepthStencilAttachment" },
+		{ ETextureUsageFlags::TransientAttachment, "TransientAttachment" },
+		{ ETextureUsageFlags::InputAttachment, "InputAttachment" },
+	});
+}
 
 // Keep the same with VkAccessFlagBits, except Present
 enum class ERHIAccess : uint32
@@ -685,6 +766,27 @@ enum class ERHIAccess : uint32
 #endif
 ENUM_CLASS_FLAGS(ERHIAccess)
 
+inline std::string ToString(ERHIAccess Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ ERHIAccess::IndirectCommandRead, "IndirectCommandRead" },
+		{ ERHIAccess::IndexRead, "IndexRead" },
+		{ ERHIAccess::VertexAttributeRead, "VertexAttributeRead" },
+		{ ERHIAccess::UniformRead, "UniformRead" },
+		{ ERHIAccess::ShaderResourceRead, "ShaderResourceRead" },
+		{ ERHIAccess::ShaderResourceWrite, "ShaderResourceWrite" },
+		{ ERHIAccess::ColorAttachmentRead, "ColorAttachmentRead" },
+		{ ERHIAccess::ColorAttachmentWrite, "ColorAttachmentWrite" },
+		{ ERHIAccess::DepthStencilAttachmentRead, "DepthStencilAttachmentRead" },
+		{ ERHIAccess::DepthStencilAttachmentWrite, "DepthStencilAttachmentWrite" },
+		{ ERHIAccess::TransferRead, "TransferRead" },
+		{ ERHIAccess::TransferWrite, "TransferWrite" },
+		{ ERHIAccess::HostRead, "HostRead" },
+		{ ERHIAccess::HostWrite, "HostWrite" },
+		{ ERHIAccess::Present, "Present" },
+	});
+}
+
 enum class ERHIPipeline : uint8
 {
 	Graphics = 1 << 0,
@@ -695,6 +797,15 @@ enum class ERHIPipeline : uint8
 	Num = 3,
 };
 ENUM_CLASS_FLAGS(ERHIPipeline)
+
+inline std::string ToString(ERHIPipeline Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ ERHIPipeline::Graphics, "Graphics" },
+		{ ERHIPipeline::AsyncCompute, "AsyncCompute" },
+		{ ERHIPipeline::Copy, "Copy" },
+	});
+}
 
 inline constexpr uint32 GetRHIPipelineCount()
 {
@@ -725,6 +836,29 @@ enum class EPipelineStageFlags : uint32
 	Max = 0x7FFFFFFF,
 };
 ENUM_CLASS_FLAGS(EPipelineStageFlags)
+
+inline std::string ToString(EPipelineStageFlags Flags)
+{
+	return EnumFlagsToString(Flags, {
+		{ EPipelineStageFlags::TopOfPipe, "TopOfPipe" },
+		{ EPipelineStageFlags::DrawIndirect, "DrawIndirect" },
+		{ EPipelineStageFlags::VertexInput, "VertexInput" },
+		{ EPipelineStageFlags::VertexShader, "VertexShader" },
+		{ EPipelineStageFlags::TessellationControlShader, "TessellationControlShader" },
+		{ EPipelineStageFlags::TessellationEvaluationShader, "TessellationEvaluationShader" },
+		{ EPipelineStageFlags::GeometryShader, "GeometryShader" },
+		{ EPipelineStageFlags::FragmentShader, "FragmentShader" },
+		{ EPipelineStageFlags::EarlyFragmentTests, "EarlyFragmentTests" },
+		{ EPipelineStageFlags::LateFragmentTests, "LateFragmentTests" },
+		{ EPipelineStageFlags::ColorAttachmentOutput, "ColorAttachmentOutput" },
+		{ EPipelineStageFlags::ComputeShader, "ComputeShader" },
+		{ EPipelineStageFlags::Transfer, "Transfer" },
+		{ EPipelineStageFlags::BottomOfPipe, "BottomOfPipe" },
+		{ EPipelineStageFlags::Host, "Host" },
+		{ EPipelineStageFlags::AllGraphics, "AllGraphics" },
+		{ EPipelineStageFlags::AllCommands, "AllCommands" },
+	});
+}
 
 // Keep the same with VkImageLayout
 enum class ETextureLayout : uint32

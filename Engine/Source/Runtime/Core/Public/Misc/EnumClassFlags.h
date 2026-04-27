@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include <magic_enum/magic_enum.hpp>
+#include <initializer_list>
 #include <string>
 #include <string_view>
 #include <type_traits>
+
+template<typename Enum>
+struct FEnumFlagName
+{
+	Enum Value;
+	std::string_view Name;
+};
 
 inline void AppendEnumFlagName(std::string& Result, std::string_view Name)
 {
@@ -23,7 +30,7 @@ constexpr bool IsSingleBitEnumValue(std::make_unsigned_t<__underlying_type(Enum)
 }
 
 template<typename Enum>
-inline std::string EnumFlagsToString(Enum Flags)
+inline std::string EnumFlagsToString(Enum Flags, std::initializer_list<FEnumFlagName<Enum>> FlagNames)
 {
 	using UnderlyingType = __underlying_type(Enum);
 	using UnsignedType = std::make_unsigned_t<UnderlyingType>;
@@ -36,16 +43,20 @@ inline std::string EnumFlagsToString(Enum Flags)
 
 	UnsignedType Remaining = Value;
 	std::string Result;
-	for (Enum EnumValue : magic_enum::enum_values<Enum>())
+	for (const FEnumFlagName<Enum>& FlagName : FlagNames)
 	{
-		const UnsignedType FlagValue = static_cast<UnsignedType>(static_cast<UnderlyingType>(EnumValue));
+		const UnsignedType FlagValue = static_cast<UnsignedType>(static_cast<UnderlyingType>(FlagName.Value));
+		if (FlagValue == Value)
+		{
+			return std::string(FlagName.Name);
+		}
 		if (!IsSingleBitEnumValue<Enum>(FlagValue))
 		{
 			continue;
 		}
 		if ((Value & FlagValue) != 0)
 		{
-			AppendEnumFlagName(Result, magic_enum::enum_name(EnumValue));
+			AppendEnumFlagName(Result, FlagName.Name);
 			Remaining &= ~FlagValue;
 		}
 	}
@@ -67,8 +78,7 @@ inline std::string EnumFlagsToString(Enum Flags)
 	inline constexpr Enum  operator& (Enum  Lhs, Enum Rhs) { return (Enum)((__underlying_type(Enum))Lhs & (__underlying_type(Enum))Rhs); } \
 	inline constexpr Enum  operator^ (Enum  Lhs, Enum Rhs) { return (Enum)((__underlying_type(Enum))Lhs ^ (__underlying_type(Enum))Rhs); } \
 	inline constexpr bool  operator! (Enum  E)             { return !(__underlying_type(Enum))E; } \
-	inline constexpr Enum  operator~ (Enum  E)             { return (Enum)~(__underlying_type(Enum))E; } \
-	inline std::string     ToString(Enum Flags)            { return EnumFlagsToString(Flags); }
+	inline constexpr Enum  operator~ (Enum  E)             { return (Enum)~(__underlying_type(Enum))E; }
 
 // Friends all bitwise operators for enum classes so the definition can be kept private / protected.
 #define FRIEND_ENUM_CLASS_FLAGS(Enum) \
