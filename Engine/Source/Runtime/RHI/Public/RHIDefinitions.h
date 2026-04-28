@@ -670,27 +670,27 @@ inline std::string ToString(ETextureUsageFlags Flags)
 	});
 }
 
-// Keep the same with VkAccessFlagBits, except Present
 enum class ERHIAccess : uint32
 {
 	None = 0,
-	IndirectCommandRead = 0x00000001,
-	IndexRead = 0x00000002,
-	VertexAttributeRead = 0x00000004,
-	UniformRead = 0x00000008,
-	// InputAttachmentRead = 0x00000010,	// Used with subpass, not supported currently
-	ShaderResourceRead = 0x00000020,
-	ShaderResourceWrite = 0x00000040,
-	ShaderResourceReadWrite = ShaderResourceRead | ShaderResourceWrite,
-	ColorAttachmentRead = 0x00000080,
-	ColorAttachmentWrite = 0x00000100,
-	DepthStencilAttachmentRead = 0x00000200,
-	DepthStencilAttachmentWrite = 0x00000400,
-	TransferRead = 0x00000800,
-	TransferWrite = 0x00001000,
-	HostRead = 0x00002000,
-	HostWrite = 0x00004000,
-	Present = 0x00008000,
+	IndirectCommandRead = 1 << 0,
+	IndexRead = 1 << 1,
+	VertexAttributeRead = 1 << 2,
+	UniformRead = 1 << 3,
+	// InputAttachmentRead = 1 << 4,	// Used with subpass, not supported currently
+	ShaderSampledRead = 1 << 5,
+	ShaderStorageRead = 1 << 6,
+	ShaderStorageWrite = 1 << 7,
+	ShaderStorageReadWrite = ShaderStorageRead | ShaderStorageWrite,
+	ColorAttachmentRead = 1 << 8,
+	ColorAttachmentWrite = 1 << 9,
+	DepthStencilAttachmentRead = 1 << 10,
+	DepthStencilAttachmentWrite = 1 << 11,
+	TransferRead = 1 << 12,
+	TransferWrite = 1 << 13,
+	HostRead = 1 << 14,
+	HostWrite = 1 << 15,
+	Present = 1 << 16,
 	Max = 0x7FFFFFFF,
 };
 #if 0	// Steelwall2014: ERHIAccess is too complicated in Unreal Engine, so simplify it...
@@ -773,8 +773,9 @@ inline std::string ToString(ERHIAccess Flags)
 		{ ERHIAccess::IndexRead, "IndexRead" },
 		{ ERHIAccess::VertexAttributeRead, "VertexAttributeRead" },
 		{ ERHIAccess::UniformRead, "UniformRead" },
-		{ ERHIAccess::ShaderResourceRead, "ShaderResourceRead" },
-		{ ERHIAccess::ShaderResourceWrite, "ShaderResourceWrite" },
+		{ ERHIAccess::ShaderSampledRead, "ShaderSampledRead" },
+		{ ERHIAccess::ShaderStorageRead, "ShaderStorageRead" },
+		{ ERHIAccess::ShaderStorageWrite, "ShaderStorageWrite" },
 		{ ERHIAccess::ColorAttachmentRead, "ColorAttachmentRead" },
 		{ ERHIAccess::ColorAttachmentWrite, "ColorAttachmentWrite" },
 		{ ERHIAccess::DepthStencilAttachmentRead, "DepthStencilAttachmentRead" },

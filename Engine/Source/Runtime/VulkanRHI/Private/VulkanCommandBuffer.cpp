@@ -290,13 +290,40 @@ namespace nilou {
         return (VkPipelineStageFlags2)Flags;
     }
 
-    VkAccessFlagBits2 Translate(ERHIAccess Access)
+    VkAccessFlags2 Translate(ERHIAccess Access)
     {
-        if (Access == ERHIAccess::Present)
-        {
-            return VK_ACCESS_NONE;
-        }
-        return (VkAccessFlagBits2)Access;
+        VkAccessFlags2 Flags = VK_ACCESS_2_NONE;
+        if ((Access & ERHIAccess::IndirectCommandRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+        if ((Access & ERHIAccess::IndexRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_INDEX_READ_BIT;
+        if ((Access & ERHIAccess::VertexAttributeRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+        if ((Access & ERHIAccess::UniformRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_UNIFORM_READ_BIT;
+        if ((Access & ERHIAccess::ShaderSampledRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+        if ((Access & ERHIAccess::ShaderStorageRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+        if ((Access & ERHIAccess::ShaderStorageWrite) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
+        if ((Access & ERHIAccess::ColorAttachmentRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+        if ((Access & ERHIAccess::ColorAttachmentWrite) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        if ((Access & ERHIAccess::DepthStencilAttachmentRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        if ((Access & ERHIAccess::DepthStencilAttachmentWrite) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        if ((Access & ERHIAccess::TransferRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_TRANSFER_READ_BIT;
+        if ((Access & ERHIAccess::TransferWrite) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        if ((Access & ERHIAccess::HostRead) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_HOST_READ_BIT;
+        if ((Access & ERHIAccess::HostWrite) != ERHIAccess::None)
+            Flags |= VK_ACCESS_2_HOST_WRITE_BIT;
+        return Flags;
     }
 
     VkImageLayout Translate(ETextureLayout Layout)

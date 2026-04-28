@@ -464,20 +464,22 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         {
         case slang::BindingType::TypedBuffer:
         case slang::BindingType::Texture:
+        case slang::BindingType::CombinedTextureSampler:
+            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderSampledRead;\n";
+            break;
         case slang::BindingType::RawBuffer:
-            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderResourceRead;\n";
+            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderStorageRead;\n";
             break;
         case slang::BindingType::MutableTypedBuffer:
         case slang::BindingType::MutableTexture:
         case slang::BindingType::MutableRawBuffer:
-            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderResourceReadWrite;\n";
+            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderStorageReadWrite;\n";
             break;
         case slang::BindingType::ConstantBuffer:
-        case slang::BindingType::CombinedTextureSampler:
             CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::UniformRead;\n";
             break;
         case slang::BindingType::Sampler:
-            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderResourceRead;\n";
+            CreateDescriptorSetLayout += "\t\tBinding.Access = ERHIAccess::ShaderSampledRead;\n";
             break;
         default:
             std::cerr << "Not supported binding type: " << (int)BindingType << std::endl;

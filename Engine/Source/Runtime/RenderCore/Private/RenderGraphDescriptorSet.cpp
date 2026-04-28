@@ -152,7 +152,7 @@ void RDGDescriptorSet::SetSamplerInternal(const RHIDescriptorSetLayoutBinding& B
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::CombinedImageSampler;
 	WriteDescriptor.ImageInfo = ImageInfo;
-	WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
+	WriteDescriptor.Access = ERHIAccess::ShaderSampledRead;
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
 }
 
@@ -168,14 +168,14 @@ void RDGDescriptorSet::SetStorageBufferInternal(const RHIDescriptorSetLayoutBind
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::StorageBuffer;
 	WriteDescriptor.BufferInfo = BufferInfo;
-	WriteDescriptor.Access = ERHIAccess::ShaderResourceReadWrite;
+	WriteDescriptor.Access = ERHIAccess::ShaderStorageReadWrite;
 	if ((Binding.Flags & EDescriptorDecorationFlags::NonReadable) != EDescriptorDecorationFlags::None)
 	{
-		WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceRead;
+		WriteDescriptor.Access &= ~ERHIAccess::ShaderStorageRead;
 	}
 	if ((Binding.Flags & EDescriptorDecorationFlags::NonWritable) != EDescriptorDecorationFlags::None)
 	{
-		WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceWrite;
+		WriteDescriptor.Access &= ~ERHIAccess::ShaderStorageWrite;
 	}
 	Ncheck(WriteDescriptor.Access != ERHIAccess::None);
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
@@ -191,14 +191,14 @@ void RDGDescriptorSet::SetStorageImageInternal(const RHIDescriptorSetLayoutBindi
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::StorageImage;
 	WriteDescriptor.ImageInfo = ImageInfo;
-	WriteDescriptor.Access = ERHIAccess::ShaderResourceReadWrite;
+	WriteDescriptor.Access = ERHIAccess::ShaderStorageReadWrite;
 	if ((Binding.Flags & EDescriptorDecorationFlags::NonReadable) != EDescriptorDecorationFlags::None)
 	{
-		WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceRead;
+		WriteDescriptor.Access &= ~ERHIAccess::ShaderStorageRead;
 	}
 	if ((Binding.Flags & EDescriptorDecorationFlags::NonWritable) != EDescriptorDecorationFlags::None)
 	{
-		WriteDescriptor.Access &= ~ERHIAccess::ShaderResourceWrite;
+		WriteDescriptor.Access &= ~ERHIAccess::ShaderStorageWrite;
 	}
 	Ncheck(WriteDescriptor.Access != ERHIAccess::None);
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
@@ -215,7 +215,7 @@ void RDGDescriptorSet::SetSampledImageInternal(const RHIDescriptorSetLayoutBindi
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::SampledImage;
 	WriteDescriptor.ImageInfo = ImageInfo;
-	WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
+	WriteDescriptor.Access = ERHIAccess::ShaderSampledRead;
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
 }
 
@@ -229,7 +229,7 @@ void RDGDescriptorSet::SetSamplerStateInternal(const RHIDescriptorSetLayoutBindi
 	WriteDescriptor.DstArrayElement = 0;
 	WriteDescriptor.DescriptorType = EDescriptorType::Sampler;
 	WriteDescriptor.ImageInfo = ImageInfo;
-	WriteDescriptor.Access = ERHIAccess::ShaderResourceRead;
+	WriteDescriptor.Access = ERHIAccess::ShaderSampledRead;
 	WriterInfos[Binding.BindingIndex] = WriteDescriptor;
 }
 

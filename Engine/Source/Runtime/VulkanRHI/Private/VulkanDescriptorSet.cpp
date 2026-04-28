@@ -288,7 +288,7 @@ void VulkanDescriptorSet::SetSampledImage(uint32 BindingIndex, RHITextureView* I
 	CheckTextureUsage(InTexture, ETextureUsageFlags::Sampled);
 
 	VkDescriptorImageInfo ImageInfo{};
-	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	ImageInfo.imageView = Texture->Handle;
 
 	VkWriteDescriptorSet WriteDescriptor{};

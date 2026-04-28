@@ -124,10 +124,20 @@ EPipelineStageFlags GetPipelineStage(ERHIPipeline Pipeline, ERHIAccess Access)
 			return EPipelineStageFlags::ComputeShader;
 		}
 	}
-	case ERHIAccess::ShaderResourceRead:
-	case ERHIAccess::ShaderResourceWrite:
-	case ERHIAccess::ShaderResourceReadWrite:
-		return EPipelineStageFlags::ComputeShader;
+	case ERHIAccess::ShaderSampledRead:
+	case ERHIAccess::ShaderStorageRead:
+	case ERHIAccess::ShaderStorageWrite:
+	case ERHIAccess::ShaderStorageReadWrite:
+	{
+		if (Pipeline == ERHIPipeline::Graphics)
+		{
+			return EPipelineStageFlags::FragmentShader;
+		}
+		else
+		{
+			return EPipelineStageFlags::ComputeShader;
+		}
+	}
 	case ERHIAccess::ColorAttachmentRead:
 	case ERHIAccess::ColorAttachmentWrite:
 		return EPipelineStageFlags::ColorAttachmentOutput;
@@ -153,10 +163,11 @@ ETextureLayout GetTextureLayout(ERHIAccess Access)
 	{
 	case ERHIAccess::None:
 		return ETextureLayout::Undefined;
-	case ERHIAccess::ShaderResourceRead:
+	case ERHIAccess::ShaderSampledRead:
 		return ETextureLayout::ShaderReadOnlyOptimal;
-	case ERHIAccess::ShaderResourceWrite:
-	case ERHIAccess::ShaderResourceReadWrite:
+	case ERHIAccess::ShaderStorageRead:
+	case ERHIAccess::ShaderStorageWrite:
+	case ERHIAccess::ShaderStorageReadWrite:
 		return ETextureLayout::General;
 	case ERHIAccess::ColorAttachmentRead:
 	case ERHIAccess::ColorAttachmentWrite:
@@ -1183,7 +1194,6 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 
 	const ERHIPipeline CurrentPipeline = CurrentPass->Pipeline;
 	RDG_DEBUG_LOG(Display, "[CollectPassBarriers] Pass: {}", CurrentPass->GetName());
-	if (CurrentPass->Desc.Name == "RenderToScreen 0") __debugbreak();
 
 	for (auto& PassState : CurrentPass->TextureStates)
 	{
@@ -1204,7 +1214,6 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 			if (LastAccess != CurrentAccess)
 			{
 				const ERHIPipeline LastPipeline = LastPass ? LastPass->Pipeline : ERHIPipeline::Graphics;
-				if (Texture->Name == "SceneColor 0") __debugbreak();
 				RHIImageMemoryBarrier Barrier = RHIImageMemoryBarrier(
 					Texture->GetRHI(), 
 					LastAccess, CurrentAccess, 
