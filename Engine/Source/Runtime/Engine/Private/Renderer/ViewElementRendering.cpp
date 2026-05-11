@@ -69,9 +69,7 @@ namespace nilou {
         //         PSOInitializer.VertexDeclaration = Declaration;
 
         //         FRHIGraphicsPipelineState *PSO = RHICmdList->RHIGetOrCreatePipelineStateObject(PSOInitializer);
-        //         RHIGetError();
         //         RHICmdList->RHISetGraphicsPipelineState(PSO);
-        //         RHIGetError();
 
         //         RHICmdList->RHISetStreamSource(0, PositionBuffer.VertexBufferRHI.get(), 0);
         //         RHICmdList->RHISetStreamSource(1, ColorBuffer.VertexBufferRHI.get(), 0);
@@ -80,8 +78,6 @@ namespace nilou {
         //             PSO, EPipelineStage::PS_Vertex, 
         //             "shader::FViewShaderParameters", 
         //             ViewInfo.ViewUniformBuffer->GetRHI());
-
-        //         RHIGetError();
 
         //         RHICmdList->RHIDrawArrays(0, Positions.size());
         //     }

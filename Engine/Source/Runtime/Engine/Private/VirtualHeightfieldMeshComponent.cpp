@@ -458,37 +458,29 @@ namespace nilou {
         {
             static uint32 zero_value = 0;
             CreateNodeListBlock->Data.ScreenSizeDenominator = 2 * glm::tan(0.5*ViewShaderParameters->Data.CameraVerticalFieldOfView);
-            RHIGetError();
             uint32 index_b_value = LodParams[LodCount-1].NodeSideNum.x * LodParams[LodCount-1].NodeSideNum.y;
             RHIBufferRef IndexB = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, "VHM_IndexB", &zero_value);
             RHIBufferRef IndexFinal = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, "VHM_IndexFinal", &zero_value);
 
-            RHIGetError();
             RHIBufferRef indirectArgs = FDynamicRHI::Get()->RHICreateDispatchIndirectBuffer(index_b_value, 1, 1);
 
-            RHIGetError();
             FShaderPermutationParameters PermutationParameters(&FVHMCreateNodeListShader::StaticType, 0);
             FShaderInstance *CreateNodeListShader = GetGlobalShader(PermutationParameters);
             FRHIGraphicsPipelineState *PSO = FDynamicRHI::Get()->RHISetComputeShader(CreateNodeListShader->GetComputeShaderRHI());
             
-            RHIGetError();
             FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeIDs_Final_Buffer", FinalNodeListBuffer.get());
-            RHIGetError();
             FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "AtomicIndexBlock2", IndexFinal.get());
-            RHIGetError();
             FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "LODParams_Buffer", LodParamsBuffer.get());
-            RHIGetError();
             FDynamicRHI::Get()->RHIBindComputeBuffer(
                 PSO, EPipelineStage::PS_Compute, 
                 "NodeDescription_Buffer", NodeDescriptionBuffer.get());
             
-            RHIGetError();
             FDynamicRHI::Get()->RHISetShaderSampler(
                 PSO, EPipelineStage::PS_Compute, 
                 "MinMaxMap", HeightMinMaxSampler);
@@ -502,7 +494,6 @@ namespace nilou {
                 PSO, EPipelineStage::PS_Compute, 
                 "shader::FViewShaderParameters", ViewShaderParameters->GetRHI());
             
-            RHIGetError();
             for (int lod = LodCount - 1; lod >= 0; lod--)
             {
                 CreateNodeListBlock->Data.PassLOD = lod;
@@ -517,19 +508,15 @@ namespace nilou {
                     PSO, EPipelineStage::PS_Compute, 
                     "AtomicIndexBlock1", IndexB.get());
 
-                RHIGetError();
                 FDynamicRHI::Get()->RHIDispatchIndirect(indirectArgs.get());
 
-                RHIGetError();
                 FDynamicRHI::Get()->RHICopyBufferSubData(IndexB, indirectArgs, 0, 0, 4);
                 
 
-                RHIGetError();
                 std::swap(NodeIDs_TempA, NodeIDs_TempB);
                 IndexB = FDynamicRHI::Get()->RHICreateBuffer(4, 4, EBufferUsageFlags::StructuredBuffer | EBufferUsageFlags::Dynamic, "VHM_IndexB", &zero_value);
             }
 
-            RHIGetError();
             FDynamicRHI::Get()->RHICopyBufferSubData(IndexFinal, FinalNodeListIndirectArgs, 0, 0, 4);
             
         }

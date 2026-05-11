@@ -32,8 +32,6 @@ namespace nilou {
             return;
         }
 
-        RHIGetError();
-
         RDGTextureDesc Desc{};
         Desc.Format = Image->GetPixelFormat();
         Desc.SizeX = Image->GetWidth();
@@ -67,8 +65,6 @@ namespace nilou {
             });
         
         FGenerateMips::Execute(Graph, TextureRDG.GetReference());
-
-        RHIGetError();
     }
 
     FTextureResource* UTexture2D::CreateResource()

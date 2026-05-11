@@ -15,8 +15,6 @@ namespace nilou {
             return;
         }
 
-        RHIGetError();
-
         RDGTextureDesc Desc{};
         Desc.Format = Image->GetPixelFormat();
         Desc.SizeX = Image->GetWidth();
@@ -47,8 +45,6 @@ namespace nilou {
                     0,                      // base array layer
                     1);                     // num array layers
             });
-
-        RHIGetError();
     }
 
     void FTextureRenderTargetCubeResource::InitRHI(RenderGraph& Graph)
@@ -61,8 +57,6 @@ namespace nilou {
                 magic_enum::enum_name(Image->GetImageType()));
             return;
         }
-
-        RHIGetError();
 
         RDGTextureDesc Desc{};
         Desc.Format = Image->GetPixelFormat();
@@ -96,8 +90,6 @@ namespace nilou {
         //             0,                      // base array layer     
         //             6);                     // num array layers
         //     });
-
-        RHIGetError();
     }
 
     FTextureRenderTargetResource* UTextureRenderTarget::GetRenderTargetResource()

@@ -34,7 +34,6 @@ namespace nilou {
 		virtual ~FDynamicRHI() {}
 		virtual int Initialize();
 		virtual void Finalize();
-		virtual void GetError(const char *file, int line) = 0;
 		virtual EGraphicsAPI GetCurrentGraphicsAPI() { return EGraphicsAPI::Empty; }
 		static EGraphicsAPI StaticGetCurrentGraphicsAPI() { return Get()->GetCurrentGraphicsAPI(); }
 
@@ -111,8 +110,6 @@ namespace nilou {
 		RHIFramebufferRef RenderToScreenFramebuffer{};
 		GfxConfiguration Config;
 	};
-
-	#define RHIGetError() FDynamicRHI::Get()->GetError(__FILE__, __LINE__)
 
 	// inline RHITextureRef RHICreateTexture2D(
 	// 	const std::string &name, EPixelFormat Format, 
