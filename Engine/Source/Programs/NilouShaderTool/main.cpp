@@ -68,6 +68,25 @@ void CompareAndEmit(const fs::path& outputFilePath, const std::string& content)
     std::cout << "Generated: " << outputFilePath << std::endl;
 }
 
+std::string MakeStaleGeneratedHeaderPlaceholder(const std::string& stem)
+{
+    return std::format(
+        "#pragma once\n"
+        "// This file is intentionally empty. Shader module \"{}\" no longer has\n"
+        "// reflectable ParameterBlock<T> bindings, but the placeholder is kept so\n"
+        "// existing build graphs and includes do not reference a missing file.\n",
+        stem);
+}
+
+std::string MakeStaleGeneratedCppPlaceholder(const std::string& stem)
+{
+    return std::format(
+        "// This file is intentionally empty. Shader module \"{}\" no longer has\n"
+        "// reflectable ParameterBlock<T> bindings, but the placeholder is kept so\n"
+        "// xmake does not compile a source file that was removed during codegen.\n",
+        stem);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 3)
@@ -276,8 +295,7 @@ int main(int argc, char *argv[])
             std::string stem = dir_entry.path().stem().stem().string();
             if (FileToTypesMap.find(stem) == FileToTypesMap.end())
             {
-                fs::remove(dir_entry.path());
-                std::cout << "Removed: " << dir_entry.path() << std::endl;
+                CompareAndEmit(dir_entry.path(), MakeStaleGeneratedHeaderPlaceholder(stem));
             }
         }
     }
@@ -289,8 +307,7 @@ int main(int argc, char *argv[])
             std::string stem = dir_entry.path().stem().stem().string();
             if (FileToTypesMap.find(stem) == FileToTypesMap.end())
             {
-                fs::remove(dir_entry.path());
-                std::cout << "Removed: " << dir_entry.path() << std::endl;
+                CompareAndEmit(dir_entry.path(), MakeStaleGeneratedCppPlaceholder(stem));
             }
         }
     }

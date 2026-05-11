@@ -52,7 +52,7 @@ Only structs used by `ParameterBlock<T>` (including member structs) produce bind
 
 - Descriptor entries: `AutomaticallyIntroducedUniformBuffer` and each resource/sampler/buffer field (`BindingIndex` is the Vulkan binding in the set).
 - **Uniform block layout**: one row per scalar/vector/matrix field inside the Std140/Std430 payload, and nested struct fields (recursive, qualified names like `Outer.Inner`). For these rows, `BindingIndex` is **0**; use `BaseType` (numeric vs resource) and `Name` to distinguish from real binding 0 when needed. `Offset` is the byte offset in the uniform block from Slang `ParameterCategory::Uniform`.
-- Uniform **arrays** are not emitted yet (tool logs and skips).
+- Uniform **arrays** are emitted with `NumElements` and `ArrayStride`; struct arrays also emit expanded child rows such as `Foo[0].Bar` with precise offsets.
 
 ## Type Mapping (Typical)
 
@@ -68,6 +68,7 @@ Only structs used by `ParameterBlock<T>` (including member structs) produce bind
 - Unchanged source timestamps skip generation.
 - `-ForceRegenerate` bypasses cache.
 - Content compare write avoids touching files with identical output.
+- Stale `.generated.h` / `.gen.cpp` outputs are replaced with empty placeholders instead of being deleted. This prevents xmake from compiling a source path that was collected before codegen removed it, while still removing stale shader metadata registration code.
 
 ## Xmake Integration
 
@@ -84,4 +85,4 @@ Only structs used by `ParameterBlock<T>` (including member structs) produce bind
 - Nested `ParameterBlock<ParameterBlock<T>>` is not recursively parsed.
 - Layout mismatch across usage contexts causes errors.
 - `PushConstant` parameter blocks do not generate `FShaderParametersMetadata2`.
-- Obsolete generated files without source correspondences are cleaned up.
+- Obsolete generated files without reflectable `ParameterBlock<T>` bindings are emitted as empty placeholders.

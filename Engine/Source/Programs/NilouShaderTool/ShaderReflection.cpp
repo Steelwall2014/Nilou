@@ -225,6 +225,58 @@ static void EmitUniformFieldMetadataRecursive(
     int StructBaseOffsetInUB,
     const std::string& QualifiedPrefix);
 
+static void EmitUniformTypeMetadataRecursive(
+    std::string& GetMembers,
+    slang::TypeLayoutReflection* TypeLayout,
+    int AbsoluteOffsetInUB,
+    const std::string& QualifiedName);
+
+static bool GetUniformMemberShape(
+    slang::TypeReflection* Type,
+    std::string& OutBaseType,
+    std::string& OutPrecision,
+    unsigned& OutNumRows,
+    unsigned& OutNumColumns)
+{
+    switch (Type->getKind())
+    {
+    case slang::TypeReflection::Kind::Scalar:
+        OutNumRows = 1u;
+        OutNumColumns = 1u;
+        return MapScalarUniformType(Type, OutBaseType, OutPrecision);
+    case slang::TypeReflection::Kind::Vector:
+    {
+        slang::TypeReflection* Elem = Type->getElementType();
+        if (!MapScalarUniformType(Elem, OutBaseType, OutPrecision))
+            return false;
+        AppendUniformVectorOrMatrixPrecision(Elem, OutPrecision);
+        OutNumRows = 1u;
+        OutNumColumns = (unsigned)Type->getColumnCount();
+        return true;
+    }
+    case slang::TypeReflection::Kind::Matrix:
+    {
+        slang::TypeReflection* Elem = Type->getElementType();
+        if (!MapScalarUniformType(Elem, OutBaseType, OutPrecision))
+            return false;
+        AppendUniformVectorOrMatrixPrecision(Elem, OutPrecision);
+        OutNumRows = (unsigned)Type->getRowCount();
+        OutNumColumns = (unsigned)Type->getColumnCount();
+        return true;
+    }
+    case slang::TypeReflection::Kind::Struct:
+        OutBaseType = "EUniformBufferBaseType2::NestedStruct";
+        OutPrecision = "EShaderPrecisionModifier2::Invalid";
+        OutNumRows = 1u;
+        OutNumColumns = 1u;
+        return true;
+    case slang::TypeReflection::Kind::Array:
+        return GetUniformMemberShape(Type->getElementType(), OutBaseType, OutPrecision, OutNumRows, OutNumColumns);
+    default:
+        return false;
+    }
+}
+
 static void EmitOneUniformMemberLine(
     std::string& GetMembers,
     const std::string& QualifiedName,
@@ -233,17 +285,105 @@ static void EmitOneUniformMemberLine(
     const std::string& PrecisionStr,
     unsigned NumRows,
     unsigned NumColumns,
-    unsigned NumElements)
+    unsigned NumElements,
+    unsigned ArrayStride = 0u)
 {
     GetMembers += std::format(
-        "\tMembers.push_back( {{0, \"{}\", {}, {}, {}, {}u, {}u, {}u}} );\n",
+        "\tMembers.push_back( {{0, \"{}\", {}, {}, {}, {}u, {}u, {}u, {}u}} );\n",
         QualifiedName,
         AbsoluteOffsetInUB,
         BaseTypeStr,
         PrecisionStr,
         NumRows,
         NumColumns,
-        NumElements);
+        NumElements,
+        ArrayStride);
+}
+
+static void EmitUniformTypeMetadataRecursive(
+    std::string& GetMembers,
+    slang::TypeLayoutReflection* TypeLayout,
+    int AbsoluteOffsetInUB,
+    const std::string& QualifiedName)
+{
+    if (!TypeLayout)
+        return;
+
+    slang::TypeReflection* Type = TypeLayout->getType();
+    if (!Type)
+        return;
+
+    switch (Type->getKind())
+    {
+    case slang::TypeReflection::Kind::Resource:
+    case slang::TypeReflection::Kind::SamplerState:
+        break;
+    case slang::TypeReflection::Kind::Scalar:
+    case slang::TypeReflection::Kind::Vector:
+    case slang::TypeReflection::Kind::Matrix:
+    {
+        std::string BaseStr;
+        std::string PrecStr;
+        unsigned NumRows = 1u;
+        unsigned NumColumns = 1u;
+        if (GetUniformMemberShape(Type, BaseStr, PrecStr, NumRows, NumColumns))
+            EmitOneUniformMemberLine(GetMembers, QualifiedName, AbsoluteOffsetInUB, BaseStr, PrecStr, NumRows, NumColumns, 1u);
+        break;
+    }
+    case slang::TypeReflection::Kind::Struct:
+        EmitUniformFieldMetadataRecursive(GetMembers, TypeLayout, AbsoluteOffsetInUB, QualifiedName);
+        break;
+    case slang::TypeReflection::Kind::Array:
+    {
+        const int ElementCount = (int)Type->getElementCount();
+        slang::TypeLayoutReflection* ElementTypeLayout = TypeLayout->getElementTypeLayout();
+        if (ElementCount <= 0 || !ElementTypeLayout)
+        {
+            std::cerr << "EmitMetadata: unsupported uniform array field: " << QualifiedName << std::endl;
+            break;
+        }
+
+        unsigned ArrayStride = (unsigned)ElementTypeLayout->getStride();
+        if (ArrayStride == 0u)
+            ArrayStride = (unsigned)ElementTypeLayout->getSize(slang::ParameterCategory::Uniform);
+        if (ArrayStride == 0u && ElementCount > 0)
+            ArrayStride = (unsigned)(TypeLayout->getSize(slang::ParameterCategory::Uniform) / ElementCount);
+        std::string BaseStr;
+        std::string PrecStr;
+        unsigned NumRows = 1u;
+        unsigned NumColumns = 1u;
+        if (GetUniformMemberShape(Type->getElementType(), BaseStr, PrecStr, NumRows, NumColumns))
+        {
+            EmitOneUniformMemberLine(
+                GetMembers,
+                QualifiedName,
+                AbsoluteOffsetInUB,
+                BaseStr,
+                PrecStr,
+                NumRows,
+                NumColumns,
+                (unsigned)ElementCount,
+                ArrayStride);
+        }
+
+        slang::TypeReflection* ElementType = Type->getElementType();
+        if (ElementType && (ElementType->getKind() == slang::TypeReflection::Kind::Struct ||
+                            ElementType->getKind() == slang::TypeReflection::Kind::Array))
+        {
+            for (int ElementIndex = 0; ElementIndex < ElementCount; ++ElementIndex)
+            {
+                EmitUniformTypeMetadataRecursive(
+                    GetMembers,
+                    ElementTypeLayout,
+                    AbsoluteOffsetInUB + (int)(ElementIndex * ArrayStride),
+                    std::format("{}[{}]", QualifiedName, ElementIndex));
+            }
+        }
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 static void EmitUniformFieldMetadataRecursive(
@@ -256,7 +396,6 @@ static void EmitUniformFieldMetadataRecursive(
     for (int FieldIndex = 0; FieldIndex < NumFields; ++FieldIndex)
     {
         slang::VariableLayoutReflection* FieldLayout = StructLayout->getFieldByIndex(FieldIndex);
-        slang::TypeReflection* FieldType = FieldLayout->getType();
         slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
         const std::string FieldName = FieldLayout->getName();
         const std::string Qualified =
@@ -264,53 +403,7 @@ static void EmitUniformFieldMetadataRecursive(
         const int AbsOffset =
             StructBaseOffsetInUB + (int)FieldLayout->getOffset(slang::ParameterCategory::Uniform);
 
-        switch (FieldType->getKind())
-        {
-        case slang::TypeReflection::Kind::Resource:
-        case slang::TypeReflection::Kind::SamplerState:
-            break;
-        case slang::TypeReflection::Kind::Scalar:
-        {
-            std::string BaseStr;
-            std::string PrecStr;
-            if (MapScalarUniformType(FieldType, BaseStr, PrecStr))
-                EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, 1u, 1u, 1u);
-            break;
-        }
-        case slang::TypeReflection::Kind::Vector:
-        {
-            const unsigned Cols = (unsigned)FieldType->getColumnCount();
-            slang::TypeReflection* Elem = FieldType->getElementType();
-            std::string BaseStr;
-            std::string PrecStr;
-            if (!MapScalarUniformType(Elem, BaseStr, PrecStr))
-                break;
-            AppendUniformVectorOrMatrixPrecision(Elem, PrecStr);
-            EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, 1u, Cols, 1u);
-            break;
-        }
-        case slang::TypeReflection::Kind::Matrix:
-        {
-            const unsigned Rows = (unsigned)FieldType->getRowCount();
-            const unsigned Cols = (unsigned)FieldType->getColumnCount();
-            slang::TypeReflection* Elem = FieldType->getElementType();
-            std::string BaseStr;
-            std::string PrecStr;
-            if (!MapScalarUniformType(Elem, BaseStr, PrecStr))
-                break;
-            AppendUniformVectorOrMatrixPrecision(Elem, PrecStr);
-            EmitOneUniformMemberLine(GetMembers, Qualified, AbsOffset, BaseStr, PrecStr, Rows, Cols, 1u);
-            break;
-        }
-        case slang::TypeReflection::Kind::Struct:
-            EmitUniformFieldMetadataRecursive(GetMembers, FieldTypeLayout, AbsOffset, Qualified);
-            break;
-        case slang::TypeReflection::Kind::Array:
-            std::cerr << "EmitMetadata: uniform array field skipped (not yet supported): " << Qualified << std::endl;
-            break;
-        default:
-            break;
-        }
+        EmitUniformTypeMetadataRecursive(GetMembers, FieldTypeLayout, AbsOffset, Qualified);
     }
 }
 
@@ -497,7 +590,7 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         GetMembers += std::format(
             "\tMembers.push_back( {{{}, \"AutomaticallyIntroducedUniformBuffer\", "
             "offsetof({}<EShaderDataLayout::Opaque>, AutomaticallyIntroducedUniformBuffer), "
-            "EUniformBufferBaseType2::Buffer, EShaderPrecisionModifier2::Invalid, 1u, 1u, 1u}} );\n",
+            "EUniformBufferBaseType2::Buffer, EShaderPrecisionModifier2::Invalid, 1u, 1u, 1u, 0u}} );\n",
             AutoUBBindingIndex, StructName);
     }
     int relativeSetIndex = 0;
@@ -581,7 +674,7 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
         if (!BaseTypeStr.empty())
         {
             GetMembers += std::format(
-                "\tMembers.push_back( {{{}, \"{}\", offsetof({}<EShaderDataLayout::Opaque>, {}), {}, {}, 1u, 1u, 1u}} );\n",
+                "\tMembers.push_back( {{{}, \"{}\", offsetof({}<EShaderDataLayout::Opaque>, {}), {}, {}, 1u, 1u, 1u, 0u}} );\n",
                 FieldBindingIndex, FieldName, StructName, FieldName, BaseTypeStr, PrecisionStr);
         }
     }
