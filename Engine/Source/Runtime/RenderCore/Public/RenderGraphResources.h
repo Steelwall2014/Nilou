@@ -14,12 +14,12 @@ class RDGSubresourceState
 {
 public:
 
-	/** The last used access on the pass. */
-	ERHIAccess Access = ERHIAccess::None;
+    /** The last used access on the pass. */
+    ERHIAccess Access = ERHIAccess::None;
 
-	/** The last pass in this state. */
-	FRDGPassHandle Pass = NullPassHandle;
+    FRDGPassHandle Pass = NullPassHandle;
 
+    FRDGPassHandle LastWriter = NullPassHandle;
 };
 
 class FRDGPooledBuffer : public TRefCountedObject<ERefCountingMode::NotThreadSafe>
@@ -301,9 +301,9 @@ public:
     const RDGBufferDesc Desc;
 
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreateBuffer
-    class FRHITransientBuffer* TransientBuffer;
+    class FRHITransientBuffer* TransientBuffer = nullptr;
     // Steelwall2014: not null if the buffer is created from RenderGraph::CreatePooledBuffer
-    FRDGPooledBufferRef PooledBuffer;
+    FRDGPooledBufferRef PooledBuffer = nullptr;
 
     RDGSubresourceState State;
 

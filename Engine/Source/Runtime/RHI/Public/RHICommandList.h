@@ -28,7 +28,7 @@ namespace nilou {
     class RHICommandList : public RHIResource
     {
     public:
-        RHICommandList() : RHIResource(ERHIResourceType::RRT_CommandBuffer) { }
+        RHICommandList(ERHIPipeline InPipeline) : RHIResource(ERHIResourceType::RRT_CommandBuffer), Pipeline(InPipeline) { }
 
         /* Perform actions commands */
         virtual void BeginRenderPass(FRHIRenderPassInfo& Info) = 0;
@@ -69,21 +69,11 @@ namespace nilou {
 
         virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) = 0;
 
-        RHICommandContext& GetContext() 
-        {
-            Ncheck(GraphicsContext);
-            return *GraphicsContext; 
-        }
-        RHICommandContext& GetComputeContext() 
-        { 
-            Ncheck(ComputeContext);
-            return *ComputeContext; 
-        }
+        ERHIPipeline GetPipeline() const { return Pipeline; }
 
     protected:
 
-        RHICommandContext* GraphicsContext;
-        RHICommandContext* ComputeContext;
+        ERHIPipeline Pipeline;
 
     };
 

@@ -2,12 +2,6 @@ module ColoredMaterial_Mat;
 
 import RenderCore;
 
-struct FColoredMaterialParameters
-{
-    float4 BaseColor;
-};
-ParameterBlock<FColoredMaterialParameters> MaterialParameters;
-
 struct ColoredMaterial : IMaterial
 {
     IVertexShaderOutput vs_out;
@@ -17,7 +11,7 @@ struct ColoredMaterial : IMaterial
     }
     float4 GetBaseColor()
     {
-        return MaterialParameters.BaseColor;
+        return vs_out.GetColor();
     }
     float3 GetEmissive()
     {
@@ -37,7 +31,7 @@ struct ColoredMaterial : IMaterial
     }
     float3 GetWorldSpaceOffset()
     {
-        return MaterialParameters.BaseColor.xyz;
+        return float3(0);
     }
     EShadingModel GetShadingModel()
     {

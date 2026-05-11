@@ -91,8 +91,11 @@ namespace nilou {
         std::string timestamp_with_ms = ss_timestamp.str();
 
         std::cout << timestamp_with_ms << Message;
-        std::cout.flush();
         File << timestamp_with_ms << Message;
-        File.flush();
+        if (Verbosity == ELogVerbosity::Fatal)
+        {
+            std::cout.flush();
+            File.flush();
+        }
     }
 }

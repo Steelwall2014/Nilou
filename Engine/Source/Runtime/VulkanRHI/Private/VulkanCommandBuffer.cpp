@@ -10,8 +10,9 @@
 
 namespace nilou {
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VkDevice InDevice, VkQueue InQueue, VkCommandPool InPool)
-        : Device(InDevice)
+    VulkanCommandBuffer::VulkanCommandBuffer(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, VkCommandPool InPool)
+        : RHICommandList(InPipeline)
+        , Device(InDevice)
         , Queue(InQueue)
         , Pool(InPool)
     {
@@ -469,8 +470,9 @@ namespace nilou {
         }
     }
 
-    VulkanCommandBufferPool::VulkanCommandBufferPool(VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex)
-        : Device(InDevice)
+    VulkanCommandBufferPool::VulkanCommandBufferPool(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex)
+        : Pipeline(InPipeline)
+        , Device(InDevice)
         , Queue(InQueue)
     {
         VkCommandPoolCreateInfo poolInfo{};
@@ -495,7 +497,7 @@ namespace nilou {
             return RHICmdList.GetReference();
         }
 
-        TRefCountPtr<VulkanCommandBuffer> RHICmdList = TRefCountPtr(new VulkanCommandBuffer(Device, Queue, Handle));
+        TRefCountPtr<VulkanCommandBuffer> RHICmdList = TRefCountPtr(new VulkanCommandBuffer(Pipeline, Device, Queue, Handle));
         CmdBuffers.push_back(RHICmdList);
         return RHICmdList.GetReference();
     }
@@ -557,6 +559,7 @@ namespace nilou {
             VkSemaphoreSubmitInfo SemaphoreInfo{};
             SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;
+            SemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
             WaitSemephores.push_back(SemaphoreInfo);
         }
         for (RHISemaphoreRef Semaphore : SemaphoresToSignal)
@@ -565,6 +568,7 @@ namespace nilou {
             VkSemaphoreSubmitInfo SemaphoreInfo{};
             SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             SemaphoreInfo.semaphore = VkSemaphore->Handle;
+            SemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
             SignalSemephores.push_back(SemaphoreInfo);
         }
         VkSubmitInfo2 SubmitInfo{};
@@ -578,10 +582,11 @@ namespace nilou {
         SubmitInfo.pCommandBufferInfos = &CmdBufferInfo;
         SubmitInfo.signalSemaphoreInfoCount = SignalSemephores.size();
         SubmitInfo.pSignalSemaphoreInfos = SignalSemephores.data();
-        vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VulkanCmdList->Fence);
+        VK_CHECK_RESULT(vkQueueSubmit2(VulkanCmdList->Queue, 1, &SubmitInfo, VulkanCmdList->Fence));
         VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
         VulkanCmdList->SignalSemaphores = SemaphoresToSignal;
         VulkanCmdList->WaitSemaphores = SemaphoresToWait;
+        // vkQueueWaitIdle(VulkanCmdList->Queue);
     }
 
     RHIBuffer* VulkanCommandBuffer::AcquireStagingBuffer(uint32 Size)

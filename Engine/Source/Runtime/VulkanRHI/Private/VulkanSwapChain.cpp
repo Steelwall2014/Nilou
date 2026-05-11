@@ -82,6 +82,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkPhysicalDevice PhysDevice, VkDevice InDevic
     {
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         vkCreateFence(Device, &fenceInfo, nullptr, &ImageAcquiredFences[i]);
     }
 
@@ -101,14 +102,15 @@ int32 FVulkanSwapChain::AcquireImageIndex(VkSemaphore* OutSemaphore)
 {
     SemaphoreIndex = (SemaphoreIndex+1) % ImageAcquiredSemaphore.size();
     uint32 ImageIndex;
-    VkResult result = vkAcquireNextImageKHR(
+    VkFence ImageAcquiredFence = ImageAcquiredFences[SemaphoreIndex];
+    VK_CHECK_RESULT(vkResetFences(Device, 1, &ImageAcquiredFence));
+    VK_CHECK_RESULT(vkAcquireNextImageKHR(
         Device, Handle, UINT64_MAX, 
         VK_NULL_HANDLE, 
-        ImageAcquiredFences[SemaphoreIndex], &ImageIndex);
+        ImageAcquiredFence, &ImageIndex));
     CurrentImageIndex = ImageIndex;
     *OutSemaphore = ResourceCast(ImageAcquiredSemaphore[SemaphoreIndex].GetReference())->Handle;
-    vkWaitForFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex], VK_TRUE, UINT64_MAX);
-    VK_CHECK_RESULT(vkResetFences(Device, 1, &ImageAcquiredFences[SemaphoreIndex]));
+    VK_CHECK_RESULT(vkWaitForFences(Device, 1, &ImageAcquiredFence, VK_TRUE, UINT64_MAX));
     return CurrentImageIndex;
 }
 

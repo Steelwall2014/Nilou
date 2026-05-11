@@ -34,7 +34,6 @@ public:
     FVulkanDynamicRHI(const GfxConfiguration& Config);
     virtual int Initialize() override;
     virtual void Finalize() override;
-    virtual void GetError(const char *file, int line) override;
     virtual EGraphicsAPI GetCurrentGraphicsAPI() override { return EGraphicsAPI::Vulkan; }
 
     virtual RHIViewportRef RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY) override;

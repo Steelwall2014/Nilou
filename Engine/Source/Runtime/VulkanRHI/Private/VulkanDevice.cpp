@@ -170,9 +170,9 @@ void VulkanDevice::InitGPU()
 	TransferQueue = new VulkanQueue(Handle, TransferQueueFamilyIndex);
 	PresentQueue = GfxQueue;
 
-	GfxCmdBufferPool = new VulkanCommandBufferPool(Handle, GfxQueue->Handle, GfxQueueFamilyIndex);
-	ComputeCmdBufferPool = new VulkanCommandBufferPool(Handle, ComputeQueue->Handle, ComputeQueueFamilyIndex);
-	TransferCmdBufferPool = new VulkanCommandBufferPool(Handle, TransferQueue->Handle, TransferQueueFamilyIndex);
+	GfxCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Graphics, Handle, GfxQueue->Handle, GfxQueueFamilyIndex);
+	ComputeCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::AsyncCompute, Handle, ComputeQueue->Handle, ComputeQueueFamilyIndex);
+	TransferCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Copy, Handle, TransferQueue->Handle, TransferQueueFamilyIndex);
 
 	MemoryManager = new FVulkanMemoryManager(Handle, Gpu);
 }

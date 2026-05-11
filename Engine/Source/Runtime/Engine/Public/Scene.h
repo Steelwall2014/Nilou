@@ -53,7 +53,7 @@ namespace nilou {
             , Scene(InScene)
             , SceneProxy(InSceneProxy)
         {
-            LightUniformBuffer = RenderGraph::CreatePooledUniformBuffer<FLightShaderParameters>("LightUniformBuffer");
+
         }
 
         ~FLightSceneInfo()
@@ -64,7 +64,6 @@ namespace nilou {
         FScene *Scene;
         ULightComponent *Light;
         FLightSceneProxy *SceneProxy;
-        TRDGUniformBufferRef<FLightShaderParameters> LightUniformBuffer;
     };
 
     class FReflectionProbeSceneInfo

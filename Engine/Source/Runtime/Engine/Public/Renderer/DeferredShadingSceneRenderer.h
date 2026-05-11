@@ -1,14 +1,16 @@
 #pragma once
-#include "MeshBatch.h"
-#include "Scene.h"
-#include "MeshPassProcessor.h"
-#include "RHIResources.h"
-#include "SceneView.h"
-#include "PipelineStateCache.h"
+#include <stack>
 #include <unordered_map>
 #include <vector>
-#include <stack>
 
+#include "Light.generated.h"
+#include "MeshBatch.h"
+#include "MeshPassProcessor.h"
+#include "PipelineStateCache.h"
+#include "RHIResources.h"
+#include "Scene.h"
+#include "SceneView.h"
+#include "ShadowMapping.generated.h"
 
 namespace nilou {
 
@@ -34,20 +36,16 @@ namespace nilou {
     {
     public:
         std::vector<RDGTextureView*> DepthViews;
-        RDGTexture* DepthArray;
-        RDGBuffer* ShadowMapUniformBuffer;
-        std::vector<FShadowMappingParameters> Frustums;
+        RDGTexture* DepthArray = nullptr;
+        TParameterBlock<shader::ShadowMappingParameters>* ShadowMappingParameters = nullptr;
     };
 
-    class FLightInfo
+    /** Information about a visible light which isn't view-specific. */
+    class FVisibleLightInfo
     {
     public:
 
         std::vector<FShadowMapResource> ShadowMapResources;
-
-        RDGBuffer* LightUniformBuffer = nullptr;
-
-        ELightType LightType = ELightType::LT_None;
 
         FLightSceneProxy* LightSceneProxy = nullptr;
 
@@ -72,8 +70,8 @@ namespace nilou {
         std::vector<std::vector<FMeshBatch>> ViewMeshBatches;
         std::vector<FParallelMeshDrawCommands> ViewMeshDrawCommands;
 
-        /** The lights being rendered. */
-        std::vector<FLightInfo> Lights;
+	    /** Information about the visible lights. */
+        std::vector<FVisibleLightInfo> VisibleLightInfos;
 
         std::vector<FParallelMeshDrawCommands> MeshDrawCommands;
 

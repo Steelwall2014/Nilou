@@ -259,66 +259,12 @@ namespace nilou {
         }
     }
 
-    static void SetLightAttenParams(FLightAttenParameters &OutParameter, const FAttenCurve &AttenCurveParam)
-    {
-        EAttenCurveType CurveType = AttenCurveParam.type;
-        OutParameter.AttenCurveType = (int)AttenCurveParam.type;
-        OutParameter.AttenCurveScale = AttenCurveParam.scale;
-        switch (CurveType) 
-        {
-            case EAttenCurveType::ACT_Linear:
-                OutParameter.AttenCurveParams =
-                    FVector4f(
-                        AttenCurveParam.u.linear_params.begin_atten, 
-                        AttenCurveParam.u.linear_params.end_atten, 
-                        0, 0);
-                break;
-            case EAttenCurveType::ACT_Smooth:
-                OutParameter.AttenCurveParams =
-                    FVector4f(
-                        AttenCurveParam.u.smooth_params.begin_atten, 
-                        AttenCurveParam.u.smooth_params.end_atten, 
-                        0, 0);
-                break;
-            case EAttenCurveType::ACT_Inverse:
-                OutParameter.AttenCurveParams =
-                    FVector4f(
-                        AttenCurveParam.u.inverse_params.offset, 
-                        AttenCurveParam.u.inverse_params.kl, 
-                        AttenCurveParam.u.inverse_params.kc, 0);
-                break;
-            case EAttenCurveType::ACT_InverseSquare:
-                OutParameter.AttenCurveParams =
-                    FVector4f(
-                        AttenCurveParam.u.inverse_squre_params.offset,
-                        AttenCurveParam.u.inverse_squre_params.kq,
-                        AttenCurveParam.u.inverse_squre_params.kl,
-                        AttenCurveParam.u.inverse_squre_params.kc);
-                break;
-            default:
-                Ncheck(0);
-        }
-    }
-
-    static void SetLightUniformBuffer(RenderGraph& Graph, TRDGUniformBuffer<FLightShaderParameters>* LightUniformBuffer, FLightSceneProxy* Proxy)
-    {
-        FLightShaderParameters Parameters;
-        Parameters.lightPosition = Proxy->Position;
-        Parameters.lightDirection = Proxy->Direction;
-        Parameters.lightIntensity = Proxy->LightIntensity;
-        Parameters.lightCastShadow = Proxy->bCastShadow;
-        Parameters.lightType = (int)Proxy->LightType;
-        SetLightAttenParams(Parameters.lightDistAttenParams, Proxy->DistAttenCurve);
-        SetLightAttenParams(Parameters.lightAngleAttenParams, Proxy->AngleAttenCurve);
-        Graph.QueueBufferUpload(LightUniformBuffer, &Parameters, sizeof(Parameters));
-    }
-
     void FScene::UpdateLightInfos(RenderGraph& Graph)
     {
         for (auto &&LightInfo : AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightInfo->SceneProxy;
-            SetLightUniformBuffer(Graph, LightInfo->LightUniformBuffer.GetReference(), Proxy);
+            Proxy->UpdateUniformBuffer(Graph);
         }
     }
 

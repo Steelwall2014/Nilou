@@ -10,7 +10,7 @@ namespace nilou {
     class VulkanCommandBuffer : public RHICommandList
     {
     public:
-        VulkanCommandBuffer(VkDevice Device, VkQueue Queue, VkCommandPool Pool);
+        VulkanCommandBuffer(ERHIPipeline InPipeline, VkDevice Device, VkQueue Queue, VkCommandPool Pool);
         ~VulkanCommandBuffer();
 
         /* Perform actions commands */
@@ -107,11 +107,13 @@ namespace nilou {
     {
     public:
 
-        VulkanCommandBufferPool(VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
+        VulkanCommandBufferPool(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
         ~VulkanCommandBufferPool();
 
         VulkanCommandBuffer* Allocate();
         void FreeUnusedCmdBuffers();
+
+        ERHIPipeline Pipeline;
 
         VkCommandPool Handle{};
 

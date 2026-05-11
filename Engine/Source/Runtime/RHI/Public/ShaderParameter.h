@@ -151,6 +151,8 @@ namespace nilou {
             uint32 NumColumns;
             // Array element count; 1 for non-array members.
             uint32 NumElements;
+            // Byte stride between array elements; 0 for non-array members.
+            uint32 ArrayStride;
         };
         FShaderParametersMetadata2(const std::string& InStructTypeName,
                                    const std::string& InFileName,

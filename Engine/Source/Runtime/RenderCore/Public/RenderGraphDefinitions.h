@@ -45,8 +45,6 @@ enum class ERDGPooledBufferAlignment : uint8
 using FRDGPassHandle = uint16;
 constexpr FRDGPassHandle NullPassHandle = std::numeric_limits<FRDGPassHandle>::max();
 
-using FRDGPassHandlesByPipeline = std::array<FRDGPassHandle, static_cast<size_t>(ERHIPipeline::Num)>;
-
 using RDGTextureDesc = RHITextureDesc;
 
 struct RDGBufferDesc

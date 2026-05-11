@@ -6,6 +6,7 @@
 #include "Logging/LogMacros.h"
 #include "Materials/Material.h"
 
+constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
 
 constexpr float CASCADED_SHADOWMAP_SPLIT_FACTOR = 2.0f;
 
@@ -19,7 +20,7 @@ namespace nilou {
 
     DEFINE_GRAPHICS_PIPELINE(FShadowDepthPassPipeline, FBasePassVS, FDepthOnlyPS);
 
-    void ComputeShadowCullingVolume(std::array<FVector, 8> CascadeFrustumVerts, const FVector3f& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
+    void ComputeShadowCullingVolume(std::array<FVector, CASCADED_SHADOWMAP_SPLIT_COUNT> CascadeFrustumVerts, const FVector3f& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) 
     {
 
         // Pairs of plane indices from SubFrustumPlanes whose intersections
@@ -101,24 +102,6 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::RenderCSMShadowPass(RenderGraph& Graph)
     {
-        std::vector<int> FrustumsToBeUpdated = {0, 1, 2, 3};
-        // The last 4 cascade levels are not updated every frame;
-        static int FrustumRoundRobinIndex = -1;
-        if (FrustumRoundRobinIndex == -1)   // first frame, update all
-        {
-            FrustumsToBeUpdated.push_back(4);
-            FrustumsToBeUpdated.push_back(5);
-            FrustumsToBeUpdated.push_back(6);
-            FrustumsToBeUpdated.push_back(7);
-            FrustumRoundRobinIndex++;
-        }
-        else 
-        {
-            FrustumRoundRobinIndex = FrustumRoundRobinIndex % 4;
-            FrustumsToBeUpdated.push_back(FrustumRoundRobinIndex + 4);
-            FrustumRoundRobinIndex++;
-        }
-
         float TotalScale = 0;
         float CurrentScale = 1;
         std::vector<float> Scales;
@@ -131,20 +114,16 @@ namespace nilou {
         for (int i = 0; i < Scales.size(); i++)
             Scales[i] /= TotalScale;
 
-        for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+        for (int LightIndex = 0; LightIndex < VisibleLightInfos.size(); LightIndex++)
         {
-            FLightSceneProxy* LightSceneProxy = Lights[LightIndex].LightSceneProxy;
-            // Temporarily only support directional light
-            if (LightSceneProxy->LightType != ELightType::LT_Directional)
-                continue;
-            auto &Light = Lights[LightIndex];
-            
+            FVisibleLightInfo& LightInfo = VisibleLightInfos[LightIndex];
+            FLightSceneProxy* LightSceneProxy = LightInfo.LightSceneProxy;
 
             for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
             {
-                FShadowMapResource& Resources = Light.ShadowMapResources[ViewIndex];
+                FShadowMapResource& Resources = LightInfo.ShadowMapResources[ViewIndex];
                 FSceneView& View = Views[ViewIndex];
-                std::vector<std::array<FVector, 8>> CascadeFrustums;
+                std::vector<std::array<FVector, CASCADED_SHADOWMAP_SPLIT_COUNT>> CascadeFrustums;
 
                 FViewport ShadowViewport;
                 ShadowViewport.Width = LightSceneProxy->ShadowMapResolution.x;
@@ -164,9 +143,10 @@ namespace nilou {
                 const double FrustumLength = ShadowFarClip - ShadowNearClip;
                 double SplitNear = 0;
                 double SplitFar = ShadowNearClip;
-                for (int FrustumIndex : FrustumsToBeUpdated)
+                std::vector<shader::ShadowMappingFrustum<Std430Layout>> Frustums(CASCADED_SHADOWMAP_SPLIT_COUNT);
+                for (int FrustumIndex = 0; FrustumIndex < CASCADED_SHADOWMAP_SPLIT_COUNT; FrustumIndex++)
                 {
-                    std::array<FVector, 8> CascadeFrustumVerts;
+                    std::array<FVector, CASCADED_SHADOWMAP_SPLIT_COUNT> CascadeFrustumVerts;
                     SplitNear = SplitFar;
                     SplitFar = Scales[FrustumIndex] * FrustumLength + SplitNear;
                     FVector nearCenter = View.Forward * SplitNear + View.Position;
@@ -251,11 +231,11 @@ namespace nilou {
                         Sphere.Radius,
                         0.0, glm::abs(SHADOWMAP_FAR_CLIP-SHADOWMAP_NEAR_CLIP));
 
-                    Resources.Frustums[FrustumIndex].WorldToClip = ProjectionMatrix * ViewMatrix;
-                    Resources.Frustums[FrustumIndex].FrustumFar = SplitFar;
-                    Resources.Frustums[FrustumIndex].Resolution = Light.LightSceneProxy->ShadowMapResolution;
+                    Frustums[FrustumIndex].worldToClip = ProjectionMatrix * ViewMatrix;
+                    Frustums[FrustumIndex].frustumFarPlane = SplitFar;
+                    Frustums[FrustumIndex].resolution = LightSceneProxy->ShadowMapResolution;
                 }
-                Graph.QueueBufferUpload(Resources.ShadowMapUniformBuffer, Resources.Frustums.data(), Resources.Frustums.size() * sizeof(FShadowMappingParameters));
+                Graph.QueueBufferUpload(Resources.ShadowMappingParameters->frustums, Frustums.data(), Frustums.size() * sizeof(shader::ShadowMappingFrustum<Std430Layout>));
 
                 ComputeViewVisibility(ShadowViewFamily, ShadowMeshBatches, ShadowPDIs);
 
@@ -264,7 +244,7 @@ namespace nilou {
                     FParallelMeshDrawCommands DrawCommands;
                     RDGRenderTargets RenderTargets;
                     RenderTargets.DepthStencilAttachment = { Resources.DepthViews[ShadowViewIndex], ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-                    int FrustumIndex = FrustumsToBeUpdated[ShadowViewIndex];
+                    int FrustumIndex = ShadowViewIndex;
                     for (FMeshBatch& Mesh : ShadowMeshBatches[ShadowViewIndex])
                     {
                         if (!Mesh.CastShadow)   

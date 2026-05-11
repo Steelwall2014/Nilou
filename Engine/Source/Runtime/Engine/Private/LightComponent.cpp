@@ -85,6 +85,20 @@ namespace nilou {
         SetCastShadow(InComponent->bCastShadow);
         SetLightType(InComponent->LightType);
         SetShadowMapResolution(InComponent->GetShadowMapResolution());
+        std::string ComponentName = InComponent->GetName();
+        ENQUEUE_RENDER_COMMAND(FLightSceneProxy_Ctor)([this, ComponentName](RenderGraph& Graph)
+        {
+            LightParams = Graph.CreatePooledParameterBlock<shader::Light>(NFormat("shader::Light of {}", ComponentName));
+            UpdateUniformBuffer(Graph);
+        });
+    }
+
+    FLightSceneProxy::~FLightSceneProxy()
+    {
+        ENQUEUE_RENDER_COMMAND(FLightSceneProxy_Dtor)([this](RenderGraph&)
+        {
+            LightParams = nullptr;
+        });
     }
 
     void FLightSceneProxy::SetPositionAndDirection(const FVector &InPosition, const FVector3f &InDirection, const FVector3f &InUp)
@@ -117,10 +131,25 @@ namespace nilou {
 
     void FLightSceneProxy::SetLightDistAttenParams(const FAttenCurve &AttenCurveParam) 
     { 
+        DistAttenCurve = AttenCurveParam;
     }
 
     void FLightSceneProxy::SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam)
     {
-        VerticalFieldOfView = glm::radians(90.0);
+        AngleAttenCurve = AttenCurveParam;
+    }
+
+    void FLightSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)
+    {
+        LightParams->distAttenCurve.params = *reinterpret_cast<const FVector4f*>(&DistAttenCurve.u);
+        LightParams->distAttenCurve.scale = DistAttenCurve.scale;
+        LightParams->angleAttenCurve.params = *reinterpret_cast<const FVector4f*>(&AngleAttenCurve.u);
+        LightParams->angleAttenCurve.scale = AngleAttenCurve.scale;
+        LightParams->position = FVector3f(Position);
+        LightParams->intensity = LightIntensity;
+        LightParams->direction = Direction;
+        LightParams->castShadow = bCastShadow;
+        LightParams->type = (int)LightType;
+        Graph.UpdateParameterBlock(LightParams.GetReference());
     }
 }

@@ -134,16 +134,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
 
-    NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
-    if (FPlatformMisc::IsDebuggerPresent()) 
-    {
-        NILOU_DEBUG_BREAK();
-    }
-
-    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        // Message is important enough to show
-    }
-
+    NILOU_LOG(Fatal, "validation layer: {}", pCallbackData->pMessage);
     return VK_FALSE;
 }
 
@@ -378,11 +369,6 @@ void FVulkanDynamicRHI::Finalize()
     // vkDestroyInstance(instance, nullptr);
 
     FDynamicRHI::Finalize();
-}
-
-void FVulkanDynamicRHI::GetError(const char *file, int line)
-{
-    
 }
 
 static VkDescriptorType TranslateDescriptorType(EDescriptorType Type)

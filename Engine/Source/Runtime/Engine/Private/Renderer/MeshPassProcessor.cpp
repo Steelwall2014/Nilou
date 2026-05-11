@@ -18,14 +18,12 @@ namespace nilou {
 
     void FMeshDrawCommand::SubmitDraw(RHICommandList& RHICmdList) const
     {
-        RHIGetError();
         RHICmdList.BindGraphicsPipelineState(PipelineState);
 
         for (auto& Stream : VertexStreams)
         {
             RHICmdList.BindVertexBuffer(Stream.StreamIndex, Stream.VertexBuffer->GetRHI(), Stream.Offset);
         }
-        RHIGetError();
 
         if (DescriptorSets.size() > 0)
         {
@@ -46,7 +44,6 @@ namespace nilou {
         {
             RHICmdList.BindIndexBuffer(IndexBuffer->GetRHI(), 0);
             RHICmdList.DrawIndexedIndirect(IndirectArgs.Buffer, IndirectArgs.Offset);
-            RHIGetError();
         }
         else 
         {
@@ -59,7 +56,6 @@ namespace nilou {
             {
                 RHICmdList.DrawArrays(VertexParams.NumVertices, NumInstances, VertexParams.BaseVertexIndex, 0);
             }
-            RHIGetError();
         }
     }
 

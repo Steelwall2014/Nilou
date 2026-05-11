@@ -123,14 +123,12 @@ namespace nilou {
     {
         // Initialize lights
         // Lights are relavant to views, for example directional lights.
-        Lights.reserve(Scene->AddedLightSceneInfos.size());
+        VisibleLightInfos.reserve(Scene->AddedLightSceneInfos.size());
         for (FLightSceneInfo* LightSceneInfo : Scene->AddedLightSceneInfos)
         {
             FLightSceneProxy* Proxy = LightSceneInfo->SceneProxy;
-            FLightInfo LightInfo;
+            FVisibleLightInfo LightInfo;
             LightInfo.LightSceneProxy = Proxy;
-            LightInfo.LightType = Proxy->LightType;
-            LightInfo.LightUniformBuffer = LightSceneInfo->LightUniformBuffer.GetReference();
             int NumRelevantViews = 1;
             if (Proxy->LightType == ELightType::LT_Directional)
                 NumRelevantViews = Views.size();
@@ -144,24 +142,30 @@ namespace nilou {
                 TextureDesc.Format = EPixelFormat::PF_D24S8;
                 TextureDesc.TextureType = ETextureDimension::Texture2DArray;
                 int32 BufferSize = 0;
+                constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
                 if (Proxy->LightType == ELightType::LT_Directional)
                 {
-                    BufferSize = sizeof(FDirectionalShadowMappingBlock);
+                    BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>) * CASCADED_SHADOWMAP_SPLIT_COUNT;
                     TextureDesc.ArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
                 }
-                else if (Proxy->LightType == ELightType::LT_Point)
+                // else if (Proxy->LightType == ELightType::LT_Point)
+                // {
+                //     BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>) * 6;
+                //     TextureDesc.ArraySize = 6;
+                // }
+                // else if (Proxy->LightType == ELightType::LT_Spot)
+                // {
+                //     BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>);
+                //     TextureDesc.ArraySize = 1;
+                // }
+                else 
                 {
-                    BufferSize = sizeof(FPointShadowMappingBlock);
-                    TextureDesc.ArraySize = 6;
+                    Ncheck(false);  // not supported yet
                 }
-                else if (Proxy->LightType == ELightType::LT_Spot)
-                {
-                    BufferSize = sizeof(FSpotShadowMappingBlock);
-                    TextureDesc.ArraySize = 1;
-                }
-                Resource.Frustums.resize(TextureDesc.ArraySize);
-                Resource.ShadowMapUniformBuffer = Graph.CreateBuffer("ShadowMapUniformBuffer", RDGBufferDesc(BufferSize, EBufferUsageFlags::UniformBuffer));
                 Resource.DepthArray = Graph.CreateTexture(NFormat("Shadow DepthArray of View{}", ViewIndex), TextureDesc);
+                Resource.ShadowMappingParameters = Graph.CreateParameterBlock<shader::ShadowMappingParameters>("ShadowMappingParameters");
+                Resource.ShadowMappingParameters->frustums = Graph.CreateBuffer("ShadowMap frustums", RDGBufferDesc(BufferSize, sizeof(shader::ShadowMappingFrustum<Std430Layout>), EBufferUsageFlags::StorageBuffer));
+                Resource.ShadowMappingParameters->shadowMaps = { Resource.DepthArray->GetDefaultView() };
                 for (int i = 0; i < TextureDesc.ArraySize; i++)
                 {
                     RDGTextureViewDesc TextureViewDesc;
@@ -174,9 +178,10 @@ namespace nilou {
                     RDGTextureView* DepthArrayView = Graph.CreateTextureView(NFormat("DepthArrayView {}", i), Resource.DepthArray, TextureViewDesc);
                     Resource.DepthViews.push_back(DepthArrayView);
                 }
+                Graph.UpdateParameterBlock(Resource.ShadowMappingParameters);
                 LightInfo.ShadowMapResources.push_back(Resource);
             }
-            Lights.push_back(LightInfo);
+            VisibleLightInfos.push_back(LightInfo);
         }
 
         // Initalize views
@@ -439,9 +444,7 @@ namespace nilou {
                     // FRHIRenderPassInfo PassInfo(OutputRenderTarget, ViewInfo.ScreenResolution, true, true, true);
                     // RHICmdList->RHIBeginRenderPass(PassInfo);
                     {
-                        RHIGetError();
                         RHICmdList.BindGraphicsPipelineState(PSO);
-                        RHIGetError();
 
                         RHICmdList.BindVertexBuffer(0, ScreenQuadVertexBuffer->GetRHI(), 0);
                         RHICmdList.BindIndexBuffer(ScreenQuadIndexBuffer->GetRHI(), 0);

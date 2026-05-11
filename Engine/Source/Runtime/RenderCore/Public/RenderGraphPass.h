@@ -37,6 +37,7 @@ public:
     template <template<EShaderDataLayout DataLayout> typename T>
     void AddParameterBlock(TParameterBlock<T>* ParamBlock)
     {
+        Ncheck(ParamBlock->GetDescriptorSet());
         this->DescriptorSets.push_back(ParamBlock->GetDescriptorSet());
     }
 

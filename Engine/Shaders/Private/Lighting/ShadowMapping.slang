@@ -9,11 +9,11 @@ struct ShadowMappingFrustum
 struct ShadowMappingParameters
 {
     Sampler2DArray<float4> shadowMaps;
-    int FrustumCount;
     StructuredBuffer<ShadowMappingFrustum> frustums;
     
     float CalculateVisibility(int FrustumIndex, float3 RelativePosition, float bias)
     {
+        int FrustumCount = frustums.getCount();
         if (FrustumIndex == -1)
             return 0.0f;
         else if (FrustumIndex >= FrustumCount)
@@ -52,6 +52,7 @@ struct ShadowMappingParameters
 
     float ShadowCalculation(float3 RelativePosition, float bias)
     {
+        int FrustumCount = frustums.getCount();
         float4 ViewSpacePosition = mul(ViewParameters.RelWorldToView, float4(RelativePosition, 1.0f));
         float  depth = abs(ViewSpacePosition.z);
         if (depth > frustums[FrustumCount - 1].frustumFarPlane)

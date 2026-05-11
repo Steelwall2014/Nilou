@@ -32,7 +32,7 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 		break;
 	}
 
-    if (AlignedDesc.NumElements >= Desc.NumElements)
+    if (AlignedDesc.NumElements < Desc.NumElements)
     {
         NILOU_LOG(Warning, "Alignment caused buffer size overflow for buffer '{}' (AlignedDesc.NumElements: {} < Desc.NumElements: {})", InDebugName, AlignedDesc.NumElements, Desc.NumElements);
 		// Use the unaligned desc since we apparently overflowed when rounding up.

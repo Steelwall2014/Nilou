@@ -677,7 +677,7 @@ enum class ERHIAccess : uint32
 	IndexRead = 1 << 1,
 	VertexAttributeRead = 1 << 2,
 	UniformRead = 1 << 3,
-	// InputAttachmentRead = 1 << 4,	// Used with subpass, not supported currently
+	InputAttachmentRead = 1 << 4,
 	ShaderSampledRead = 1 << 5,
 	ShaderStorageRead = 1 << 6,
 	ShaderStorageWrite = 1 << 7,
@@ -691,6 +691,8 @@ enum class ERHIAccess : uint32
 	HostRead = 1 << 14,
 	HostWrite = 1 << 15,
 	Present = 1 << 16,
+	ReadMask = IndirectCommandRead | IndexRead | VertexAttributeRead | UniformRead | InputAttachmentRead | ShaderSampledRead | ShaderStorageRead | ColorAttachmentRead | DepthStencilAttachmentRead | TransferRead | HostRead | Present,
+	WriteMask = ShaderStorageWrite | ColorAttachmentWrite | DepthStencilAttachmentWrite | TransferWrite | HostWrite,
 	Max = 0x7FFFFFFF,
 };
 #if 0	// Steelwall2014: ERHIAccess is too complicated in Unreal Engine, so simplify it...
@@ -766,6 +768,16 @@ enum class ERHIAccess : uint32
 #endif
 ENUM_CLASS_FLAGS(ERHIAccess)
 
+inline  constexpr bool IsReadOnlyAccess(ERHIAccess Access)
+{
+	return EnumHasAnyFlags(Access, ERHIAccess::ReadMask) && !EnumHasAnyFlags(Access, ERHIAccess::WriteMask);
+}
+
+inline constexpr bool IsWritableAccess(ERHIAccess Access)
+{
+	return EnumHasAnyFlags(Access, ERHIAccess::WriteMask);
+}
+
 inline std::string ToString(ERHIAccess Flags)
 {
 	return EnumFlagsToString(Flags, {
@@ -795,7 +807,6 @@ enum class ERHIPipeline : uint8
 	Copy = 1 << 2,
 
 	All = Graphics | AsyncCompute | Copy,
-	Num = 3,
 };
 ENUM_CLASS_FLAGS(ERHIPipeline)
 
@@ -806,11 +817,6 @@ inline std::string ToString(ERHIPipeline Flags)
 		{ ERHIPipeline::AsyncCompute, "AsyncCompute" },
 		{ ERHIPipeline::Copy, "Copy" },
 	});
-}
-
-inline constexpr uint32 GetRHIPipelineCount()
-{
-	return uint32(ERHIPipeline::Num);
 }
 
 // Keep the same with VkPipelineStageFlags
@@ -879,7 +885,21 @@ enum class ETextureLayout : uint32
 
 inline std::string ToString(ETextureLayout Layout)
 {
-	return ToStringEnumOrUnknown(Layout);
+	switch (Layout)
+	{
+	case ETextureLayout::Undefined: return "Undefined";
+	case ETextureLayout::General: return "General";
+	case ETextureLayout::ColorAttachmentOptimal: return "ColorAttachmentOptimal";
+	case ETextureLayout::DepthStencilAttachmentOptimal: return "DepthStencilAttachmentOptimal";
+	case ETextureLayout::DepthStencilReadOnlyOptimal: return "DepthStencilReadOnlyOptimal";
+	case ETextureLayout::ShaderReadOnlyOptimal: return "ShaderReadOnlyOptimal";
+	case ETextureLayout::TransferSrcOptimal: return "TransferSrcOptimal";
+	case ETextureLayout::TransferDstOptimal: return "TransferDstOptimal";
+	case ETextureLayout::Preinitialized: return "Preinitialized";
+	case ETextureLayout::PresentSrc: return "PresentSrc";
+	case ETextureLayout::Max: return "Max";
+	default: return "Unknown";
+	}
 }
 
 // Keep the same with VkAttachmentLoadOp

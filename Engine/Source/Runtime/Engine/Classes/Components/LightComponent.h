@@ -1,4 +1,5 @@
 #pragma once
+#include "Light.generated.h"
 #include "UniformBuffer.h"
 #include "Frustum.h"
 #include "SceneComponent.h"
@@ -125,52 +126,13 @@ namespace nilou {
         ELightType LightType;
     };
 
-    constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FLightAttenParameters)
-        SHADER_PARAMETER(FVector4f, AttenCurveParams)
-        SHADER_PARAMETER(float, AttenCurveScale)
-        SHADER_PARAMETER(int, AttenCurveType)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
-        SHADER_PARAMETER(FMatrix44f, WorldToClip)
-        SHADER_PARAMETER(FIntVector2, Resolution)
-        SHADER_PARAMETER(float, FrustumFar)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FDirectionalShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [CASCADED_SHADOWMAP_SPLIT_COUNT])
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FPointShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [6])
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FSpotShadowMappingBlock)
-        SHADER_PARAMETER_STRUCT_ARRAY(FShadowMappingParameters, Frustums, [1])
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FShadowMapFrustumIndex)
-        SHADER_PARAMETER(int32, FrustumIndex)
-    END_UNIFORM_BUFFER_STRUCT()
-
-    BEGIN_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
-        SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightDistAttenParams)
-        SHADER_PARAMETER_STRUCT(FLightAttenParameters, lightAngleAttenParams)
-        SHADER_PARAMETER(FVector3f, lightPosition)
-        SHADER_PARAMETER(FVector3f, lightIntensity)
-        SHADER_PARAMETER(FVector3f, lightDirection)
-        SHADER_PARAMETER(int, lightType) 
-        SHADER_PARAMETER(int, lightCastShadow)
-    END_UNIFORM_BUFFER_STRUCT()
-
     class FLightSceneProxy
     {
         friend class FScene;
         friend class FDeferredShadingSceneRenderer;
     public:
         FLightSceneProxy(ULightComponent *InComponent);
+        virtual ~FLightSceneProxy();
 
         FLightSceneInfo *GetLightSceneInfo() { return LightSceneInfo; }
 
@@ -187,6 +149,8 @@ namespace nilou {
         void SetLightDistAttenParams(const FAttenCurve &AttenCurveParam);
 
         void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
+
+        void UpdateUniformBuffer(RenderGraph& Graph);
 
         FVector Position;
 
@@ -211,6 +175,8 @@ namespace nilou {
         float VerticalFieldOfView;
     
         FLightSceneInfo *LightSceneInfo;
+
+        TParameterBlockRef<shader::Light> LightParams = nullptr;
     };
 
 }

@@ -22,9 +22,10 @@ namespace nilou {
             RenderTargets.DepthStencilAttachment = { GBuffer.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::NoAction };
             const RHIRenderTargetLayout& RTLayout = RenderTargets.GetRenderTargetLayout();
 
-            for (int LightIndex = 0; LightIndex < Lights.size(); LightIndex++)
+            for (int LightIndex = 0; LightIndex < VisibleLightInfos.size(); LightIndex++)
             {
-                FShadowMapResource ShadowMapResource = Lights[LightIndex].ShadowMapResources[ViewIndex];
+                FVisibleLightInfo& LightInfo = VisibleLightInfos[LightIndex];
+                FShadowMapResource& ShadowMapResource = LightInfo.ShadowMapResources[ViewIndex];
                 int FrustumCount = ShadowMapResource.DepthViews.size();
                 RHIGraphicsPipelineShaders* LightPassPipeline = GetGlobalGraphicsPipeline<FLightingPassPipeline>();
 
@@ -46,24 +47,8 @@ namespace nilou {
                 SceneTextureParams->ShadingModel = { GBuffer.ShadingModel->GetDefaultView(), TStaticSamplerState<SF_Point>::GetRHI() };
                 Graph.UpdateParameterBlock(SceneTextureParams);
 
-                FLightSceneProxy* LightProxy = Lights[LightIndex].LightSceneProxy;
-                auto LightParams = Graph.CreateParameterBlock<shader::Light>("light ParamBlock");
-                LightParams->distAttenCurve.params = *reinterpret_cast<const FVector4f*>(&LightProxy->DistAttenCurve.u);
-                LightParams->distAttenCurve.scale = LightProxy->DistAttenCurve.scale;
-                LightParams->angleAttenCurve.params = *reinterpret_cast<const FVector4f*>(&LightProxy->AngleAttenCurve.u);
-                LightParams->angleAttenCurve.scale = LightProxy->AngleAttenCurve.scale;
-                LightParams->position = FVector3f(LightProxy->Position);
-                LightParams->intensity = LightProxy->LightIntensity;
-                LightParams->direction = LightProxy->Direction;
-                LightParams->castShadow = LightProxy->bCastShadow;
-                LightParams->type = (int)LightProxy->LightType;
-                Graph.UpdateParameterBlock(LightParams);
-
-                auto ShadowParams = Graph.CreateParameterBlock<shader::ShadowMappingParameters>("shadowMapping ParamBlock");
-                ShadowParams->FrustumCount = FrustumCount;
-                ShadowParams->shadowMaps = { ShadowMapResource.DepthArray->GetDefaultView(), TStaticSamplerState<SF_Point>::GetRHI() };
-                ShadowParams->frustums = ShadowMapResource.ShadowMapUniformBuffer;
-                Graph.UpdateParameterBlock(ShadowParams);
+                TParameterBlock<shader::Light>* LightParams = LightInfo.LightSceneProxy->LightParams.GetReference();
+                TParameterBlock<shader::ShadowMappingParameters>* ShadowParams = ShadowMapResource.ShadowMappingParameters;
 
                 RDGBuffer* ScreenQuadVertexBuffer = RDGGetScreenQuadVertexBuffer(Graph);
                 RDGBuffer* ScreenQuadIndexBuffer = RDGGetScreenQuadIndexBuffer(Graph);
@@ -84,9 +69,7 @@ namespace nilou {
                     },
                     [=](RHICommandList& RHICmdList)
                     {
-                        RHIGetError();
                         RHICmdList.BindGraphicsPipelineState(PSO);
-                        RHIGetError();
 
                         auto PipelineLayout = PSO->GetPipelineLayout();
                         int32 SceneTexturesSetIndex = PipelineLayout->GetSetIndex("sceneTextures");
