@@ -3,6 +3,7 @@
 #include "VulkanDynamicRHI.h"
 #include "VulkanBuffer.h"
 #include "VulkanTexture.h"
+#include <cstdio>
 
 namespace nilou {
 
@@ -87,6 +88,16 @@ RHIDescriptorSetLayoutRef FVulkanDynamicRHI::RHICreateDescriptorSetLayout(const 
     layoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.size());
     layoutInfo.pBindings = VulkanBindings.data();
     VK_CHECK_RESULT(vkCreateDescriptorSetLayout(Device->Handle, &layoutInfo, nullptr, &VulkanLayout->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+    uint32 BindingHash =
+        VulkanBindings.empty()
+            ? 0
+            : FCrc::MemCrc32(VulkanBindings.data(), sizeof(VkDescriptorSetLayoutBinding) * VulkanBindings.size());
+    char Buf[96];
+    std::snprintf(Buf, sizeof(Buf), "DescriptorSetLayout_%08X", BindingHash);
+    Device->SetDebugUtilsObjectName(
+        VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (uint64_t)VulkanLayout->Handle, Buf);
+#endif
 	// UniqueDescriptorSetLayouts[Hash] = VulkanLayout;
     return VulkanLayout;
 }
@@ -114,15 +125,25 @@ RHIDescriptorPoolRef FVulkanDynamicRHI::RHICreateDescriptorPool(RHIDescriptorSet
 
 	VkDescriptorPool VulkanPoolHandle;
 	VK_CHECK_RESULT(vkCreateDescriptorPool(Device->Handle, &PoolInfo, nullptr, &VulkanPoolHandle));
-	TRefCountPtr<VulkanDescriptorPool> VulkanPool = TRefCountPtr(new VulkanDescriptorPool(Device->Handle, VulkanPoolHandle, PoolSize, Layout));
+#if VULKAN_ENABLE_DRAW_MARKERS
+	uint32 PoolToken =
+		Types.empty()
+			? PoolSize
+			: (FCrc::MemCrc32(Types.data(), sizeof(VkDescriptorPoolSize) * Types.size()) ^ (PoolSize * 0x9E3779B9u));
+	char Buf[96];
+	std::snprintf(Buf, sizeof(Buf), "DescriptorPool_%08X", PoolToken);
+	Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64_t)VulkanPoolHandle, Buf);
+#endif
+	TRefCountPtr<VulkanDescriptorPool> VulkanPool = TRefCountPtr(new VulkanDescriptorPool(Device, VulkanPoolHandle, PoolSize, Layout));
 	return VulkanPool;
 }
 
-VulkanDescriptorPool::VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout)
-    : Device(InDevice)
+VulkanDescriptorPool::VulkanDescriptorPool(VulkanDevice* InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout)
+    : RHIDescriptorPool(InLayout)
+    , Device(InDevice)
     , Handle(InHandle)
-    , RHIDescriptorPool(InLayout)
 {
+	Ncheck(Device);
 	for (int i = 0; i < InPoolSize; i++)
 	{
 		VkDescriptorSetAllocateInfo AllocInfo{};
@@ -132,7 +153,13 @@ VulkanDescriptorPool::VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool I
 		AllocInfo.pSetLayouts = &ResourceCast(Layout)->Handle;
 
 		TRefCountPtr<VulkanDescriptorSet> NewDescriptorSet = TRefCountPtr(new VulkanDescriptorSet(this));
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(Device, &AllocInfo, &NewDescriptorSet->Handle));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(Device->Handle, &AllocInfo, &NewDescriptorSet->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+		char SetBuf[64];
+		std::snprintf(SetBuf, sizeof(SetBuf), "DescriptorSet_%d", i);
+		Device->SetDebugUtilsObjectName(
+			VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)NewDescriptorSet->Handle, SetBuf);
+#endif
 		Sets.push_back(NewDescriptorSet);
 		FreeSets.push_back(NewDescriptorSet.GetReference());
 	}
@@ -183,7 +210,7 @@ void VulkanDescriptorSet::SetUniformBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pBufferInfo = &BufferInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 void VulkanDescriptorSet::SetSamplerState(uint32 BindingIndex, RHISamplerState* SamplerState)
@@ -204,7 +231,7 @@ void VulkanDescriptorSet::SetSamplerState(uint32 BindingIndex, RHISamplerState* 
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pImageInfo = &ImageInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffer)
@@ -228,7 +255,7 @@ void VulkanDescriptorSet::SetStorageBuffer(uint32 BindingIndex, RHIBuffer* Buffe
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pBufferInfo = &BufferInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InTexture, RHISamplerState* InSamplerState)
@@ -254,7 +281,7 @@ void VulkanDescriptorSet::SetSampler(uint32 BindingIndex, RHITextureView* InText
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pImageInfo = &ImageInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* InTexture)
@@ -277,7 +304,7 @@ void VulkanDescriptorSet::SetStorageImage(uint32 BindingIndex, RHITextureView* I
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pImageInfo = &ImageInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 void VulkanDescriptorSet::SetSampledImage(uint32 BindingIndex, RHITextureView* InTexture)
@@ -300,7 +327,7 @@ void VulkanDescriptorSet::SetSampledImage(uint32 BindingIndex, RHITextureView* I
 	WriteDescriptor.descriptorCount = 1;
 	WriteDescriptor.pImageInfo = &ImageInfo;
 
-	vkUpdateDescriptorSets(Device, 1, &WriteDescriptor, 0, nullptr);
+	vkUpdateDescriptorSets(Device->Handle, 1, &WriteDescriptor, 0, nullptr);
 }
 
 }

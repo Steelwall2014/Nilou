@@ -15,14 +15,21 @@
 #include "VulkanDescriptorSet.h"
 #include "VulkanVertexDeclaration.h"
 #include "VulkanQueue.h"
-#include "VulkanSwapChain.h"
+#include "VulkanSemaphore.h"
 #include "VulkanBarriers.h"
 #include "Logging/LogMacros.h"
 #include "HAL/PlatformMisc.h"
 #include "ShaderParameter.h"
+#include <atomic>
+#include <cstdio>
 #include <vector>
 
 namespace nilou {
+
+namespace
+{
+	std::atomic<uint32> GVulkanSemaphoreDebugId{ 0 };
+}
 
 namespace VulkanRHI {
 
@@ -134,7 +141,18 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
 
-    NILOU_LOG(Fatal, "validation layer: {}", pCallbackData->pMessage);
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    {
+        NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
+    }
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    {
+        NILOU_LOG(Warning, "validation layer: {}", pCallbackData->pMessage);
+    }
+    else
+    {
+        NILOU_LOG(Display, "validation layer: {}", pCallbackData->pMessage);
+    }
     return VK_FALSE;
 }
 
@@ -305,7 +323,7 @@ void FVulkanDynamicRHI::InitInstance()
                 vkGetPhysicalDeviceFormatProperties(physicalDevice, TranslatePixelFormatToVKFormat(PixelFormat), &FormatProperties[PixelFormat]);
         });
 
-    RenderPassManager = std::make_unique<FVulkanRenderPassManager>(Device->Handle);
+    RenderPassManager = std::make_unique<FVulkanRenderPassManager>(Device);
 
     StagingManager = std::make_unique<FVulkanStagingManager>(Device->Handle);
 
@@ -460,6 +478,13 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(RHIComputeShader
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
     VK_CHECK_RESULT(vkCreatePipelineLayout(Device->Handle, &pipelineLayoutInfo, nullptr, &PipelineLayout->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+	{
+		std::string LayoutName = std::string("PipelineLayout_") + ComputeShader->GetName();
+		Device->SetDebugUtilsObjectName(
+			VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)PipelineLayout->Handle, LayoutName.c_str());
+	}
+#endif
     return PipelineLayout;
 }
 
@@ -492,6 +517,26 @@ RHIPipelineLayoutRef FVulkanDynamicRHI::RHICreatePipelineLayout(const RHIGraphic
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
     VK_CHECK_RESULT(vkCreatePipelineLayout(Device->Handle, &pipelineLayoutInfo, nullptr, &PipelineLayout->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+	{
+		std::string LayoutName = "PipelineLayout_";
+		if (Shaders.GetVertexShader())
+		{
+			LayoutName += Shaders.GetVertexShader()->GetName();
+		}
+		LayoutName += '|';
+		if (Shaders.GetPixelShader())
+		{
+			LayoutName += Shaders.GetPixelShader()->GetName();
+		}
+		if (LayoutName == "PipelineLayout_|")
+		{
+			LayoutName = "PipelineLayout_Graphics";
+		}
+		Device->SetDebugUtilsObjectName(
+			VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)PipelineLayout->Handle, LayoutName.c_str());
+	}
+#endif
     return PipelineLayout;
 }
 
@@ -588,6 +633,14 @@ RHIGraphicsPipelineStateRef FVulkanDynamicRHI::RHICreateGraphicsPSO(const FGraph
 
     VK_CHECK_RESULT(vkCreateGraphicsPipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle));
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+    {
+        std::string PipeName =
+            VertexShader->GetName() + std::string("|") + PixelShader->GetName();
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)PSO->Handle, PipeName.c_str());
+    }
+#endif
+
     return PSO;
 }
 
@@ -612,6 +665,11 @@ RHIComputePipelineStateRef FVulkanDynamicRHI::RHICreateComputePSO(RHIComputeShad
     pipelineInfo.stage = computeShaderStageInfo;
 
     VK_CHECK_RESULT(vkCreateComputePipelines(Device->Handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &PSO->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+    std::string PipeName =
+        std::string("Compute|") + vkComputeShader->GetName();
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)PSO->Handle, PipeName.c_str());
+#endif
     return PSO;
 }
 
@@ -748,6 +806,14 @@ RHISamplerStateRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateI
 	uint32 CRC = FCrc::MemCrc32(&SamplerInfo, sizeof(SamplerInfo));
     SamplerMap[CRC] = Sampler;
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+    {
+        char Buf[64];
+        std::snprintf(Buf, sizeof(Buf), "Sampler_%08X", CRC);
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_SAMPLER, (uint64_t)Sampler->Handle, Buf);
+    }
+#endif
+
     return Sampler;
 }
 
@@ -803,7 +869,15 @@ FRHIVertexDeclaration* FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVert
 
 RHISemaphoreRef FVulkanDynamicRHI::RHICreateSemaphore()
 {
-    return TRefCountPtr(new VulkanSemaphore(Device->Handle));
+    RHISemaphoreRef Sem = TRefCountPtr(new VulkanSemaphore(Device->Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+	const uint32 SemId = GVulkanSemaphoreDebugId.fetch_add(1);
+	char Buf[48];
+	std::snprintf(Buf, sizeof(Buf), "Semaphore_%u", SemId);
+	VulkanSemaphore* VkSem = ResourceCast(Sem.GetReference());
+	Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_SEMAPHORE, (uint64_t)VkSem->Handle, Buf);
+#endif
+    return Sem;
 }
 
 uint32 FVulkanDynamicRHI::RHIComputeMemorySize(RHITexture* TextureRHI)

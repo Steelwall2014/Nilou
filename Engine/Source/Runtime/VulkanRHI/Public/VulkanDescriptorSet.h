@@ -13,6 +13,8 @@
 
 namespace nilou {
 
+class VulkanDevice;
+
 class VulkanDescriptorSetLayout : public RHIDescriptorSetLayout
 {
 public:
@@ -38,9 +40,9 @@ inline VulkanDescriptorSetLayout* ResourceCast(RHIDescriptorSetLayout* SetLayout
 class VulkanDescriptorPool : public RHIDescriptorPool
 {
 public:
-	VulkanDescriptorPool(VkDevice InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout);
+	VulkanDescriptorPool(VulkanDevice* InDevice, VkDescriptorPool InHandle, int32 InPoolSize, RHIDescriptorSetLayout* InLayout);
+	VulkanDevice* Device = nullptr;
 	VkDescriptorPool Handle;
-    VkDevice Device;
 
     // RHIDescriptorPool interface
     virtual RHIDescriptorSet* Allocate() override;
@@ -75,7 +77,7 @@ public:
     virtual void SetSampledImage(uint32 BindingIndex, RHITextureView* InTexture) override;
 
     VkDescriptorSet Handle;
-    VkDevice Device;
+    VulkanDevice* Device = nullptr;
 private:
 
     struct VulkanDescriptorSetWriter

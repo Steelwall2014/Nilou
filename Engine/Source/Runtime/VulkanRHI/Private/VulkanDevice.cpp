@@ -2,6 +2,7 @@
 #include "VulkanQueue.h"
 #include "VulkanMemory.h"
 #include "VulkanCommandBuffer.h"
+#include "Logging/LogMacros.h"
 
 namespace nilou {
 
@@ -154,6 +155,10 @@ void VulkanDevice::InitGPU()
 	VK_CHECK_RESULT(vkCreateDevice(Gpu, &createInfo, nullptr, &Handle));
 	NILOU_LOG(Display, "Create logical device")
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+	InitDebugMarkers();
+#endif
+
 	// Create Graphics Queue, here we submit command buffers for execution
 	GfxQueue = new VulkanQueue(Handle, GfxQueueFamilyIndex);
 	if (ComputeQueueFamilyIndex == -1)
@@ -170,11 +175,50 @@ void VulkanDevice::InitGPU()
 	TransferQueue = new VulkanQueue(Handle, TransferQueueFamilyIndex);
 	PresentQueue = GfxQueue;
 
-	GfxCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Graphics, Handle, GfxQueue->Handle, GfxQueueFamilyIndex);
-	ComputeCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::AsyncCompute, Handle, ComputeQueue->Handle, ComputeQueueFamilyIndex);
-	TransferCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Copy, Handle, TransferQueue->Handle, TransferQueueFamilyIndex);
+	GfxCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Graphics, this, GfxQueue->Handle, GfxQueueFamilyIndex);
+	ComputeCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::AsyncCompute, this, ComputeQueue->Handle, ComputeQueueFamilyIndex);
+	TransferCmdBufferPool = new VulkanCommandBufferPool(ERHIPipeline::Copy, this, TransferQueue->Handle, TransferQueueFamilyIndex);
 
 	MemoryManager = new FVulkanMemoryManager(Handle, Gpu);
 }
+
+#if VULKAN_ENABLE_DRAW_MARKERS
+void VulkanDevice::InitDebugMarkers()
+{
+	DebugMarkers.CmdBeginDebugUtilsLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+		vkGetDeviceProcAddr(Handle, "vkCmdBeginDebugUtilsLabelEXT"));
+	DebugMarkers.CmdEndDebugUtilsLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(
+		vkGetDeviceProcAddr(Handle, "vkCmdEndDebugUtilsLabelEXT"));
+	DebugMarkers.SetDebugName =
+		reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(Handle, "vkSetDebugUtilsObjectNameEXT"));
+	if (!DebugMarkers.SetDebugName)
+	{
+		NILOU_LOG(
+			Warning,
+			"vkSetDebugUtilsObjectNameEXT not loaded; Vulkan object debug names (RenderDoc, etc.) are disabled.")
+	}
+	if (!DebugMarkers.CmdBeginDebugUtilsLabel || !DebugMarkers.CmdEndDebugUtilsLabel)
+	{
+		NILOU_LOG(
+			Display,
+			"vkCmdBegin/EndDebugUtilsLabelEXT not loaded; command buffer debug labels (PushEvent) are disabled.")
+	}
+}
+
+void VulkanDevice::SetDebugUtilsObjectName(VkObjectType ObjectType, uint64_t VulkanHandle, const char* Name)
+{
+	if (!Name || Name[0] == '\0' || VulkanHandle == 0 || !DebugMarkers.SetDebugName)
+	{
+		return;
+	}
+	VkDebugUtilsObjectNameInfoEXT Info{};
+	Info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	Info.objectType = ObjectType;
+	Info.objectHandle = VulkanHandle;
+	Info.pObjectName = Name;
+	DebugMarkers.SetDebugName(Handle, &Info);
+}
+#endif
+
 
 }

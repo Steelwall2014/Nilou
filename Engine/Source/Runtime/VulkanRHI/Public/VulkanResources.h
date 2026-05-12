@@ -220,11 +220,11 @@ namespace nilou {
 
 struct FVulkanRenderPassManager
 {
-    FVulkanRenderPassManager(VkDevice InDevice)
+    explicit FVulkanRenderPassManager(VulkanDevice* InDevice)
         : Device(InDevice)
     { }
     ~FVulkanRenderPassManager();
-    VkDevice Device{};
+    VulkanDevice* Device{};
     VkFramebuffer GetOrCreateFramebuffer(VkRenderPass RenderPass, const std::array<RHITextureView*, MaxSimultaneousRenderTargets>& ColorAttachments, RHITextureView* DepthStencilAttachment);
     VkRenderPass GetOrCreateRenderPass(const RHIRenderTargetLayout& RTLayout);
     std::unordered_map<uint32, VkRenderPass> RenderPasses;

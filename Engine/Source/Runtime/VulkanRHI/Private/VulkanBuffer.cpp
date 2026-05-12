@@ -61,7 +61,7 @@ RHIBuffer* FVulkanStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags 
         }
     }
 
-    RHIBufferRef StagingBuffer = VulkanRHI->RHICreateBufferInternal(Size, Size, EBufferUsageFlags::TransferSrc | EBufferUsageFlags::TransferDst, InUsageFlags, InMemoryReadFlags);
+    RHIBufferRef StagingBuffer = VulkanRHI->RHICreateBufferInternal(Size, Size, EBufferUsageFlags::TransferSrc | EBufferUsageFlags::TransferDst, "StagingBuffer", InUsageFlags, InMemoryReadFlags);
 
     {
         std::lock_guard<std::mutex> Lock(StagingLock);
@@ -174,9 +174,9 @@ VulkanBuffer::~VulkanBuffer()
 	}
 }
 
-RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags)
+RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& InDebugName, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags)
 {
-    VulkanBufferRef Buffer = TRefCountPtr(new VulkanBuffer(Device, Stride, Size, InUsage));
+    VulkanBufferRef Buffer = TRefCountPtr(new VulkanBuffer(Device, Stride, Size, InUsage, InDebugName));
 
 	VkBufferCreateInfo BufferInfo{};
 	BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -191,13 +191,19 @@ RHIBufferRef FVulkanDynamicRHI::RHICreateBufferInternal(uint32 Stride, uint32 Si
 	Buffer->UsageFlags = UsageFlags;
 	Buffer->MemoryReadFlags = MemoryReadFlags;
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+	if (!InDebugName.empty())
+	{
+		Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_BUFFER, (uint64_t)Buffer->Handle, InDebugName.c_str());
+	}
+#endif
+
     return Buffer;
 }
 
 RHIBufferRef FVulkanDynamicRHI::RHICreateBuffer(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& DebugName, const void *Data)
 {
-	RHIBufferRef Buffer = RHICreateBufferInternal(Stride, Size, InUsage, TranslateBufferUsageFlags(InUsage), TranslateMemoryPropertyFlags(InUsage));
-	Buffer->SetName(DebugName);
+	RHIBufferRef Buffer = RHICreateBufferInternal(Stride, Size, InUsage, DebugName, TranslateBufferUsageFlags(InUsage), TranslateMemoryPropertyFlags(InUsage));
 	return Buffer;
 }
 

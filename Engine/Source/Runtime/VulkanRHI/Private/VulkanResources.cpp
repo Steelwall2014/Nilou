@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <cstdio>
 #include "Misc/Crc.h"
 #include "VulkanDevice.h"
 #include "VulkanDynamicRHI.h"
@@ -324,7 +325,12 @@ VkFramebuffer FVulkanRenderPassManager::GetOrCreateFramebuffer(VkRenderPass Rend
     FramebufferInfo.layers = 1;
 
     VkFramebuffer& Framebuffer = Framebuffers[Hash];
-    VK_CHECK_RESULT(vkCreateFramebuffer(Device, &FramebufferInfo, nullptr, &Framebuffer));
+    VK_CHECK_RESULT(vkCreateFramebuffer(Device->Handle, &FramebufferInfo, nullptr, &Framebuffer));
+#if VULKAN_ENABLE_DRAW_MARKERS
+    char Buf[96];
+    std::snprintf(Buf, sizeof(Buf), "Framebuffer_%08X", Hash);
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)Framebuffer, Buf);
+#endif
     return Framebuffer;
 }
 
@@ -435,18 +441,23 @@ VkRenderPass FVulkanRenderPassManager::GetOrCreateRenderPass(const RHIRenderTarg
     renderPassInfo.pDependencies = &dependency;
 
     VkRenderPass& RenderPass = RenderPasses[Hash];
-    VK_CHECK_RESULT(vkCreateRenderPass(Device, &renderPassInfo, nullptr, &RenderPass));
+    VK_CHECK_RESULT(vkCreateRenderPass(Device->Handle, &renderPassInfo, nullptr, &RenderPass));
+#if VULKAN_ENABLE_DRAW_MARKERS
+    char Buf[96];
+    std::snprintf(Buf, sizeof(Buf), "RenderPass_%08X", Hash);
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)RenderPass, Buf);
+#endif
     return RenderPass;
 }
 FVulkanRenderPassManager::~FVulkanRenderPassManager()
 {
     for (auto& [Hash, RenderPass] : RenderPasses)
     {
-        vkDestroyRenderPass(Device, RenderPass, nullptr);
+        vkDestroyRenderPass(Device->Handle, RenderPass, nullptr);
     }
     for (auto& [Hash, Framebuffer] : Framebuffers)
     {
-        vkDestroyFramebuffer(Device, Framebuffer, nullptr);
+        vkDestroyFramebuffer(Device->Handle, Framebuffer, nullptr);
     }
 }
 
@@ -538,6 +549,18 @@ void VulkanViewport::CreateSwapChain()
         RHI->Device->Gpu, RHI->Device->Handle, Surface, extent, 
         SwapChainFormat, 
         1, &RHI->Device->GfxQueue->FamilyIndex, TempSwapChainImages));
+
+#if VULKAN_ENABLE_DRAW_MARKERS
+    RHI->Device->SetDebugUtilsObjectName(
+        VK_OBJECT_TYPE_SWAPCHAIN_KHR, (uint64_t)SwapChain->Handle, "Swapchain_Main");
+    for (uint32 i = 0; i < TempSwapChainImages.size(); ++i)
+    {
+        std::string ImgName = "SwapchainImage_" + std::to_string(i);
+        RHI->Device->SetDebugUtilsObjectName(
+            VK_OBJECT_TYPE_IMAGE, (uint64_t)TempSwapChainImages[i], ImgName.c_str());
+    }
+#endif
+
     SwapChain->Images.resize(TempSwapChainImages.size());
     SwapChain->ImageViews.resize(TempSwapChainImages.size());
 

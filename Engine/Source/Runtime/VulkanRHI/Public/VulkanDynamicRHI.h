@@ -103,7 +103,7 @@ public:
     
 private:
     void InitInstance();
-    std::pair<VkShaderModule, shaderc_compilation_result_t> RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind);
+    std::pair<VkShaderModule, shaderc_compilation_result_t> RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind, const std::string& DebugName);
     template<typename TShader> TRefCountPtr<TShader> RHICreateShaderInternal(TArrayView<uint8> ByteCode, const std::string& DebugName);
     bool RHIReflectShaderInternal(TArrayView<uint8> ByteCode, std::unordered_map<uint32, TRefCountPtr<class RHIDescriptorSetLayout>>& OutLayouts, std::optional<RHIPushConstantRange>& OutPushConstantRange, std::string& OutMessage);
     RHITextureRef RHICreateTextureInternal(
@@ -113,7 +113,7 @@ private:
     RHIComputePipelineStateRef RHICreateComputePSO(RHIComputeShader* ComputeShader);
     RHIPipelineLayoutRef RHICreatePipelineLayout(RHIComputeShader* ComputeShader);
     RHIPipelineLayoutRef RHICreatePipelineLayout(const RHIGraphicsPipelineShaders& Shaders);
-    void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
+    void RHICreateBufferInternal(VkDevice Device, VkBufferUsageFlags UsageFlags, uint32 Size, const std::string& InDebugName, void *Data, VkBuffer* Buffer, VkDeviceMemory* Memory);
     void RHIUpdateTextureInternal(
         RHITexture* Texture, void* Data, int32 MipmapLevel, 
         int32 Xoffset, int32 Yoffset, int32 Zoffset, uint32 Width, uint32 Height, uint32 Depth,
@@ -121,7 +121,7 @@ private:
     void TransitionImageLayout(RHITexture* Texture, VkImageLayout DstLayout);
     void TransitionImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout SrcLayout, VkImageLayout DstLayout, const VkImageSubresourceRange& SubresourceRange);
     RHICommandList* RHICreateCommandList(VulkanCommandBufferPool* Pool);
-    RHIBufferRef RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags);
+    RHIBufferRef RHICreateBufferInternal(uint32 Stride, uint32 Size, EBufferUsageFlags InUsage, const std::string& InDebugName, VkBufferUsageFlags UsageFlags, VkMemoryPropertyFlags MemoryReadFlags);
 
     std::map<uint32, RHISamplerStateRef> SamplerMap;
 

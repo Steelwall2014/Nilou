@@ -1,6 +1,7 @@
 #include "VulkanDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanDynamicRHI.h"
+
 #include "VulkanMemory.h"
 #include "VulkanBuffer.h"
 #include "Templates/AlignmentTemplates.h"
@@ -156,6 +157,13 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
 
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(CreateInfo.Format, false, true);
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+    if (!Name.empty())
+    {
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE, (uint64_t)Image, Name.c_str());
+    }
+#endif
+
     return TRefCountPtr(new VulkanTexture(
         Device,
         Image, 
@@ -214,6 +222,15 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     
     VkImageView Handle{};
     VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &Handle));
+
+#if VULKAN_ENABLE_DRAW_MARKERS
+    std::string ViewName =
+        Name.empty()
+            ? (InTexture->GetName() + "::TextureView")
+            : Name;
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)Handle, ViewName.c_str());
+#endif
+
     TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(Device, Handle, CreateInfo, InTexture));
     return TextureView;
 }

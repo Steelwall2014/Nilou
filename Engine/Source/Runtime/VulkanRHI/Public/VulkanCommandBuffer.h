@@ -4,13 +4,14 @@
 
 namespace nilou {
 
+    class VulkanDevice;
     class VulkanQueue;
     class VulkanSemaphore;
 
     class VulkanCommandBuffer : public RHICommandList
     {
     public:
-        VulkanCommandBuffer(ERHIPipeline InPipeline, VkDevice Device, VkQueue Queue, VkCommandPool Pool);
+        VulkanCommandBuffer(ERHIPipeline InPipeline, VulkanDevice* Device, VkQueue Queue, VkCommandPool Pool);
         ~VulkanCommandBuffer();
 
         /* Perform actions commands */
@@ -46,6 +47,8 @@ namespace nilou {
             const std::vector<RHIBufferMemoryBarrier>& BufferMemoryBarriers) override;
 
         virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) override;
+        virtual void PushEvent(const char* Name, FColor Color) override;
+        virtual void PopEvent() override;
 
         enum class EState : uint8
         {
@@ -81,7 +84,7 @@ namespace nilou {
 
     private:
 
-        VkDevice Device;
+        VulkanDevice* Device;
         VkCommandBuffer Handle;
         VkQueue Queue;
         VkCommandPool Pool;
@@ -107,7 +110,7 @@ namespace nilou {
     {
     public:
 
-        VulkanCommandBufferPool(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
+        VulkanCommandBufferPool(ERHIPipeline InPipeline, VulkanDevice* InDevice, VkQueue InQueue, int32 QueueFamilyIndex);
         ~VulkanCommandBufferPool();
 
         VulkanCommandBuffer* Allocate();
@@ -117,7 +120,7 @@ namespace nilou {
 
         VkCommandPool Handle{};
 
-        VkDevice Device;
+        VulkanDevice* Device;
         VkQueue Queue;
 
         std::vector<TRefCountPtr<VulkanCommandBuffer>> CmdBuffers;

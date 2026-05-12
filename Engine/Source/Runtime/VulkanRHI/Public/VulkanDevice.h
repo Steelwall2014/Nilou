@@ -1,6 +1,10 @@
 #pragma once
 #include "VulkanDynamicRHI.h"
 
+#ifndef VULKAN_ENABLE_DRAW_MARKERS
+#define VULKAN_ENABLE_DRAW_MARKERS 1
+#endif
+
 namespace nilou {
 
 class VulkanQueue;
@@ -35,6 +39,17 @@ public:
 
     void InitGPU();
 
+#if VULKAN_ENABLE_DRAW_MARKERS
+	struct
+	{
+		PFN_vkCmdBeginDebugUtilsLabelEXT	CmdBeginDebugUtilsLabel = nullptr;
+		PFN_vkCmdEndDebugUtilsLabelEXT	CmdEndDebugUtilsLabel = nullptr;
+		PFN_vkSetDebugUtilsObjectNameEXT	SetDebugName = nullptr;
+	} DebugMarkers;
+
+	void InitDebugMarkers();
+	void SetDebugUtilsObjectName(VkObjectType ObjectType, uint64_t VulkanHandle, const char* Name);
+#endif
 	VkDevice Handle;
 	VkPhysicalDevice Gpu;
 	std::vector<VkQueueFamilyProperties> QueueFamilyProps;

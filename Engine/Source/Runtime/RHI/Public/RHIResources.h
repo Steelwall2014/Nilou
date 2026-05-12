@@ -183,11 +183,12 @@ namespace nilou {
 		* @param InSize: The number of bytes in the index buffer
 		* @param InUsage: e.g. VertexBuffer | Static
 		*/
-		RHIBuffer(uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
+		RHIBuffer(uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage, const std::string& InDebugName)
 		: RHIResource(ERHIResourceType::RRT_Buffer)
 		, Stride(InStride)
 		, Size(InSize)
 		, Usage(InUsage)
+		, DebugName(InDebugName)
 		{ }
 		virtual ~RHIBuffer() {}
 		uint32 GetStride() const { return Stride; }
@@ -195,7 +196,6 @@ namespace nilou {
 		EBufferUsageFlags GetUsage() const { return Usage; }
 		uint32 GetCount() const { return GetSize() / GetStride(); }
 		const std::string& GetName() const { return DebugName; }
-		void SetName(const std::string& InDebugName) { DebugName = InDebugName; }
 	protected:
 		uint32 Stride;
 		uint32 Size;

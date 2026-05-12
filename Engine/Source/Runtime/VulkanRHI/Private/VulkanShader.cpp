@@ -9,7 +9,7 @@ namespace nilou {
 RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_vertex_shader);
+        RHICompileShaderInternal(code, shaderc_vertex_shader, DebugName);
 
     if (Module && result)
     {
@@ -35,7 +35,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_fragment_shader);
+        RHICompileShaderInternal(code, shaderc_fragment_shader, DebugName);
 
     if (Module && result)
     {
@@ -61,7 +61,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string& code, const std::string& DebugName)
 {
     auto [Module, result] = 
-        RHICompileShaderInternal(code, shaderc_compute_shader);
+        RHICompileShaderInternal(code, shaderc_compute_shader, DebugName);
 
     if (Module && result)
     {
@@ -93,6 +93,9 @@ TRefCountPtr<TShader> FVulkanDynamicRHI::RHICreateShaderInternal(TArrayView<uint
     createInfo.pCode = reinterpret_cast<const uint32*>(ByteCode.GetData());
     VkShaderModule Module{};
     VK_CHECK_RESULT(vkCreateShaderModule(Device->Handle, &createInfo, nullptr, &Module));
+#if VULKAN_ENABLE_DRAW_MARKERS
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)Module, DebugName.c_str());
+#endif
     TRefCountPtr<TShader> Shader = TRefCountPtr(new TShader(Device->Handle, DebugName));
     Shader->Module = Module;
     std::string OutMessage;
@@ -120,7 +123,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(TArrayView<uint8> 
 }
 
 std::pair<VkShaderModule, shaderc_compilation_result_t> 
-FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind)
+FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_shader_kind shader_kind, const std::string& DebugName)
 {
     shaderc_compile_options_t options = shaderc_compile_options_initialize();
     shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level_zero);
@@ -145,7 +148,9 @@ FVulkanDynamicRHI::RHICompileShaderInternal(const std::string& code, shaderc_sha
     createInfo.pCode = reinterpret_cast<const uint32*>(shaderc_result_get_bytes(result));
     VkShaderModule Module{};
     VK_CHECK_RESULT(vkCreateShaderModule(Device->Handle, &createInfo, nullptr, &Module));
-
+#if VULKAN_ENABLE_DRAW_MARKERS
+    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)Module, DebugName.c_str());
+#endif
     return { Module, result };
 
 }

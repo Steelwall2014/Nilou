@@ -10,7 +10,7 @@
 
 namespace nilou {
 
-    VulkanCommandBuffer::VulkanCommandBuffer(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, VkCommandPool InPool)
+    VulkanCommandBuffer::VulkanCommandBuffer(ERHIPipeline InPipeline, VulkanDevice* InDevice, VkQueue InQueue, VkCommandPool InPool)
         : RHICommandList(InPipeline)
         , Device(InDevice)
         , Queue(InQueue)
@@ -21,12 +21,12 @@ namespace nilou {
         AllocInfo.commandPool = Pool;
         AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         AllocInfo.commandBufferCount = 1;
-        VK_CHECK_RESULT(vkAllocateCommandBuffers(Device, &AllocInfo, &Handle));
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(Device->Handle, &AllocInfo, &Handle));
 
         VkFenceCreateInfo FenceInfo{};
         FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         FenceInfo.flags = 0;
-        VK_CHECK_RESULT(vkCreateFence(InDevice, &FenceInfo, nullptr, &Fence));
+        VK_CHECK_RESULT(vkCreateFence(InDevice->Handle, &FenceInfo, nullptr, &Fence));
 
         State = EState::ReadyForBegin;
 
@@ -35,8 +35,8 @@ namespace nilou {
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        vkDestroyFence(Device, Fence, nullptr);
-        vkFreeCommandBuffers(Device, Pool, 1, &Handle);
+        vkDestroyFence(Device->Handle, Fence, nullptr);
+        vkFreeCommandBuffers(Device->Handle, Pool, 1, &Handle);
     }
 
     void VulkanCommandBuffer::SetViewport(int32 X, int32 Y, int32 Width, int32 Height)
@@ -202,7 +202,7 @@ namespace nilou {
             {
                 WriteVec.push_back(Info.WriteDescriptor);
             }
-            vkUpdateDescriptorSets(Device, WriteVec.size(), WriteVec.data(), 0, nullptr);
+            vkUpdateDescriptorSets(Device->Handle, WriteVec.size(), WriteVec.data(), 0, nullptr);
             vkCmdBindDescriptorSets(
                 Handle, BindPoint, 
                 VulkanLayout->Handle, SetIndex, 1, DescriptorSetHandles, 0, nullptr);
@@ -284,6 +284,38 @@ namespace nilou {
             Offset, 
             Size, 
             Data);
+    }
+
+    void VulkanCommandBuffer::PushEvent(const char* Name, FColor Color)
+    {
+        if (!Name || !HasBegun())
+        {
+            return;
+        }
+        if (auto Fn = Device->DebugMarkers.CmdBeginDebugUtilsLabel)
+        {
+            VkDebugUtilsLabelEXT Label{};
+            Label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            Label.pLabelName = Name;
+            FLinearColor LColor(Color);
+            Label.color[0] = LColor.R;
+            Label.color[1] = LColor.G;
+            Label.color[2] = LColor.B;
+            Label.color[3] = LColor.A;
+            Fn(Handle, &Label);
+        }
+    }
+    
+    void VulkanCommandBuffer::PopEvent()
+    {
+        if (!HasBegun())
+        {
+            return;
+        }
+        if (auto Fn = Device->DebugMarkers.CmdEndDebugUtilsLabel)
+        {
+            Fn(Handle);
+        }
     }
 
     VkPipelineStageFlags2 Translate(EPipelineStageFlags Flags)
@@ -455,7 +487,7 @@ namespace nilou {
     {
         if (State == EState::Submitted)
         {
-            VkResult result = vkGetFenceStatus(Device, Fence);
+            VkResult result = vkGetFenceStatus(Device->Handle, Fence);
             if (result == VK_SUCCESS) 
             {
                 for (RHIBuffer* Buffer : StagingBuffers)
@@ -464,13 +496,13 @@ namespace nilou {
                 }
                 StagingBuffers.clear();
                 vkResetCommandBuffer(Handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-                vkResetFences(Device, 1, &Fence);
+                vkResetFences(Device->Handle, 1, &Fence);
                 State = EState::ReadyForBegin;
             }
         }
     }
 
-    VulkanCommandBufferPool::VulkanCommandBufferPool(ERHIPipeline InPipeline, VkDevice InDevice, VkQueue InQueue, int32 QueueFamilyIndex)
+    VulkanCommandBufferPool::VulkanCommandBufferPool(ERHIPipeline InPipeline, VulkanDevice* InDevice, VkQueue InQueue, int32 QueueFamilyIndex)
         : Pipeline(InPipeline)
         , Device(InDevice)
         , Queue(InQueue)
@@ -479,12 +511,21 @@ namespace nilou {
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = QueueFamilyIndex;
-        VK_CHECK_RESULT(vkCreateCommandPool(Device, &poolInfo, nullptr, &Handle));
+        VK_CHECK_RESULT(vkCreateCommandPool(Device->Handle, &poolInfo, nullptr, &Handle));
+#if VULKAN_ENABLE_DRAW_MARKERS
+        const char* PoolTag =
+            Pipeline == ERHIPipeline::Graphics
+                ? "CommandPool_Graphics"
+                : Pipeline == ERHIPipeline::AsyncCompute
+                      ? "CommandPool_AsyncCompute"
+                      : Pipeline == ERHIPipeline::Copy ? "CommandPool_Copy" : "CommandPool";
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_COMMAND_POOL, (uint64_t)Handle, PoolTag);
+#endif
     }
 
     VulkanCommandBufferPool::~VulkanCommandBufferPool()
     {
-        vkDestroyCommandPool(Device, Handle, nullptr);
+        vkDestroyCommandPool(Device->Handle, Handle, nullptr);
     }
 
     VulkanCommandBuffer* VulkanCommandBufferPool::Allocate()

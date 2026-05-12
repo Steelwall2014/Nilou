@@ -42,8 +42,8 @@ protected:
 class VulkanBuffer : public RHIBuffer
 {
 public:
-    VulkanBuffer(VulkanDevice* InDevice, uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage)
-        : RHIBuffer(InStride, InSize, InUsage)
+    VulkanBuffer(VulkanDevice* InDevice, uint32 InStride, uint32 InSize, EBufferUsageFlags InUsage, const std::string& InDebugName)
+        : RHIBuffer(InStride, InSize, InUsage, InDebugName)
         , Device(InDevice)
     { 
     }

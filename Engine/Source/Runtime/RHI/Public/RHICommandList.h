@@ -68,6 +68,8 @@ namespace nilou {
             const std::vector<RHIBufferMemoryBarrier>& BufferBarriers) = 0;
 
         virtual RHIBuffer* AcquireStagingBuffer(uint32 Size) = 0;
+        virtual void PushEvent(const char* Name, FColor Color) = 0;
+        virtual void PopEvent() = 0;
 
         ERHIPipeline GetPipeline() const { return Pipeline; }
 
