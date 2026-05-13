@@ -379,12 +379,14 @@ namespace nilou {
         }
         NILOU_LOG(Display, "Compile the shaderMap of Material \"{}\"", Owner->ShaderVirtualPath);
 
-        const std::string SearchPath = FPaths::EngineShadersPublicDir();
-        const std::string MaterialPath = FPaths::EngineDir() + Owner->ShaderVirtualPath;
+        const std::string PublicSearchPath = FPaths::EngineShadersPublicDir();
+        const std::string EngineRootSearchPath = FPaths::EngineDir();
+        const std::string MaterialPath = EngineRootSearchPath + Owner->ShaderVirtualPath;
         const std::string MaterialModuleName = FPaths::GetBaseFilename(MaterialPath);
 
         FShaderCompilerEnvironment Environment;
-        Environment.AddSearchPath(SearchPath);
+        Environment.AddSearchPath(PublicSearchPath);
+        Environment.AddSearchPath(EngineRootSearchPath);
         FShaderCompiler::CompileMaterialShader(Owner->GetName(), MaterialPath, ShaderMap.get(), ShaderCode, Environment);
 
         // Create a session
@@ -398,7 +400,10 @@ namespace nilou {
         };
         sessionDesc.targets = targets.data();
         sessionDesc.targetCount = targets.size();
-        std::vector<const char*> searchPaths = { SearchPath.c_str() };
+        std::vector<const char*> searchPaths = {
+            PublicSearchPath.c_str(),
+            EngineRootSearchPath.c_str(),
+        };
         sessionDesc.searchPathCount = searchPaths.size();
         sessionDesc.searchPaths = searchPaths.data();
         Slang::ComPtr<slang::ISession> session;

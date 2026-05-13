@@ -125,6 +125,7 @@ function run_shader_tool(opt)
     local shader_src_dir = path.join("$(projectdir)", "Engine/Shaders")
     local output_dir = path.join("$(projectdir)", "Engine/Source/Runtime/ShaderBindings/Generated")
     local search_dirs = path.join("$(projectdir)", "Engine/Shaders/Public")
+    search_dirs = search_dirs .. ";" .. path.join("$(projectdir)", "Engine")
     os.mkdir(output_dir)
 
     local force_regenerate = ""

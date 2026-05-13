@@ -475,9 +475,9 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
 
         if (OutCppStructs.contains(NonOpaqueDataLayout) && OutCppStructs[NonOpaqueDataLayout] != NonOpaqueDecl)
         {
-            std::cout << "Ambiguous struct: " << StructName << std::endl;
-            std::cout << "Current: " << NonOpaqueDecl << std::endl;
-            std::cout << "Existing: " << OutCppStructs[NonOpaqueDataLayout] << std::endl;
+            std::cerr << "Ambiguous struct: " << StructName << std::endl;
+            std::cerr << "Current: " << NonOpaqueDecl << std::endl;
+            std::cerr << "Existing: " << OutCppStructs[NonOpaqueDataLayout] << std::endl;
             __debugbreak();
         }
         OutCppStructs[NonOpaqueDataLayout] = NonOpaqueDecl;
@@ -701,9 +701,9 @@ void EmitMetadataForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutRe
 
     if (TypeDecl.CppMetadata != "" && TypeDecl.CppMetadata != OutMetadata)
     {
-        std::cout << "Ambiguous Metadata" << StructName << std::endl;
-        std::cout << "Current: " << TypeDecl.CppMetadata << std::endl;
-        std::cout << "Existing: " << OutMetadata << std::endl;
+        std::cerr << "Ambiguous Metadata" << StructName << std::endl;
+        std::cerr << "Current: " << TypeDecl.CppMetadata << std::endl;
+        std::cerr << "Existing: " << OutMetadata << std::endl;
         __debugbreak();
     }
     TypeDecl.CppMetadata = OutMetadata;
@@ -735,10 +735,35 @@ bool SlangShaderReflectionSession::LoadModule(const std::filesystem::path& Slang
             diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
     }
-    Modules[ModuleName] = Module;
 
-    std::vector<slang::DeclReflection*> NamespaceDecls;
-    CollectTypeDeclarations(Module, NamespaceDecls, Module->getModuleReflection());
+    // Note: slang 支持隐式加载模块，所以这里需要检查所有模块。
+    for (SlangInt i = 0; i < SlangSession->getLoadedModuleCount(); ++i)
+    {
+        slang::IModule* LocalModule = SlangSession->getLoadedModule(i);
+        // 使用路径 import 一个模块、而且这个模块被隐式加载时，
+        // 对它调用 getName 获取的是路径而不是 slang 文件中定义的模块名。
+        // 所以**Nilou 项目要求 slang 文件中定义的模块名与文件名相同**。
+        std::string LocalModuleName = fs::path(LocalModule->getName()).stem().string();
+        if (LocalModule)
+        {
+            if (!Modules.contains(LocalModuleName))
+            {
+                Modules[LocalModuleName] = LocalModule;
+                std::vector<slang::DeclReflection*> NamespaceDecls;
+                CollectTypeDeclarations(LocalModule, NamespaceDecls, LocalModule->getModuleReflection());
+            }
+            else 
+            {
+                slang::IModule* ExistingModule = Modules[LocalModuleName];
+                if (ExistingModule != LocalModule)
+                {
+                    std::cerr << "Duplicated shader module found: " << LocalModuleName;
+                    __debugbreak();
+                }
+            }
+        }
+    }
+
     return true;
 }
 

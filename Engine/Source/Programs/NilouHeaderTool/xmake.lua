@@ -6,6 +6,7 @@ target("NilouHeaderTool")
     set_languages("cxx20")
     add_deps("clang-c")
     add_deps("slang")
+    add_cxflags("/utf-8")
     if is_mode("debug") then 
         add_defines("NILOU_DEBUG")
     end

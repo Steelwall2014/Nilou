@@ -339,6 +339,7 @@ namespace nilou {
         
         FShaderCompilerEnvironment Environment;
         Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
+        Environment.AddSearchPath(FPaths::EngineDir());
         ShaderType->ModifyCompilationEnvironment(ShaderParameter, Environment);
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
@@ -516,6 +517,7 @@ namespace nilou {
 
         FShaderCompilerEnvironment Environment;
         Environment.AddSearchPath(FPaths::EngineShadersPublicDir());
+        Environment.AddSearchPath(FPaths::EngineDir());
         Pipeline->ModifyCompilationEnvironment(PipelineParams, Environment);
 
         Slang::ComPtr<slang::ISession> session = createSession(Environment);
