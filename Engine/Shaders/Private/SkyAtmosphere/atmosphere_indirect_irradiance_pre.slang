@@ -8,22 +8,19 @@ import RenderCore;
 
 struct FAtmosphereIndirectIrradianceParameters
 {
-    int scattering_order;
-    Texture3D<float4> SingleScatteringRayleighLUT;
-    Texture3D<float4> SingleScatteringMieLUT;
+    Texture3D<float4> DeltaScatteringLUT;
     SamplerState linearSampler;
     RWTexture2D<float4> IrradianceLUT;
+    RWTexture2D<float4> DeltaIrradianceLUT;
 };
 ParameterBlock<FAtmosphereIndirectIrradianceParameters> Params;
 ParameterBlock<AtmosphereParameters> ATMOSPHERE;
 
 IrradianceSpectrum ComputeIndirectIrradiance(
     AtmosphereParameters atmosphere,
-    ReducedScatteringTexture single_rayleigh_scattering_texture,
-    ReducedScatteringTexture single_mie_scattering_texture,
     ScatteringTexture multiple_scattering_texture,
     SamplerState linearSampler,
-    Length r, Number mu_s, int scattering_order) {
+    Length r, Number mu_s) {
 
   static const int SAMPLE_COUNT = 32;
   static const Angle dphi = pi / Number(SAMPLE_COUNT);
@@ -41,10 +38,8 @@ IrradianceSpectrum ComputeIndirectIrradiance(
       SolidAngle domega = (dtheta / rad) * (dphi / rad) * sin(theta) * sr;
 
       Number nu = dot(omega, omega_s);
-      result += GetScattering(atmosphere, single_rayleigh_scattering_texture,
-          single_mie_scattering_texture, multiple_scattering_texture,
-          linearSampler, r, omega.z, mu_s, nu, false /* ray_r_theta_intersects_ground */,
-          scattering_order) *
+      result += GetScattering(atmosphere, multiple_scattering_texture,
+          linearSampler, r, omega.z, mu_s, nu, false /* ray_r_theta_intersects_ground */) *
               omega.z * domega;
     }
   }
@@ -53,18 +48,15 @@ IrradianceSpectrum ComputeIndirectIrradiance(
 
 IrradianceSpectrum ComputeIndirectIrradianceTexture(
     AtmosphereParameters atmosphere,
-    ReducedScatteringTexture single_rayleigh_scattering_texture,
-    ReducedScatteringTexture single_mie_scattering_texture,
     ScatteringTexture multiple_scattering_texture,
     SamplerState linearSampler,
-    float2 frag_coord, int scattering_order) {
+    float2 frag_coord) {
   Length r;
   Number mu_s;
   GetRMuSFromIrradianceTextureUv(
       atmosphere, frag_coord / IRRADIANCE_TEXTURE_SIZE, r, mu_s);
   return ComputeIndirectIrradiance(atmosphere,
-      single_rayleigh_scattering_texture, single_mie_scattering_texture,
-      multiple_scattering_texture, linearSampler, r, mu_s, scattering_order);
+      multiple_scattering_texture, linearSampler, r, mu_s);
 }
 
 [shader("compute")]
@@ -74,12 +66,10 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float2 frag_coord = float2(threadID.xy) + float2(0.5);
     IrradianceSpectrum irradiance = ComputeIndirectIrradianceTexture(
         ATMOSPHERE, 
-        Params.SingleScatteringRayleighLUT, 
-        Params.SingleScatteringMieLUT, 
-        Params.SingleScatteringRayleighLUT, 
+        Params.DeltaScatteringLUT,
         Params.linearSampler, 
-        frag_coord, 
-        Params.scattering_order);
-    Params.IrradianceLUT[threadID.xy] = float4(irradiance, 0);
+        frag_coord);
+    Params.IrradianceLUT[threadID.xy] += float4(irradiance, 0);
+    Params.DeltaIrradianceLUT[threadID.xy] = float4(irradiance, 0);
 }
 

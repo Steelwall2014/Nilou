@@ -579,10 +579,7 @@ void VulkanViewport::CreateSwapChain()
         FRHITextureViewCreateInfo CreateInfo;
         CreateInfo.ViewType = ETextureDimension::Texture2D;
         CreateInfo.Format = SwapChainFormat;
-        CreateInfo.BaseMipLevel = 0;
-        CreateInfo.LevelCount = 1;
-        CreateInfo.BaseArrayLayer = 0;
-        CreateInfo.LayerCount = 1;
+        CreateInfo.SubresourceRange = RHITextureSubresourceRange::MakeSingle();
         SwapChain->ImageViews[i] = RHICreateTextureView(SwapChain->Images[i].GetReference(), CreateInfo, "SwapChainImageView");
     }
 
@@ -596,10 +593,7 @@ void VulkanViewport::CreateSwapChain()
     FRHITextureViewCreateInfo CreateInfo;
     CreateInfo.ViewType = ETextureDimension::Texture2D;
     CreateInfo.Format = DepthImageFormat;
-    CreateInfo.BaseMipLevel = 0;
-    CreateInfo.LevelCount = 1;
-    CreateInfo.BaseArrayLayer = 0;
-    CreateInfo.LayerCount = 1;
+    CreateInfo.SubresourceRange = RHITextureSubresourceRange::MakeSingle();
     SwapChain->DepthImageView = RHICreateTextureView(SwapChain->DepthImage.GetReference(), CreateInfo, "Vulkan Render to Screen DepthStencil TextureView");
     
 }

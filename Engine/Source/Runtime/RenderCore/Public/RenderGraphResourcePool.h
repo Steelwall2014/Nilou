@@ -13,7 +13,7 @@ public:
 	/** Call once per frame to trim elements from the pool. */
 	void TickPoolElements() { }
 
-	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::Page);
+	FRDGPooledBufferRef FindFreeBuffer(const RDGBufferDesc& Desc, const std::string& InDebugName, ERDGPooledBufferAlignment Alignment = ERDGPooledBufferAlignment::None);
 
 private:
 

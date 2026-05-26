@@ -27,6 +27,26 @@
 
 namespace nilou {
 
+    static FMatrix44f MakeScreenToClipMatrix(const FMatrix44f& ProjectionMatrix, ECameraProjectionMode ProjectionMode)
+    {
+        FMatrix44f Result(1.0f);
+        if (ProjectionMode == ECameraProjectionMode::Perspective)
+        {
+            Result[0] = FVector4f(1.0f, 0.0f, 0.0f, 0.0f);
+            Result[1] = FVector4f(0.0f, 1.0f, 0.0f, 0.0f);
+            Result[2] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][2], ProjectionMatrix[3][2]);
+            Result[3] = FVector4f(0.0f, 0.0f, 1.0f, 0.0f);
+        }
+        else
+        {
+            Result[0] = FVector4f(1.0f, 0.0f, 0.0f, 0.0f);
+            Result[1] = FVector4f(0.0f, 1.0f, 0.0f, 0.0f);
+            Result[2] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][2], ProjectionMatrix[3][2]);
+            Result[3] = FVector4f(0.0f, 0.0f, 0.0f, 1.0f);
+        }
+        return Result;
+    }
+
     IMPLEMENT_SHADER_TYPE(FScreenQuadVertexShader, "/Shaders/Private/GlobalShaders/ScreenQuadVertexShader.slang", "Main", EShaderFrequency::Vertex)
     IMPLEMENT_SHADER_TYPE(FRenderToScreenPixelShader, "/Shaders/Private/GlobalShaders/RenderToScreenPixelShader.slang", "Main", EShaderFrequency::Pixel)
     DEFINE_GRAPHICS_PIPELINE(FRenderToScreenPipeline, FScreenQuadVertexShader, FRenderToScreenPixelShader)
@@ -130,7 +150,7 @@ namespace nilou {
             FVisibleLightInfo LightInfo;
             LightInfo.LightSceneProxy = Proxy;
             int NumRelevantViews = 1;
-            if (Proxy->LightType == ELightType::LT_Directional)
+            if (Proxy->LightType == ELightType::Directional)
                 NumRelevantViews = Views.size();
             for (int ViewIndex = 0; ViewIndex < NumRelevantViews; ViewIndex++)
             {
@@ -139,21 +159,21 @@ namespace nilou {
                 TextureDesc.SizeX = 1024;
                 TextureDesc.SizeY = 1024;
                 TextureDesc.NumMips = 1;
-                TextureDesc.Format = EPixelFormat::PF_D24S8;
+                TextureDesc.Format = EPixelFormat::PF_D32FS8;
                 TextureDesc.TextureType = ETextureDimension::Texture2DArray;
                 int32 BufferSize = 0;
                 constexpr int CASCADED_SHADOWMAP_SPLIT_COUNT = 8;
-                if (Proxy->LightType == ELightType::LT_Directional)
+                if (Proxy->LightType == ELightType::Directional)
                 {
                     BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>) * CASCADED_SHADOWMAP_SPLIT_COUNT;
                     TextureDesc.ArraySize = CASCADED_SHADOWMAP_SPLIT_COUNT;
                 }
-                // else if (Proxy->LightType == ELightType::LT_Point)
+                // else if (Proxy->LightType == ELightType::Point)
                 // {
                 //     BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>) * 6;
                 //     TextureDesc.ArraySize = 6;
                 // }
-                // else if (Proxy->LightType == ELightType::LT_Spot)
+                // else if (Proxy->LightType == ELightType::Spot)
                 // {
                 //     BufferSize = sizeof(shader::ShadowMappingFrustum<Std430Layout>);
                 //     TextureDesc.ArraySize = 1;
@@ -169,11 +189,8 @@ namespace nilou {
                 for (int i = 0; i < TextureDesc.ArraySize; i++)
                 {
                     RDGTextureViewDesc TextureViewDesc;
-                    TextureViewDesc.Format = EPixelFormat::PF_D24S8;
-                    TextureViewDesc.BaseMipLevel = 0;
-                    TextureViewDesc.LevelCount = 1;
-                    TextureViewDesc.BaseArrayLayer = i;
-                    TextureViewDesc.LayerCount = 1;
+                    TextureViewDesc.Format = EPixelFormat::PF_D32FS8;
+                    TextureViewDesc.SubresourceRange = RHITextureSubresourceRange::Make(0, 1, i, 1, 0, 2);
                     TextureViewDesc.ViewType = ETextureDimension::Texture2D;
                     RDGTextureView* DepthArrayView = Graph.CreateTextureView(NFormat("DepthArrayView {}", i), Resource.DepthArray, TextureViewDesc);
                     Resource.DepthViews.push_back(DepthArrayView);
@@ -205,8 +222,18 @@ namespace nilou {
             ViewUniformBuffer->ViewToClip = ViewToClip;
             ViewUniformBuffer->RelWorldToClip = ViewToClip * RelativeWorldToView;
             ViewUniformBuffer->ClipToView = glm::inverse(ViewToClip);
-            ViewUniformBuffer->RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+            const FMatrix44f RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
+            ViewUniformBuffer->RelClipToWorld = RelClipToWorld;
+            const FMatrix44f ScreenToClip = MakeScreenToClipMatrix(ViewToClip, View.ProjectionMode);
+            ViewUniformBuffer->ScreenToRelativeWorld = ScreenToClip * RelClipToWorld;
             ViewUniformBuffer->AbsWorldToClip = ViewToClip * FMatrix44f(WorldToView);
+            ViewUniformBuffer->bIsOrthoProjection =
+                View.ProjectionMode == ECameraProjectionMode::Orthographic ? 1u : 0u;
+            ViewUniformBuffer->ViewRectMin = FVector2f(0.0f, 0.0f);
+            const float ViewWidth = static_cast<float>(View.ScreenResolution.x);
+            const float ViewHeight = static_cast<float>(View.ScreenResolution.y);
+            ViewUniformBuffer->ViewSizeAndInvSize = FVector4f(
+                ViewWidth, ViewHeight, 1.0f / ViewWidth, 1.0f / ViewHeight);
 
             ViewUniformBuffer->CameraPosition = View.Position;
             ViewUniformBuffer->CameraDirection = View.Forward;
@@ -236,7 +263,7 @@ namespace nilou {
             SceneTextures.WorldSpaceNormal              = Graph.CreateTexture(NFormat("WorldSpaceNormal {}", ViewIndex), Desc);
             SceneTextures.Emissive                      = Graph.CreateTexture(NFormat("Emissive {}", ViewIndex), Desc);
 
-            Desc.Format = EPixelFormat::PF_D24S8;
+            Desc.Format = EPixelFormat::PF_D32FS8;
             SceneTextures.DepthStencil                  = Graph.CreateTexture(NFormat("DepthStencil {}", ViewIndex), Desc);
 
             Desc.Format = EPixelFormat::PF_R16G16F;
@@ -298,6 +325,8 @@ namespace nilou {
         RenderBasePass(Graph);
 
         RenderLightingPass(Graph);
+
+        RenderSkyAtmospherePass(Graph);
 
         RenderViewElementPass(Graph);
 

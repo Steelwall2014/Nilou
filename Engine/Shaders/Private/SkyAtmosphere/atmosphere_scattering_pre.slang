@@ -10,9 +10,7 @@ struct FAtmosphereScatteringParameters
 {
     Texture2D<float4> TransmittanceLUT;
     SamplerState linearSampler;
-    RWTexture3D<float4> SingleScatteringRayleighLUT;
-    RWTexture3D<float4> SingleScatteringMieLUT;
-    RWTexture3D<float4> MultiScatteringLUT;
+    RWTexture3D<float4> ScatteringLUT;
 };
 ParameterBlock<FAtmosphereScatteringParameters> Params;
 ParameterBlock<AtmosphereParameters> ATMOSPHERE;
@@ -88,8 +86,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
         r, mu, mu_s, nu, ray_r_mu_intersects_ground);
     ComputeSingleScattering(ATMOSPHERE, Params.TransmittanceLUT, Params.linearSampler,
         r, mu, mu_s, nu, ray_r_mu_intersects_ground, rayleigh, mie);
-    Params.SingleScatteringRayleighLUT[threadID] = float4(rayleigh, 0);
-    Params.SingleScatteringMieLUT[threadID] = float4(mie, 0);
-    Params.MultiScatteringLUT[threadID] = float4(rayleigh, 0);
+    Params.ScatteringLUT[threadID] = float4(
+        rayleigh * RayleighPhaseFunction(nu) +
+        mie * MiePhaseFunction(ATMOSPHERE.mie_phase_function_g, nu), 0);
 }
 

@@ -143,15 +143,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
-        NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
+        NILOU_LOG(Fatal, "validation layer: {}", pCallbackData->pMessage);
     }
     else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
-        NILOU_LOG(Warning, "validation layer: {}", pCallbackData->pMessage);
+        NILOU_LOG(Error, "validation layer: {}", pCallbackData->pMessage);
     }
     else
     {
-        NILOU_LOG(Display, "validation layer: {}", pCallbackData->pMessage);
+        NILOU_LOG(Warning, "validation layer: {}", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }

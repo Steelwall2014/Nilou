@@ -394,7 +394,7 @@ enum NENUM EStencilOp
 	EStencilOp_Num,
 };
 
-enum class ETextureDimension
+enum class ETextureDimension : uint8
 {
 	Texture2D = 0,
 	Texture2DArray,
@@ -802,6 +802,7 @@ inline std::string ToString(ERHIAccess Flags)
 
 enum class ERHIPipeline : uint8
 {
+	None = 0,
 	Graphics = 1 << 0,
 	AsyncCompute = 1 << 1,
 	Copy = 1 << 2,

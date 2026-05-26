@@ -79,9 +79,10 @@ namespace nilou {
     public:
 	    FSkyAtmosphereSceneProxy(const USkyAtmosphereComponent* InComponent);
 
-		inline RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
-		inline RDGTextureView *GetMultiScatteringLUT() const { return MultiScatteringLUT->GetDefaultView(); }
-		inline RDGTextureView *GetSingleScatteringMieLUT() const { return SingleScatteringMieLUT->GetDefaultView(); }
+		RDGTextureView *GetTransmittanceLUT() const { return TransmittanceLUT->GetDefaultView(); }
+		RDGTextureView *GetScatteringLUT() const { return ScatteringLUT->GetDefaultView(); }
+		RDGTextureView *GetIrradianceLUT() const { return IrradianceLUT->GetDefaultView(); }
+		TParameterBlock<shader::AtmosphereParameters>* GetAtmosphereParamBlock() const { return AtmosphereParamBlock.GetReference(); }
 
 
 	protected:
@@ -89,19 +90,16 @@ namespace nilou {
 		RDGDescriptorSetRef AtmosphereParametersDescriptorSet;
 		RDGTextureRef TransmittanceLUT;
 		RDGTextureRef IrradianceLUT;
-		RDGTextureRef DeltaScatteringRayleighLUT;
-		RDGTextureRef SingleScatteringMieLUT;
-		RDGTextureRef MultiScatteringLUT;
-		RDGTextureRef ScatteringDensityLUT;
+		RDGTextureRef ScatteringLUT;
 
-		void DispatchPrecompute();
+		void DispatchPrecompute(RenderGraph& Graph);
 
-		void DispatchTransmittancePass();
-		void DispatchDirectIrradiancePass();
-		void DispatchScatteringPass();
-		void DispatchScatteringDensityPass(int32 scattering_order);
-		void DispatchIndirectIrradiancePass(int32 scattering_order);
-		void DispatchMultiScatteringPass();
+		void DispatchTransmittancePass(RenderGraph& Graph);
+		void DispatchDirectIrradiancePass(RenderGraph& Graph);
+		void DispatchScatteringPass(RenderGraph& Graph);
+		RDGTexture* DispatchScatteringDensityPass(RenderGraph& Graph, RDGTexture* DeltaIrradianceLUT, RDGTexture* DeltaScatteringLUT);
+		RDGTexture* DispatchIndirectIrradiancePass(RenderGraph& Graph, RDGTexture* DeltaScatteringLUT);
+		RDGTexture* DispatchMultiScatteringPass(RenderGraph& Graph, RDGTexture* ScatteringDensityLUT);
     };
 
 }

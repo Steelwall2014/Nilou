@@ -31,6 +31,7 @@ void RenderGraph::EnumerateTextureAccess(FRDGPass* Pass, const std::function<voi
             {
 				RDGTextureView* TextureView = Writer.ImageInfo.Texture;
 				RDGTexture* Texture = TextureView->GetParent();
+				// if (Texture->Name == "SkyAtmosphere TransmittanceLUT") NILOU_DEBUG_BREAK();
 				RDGTextureDesc& Desc = const_cast<RDGTextureDesc&>(Texture->Desc);
 				if (Writer.DescriptorType == EDescriptorType::CombinedImageSampler ||
 					Writer.DescriptorType == EDescriptorType::SampledImage)
@@ -224,7 +225,11 @@ void RenderGraph::EndFrame()
 		Texture->LastPass = NullPassHandle;
 		Texture->FirstPass = NullPassHandle;
 		Texture->LastProducers.clear();
-		Texture->SubresourceStates.clear();
+		for (auto& State : Texture->SubresourceStates)
+		{
+			State.LastWriter = NullPassHandle;
+			State.Pass = NullPassHandle;
+		}
 	}
 	for (RDGBufferRef Buffer : PooledBuffers)
 	{
@@ -232,7 +237,8 @@ void RenderGraph::EndFrame()
 		Buffer->PassStateIndex = 0;
 		Buffer->LastPass = NullPassHandle;
 		Buffer->FirstPass = NullPassHandle;
-		Buffer->State = RDGSubresourceState();
+		Buffer->State.LastWriter = NullPassHandle;
+		Buffer->State.Pass = NullPassHandle;
 	}
 	RHIEndFrame();
 }
@@ -255,14 +261,7 @@ RDGTextureViewRef RenderGraph::CreatePooledTextureView(const std::string& Name, 
 RDGTextureViewRef RenderGraph::CreatePooledTextureView(RDGTexture* InTexture)
 {
 	std::string Name = InTexture->Name + "_DefaultView";
-	RDGTextureViewDesc ViewDesc;
-	ViewDesc.Format = InTexture->Desc.Format;
-	ViewDesc.BaseMipLevel = 0;
-	ViewDesc.LevelCount = InTexture->Desc.NumMips;
-	ViewDesc.BaseArrayLayer = 0;
-	ViewDesc.LayerCount = InTexture->Desc.ArraySize;
-	ViewDesc.ViewType = InTexture->Desc.TextureType;
-    RDGTextureViewRef TextureView = TRefCountPtr(new RDGTextureView(Name, InTexture, ViewDesc));
+    RDGTextureViewRef TextureView = TRefCountPtr(new RDGTextureView(Name, InTexture, CreateTextureViewDesc(InTexture)));
     return TextureView;
 }
 
@@ -317,14 +316,7 @@ RDGTextureView* RenderGraph::CreateTextureView(const std::string& Name, RDGTextu
 RDGTextureView* RenderGraph::CreateTextureView(RDGTexture* InTexture)
 {
 	std::string Name = InTexture->Name + "_DefaultView";
-	RDGTextureViewDesc ViewDesc;
-	ViewDesc.Format = InTexture->Desc.Format;
-	ViewDesc.BaseMipLevel = 0;
-	ViewDesc.LevelCount = InTexture->Desc.NumMips;
-	ViewDesc.BaseArrayLayer = 0;
-	ViewDesc.LayerCount = InTexture->Desc.ArraySize;
-	ViewDesc.ViewType = InTexture->Desc.TextureType;
-    RDGTextureViewRef TextureView = TRefCountPtr(new RDGTextureView(Name, InTexture, ViewDesc));
+    RDGTextureViewRef TextureView = TRefCountPtr(new RDGTextureView(Name, InTexture, CreateTextureViewDesc(InTexture)));
     TextureViews.push_back(TextureView);
     return TextureView.GetReference();
 }
@@ -491,6 +483,7 @@ void RenderGraph::SetupPassResources(FRDGPass* Pass)
     // So PassState.ReferenceCount is needed to keep track of the number of times the texture is accessed in this pass.
 	EnumerateTextureAccess(Pass, [&](RDGTextureView* TextureView, RDGTexture* Texture, RHISamplerState* SamplerState, ERHIAccess Access)
 	{
+		// if (Texture->Name == "SkyAtmosphere TransmittanceLUT") NILOU_DEBUG_BREAK();
 		FRDGPass::FTextureState& PassState = Pass->FindOrAddTextureState(Texture);
 		PassState.ReferenceCount++;
 		Texture->ReferenceCount++;
@@ -714,47 +707,218 @@ void RenderGraph::Execute()
 			RHICmdList = RHICreateTransferCommandList();
 		CollectPassDescriptorSets(PassHandle);
 		ExecuteSerialPass(*RHICmdList, Pass);
-		RHISubmitCommandList(RHICmdList, Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
 	}
 
 }
 
+ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags Flags)
+{
+	constexpr EPipelineStageFlags AllGraphicsBits = 
+		EPipelineStageFlags::TopOfPipe |
+		EPipelineStageFlags::DrawIndirect | 
+		EPipelineStageFlags::VertexInput | 
+		EPipelineStageFlags::VertexShader | 
+		EPipelineStageFlags::TessellationControlShader | 
+		EPipelineStageFlags::TessellationEvaluationShader | 
+		EPipelineStageFlags::GeometryShader | 
+		EPipelineStageFlags::FragmentShader | 
+		EPipelineStageFlags::EarlyFragmentTests | 
+		EPipelineStageFlags::LateFragmentTests | 
+		EPipelineStageFlags::ColorAttachmentOutput | 
+		EPipelineStageFlags::Host |
+		EPipelineStageFlags::AllGraphics |
+		EPipelineStageFlags::AllCommands;
+	if (EnumHasAnyFlags(Flags, AllGraphicsBits))
+	{
+		return ERHIPipeline::Graphics;
+	}
+	if (EnumHasAnyFlags(Flags, EPipelineStageFlags::ComputeShader))
+	{
+		return ERHIPipeline::AsyncCompute;
+	}
+	return ERHIPipeline::Copy;
+}
+
+ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags SrcFlags, EPipelineStageFlags DstFlags)
+{
+	ERHIPipeline Pipeline = GetLeastCompatiblePipeline(SrcFlags) | GetLeastCompatiblePipeline(DstFlags);
+	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::Graphics))
+	{
+		return ERHIPipeline::Graphics;
+	}
+	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::AsyncCompute))
+	{
+		return ERHIPipeline::AsyncCompute;
+	}
+	return ERHIPipeline::Copy;
+}
+
+// Returns true if a command list with AvailablePipeline can legally issue a
+// barrier that requires RequiredPipeline. The hierarchy is:
+//   Graphics >= AsyncCompute >= Copy
+// (a "higher" queue can always handle the stage flags of a "lower" queue).
+static bool IsPipelineCompatible(ERHIPipeline RequiredPipeline, ERHIPipeline AvailablePipeline)
+{
+	if (AvailablePipeline == ERHIPipeline::Graphics)
+		return true;
+	if (AvailablePipeline == ERHIPipeline::AsyncCompute)
+		return RequiredPipeline != ERHIPipeline::Graphics;
+	// Copy queue: only Transfer-only barriers are valid
+	return RequiredPipeline == ERHIPipeline::Copy;
+}
+
+static RHICommandList* CreateCmdListForPipeline(ERHIPipeline Pipeline)
+{
+	if (Pipeline == ERHIPipeline::Graphics)
+		return RHICreateGfxCommandList();
+	if (Pipeline == ERHIPipeline::AsyncCompute)
+		return RHICreateComputeCommandList();
+	return RHICreateTransferCommandList();
+}
+
+// Groups of barriers classified by the pipeline they must be submitted on.
+struct FBarrierGroup
+{
+	std::vector<RHIMemoryBarrier>       Memory;
+	std::vector<RHIImageMemoryBarrier>  Image;
+	std::vector<RHIBufferMemoryBarrier> Buffer;
+
+	bool IsEmpty() const { return Memory.empty() && Image.empty() && Buffer.empty(); }
+};
+
+// Prologue: submit each mismatched barrier group on a temporary command list,
+// signal a new semaphore per group, and append those semaphores to OutWaitSemaphores
+// so the caller's main command list will wait for the barriers to complete.
+static void SubmitPrologueMismatchedBarrierGroups(
+	ERHIPipeline CmdListPipeline,
+	FBarrierGroup (&MismatchedGroups)[3],
+	std::vector<RHISemaphoreRef>& OutWaitSemaphores)
+{
+	constexpr ERHIPipeline Pipelines[3] = {
+		ERHIPipeline::Graphics,
+		ERHIPipeline::AsyncCompute,
+		ERHIPipeline::Copy,
+	};
+	for (int32 i = 0; i < 3; ++i)
+	{
+		if (MismatchedGroups[i].IsEmpty())
+			continue;
+		RDG_DEBUG_LOG(Warning,
+			"[Prologue] Barrier requires pipeline '{}' but pass command list is '{}'; submitting on a temporary command list.",
+			ToString(Pipelines[i]), ToString(CmdListPipeline));
+		RHICommandList* TempCmdList = CreateCmdListForPipeline(Pipelines[i]);
+		TempCmdList->PipelineBarrier(
+			MismatchedGroups[i].Memory,
+			MismatchedGroups[i].Image,
+			MismatchedGroups[i].Buffer);
+		RHISemaphoreRef ReadySemaphore = RHICreateSemaphore();
+		RHISubmitCommandList(TempCmdList, {}, { ReadySemaphore });
+		OutWaitSemaphores.push_back(ReadySemaphore);
+	}
+}
+
+// Epilogue: for each mismatched barrier group, record it into a temporary command
+// list. A new semaphore per group is appended to OutSignalSemaphores so the main
+// pass will signal it on completion. The recorded cmd lists + their wait semaphores
+// are stored in OutDeferredSubmits for immediate submission after the main submit.
+struct FDeferredBarrierSubmit
+{
+	RHICommandList* CmdList;
+	RHISemaphoreRef WaitSemaphore;
+};
+
+static void PrepareEpilogueMismatchedBarrierGroups(
+	ERHIPipeline CmdListPipeline,
+	FBarrierGroup (&MismatchedGroups)[3],
+	std::vector<RHISemaphoreRef>& OutSignalSemaphores,
+	std::vector<FDeferredBarrierSubmit>& OutDeferredSubmits)
+{
+	constexpr ERHIPipeline Pipelines[3] = {
+		ERHIPipeline::Graphics,
+		ERHIPipeline::AsyncCompute,
+		ERHIPipeline::Copy,
+	};
+	for (int32 i = 0; i < 3; ++i)
+	{
+		if (MismatchedGroups[i].IsEmpty())
+			continue;
+		RDG_DEBUG_LOG(Warning,
+			"[Epilogue] Barrier requires pipeline '{}' but pass command list is '{}'; deferring to a temporary command list.",
+			ToString(Pipelines[i]), ToString(CmdListPipeline));
+		RHICommandList* TempCmdList = CreateCmdListForPipeline(Pipelines[i]);
+		TempCmdList->PipelineBarrier(
+			MismatchedGroups[i].Memory,
+			MismatchedGroups[i].Image,
+			MismatchedGroups[i].Buffer);
+		RHISemaphoreRef DoneSemaphore = RHICreateSemaphore();
+		OutSignalSemaphores.push_back(DoneSemaphore);
+		OutDeferredSubmits.push_back({ TempCmdList, DoneSemaphore });
+	}
+}
+
 void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 {
-	for (auto& Barrier : Pass->PrologueMemoryBarriers)
+	const ERHIPipeline CmdListPipeline = RHICmdList.GetPipeline();
+
+	// Pipeline index mapping: 0=Graphics, 1=AsyncCompute, 2=Copy
+	auto PipelineIndex = [](ERHIPipeline P) -> int32 {
+		if (P == ERHIPipeline::Graphics)     return 0;
+		if (P == ERHIPipeline::AsyncCompute) return 1;
+		return 2;
+	};
+
+	// ---- Prologue barriers ----
 	{
-		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
-			ToString(Barrier.SrcAccess),
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage));
+		FBarrierGroup Mismatched[3];
+		FBarrierGroup Compatible;
+
+		for (auto& Barrier : Pass->PrologueMemoryBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Prologue][MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}",
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage));
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Memory.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Memory.push_back(Barrier);
+		}
+		for (auto& Barrier : Pass->PrologueImageBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Prologue][ImageBarrier] RHITexture: '{}', Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}",
+				Barrier.Texture->GetName(),
+				Barrier.Subresource.GetMipIndex(), Barrier.Subresource.GetArraySlice(), Barrier.Subresource.GetPlaneSlice(),
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage),
+				ToString(Barrier.OldLayout), ToString(Barrier.NewLayout));
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Image.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Image.push_back(Barrier);
+		}
+		for (auto& Barrier : Pass->PrologueBufferBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Prologue][BufferBarrier] RHIBuffer: '{}', SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}",
+				Barrier.Buffer->GetName(),
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage),
+				Barrier.Offset, Barrier.Size);
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Buffer.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Buffer.push_back(Barrier);
+		}
+
+		// Mismatched prologue barriers are submitted first on temporary command lists.
+		// Each signals a semaphore that is appended to Pass->SemaphoresToWait so the
+		// main command list will not start until all mismatched barriers have finished.
+		SubmitPrologueMismatchedBarrierGroups(CmdListPipeline, Mismatched, Pass->SemaphoresToWait);
+		RHICmdList.PipelineBarrier(Compatible.Memory, Compatible.Image, Compatible.Buffer);
 	}
-	for (auto& Barrier : Pass->PrologueImageBarriers)
-	{
-		RDG_DEBUG_LOG(Display, "[ImageBarrier] RHITexture: '{}', Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}", 
-			Barrier.Texture->GetName(), 
-			Barrier.Subresource.GetMipIndex(),
-			Barrier.Subresource.GetArraySlice(),
-			Barrier.Subresource.GetPlaneSlice(),
-			ToString(Barrier.SrcAccess), 
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage),
-			ToString(Barrier.OldLayout),
-			ToString(Barrier.NewLayout));
-	}
-	for (auto& Barrier : Pass->PrologueBufferBarriers)
-	{
-		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: '{}', SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
-			Barrier.Buffer->GetName(), 
-			ToString(Barrier.SrcAccess), 
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage),
-			Barrier.Offset,
-			Barrier.Size);
-	}
-	RHICmdList.PipelineBarrier(Pass->PrologueMemoryBarriers, Pass->PrologueImageBarriers, Pass->PrologueBufferBarriers);
+
+	// ---- Pass body ----
 	if (Pass->Pipeline == ERHIPipeline::Graphics &&
 		Pass != PresentPass)
 	{
@@ -790,40 +954,71 @@ void RenderGraph::ExecuteSerialPass(RHICommandList& RHICmdList, FRDGPass* Pass)
 	{
 		RHICmdList.EndRenderPass();
 	}
-	for (auto& Barrier : Pass->EpilogueMemoryBarriers)
+
+	// ---- Epilogue barriers ----
 	{
-		RDG_DEBUG_LOG(Display, "[MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}", 
-			ToString(Barrier.SrcAccess),
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage));
+		FBarrierGroup Mismatched[3];
+		FBarrierGroup Compatible;
+
+		for (auto& Barrier : Pass->EpilogueMemoryBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Epilogue][MemoryBarrier] SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}",
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage));
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Memory.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Memory.push_back(Barrier);
+		}
+		for (auto& Barrier : Pass->EpilogueImageBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Epilogue][ImageBarrier] RHITexture: 0x{:x}, Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}",
+				(size_t)Barrier.Texture,
+				Barrier.Subresource.GetMipIndex(), Barrier.Subresource.GetArraySlice(), Barrier.Subresource.GetPlaneSlice(),
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage),
+				ToString(Barrier.OldLayout), ToString(Barrier.NewLayout));
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Image.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Image.push_back(Barrier);
+		}
+		for (auto& Barrier : Pass->EpilogueBufferBarriers)
+		{
+			RDG_DEBUG_LOG(Display, "[Epilogue][BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}",
+				(size_t)Barrier.Buffer,
+				ToString(Barrier.SrcAccess), ToString(Barrier.DstAccess),
+				ToString(Barrier.SrcStage),  ToString(Barrier.DstStage),
+				Barrier.Offset, Barrier.Size);
+			ERHIPipeline Required = GetLeastCompatiblePipeline(Barrier.SrcStage, Barrier.DstStage);
+			if (IsPipelineCompatible(Required, CmdListPipeline))
+				Compatible.Buffer.push_back(Barrier);
+			else
+				Mismatched[PipelineIndex(Required)].Buffer.push_back(Barrier);
+		}
+
+		// Compatible epilogue barriers go on the main command list.
+		// Mismatched epilogue barriers must run on a different queue AFTER the main
+		// pass completes: a semaphore per group is appended to Pass->SemaphoresToSignal
+		// so the main submit will signal it; the deferred cmd lists then wait on it.
+		RHICmdList.PipelineBarrier(Compatible.Memory, Compatible.Image, Compatible.Buffer);
+		std::vector<FDeferredBarrierSubmit> DeferredEpilogueSubmits;
+		PrepareEpilogueMismatchedBarrierGroups(
+			CmdListPipeline, Mismatched,
+			Pass->SemaphoresToSignal, DeferredEpilogueSubmits);
+
+		// Submit the main pass (all semaphores, including those injected above).
+		RHISubmitCommandList(&RHICmdList, Pass->SemaphoresToWait, Pass->SemaphoresToSignal);
+
+		// Now that the main pass is submitted and will signal its semaphores,
+		// submit each deferred epilogue barrier cmd list waiting on its semaphore.
+		for (auto& Deferred : DeferredEpilogueSubmits)
+		{
+			RHISubmitCommandList(Deferred.CmdList, { Deferred.WaitSemaphore }, {});
+		}
 	}
-	for (auto& Barrier : Pass->EpilogueImageBarriers)
-	{
-		RDG_DEBUG_LOG(Display, "[ImageBarrier] RHITexture: 0x{:x}, Subresource: [.MipIndex: {}, .ArraySlice: {}, .PlaneSlice: {}], SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, OldLayout: {}, NewLayout: {}", 
-			(size_t)Barrier.Texture, 
-			Barrier.Subresource.GetMipIndex(),
-			Barrier.Subresource.GetArraySlice(),
-			Barrier.Subresource.GetPlaneSlice(),
-			ToString(Barrier.SrcAccess), 
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage),
-			ToString(Barrier.OldLayout),
-			ToString(Barrier.NewLayout));
-	}
-	for (auto& Barrier : Pass->EpilogueBufferBarriers)
-	{
-		RDG_DEBUG_LOG(Display, "[BufferBarrier] RHIBuffer: 0x{:x}, SrcAccess: {}, DstAccess: {}, SrcStage: {}, DstStage: {}, Offset: {}, Size: {}", 
-			(size_t)Barrier.Buffer, 
-			ToString(Barrier.SrcAccess), 
-			ToString(Barrier.DstAccess),
-			ToString(Barrier.SrcStage),
-			ToString(Barrier.DstStage),
-			Barrier.Offset,
-			Barrier.Size);
-	}
-	RHICmdList.PipelineBarrier(Pass->EpilogueMemoryBarriers, Pass->EpilogueImageBarriers, Pass->EpilogueBufferBarriers);
 }
 
 /******************** Collect Resources ********************/
@@ -1141,48 +1336,6 @@ void RenderGraph::CollectPassBarriers()
 	}
 }
 
-ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags Flags)
-{
-	constexpr EPipelineStageFlags AllGraphicsBits = 
-		EPipelineStageFlags::TopOfPipe |
-		EPipelineStageFlags::DrawIndirect | 
-		EPipelineStageFlags::VertexInput | 
-		EPipelineStageFlags::VertexShader | 
-		EPipelineStageFlags::TessellationControlShader | 
-		EPipelineStageFlags::TessellationEvaluationShader | 
-		EPipelineStageFlags::GeometryShader | 
-		EPipelineStageFlags::FragmentShader | 
-		EPipelineStageFlags::EarlyFragmentTests | 
-		EPipelineStageFlags::LateFragmentTests | 
-		EPipelineStageFlags::ColorAttachmentOutput | 
-		EPipelineStageFlags::Host |
-		EPipelineStageFlags::AllGraphics |
-		EPipelineStageFlags::AllCommands;
-	if (EnumHasAnyFlags(Flags, AllGraphicsBits))
-	{
-		return ERHIPipeline::Graphics;
-	}
-	if (EnumHasAnyFlags(Flags, EPipelineStageFlags::ComputeShader))
-	{
-		return ERHIPipeline::AsyncCompute;
-	}
-	return ERHIPipeline::Copy;
-}
-
-ERHIPipeline GetLeastCompatiblePipeline(EPipelineStageFlags SrcFlags, EPipelineStageFlags DstFlags)
-{
-	ERHIPipeline Pipeline = GetLeastCompatiblePipeline(SrcFlags) | GetLeastCompatiblePipeline(DstFlags);
-	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::Graphics))
-	{
-		return ERHIPipeline::Graphics;
-	}
-	if (EnumHasAnyFlags(Pipeline, ERHIPipeline::AsyncCompute))
-	{
-		return ERHIPipeline::AsyncCompute;
-	}
-	return ERHIPipeline::Copy;
-}
-
 bool IsTransitionRequired(ERHIAccess PreviousAccess, ERHIAccess NextAccess)
 {
 	if (PreviousAccess != NextAccess)
@@ -1213,6 +1366,7 @@ void RenderGraph::CollectPassBarriers(FRDGPassHandle PassHandle)
 	for (auto& PassState : CurrentPass->TextureStates)
 	{
 		RDGTexture* Texture = PassState.Texture;
+		// if (Texture->Name == "SkyAtmosphere TransmittanceLUT") NILOU_DEBUG_BREAK();
 
 		int NumSubresources = Texture->GetSubresourceCount();
 		for (int32 Index = 0; Index < NumSubresources; ++Index)

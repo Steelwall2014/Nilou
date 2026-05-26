@@ -54,7 +54,7 @@ namespace nilou {
     
 
     USkyAtmosphereComponent::USkyAtmosphereComponent()
-        : SolarIrradiance(FVector3f( 1 ))
+        : SolarIrradiance(FVector3f( 1.474000,1.850400,1.911980 ))
         , SunAngularRadius(0.004675)
         , BottomRadius(6360.0)
         , TopRadius(6420.0)
@@ -131,33 +131,30 @@ namespace nilou {
             Desc.SizeX = SCATTERING_TEXTURE_WIDTH;
             Desc.SizeY = SCATTERING_TEXTURE_HEIGHT;
             Desc.SizeZ = SCATTERING_TEXTURE_DEPTH;
-            DeltaScatteringRayleighLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere SingleScatteringRayleighLUT", Desc);
-            SingleScatteringMieLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere SingleScatteringMieLUT", Desc);
-            MultiScatteringLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere MultiScatteringLUT", Desc);
-            ScatteringDensityLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere ScatteringDensityLUT", Desc);
+            ScatteringLUT = RenderGraph::CreatePooledTexture("SkyAtmosphere ScatteringLUT", Desc);
 
-            DispatchPrecompute();
+            DispatchPrecompute(Graph);
         });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchPrecompute()
+    void FSkyAtmosphereSceneProxy::DispatchPrecompute(RenderGraph& Graph)
     {
-        DispatchTransmittancePass();
-        DispatchDirectIrradiancePass();
-        DispatchScatteringPass();
+        DispatchTransmittancePass(Graph);
+        DispatchDirectIrradiancePass(Graph);
+        DispatchScatteringPass(Graph);
+        RDGTexture* DeltaScatteringLUT = ScatteringLUT.GetReference();
+        RDGTexture* DeltaIrradianceLUT = IrradianceLUT.GetReference();
         for (int scattering_order = 2; scattering_order <= NUM_SCATTERING_ORDERS; ++scattering_order) 
         {
-            DispatchScatteringDensityPass(scattering_order);
-            DispatchIndirectIrradiancePass(scattering_order);
-            DispatchMultiScatteringPass();
+            RDGTexture* ScatteringDensityLUT = DispatchScatteringDensityPass(Graph, DeltaIrradianceLUT, DeltaScatteringLUT);
+            DeltaIrradianceLUT = DispatchIndirectIrradiancePass(Graph, DeltaScatteringLUT);
+            DeltaScatteringLUT = DispatchMultiScatteringPass(Graph, ScatteringDensityLUT);
         }
     }
     
-    void FSkyAtmosphereSceneProxy::DispatchTransmittancePass()
+    void FSkyAtmosphereSceneProxy::DispatchTransmittancePass(RenderGraph& Graph)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereTransmittanceShader::StaticType, 0);
-        RHIShader *TransmittanceShader = GetGlobalShader(PermutationParameters);
+        RHIShader *TransmittanceShader = GetGlobalShader<FAtmosphereTransmittanceShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(TransmittanceShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereTransmittanceParameters>("TransmittanceShader ParamBlock");
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
@@ -184,11 +181,9 @@ namespace nilou {
             });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchDirectIrradiancePass()
+    void FSkyAtmosphereSceneProxy::DispatchDirectIrradiancePass(RenderGraph& Graph)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereDirectIrradianceShader::StaticType, 0);
-        RHIShader *DirectIrradianceShader = GetGlobalShader(PermutationParameters);
+        RHIShader *DirectIrradianceShader = GetGlobalShader<FAtmosphereDirectIrradianceShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(DirectIrradianceShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereDirectIrradianceParameters>("DirectIrradianceShader ParamBlock");
         Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
@@ -217,17 +212,13 @@ namespace nilou {
             });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchScatteringPass()
+    void FSkyAtmosphereSceneProxy::DispatchScatteringPass(RenderGraph& Graph)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringShader::StaticType, 0);
-        RHIShader *ScatteringShader = GetGlobalShader(PermutationParameters);
+        RHIShader *ScatteringShader = GetGlobalShader<FAtmosphereScatteringShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereScatteringParameters>("ScatteringShader ParamBlock");
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
-        Params->MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
+        Params->ScatteringLUT = ScatteringLUT->GetDefaultView();
         Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
         Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchScatteringPass"};
@@ -252,20 +243,17 @@ namespace nilou {
             });
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchScatteringDensityPass(int32 scattering_order)
+    RDGTexture* FSkyAtmosphereSceneProxy::DispatchScatteringDensityPass(RenderGraph& Graph, RDGTexture* DeltaIrradianceLUT, RDGTexture* DeltaScatteringLUT)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereScatteringDensityShader::StaticType, 0);
-        RHIShader *ScatteringDensityShader = GetGlobalShader(PermutationParameters);
+        RDGTexture* ScatteringDensityLUT = Graph.CreateTexture("SkyAtmosphere ScatteringDensityLUT", ScatteringLUT->Desc);
+        RHIShader *ScatteringDensityShader = GetGlobalShader<FAtmosphereScatteringDensityShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(ScatteringDensityShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereScatteringDensityParameters>("ScatteringDensityShader ParamBlock");
         Params->ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
-        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
-        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
+        Params->DeltaIrradianceLUT = DeltaIrradianceLUT->GetDefaultView();
+        Params->DeltaScatteringLUT = DeltaScatteringLUT->GetDefaultView();
         Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
-        Params->GetNonOpaqueFields().scattering_order = scattering_order;
         Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchScatteringDensityPass"};
         Graph.AddComputePass(
@@ -287,20 +275,19 @@ namespace nilou {
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
+        return ScatteringDensityLUT;
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchIndirectIrradiancePass(int32 scattering_order)
+    RDGTexture* FSkyAtmosphereSceneProxy::DispatchIndirectIrradiancePass(RenderGraph& Graph, RDGTexture* DeltaScatteringLUT)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereIndirectIrradianceShader::StaticType, 0);
-        RHIShader *IndirectIrradianceShader = GetGlobalShader(PermutationParameters);
+        RDGTexture* DeltaIrradianceLUT = Graph.CreateTexture("SkyAtmosphere DeltaIrradianceLUT", IrradianceLUT->Desc);
+        RHIShader *IndirectIrradianceShader = GetGlobalShader<FAtmosphereIndirectIrradianceShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(IndirectIrradianceShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereIndirectIrradianceParameters>("IndirectIrradianceShader ParamBlock");
-        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
-        Params->SingleScatteringRayleighLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params->SingleScatteringMieLUT = SingleScatteringMieLUT->GetDefaultView();
+        Params->DeltaScatteringLUT = DeltaScatteringLUT->GetDefaultView();
         Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
-        Params->GetNonOpaqueFields().scattering_order = scattering_order;
+        Params->IrradianceLUT = IrradianceLUT->GetDefaultView();
+        Params->DeltaIrradianceLUT = DeltaIrradianceLUT->GetDefaultView();
         Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchIndirectIrradiancePass"};
         Graph.AddComputePass(
@@ -320,22 +307,22 @@ namespace nilou {
                     PipelineLayout,
                     {{ParamsSetIndex, Params->GetDescriptorSet()->GetRHI()}, {AtmosphereSetIndex, AtmosphereParamBlock->GetDescriptorSet()->GetRHI()}},
                     EPipelineBindPoint::Compute);
-                RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
+                RHICmdList.DispatchCompute(IRRADIANCE_TEXTURE_WIDTH / 8, IRRADIANCE_TEXTURE_HEIGHT / 8, 1);
             });
+        return DeltaIrradianceLUT;
     }
 
-    void FSkyAtmosphereSceneProxy::DispatchMultiScatteringPass()
+    RDGTexture* FSkyAtmosphereSceneProxy::DispatchMultiScatteringPass(RenderGraph& Graph, RDGTexture* ScatteringDensityLUT)
     {
-        RenderGraph& Graph = FRenderingThread::GetRenderGraph();
-        FShaderPermutationParameters PermutationParameters(&FAtmosphereMultiScatteringShader::StaticType, 0);
-        RHIShader *MultiScatteringShader = GetGlobalShader(PermutationParameters);
+        RDGTexture* DeltaScatteringLUT = Graph.CreateTexture("SkyAtmosphere DeltaScatteringLUT", ScatteringLUT->Desc);
+        RHIShader *MultiScatteringShader = GetGlobalShader<FAtmosphereMultiScatteringShader>();
         RHIComputePipelineState *PSO = RHICreateComputePipelineState(static_cast<RHIComputeShader*>(MultiScatteringShader));
         auto Params = Graph.CreateParameterBlock<shader::FAtmosphereMultiScatteringParameters>("MultiScatteringShader ParamBlock");
-        Params->DeltaScatteringLUT = DeltaScatteringRayleighLUT->GetDefaultView();
-        Params->MultiScatteringLUT = MultiScatteringLUT->GetDefaultView();
         Params->TransmittanceLUT = TransmittanceLUT->GetDefaultView();
         Params->ScatteringDensityLUT = ScatteringDensityLUT->GetDefaultView();
         Params->linearSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
+        Params->ScatteringLUT = ScatteringLUT->GetDefaultView();
+        Params->DeltaScatteringLUT = DeltaScatteringLUT->GetDefaultView();
         Graph.UpdateParameterBlock(Params);
         RDGPassDesc PassDesc{"DispatchMultiScatteringPass"};
         Graph.AddComputePass(
@@ -357,6 +344,7 @@ namespace nilou {
                     EPipelineBindPoint::Compute);
                 RHICmdList.DispatchCompute(SCATTERING_TEXTURE_WIDTH / 8, SCATTERING_TEXTURE_HEIGHT / 8, SCATTERING_TEXTURE_DEPTH / 8);
             });
+        return DeltaScatteringLUT;
     }
 
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "RHISubresource.h"
+#include "RHIResources.h"
 
 namespace nilou {
 

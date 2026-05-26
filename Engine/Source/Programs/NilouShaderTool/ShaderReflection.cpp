@@ -92,6 +92,13 @@ std::string SimpleMacroReplace(const std::string& Template, const std::string& M
     return Output;
 }
 
+// Returns the bare C++ type name for a shader field. Alignment is applied by the caller via
+// `alignas(...)` on the member declaration; we deliberately do NOT wrap the type in TAlignedType
+// here because applying `__declspec(align)` / `__attribute__((aligned))` through a typedef alias
+// is silently dropped under the MSVC ABI (incl. clang-cl), which produced wrong member offsets
+// (e.g. mie_extinction landing at 188 instead of 192 in AtmosphereParameters<Std140>).
+// For TStaticArray, the per-element alignment is carried by its third template argument and
+// applied inside the container itself, so its element type also stays bare.
 std::string GetFieldTypeName(slang::TypeLayoutReflection* TypeLayout)
 {
     slang::TypeReflection* Type = TypeLayout->getType();
@@ -107,31 +114,27 @@ std::string GetFieldTypeName(slang::TypeLayoutReflection* TypeLayout)
     else if (Kind == slang::TypeReflection::Kind::Vector)
     {
         int ColumnCount = Type->getColumnCount();
-        int Alignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
         slang::TypeReflection* ElementType = Type->getElementType();
         std::string TypeName = ElementType->getName();
-        return std::format("TAlignedType<{}{}, {}>", TypeName, ColumnCount, Alignment);
+        return std::format("{}{}", TypeName, ColumnCount);
     }
     else if (Kind == slang::TypeReflection::Kind::Matrix)
     {
         int RowCount = Type->getRowCount();
         int ColumnCount = Type->getColumnCount();
-        int Alignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
         slang::TypeReflection* ElementType = Type->getElementType();
         std::string TypeName = ElementType->getName();
-        return std::format("TAlignedType<{}{}x{}, {}>", TypeName, RowCount, ColumnCount, Alignment);
+        return std::format("{}{}x{}", TypeName, RowCount, ColumnCount);
     }
     else if (Kind == slang::TypeReflection::Kind::Scalar)
     {
-        int Alignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
         std::string TypeName = Type->getName();
-        return std::format("TAlignedType<{}, {}>", TypeName, Alignment);
+        return TypeName;
     }
     else if (Kind == slang::TypeReflection::Kind::Struct)
     {
-        int Alignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
         std::string TypeName = Type->getName();
-        return std::format("TAlignedType<{}<EShaderDataLayout::Std140>, {}>", TypeName, Alignment);
+        return std::format("{}<EShaderDataLayout::Std140>", TypeName);
     }
     else if (Kind == slang::TypeReflection::Kind::Resource)
     {
@@ -450,7 +453,11 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
             const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
             const int FieldOffset = FieldLayout->getOffset(slang::ParameterCategory::Uniform);
             const int FieldSize = FieldTypeLayout->getSize(slang::ParameterCategory::Uniform);
-            NonOpaqueFields += std::format("    {} {};    // offset in shader: {} bytes, size in shader: {} bytes\n", FieldTypeName, FieldName, FieldOffset, FieldSize);
+            const int FieldAlignment = FieldTypeLayout->getAlignment(slang::ParameterCategory::Uniform);
+            // Apply alignment directly on the member declaration. `alignas` on a non-static data
+            // member is fully honored by MSVC/clang-cl/clang/GCC, unlike the previous TAlignedType
+            // typedef trick which was silently dropped on type aliases.
+            NonOpaqueFields += std::format("    alignas({}) {} {};    // offset in shader: {} bytes, size in shader: {} bytes\n", FieldAlignment, FieldTypeName, FieldName, FieldOffset, FieldSize);
             bHasNonOpaqueField = true;
             break;
         }

@@ -17,12 +17,16 @@ namespace nilou {
     //     SHADER_PARAMETER_ARRAY(FVector4f, FrustumPlanes, [6])
     //     SHADER_PARAMETER(FMatrix44f, RelWorldToView)
     //     SHADER_PARAMETER(FMatrix44f, ViewToClip)
-    //     SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // RelWorldToClip = ViewToClip * RelWorldToView
+    //     SHADER_PARAMETER(FMatrix44f, RelWorldToClip)      // CPU: ViewToClip * RelWorldToView; shader row-major upload
     //     SHADER_PARAMETER(FMatrix44f, ClipToView)  
     //     SHADER_PARAMETER(FMatrix44f, RelClipToWorld)      // Inverse of RelWorldToClip
+    //     SHADER_PARAMETER(FMatrix44f, ScreenToRelativeWorld) // ScreenToClip * RelClipToWorld (UE ScreenToTranslatedWorld)
     //     SHADER_PARAMETER(FMatrix44f, AbsWorldToClip)     
     //     SHADER_PARAMETER(FVector3f, CameraPosition)
     //     SHADER_PARAMETER(FVector3f, CameraDirection)
+    //     SHADER_PARAMETER(uint32, bIsOrthoProjection)
+    //     SHADER_PARAMETER(FVector2f, ViewRectMin)
+    //     SHADER_PARAMETER(FVector4f, ViewSizeAndInvSize)
     //     SHADER_PARAMETER(FIntVector2, CameraResolution)
     //     SHADER_PARAMETER(float, CameraNearClipDist)
     //     SHADER_PARAMETER(float, CameraFarClipDist)

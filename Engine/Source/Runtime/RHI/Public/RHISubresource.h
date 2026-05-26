@@ -1,22 +1,22 @@
 #pragma once
 #include "HAL/Platform.h"
-#include "RHIResources.h"
+#include "Logging/LogMacros.h"
+#include "PixelFormat.h"
+#include <vector>
 
 namespace nilou {
 
 struct RHITextureSubresource
 {
-	RHITextureSubresource()
-		: MipIndex(0)
-		, PlaneSlice(0)
-		, ArraySlice(0)
-	{}
-
-	RHITextureSubresource(uint32 InMipIndex, uint32 InArraySlice, uint32 InPlaneSlice)
-		: MipIndex(InMipIndex)
-		, PlaneSlice(InPlaneSlice)
-		, ArraySlice(InArraySlice)
-	{}
+	// Trivial type: do not add constructors/destructor.
+	static RHITextureSubresource Make(uint32 InMipIndex, uint32 InArraySlice, uint32 InPlaneSlice)
+	{
+		RHITextureSubresource S{};
+		S.MipIndex = InMipIndex;
+		S.ArraySlice = InArraySlice;
+		S.PlaneSlice = InPlaneSlice;
+		return S;
+	}
 
 	uint32 GetMipIndex() const { return MipIndex; }
 	uint32 GetArraySlice() const { return ArraySlice; }
@@ -69,24 +69,25 @@ struct RHITextureSubresource
 
 struct RHITextureSubresourceLayout
 {
-	RHITextureSubresourceLayout()
-		: NumMips(0)
-		, NumPlaneSlices(0)
-		, NumArraySlices(0)
-	{}
+	// Trivial type: do not add constructors/destructor.
 
-	RHITextureSubresourceLayout(uint32 InNumMips, uint32 InNumArraySlices, uint32 InNumPlaneSlices)
-		: NumMips(InNumMips)
-		, NumPlaneSlices(InNumPlaneSlices)
-		, NumArraySlices(InNumArraySlices)
-	{}
+	static RHITextureSubresourceLayout FromDesc(uint32 InNumMips, uint32 InArraySize, EPixelFormat Format)
+	{
+		RHITextureSubresourceLayout Layout{};
+		Layout.NumMips = InNumMips;
+		Layout.NumArraySlices = InArraySize;
+		Layout.NumPlaneSlices = IsStencilFormat(Format) ? 2 : 1;
+		return Layout;
+	}
 
-	RHITextureSubresourceLayout(const RHITextureDesc& Desc)
-		: RHITextureSubresourceLayout(Desc.NumMips, Desc.ArraySize, IsStencilFormat(Desc.Format) ? 2 : 1)
-	{}
+	bool IsValid() const
+	{
+		return NumMips > 0 && NumPlaneSlices > 0 && NumArraySlices > 0;
+	}
 
 	inline uint32 GetSubresourceCount() const
 	{
+		Ncheckf(IsValid(), "RHITextureSubresourceLayout is not initialized.");
 		return NumMips * NumArraySlices * NumPlaneSlices;
 	}
 
@@ -98,7 +99,7 @@ struct RHITextureSubresourceLayout
 
 	inline RHITextureSubresource GetSubresource(uint32 Index) const
 	{
-		RHITextureSubresource Subresource;
+		RHITextureSubresource Subresource{};
 		Subresource.MipIndex = Index % NumMips;
 		Subresource.ArraySlice = (Index / NumMips) % NumArraySlices;
 		Subresource.PlaneSlice = Index / (NumMips * NumArraySlices);
@@ -107,7 +108,7 @@ struct RHITextureSubresourceLayout
 
 	inline RHITextureSubresource GetMaxSubresource() const
 	{
-		return RHITextureSubresource(NumMips, NumArraySlices, NumPlaneSlices);
+		return RHITextureSubresource::Make(NumMips, NumArraySlices, NumPlaneSlices);
 	}
 
 	inline bool operator == (RHITextureSubresourceLayout const& RHS) const
@@ -129,23 +130,50 @@ struct RHITextureSubresourceLayout
 
 struct RHITextureSubresourceRange
 {
-	RHITextureSubresourceRange()
-		: MipIndex(0)
-		, PlaneSlice(0)
-		, ArraySlice(0)
-		, NumMips(0)
-		, NumPlaneSlices(0)
-		, NumArraySlices(0)
-	{}
+	// Trivial type: do not add constructors/destructor.
 
-	explicit RHITextureSubresourceRange(RHITextureSubresourceLayout Layout)
-		: MipIndex(0)
-		, PlaneSlice(0)
-		, ArraySlice(0)
-		, NumMips(Layout.NumMips)
-		, NumPlaneSlices(Layout.NumPlaneSlices)
-		, NumArraySlices(Layout.NumArraySlices)
-	{}
+	static RHITextureSubresourceRange MakeSingle(uint32 MipIndex = 0, uint32 ArraySlice = 0, uint32 PlaneSlice = 0)
+	{
+		RHITextureSubresourceRange Range{};
+		Range.MipIndex = MipIndex;
+		Range.ArraySlice = ArraySlice;
+		Range.PlaneSlice = PlaneSlice;
+		Range.NumMips = 1;
+		Range.NumArraySlices = 1;
+		Range.NumPlaneSlices = 1;
+		return Range;
+	}
+
+	static RHITextureSubresourceRange FromLayout(RHITextureSubresourceLayout Layout)
+	{
+		Ncheckf(Layout.IsValid(), "RHITextureSubresourceLayout is not initialized.");
+		RHITextureSubresourceRange Range{};
+		Range.NumMips = Layout.NumMips;
+		Range.NumPlaneSlices = Layout.NumPlaneSlices;
+		Range.NumArraySlices = Layout.NumArraySlices;
+		return Range;
+	}
+
+	static RHITextureSubresourceRange Make(
+		uint32 InMipIndex, uint32 InNumMips,
+		uint32 InArraySlice, uint32 InNumArraySlices,
+		uint32 InPlaneSlice, uint32 InNumPlaneSlices)
+	{
+		RHITextureSubresourceRange Range{};
+		Range.MipIndex = InMipIndex;
+		Range.NumMips = InNumMips;
+		Range.ArraySlice = InArraySlice;
+		Range.NumArraySlices = InNumArraySlices;
+		Range.PlaneSlice = InPlaneSlice;
+		Range.NumPlaneSlices = InNumPlaneSlices;
+		Ncheckf(Range.IsValid(), "RHITextureSubresourceRange::Make produced an invalid range.");
+		return Range;
+	}
+
+	bool IsValid() const
+	{
+		return NumMips > 0 && NumPlaneSlices > 0 && NumArraySlices > 0;
+	}
 
 	bool operator == (RHITextureSubresourceRange const& RHS) const
 	{
@@ -164,11 +192,13 @@ struct RHITextureSubresourceRange
 
 	inline uint32 GetSubresourceCount() const
 	{
+		Ncheckf(IsValid(), "RHITextureSubresourceRange is not initialized.");
 		return NumMips * NumArraySlices * NumPlaneSlices;
 	}
 
 	inline uint32 GetSubresourceIndex(RHITextureSubresource Subresource) const
 	{
+		Ncheckf(IsValid(), "RHITextureSubresourceRange is not initialized.");
 		Ncheck(Subresource >= GetMinSubresource());
 		Ncheck(Subresource <= GetMaxSubresource());
 		Subresource.MipIndex -= MipIndex;
@@ -179,7 +209,8 @@ struct RHITextureSubresourceRange
 
 	inline RHITextureSubresource GetSubresource(uint32 Index) const
 	{
-		RHITextureSubresource Subresource;
+		Ncheckf(IsValid(), "RHITextureSubresourceRange is not initialized.");
+		RHITextureSubresource Subresource{};
 		Subresource.MipIndex = Index % NumMips + MipIndex;
 		Subresource.ArraySlice = (Index / NumMips) % NumArraySlices + ArraySlice;
 		Subresource.PlaneSlice = Index / (NumMips * NumArraySlices) + PlaneSlice;
@@ -188,12 +219,13 @@ struct RHITextureSubresourceRange
 
 	RHITextureSubresource GetMinSubresource() const
 	{
-		return RHITextureSubresource(MipIndex, ArraySlice, PlaneSlice);
+		return RHITextureSubresource::Make(MipIndex, ArraySlice, PlaneSlice);
 	}
 
 	RHITextureSubresource GetMaxSubresource() const
 	{
-		return RHITextureSubresource(MipIndex + NumMips - 1, ArraySlice + NumArraySlices - 1, PlaneSlice + NumPlaneSlices - 1);
+		Ncheckf(IsValid(), "RHITextureSubresourceRange is not initialized.");
+		return RHITextureSubresource::Make(MipIndex + NumMips - 1, ArraySlice + NumArraySlices - 1, PlaneSlice + NumPlaneSlices - 1);
 	}
 
 	template <typename T>
@@ -272,9 +304,11 @@ struct RHITextureSubresourceRange
 			&& NumArraySlices == Layout.NumArraySlices;
 	}
 
-	bool IsValid(const RHITextureSubresourceLayout& Layout) const
+	bool IsWithinLayout(const RHITextureSubresourceLayout& Layout) const
 	{
-		return MipIndex + NumMips <= Layout.NumMips
+		return IsValid()
+			&& Layout.IsValid()
+			&& MipIndex + NumMips <= Layout.NumMips
 			&& PlaneSlice + NumPlaneSlices <= Layout.NumPlaneSlices
 			&& ArraySlice + NumArraySlices <= Layout.NumArraySlices;
 	}

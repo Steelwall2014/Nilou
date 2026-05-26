@@ -23,7 +23,7 @@ struct VSOutput
 VSOutput Main(VSInput input)
 {
     VSOutput output;
-    output.position = mul(Params.RelWorldToClip, float4(input.position - Params.CameraPosition, 1.0f));
+    output.position = mul(float4(input.position - Params.CameraPosition, 1.0f), Params.RelWorldToClip);
     output.color = input.color;
     return output;
 }

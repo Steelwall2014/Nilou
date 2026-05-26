@@ -231,6 +231,15 @@ private:
 using RDGTextureRef = TRefCountPtr<RDGTexture>;
 
 using RDGTextureViewDesc = RHITextureViewDesc;
+inline RDGTextureViewDesc CreateTextureViewDesc(RDGTexture* Texture)
+{
+    RDGTextureViewDesc Desc;
+    Desc.ViewType = Texture->Desc.TextureType;
+    Desc.Format = Texture->Desc.Format;
+    Desc.SubresourceRange = Texture->GetSubresourceRange();
+    return Desc;
+}
+
 class RDGTextureView : public RDGResource
 {
 public:
@@ -239,24 +248,7 @@ public:
         , Texture(InTexture)
         , Desc(InDesc)
     { 
-        SubresourceRange.MipIndex = InDesc.BaseMipLevel;
-        SubresourceRange.NumMips = InDesc.LevelCount;
-        SubresourceRange.ArraySlice = InDesc.BaseArrayLayer;
-        SubresourceRange.NumArraySlices = InDesc.LayerCount;
-        SubresourceRange.PlaneSlice = 0;
-        SubresourceRange.NumPlaneSlices = 1;
-        if (IsStencilFormat(InTexture->Desc.Format))
-        {
-            if (IsStencilFormat(InDesc.Format))
-            {
-                SubresourceRange.PlaneSlice = 0;
-                SubresourceRange.NumPlaneSlices = 2;
-            }
-            else
-            {
-                Ncheckf(false, "Not supported");
-            }
-        }
+        SubresourceRange = InDesc.SubresourceRange;
     }
 
     RDGTexture* Texture;
@@ -266,9 +258,9 @@ public:
 
     RHITextureView* GetRHI() const { return static_cast<RHITextureView*>(ResourceRHI.GetReference()); }
 
-    uint32 GetSizeX() const { return GetParent()->Desc.SizeX >> Desc.BaseMipLevel; }
-    uint32 GetSizeY() const { return GetParent()->Desc.SizeY >> Desc.BaseMipLevel; }
-    uint32 GetSizeZ() const { return GetParent()->Desc.SizeZ >> Desc.BaseMipLevel; }
+    uint32 GetSizeX() const { return GetParent()->Desc.SizeX >> Desc.SubresourceRange.MipIndex; }
+    uint32 GetSizeY() const { return GetParent()->Desc.SizeY >> Desc.SubresourceRange.MipIndex; }
+    uint32 GetSizeZ() const { return GetParent()->Desc.SizeZ >> Desc.SubresourceRange.MipIndex; }
 
     const FRDGTextureSubresourceRange& GetSubresourceRange() const { return SubresourceRange; }
 

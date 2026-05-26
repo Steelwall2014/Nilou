@@ -1,10 +1,7 @@
-#pragma once
-
 #include "RHIResources.h"
 #include "Logging/LogMacros.h"
 #include "Misc/Crc.h"
 #include "DynamicRHI.h"
-
 namespace nilou {
 
 	RHITextureView* FRHITextureViewCache::GetOrCreateView(RHITexture* Texture, const FRHITextureViewCreateInfo& InCreateInfo)

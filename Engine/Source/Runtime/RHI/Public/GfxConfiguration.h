@@ -19,7 +19,7 @@ namespace nilou {
 		/// \param[in] msaa the msaa sample count
 		/// \param[in] width the screen width in pixel
 		/// \param[in] height the screen height in pixel
-		GfxConfiguration(EPixelFormat InSwapChainFormat = EPixelFormat::PF_R8G8B8A8_sRGB, EPixelFormat InDepthFormat = EPixelFormat::PF_D24S8, uint32_t msaa = 0,
+		GfxConfiguration(EPixelFormat InSwapChainFormat = EPixelFormat::PF_R8G8B8A8_sRGB, EPixelFormat InDepthFormat = EPixelFormat::PF_D32FS8, uint32_t msaa = 0,
 			uint32_t width = 1920, uint32_t height = 1080, const wchar_t *app_name = L"Nilou") :
 			SwapChainFormat(InSwapChainFormat), DepthFormat(InDepthFormat), msaaSamples(msaa),
 			screenWidth(width), screenHeight(height), appName(app_name)

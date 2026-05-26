@@ -162,27 +162,9 @@ namespace nilou {
 
     static void LoadSkyAtmosphere(UWorld* World)
     {
-        NPackage* Package = CreatePackage("/Engine/Materials/SkyAtmosphereMaterial");
-        UMaterial* SkyAtmosphereMaterial = FindObject<UMaterial>(Package, "SkyAtmosphereMaterial");
-        if (!SkyAtmosphereMaterial)
-        {
-            SkyAtmosphereMaterial = NewObject<UMaterial>(Package, "SkyAtmosphereMaterial");
-            SkyAtmosphereMaterial->InitializeResources();
-            SkyAtmosphereMaterial->SetRasterizerState(FRasterizerStateInitializer(FM_Solid, CM_None));
-            SkyAtmosphereMaterial->SetShadingModel(EShadingModel::SM_SkyAtmosphere);
-            SkyAtmosphereMaterial->SetShaderFileVirtualPath("/Shaders/Private/Materials/SkyAtmosphereMaterial_Mat.slang");
-            NPackage::SavePackage(Package);
-        }
-        ASphereActor* SphereActor = World->SpawnActor<ASphereActor>(FTransform::Identity, "test sky sphere");
-        SphereActor->SphereComponent->SetCastShadow(false);
-        SphereActor->SphereComponent->SetRelativeScale3D(FVector(4000));
-        SphereActor->SphereComponent->SetMaterial(SkyAtmosphereMaterial);
-        SphereActor->SphereComponent->SetReflectionProbeBlendMode(EReflectionProbeBlendMode::RPBM_Off);
         ASkyAtmosphereActor* SkyAtmosphereActor = World->SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
-
         AReflectionProbe* SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
         SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(FVector(0));
-        SkyboxReflectionProbe->ReflectionProbeComponent->ShowOnlyActorComponents(SphereActor);
         World->SkyboxReflectionProbe = SkyboxReflectionProbe;
     }
     static void LoadVirtualHeightfieldMesh(UWorld* World)
@@ -238,8 +220,8 @@ namespace nilou {
         TestLoadDependencyPackage();
 
         FTransform CameraActorTransform;
-        CameraActorTransform.SetTranslation(FVector(-2, 0, 2));
-        CameraActorTransform.SetRotator(FRotator(-45, 0, 0));
+        CameraActorTransform.SetTranslation(FVector(0, 0, 0));
+        CameraActorTransform.SetRotator(FRotator(0, 0, 0));
         ACameraActor* CameraActor = SpawnActor<ACameraActor>(CameraActorTransform, "test camera");
         CameraActor->GetCameraComponent()->ScreenResolution = FIntVector2(1600, 900);
 
@@ -248,7 +230,7 @@ namespace nilou {
         ALightActor* DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
         UMaterial::GetDefaultMaterial();
-        AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
+        // AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);

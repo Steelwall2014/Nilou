@@ -11,8 +11,8 @@ struct FAtmosphereMultiScatteringParameters
     Texture2D<float4> TransmittanceLUT;
     Texture3D<float4> ScatteringDensityLUT;
     SamplerState linearSampler;
+    RWTexture3D<float4> ScatteringLUT;
     RWTexture3D<float4> DeltaScatteringLUT;
-    RWTexture3D<float4> MultiScatteringLUT;
 };
 ParameterBlock<FAtmosphereMultiScatteringParameters> Params;
 ParameterBlock<AtmosphereParameters> ATMOSPHERE;
@@ -91,8 +91,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
         Params.linearSampler, 
         frag_coord, 
         nu);
+    Params.ScatteringLUT[threadID] += float4(spectrum, 0);
     Params.DeltaScatteringLUT[threadID] = float4(spectrum, 0);
-    spectrum += Params.MultiScatteringLUT[threadID].rgb;
-    Params.MultiScatteringLUT[threadID] = float4(spectrum, 0);
 }
 

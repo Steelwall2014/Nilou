@@ -19,7 +19,7 @@ struct ShadowMappingParameters
         else if (FrustumIndex >= FrustumCount)
             return 1.0f;
 
-        float4 LightClipNDC = float4(mul(frustums[FrustumIndex].worldToClip, float4(RelativePosition + ViewParameters.CameraPosition, 1.0)));
+        float4 LightClipNDC = float4(mul(float4(RelativePosition + ViewParameters.CameraPosition, 1.0), frustums[FrustumIndex].worldToClip));
         LightClipNDC = ClipToNDC(LightClipNDC);
         float2 ShadowMapUV = float2(LightClipNDC.x, 1.0f - LightClipNDC.y);
         float  SceneLightSpaceDepth = LightClipNDC.z;
@@ -53,7 +53,7 @@ struct ShadowMappingParameters
     float ShadowCalculation(float3 RelativePosition, float bias)
     {
         int FrustumCount = frustums.getCount();
-        float4 ViewSpacePosition = mul(ViewParameters.RelWorldToView, float4(RelativePosition, 1.0f));
+        float4 ViewSpacePosition = mul(float4(RelativePosition, 1.0f), ViewParameters.RelWorldToView);
         float  depth = abs(ViewSpacePosition.z);
         if (depth > frustums[FrustumCount - 1].frustumFarPlane)
             return 1.0f;

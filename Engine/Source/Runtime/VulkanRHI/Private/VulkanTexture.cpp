@@ -215,10 +215,12 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     viewInfo.subresourceRange.aspectMask = GetAspectMaskFromPixelFormat(CreateInfo.Format, false, true);
     viewInfo.image = Texture->Handle;
     viewInfo.format = TranslatePixelFormatToVKFormat(CreateInfo.Format);
-    viewInfo.subresourceRange.baseMipLevel = CreateInfo.BaseMipLevel;
-    viewInfo.subresourceRange.levelCount = CreateInfo.LevelCount;
-    viewInfo.subresourceRange.baseArrayLayer = CreateInfo.BaseArrayLayer;
-    viewInfo.subresourceRange.layerCount = CreateInfo.LayerCount;
+    Ncheckf(CreateInfo.SubresourceRange.IsValid(), "RHICreateTextureView requires an initialized SubresourceRange.");
+    const RHITextureSubresourceRange& SR = CreateInfo.SubresourceRange;
+    viewInfo.subresourceRange.baseMipLevel = SR.MipIndex;
+    viewInfo.subresourceRange.levelCount = SR.NumMips;
+    viewInfo.subresourceRange.baseArrayLayer = SR.ArraySlice;
+    viewInfo.subresourceRange.layerCount = SR.NumArraySlices;
     
     VkImageView Handle{};
     VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &Handle));

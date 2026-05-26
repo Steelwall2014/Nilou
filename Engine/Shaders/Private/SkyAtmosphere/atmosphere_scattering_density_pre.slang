@@ -8,11 +8,9 @@ import RenderCore;
 
 struct FAtmosphereScatteringDensityParameters
 {
-    int scattering_order;
     Texture2D<float4> TransmittanceLUT;
-    Texture3D<float4> SingleScatteringRayleighLUT;
-    Texture3D<float4> SingleScatteringMieLUT;
-    Texture2D<float4> IrradianceLUT;
+    Texture2D<float4> DeltaIrradianceLUT;
+    Texture3D<float4> DeltaScatteringLUT;
     SamplerState linearSampler;
     RWTexture3D<float4> ScatteringDensityLUT;
 };
@@ -22,12 +20,10 @@ ParameterBlock<AtmosphereParameters> ATMOSPHERE;
 RadianceDensitySpectrum ComputeScatteringDensity(
     AtmosphereParameters atmosphere,
     TransmittanceTexture transmittance_texture,
-    ReducedScatteringTexture single_rayleigh_scattering_texture,
-    ReducedScatteringTexture single_mie_scattering_texture,
     ScatteringTexture multiple_scattering_texture,
     IrradianceTexture irradiance_texture,
     SamplerState linearSampler,
-    Length r, Number mu, Number mu_s, Number nu, int scattering_order) {
+    Length r, Number mu, Number mu_s, Number nu) {
 
   // Compute unit direction vectors for the zenith, the view direction omega and
   // and the sun direction omega_s, such that the cosine of the view-zenith
@@ -78,9 +74,8 @@ RadianceDensitySpectrum ComputeScatteringDensity(
       // (n-1)-th order:
       Number nu1 = dot(omega_s, omega_i);
       RadianceSpectrum incident_radiance = GetScattering(atmosphere,
-          single_rayleigh_scattering_texture, single_mie_scattering_texture,
           multiple_scattering_texture, linearSampler, r, omega_i.z, mu_s, nu1,
-          ray_r_theta_intersects_ground, scattering_order - 1);
+          ray_r_theta_intersects_ground);
 
       // and of the contribution from the light paths with n-1 bounces and whose
       // last bounce is on the ground. This contribution is the product of the
@@ -117,12 +112,10 @@ RadianceDensitySpectrum ComputeScatteringDensity(
 RadianceDensitySpectrum ComputeScatteringDensityTexture(
     AtmosphereParameters atmosphere,
     TransmittanceTexture transmittance_texture,
-    ReducedScatteringTexture single_rayleigh_scattering_texture,
-    ReducedScatteringTexture single_mie_scattering_texture,
     ScatteringTexture multiple_scattering_texture,
     IrradianceTexture irradiance_texture,
     SamplerState linearSampler,
-    float3 frag_coord, int scattering_order) {
+    float3 frag_coord) {
   Length r;
   Number mu;
   Number mu_s;
@@ -131,9 +124,7 @@ RadianceDensitySpectrum ComputeScatteringDensityTexture(
   GetRMuMuSNuFromScatteringTextureFragCoord(atmosphere, frag_coord,
       r, mu, mu_s, nu, ray_r_mu_intersects_ground);
   return ComputeScatteringDensity(atmosphere, transmittance_texture,
-      single_rayleigh_scattering_texture, single_mie_scattering_texture,
-      multiple_scattering_texture, irradiance_texture, linearSampler, r, mu, mu_s, nu,
-      scattering_order);
+      multiple_scattering_texture, irradiance_texture, linearSampler, r, mu, mu_s, nu);
 }
 
 
@@ -145,13 +136,10 @@ void main(uint3 threadID : SV_DispatchThreadID)
     RadianceDensitySpectrum density_spectrum = ComputeScatteringDensityTexture(
         ATMOSPHERE, 
         Params.TransmittanceLUT, 
-        Params.SingleScatteringRayleighLUT, 
-        Params.SingleScatteringMieLUT, 
-        Params.SingleScatteringRayleighLUT, 
-        Params.IrradianceLUT, 
+        Params.DeltaScatteringLUT,
+        Params.DeltaIrradianceLUT, 
         Params.linearSampler, 
-        frag_coord, 
-        Params.scattering_order);
+        frag_coord);
     Params.ScatteringDensityLUT[threadID] = float4(density_spectrum, 0);
 }
 

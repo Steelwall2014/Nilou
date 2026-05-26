@@ -16,6 +16,7 @@
 #include "RHI.h"
 #include "Templates/TypeHash.h"
 #include "Templates/RefCounting.h"
+#include "RHISubresource.h"
 
 
 namespace nilou {
@@ -255,12 +256,9 @@ namespace nilou {
 
 	struct RHITextureViewDesc
 	{
-		EPixelFormat Format; 
-		uint32 BaseMipLevel;
-		uint32 LevelCount;
-		uint32 BaseArrayLayer;
-		uint32 LayerCount;
-		ETextureDimension ViewType;
+		RHITextureSubresourceRange SubresourceRange = RHITextureSubresourceRange::MakeSingle();
+		EPixelFormat Format = PF_Unknown;
+		ETextureDimension ViewType = ETextureDimension::Texture2D;
 
 		bool operator==(const RHITextureViewDesc& Other) const = default;
 	};
@@ -341,9 +339,9 @@ namespace nilou {
 		RHITextureViewDesc Desc;
 		RHITexture* Texture;
 
-		int32 GetSizeX() const { return Texture->GetSizeX() >> Desc.BaseMipLevel; }
-		int32 GetSizeY() const { return Texture->GetSizeY() >> Desc.BaseMipLevel; }
-		int32 GetSizeZ() const { return Texture->GetSizeZ() >> Desc.BaseMipLevel; }
+		int32 GetSizeX() const { return Texture->GetSizeX() >> Desc.SubresourceRange.MipIndex; }
+		int32 GetSizeY() const { return Texture->GetSizeY() >> Desc.SubresourceRange.MipIndex; }
+		int32 GetSizeZ() const { return Texture->GetSizeZ() >> Desc.SubresourceRange.MipIndex; }
 	};
 	using RHITextureViewRef = TRefCountPtr<RHITextureView>;
 

@@ -28,7 +28,6 @@ FRDGPooledBufferRef FRDGBufferPool::FindFreeBuffer(const RDGBufferDesc& Desc, co
 		break;
 
 	default:
-		Ncheck(false);
 		break;
 	}
 

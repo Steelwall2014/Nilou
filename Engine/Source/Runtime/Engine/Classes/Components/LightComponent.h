@@ -10,10 +10,10 @@ namespace nilou {
     class FLightSceneInfo;
 
     enum class ELightType {
-        LT_None = 0,
-        LT_Spot = 1,
-        LT_Directional = 2,
-        LT_Point = 3
+        None = 0,
+        Spot = 1,
+        Directional = 2,
+        Point = 3
     };
     
     enum EAttenCurveType {

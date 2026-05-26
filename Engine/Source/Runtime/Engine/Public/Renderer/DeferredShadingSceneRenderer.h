@@ -212,6 +212,8 @@ namespace nilou {
 
         void RenderIndirectLightingPass(RenderGraph& Graph);
 
+        void RenderSkyAtmospherePass(RenderGraph& Graph);
+
         void RenderLightingPass(RenderGraph& Graph);
 
         void RenderViewElementPass(RenderGraph& Graph);

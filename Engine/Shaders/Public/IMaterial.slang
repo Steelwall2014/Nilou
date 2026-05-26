@@ -6,7 +6,6 @@ enum class EShadingModel : uint8_t
     Unlit = 0,
     DefaultLit,
     OceanSubsurface,
-    SkyAtmosphere,
 
     ShadingModelNum
 };

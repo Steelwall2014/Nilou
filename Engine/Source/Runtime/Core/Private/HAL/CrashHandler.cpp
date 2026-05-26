@@ -225,7 +225,6 @@ namespace nilou {
         DWORD ExceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
         const char* ExceptionType = GetExceptionTypeString(ExceptionCode);
         HandleCrash(ExceptionInfo, ExceptionType);
-        system("pause");
 
         // Return EXCEPTION_EXECUTE_HANDLER to terminate the program
         // Return EXCEPTION_CONTINUE_SEARCH to continue searching for other handlers

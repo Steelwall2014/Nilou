@@ -14,7 +14,7 @@ namespace nilou {
     // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
 
     ULightComponent::ULightComponent()
-        : LightType(ELightType::LT_Directional)
+        : LightType(ELightType::Directional)
         , LightIntensity(FVector3f(1.474000, 1.850400, 1.911980)*10.f)
         , bCastShadow(true)
         , ShadowMapResolution(FIntVector2(2048))

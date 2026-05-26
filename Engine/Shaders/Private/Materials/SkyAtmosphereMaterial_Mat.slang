@@ -33,7 +33,7 @@ struct SkyAtmosphereMaterial : IMaterial
     }
     EShadingModel GetShadingModel()
     {
-        return EShadingModel.SkyAtmosphere;
+        return EShadingModel.Unlit;
     }
 };
 

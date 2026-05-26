@@ -28,10 +28,7 @@ RDGTextureViewDesc CreateDescForMipmap(RDGTexture* Texture, int MipmapIndex, int
     RDGTextureViewDesc Desc;
     Desc.ViewType = ETextureDimension::Texture2D;
     Desc.Format = Texture->Desc.Format;
-    Desc.BaseArrayLayer = ArrayIndex;
-    Desc.LayerCount = 1;
-    Desc.BaseMipLevel = MipmapIndex;
-    Desc.LevelCount = 1;
+    Desc.SubresourceRange = RHITextureSubresourceRange::Make(MipmapIndex, 1, ArrayIndex, 1, 0, 1);
     return Desc;
 }
 
