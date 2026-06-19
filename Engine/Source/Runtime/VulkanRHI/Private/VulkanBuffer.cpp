@@ -160,6 +160,17 @@ void FVulkanStagingManager::ReleaseBuffer(RHIBuffer*& StagingBuffer)
 //     }
 // }
 
+void VulkanBuffer::SetName(const std::string& NewName)
+{
+	RHIBuffer::SetName(NewName);
+#if VULKAN_ENABLE_DRAW_MARKERS
+	if (!NewName.empty())
+	{
+		Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_BUFFER, (uint64_t)Handle, NewName.c_str());
+	}
+#endif
+}
+
 VulkanBuffer::~VulkanBuffer()
 {
 	if (Handle)

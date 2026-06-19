@@ -16,7 +16,7 @@ ParameterBlock<SkyAtmosphereLUTs> LUTs;
 
 struct SkyAtmospherePassPixelShaderParameters
 {
-    Sampler2D<float4> Depth;
+    Sampler2D<float> Depth;
     float3 SunDirection;
 }
 ParameterBlock<SkyAtmospherePassPixelShaderParameters> Parameters;
@@ -119,18 +119,27 @@ struct PSInput
 PSOutput MainPS(PSInput input)
 {
     PSOutput output;
+    float2 screenUV = (input.svPosition.xy - ViewParameters.ViewRectMin) * ViewParameters.ViewSizeAndInvSize.zw;
+    float depth = Parameters.Depth.SampleLevelZero(screenUV);
+    if (depth != 1)
+    {
+        output.SceneColor = float4(0);
+        return output;
+    }
     Direction view_ray = GetScreenRelativeWorldDir(input.svPosition);
-    output.SceneColor = float4(view_ray, 1);
-    // float3 transmittance;
-    // output.SceneColor = float4(GetSkyRadiance(
-    //     ATMOSPHERE, 
-    //     LUTs.TransmittanceLUT, 
-    //     LUTs.ScatteringLUT, 
-    //     LUTs.linearSampler, 
-    //     ViewParameters.CameraPosition, 
-    //     view_ray,
-    //     0, 
-    //     Parameters.SunDirection,
-    //     transmittance), 0);
+    view_ray.z = saturate(view_ray.z);
+    view_ray = normalize(view_ray);
+    float3 transmittance;
+    float3 camera = ViewParameters.CameraPosition + float3(0, 0, ATMOSPHERE.bottom_radius);
+    output.SceneColor = float4(GetSkyRadiance(
+        ATMOSPHERE, 
+        LUTs.TransmittanceLUT, 
+        LUTs.ScatteringLUT, 
+        LUTs.linearSampler, 
+        camera, 
+        view_ray,
+        0, 
+        Parameters.SunDirection,
+        transmittance), 0);
     return output;
 }

@@ -1,4 +1,7 @@
 // raster-simple.slang
+//
+// Matrix convention matches VertexShaderCommon.slang / main render pipeline:
+// row vectors with right-multiply, mul(vector, matrix). Upload glm::mat4 without transpose.
 
 struct AssembledVertex
 {
@@ -63,14 +66,14 @@ void vertexMain(
     in uint vertexID : SV_VertexID,
     out float4 projPosition :  SV_Position)
 {
-    float3 worldPosition = mul(model.modelToWorld, float4(assembledVertex.position,1));
+    float3 worldPosition = mul(float4(assembledVertex.position, 1), model.modelToWorld).xyz;
 
     rasterVertex.worldPosition = worldPosition;
-    rasterVertex.worldNormal = mul(model.modelToWorld_inverseTranspose, float4(assembledVertex.normal,0));
+    rasterVertex.worldNormal = mul(float4(assembledVertex.normal, 0), model.modelToWorld_inverseTranspose).xyz;
     rasterVertex.uv = assembledVertex.uv;
 
-    float3 viewPosition = mul(camera.worldToView, float4(worldPosition,1));
-    projPosition = mul(camera.viewToProj, float4(viewPosition,1));
+    float3 viewPosition = mul(float4(worldPosition, 1), camera.worldToView).xyz;
+    projPosition = mul(float4(viewPosition, 1), camera.viewToProj);
 
     float3 normal = rasterVertex.worldNormal;
     float3 albedo = material.albedoMap.Sample(material.sampler, rasterVertex.uv);

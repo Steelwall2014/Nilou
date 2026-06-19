@@ -12,9 +12,6 @@ namespace nilou {
 
     void FDeferredShadingSceneRenderer::RenderPrePass(RenderGraph& Graph)
     {
-        RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
-        RHIRasterizerState* RasterizerState = TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
-        RHIBlendState* BlendState = TStaticBlendState<>::GetRHI();
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
         {
             FSceneView& View = Views[ViewIndex];
@@ -36,6 +33,9 @@ namespace nilou {
                     ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->GetDescriptorSet());
                     ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->GetDescriptorSet());
 
+                    RHIDepthStencilState* DepthStencilState = Mesh.MaterialRenderProxy->DepthStencilState.GetReference();
+                    RHIRasterizerState* RasterizerState = Mesh.MaterialRenderProxy->RasterizerState.GetReference();
+                    RHIBlendState* BlendState = Mesh.MaterialRenderProxy->BlendState.GetReference();
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
                         Graph,

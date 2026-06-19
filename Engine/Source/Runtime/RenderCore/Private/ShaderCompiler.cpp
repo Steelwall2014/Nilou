@@ -94,22 +94,49 @@ namespace nilou {
         }
     }
 
+#if !defined(NDEBUG) || defined(NILOU_DEBUG)
+    static slang::CompilerOptionEntry MakeIntCompilerOption(slang::CompilerOptionName Name, int32_t Value)
+    {
+        slang::CompilerOptionValue ValueDesc = {};
+        ValueDesc.kind = slang::CompilerOptionValueKind::Int;
+        ValueDesc.intValue0 = Value;
+        return { Name, ValueDesc };
+    }
+
+    static void AddSpirvDebugCompilerOptions(std::vector<slang::CompilerOptionEntry>& OutOptions)
+    {
+        // NonSemantic Shader DebugInfo for RenderDoc; requires direct SPIR-V emission.
+        OutOptions.push_back(MakeIntCompilerOption(slang::CompilerOptionName::EmitSpirvDirectly, 1));
+        OutOptions.push_back(MakeIntCompilerOption(slang::CompilerOptionName::DebugInformation, SLANG_DEBUG_INFO_LEVEL_STANDARD));
+        OutOptions.push_back(MakeIntCompilerOption(slang::CompilerOptionName::Optimization, SLANG_OPTIMIZATION_LEVEL_NONE));
+    }
+#endif
+
     Slang::ComPtr<slang::ISession> createSession(const FShaderCompilerEnvironment &Environment)
     {
         initGlobalSessionIfNeeded();
-        
+
+        std::vector<slang::CompilerOptionEntry> SpirvCompilerOptions;
+#if !defined(NDEBUG) || defined(NILOU_DEBUG)
+        AddSpirvDebugCompilerOptions(SpirvCompilerOptions);
+#endif
+
+        slang::TargetDesc SpirvTarget = {};
+        SpirvTarget.format = SLANG_SPIRV;
+        SpirvTarget.profile = GSlangGlobalSession->findProfile("spirv_1_5");
+        if (!SpirvCompilerOptions.empty())
+        {
+            SpirvTarget.compilerOptionEntries = SpirvCompilerOptions.data();
+            SpirvTarget.compilerOptionEntryCount = static_cast<uint32_t>(SpirvCompilerOptions.size());
+        }
+
+        slang::TargetDesc GlslTarget = {};
+        GlslTarget.format = SLANG_GLSL;
+        GlslTarget.profile = GSlangGlobalSession->findProfile("glsl_460"); // for debug
+
+        std::vector<slang::TargetDesc> targets = { SpirvTarget, GlslTarget };
+
         slang::SessionDesc sessionDesc = {};
-        // Targets
-        std::vector<slang::TargetDesc> targets = {
-            {
-                .format = SLANG_SPIRV,
-                .profile = GSlangGlobalSession->findProfile("spirv_1_5")
-            },
-            {
-                .format = SLANG_GLSL,
-                .profile = GSlangGlobalSession->findProfile("glsl_460") // for debug
-            }
-        };
         sessionDesc.targets = targets.data();
         sessionDesc.targetCount = targets.size();
 

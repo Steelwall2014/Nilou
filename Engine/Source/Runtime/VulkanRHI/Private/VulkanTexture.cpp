@@ -93,6 +93,17 @@ VulkanTexture::~VulkanTexture()
     }
 }
 
+void VulkanTexture::SetName(const std::string& NewName)
+{
+    RHITexture::SetName(NewName);
+#if VULKAN_ENABLE_DRAW_MARKERS
+    if (!NewName.empty())
+    {
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE, (uint64_t)Handle, NewName.c_str());
+    }
+#endif
+}
+
 RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& CreateInfo, const std::string& Name)
 {
     VkImageViewCreateInfo viewInfo{};
@@ -173,8 +184,8 @@ RHITextureRef FVulkanDynamicRHI::RHICreateTexture(const FRHITextureCreateInfo& C
         CreateInfo));
 }
 
-VulkanTextureView::VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
-    : RHITextureView(InDesc, InTexture) 
+VulkanTextureView::VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture, const std::string& InDebugName) 
+    : RHITextureView(InDesc, InTexture, InDebugName) 
     , Handle(InHandle)
     , Device(InDevice)
 {
@@ -188,6 +199,17 @@ VulkanTextureView::~VulkanTextureView()
         vkDestroyImageView(Device->Handle, Handle, nullptr);
         Handle = VK_NULL_HANDLE;
     }
+}
+
+void VulkanTextureView::SetName(const std::string& NewName)
+{
+    RHITextureView::SetName(NewName);
+#if VULKAN_ENABLE_DRAW_MARKERS
+    if (!NewName.empty())
+    {
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)Handle, NewName.c_str());
+    }
+#endif
 }
 
 RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture, const FRHITextureViewCreateInfo& CreateInfo, const std::string& Name)
@@ -225,15 +247,18 @@ RHITextureViewRef FVulkanDynamicRHI::RHICreateTextureView(RHITexture* InTexture,
     VkImageView Handle{};
     VK_CHECK_RESULT(vkCreateImageView(Device->Handle, &viewInfo, nullptr, &Handle));
 
-#if VULKAN_ENABLE_DRAW_MARKERS
     std::string ViewName =
         Name.empty()
             ? (InTexture->GetName() + "::TextureView")
             : Name;
-    Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)Handle, ViewName.c_str());
+#if VULKAN_ENABLE_DRAW_MARKERS
+    if (!ViewName.empty())
+    {
+        Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)Handle, ViewName.c_str());
+    }
 #endif
 
-    TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(Device, Handle, CreateInfo, InTexture));
+    TRefCountPtr<VulkanTextureView> TextureView = TRefCountPtr(new VulkanTextureView(Device, Handle, CreateInfo, InTexture, ViewName));
     return TextureView;
 }
 

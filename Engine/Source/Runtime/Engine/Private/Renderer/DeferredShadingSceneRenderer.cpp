@@ -30,20 +30,11 @@ namespace nilou {
     static FMatrix44f MakeScreenToClipMatrix(const FMatrix44f& ProjectionMatrix, ECameraProjectionMode ProjectionMode)
     {
         FMatrix44f Result(1.0f);
-        if (ProjectionMode == ECameraProjectionMode::Perspective)
-        {
-            Result[0] = FVector4f(1.0f, 0.0f, 0.0f, 0.0f);
-            Result[1] = FVector4f(0.0f, 1.0f, 0.0f, 0.0f);
-            Result[2] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][2], ProjectionMatrix[3][2]);
-            Result[3] = FVector4f(0.0f, 0.0f, 1.0f, 0.0f);
-        }
-        else
-        {
-            Result[0] = FVector4f(1.0f, 0.0f, 0.0f, 0.0f);
-            Result[1] = FVector4f(0.0f, 1.0f, 0.0f, 0.0f);
-            Result[2] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][2], ProjectionMatrix[3][2]);
-            Result[3] = FVector4f(0.0f, 0.0f, 0.0f, 1.0f);
-        }
+        const bool bPerspectiveProjection = ProjectionMode == ECameraProjectionMode::Perspective;
+        Result[0] = FVector4f(1.0f, 0.0f, 0.0f, 0.0f);
+        Result[1] = FVector4f(0.0f, 1.0f, 0.0f, 0.0f);
+        Result[2] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][2], bPerspectiveProjection ? 1.0f : 0.0f);
+        Result[3] = FVector4f(0.0f, 0.0f, ProjectionMatrix[2][3], bPerspectiveProjection ? 0.0f : 1.0f);
         return Result;
     }
 
@@ -225,7 +216,7 @@ namespace nilou {
             const FMatrix44f RelClipToWorld = glm::inverse(ViewToClip * RelativeWorldToView);
             ViewUniformBuffer->RelClipToWorld = RelClipToWorld;
             const FMatrix44f ScreenToClip = MakeScreenToClipMatrix(ViewToClip, View.ProjectionMode);
-            ViewUniformBuffer->ScreenToRelativeWorld = ScreenToClip * RelClipToWorld;
+            ViewUniformBuffer->ScreenToRelativeWorld = RelClipToWorld * ScreenToClip;
             ViewUniformBuffer->AbsWorldToClip = ViewToClip * FMatrix44f(WorldToView);
             ViewUniformBuffer->bIsOrthoProjection =
                 View.ProjectionMode == ECameraProjectionMode::Orthographic ? 1u : 0u;

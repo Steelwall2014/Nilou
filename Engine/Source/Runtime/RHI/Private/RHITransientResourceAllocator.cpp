@@ -22,6 +22,7 @@ FRHITransientTexture* RHITransientResourceAllocator::CreateTexture(const FRHITex
 	else 
 	{
 		FRHITransientTexture* Texture = Pool.back(); Pool.pop_back();
+		Texture->GetRHI()->SetName(InDebugName);
 		AllocatedTextures.insert(Texture);
 		return Texture;
 	}
@@ -40,6 +41,7 @@ FRHITransientBuffer* RHITransientResourceAllocator::CreateBuffer(const FRHIBuffe
 	else
 	{
 		FRHITransientBuffer* Buffer = Pool.back(); Pool.pop_back();
+		Buffer->GetRHI()->SetName(InDebugName);
 		AllocatedBuffers.insert(Buffer);
 		return Buffer;
 	}

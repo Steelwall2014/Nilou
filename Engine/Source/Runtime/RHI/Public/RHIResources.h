@@ -57,6 +57,9 @@ namespace nilou {
 		RHIResource(ERHIResourceType InResourceType) : ResourceType(InResourceType) {}
 		virtual ~RHIResource() {};
 
+		virtual std::string GetName() const { return ""; };
+		virtual void SetName(const std::string& NewName) { }
+
 		ERHIResourceType ResourceType;
 	};
 
@@ -78,14 +81,15 @@ namespace nilou {
 		RHIShader(EShaderStage InShaderStage, ERHIResourceType InResourceType, const std::string& InName) 
 			: RHIResource(InResourceType)
 			, ShaderStage(InShaderStage)
-			, Name(InName)
+			, DebugName(InName)
 		{ }
-		std::string Name;
+		std::string DebugName;
 		// std::unordered_map<uint32, TRefCountPtr<RHIDescriptorSetLayout>> DescriptorSetLayouts;
 		// slang::TypeLayoutReflection* Reflection = nullptr;
 		std::optional<RHIPushConstantRange> PushConstantRange;
 		EShaderStage ShaderStage;
-		std::string GetName() const { return Name; }
+		virtual std::string GetName() const override { return DebugName; }
+		virtual void SetName(const std::string& NewName) override { DebugName = NewName; }
 		virtual bool Success() { return false; }
 		virtual void ReleaseRHI() { }
 		// virtual RHIDescriptorSetLayout* GetDescriptorSetLayout(uint32 SetIndex) const
@@ -196,7 +200,8 @@ namespace nilou {
 		uint32 GetSize() const { return Size; }
 		EBufferUsageFlags GetUsage() const { return Usage; }
 		uint32 GetCount() const { return GetSize() / GetStride(); }
-		const std::string& GetName() const { return DebugName; }
+		virtual std::string GetName() const override { return DebugName; }
+		virtual void SetName(const std::string& NewName) override { DebugName = NewName; }
 	protected:
 		uint32 Stride;
 		uint32 Size;
@@ -280,7 +285,7 @@ namespace nilou {
 		RHITexture(const std::string &InTextureName, RHITextureDesc InDesc)
 			: RHIResource(ERHIResourceType::RRT_Texture)
 			, Desc(InDesc)
-			, TextureName(InTextureName)
+			, DebugName(InTextureName)
 		{ }
 		virtual ~RHITexture() {}
 
@@ -295,22 +300,16 @@ namespace nilou {
 		{
 			return Desc.Format;
 		}
-		std::string GetName() const
-		{
-			return TextureName;
-		}
 		const RHITextureDesc& GetDesc() const { return Desc; }
-		void SetName(const std::string &InTextureName)
-		{
-			TextureName = InTextureName;
-		}
+		virtual std::string GetName() const override { return DebugName; }
+		virtual void SetName(const std::string& NewName) override { DebugName = NewName; }
 		ETextureDimension GetTextureType() const { return Desc.TextureType; };
 		uint32 GetNumLayers() const { return Desc.ArraySize; }
 
 		RHITextureView* GetOrCreateView(const FRHITextureViewCreateInfo& CreateInfo) { return ViewCache.GetOrCreateView(this, CreateInfo); }
 
 	protected:
-		std::string TextureName;
+		std::string DebugName;
 		const RHITextureDesc Desc;
 
 		FRHITextureViewCache ViewCache;
@@ -331,10 +330,11 @@ namespace nilou {
 	class RHITextureView : public RHIResource
 	{
 	public:
-		RHITextureView(const RHITextureViewDesc& InDesc, RHITexture* InTexture) 
+		RHITextureView(const RHITextureViewDesc& InDesc, RHITexture* InTexture, const std::string& InDebugName = "")
 			: RHIResource(ERHIResourceType::RRT_TextureView) 
 			, Desc(InDesc)
 			, Texture(InTexture)
+			, DebugName(InDebugName)
 		{ }
 		RHITextureViewDesc Desc;
 		RHITexture* Texture;
@@ -342,6 +342,11 @@ namespace nilou {
 		int32 GetSizeX() const { return Texture->GetSizeX() >> Desc.SubresourceRange.MipIndex; }
 		int32 GetSizeY() const { return Texture->GetSizeY() >> Desc.SubresourceRange.MipIndex; }
 		int32 GetSizeZ() const { return Texture->GetSizeZ() >> Desc.SubresourceRange.MipIndex; }
+		virtual std::string GetName() const override { return DebugName; }
+		virtual void SetName(const std::string& NewName) override { DebugName = NewName; }
+
+	protected:
+		std::string DebugName;
 	};
 	using RHITextureViewRef = TRefCountPtr<RHITextureView>;
 

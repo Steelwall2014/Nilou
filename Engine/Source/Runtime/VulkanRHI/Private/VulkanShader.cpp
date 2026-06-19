@@ -13,7 +13,7 @@ RHIVertexShaderRef FVulkanDynamicRHI::RHICreateVertexShader(const std::string& c
 
     if (Module && result)
     {
-        VulkanVertexShaderRef VulkanShader = TRefCountPtr(new VulkanVertexShader(Device->Handle, DebugName));
+        VulkanVertexShaderRef VulkanShader = TRefCountPtr(new VulkanVertexShader(Device, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
@@ -39,7 +39,7 @@ RHIPixelShaderRef FVulkanDynamicRHI::RHICreatePixelShader(const std::string& cod
 
     if (Module && result)
     {
-        VulkanPixelShaderRef VulkanShader = TRefCountPtr(new VulkanPixelShader(Device->Handle, DebugName));
+        VulkanPixelShaderRef VulkanShader = TRefCountPtr(new VulkanPixelShader(Device, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
@@ -65,7 +65,7 @@ RHIComputeShaderRef FVulkanDynamicRHI::RHICreateComputeShader(const std::string&
 
     if (Module && result)
     {
-        VulkanComputeShaderRef VulkanShader = TRefCountPtr(new VulkanComputeShader(Device->Handle, DebugName));
+        VulkanComputeShaderRef VulkanShader = TRefCountPtr(new VulkanComputeShader(Device, DebugName));
         VulkanShader->Module = Module;
         std::string OutMessage;
         TArrayView<uint8> ByteCode = TArrayView<uint8>((uint8*)shaderc_result_get_bytes(result), shaderc_result_get_length(result));
@@ -96,7 +96,7 @@ TRefCountPtr<TShader> FVulkanDynamicRHI::RHICreateShaderInternal(TArrayView<uint
 #if VULKAN_ENABLE_DRAW_MARKERS
     Device->SetDebugUtilsObjectName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)Module, DebugName.c_str());
 #endif
-    TRefCountPtr<TShader> Shader = TRefCountPtr(new TShader(Device->Handle, DebugName));
+    TRefCountPtr<TShader> Shader = TRefCountPtr(new TShader(Device, DebugName));
     Shader->Module = Module;
     std::string OutMessage;
     // bool bSuccess = RHIReflectShaderInternal(ByteCode, Shader->DescriptorSetLayouts, Shader->PushConstantRange, OutMessage);

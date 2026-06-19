@@ -94,7 +94,8 @@ PSOutput Main(PSInput input)
             output.fragColor = float4(params.baseColor, 1.0f);
             break;
         case EShadingModel.DefaultLit:
-            output.fragColor = float4(ApplyDefaultLit(light, params, visibility) /**transmittance_to_frag + in_scatter*2.5*/, 1.0f);
+            // TODO
+            output.fragColor = float4(ApplyDefaultLit(light, params, 1) /**transmittance_to_frag + in_scatter*2.5*/, 1.0f);
             break;
         // TODO: 大气渲染要移到base pass里
         // case EShadingModel.OceanSubsurface:

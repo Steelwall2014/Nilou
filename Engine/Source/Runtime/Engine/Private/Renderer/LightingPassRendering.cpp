@@ -19,7 +19,7 @@ namespace nilou {
 
             RDGRenderTargets RenderTargets;
             RenderTargets.ColorAttachments[0] = { GBuffer.SceneColor->GetDefaultView(), ERenderTargetLoadAction::Clear, ERenderTargetStoreAction::Store };
-            RenderTargets.DepthStencilAttachment = { GBuffer.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::NoAction };
+            RenderTargets.DepthStencilAttachment = { GBuffer.DepthStencil->GetDefaultView(), ERenderTargetLoadAction::Load, ERenderTargetStoreAction::Store };
             const RHIRenderTargetLayout& RTLayout = RenderTargets.GetRenderTargetLayout();
 
             for (int LightIndex = 0; LightIndex < VisibleLightInfos.size(); LightIndex++)

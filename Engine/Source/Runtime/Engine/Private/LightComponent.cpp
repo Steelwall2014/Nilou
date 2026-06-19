@@ -9,6 +9,15 @@
 
 namespace nilou {
 
+    static FLightAttenuationCurve MakeDefaultInverseSquareAttenCurve()
+    {
+        FLightAttenuationCurve curve{};
+        curve.type = ELightAttenuationCurveType::InverseSquare;
+        curve.scale = 1.f;
+        curve.params = float4(0.f, 1.f, 0.f, 0.f);
+        return curve;
+    }
+
     // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLightAttenParameters)
     // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FShadowMappingParameters)
     // IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLightShaderParameters)
@@ -16,6 +25,8 @@ namespace nilou {
     ULightComponent::ULightComponent()
         : LightType(ELightType::Directional)
         , LightIntensity(FVector3f(1.474000, 1.850400, 1.911980)*10.f)
+        , LightDistAttenuation(MakeDefaultInverseSquareAttenCurve())
+        , LightAngleAttenuation(MakeDefaultInverseSquareAttenCurve())
         , bCastShadow(true)
         , ShadowMapResolution(FIntVector2(2048))
     {
@@ -129,27 +140,25 @@ namespace nilou {
         ScreenAspect = (float)ShadowMapResolution.x / (float)ShadowMapResolution.y;
     }
 
-    void FLightSceneProxy::SetLightDistAttenParams(const FAttenCurve &AttenCurveParam) 
+    void FLightSceneProxy::SetLightDistAttenParams(const FLightAttenuationCurve &AttenCurveParam) 
     { 
         DistAttenCurve = AttenCurveParam;
     }
 
-    void FLightSceneProxy::SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam)
+    void FLightSceneProxy::SetLightAngleAttenParams(const FLightAttenuationCurve &AttenCurveParam)
     {
         AngleAttenCurve = AttenCurveParam;
     }
 
     void FLightSceneProxy::UpdateUniformBuffer(RenderGraph& Graph)
     {
-        LightParams->distAttenCurve.params = *reinterpret_cast<const FVector4f*>(&DistAttenCurve.u);
-        LightParams->distAttenCurve.scale = DistAttenCurve.scale;
-        LightParams->angleAttenCurve.params = *reinterpret_cast<const FVector4f*>(&AngleAttenCurve.u);
-        LightParams->angleAttenCurve.scale = AngleAttenCurve.scale;
+        LightParams->distAttenCurve = DistAttenCurve;
+        LightParams->angleAttenCurve = AngleAttenCurve;
         LightParams->position = FVector3f(Position);
         LightParams->intensity = LightIntensity;
         LightParams->direction = Direction;
         LightParams->castShadow = bCastShadow;
-        LightParams->type = (int)LightType;
+        LightParams->type = LightType;
         Graph.UpdateParameterBlock(LightParams.GetReference());
     }
 }

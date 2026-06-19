@@ -50,6 +50,8 @@ public:
 
     virtual ~VulkanBuffer();
 
+    virtual void SetName(const std::string& NewName) override;
+
     VkBuffer Handle{};
     VkDeviceMemory Memory{};
     VulkanDevice* Device;

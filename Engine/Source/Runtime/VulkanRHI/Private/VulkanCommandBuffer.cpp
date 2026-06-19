@@ -627,7 +627,7 @@ namespace nilou {
         VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
         VulkanCmdList->SignalSemaphores = SemaphoresToSignal;
         VulkanCmdList->WaitSemaphores = SemaphoresToWait;
-        // vkQueueWaitIdle(VulkanCmdList->Queue);
+        vkQueueWaitIdle(VulkanCmdList->Queue);
     }
 
     RHIBuffer* VulkanCommandBuffer::AcquireStagingBuffer(uint32 Size)

@@ -163,9 +163,9 @@ namespace nilou {
     static void LoadSkyAtmosphere(UWorld* World)
     {
         ASkyAtmosphereActor* SkyAtmosphereActor = World->SpawnActor<ASkyAtmosphereActor>(FTransform::Identity, "test atmosphere");
-        AReflectionProbe* SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
-        SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(FVector(0));
-        World->SkyboxReflectionProbe = SkyboxReflectionProbe;
+        // AReflectionProbe* SkyboxReflectionProbe = World->SpawnActor<AReflectionProbe>(FTransform::Identity, "test SkyboxReflectionProbe");
+        // SkyboxReflectionProbe->ReflectionProbeComponent->SetExtent(FVector(0));
+        // World->SkyboxReflectionProbe = SkyboxReflectionProbe;
     }
     static void LoadVirtualHeightfieldMesh(UWorld* World)
     {
@@ -230,7 +230,7 @@ namespace nilou {
         ALightActor* DirectionalLightActor = SpawnActor<ALightActor>(LightActorTransform, "test directional light");
 
         UMaterial::GetDefaultMaterial();
-        // AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
+        AArrowActor* ArrorActor = SpawnActor<AArrowActor>(FTransform::Identity, "test arrow");
         // LoadPBRExibition(this);
 
         LoadSkyAtmosphere(this);

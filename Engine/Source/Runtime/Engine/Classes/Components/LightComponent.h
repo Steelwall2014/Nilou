@@ -9,85 +9,9 @@ namespace nilou {
 
     class FLightSceneInfo;
 
-    enum class ELightType {
-        None = 0,
-        Spot = 1,
-        Directional = 2,
-        Point = 3
-    };
-    
-    enum EAttenCurveType {
-        ACT_None = 0, 
-
-        ACT_Linear = 1,
-
-        ACT_Smooth = 2,
-        
-        ACT_Inverse = 3,
-
-        ACT_InverseSquare = 4
-    };
-    
-    struct FAttenCurve {
-        EAttenCurveType type{ EAttenCurveType::ACT_None };
-        float scale;
-        union AttenCurveParams {
-
-            // float atten = scale * (end_atten - t) / (end_atten - begin_atten)
-            struct LinearParam {
-                float begin_atten;
-                float end_atten;
-            } linear_params;
-
-            
-            // float linear = LinearAtten(t, begin_atten, end_atten);
-            // float atten = scale * 3.0f * pow(linear,2.0f) - 2.0f * pow(linear,3.0f);
-            struct SmoothParam {
-                float begin_atten;
-                float end_atten;
-            } smooth_params;
-
-            
-            // float atten = scale / ( (kl*t) + (kc*scale) ) + offset;
-            struct InverseParam {
-                float offset;
-                float kl;
-                float kc;
-            } inverse_params;
-
-
-            // float atten = pow(scale,2.0f) / ( kq*pow(t,2.0f) + kl*t*scale + kc*pow(scale,2.0f) ) + offset;
-            struct InverseSquareParam {
-                float offset;
-                float kq;       // MUST >0
-                float kl;
-                float kc;
-            } inverse_squre_params;
-        } u;
-
-        FAttenCurve()
-            : type(EAttenCurveType::ACT_InverseSquare)
-            , scale(1.f)
-        {
-            u.inverse_squre_params.offset = 0.0f;
-            u.inverse_squre_params.kq = 1.f;
-            u.inverse_squre_params.kl = 0.f;
-            u.inverse_squre_params.kc = 0.f;
-        }
-    };
-
-    // struct FLightParameters
-    // {
-    //     vec4   LightIntensity;
-    //     ivec2  ShadowMapResolution;
-    //     FAttenCurve LightDistAttenuation;
-    //     FAttenCurve LightAngleAttenuation;
-    //     ELightType  LightType;
-    //     float       Intensity;
-    //     float       NearClipDistance;
-    //     float       FarClipDistance;
-    //     bool        bCastShadow;
-    // };
+    using ELightType = shader::ELightType;
+    using ELightAttenuationCurveType = shader::ELightAttenuationCurveType;
+    using FLightAttenuationCurve = shader::LightAttenuationCurve<Std140Layout>;
 
     class NCLASS ULightComponent : public USceneComponent
     {
@@ -98,8 +22,8 @@ namespace nilou {
         // For other types, the unit is cd
         DEFINE_DYNAMIC_DATA(FVector3f,   LightIntensity)
         DEFINE_DYNAMIC_DATA(FIntVector2, ShadowMapResolution)
-        DEFINE_DYNAMIC_DATA(FAttenCurve, LightDistAttenuation)
-        DEFINE_DYNAMIC_DATA(FAttenCurve, LightAngleAttenuation)
+        DEFINE_DYNAMIC_DATA(FLightAttenuationCurve, LightDistAttenuation)
+        DEFINE_DYNAMIC_DATA(FLightAttenuationCurve, LightAngleAttenuation)
         // DEFINE_DYNAMIC_DATA(ELightType,  LightType)
         DEFINE_DYNAMIC_DATA(bool,        bCastShadow)
         
@@ -146,9 +70,9 @@ namespace nilou {
 
         void SetShadowMapResolution(FIntVector2 ShadowMapResolution);
 
-        void SetLightDistAttenParams(const FAttenCurve &AttenCurveParam);
+        void SetLightDistAttenParams(const FLightAttenuationCurve &AttenCurveParam);
 
-        void SetLightAngleAttenParams(const FAttenCurve &AttenCurveParam);
+        void SetLightAngleAttenParams(const FLightAttenuationCurve &AttenCurveParam);
 
         void UpdateUniformBuffer(RenderGraph& Graph);
 
@@ -164,9 +88,9 @@ namespace nilou {
 
         FIntVector2 ShadowMapResolution;
 
-        FAttenCurve DistAttenCurve;
+        FLightAttenuationCurve DistAttenCurve;
 
-        FAttenCurve AngleAttenCurve;
+        FLightAttenuationCurve AngleAttenCurve;
 
         bool bCastShadow;
 

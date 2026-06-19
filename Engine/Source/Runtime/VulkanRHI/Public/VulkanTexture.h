@@ -25,6 +25,8 @@ public:
     );
     ~VulkanTexture();
 
+    virtual void SetName(const std::string &NewName) override;
+
 };
 
 // Deprecated typenames
@@ -49,9 +51,11 @@ inline VulkanTexture* ResourceCast(RHITexture* Texture)
 class VulkanTextureView : public RHITextureView
 {
 public:
-    VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture);
+    VulkanTextureView(VulkanDevice* InDevice, VkImageView InHandle, const RHITextureViewDesc& InDesc, RHITexture* InTexture, const std::string& InDebugName);
 
     virtual ~VulkanTextureView();
+
+    virtual void SetName(const std::string& NewName) override;
 
     VkImageView GetHandle() const { return Handle; }
 

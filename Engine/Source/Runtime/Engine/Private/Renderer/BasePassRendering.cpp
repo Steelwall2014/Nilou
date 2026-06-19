@@ -13,7 +13,7 @@ namespace nilou {
     IMPLEMENT_GRAPHICS_PIPELINE(FBasePassPipeline)
 
     void FDeferredShadingSceneRenderer::RenderBasePass(RenderGraph& Graph)
-    {    
+    {
         RHIDepthStencilState* DepthStencilState = TStaticDepthStencilState<true, CF_LessEqual>::GetRHI();
         RHIBlendState* BlendState = TStaticBlendState<>::GetRHI();
         for (int ViewIndex = 0; ViewIndex < Views.size(); ViewIndex++)
@@ -45,6 +45,8 @@ namespace nilou {
                     FMeshDrawShaderBindings ShaderBindings = Mesh.MaterialRenderProxy->GetShaderBindings(Graph);
                     ShaderBindings.SetDescriptorSet("ViewParameters", View.ViewUniformBuffer->GetDescriptorSet());
                     ShaderBindings.SetDescriptorSet("PrimitiveParameters", Element.PrimitiveUniformBuffer->GetDescriptorSet());
+
+                    RHIRasterizerState* RasterizerState = Mesh.MaterialRenderProxy->RasterizerState.GetReference();
 
                     FMeshDrawCommand MeshDrawCommand;
                     BuildMeshDrawCommand(
