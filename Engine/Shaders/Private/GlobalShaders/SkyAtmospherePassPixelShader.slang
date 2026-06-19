@@ -130,7 +130,7 @@ PSOutput MainPS(PSInput input)
     view_ray.z = saturate(view_ray.z);
     view_ray = normalize(view_ray);
     float3 transmittance;
-    float3 camera = ViewParameters.CameraPosition + float3(0, 0, ATMOSPHERE.bottom_radius);
+    float3 camera = float3(0, 0, ViewParameters.CameraPosition.z / 1000.0f + ATMOSPHERE.bottom_radius);
     output.SceneColor = float4(GetSkyRadiance(
         ATMOSPHERE, 
         LUTs.TransmittanceLUT, 
