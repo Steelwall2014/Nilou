@@ -1,5 +1,3 @@
-#include <functional>
-#include <set>
 #include <unordered_map>
 #include <filesystem>
 #include <slang.h>
@@ -7,7 +5,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <fstream>
 #include "ShaderReflection.h"
 #include "utils.h"
 
@@ -92,6 +89,103 @@ std::string SimpleMacroReplace(const std::string& Template, const std::string& M
     return Output;
 }
 
+static std::string MapSlangScalarTypeToCppType(slang::TypeReflection::ScalarType ScalarType)
+{
+    switch (ScalarType)
+    {
+    case slang::TypeReflection::ScalarType::Bool:
+        return "bool";
+    case slang::TypeReflection::ScalarType::Int8:
+        return "int8";
+    case slang::TypeReflection::ScalarType::UInt8:
+        return "uint8";
+    case slang::TypeReflection::ScalarType::Int16:
+        return "int16";
+    case slang::TypeReflection::ScalarType::UInt16:
+        return "uint16";
+    case slang::TypeReflection::ScalarType::Int32:
+        return "int32";
+    case slang::TypeReflection::ScalarType::UInt32:
+        return "uint32";
+    case slang::TypeReflection::ScalarType::Int64:
+        return "int64";
+    case slang::TypeReflection::ScalarType::UInt64:
+        return "uint64";
+    default:
+        return "";
+    }
+}
+
+static std::string GetCppEnumUnderlyingTypeName(slang::TypeReflection* EnumType)
+{
+    if (EnumType == nullptr || EnumType->getKind() != slang::TypeReflection::Kind::Enum)
+        return "";
+
+    slang::TypeReflection* UnderlyingType = EnumType->getElementType();
+    if (UnderlyingType == nullptr || UnderlyingType->getKind() != slang::TypeReflection::Kind::Scalar)
+        return "";
+
+    return MapSlangScalarTypeToCppType(UnderlyingType->getScalarType());
+}
+
+static std::string GetCppEnumDeclarationFromReflection(const SlangTypeDeclaration& TypeDecl)
+{
+    std::string Result;
+    Result += "\n";
+    Result += std::format("// Begin {}\n", TypeDecl.TypeName);
+    Result += std::format("enum class {}", TypeDecl.TypeName);
+
+    const std::string UnderlyingTypeName = GetCppEnumUnderlyingTypeName(TypeDecl.Type);
+    if (!UnderlyingTypeName.empty())
+        Result += std::format(" : {}", UnderlyingTypeName);
+
+    Result += "\n{\n";
+
+    int64_t NextImplicitValue = 0;
+    const unsigned int FieldCount = TypeDecl.Type->getFieldCount();
+    for (unsigned int FieldIndex = 0; FieldIndex < FieldCount; ++FieldIndex)
+    {
+        slang::VariableReflection* Field = TypeDecl.Type->getFieldByIndex(FieldIndex);
+        if (Field == nullptr)
+            continue;
+
+        int64_t Value = NextImplicitValue;
+        const bool bHasExplicitValue =
+            Field->hasDefaultValue() &&
+            SLANG_SUCCEEDED(Field->getDefaultValueInt(&Value));
+
+        if (bHasExplicitValue)
+        {
+            Result += std::format("    {} = {},\n", Field->getName(), Value);
+            NextImplicitValue = Value + 1;
+        }
+        else
+        {
+            Result += std::format("    {},\n", Field->getName());
+            ++NextImplicitValue;
+        }
+    }
+
+    Result += "};\n";
+    Result += std::format("// End {}\n", TypeDecl.TypeName);
+    Result += "\n";
+    return Result;
+}
+
+static std::string GetCppEnumDeclaration(const SlangTypeDeclaration& TypeDecl)
+{
+    return GetCppEnumDeclarationFromReflection(TypeDecl);
+}
+
+static slang::TypeReflection* GetDeclaredFieldType(slang::VariableLayoutReflection* FieldLayout)
+{
+    if (FieldLayout == nullptr)
+        return nullptr;
+    if (slang::VariableReflection* Variable = FieldLayout->getVariable())
+        return Variable->getType();
+    return FieldLayout->getType();
+}
+
 // Returns the bare C++ type name for a shader field. Alignment is applied by the caller via
 // `alignas(...)` on the member declaration; we deliberately do NOT wrap the type in TAlignedType
 // here because applying `__declspec(align)` / `__attribute__((aligned))` through a typedef alias
@@ -99,16 +193,27 @@ std::string SimpleMacroReplace(const std::string& Template, const std::string& M
 // (e.g. mie_extinction landing at 188 instead of 192 in AtmosphereParameters<Std140>).
 // For TStaticArray, the per-element alignment is carried by its third template argument and
 // applied inside the container itself, so its element type also stays bare.
-std::string GetFieldTypeName(slang::TypeLayoutReflection* TypeLayout)
+static std::string GetFieldTypeNameFromLayout(slang::TypeLayoutReflection* TypeLayout, slang::TypeReflection* DeclaredType)
 {
     slang::TypeReflection* Type = TypeLayout->getType();
     slang::TypeReflection::Kind Kind = Type->getKind();
+    if (DeclaredType && DeclaredType->getKind() == slang::TypeReflection::Kind::Enum)
+    {
+        return DeclaredType->getName();
+    }
+
     if (Kind == slang::TypeReflection::Kind::Array)
     {
         int ElementCount = Type->getElementCount();
         int Alignment = TypeLayout->getAlignment(slang::ParameterCategory::Uniform);
         slang::TypeLayoutReflection* ElementTypeLayout = TypeLayout->getElementTypeLayout();
-        std::string TypeName = GetFieldTypeName(ElementTypeLayout);
+        // Layout reflection lowers enum arrays to scalar arrays; keep the declared element type
+        // so generated C++ arrays preserve the enum type name.
+        slang::TypeReflection* DeclaredElementType =
+            DeclaredType && DeclaredType->getKind() == slang::TypeReflection::Kind::Array
+                ? DeclaredType->getElementType()
+                : nullptr;
+        std::string TypeName = GetFieldTypeNameFromLayout(ElementTypeLayout, DeclaredElementType);
         return std::format("TStaticArray<{}, {}, {}>", TypeName, ElementCount, Alignment);
     }
     else if (Kind == slang::TypeReflection::Kind::Vector)
@@ -166,6 +271,11 @@ std::string GetFieldTypeName(slang::TypeLayoutReflection* TypeLayout)
     std::cerr << "Not supported type: " << Type->getName() << std::endl;
     assert(false);
     return Type->getName();
+}
+
+std::string GetFieldTypeName(slang::VariableLayoutReflection* FieldLayout)
+{
+    return GetFieldTypeNameFromLayout(FieldLayout->getTypeLayout(), GetDeclaredFieldType(FieldLayout));
 }
 
 static bool MapScalarUniformType(
@@ -438,19 +548,20 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
     for (int FieldIndex = 0; FieldIndex < NumFields; FieldIndex++)
     {
         slang::VariableLayoutReflection* FieldLayout = TypeLayout->getFieldByIndex(FieldIndex);
-        slang::TypeReflection* FieldType = FieldLayout->getType();
+        slang::TypeReflection* FieldType = GetDeclaredFieldType(FieldLayout);
         slang::TypeLayoutReflection* FieldTypeLayout = FieldLayout->getTypeLayout();
         const std::string FieldName = FieldLayout->getName();
 
         switch (FieldType->getKind())
         {
         case slang::TypeReflection::Kind::Scalar:
+        case slang::TypeReflection::Kind::Enum:
         case slang::TypeReflection::Kind::Vector:
         case slang::TypeReflection::Kind::Matrix:
         case slang::TypeReflection::Kind::Array:
         case slang::TypeReflection::Kind::Struct:
         {
-            const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
+            const std::string FieldTypeName = GetFieldTypeName(FieldLayout);
             const int FieldOffset = FieldLayout->getOffset(slang::ParameterCategory::Uniform);
             const int FieldSize = FieldTypeLayout->getSize(slang::ParameterCategory::Uniform);
             const int FieldAlignment = FieldTypeLayout->getAlignment(slang::ParameterCategory::Uniform);
@@ -463,7 +574,7 @@ void EmitCppStructForThisType(SlangTypeDeclaration& TypeDecl, slang::TypeLayoutR
         }
         default:
         {
-            const std::string FieldTypeName = GetFieldTypeName(FieldTypeLayout);
+            const std::string FieldTypeName = GetFieldTypeName(FieldLayout);
             OpaqueFields += std::format("    {} {}{{}};\n", FieldTypeName, FieldName);
             bHasOpaqueField = true;
             break;
@@ -848,6 +959,17 @@ std::string SlangShaderReflectionSession::GetCppStructDeclaration(slang::TypeRef
     {
         Result += std::format("namespace {} {{\n", NamespaceDecl->getName());
     }
+
+    if (TypeDecl->Type->getKind() == slang::TypeReflection::Kind::Enum)
+    {
+        Result += GetCppEnumDeclaration(*TypeDecl);
+        for (auto NamespaceDecl : TypeDecl->NamespaceDecls)
+        {
+            Result += std::format("}} // End of namespace {}\n", NamespaceDecl->getName());
+        }
+        return Result;
+    }
+
     Result += "\n";
     Result += std::format("// Begin {}\n", TypeName);
     Result += std::format("template <EShaderDataLayout DataLayout> struct {} {{}};\n", TypeName);
@@ -871,6 +993,10 @@ std::string SlangShaderReflectionSession::GetCppStructDefinition(slang::TypeRefl
     {
         return "";
     }
+    if (TypeDecl->Type->getKind() == slang::TypeReflection::Kind::Enum)
+    {
+        return "";
+    }
     return TypeDecl->CppMetadata + "\n\n";
 }
 
@@ -881,9 +1007,9 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
         return;
     }
 
-    // Check if this is a struct declaration
     auto Kind = Decl->getKind();
-    if (Kind == slang::DeclReflection::Kind::Struct)
+    if (Kind == slang::DeclReflection::Kind::Struct ||
+        Kind == slang::DeclReflection::Kind::Enum)
     {
         const char* TypeName = Decl->getName(); 
         slang::TypeReflection* Type = Decl->getType();
@@ -918,6 +1044,26 @@ void SlangShaderReflectionSession::CollectTypeDeclarations(slang::IModule* Modul
     }
 }
 
+void SlangShaderReflectionSession::MarkTypeDeclarationUsedInParameterBlock(slang::TypeReflection* Type)
+{
+    if (Type == nullptr)
+        return;
+
+    if (Type->getKind() == slang::TypeReflection::Kind::Array)
+    {
+        MarkTypeDeclarationUsedInParameterBlock(Type->getElementType());
+        return;
+    }
+
+    if (Type->getKind() != slang::TypeReflection::Kind::Enum)
+        return;
+
+    if (auto TypeDecl = GetTypeDeclaration(Type))
+    {
+        TypeDecl->bUsedInParameterBlock = true;
+    }
+}
+
 void SlangShaderReflectionSession::EnumerateStructTypeLayoutsRecursive(slang::TypeLayoutReflection* Container, slang::TypeLayoutReflection* TypeLayout)
 {
     if (TypeLayout == nullptr) return;
@@ -930,6 +1076,7 @@ void SlangShaderReflectionSession::EnumerateStructTypeLayoutsRecursive(slang::Ty
         for (int f = 0; f < fieldCount; f++)
         {
             slang::VariableLayoutReflection* FieldLayout = TypeLayout->getFieldByIndex(f);
+            MarkTypeDeclarationUsedInParameterBlock(GetDeclaredFieldType(FieldLayout));
             EnumerateStructTypeLayoutsRecursive(Container, FieldLayout->getTypeLayout());
         }
 

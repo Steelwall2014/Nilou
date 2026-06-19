@@ -75,6 +75,8 @@ private:
 
     void CollectTypeDeclarations(slang::IModule* Module, std::vector<slang::DeclReflection*>& NamespaceDecls, slang::DeclReflection* Decl);
 
+    void MarkTypeDeclarationUsedInParameterBlock(slang::TypeReflection* Type);
+
     void EnumerateStructTypeLayoutsRecursive(slang::TypeLayoutReflection* Container, slang::TypeLayoutReflection* TypeLayout);
     
 };
