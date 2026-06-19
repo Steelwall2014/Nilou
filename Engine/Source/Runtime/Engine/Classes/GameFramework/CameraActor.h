@@ -22,12 +22,17 @@ namespace nilou {
 
 		void MoveForward(float AxisValue);
 		void MoveRight(float AxisValue);
+		void MoveUp(float AxisValue);
 		void PitchCamera(float AxisValue);
 		void YawCamera(float AxisValue);
-		void RollClockWise(float AxisValue);
-		void Zoom();
+		void BeginFly();
+		void EndFly();
+		void BeginLmbNav();
+		void EndLmbNav();
+		void UpdateCursorCapture();
 		void ToOrigin();
 		void SpeedUp(float AxisValue);
+		void AdjustMovementSpeedByWheel(float AxisValue);
 
         NPROPERTY()
         UCameraComponent* CameraComponent;
@@ -42,11 +47,14 @@ namespace nilou {
 		
 		FVector2 MovementInput = FVector2(0, 0);
 		FVector2 CameraInput = FVector2(0, 0);
-		float CameraRollInput = 0.f;
-		float ZoomFactor;
-		bool bZoomingIn = false;
+		FVector2 LmbInput = FVector2(0, 0);
+		float VerticalMovementInput = 0.f;
+		bool bIsFlying = false;
+		bool bIsLmbNavigating = false;
 		float MovementSpeed = 100.0f;
 		float MouseSensitivity = 0.18f;
+		float DollySensitivity = 0.05f;
+		float MouseWheelSpeedStep = 20.0f;
     };
 
 }

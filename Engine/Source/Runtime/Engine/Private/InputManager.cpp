@@ -1,7 +1,4 @@
 #include "InputManager.h"
-#include "NObject/ObjectMacros.h"
-
-#include <iostream>
 
 //#include "GraphicsManager.h"
 // #include "SceneManager.h"
@@ -76,6 +73,12 @@ namespace nilou {
         //m_KeyStates[AXIS_MOUSEY].Value = yoffset;
         ////m_KeyStates[AXIS_MOUSEY].AccumulateValue += yoffset;
         //m_KeyStates[AXIS_MOUSEY].bDown = true;
+    }
+
+    void InputManager::MouseScroll(float yoffset)
+    {
+        if (checkHasAxisKeyBinding(AXIS_MOUSEWHEEL))
+            m_AxisDelegateMap[AXIS_MOUSEWHEEL].Broadcast(yoffset);
     }
 
     const KeyState &InputManager::GetKeyState(InputKey key)

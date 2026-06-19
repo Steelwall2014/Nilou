@@ -1,63 +1,20 @@
-#include <sstream>
 #include "GameFramework/CameraActor.h"
 #include "BaseApplication.h"
 #include "InputManager.h"
 #include "Math/Maths.h"
-
-#include "Logging/LogMacros.h"
-
-#include "Components/SceneCaptureComponent.h"
+#include "Math/Transform.h"
 
 namespace nilou {
 
     FQuat ROOT_ROTATION(1.f, 0.f, 0.f, 0.f);
-    //FVector ROOT_TRANSLATION(10120, 10120, -20);
     FVector ROOT_TRANSLATION(10, 10, 0);
-    //FVector ROOT_TRANSLATION(10000, 10000, 20);
 
     float MOVEMENTSPEED = 100;
-    // float SPRING_ARM_LENGTH = 0.f;
-    // float CAMERA_FOVY = glm::radians(55.f);
-    // float CAMERA_NEARCLIP = 0.1f;
-    // float CAMERA_FARCLIP = 100000.f;
-    // float CAMERA_PITCH = 0.f;
-    // float CAMERA_YAW = 0.f;
-    // //float CAMERA_YAW = -60.f;
-    // glm::quat CAMERA_RELATIVE_ROTATION(1.f, 0.f, 0.f, 0.f);
-    // vec3 CAMERA_RELATIVE_TRANSLATION(0.f, 0.f, 0.f);
-    // vec3 SpringArm = SPRING_ARM_LENGTH * -WORLD_FORWARD;
-
-    // double accumulate_pitch = CAMERA_PITCH;
 
     ACameraActor::ACameraActor()
     { 
         CameraComponent = CreateComponent<UCameraComponent>(this, "CameraComponent"); 
         CameraComponent->AttachToComponent(GetRootComponent());
-
-		/** TEST SCENE CAPTURE 2D*/
-        {
-            // std::shared_ptr<FImage2D> Image = std::make_shared<FImage2D>(1920, 1080, EPixelFormat::PF_R16G16B16A16F);
-            // UTextureRenderTarget2D* RenderTarget = new UTextureRenderTarget2D("Test");
-            // RenderTarget->ImageData = Image;
-            // RenderTarget->UpdateResource();
-            // SceneCaptureComponent = CreateComponent<USceneCaptureComponent2D>(this); 
-            // SceneCaptureComponent->AttachToComponent(CameraComponent.get());
-            // SceneCaptureComponent->TextureTarget = RenderTarget;
-            // SceneCaptureComponent->VerticalFieldOfView = CameraComponent->VerticalFieldOfView;
-        }
-		/** TEST SCENE CAPTURE 2D*/
-
-		/** TEST SCENE CAPTURE CUBE*/
-        {
-            // std::shared_ptr<FImageCube> Image = std::make_shared<FImageCube>(1024, 1024, EPixelFormat::PF_R16G16B16A16F);
-            // UTextureRenderTargetCube* RenderTarget = new UTextureRenderTargetCube("Test");
-            // RenderTarget->ImageData = Image;
-            // RenderTarget->UpdateResource();
-            // SceneCaptureComponentCube = CreateComponent<USceneCaptureComponentCube>(this); 
-            // SceneCaptureComponentCube->AttachToComponent(CameraComponent.get());
-            // SceneCaptureComponentCube->TextureTarget = RenderTarget;
-        }
-		/** TEST SCENE CAPTURE CUBE*/
 
         InputAxisMapping MoveForward_mapping("MoveForward");
         MoveForward_mapping.AddGroup(InputKey::KEY_W, 1.0f);
@@ -69,26 +26,28 @@ namespace nilou {
         MoveRight_mapping.AddGroup(InputKey::KEY_A, -1.0f);
         GetInputManager()->BindAxis(MoveRight_mapping, this, &ACameraActor::MoveRight);
 
-        // InputAxisMapping RollClockWise_mapping("RollClockWise");
-        // RollClockWise_mapping.AddGroup(InputKey::KEY_E, 1.0f);
-        // RollClockWise_mapping.AddGroup(InputKey::KEY_Q, -1.0f);
-        // GetInputManager()->BindAxis(RollClockWise_mapping, this, &ACameraActor::RollClockWise);
+        InputAxisMapping MoveUp_mapping("MoveUp");
+        MoveUp_mapping.AddGroup(InputKey::KEY_E, 1.0f);
+        MoveUp_mapping.AddGroup(InputKey::KEY_Q, -1.0f);
+        GetInputManager()->BindAxis(MoveUp_mapping, this, &ACameraActor::MoveUp);
 
         InputAxisMapping YawCamera_mapping("YawCamera");
-        YawCamera_mapping.AddGroup(InputKey::KEY_RIGHT, 1.0f);
-        YawCamera_mapping.AddGroup(InputKey::KEY_LEFT, -1.0f);
         YawCamera_mapping.AddGroup(InputKey::AXIS_MOUSEX, 1.0f);
         GetInputManager()->BindAxis(YawCamera_mapping, this, &ACameraActor::YawCamera);
 
         InputAxisMapping PitchCamera_mapping("PitchCamera");
-        PitchCamera_mapping.AddGroup(InputKey::KEY_UP, 1.0f);
-        PitchCamera_mapping.AddGroup(InputKey::KEY_DOWN, -1.0f);
         PitchCamera_mapping.AddGroup(InputKey::AXIS_MOUSEY, 1.0f);
         GetInputManager()->BindAxis(PitchCamera_mapping, this, &ACameraActor::PitchCamera);
 
-        InputActionMapping Zoom_mapping("Zoom");
-        Zoom_mapping.AddGroup(InputKey::KEY_MOUSE_RIGHT);
-        GetInputManager()->BindAction(Zoom_mapping, InputEvent::IE_Pressed, this, &ACameraActor::Zoom);
+        InputActionMapping Fly_mapping("Fly");
+        Fly_mapping.AddGroup(InputKey::KEY_MOUSE_RIGHT);
+        GetInputManager()->BindAction(Fly_mapping, InputEvent::IE_Pressed, this, &ACameraActor::BeginFly);
+        GetInputManager()->BindAction(Fly_mapping, InputEvent::IE_Released, this, &ACameraActor::EndFly);
+
+        InputActionMapping LmbNav_mapping("LmbNav");
+        LmbNav_mapping.AddGroup(InputKey::KEY_MOUSE_LEFT);
+        GetInputManager()->BindAction(LmbNav_mapping, InputEvent::IE_Pressed, this, &ACameraActor::BeginLmbNav);
+        GetInputManager()->BindAction(LmbNav_mapping, InputEvent::IE_Released, this, &ACameraActor::EndLmbNav);
 
         InputActionMapping ToOrigin_mapping("ToOrigin");
         ToOrigin_mapping.AddGroup(InputKey::KEY_KP_0);
@@ -98,57 +57,67 @@ namespace nilou {
         SpeedUp_mapping.AddGroup(InputKey::KEY_PAGEUP, 1.0f);
         SpeedUp_mapping.AddGroup(InputKey::KEY_PAGEDOWN, -1.0f);
         GetInputManager()->BindAxis(SpeedUp_mapping, this, &ACameraActor::SpeedUp);
+
+        InputAxisMapping WheelSpeed_mapping("WheelSpeed");
+        WheelSpeed_mapping.AddGroup(InputKey::AXIS_MOUSEWHEEL, 1.0f);
+        GetInputManager()->BindAxis(WheelSpeed_mapping, this, &ACameraActor::AdjustMovementSpeedByWheel);
     }
 
     void ACameraActor::Tick(double DeltaTime)
     {
         AActor::Tick(DeltaTime);
-        std::stringstream stream;
-        stream << 
-            CameraComponent->GetComponentLocation() << CameraComponent->GetComponentRotation() << "\n"
-            << CameraComponent->GetForwardVector() << CameraComponent->GetRightVector() << CameraComponent->GetUpVector();
-        // stream << GetActorLocation() << GetActorForwardVector();
-        // stream << MovementInput << CameraInput;
-        // NILOU_LOG(Display, stream.str())
-        if (bZoomingIn)
+
+        CameraComponent->VerticalFieldOfView = glm::radians(50.0);
+
+        if (bIsLmbNavigating)
         {
-            CameraComponent->VerticalFieldOfView = glm::radians(2.0);
-        }
-        else
-        {
-            CameraComponent->VerticalFieldOfView = glm::radians(50.0);
-        }
-        // CameraInput.x = 10;
-        // CameraInput.y = 10;
-        {
-            FRotator NewRotation = GetActorRotator();      
-            NewRotation.Yaw += CameraInput.x * MouseSensitivity;
-            SetActorRotator(NewRotation);
+            {
+                FRotator NewRotation = GetActorRotator();
+                NewRotation.Yaw += LmbInput.x * MouseSensitivity;
+                SetActorRotator(NewRotation);
+            }
+
+            {
+                FVector Forward = GetActorForwardVector();
+                FVector DollyDir(Forward.x, Forward.y, 0.0);
+                double DollyLen = glm::length(DollyDir);
+                if (DollyLen > KINDA_SMALL_NUMBER)
+                {
+                    DollyDir /= DollyLen;
+                    FVector NewLocation = GetActorLocation();
+                    NewLocation += DollyDir * (LmbInput.y * DollySensitivity);
+                    SetActorLocation(NewLocation);
+                }
+            }
         }
 
+        if (bIsFlying)
         {
-            FRotator NewRotation = GetActorRotator();
-            NewRotation.Pitch = glm::clamp(NewRotation.Pitch + CameraInput.y*MouseSensitivity, -80.0, 80.0);
-            SetActorRotator(NewRotation);
+            {
+                FRotator NewRotation = GetActorRotator();      
+                NewRotation.Yaw += CameraInput.x * MouseSensitivity;
+                SetActorRotator(NewRotation);
+            }
+
+            {
+                FRotator NewRotation = GetActorRotator();
+                NewRotation.Pitch = glm::clamp(NewRotation.Pitch + CameraInput.y * MouseSensitivity, -80.0, 80.0);
+                SetActorRotator(NewRotation);
+            }
+
+            {
+                FVector NewLocation = GetActorLocation();
+                FVector forward = GetActorForwardVector();
+                FVector right = GetActorRightVector();
+                NewLocation += forward * MovementInput.x * DeltaTime * double(MovementSpeed);
+                NewLocation += right * MovementInput.y * DeltaTime * double(MovementSpeed);
+                NewLocation += WORLD_UP * (VerticalMovementInput * DeltaTime * double(MovementSpeed));
+                SetActorLocation(NewLocation);
+            }
         }
 
-        {
-            FRotator NewRotation = GetActorRotator();
-            NewRotation.Roll += CameraRollInput * DeltaTime * 10.0;
-            SetActorRotator(NewRotation);
-        }
-
-        {
-            FVector NewLocation = GetActorLocation();
-            FVector forward = GetActorForwardVector();
-            FVector right = GetActorRightVector();
-            NewLocation += forward * MovementInput.x * DeltaTime * double(MovementSpeed);
-            NewLocation += right * MovementInput.y * DeltaTime * double(MovementSpeed);
-            SetActorLocation(NewLocation);
-        }
-
-        MovementInput = CameraInput = FVector2(0.f, 0.f);
-        CameraRollInput = 0;
+        MovementInput = CameraInput = LmbInput = FVector2(0.f, 0.f);
+        VerticalMovementInput = 0.f;
     }
 
     FSceneView ACameraActor::CalcSceneView(const FSceneViewFamily& ViewFamily)
@@ -169,41 +138,82 @@ namespace nilou {
 
     void ACameraActor::MoveForward(float AxisValue)
     {
+        if (!bIsFlying)
+            return;
         MovementInput.x = AxisValue;
     }
 
     void ACameraActor::MoveRight(float AxisValue)
     {
+        if (!bIsFlying)
+            return;
         MovementInput.y = AxisValue;
+    }
+
+    void ACameraActor::MoveUp(float AxisValue)
+    {
+        if (!bIsFlying)
+            return;
+        VerticalMovementInput = AxisValue;
     }
 
     void ACameraActor::PitchCamera(float AxisValue)
     {
-        if (GApplication->IsCursorEnabled())
-            return;
-        CameraInput.y += AxisValue;
+        if (bIsFlying)
+            CameraInput.y += AxisValue;
+        else if (bIsLmbNavigating)
+            LmbInput.y += AxisValue;
     }
 
     void ACameraActor::YawCamera(float AxisValue)
     {
-        if (GApplication->IsCursorEnabled())
+        if (bIsFlying)
+            CameraInput.x += AxisValue;
+        else if (bIsLmbNavigating)
+            LmbInput.x += AxisValue;
+    }
+
+    void ACameraActor::UpdateCursorCapture()
+    {
+        GApplication->SetCursorCaptured(bIsFlying || bIsLmbNavigating);
+    }
+
+    void ACameraActor::BeginFly()
+    {
+        if (bIsLmbNavigating)
             return;
-        CameraInput.x += AxisValue;
+        bIsFlying = true;
+        CameraInput = LmbInput = FVector2(0.f, 0.f);
+        UpdateCursorCapture();
     }
 
-    void ACameraActor::RollClockWise(float AxisValue)
+    void ACameraActor::EndFly()
     {
-        CameraRollInput = AxisValue;
+        bIsFlying = false;
+        MovementInput = CameraInput = FVector2(0.f, 0.f);
+        VerticalMovementInput = 0.f;
+        UpdateCursorCapture();
     }
 
-    void ACameraActor::Zoom()
+    void ACameraActor::BeginLmbNav()
     {
-        bZoomingIn = !bZoomingIn;
+        if (bIsFlying)
+            return;
+        bIsLmbNavigating = true;
+        CameraInput = LmbInput = FVector2(0.f, 0.f);
+        UpdateCursorCapture();
+    }
+
+    void ACameraActor::EndLmbNav()
+    {
+        bIsLmbNavigating = false;
+        LmbInput = FVector2(0.f, 0.f);
+        UpdateCursorCapture();
     }
 
     void ACameraActor::ToOrigin()
     {
-        if (GApplication->IsCursorEnabled())
+        if (!bIsFlying)
             return;
         CameraComponent->SetWorldLocation(FVector(10, 10, 0));
     }
@@ -211,6 +221,14 @@ namespace nilou {
     void ACameraActor::SpeedUp(float AxisValue)
     {
         MovementSpeed += AxisValue * 5;
+        MovementSpeed = std::max(MovementSpeed, 1.f);
+    }
+
+    void ACameraActor::AdjustMovementSpeedByWheel(float AxisValue)
+    {
+        if (!bIsFlying)
+            return;
+        MovementSpeed += AxisValue * MouseWheelSpeedStep;
         MovementSpeed = std::max(MovementSpeed, 1.f);
     }
 }

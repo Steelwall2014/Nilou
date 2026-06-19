@@ -17,6 +17,7 @@ namespace nilou {
         virtual void ProcessInput() override;
         virtual void Tick(double DeltaTime) override;
         virtual void Tick_RenderThread() override;
+        virtual void SetCursorCaptured(bool bCaptured) override;
         virtual WindowContext* GetWindowContext() override { return window; }
     private:
         GLFWwindow *window = nullptr;

@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 #include <map>
 #include <set>
 #include <string>
@@ -52,6 +51,7 @@ namespace nilou {
 		KEY_LEFT_ALT,
 		AXIS_MOUSEX,
 		AXIS_MOUSEY,
+		AXIS_MOUSEWHEEL,
 	};
 	struct KeyState
 	{
@@ -157,6 +157,7 @@ namespace nilou {
 		void KeyPressed(InputKey key);
 		void KeyReleased(InputKey key);
 		void MouseMove(float xoffset, float yoffset);
+		void MouseScroll(float yoffset);
 
 		template<class UserClass>
 		void BindAxis(const InputAxisMapping &mapping, UserClass *obj, void (UserClass:: *func)(float))

@@ -4,7 +4,6 @@
 // #include <imgui.h>
 // #include <imgui_impl_glfw.h>
 // #include <imgui_impl_opengl3.h>
-#include <memory>
 
 // #include "DynamicRHI.h"
 
@@ -16,7 +15,10 @@ namespace nilou {
     double lastY;
     double MousePositionX;
     double MousePositionY;
-    bool firstMouse = true;
+    double MouseDeltaX;
+    double MouseDeltaY;
+    bool bHasMousePosition = false;
+    int MouseInputSkipEvents = 1;
     std::unordered_map<InputKey, int> KeyStates;
     bool ScreenResized = false;
 
@@ -121,20 +123,34 @@ namespace nilou {
     {
         MousePositionX = xposIn;
         MousePositionY = yposIn;
-        if (firstMouse)
+
+        if (!bHasMousePosition)
         {
             lastX = MousePositionX;
             lastY = MousePositionY;
-            firstMouse = false;
+            bHasMousePosition = true;
+            return;
         }
-        //GetInputManager()->MouseYMove(yoffset);
+
+        if (MouseInputSkipEvents > 0)
+        {
+            lastX = MousePositionX;
+            lastY = MousePositionY;
+            --MouseInputSkipEvents;
+            return;
+        }
+
+        MouseDeltaX += MousePositionX - lastX;
+        MouseDeltaY += lastY - MousePositionY;
+        lastX = MousePositionX;
+        lastY = MousePositionY;
     }
 
     // glfw: whenever the mouse scroll wheel scrolls, this callback is called
     // ----------------------------------------------------------------------
     void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
     {
-        //GetInputManager()->MouseScroll(static_cast<float>(yoffset));
+        GetInputManager()->MouseScroll(static_cast<float>(yoffset));
     }
 
     GLFWApplication::GLFWApplication()
@@ -235,8 +251,15 @@ namespace nilou {
         glfwSetMouseButtonCallback(window, mouse_button_callback);
         glfwSetScrollCallback(window, scroll_callback);
         glfwSetWindowPos(window, 100, 100);
-        // tell GLFW to capture our mouse
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        CursorEnabled = true;
+        glfwGetCursorPos(window, &MousePositionX, &MousePositionY);
+        lastX = MousePositionX;
+        lastY = MousePositionY;
+        bHasMousePosition = true;
+        MouseDeltaX = 0.0;
+        MouseDeltaY = 0.0;
+        MouseInputSkipEvents = 1;
         GGfxConfig.windowContext = window;
         return true;
     }
@@ -276,16 +299,13 @@ namespace nilou {
 
     void GLFWApplication::DispatchMouseMoveMessage()
     {
-        if (!firstMouse)
-        {
-            float xoffset = MousePositionX - lastX;
-            float yoffset = lastY - MousePositionY;
+        float xoffset = static_cast<float>(MouseDeltaX);
+        float yoffset = static_cast<float>(MouseDeltaY);
+        MouseDeltaX = 0.0;
+        MouseDeltaY = 0.0;
 
-            lastX = MousePositionX;
-            lastY = MousePositionY;
-
+        if (xoffset != 0.f || yoffset != 0.f)
             GetInputManager()->MouseMove(xoffset, yoffset);
-        }
     }
 
     void GLFWApplication::DispatchKeyMessage()
@@ -402,8 +422,8 @@ namespace nilou {
         DISPATCH_KEY_STATE(GLFW_KEY_LEFT_ALT)
 
         DispatchScreenResizeMessage();
-        DispatchMouseMoveMessage();
         DispatchKeyMessage();
+        DispatchMouseMoveMessage();
     }
 
     void GLFWApplication::EnableCursor()
@@ -413,6 +433,41 @@ namespace nilou {
             glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         else
             glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    void GLFWApplication::SetCursorCaptured(bool bCaptured)
+    {
+        if (bCaptured)
+        {
+            CursorEnabled = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+            glfwGetCursorPos(window, &MousePositionX, &MousePositionY);
+            lastX = MousePositionX;
+            lastY = MousePositionY;
+            bHasMousePosition = true;
+            MouseDeltaX = 0.0;
+            MouseDeltaY = 0.0;
+            MouseInputSkipEvents = 3;
+
+            if (glfwRawMouseMotionSupported())
+                glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+        else
+        {
+            if (glfwRawMouseMotionSupported())
+                glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+
+            CursorEnabled = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            glfwGetCursorPos(window, &MousePositionX, &MousePositionY);
+            lastX = MousePositionX;
+            lastY = MousePositionY;
+            bHasMousePosition = true;
+            MouseDeltaX = 0.0;
+            MouseDeltaY = 0.0;
+            MouseInputSkipEvents = 1;
+        }
     }
 
 }

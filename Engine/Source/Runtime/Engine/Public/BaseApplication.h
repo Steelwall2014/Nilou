@@ -29,6 +29,7 @@ namespace nilou {
         virtual void SetWindowWidth(int width);
         virtual void SetWindowHeight(int height);
         virtual bool IsCursorEnabled();
+        virtual void SetCursorCaptured(bool bCaptured) {}
 
         virtual WindowContext* GetWindowContext() { return nullptr; }
 
@@ -42,7 +43,7 @@ namespace nilou {
     protected:
         float deltaTime = 0.0f;
         float accumTime = 0.0f;
-        bool CursorEnabled = false;
+        bool CursorEnabled = true;
         std::unique_ptr<UGameViewportClient> GameViewportClient;
         TMulticastDelegate<FDynamicRHI*, FScene*> PreRenderDelegate;
         TMulticastDelegate<FDynamicRHI*, FScene*> PostRenderDelegate;
