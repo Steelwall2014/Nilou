@@ -306,6 +306,41 @@ public AbstractSpectrum GetScattering(
       scattering_texture.SampleLevel(linearSampler, uvw1, 0.0).rgb * lerp);
 }
 
+// Same lookup as GetScattering but keeps the alpha channel, which in the
+// combined-scattering convention stores the red component of single Mie
+// scattering (used to reconstruct full Mie scattering at runtime).
+public float4 GetScattering4(
+    AtmosphereParameters atmosphere,
+    AbstractScatteringTexture scattering_texture,
+    SamplerState linearSampler,
+    Length r, Number mu, Number mu_s, Number nu,
+    bool ray_r_mu_intersects_ground) {
+  float4 uvwz = GetScatteringTextureUvwzFromRMuMuSNu(
+      atmosphere, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
+  Number tex_coord_x = uvwz.x * Number(SCATTERING_TEXTURE_NU_SIZE - 1);
+  Number tex_x = floor(tex_coord_x);
+  Number lerp = tex_coord_x - tex_x;
+  float3 uvw0 = float3((tex_x + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
+      uvwz.z, uvwz.w);
+  float3 uvw1 = float3((tex_x + 1.0 + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
+      uvwz.z, uvwz.w);
+  return scattering_texture.SampleLevel(linearSampler, uvw0, 0.0) * (1.0 - lerp) +
+      scattering_texture.SampleLevel(linearSampler, uvw1, 0.0) * lerp;
+}
+
+// Reconstructs single Mie scattering from the combined scattering value, where
+// rgb holds Rayleigh single scattering and alpha holds the red component of Mie
+// single scattering. See Bruneton's "Precomputed Atmospheric Scattering".
+public IrradianceSpectrum GetExtrapolatedSingleMieScattering(
+    AtmosphereParameters atmosphere, float4 scattering) {
+  if (scattering.r <= 0.0) {
+    return IrradianceSpectrum(0.0);
+  }
+  return scattering.rgb * scattering.a / scattering.r *
+      (atmosphere.rayleigh_scattering.r / atmosphere.mie_scattering.r) *
+      (atmosphere.mie_scattering / atmosphere.rayleigh_scattering);
+}
+
 public RadianceSpectrum GetScattering(
     AtmosphereParameters atmosphere,
     ReducedScatteringTexture single_rayleigh_scattering_texture,

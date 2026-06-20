@@ -13,6 +13,7 @@ struct FAtmosphereScatteringDensityParameters
     Texture3D<float4> DeltaScatteringLUT;
     SamplerState linearSampler;
     RWTexture3D<float4> ScatteringDensityLUT;
+    uint scattering_order;
 };
 ParameterBlock<FAtmosphereScatteringDensityParameters> Params;
 ParameterBlock<AtmosphereParameters> ATMOSPHERE;
@@ -23,7 +24,8 @@ RadianceDensitySpectrum ComputeScatteringDensity(
     ScatteringTexture multiple_scattering_texture,
     IrradianceTexture irradiance_texture,
     SamplerState linearSampler,
-    Length r, Number mu, Number mu_s, Number nu) {
+    Length r, Number mu, Number mu_s, Number nu,
+    uint scattering_order) {
 
   // Compute unit direction vectors for the zenith, the view direction omega and
   // and the sun direction omega_s, such that the cosine of the view-zenith
@@ -73,9 +75,25 @@ RadianceDensitySpectrum ComputeScatteringDensity(
       // the sum of a term given by the precomputed scattering texture for the
       // (n-1)-th order:
       Number nu1 = dot(omega_s, omega_i);
-      RadianceSpectrum incident_radiance = GetScattering(atmosphere,
-          multiple_scattering_texture, linearSampler, r, omega_i.z, mu_s, nu1,
-          ray_r_theta_intersects_ground);
+      RadianceSpectrum incident_radiance;
+      if (scattering_order == 2) {
+        // The (n-1)-th order is single scattering, stored in the combined
+        // convention (rgb = Rayleigh, alpha = Mie.r) without phase. Reconstruct
+        // the actual radiance by applying the phase functions analytically.
+        float4 single = GetScattering4(atmosphere, multiple_scattering_texture,
+            linearSampler, r, omega_i.z, mu_s, nu1, ray_r_theta_intersects_ground);
+        IrradianceSpectrum rayleigh = single.rgb;
+        IrradianceSpectrum mie =
+            GetExtrapolatedSingleMieScattering(atmosphere, single);
+        incident_radiance = rayleigh * RayleighPhaseFunction(nu1) +
+            mie * MiePhaseFunction(atmosphere.mie_phase_function_g, nu1);
+      } else {
+        // Higher orders read the per-order delta texture, which already holds
+        // raw scattered radiance (phase already incorporated when computed).
+        incident_radiance = GetScattering(atmosphere,
+            multiple_scattering_texture, linearSampler, r, omega_i.z, mu_s, nu1,
+            ray_r_theta_intersects_ground);
+      }
 
       // and of the contribution from the light paths with n-1 bounces and whose
       // last bounce is on the ground. This contribution is the product of the
@@ -115,7 +133,7 @@ RadianceDensitySpectrum ComputeScatteringDensityTexture(
     ScatteringTexture multiple_scattering_texture,
     IrradianceTexture irradiance_texture,
     SamplerState linearSampler,
-    float3 frag_coord) {
+    float3 frag_coord, uint scattering_order) {
   Length r;
   Number mu;
   Number mu_s;
@@ -124,7 +142,8 @@ RadianceDensitySpectrum ComputeScatteringDensityTexture(
   GetRMuMuSNuFromScatteringTextureFragCoord(atmosphere, frag_coord,
       r, mu, mu_s, nu, ray_r_mu_intersects_ground);
   return ComputeScatteringDensity(atmosphere, transmittance_texture,
-      multiple_scattering_texture, irradiance_texture, linearSampler, r, mu, mu_s, nu);
+      multiple_scattering_texture, irradiance_texture, linearSampler, r, mu, mu_s, nu,
+      scattering_order);
 }
 
 
@@ -139,7 +158,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
         Params.DeltaScatteringLUT,
         Params.DeltaIrradianceLUT, 
         Params.linearSampler, 
-        frag_coord);
+        frag_coord,
+        Params.scattering_order);
     Params.ScatteringDensityLUT[threadID] = float4(density_spectrum, 0);
 }
 

@@ -86,8 +86,10 @@ void main(uint3 threadID : SV_DispatchThreadID)
         r, mu, mu_s, nu, ray_r_mu_intersects_ground);
     ComputeSingleScattering(ATMOSPHERE, Params.TransmittanceLUT, Params.linearSampler,
         r, mu, mu_s, nu, ray_r_mu_intersects_ground, rayleigh, mie);
-    Params.ScatteringLUT[threadID] = float4(
-        rayleigh * RayleighPhaseFunction(nu) +
-        mie * MiePhaseFunction(ATMOSPHERE.mie_phase_function_g, nu), 0);
+    // Combined-scattering convention (Bruneton): store Rayleigh single scattering
+    // (without phase) in rgb and the red channel of Mie single scattering in
+    // alpha. Phase functions are applied analytically at runtime so the sharp
+    // Mie forward peak is not undersampled along the low-resolution nu axis.
+    Params.ScatteringLUT[threadID] = float4(rayleigh, mie.r);
 }
 

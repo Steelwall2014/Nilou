@@ -26,22 +26,13 @@ IrradianceSpectrum GetCombinedScattering(
     ReducedScatteringTexture scattering_texture,
     SamplerState linearSampler,
     Length r, Number mu, Number mu_s, Number nu,
-    bool ray_r_mu_intersects_ground) {
-  float4 uvwz = GetScatteringTextureUvwzFromRMuMuSNu(
-      atmosphere, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
-  Number tex_coord_x = uvwz.x * Number(SCATTERING_TEXTURE_NU_SIZE - 1);
-  Number tex_x = floor(tex_coord_x);
-  Number lerp = tex_coord_x - tex_x;
-  float3 uvw0 = float3((tex_x + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
-      uvwz.z, uvwz.w);
-  float3 uvw1 = float3((tex_x + 1.0 + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
-      uvwz.z, uvwz.w);
-
-  IrradianceSpectrum scattering = IrradianceSpectrum(
-      scattering_texture.SampleLevel(linearSampler, uvw0, 0.0).rgb * (1.0 - lerp) +
-      scattering_texture.SampleLevel(linearSampler, uvw1, 0.0).rgb * lerp);
-
-  return scattering;
+    bool ray_r_mu_intersects_ground,
+    out IrradianceSpectrum single_mie_scattering) {
+  float4 combined = GetScattering4(
+      atmosphere, scattering_texture, linearSampler, r, mu, mu_s, nu,
+      ray_r_mu_intersects_ground);
+  single_mie_scattering = GetExtrapolatedSingleMieScattering(atmosphere, combined);
+  return IrradianceSpectrum(combined.rgb);
 }
 
 RadianceSpectrum GetSkyRadiance(
@@ -78,11 +69,13 @@ RadianceSpectrum GetSkyRadiance(
   transmittance = ray_r_mu_intersects_ground ? DimensionlessSpectrum(0.0) :
       GetTransmittanceToTopAtmosphereBoundary(
           atmosphere, transmittance_texture, linearSampler, r, mu);
+  IrradianceSpectrum single_mie_scattering;
   IrradianceSpectrum scattering;
   if (shadow_length == 0.0 * m) {
     scattering = GetCombinedScattering(
         atmosphere, scattering_texture,
-        linearSampler, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
+        linearSampler, r, mu, mu_s, nu, ray_r_mu_intersects_ground,
+        single_mie_scattering);
   } else {
     // Case of light shafts (shadow_length is the total length noted l in our
     // paper): we omit the scattering between the camera and the point at
@@ -96,13 +89,18 @@ RadianceSpectrum GetSkyRadiance(
 
     scattering = GetCombinedScattering(
         atmosphere, scattering_texture,
-        linearSampler, r_p, mu_p, mu_s_p, nu, ray_r_mu_intersects_ground);
+        linearSampler, r_p, mu_p, mu_s_p, nu, ray_r_mu_intersects_ground,
+        single_mie_scattering);
     DimensionlessSpectrum shadow_transmittance =
         GetTransmittance(atmosphere, transmittance_texture, linearSampler,
             r, mu, shadow_length, ray_r_mu_intersects_ground);
     scattering = scattering * shadow_transmittance;
+    single_mie_scattering = single_mie_scattering * shadow_transmittance;
   }
-  return scattering;
+  // Apply the phase functions analytically at runtime (avoids undersampling the
+  // sharp Mie forward peak along the low-resolution nu axis of the LUT).
+  return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
+      MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
 }
 
 struct PSOutput
@@ -127,11 +125,9 @@ PSOutput MainPS(PSInput input)
         return output;
     }
     Direction view_ray = GetScreenRelativeWorldDir(input.svPosition);
-    view_ray.z = saturate(view_ray.z);
-    view_ray = normalize(view_ray);
     float3 transmittance;
-    float3 camera = float3(0, 0, ViewParameters.CameraPosition.z / 1000.0f + ATMOSPHERE.bottom_radius);
-    output.SceneColor = float4(GetSkyRadiance(
+    float3 camera = ViewParameters.CameraPosition / 1000.0f + float3(0, 0, ATMOSPHERE.bottom_radius);
+    float3 color = GetSkyRadiance(
         ATMOSPHERE, 
         LUTs.TransmittanceLUT, 
         LUTs.ScatteringLUT, 
@@ -140,6 +136,11 @@ PSOutput MainPS(PSInput input)
         view_ray,
         0, 
         Parameters.SunDirection,
-        transmittance), 0);
+        transmittance);
+    if (dot(Parameters.SunDirection, view_ray) > cos(ATMOSPHERE.sun_angular_radius))
+	{
+        color += transmittance * GetSolarRadiance(ATMOSPHERE);
+	}
+    output.SceneColor = float4(color, 1);
     return output;
 }

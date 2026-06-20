@@ -91,7 +91,10 @@ void main(uint3 threadID : SV_DispatchThreadID)
         Params.linearSampler, 
         frag_coord, 
         nu);
-    Params.ScatteringLUT[threadID] += float4(spectrum, 0);
+    // Accumulate into the combined texture divided by the Rayleigh phase, since
+    // the runtime multiplies the rgb channels by RayleighPhaseFunction(nu).
+    // The per-order delta keeps the raw radiance for the next density pass.
+    Params.ScatteringLUT[threadID] += float4(spectrum / RayleighPhaseFunction(nu), 0);
     Params.DeltaScatteringLUT[threadID] = float4(spectrum, 0);
 }
 

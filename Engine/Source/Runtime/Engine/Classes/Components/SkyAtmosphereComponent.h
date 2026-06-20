@@ -97,8 +97,8 @@ namespace nilou {
 		void DispatchTransmittancePass(RenderGraph& Graph);
 		void DispatchDirectIrradiancePass(RenderGraph& Graph);
 		void DispatchScatteringPass(RenderGraph& Graph);
-		RDGTexture* DispatchScatteringDensityPass(RenderGraph& Graph, RDGTexture* DeltaIrradianceLUT, RDGTexture* DeltaScatteringLUT);
-		RDGTexture* DispatchIndirectIrradiancePass(RenderGraph& Graph, RDGTexture* DeltaScatteringLUT);
+		RDGTexture* DispatchScatteringDensityPass(RenderGraph& Graph, int ScatteringOrder, RDGTexture* DeltaIrradianceLUT, RDGTexture* DeltaScatteringLUT);
+		RDGTexture* DispatchIndirectIrradiancePass(RenderGraph& Graph, int ScatteringOrder, RDGTexture* DeltaScatteringLUT);
 		RDGTexture* DispatchMultiScatteringPass(RenderGraph& Graph, RDGTexture* ScatteringDensityLUT);
     };
 
