@@ -7,16 +7,20 @@ namespace nilou {
     {
 		GENERATED_BODY()
     public:
-        ALightActor() 
-        { 
-            LightComponent = CreateComponent<ULightComponent>(this, "LightComponent"); 
-            LightComponent->AttachToComponent(GetRootComponent());
-        }
+        ALightActor();
 
-
+        virtual void Tick(double DeltaTime) override;
 
         NPROPERTY()
         ULightComponent* LightComponent;
+
+    protected:
+        void RotateSunYaw(float AxisValue);
+        void RotateSunPitch(float AxisValue);
+
+        float SunYawInput = 0.f;
+        float SunPitchInput = 0.f;
+        float SunRotationSpeed = 60.0f;
     };
 
 }
