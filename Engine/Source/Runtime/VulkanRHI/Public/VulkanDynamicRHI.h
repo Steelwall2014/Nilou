@@ -96,6 +96,7 @@ public:
     virtual RHICommandList* RHICreateComputeCommandList() override;
     virtual RHICommandList* RHICreateTransferCommandList() override;
     virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) override;
+    virtual void RHIQueueWaitIdle(ERHIPipeline Pipeline) override;
 
     VulkanDevice* Device = nullptr;
     VkPhysicalDeviceProperties GpuProps;

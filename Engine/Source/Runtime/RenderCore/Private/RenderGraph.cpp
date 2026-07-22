@@ -707,6 +707,7 @@ void RenderGraph::Execute()
 			RHICmdList = RHICreateTransferCommandList();
 		CollectPassDescriptorSets(PassHandle);
 		ExecuteSerialPass(*RHICmdList, Pass);
+		GDynamicRHI->RHIQueueWaitIdle(ERHIPipeline::All); // TODO: 找到哪个地方同步有问题
 	}
 
 }

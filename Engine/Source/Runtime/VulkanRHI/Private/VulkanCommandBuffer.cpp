@@ -627,7 +627,23 @@ namespace nilou {
         VulkanCmdList->State = VulkanCommandBuffer::EState::Submitted;
         VulkanCmdList->SignalSemaphores = SemaphoresToSignal;
         VulkanCmdList->WaitSemaphores = SemaphoresToWait;
-        vkQueueWaitIdle(VulkanCmdList->Queue);
+        // vkQueueWaitIdle(VulkanCmdList->Queue);
+    }
+
+    void FVulkanDynamicRHI::RHIQueueWaitIdle(ERHIPipeline Pipeline)
+    {
+        if (EnumHasAnyFlags(Pipeline, ERHIPipeline::Graphics))
+        {
+            vkQueueWaitIdle(Device->GfxQueue->Handle);
+        }
+        if (EnumHasAnyFlags(Pipeline, ERHIPipeline::AsyncCompute))
+        {
+            vkQueueWaitIdle(Device->ComputeQueue->Handle);
+        }
+        if (EnumHasAnyFlags(Pipeline, ERHIPipeline::Copy))
+        {
+            vkQueueWaitIdle(Device->TransferQueue->Handle);
+        }
     }
 
     RHIBuffer* VulkanCommandBuffer::AcquireStagingBuffer(uint32 Size)

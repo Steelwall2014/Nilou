@@ -104,6 +104,7 @@ namespace nilou {
     	virtual RHICommandList* RHICreateComputeCommandList() = 0;
     	virtual RHICommandList* RHICreateTransferCommandList() = 0;
 		virtual void RHISubmitCommandList(RHICommandList* RHICmdList, const std::vector<RHISemaphoreRef>& SemaphoresToWait, const std::vector<RHISemaphoreRef>& SemaphoresToSignal) = 0;
+		virtual void RHIQueueWaitIdle(ERHIPipeline Pipeline) = 0;
 
 	protected:
 		static FIntVector SparseTextureTileSizes[(int)ETextureDimension::TextureDimensionsNum][(int)EPixelFormat::PF_MAX];
